@@ -182,7 +182,8 @@ func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference1(t *testing.T) {
 	scheme := runtime.NewScheme()
-	cluv1alpha1.AddToScheme(scheme)
+	err := cluv1alpha1.AddToScheme(scheme)
+	assert.NoError(t, err, "Unexpected error adding to scheme")
 	client := ctrlfake.NewFakeClientWithScheme(scheme)
 
 	defaulter := &IstioWebhook{
@@ -199,7 +200,7 @@ func TestHandleAppConfigOnwerReference1(t *testing.T) {
 		Version:  "v1alpha2",
 		Resource: "applicationconfigurations",
 	}
-	_, err := defaulter.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
+	_, err = defaulter.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating application config")
 
 	// Create a pod without specifying a service account
@@ -254,7 +255,8 @@ func TestHandleAppConfigOnwerReference1(t *testing.T) {
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference2(t *testing.T) {
 	scheme := runtime.NewScheme()
-	cluv1alpha1.AddToScheme(scheme)
+	err := cluv1alpha1.AddToScheme(scheme)
+	assert.NoError(t, err, "Unexpected error adding to scheme")
 	client := ctrlfake.NewFakeClientWithScheme(scheme)
 
 	defaulter := &IstioWebhook{
@@ -338,7 +340,8 @@ func TestHandleAppConfigOnwerReference2(t *testing.T) {
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference3(t *testing.T) {
 	scheme := runtime.NewScheme()
-	cluv1alpha1.AddToScheme(scheme)
+	err := cluv1alpha1.AddToScheme(scheme)
+	assert.NoError(t, err, "Unexpected error adding to scheme")
 	client := ctrlfake.NewFakeClientWithScheme(scheme)
 
 	defaulter := &IstioWebhook{
@@ -478,7 +481,8 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference4(t *testing.T) {
 	scheme := runtime.NewScheme()
-	cluv1alpha1.AddToScheme(scheme)
+	err := cluv1alpha1.AddToScheme(scheme)
+	assert.NoError(t, err, "Unexpected error adding to scheme")
 	client := ctrlfake.NewFakeClientWithScheme(scheme)
 
 	defaulter := &IstioWebhook{
@@ -599,6 +603,106 @@ func TestHandleAppConfigOnwerReference4(t *testing.T) {
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa")
+}
+
+// TestHandleProjectMatch tests handling an admission.Request
+// GIVEN a IstioWebhook and an admission.Request
+//  WHEN Handle is called with an admission.Request containing a pod resource with a parent appconfig owner reference
+//	  and a project that matches the namespace of pod resource
+//  THEN Handle should return an Allowed response with patch values
+func TestHandleProjectMatch(t *testing.T) {
+	scheme := runtime.NewScheme()
+	err := cluv1alpha1.AddToScheme(scheme)
+	assert.NoError(t, err, "Unexpected error adding to scheme")
+	client := ctrlfake.NewFakeClientWithScheme(scheme)
+
+	defaulter := &IstioWebhook{
+		Client:        client,
+		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+		KubeClient:    fake.NewSimpleClientset(),
+		IstioClient:   istiofake.NewSimpleClientset(),
+	}
+
+	// Create a project referencing the default namespace
+	project := &cluv1alpha1.VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-project",
+			Namespace: "verrazzano-mc",
+		},
+		Spec: cluv1alpha1.VerrazzanoProjectSpec{
+			Template: cluv1alpha1.ProjectTemplate{
+				Namespaces: []cluv1alpha1.NamespaceTemplate{
+					{Metadata: metav1.ObjectMeta{
+						Name: "default",
+					}},
+				},
+			},
+			Placement: cluv1alpha1.Placement{
+				Clusters: []cluv1alpha1.Cluster{
+					{
+						Name: "local",
+					},
+				},
+			},
+		},
+	}
+	err = client.Create(context.TODO(), project)
+	assert.NoError(t, err, "Unexpected error creating verrazzano project")
+
+	// Create an applicationConfiguration resource
+	u := newUnstructured("core.oam.dev/v1alpha2", "ApplicationConfiguration", "test-appconfig")
+	resource := schema.GroupVersionResource{
+		Group:    "core.oam.dev",
+		Version:  "v1alpha2",
+		Resource: "applicationconfigurations",
+	}
+
+	_, err = defaulter.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
+	assert.NoError(t, err, "Unexpected error creating application config")
+
+	// Create a pod without specifying a service account
+	p := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Name:       "test-appconfig",
+					Kind:       "ApplicationConfiguration",
+					APIVersion: "core.oam.dev/v1alpha2",
+				},
+			},
+		},
+	}
+	pod, err := defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
+	assert.NoError(t, err, "Unexpected error creating pod")
+
+	decoder := decoder()
+	err = defaulter.InjectDecoder(decoder)
+	assert.NoError(t, err, "Unexpected error injecting decoder")
+	req := admission.Request{}
+	req.Namespace = "default"
+	marshaledPod, err := json.Marshal(pod)
+	assert.NoError(t, err, "Unexpected error marshaling pod")
+	req.Object = runtime.RawExtension{Raw: marshaledPod}
+	res := defaulter.Handle(context.TODO(), req)
+	assert.True(t, res.Allowed)
+	assert.NotEmpty(t, res.Patches)
+
+	// Get the authorization policy resource we created and do some validations
+	authPolicy, err := defaulter.IstioClient.SecurityV1beta1().AuthorizationPolicies("default").Get(context.TODO(), "test-appconfig", metav1.GetOptions{})
+	assert.NoError(t, err, "Unexpected error getting authorization policy")
+	assert.Equal(t, authPolicy.Name, "test-appconfig")
+	assert.Equal(t, authPolicy.Namespace, "default")
+	assert.Contains(t, authPolicy.Labels, IstioAppLabel)
+	assert.Equal(t, authPolicy.GetOwnerReferences()[0].Name, "test-appconfig")
+	assert.Equal(t, authPolicy.GetOwnerReferences()[0].Kind, "ApplicationConfiguration")
+	assert.Equal(t, authPolicy.GetOwnerReferences()[0].APIVersion, "core.oam.dev/v1alpha2")
+	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
+	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 3)
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig")
 }
 
 func newUnstructured(apiVersion string, kind string, name string) *unstructured.Unstructured {
