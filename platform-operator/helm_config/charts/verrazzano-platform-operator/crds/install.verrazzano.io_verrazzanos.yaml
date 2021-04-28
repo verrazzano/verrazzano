@@ -127,8 +127,14 @@ spec:
                         - dnsZoneOCID
                         - ociConfigSecret
                         type: object
-                      xip.io:
-                        description: DNS type of xip.io.  This is the default.
+                      wildcard:
+                        description: DNS type of wildcard.  This is the default.
+                        properties:
+                          domain:
+                            description: DNS wildcard domain (xip.io, nip.io, etc.)
+                            type: string
+                        required:
+                        - domain
                         type: object
                     type: object
                   elasticsearch:

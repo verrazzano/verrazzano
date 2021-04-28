@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"reflect"
 	"strings"
 
@@ -18,6 +17,7 @@ import (
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
@@ -719,6 +719,7 @@ func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait
 // For example: cars.example.com
 func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
 	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
+	const wildcardDomainKey = "verrazzano.io/dns.wildcard.domain"
 
 	// Extract the domain name from the verrazzano ingress
 	ingress := k8net.Ingress{}
@@ -733,9 +734,17 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 
 	domain := externalDNSAnno[len(constants.VzConsoleIngress)+1:]
 
-	// If this is xip.io then build the domain name using Istio info
-	if strings.HasSuffix(domain, "xip.io") {
-		domain, err = buildDomainNameForXIPIO(cli, trait)
+	// Get the DNS wildcard domain from the annotation if it exist.  This annotation is only available
+	// when the install is using DNS type wildcard (xip.io, nip.io, etc.)
+	suffix := ""
+	wildcardDomainAnno, ok := ingress.Annotations[wildcardDomainKey]
+	if ok {
+		suffix = wildcardDomainAnno
+	}
+
+	// Build the domain name using Istio info
+	if len(suffix) != 0 {
+		domain, err = buildDomainNameForWildcard(cli, trait, suffix)
 		if err != nil {
 			return "", err
 		}
@@ -743,9 +752,9 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	return fmt.Sprintf("%s.%s", trait.Namespace, domain), nil
 }
 
-// buildDomainNameForXIPIO generates a domain name in the format of "<IP>.xip.io"
+// buildDomainNameForWildcard generates a domain name in the format of "<IP>.<wildcard-domain>"
 // Get the IP from Istio resources
-func buildDomainNameForXIPIO(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
+func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, suffix string) (string, error) {
 	const istioIngressGateway = "istio-ingressgateway"
 	const istioNamespace = "istio-system"
 
@@ -777,6 +786,6 @@ func buildDomainNameForXIPIO(cli client.Reader, trait *vzapi.IngressTrait) (stri
 	} else {
 		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(istio.Spec.Type))
 	}
-	domain := IP + "." + "xip.io"
+	domain := IP + "." + suffix
 	return domain, nil
 }

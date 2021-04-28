@@ -82,14 +82,7 @@ const WlsFluentdParsingRules = `<match fluent.**>
   </record>
 </filter>
 <match **>
-  @type elasticsearch
-  hosts "#{ENV['ELASTICSEARCH_URL']}"{{ .CAFile}}
-  user "#{ENV['ELASTICSEARCH_USER']}"
-  password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "` + ElasticSearchIndex + `"
-  key_name timestamp 
-  types timestamp:time
-  include_timestamp true
+  @type stdout
 </match>
 `
 

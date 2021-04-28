@@ -36,8 +36,8 @@ const (
 type DNSType string
 
 const (
-	// DNSTypeXip is for the dns type xip (magic dns)
-	DNSTypeXip DNSType = "xip.io"
+	// DNSTypeWildcard is for the dns type wildcard (magic dns)
+	DNSTypeWildcard DNSType = "wildcard"
 	// DNSTypeOci is for the dns type OCI
 	DNSTypeOci DNSType = "oci"
 	// DNSTypeExternal is for dns type external (e.g. olcne)
@@ -119,6 +119,11 @@ type Ingress struct {
 	Application Application `json:"application,omitempty"`
 }
 
+// WildcardDNS configuration
+type WildcardDNS struct {
+	Domain string `json:"domain"`
+}
+
 // ExternalDNS configuration
 type ExternalDNS struct {
 	Suffix string `json:"suffix"`
@@ -150,6 +155,7 @@ type DNSOCI struct {
 // DNS configuration for a Verrazzano installation
 type DNS struct {
 	Type     DNSType      `json:"type"`
+	Wildcard *WildcardDNS `json:"wildcard,omitempty"`
 	External *ExternalDNS `json:"external,omitempty"`
 	Oci      *DNSOCI      `json:"oci,omitempty"`
 }
@@ -208,6 +214,14 @@ func GetInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, er
 func getDNSConfig(vz *installv1alpha1.Verrazzano) DNS {
 	dns := vz.Spec.Components.DNS
 	if dns != nil {
+		if dns.Wildcard != nil {
+			return DNS{
+				Type: DNSTypeWildcard,
+				Wildcard: &WildcardDNS{
+					Domain: vz.Spec.Components.DNS.Wildcard.Domain,
+				},
+			}
+		}
 		if dns.External != nil {
 			return DNS{
 				Type: DNSTypeExternal,
@@ -228,8 +242,12 @@ func getDNSConfig(vz *installv1alpha1.Verrazzano) DNS {
 			}
 		}
 	}
+
 	return DNS{
-		Type: DNSTypeXip,
+		Type: DNSTypeWildcard,
+		Wildcard: &WildcardDNS{
+			Domain: "xip.io",
+		},
 	}
 }
 

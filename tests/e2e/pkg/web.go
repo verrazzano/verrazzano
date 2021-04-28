@@ -220,6 +220,13 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 		tr.Proxy = http.ProxyURL(tURLProxy)
 	}
 
+	// disable the custom DNS resolver
+	// setupCustomDNSResolver(tr, kubeconfigPath)
+
+	return &http.Client{Transport: tr}
+}
+
+func setupCustomDNSResolver(tr *http.Transport, kubeconfigPath string) {
 	ipResolve := getNginxNodeIP(kubeconfigPath)
 	if ipResolve != "" {
 		dialer := &net.Dialer{
@@ -228,13 +235,14 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 		}
 		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 			Log(Debug, fmt.Sprintf("original address %s", addr))
+			wildcardSuffix := GetWildcardDNS(addr)
 			if strings.Contains(addr, "127.0.0.1") && strings.Contains(addr, ":443") {
 				// resolve to the nginx node ip if address contains 127.0.0.1, for node port installation
 				addr = ipResolve + ":443"
 				Log(Debug, fmt.Sprintf("modified address %s", addr))
-			} else if strings.Contains(addr, "xip.io") && strings.Contains(addr, ":443") {
-				// resolve xip.io ourselves
-				resolving := strings.TrimSuffix(strings.TrimSuffix(addr, ":443"), ".xip.io")
+			} else if wildcardSuffix != "" && strings.Contains(addr, ":443") {
+				// resolve DNS wildcard ourselves
+				resolving := strings.TrimSuffix(strings.TrimSuffix(addr, ":443"), "."+wildcardSuffix)
 				four := resolving[strings.LastIndex(resolving, "."):]
 				resolving = strings.TrimSuffix(resolving, four)
 				three := resolving[strings.LastIndex(resolving, "."):]
@@ -248,8 +256,6 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 			return dialer.DialContext(ctx, network, addr)
 		}
 	}
-
-	return &http.Client{Transport: tr}
 }
 
 func getEnvName(kubeconfigPath string) string {

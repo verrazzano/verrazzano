@@ -121,6 +121,10 @@ function install_verrazzano()
     EXTERNAL_DNS_ENABLED=true
   fi
 
+  if [ "$DNS_TYPE" == "wildcard" ]; then
+    EXTRA_V8O_ARGUMENTS="${EXTRA_V8O_ARGUMENTS} --set dns.wildcard.domain=$(get_config_value ".dns.wildcard.domain")"
+  fi
+
   helm \
       upgrade --install verrazzano \
       ${VZ_CHARTS_DIR}/verrazzano \
@@ -132,6 +136,7 @@ function install_verrazzano()
       --set kubernetes.service.endpoint.ip=${ENDPOINT_ARRAY[0]} \
       --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
       --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
+      --set keycloak.enabled=$(is_keycloak_enabled) \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
 
@@ -240,6 +245,11 @@ fi
 
 log "Adding label needed by network policies to ${MONITORING_NS} namespace"
 kubectl label namespace ${MONITORING_NS} "verrazzano.io/namespace=${MONITORING_NS}" --overwrite
+
+# If Keycloak is being installed, create the Keycloak namespace if it doesn't exist so we can apply network policies
+if [ $(is_keycloak_enabled) == "true" ] && ! kubectl get namespace keycloak ; then
+  action "Creating keycloak namespace" kubectl create namespace keycloak || exit 1
+fi
 
 if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
