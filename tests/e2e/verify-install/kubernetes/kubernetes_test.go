@@ -168,8 +168,8 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			func() {
 				pkg.Concurrently(
 					func() {
-						// The test above asserts the namespace cattle-system doesn't exist for managed-cluster profile,
-						// so the following check is not enabled for that profile.
+						// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
+						// cluster is registered)
 						if !isManagedClusterProfile {
 							gomega.Eventually(pkg.PodsRunning("cattle-system", expectedPodsCattleSystem), waitTimeout, pollingInterval).
 								Should(gomega.BeTrue())

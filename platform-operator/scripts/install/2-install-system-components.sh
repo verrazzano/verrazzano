@@ -270,7 +270,7 @@ function create_cattle_system_namespace()
     if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
         kubectl create namespace cattle-system
     fi
-    
+
     log "Adding label needed by Rancher network policies to cattle-system namespace"
     kubectl label namespace cattle-system "verrazzano.io/namespace=cattle-system" --overwrite
 }
@@ -279,9 +279,9 @@ function install_rancher()
 {
     local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
 
-    log "Create Rancher namespace (if required)"
-    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
-        kubectl create namespace cattle-system
+    # Create the rancher-operator-system namespace so we can create network policies
+    if ! kubectl get namespace rancher-operator-system > /dev/null 2>&1; then
+        kubectl create namespace rancher-operator-system
     fi
 
     local INGRESS_TLS_SOURCE=""
@@ -463,4 +463,3 @@ if [ $(is_rancher_enabled) == "true" ]; then
   action "Setting Rancher Server URL" set_rancher_server_url || true
   action "Patching Rancher Agents" patch_rancher_agents || true
 fi
-

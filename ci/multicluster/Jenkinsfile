@@ -103,6 +103,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind.yaml"
 
         TEST_ENV = "${params.TEST_ENV}"
+        MANAGED_CLUSTER_PROFILE = "${params.MANAGED_CLUSTER_PROFILE}"
         ADMIN_CLUSTER_PROFILE = "${params.ADMIN_CLUSTER_PROFILE}"
 
         // Find a better way to handle this
@@ -324,13 +325,13 @@ pipeline {
                             sh """
                                 echo "Platform Operator Configuration"
                                 cd ${GO_REPO_PATH}/verrazzano
-                                if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                                if [ "NONE" = "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
                                     echo "Using the latest master branch operator.yaml from object storage"
                                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                                 else
-                                    echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-                                    env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+                                    echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
+                                    env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
                                 fi
                             """
                         }
@@ -567,16 +568,16 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 # specify the cache name based on the count value, this is assuming 1 or 2 clusters
                 case "${count}" in
                     1)
-                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${CREATE_KIND_USE_CALICO} "vpo_integ"
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${params.CREATE_KIND_USE_CALICO} "vpo_integ"
                         ;;
                     2)
-                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${CREATE_KIND_USE_CALICO} "apo_integ"
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${params.CREATE_KIND_USE_CALICO} "apo_integ"
                         ;;
                     *)
-                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${CREATE_KIND_USE_CALICO} "NONE"
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${params.CREATE_KIND_USE_CALICO} "NONE"
                         ;;
                 esac
-                if [ ${CREATE_KIND_USE_CALICO} == true ]; then
+                if [ ${params.CREATE_KIND_USE_CALICO} == true ]; then
                     echo "Install Calico"
                     kubectl apply -f https://docs.projectcalico.org/v3.18/manifests/calico.yaml
                 fi
