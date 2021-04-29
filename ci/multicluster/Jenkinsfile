@@ -68,7 +68,7 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "xip.io", "sslip.io"])
-        booleanParam (description: 'Whether to create kind cluster with Calico for AT testing', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
+        booleanParam (description: 'Whether to create kind cluster with Calico for AT testing', name: 'CREATE_KIND_USE_CALICO', defaultValue: false)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
     }
 

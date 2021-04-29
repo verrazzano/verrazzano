@@ -82,5 +82,8 @@ ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/deb
 
 # wait for Verrazzano install to complete
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+if [ $? -ne 0 ]; then
+  exit 1
+fi
 
 exit 0
