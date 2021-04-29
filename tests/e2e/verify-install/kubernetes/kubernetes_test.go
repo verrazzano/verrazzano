@@ -61,7 +61,10 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 				if isManagedClusterProfile {
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(gomega.BeFalse())
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(gomega.BeFalse())
-					gomega.Expect(nsListContains(namespaces.Items, "cattle-system")).To(gomega.BeFalse())
+					// Even though we do not install Rancher on managed clusters, we do create the namespace
+					// so we can create network policies. Rancher will run pods in this namespace once
+					// the managed cluster manifest YAML is applied to the managed cluster.
+					gomega.Expect(nsListContains(namespaces.Items, "cattle-system")).To(gomega.BeTrue())
 					gomega.Expect(nsListContains(namespaces.Items, "local")).To(gomega.BeFalse())
 				} else {
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(gomega.BeTrue())
@@ -165,8 +168,8 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			func() {
 				pkg.Concurrently(
 					func() {
-						// The test above asserts the namespace cattle-system doesn't exist for managed-cluster profile,
-						// so the following check is not enabled for that profile.
+						// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
+						// cluster is registered)
 						if !isManagedClusterProfile {
 							gomega.Eventually(pkg.PodsRunning("cattle-system", expectedPodsCattleSystem), waitTimeout, pollingInterval).
 								Should(gomega.BeTrue())
