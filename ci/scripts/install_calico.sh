@@ -33,9 +33,9 @@ function install_calico() {
       kubectl apply -f calico.yaml
     else
       echo "File ${CALICO_HOME}/release-v3.18.1.tgz does not exist, Calico installation failed."
-      echo "1"
+      return 1
     fi
-    echo "0"
+    return 0
 }
 
 case "$1" in

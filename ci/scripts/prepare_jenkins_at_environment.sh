@@ -30,7 +30,7 @@ cd ${TEST_SCRIPTS_DIR}
 if [ $INSTALL_CALICO == true ]; then
     echo "Install Calico"
     local result=$(install_calico)
-    if [ "$result" != "0" ] ; then
+    if [ $? -ne 0 ]; then
       echo "Installation of Calico failed."
       exit 1
     fi
