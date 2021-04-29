@@ -93,16 +93,17 @@ if [ ${status_code:-1} -eq 0 ]; then
     echo "KUBECONFIG contents after update:"
     cat ${KUBECONFIG}
 
+    # Calico needs to be installed before any pods are created, so do it here before the nodes are ready
+    if [ $INSTALL_CALICO == true ] ; then
+        ${SCRIPT_DIR}/install_calico_oke.sh
+    fi
+
     # Right after oke cluster is provisioned, it takes a while before any node is added to the cluster
     # The next command will wait for node to come up before continue
     echo "Waiting for nodes to be added to cluster at $(date)..."
     timeout 15m bash -c 'until kubectl get nodes | grep NAME; do sleep 10; done'
     echo "Waiting for nodes to transition to 'READY' at $(date)..."
     kubectl wait --for=condition=ready nodes --timeout=5m --all
-
-    if [ $INSTALL_CALICO == true ] ; then
-        ${SCRIPT_DIR}/install_calico_oke.sh
-    fi
 else
     echo "OKE Cluster creation request failed!"
     exit 1
