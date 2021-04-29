@@ -6,6 +6,7 @@ package cohworkload
 import (
 	"context"
 	"fmt"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"strings"
 	"testing"
 
@@ -17,7 +18,6 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
@@ -268,23 +268,6 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
-	// expect a call to get the Elasticsearch secret in app namespace - return not found
-	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
-	cli.EXPECT().
-		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
-
-	// expect a call to create an empty Elasticsearch  secret in app namespace (default behavior, so
-	// that Fluentd volume mount works)
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *corev1.Secret, options *client.CreateOptions) error {
-			asserts.Equal(t, namespace, sec.Namespace)
-			asserts.Equal(t, loggingSecretName, sec.Name)
-			asserts.Nil(t, sec.Data)
-			asserts.Equal(t, client.CreateOptions{}, *options)
-			return nil
-		})
 	// expect a call to list the FLUENTD config maps
 	cli.EXPECT().
 		List(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -435,23 +418,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
 			loggingScope.Spec.FluentdImage = fluentdImage
 			loggingScope.Spec.SecretName = loggingSecretName
-			return nil
-		})
-	// expect a call to get the elasticsearch secret in app namespace - return not found
-	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
-	cli.EXPECT().
-		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
-
-	// expect a call to create an empty Elasticsearch  secret in app namespace (default behavior, so
-	// that Fluentd volume mount works)
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *corev1.Secret, options *client.CreateOptions) error {
-			asserts.Equal(t, namespace, sec.Namespace)
-			asserts.Equal(t, loggingSecretName, sec.Name)
-			asserts.Nil(t, sec.Data)
-			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -618,23 +584,6 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
 			loggingScope.Spec.FluentdImage = fluentdImage
 			loggingScope.Spec.SecretName = loggingSecretName
-			return nil
-		})
-	// expect a call to get the Elasticsearch  secret in app namespace - return not found
-	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
-	cli.EXPECT().
-		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
-
-	// expect a call to create an empty Elasticsearch  secret in app namespace (default behavior, so
-	// that Fluentd volume mount works)
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *corev1.Secret, options *client.CreateOptions) error {
-			asserts.Equal(t, namespace, sec.Namespace)
-			asserts.Equal(t, loggingSecretName, sec.Name)
-			asserts.Nil(t, sec.Data)
-			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -881,23 +830,6 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
-	// expect a call to get the Elasticsearch  secret in app namespace - return not found
-	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
-	cli.EXPECT().
-		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
-
-	// expect a call to create an empty Elasticsearch  secret in app namespace (default behavior, so
-	// that Fluentd volume mount works)
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *corev1.Secret, options *client.CreateOptions) error {
-			asserts.Equal(t, namespace, sec.Namespace)
-			asserts.Equal(t, loggingSecretName, sec.Name)
-			asserts.Nil(t, sec.Data)
-			asserts.Equal(t, client.CreateOptions{}, *options)
-			return nil
-		})
 	// expect a call to list the FLUENTD config maps
 	cli.EXPECT().
 		List(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -928,7 +860,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			// make sure JVM args were added and that the existing arg is still present
 			jvmArgs, _, _ := unstructured.NestedStringSlice(u.Object, specJvmArgsFields...)
 			assert.Equal(len(additionalJvmArgs)+1, len(jvmArgs))
-			assert.True(controllers.StringSliceContainsString(jvmArgs, existingJvmArg))
+			assert.True(vzstring.SliceContainsString(jvmArgs, existingJvmArg))
 
 			// make sure side car was added
 			sideCars, _, _ := unstructured.NestedSlice(u.Object, specField, "sideCars")
@@ -1282,33 +1214,5 @@ func newRequest(namespace string, name string) ctrl.Request {
 			Namespace: namespace,
 			Name:      name,
 		},
-	}
-}
-
-func Test_getFluentdConfiguration(t *testing.T) {
-	tests := []struct {
-		name             string
-		requiresCABundle bool
-		containsCAFile   bool
-	}{
-		{
-			name:             "without ca-bundle",
-			requiresCABundle: false,
-			containsCAFile:   false,
-		},
-		{
-			name:             "with ca-bundle",
-			requiresCABundle: true,
-			containsCAFile:   true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			conf := loggingscope.GetFluentdConfiguration(cohFluentdParsingRules, tt.requiresCABundle)
-			got := strings.Contains(conf, loggingscope.CAFileConfig)
-			if got != tt.containsCAFile {
-				t.Errorf("getFluentdConfiguration() containsCAFile = %v, want %v", got, tt.containsCAFile)
-			}
-		})
 	}
 }

@@ -719,6 +719,7 @@ func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait
 // For example: cars.example.com
 func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
 	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
+	const wildcardDomainKey = "verrazzano.io/dns.wildcard.domain"
 
 	// Extract the domain name from the verrazzano ingress
 	ingress := k8net.Ingress{}
@@ -733,13 +734,12 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 
 	domain := externalDNSAnno[len(constants.VzConsoleIngress)+1:]
 
+	// Get the DNS wildcard domain from the annotation if it exist.  This annotation is only available
+	// when the install is using DNS type wildcard (xip.io, nip.io, etc.)
 	suffix := ""
-	if strings.HasSuffix(domain, "xip.io") {
-		suffix = "xip.io"
-	} else if strings.HasSuffix(domain, "nip.io") {
-		suffix = "nip.io"
-	} else if strings.HasSuffix(domain, "sslip.io") {
-		suffix = "sslip.io"
+	wildcardDomainAnno, ok := ingress.Annotations[wildcardDomainKey]
+	if ok {
+		suffix = wildcardDomainAnno
 	}
 
 	// Build the domain name using Istio info

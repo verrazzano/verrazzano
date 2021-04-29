@@ -68,14 +68,7 @@ multiline_flush_interval 20s
 </filter>
 
 <match coherence-cluster>
-  @type elasticsearch
-  hosts "#{ENV['ELASTICSEARCH_URL']}"{{ .CAFile}}
-  user "#{ENV['ELASTICSEARCH_USER']}"
-  password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "` + loggingscope.ElasticSearchIndex + `"
-  key_name timestamp 
-  types timestamp:time
-  include_timestamp true
+  @type stdout
 </match>
 `
 

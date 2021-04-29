@@ -3,7 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
-def availableRegions = [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
+def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
 def acmeEnvironments = [ "staging", "production" ]
@@ -64,6 +64,10 @@ pipeline {
                 description: 'Verrazzano Managed Cluster install profile name',
                 // 1st choice is the default value
                 choices: [ "managed-cluster", "dev", "prod" ])
+        choice (name: 'WILDCARD_DNS_DOMAIN',
+                description: 'This is the wildcard DNS domain',
+                // 1st choice is the default value
+                choices: [ "nip.io", "xip.io", "sslip.io"])
         booleanParam (description: 'Whether to create kind cluster with Calico for AT testing', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
     }
@@ -287,7 +291,7 @@ pipeline {
                                     }
                                     steps {
                                         script {
-                                            configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh")
+                                            configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", $ACME_ENVIRONMENT)
                                         }
                                     }
                                 }
@@ -296,13 +300,13 @@ pipeline {
                         stage("Configure KinD") {
                             when { expression { return params.TEST_ENV == 'kind' } }
                             steps {
-                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND, "./tests/e2e/config/scripts/process_kind_install_yaml.sh")
+                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                         stage("Configure OKE/MagicDNS") {
                             when { expression { return params.TEST_ENV == 'magicdns_oke' } }
                             steps {
-                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_XIPIO, "./tests/e2e/config/scripts/process_xipio_install_yaml.sh")
+                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_XIPIO, "./tests/e2e/config/scripts/process_xipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                     }
@@ -322,7 +326,7 @@ pipeline {
                                 cd ${GO_REPO_PATH}/verrazzano
                                 if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
                                     echo "Using the latest master branch operator.yaml from object storage"
-                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                                 else
                                     echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
@@ -659,7 +663,7 @@ def runGinkgoRandomize(testSuitePath) {
 }
 
 // Configure the Admin and Managed cluster installer custom resources
-def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript) {
+def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript, String extraArgs) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
@@ -684,7 +688,7 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
 
                 # Copy the template config over for the mgd cluster profile configuration
                 cp $installResourceTemplate $destinationPath
-                VZ_ENVIRONMENT_NAME="${envName}" INSTALL_PROFILE=$installProfile $configProcessorScript $destinationPath $ACME_ENVIRONMENT
+                VZ_ENVIRONMENT_NAME="${envName}" INSTALL_PROFILE=$installProfile $configProcessorScript $destinationPath $extraArgs
             """
         }
     }

@@ -289,12 +289,12 @@ data:
     #!/bin/bash
 
     function reload() {
-      nginx -t
+      nginx -t -p /etc/nginx
       if [ $? -eq 0 ]
       then
         echo "Detected Nginx Configuration Change"
-        echo "Executing: nginx -s reload"
-        nginx -s reload
+        echo "Executing: nginx -s reload -p /etc/nginx"
+        nginx -s reload -p /etc/nginx
       fi
     }
 
