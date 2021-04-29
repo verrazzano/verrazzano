@@ -5,6 +5,8 @@
 #
 
 # $1 Boolean indicates whether to setup and install Calico or not
+SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
+. $SCRIPT_DIR/install_calico.sh
 
 set -o pipefail
 
@@ -14,6 +16,7 @@ if [ -z "$JENKINS_URL" ] || [ -z "$GO_REPO_PATH" ] || [ -z "$TESTS_EXECUTED_FILE
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
+
 
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
@@ -25,8 +28,12 @@ cd ${TEST_SCRIPTS_DIR}
 ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true $INSTALL_CALICO
 
 if [ $INSTALL_CALICO == true ]; then
-    echo "Install Calico using thirdparty/calico/calico.yaml"
-    kubectl apply -f ${GO_REPO_PATH}/verrazzano/ci/scripts/thirdparty/calico/calico.yaml
+    echo "Install Calico"
+    local result=$(install_calico)
+    if [ "$result" != "0" ] ; then
+      echo "Installation of Calico failed."
+      exit 1
+    fi
 fi
 
 echo "Install metallb"

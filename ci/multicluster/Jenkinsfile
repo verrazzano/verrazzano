@@ -579,7 +579,8 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 esac
                 if [ ${params.CREATE_KIND_USE_CALICO} == true ]; then
                     echo "Install Calico"
-                    kubectl apply -f ${GO_REPO_PATH}/verrazzano/ci/scripts/thirdparty/calico/calico.yaml
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ./ci/scripts/install_calico.sh install_calico
                 fi
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
