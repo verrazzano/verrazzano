@@ -270,9 +270,6 @@ function create_cattle_system_namespace()
     if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
         kubectl create namespace cattle-system
     fi
-
-    log "Adding label needed by Rancher network policies to cattle-system namespace"
-    kubectl label namespace cattle-system "verrazzano.io/namespace=cattle-system" --overwrite
 }
 
 function install_rancher()
