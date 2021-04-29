@@ -1,31 +1,40 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package webhooks
 
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	cluv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const verrazzanoIstioLabel = "verrazzano.io/istio"
 
 var apLogger = ctrl.Log.WithName("webhooks.project.authorization.policy")
 
 // AuthorizationPolicy type for fixing up authorization policies
 type AuthorizationPolicy struct {
 	client.Client
+	KubeClient  kubernetes.Interface
 	IstioClient istioversionedclient.Interface
 }
 
-// fixupAuthorizationPoliciesForProjects updates authorization policies so that all applications within a project
-// are allowed to talk to each other
-func (ap *AuthorizationPolicy) fixupAuthorizationPoliciesForProjects(namespace string) error {
+// deleteAuthorizationPoliciesForProjects updates authorization policies so that all applications within a project
+// are allowed to talk to each other after delete of an appconfig
+func (ap *AuthorizationPolicy) deleteAuthorizationPoliciesForProjects(namespace string, appConfigName string) error {
 	// Get the list of defined projects
 	projectsList := &cluv1alpha1.VerrazzanoProjectList{}
-	listOptions := &client.ListOptions{Namespace: "verrazzano-mc"}
+	listOptions := &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}
 	err := ap.Client.List(context.TODO(), projectsList, listOptions)
 	if err != nil {
 		return err
@@ -44,24 +53,109 @@ func (ap *AuthorizationPolicy) fixupAuthorizationPoliciesForProjects(namespace s
 		// Project has a namespace that matches the given namespace
 		if namespaceFound {
 			// Get the authorization policies for all the namespaces in a project.
-			authzPolicyList, err := ap.getAuthorizationPoliciesForProject(project.Spec.Template.Namespaces)
-
-			// TODO: **** remove this log message ****
-			apLogger.Info(fmt.Sprintf("authorization policy count: %d", len(authzPolicyList)))
-
+			tempAuthzPolicyList, err := ap.getAuthorizationPoliciesForProject(project.Spec.Template.Namespaces)
 			if err != nil {
 				return err
+			}
+
+			// Filter the authorization policies we retrieved
+			authzPolicyList := []clisecurity.AuthorizationPolicy{}
+			for _, policy := range tempAuthzPolicyList {
+				if value, ok := policy.Spec.Selector.MatchLabels[verrazzanoIstioLabel]; ok {
+					if value != appConfigName {
+						authzPolicyList = append(authzPolicyList, policy)
+					}
+				}
+			}
+
+			// get a list of pods for the given namespace
+			podList, err := ap.KubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+
+			// get the list of service accounts remaining in the namespace of where an appconfig delete is taking place
+			saList := []string{}
+			for _, pod := range podList.Items {
+				if value, ok := pod.Labels[verrazzanoIstioLabel]; ok {
+					if value != appConfigName {
+						saList = append(saList, pod.Spec.ServiceAccountName)
+					}
+				}
 			}
 
 			// Create list of unique principals for all authorization policies in a project.
 			uniquePrincipals := make(map[string]bool)
 			for _, authzPolicy := range authzPolicyList {
-				policy, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies(authzPolicy.Namespace).Get(context.TODO(), authzPolicy.Name, metav1.GetOptions{})
-				if err != nil {
-					return err
+				for _, principal := range authzPolicy.Spec.Rules[0].From[0].Source.Principals {
+					// For the namespace passed, only include the service accounts remaining for the namespace
+					split := strings.Split(principal, "/")
+					if split[2] == namespace {
+						for _, sa := range saList {
+							if split[4] == sa {
+								uniquePrincipals[principal] = true
+							}
+						}
+						continue
+					}
+					// make sure the sa
+					uniquePrincipals[principal] = true
 				}
+			}
 
-				for _, principal := range policy.Spec.Rules[0].From[0].Source.Principals {
+			// Update all authorization policies in a project.
+			err = ap.updateAuthorizationPoliciesForProject(authzPolicyList, uniquePrincipals)
+			if err != nil {
+				return err
+			}
+
+			break
+		}
+	}
+	return nil
+}
+
+// fixupAuthorizationPoliciesForProjects updates authorization policies so that all applications within a project
+// are allowed to talk to each other
+func (ap *AuthorizationPolicy) fixupAuthorizationPoliciesForProjects(namespace string) error {
+	// Get the list of defined projects
+	projectsList := &cluv1alpha1.VerrazzanoProjectList{}
+	listOptions := &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}
+	err := ap.Client.List(context.TODO(), projectsList, listOptions)
+	if err != nil {
+		return err
+	}
+
+	// Walk the list of projects looking for a project namespace that matches the given namespace
+	for _, project := range projectsList.Items {
+		namespaceFound := false
+		for _, ns := range project.Spec.Template.Namespaces {
+			if ns.Metadata.Name == namespace {
+				namespaceFound = true
+				break
+			}
+		}
+
+		// Project has a namespace that matches the given namespace
+		if namespaceFound {
+			// Get the authorization policies for all the namespaces in a project.
+			tempAuthzPolicyList, err := ap.getAuthorizationPoliciesForProject(project.Spec.Template.Namespaces)
+			if err != nil {
+				return err
+			}
+
+			// Filter the authorization policies we retrieved
+			authzPolicyList := []clisecurity.AuthorizationPolicy{}
+			for _, policy := range tempAuthzPolicyList {
+				if _, ok := policy.Spec.Selector.MatchLabels[verrazzanoIstioLabel]; ok {
+					authzPolicyList = append(authzPolicyList, policy)
+				}
+			}
+
+			// Create list of unique principals for all authorization policies in a project.
+			uniquePrincipals := make(map[string]bool)
+			for _, authzPolicy := range authzPolicyList {
+				for _, principal := range authzPolicy.Spec.Rules[0].From[0].Source.Principals {
 					uniquePrincipals[principal] = true
 				}
 			}
@@ -89,8 +183,8 @@ func (ap *AuthorizationPolicy) getAuthorizationPoliciesForProject(namespaceList 
 			return nil, err
 		}
 		for _, authzPolicy := range list.Items {
-			// If the owner reference is an appconfig resource then we had to our list of authorization policies.
-			// TODO: **** on delete don't add appconfig being deleted ****
+			// If the owner reference is an appconfig resource then
+			// we add the authorization policy to our list of authorization policies
 			if authzPolicy.OwnerReferences[0].Kind == "ApplicationConfiguration" {
 				authzPolicyList = append(authzPolicyList, authzPolicy)
 			}

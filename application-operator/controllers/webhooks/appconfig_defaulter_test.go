@@ -6,29 +6,29 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"path/filepath"
+	"testing"
+
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
-	"io/ioutil"
+	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"net/http"
-	"path/filepath"
+	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
-
-	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-
-	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
-
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func decoder() *admission.Decoder {
@@ -200,9 +200,18 @@ func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryR
 					return nil
 				})
 		}
+
+		// list projects
+		mockClient.EXPECT().
+			List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any())
+
 	}
 	decoder := decoder()
-	webhook := &AppConfigWebhook{Client: mockClient}
+
+	webhook := &AppConfigWebhook{Client: mockClient,
+		KubeClient:  fake.NewSimpleClientset(),
+		IstioClient: istiofake.NewSimpleClientset(),
+	}
 	webhook.InjectDecoder(decoder)
 	req := admission.Request{
 		AdmissionRequest: admissionv1beta1.AdmissionRequest{Operation: v1beta1.Delete},

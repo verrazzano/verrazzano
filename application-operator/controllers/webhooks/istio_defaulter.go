@@ -92,8 +92,6 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 		}
 	}
 
-	istioLogger.Info(fmt.Sprintf("Pod name/generated name: %s/%s", pod.Name, pod.GenerateName))
-
 	// Create/update Istio Authorization policy for the given pod.
 	err = a.createUpdateAuthorizationPolicy(req.Namespace, serviceAccountName, appConfigOwnerRef)
 	if err != nil {

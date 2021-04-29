@@ -218,6 +218,7 @@ func main() {
 		mgr.GetWebhookServer().CertDir = certDir
 		appconfigWebhook := &webhooks.AppConfigWebhook{
 			Client:      mgr.GetClient(),
+			KubeClient:  kubeClient,
 			IstioClient: istioClientSet,
 			Defaulters: []webhooks.AppConfigDefaulter{
 				&webhooks.MetricsTraitDefaulter{},

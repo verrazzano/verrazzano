@@ -16,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -35,6 +36,7 @@ const (
 type AppConfigWebhook struct {
 	decoder     *admission.Decoder
 	Client      client.Client
+	KubeClient  kubernetes.Interface
 	IstioClient istioversionedclient.Interface
 	Defaulters  []AppConfigDefaulter
 }
@@ -104,10 +106,22 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 // cleanupAppConfig cleans up the generated certificates and secrets associated with the given app config
 func (a *AppConfigWebhook) cleanupAppConfig(appConfig *oamv1.ApplicationConfiguration) (err error) {
 	err = a.cleanupCert(appConfig)
-	if err == nil {
-		err = a.cleanupSecret(appConfig)
+	if err != nil {
+		return
 	}
-	return
+
+	err = a.cleanupSecret(appConfig)
+	if err != nil {
+		return
+	}
+
+	// Fixup Istio Authorization policies within a project
+	ap := &AuthorizationPolicy{
+		Client:      a.Client,
+		KubeClient:  a.KubeClient,
+		IstioClient: a.IstioClient,
+	}
+	return ap.deleteAuthorizationPoliciesForProjects(appConfig.Namespace, appConfig.Name)
 }
 
 // cleanupCert cleans up the generated certificate for the given app config
