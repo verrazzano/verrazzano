@@ -20,7 +20,7 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -580,7 +580,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 if [ ${params.CREATE_KIND_USE_CALICO} == true ]; then
                     echo "Install Calico"
                     cd ${GO_REPO_PATH}/verrazzano
-                    ./ci/scripts/install_calico.sh install_calico
+                    ./ci/scripts/install-calico.sh
                 fi
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano

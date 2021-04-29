@@ -5,8 +5,6 @@
 #
 
 # $1 Boolean indicates whether to setup and install Calico or not
-SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-. $SCRIPT_DIR/install_calico.sh
 
 set -o pipefail
 
@@ -16,7 +14,6 @@ if [ -z "$JENKINS_URL" ] || [ -z "$GO_REPO_PATH" ] || [ -z "$TESTS_EXECUTED_FILE
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
-
 
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
@@ -29,11 +26,8 @@ cd ${TEST_SCRIPTS_DIR}
 
 if [ $INSTALL_CALICO == true ]; then
     echo "Install Calico"
-    local result=$(install_calico)
-    if [ $? -ne 0 ]; then
-      echo "Installation of Calico failed."
-      exit 1
-    fi
+    cd ${GO_REPO_PATH}/verrazzano
+    ./ci/scripts/install-calico.sh
 fi
 
 echo "Install metallb"
