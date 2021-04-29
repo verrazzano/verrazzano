@@ -36,7 +36,7 @@ static_configs:
   labels:
     managed_cluster: '##CLUSTER_NAME##'
 basic_auth:
-  username: verrazzano
+  username: verrazzano-prom-internal
   password: ##PASSWORD##
 `
 )
@@ -159,7 +159,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(info *prometheusInf
 		return newScrapeConfig, nil
 	}
 
-	vzSecret, err := r.getVzSecret()
+	vzPromSecret, err := r.getVzPromSecret()
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(info *prometheusInf
 	newScrapeConfigMappings := map[string]string{
 		"##JOB_NAME##":     vmc.Name,
 		"##HOST##":         info.Prometheus.Host,
-		"##PASSWORD##":     string(vzSecret.Data[PasswordKey]),
+		"##PASSWORD##":     string(vzPromSecret.Data[PasswordKey]),
 		"##CLUSTER_NAME##": vmc.Name}
 	configTemplate := scrapeConfigTemplate
 	for key, value := range newScrapeConfigMappings {
