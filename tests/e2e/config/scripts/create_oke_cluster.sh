@@ -6,14 +6,8 @@
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
-INSTALL_CALICO=${1:-false}
-
-usage() {
-  echo "Usage: $0 [-p] [install_calico]" 1>&2
-  echo "-p create cluster with private endpoints" 1>&2
-  echo "install_calico true/false, defaults to false" 1>&2
-  exit 1
-}
+PRIVATE_CLUSTER=${1:-false}
+INSTALL_CALICO=${2:-false}
 
 set_private_access() {
   echo "Cluster access set to private."
@@ -46,12 +40,9 @@ check_for_resources() {
   fi
 }
 
-while getopts ":p" arg; do
-  case $arg in
-    p) set_private_access;;
-    \?) usage;;
-  esac
-done
+if [ $PRIVATE_CLUSTER == true ] ; then
+    set_private_access
+fi
 
 if [ -z "$TF_VAR_compartment_id" ] ; then
     echo "TF_VAR_compartment_id env var must be set!"
