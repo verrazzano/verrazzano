@@ -5,7 +5,8 @@
 #
 
 CALICO_DIR=$(cd $(dirname "$0"); pwd -P)
-CALICO_VERSION=${1:-"3.18.1"}
+CLUSTER_NAME=${1:-"kind"}
+CALICO_VERSION=${2:-"3.18.1"}
 
 # Install Calico using the release bundle under CALICO_HOME. When the environment variable CALICO_HOME is set, the script
 # expects the release-v3.18.1.tgz inside it. When the environment variable is not set, the script downloads the release
@@ -28,12 +29,12 @@ echo "Extract Calico release bundle, load the images and apply calico.yaml"
 cd ${CALICO_HOME}
 tar -xzvf release-v${CALICO_VERSION}.tgz --strip-components=1
 cd ${CALICO_HOME}/images
-kind load image-archive calico-cni.tar
-kind load image-archive calico-dikastes.tar
-kind load image-archive calico-flannel-migration-controller.tar
-kind load image-archive calico-kube-controllers.tar
-kind load image-archive calico-node.tar
-kind load image-archive calico-pod2daemon-flexvol.tar
-kind load image-archive calico-typha.tar
+kind load image-archive calico-cni.tar --name ${CLUSTER_NAME}
+kind load image-archive calico-dikastes.tar --name ${CLUSTER_NAME}
+kind load image-archive calico-flannel-migration-controller.tar --name ${CLUSTER_NAME}
+kind load image-archive calico-kube-controllers.tar --name ${CLUSTER_NAME}
+kind load image-archive calico-node.tar --name ${CLUSTER_NAME}
+kind load image-archive calico-pod2daemon-flexvol.tar --name ${CLUSTER_NAME}
+kind load image-archive calico-typha.tar --name ${CLUSTER_NAME}
 cd ${CALICO_HOME}/k8s-manifests
 kubectl apply -f calico.yaml

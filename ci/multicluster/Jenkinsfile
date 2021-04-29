@@ -582,7 +582,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 if [ ${params.CREATE_KIND_USE_CALICO} == true ]; then
                     echo "Install Calico"
                     cd ${GO_REPO_PATH}/verrazzano
-                    ./ci/scripts/install-calico.sh ${CALICO_VERSION}
+                    ./ci/scripts/install_calico.sh "${CLUSTER_NAME_PREFIX}-$count" "${CALICO_VERSION}"
                 fi
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano

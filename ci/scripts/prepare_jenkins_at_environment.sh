@@ -27,9 +27,8 @@ cd ${TEST_SCRIPTS_DIR}
 
 if [ $INSTALL_CALICO == true ]; then
     echo "Install Calico"
-    cd ${GO_REPO_PATH}/verrazzano/ci/scripts
-    ls
-    ./install_calico.sh ${CALICO_VERSION}
+    cd ${GO_REPO_PATH}/verrazzano
+    ./ci/scripts/install_calico.sh "${CLUSTER_NAME}" "${CALICO_VERSION}"
 fi
 
 echo "Install metallb"
