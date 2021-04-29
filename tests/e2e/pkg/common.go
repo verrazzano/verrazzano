@@ -262,7 +262,15 @@ func JTq(jtext string, path ...string) interface{} {
 // Jq queries JSON nodes with a JSON path
 func Jq(node interface{}, path ...string) interface{} {
 	for _, p := range path {
-		node = node.(map[string]interface{})[p]
+		if node == nil {
+			return nil
+		}
+		var nodeMap, ok = node.(map[string]interface{})
+		if ok {
+			node = nodeMap[p]
+		} else {
+			return nil
+		}
 	}
 	return node
 }
