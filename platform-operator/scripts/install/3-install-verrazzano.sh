@@ -137,6 +137,7 @@ function install_verrazzano()
       --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
       --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
       --set keycloak.enabled=$(is_keycloak_enabled) \
+      --set rancher.enabled=$(is_rancher_enabled) \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
 
@@ -237,11 +238,6 @@ kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_N
 
 log "Adding label for disabling istio sidecar injection by default to ${VERRAZZANO_NS} namespace"
 kubectl label namespace ${VERRAZZANO_NS} "istio-injection=enabled" --overwrite
-
-# TEMP
-kubectl create secret docker-registry verrazzano-container-registry --docker-server=ghcr.io --docker-username=jmaron99 --docker-password=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 -n verrazzano-system
-kubectl create secret docker-registry verrazzano-container-registry --docker-server=ghcr.io --docker-username=jmaron99 --docker-password=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
-# END TEMP
 
 if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1

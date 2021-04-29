@@ -48,8 +48,8 @@ kibana:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
-  imageVersion: 0.14.0-20210428221629-f68af2e
+  imageName: ghcr.io/verrazzano/verrazzano-operator
+  imageVersion: 0.14.0-20210429191156-87e9b54
   prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
@@ -60,8 +60,8 @@ verrazzanoOperator:
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator-jenkins
-  imageVersion: 0.14.0-20210428221155-40a0d56
+  imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
+  imageVersion: 0.14.0-20210429191153-ae7fe87
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
