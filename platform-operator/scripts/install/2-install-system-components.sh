@@ -265,13 +265,20 @@ function reset_rancher_admin_password() {
   kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
+function create_cattle_system_namespace()
+{
+    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
+        kubectl create namespace cattle-system
+    fi
+}
+
 function install_rancher()
 {
     local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
 
-    log "Create Rancher namespace (if required)"
-    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
-        kubectl create namespace cattle-system
+    # Create the rancher-operator-system namespace so we can create network policies
+    if ! kubectl get namespace rancher-operator-system > /dev/null 2>&1; then
+        kubectl create namespace rancher-operator-system
     fi
 
     local INGRESS_TLS_SOURCE=""
@@ -444,9 +451,12 @@ action "Installing cert manager" install_cert_manager || exit 1
 if [ "$DNS_TYPE" == "oci" ]; then
   action "Installing external DNS" install_external_dns || exit 1
 fi
+
+# Always create the cattle-system namespace so we can create network policies
+action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1
+
 if [ $(is_rancher_enabled) == "true" ]; then
   action "Installing Rancher" install_rancher || exit 1
   action "Setting Rancher Server URL" set_rancher_server_url || true
   action "Patching Rancher Agents" patch_rancher_agents || true
 fi
-
