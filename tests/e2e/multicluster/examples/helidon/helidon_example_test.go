@@ -119,7 +119,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		}
 	})
 
-	ginkgo.Context("Logging", func() {
+	ginkgo.PContext("Logging", func() {
 		indexName := "verrazzano-namespace-hello-helidon"
 
 		// GIVEN an admin cluster and at least one managed cluster

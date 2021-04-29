@@ -139,7 +139,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 		})
 	})
 
-	ginkgo.PContext("Logging.", func() {
+	ginkgo.Context("Logging.", func() {
 		indexName := "verrazzano-namespace-hello-helidon"
 
 		// GIVEN an application with logging enabled via a logging scope
