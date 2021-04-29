@@ -121,7 +121,6 @@ func undeployBobsBooksExample() {
 }
 
 var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
-
 	ginkgo.It("Wait for deployment.", func() {
 		gomega.Eventually(func() bool {
 			expectedPods := []string{
@@ -422,8 +421,8 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		ginkgo.It("Verify recent roberts-coherence log record exists", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.coherenceCluster":        "roberts-coherence",
-					"kubernetes.labels.app_oam_dev\\/component": "robert-coh",
+					"kubernetes.labels.coherenceCluster":                "roberts-coherence",
+					"kubernetes.labels.app_oam_dev\\/component.keyword": "robert-coh",
 				})
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
@@ -437,7 +436,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.coherenceCluster": "roberts-coherence",
 							"kubernetes.pod_name":                "roberts-coherence-0",
-							"kubernetes.container_name":          "coherence",
+							"kubernetes.container_name.keyword":  "coherence",
 						})
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
@@ -448,12 +447,14 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 			func() {
 				ginkgo.It("Verify recent roberts-coherence-0 log record exists", func() {
 					gomega.Eventually(func() bool {
-						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.coherenceCluster": "roberts-coherence",
-							"kubernetes.pod_name":                "roberts-coherence-0",
-							"kubernetes.container_name":          "fluentd",
-						})
-					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.labels.coherenceCluster", Value: "roberts-coherence"},
+								{Key: "kubernetes.pod_name", Value: "roberts-coherence-0"},
+								{Key: "kubernetes.container_name", Value: "fluentd"}},
+							[]pkg.Match{ //MustNot
+								{Key: "kubernetes.container_name", Value: "coherence"}})
+					}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				})
 			},
 			// GIVEN a Coherence application with logging enabled via a logging scope
@@ -462,11 +463,16 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 			func() {
 				ginkgo.It("Verify recent roberts-coherence-1 log record exists", func() {
 					gomega.Eventually(func() bool {
-						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.coherenceCluster": "roberts-coherence",
-							"kubernetes.pod_name":                "roberts-coherence-1",
-							"kubernetes.container_name":          "coherence"})
-					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.labels.coherenceCluster", Value: "roberts-coherence"},
+								{Key: "kubernetes.pod_name", Value: "roberts-coherence-1"},
+								{Key: "kubernetes.container_name.keyword", Value: "coherence"}},
+							[]pkg.Match{ //MustNot
+								{Key: "kubernetes.container_name", Value: "fluentd"},
+							})
+					}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd log record")
+
 				})
 			},
 			// GIVEN a Coherence application with logging enabled via a logging scope
@@ -478,7 +484,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.coherenceCluster": "roberts-coherence",
 							"kubernetes.pod_name":                "roberts-coherence-1",
-							"kubernetes.container_name":          "fluentd"})
+							"kubernetes.container_name.keyword":  "fluentd"})
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
