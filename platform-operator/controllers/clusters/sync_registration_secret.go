@@ -55,7 +55,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	if err != nil {
 		return err
 	}
-	vzSecret, err := r.getVzESSecret()
+	vzSecret, err := r.getVzSecret()
 	if err != nil {
 		return err
 	}
@@ -114,32 +114,6 @@ func (r *VerrazzanoManagedClusterReconciler) getVzSecret() (corev1.Secret, error
 	nsn := types.NamespacedName{
 		Namespace: constants.VerrazzanoSystemNamespace,
 		Name:      constants.Verrazzano,
-	}
-	if err := r.Get(context.TODO(), nsn, &secret); err != nil {
-		return corev1.Secret{}, fmt.Errorf("Failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
-	}
-	return secret, nil
-}
-
-// Get the Verrazzano Prometheus secret
-func (r *VerrazzanoManagedClusterReconciler) getVzPromSecret() (corev1.Secret, error) {
-	var secret corev1.Secret
-	nsn := types.NamespacedName{
-		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      constants.VerrazzanoPromInternal,
-	}
-	if err := r.Get(context.TODO(), nsn, &secret); err != nil {
-		return corev1.Secret{}, fmt.Errorf("Failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
-	}
-	return secret, nil
-}
-
-// Get the Verrazzano ElasticSearch/FluentD secret
-func (r *VerrazzanoManagedClusterReconciler) getVzESSecret() (corev1.Secret, error) {
-	var secret corev1.Secret
-	nsn := types.NamespacedName{
-		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      constants.VerrazzanoESInternal,
 	}
 	if err := r.Get(context.TODO(), nsn, &secret); err != nil {
 		return corev1.Secret{}, fmt.Errorf("Failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
