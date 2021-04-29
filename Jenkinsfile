@@ -150,7 +150,6 @@ pipeline {
                         SUSPECT_LIST = getSuspectList( userMappings )
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
-                    slackSend ( message: "DO NOTHING, THIS IS JUST A TEST OF THE SUSPECT NOTIFICATIONS - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
         }
