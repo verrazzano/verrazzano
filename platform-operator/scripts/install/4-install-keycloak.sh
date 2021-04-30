@@ -94,9 +94,9 @@ data:
   password: $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
 ")
 
-VPROMUSR=$(echo $VERRAZZANO_INTERNAL_PROM_USER | base64)
+VPROMUSR=$(echo -n $VERRAZZANO_INTERNAL_PROM_USER | base64)
 VPROM=$(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
-VESUSR=$(echo $VERRAZZANO_INTERNAL_ES_USER | base64)
+VESUSR=$(echo -n $VERRAZZANO_INTERNAL_ES_USER | base64)
 VES=$(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
 
   # Create a random secret for the verrazzano-prom-internal user
