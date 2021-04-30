@@ -12,9 +12,7 @@ download_calico() {
   mkdir -p ${CALICO_DIR}/calico/${CALICO_VERSION}
   curl -LJo ${CALICO_DIR}/calico/"${CALICO_VERSION}".tgz https://github.com/projectcalico/calico/releases/download/v"${CALICO_VERSION}"/release-v"${CALICO_VERSION}".tgz
   cd ${CALICO_DIR}/calico
-  tar xzvf "${CALICO_VERSION}".tgz -C ${CALICO_DIR}/calico/${CALICO_VERSION}
-  # TODO : Remove this ls
-  ls ${CALICO_DIR}/calico/${CALICO_VERSION}
+  tar xzvf "${CALICO_VERSION}".tgz --strip-components=1 -C ${CALICO_DIR}/calico/${CALICO_VERSION}
   rm release-v${CALICO_VERSION}.tgz
 }
 
@@ -25,17 +23,17 @@ download_calico() {
 if [ -z "$CALICO_HOME" ]; then
   echo "CALICO_HOME is not set, downloading Calico release bundle."
   download_calico
-  export CALICO_HOME=${CALICO_DIR}/calico
+  export CALICO_HOME=${CALICO_DIR}/calico/${CALICO_VERSION}
 fi
 
-# Download the release bundle, if $CALICO_HOME doesn't contain the requested/required version
-if [ -d "${CALICO_HOME}/${CALICO_VERSION}" ]; then
-  echo "CALICO_HOME doesn't contain the release bundle for version ${CALICO_VERSION}, downloading it."
+# Download the release bundle, if $CALICO_HOME doesn't exist
+if [ -d "${CALICO_HOME}" ]; then
+  echo "CALICO_HOME doesn't exist, downloading the calico release bundle."
   download_calico
 fi
 
-echo "Load the docker image from Calico archives from ${CALICO_HOME}/${CALICO_VERSION}/images."
-cd ${CALICO_HOME}/${CALICO_VERSION}/images
+echo "Load the docker image from Calico archives from ${CALICO_HOME}/images."
+cd ${CALICO_HOME}/images
 kind load image-archive calico-cni.tar --name ${CLUSTER_NAME}
 kind load image-archive calico-dikastes.tar --name ${CLUSTER_NAME}
 kind load image-archive calico-flannel-migration-controller.tar --name ${CLUSTER_NAME}
@@ -44,6 +42,6 @@ kind load image-archive calico-node.tar --name ${CLUSTER_NAME}
 kind load image-archive calico-pod2daemon-flexvol.tar --name ${CLUSTER_NAME}
 kind load image-archive calico-typha.tar --name ${CLUSTER_NAME}
 
-echo "Apply ${CALICO_HOME}/${CALICO_VERSION}/k8s-manifests/calico.yaml."
-cd ${CALICO_HOME}/${CALICO_VERSION}/k8s-manifests
+echo "Apply ${CALICO_HOME}/k8s-manifests/calico.yaml."
+cd ${CALICO_HOME}/k8s-manifests
 kubectl apply -f calico.yaml
