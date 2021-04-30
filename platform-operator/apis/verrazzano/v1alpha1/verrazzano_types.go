@@ -72,11 +72,6 @@ type VerrazzanoSpec struct {
 	// +optional
 	Security SecuritySpec `json:"security,omitempty"`
 
-	// JobSettings allows user to specify the retry and timeout settings for
-	// the Verrazzano install/uninstall jobs
-	// +optional
-	JobSettings *JobSettings `json:"jobSettings,omitempty"`
-
 	// DefaultVolumeSource Defines the type of volume to be used for persistence, if not explicitly declared by a component;
 	// at present only EmptyDirVolumeSource or PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
@@ -240,27 +235,6 @@ type ComponentSpec struct {
 	// Rancher configuration
 	// +optional
 	Rancher *RancherComponent `json:"rancher,omitempty"`
-}
-
-// JobSettings User-defined install/uninstall job settings
-type JobSettings struct {
-	// Retry settings for the Verrazzano installation jobs
-	// +optional
-	InstallSettings *RetrySettings `json:"install,omitempty"`
-	// Retry settings for the Verrazzano installation jobs
-	// +optional
-	UninstallSettings *RetrySettings `json:"uninstall,omitempty"`
-}
-
-type RetrySettings struct {
-	// Specifies the duration in seconds relative to the startTime that the job may be active
-	// before the system tries to terminate it; value must be positive integer
-	// +optional
-	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
-	// Specifies the number of retries before marking this job failed.
-	// Defaults to 6
-	// +optional
-	BackoffLimit *int32 `json:"backoffLimit,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components

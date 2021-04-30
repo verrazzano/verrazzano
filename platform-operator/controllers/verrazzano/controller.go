@@ -75,7 +75,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Finalizer is present, so lets do the uninstall
 		if containsString(vz.ObjectMeta.Finalizers, finalizerName) {
-
+			// Cancel any running install jobs before installing
 			if err := r.cancelInstallJob(log, vz); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -267,6 +267,7 @@ func (r *Reconciler) cancelInstallJob(log *zap.SugaredLogger, vz *installv1alpha
 		// Job not found
 		return nil
 	}
+	// Delete the Job in the foreground to ensure it's gone before continuing
 	propagationPolicy := metav1.DeletePropagationForeground
 	deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
 	log.Infof("Install job %s in progress, deleting", jobName)
@@ -275,10 +276,6 @@ func (r *Reconciler) cancelInstallJob(log *zap.SugaredLogger, vz *installv1alpha
 
 // createInstallJob creates the installation job
 func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
-	var jobSettings *installv1alpha1.RetrySettings
-	if vz.Spec.JobSettings != nil {
-		jobSettings = vz.Spec.JobSettings.InstallSettings
-	}
 	// Define a new install job resource
 	job := installjob.NewJob(
 		&installjob.JobConfig{
@@ -288,7 +285,6 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 				Labels:             vz.Labels,
 				ServiceAccountName: buildServiceAccountName(vz.Name),
 				JobImage:           os.Getenv("VZ_INSTALL_IMAGE"),
-				RetrySettings:      jobSettings,
 				DryRun:             r.DryRun,
 			},
 			ConfigMapName: configMapName,
@@ -374,10 +370,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *Reconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
-	var jobSettings *installv1alpha1.RetrySettings
-	if vz.Spec.JobSettings != nil {
-		jobSettings = vz.Spec.JobSettings.UninstallSettings
-	}
 	// Define a new uninstall job resource
 	job := uninstalljob.NewJob(
 		&uninstalljob.JobConfig{
@@ -387,7 +379,6 @@ func (r *Reconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alp
 				Labels:             vz.Labels,
 				ServiceAccountName: buildServiceAccountName(vz.Name),
 				JobImage:           os.Getenv("VZ_INSTALL_IMAGE"),
-				RetrySettings:      jobSettings,
 				DryRun:             r.DryRun,
 			},
 		},

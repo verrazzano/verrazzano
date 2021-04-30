@@ -71,72 +71,85 @@ function install_istio()
 {
     ISTIO_CHART_DIR=${CHARTS_DIR}/istio
 
-    log "Installing Istio base"
-    helm upgrade istio-base ${ISTIO_CHART_DIR}/base \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      --wait \
-      || return $?
-
+    if ! is_chart_deployed istio-base istio-system ${ISTIO_CHART_DIR}/base ; then
+      log "Installing Istio base"
+      helm upgrade istio-base ${ISTIO_CHART_DIR}/base \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        --wait \
+        || return $?
+    fi
     IMAGE_PULL_SECRETS_ARGUMENT=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
       IMAGE_PULL_SECRETS_ARGUMENT=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
-    log "Installing Istio discovery"
-    helm upgrade istiod ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      ${IMAGE_PULL_SECRETS_ARGUMENT} \
-      || return $?
+    if ! is_chart_deployed istiod istio-system ${ISTIO_CHART_DIR}/istio-control/istio-discovery ; then
+      log "Installing Istio discovery"
+      helm upgrade istiod ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
+    fi
 
     log "Generate Istio ingress specific configuration"
     local EXTRA_INGRESS_ARGUMENTS=""
     EXTRA_INGRESS_ARGUMENTS=$(get_istio_helm_args_from_config)
     EXTRA_INGRESS_ARGUMENTS="$EXTRA_INGRESS_ARGUMENTS --set gateways.istio-ingressgateway.type=${INGRESS_TYPE}"
 
-    log "Installing Istio ingress"
-    helm upgrade istio-ingress ${ISTIO_CHART_DIR}/gateways/istio-ingress \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      ${EXTRA_INGRESS_ARGUMENTS} \
-      ${IMAGE_PULL_SECRETS_ARGUMENT} \
-      || return $?
+    if ! is_chart_deployed istio-ingress istio-system ${ISTIO_CHART_DIR}/gateways/istio-ingress ; then
+      log "Installing Istio ingress"
+      helm upgrade istio-ingress ${ISTIO_CHART_DIR}/gateways/istio-ingress \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${EXTRA_INGRESS_ARGUMENTS} \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
+    fi
 
-    log "Installing Istio egress"
-    helm upgrade istio-egress ${ISTIO_CHART_DIR}/gateways/istio-egress \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      ${IMAGE_PULL_SECRETS_ARGUMENT} \
-      || return $?
+    if ! is_chart_deployed istio-egress istio-system ${ISTIO_CHART_DIR}/gateways/istio-egress ; then
+      log "Installing Istio egress"
+      helm upgrade istio-egress ${ISTIO_CHART_DIR}/gateways/istio-egress \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
+    fi
 
-    log "Installing istiocoredns"
-    helm upgrade istiocoredns ${ISTIO_CHART_DIR}/istiocoredns \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      ${IMAGE_PULL_SECRETS_ARGUMENT} \
-      || return $?
+    if ! is_chart_deployed istiocoredns istio-system ${ISTIO_CHART_DIR}/istiocoredns ; then
+      log "Installing istiocoredns"
+      helm upgrade istiocoredns ${ISTIO_CHART_DIR}/istiocoredns \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
+    fi
 
-    log "Installing Istio Grafana"
-    helm upgrade grafana ${ISTIO_CHART_DIR}/istio-telemetry/grafana \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      ${IMAGE_PULL_SECRETS_ARGUMENT} \
-      || return $?
+    if ! is_chart_deployed grafana istio-system ${ISTIO_CHART_DIR}/istio-telemetry/grafana ; then
+      log "Installing Istio Grafana"
+      helm upgrade grafana ${ISTIO_CHART_DIR}/istio-telemetry/grafana \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
+    fi
 
-    log "Installing Istio Prometheus"
-    helm upgrade prometheus ${ISTIO_CHART_DIR}/istio-telemetry/prometheus \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      ${IMAGE_PULL_SECRETS_ARGUMENT} \
-      || return $?
+    if ! is_chart_deployed prometheus istio-system ${ISTIO_CHART_DIR}/istio-telemetry/prometheus ; then
+      log "Installing Istio Prometheus"
+      helm upgrade prometheus ${ISTIO_CHART_DIR}/istio-telemetry/prometheus \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
+    fi
 
     log "Setting Istio global mesh policy to STRICT mode"
     kubectl apply -f <(echo "

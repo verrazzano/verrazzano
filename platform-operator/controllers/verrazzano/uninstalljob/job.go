@@ -21,12 +21,6 @@ const uninstallMode = "UNINSTALL"
 
 // NewJob returns a job resource for uninstalling Verrazzano
 func NewJob(jobConfig *JobConfig) *batchv1.Job {
-	var backoffLimit *int32 = nil
-	var activeDeadlineSeconds *int64 = nil
-	if jobConfig.RetrySettings != nil {
-		backoffLimit = jobConfig.RetrySettings.BackoffLimit
-		activeDeadlineSeconds = jobConfig.RetrySettings.ActiveDeadlineSeconds
-	}
 	var annotations map[string]string = nil
 	mode := uninstallMode
 	if jobConfig.DryRun {
@@ -42,8 +36,8 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 			Annotations: annotations,
 		},
 		Spec: batchv1.JobSpec{
-			BackoffLimit:          backoffLimit,
-			ActiveDeadlineSeconds: activeDeadlineSeconds,
+			// For now, jobs will use the default backoffLimit of 6; we will eventually respawn jobs when they fail,
+			// but for now this will allow some limited amount of retries when the pods fail.
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        jobConfig.JobName,

@@ -5,7 +5,6 @@ package k8s
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -14,13 +13,12 @@ import (
 
 // JobConfigCommon Common configuration for install/uninstall jobs
 type JobConfigCommon struct {
-	JobName            string                  // Name of the job
-	Namespace          string                  // Namespace for the job
-	Labels             map[string]string       // Container labels for the job
-	ServiceAccountName string                  // Service account name to execute the job as
-	JobImage           string                  // Image name/tag for the job
-	RetrySettings      *v1alpha1.RetrySettings // Retry settings for the job
-	DryRun             bool                    // Perform the job as a dry-run/no-op, for testing purposes
+	JobName            string            // Name of the job
+	Namespace          string            // Namespace for the job
+	Labels             map[string]string // Container labels for the job
+	ServiceAccountName string            // Service account name to execute the job as
+	JobImage           string            // Image name/tag for the job
+	DryRun             bool              // Perform the job as a dry-run/no-op, for testing purposes
 }
 
 // NoOpMode value for MODE variable for no-op (test) jobs
