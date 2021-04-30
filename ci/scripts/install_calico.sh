@@ -13,7 +13,8 @@ download_calico() {
   curl -LJo ${CALICO_DIR}/calico/"${CALICO_VERSION}".tgz https://github.com/projectcalico/calico/releases/download/v"${CALICO_VERSION}"/release-v"${CALICO_VERSION}".tgz
   cd ${CALICO_DIR}/calico
   tar xzvf "${CALICO_VERSION}".tgz --strip-components=1 -C ${CALICO_DIR}/calico/${CALICO_VERSION}
-  rm release-v${CALICO_VERSION}.tgz
+  rm ${CALICO_VERSION}.tgz
+  export CALICO_HOME=${CALICO_DIR}/calico/${CALICO_VERSION}
 }
 
 # Install Calico using the release bundle under CALICO_HOME. When the environment variable CALICO_HOME is set, the script
@@ -23,11 +24,10 @@ download_calico() {
 if [ -z "$CALICO_HOME" ]; then
   echo "CALICO_HOME is not set, downloading Calico release bundle."
   download_calico
-  export CALICO_HOME=${CALICO_DIR}/calico/${CALICO_VERSION}
 fi
 
 # Download the release bundle, if $CALICO_HOME doesn't exist
-if [ -d "${CALICO_HOME}" ]; then
+if [ ! -d "${CALICO_HOME}" ]; then
   echo "CALICO_HOME doesn't exist, downloading the calico release bundle."
   download_calico
 fi
