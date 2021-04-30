@@ -32,7 +32,7 @@ if [ ! -d "${CALICO_HOME}" ]; then
   download_calico
 fi
 
-echo "Load the docker image from Calico archives from ${CALICO_HOME}/images."
+echo "Load the docker image from Calico archives at ${CALICO_HOME}/images."
 cd ${CALICO_HOME}/images
 kind load image-archive calico-cni.tar --name ${CLUSTER_NAME}
 kind load image-archive calico-dikastes.tar --name ${CLUSTER_NAME}
