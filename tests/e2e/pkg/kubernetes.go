@@ -468,16 +468,8 @@ func GetClusterRole(name string) *rbacv1.ClusterRole {
 
 //DoesServiceAccountExist returns whether a service account with the given name and namespace exists in the cluster
 func DoesServiceAccountExist(namespace, name string) bool {
-	clientset := GetKubernetesClientset()
-
-	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get service account %s in namespace %s with error: %v", name, namespace, err))
-	}
-
+	sa := GetServiceAccount(namespace, name)
 	return sa != nil
-
 }
 
 // DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
@@ -676,4 +668,13 @@ func CanIForAPIGroup(userOCID string, namespace string, verb string, resource st
 
 	return auth.Status.Allowed, auth.Status.Reason
 
+}
+
+func GetServiceAccount(namespace, name string) *corev1.ServiceAccount {
+	clientset := GetKubernetesClientset()
+	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get service account %s in namespace %s with error: %v", name, namespace, err))
+	}
+	return sa
 }
