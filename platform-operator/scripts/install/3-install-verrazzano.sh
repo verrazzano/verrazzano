@@ -137,6 +137,7 @@ function install_verrazzano()
       --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
       --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
       --set keycloak.enabled=$(is_keycloak_enabled) \
+      --set rancher.enabled=$(is_rancher_enabled) \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
 
