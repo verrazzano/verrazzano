@@ -60,7 +60,8 @@ func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace
 				return err
 			}
 
-			// Filter the authorization policies we retrieved
+			// Filter the authorization policies we retrieved.  Do not include authorization policies for the
+			// appconfig being deleted.
 			authzPolicyList := []clisecurity.AuthorizationPolicy{}
 			for _, policy := range tempAuthzPolicyList {
 				if value, ok := policy.Spec.Selector.MatchLabels[verrazzanoIstioLabel]; ok {
@@ -75,13 +76,14 @@ func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace
 				return nil
 			}
 
-			// get a list of pods for the given namespace
+			// Get a list of pods for the given namespace
 			podList, err := ap.KubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
 				return err
 			}
 
-			// get the list of service accounts remaining in the namespace of where an appconfig delete is taking place
+			// Get the list of service accounts remaining in the namespace of where an appconfig delete is taking place.
+			// This service account list does not include the service account used by the appconfig being deleted.
 			saList := []string{}
 			for _, pod := range podList.Items {
 				if value, ok := pod.Labels[verrazzanoIstioLabel]; ok {
@@ -92,6 +94,7 @@ func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace
 			}
 
 			// Create list of unique principals for all authorization policies in a project.
+			// This list does not include principals used by the appconfig being deleted.
 			uniquePrincipals := make(map[string]bool)
 			for _, authzPolicy := range authzPolicyList {
 				for _, principal := range authzPolicy.Spec.Rules[0].From[0].Source.Principals {
