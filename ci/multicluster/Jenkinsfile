@@ -139,6 +139,8 @@ pipeline {
 
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+
+        CALICO_VERSION="3.18.1"
     }
 
     stages {
@@ -579,7 +581,8 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 esac
                 if [ ${params.CREATE_KIND_USE_CALICO} == true ]; then
                     echo "Install Calico"
-                    kubectl apply -f https://docs.projectcalico.org/v3.18/manifests/calico.yaml
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ./ci/scripts/install_calico.sh "${CLUSTER_NAME_PREFIX}-$count" "${CALICO_VERSION}"
                 fi
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
