@@ -121,7 +121,7 @@ func (a *AppConfigWebhook) cleanupAppConfig(appConfig *oamv1.ApplicationConfigur
 		KubeClient:  a.KubeClient,
 		IstioClient: a.IstioClient,
 	}
-	return ap.deleteAuthorizationPoliciesForProjects(appConfig.Namespace, appConfig.Name)
+	return ap.cleanupAuthorizationPoliciesForProjects(appConfig.Namespace, appConfig.Name)
 }
 
 // cleanupCert cleans up the generated certificate for the given app config

@@ -30,7 +30,8 @@ type AuthorizationPolicy struct {
 }
 
 // cleanupAuthorizationPoliciesForProjects updates authorization policies so that all applications within a project
-// are allowed to talk to each other after delete of an appconfig
+// are allowed to talk to each other after delete of an appconfig.  This function will fixup the remaining
+// authorization policies to not reference the deleted appconfig.
 func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace string, appConfigName string) error {
 	// Get the list of defined projects
 	projectsList := &cluv1alpha1.VerrazzanoProjectList{}
