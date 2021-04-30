@@ -28,7 +28,7 @@ const (
 	rbacTestNamespace  = "rbactest"
 	v80ProjectAdmin    = "ocid1.user.oc1..aaaaaaaallodotxfvg0g1antsyq3gonyyhblya66kiqjnp2kogonykvjwi19"
 	v80ProjectMonitor  = "ocid1.user.oc1..aaaaaaaallodotxfvg0yank33sq3gonyghblya66kiqjnp2kogonykvjwi19"
-	verrazzanoApi      = "verrazzano-api"
+	verrazzanoAPI      = "verrazzano-api"
 	impersonateVerb    = "impersonate"
 )
 
@@ -253,8 +253,8 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 	ginkgo.Context("for serviceaccount verrazzano-api", func() {
 		var apiProxy corev1.Pod
-		sa := pkg.GetServiceAccount(verrazzanoSystemNS, verrazzanoApi)
-		ginkgo.It("Failure to validate the secret of the Service Account of Verrazzano API", func() {
+		sa := pkg.GetServiceAccount(verrazzanoSystemNS, verrazzanoAPI)
+		ginkgo.It("Validate the secret of the Service Account of Verrazzano API", func() {
 			// Get secret for the SA
 			saSecret := sa.Secrets[0]
 			clientset := pkg.GetKubernetesClientset()
@@ -262,7 +262,7 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 			secretMatched := false
 			for i := range pods.Items {
 				// Get the secret of the API proxy pod
-				if strings.HasPrefix(pods.Items[i].Name, verrazzanoApi) {
+				if strings.HasPrefix(pods.Items[i].Name, verrazzanoAPI) {
 					apiProxy = pods.Items[i]
 					for j := range apiProxy.Spec.Volumes {
 						if apiProxy.Spec.Volumes[j].Secret != nil && apiProxy.Spec.Volumes[j].Secret.SecretName == saSecret.Name {
@@ -273,11 +273,11 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 					break
 				}
 			}
-			gomega.Expect(secretMatched).To(gomega.BeTrue(), fmt.Sprintf("FAIL: The secret name of ServiceAccount " +
-				"%s differs from the secret obtained from the Verrazzano API pod.", verrazzanoApi))
+			gomega.Expect(secretMatched).To(gomega.BeTrue(), fmt.Sprintf("FAIL: The secret name of ServiceAccount "+
+				"%s differs from the secret obtained from the Verrazzano API pod.", verrazzanoAPI))
 		})
 
-		ginkgo.It("Failure to validate the role binding of the Service Account of Verrazzano API", func() {
+		ginkgo.It("Validate the role binding of the Service Account of Verrazzano API", func() {
 			clientset := pkg.GetKubernetesClientset()
 			bindings, _ := clientset.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{})
 			saName := sa.Name
@@ -307,7 +307,7 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 					}
 				}
 			}
-			gomega.Expect(testRun).To(gomega.BeTrue(), fmt.Sprintf("FAIL: The validation for role binding of " +
+			gomega.Expect(testRun).To(gomega.BeTrue(), fmt.Sprintf("FAIL: The validation for role binding of "+
 				"the Service Account of API Proxy did not run."))
 		})
 	})
