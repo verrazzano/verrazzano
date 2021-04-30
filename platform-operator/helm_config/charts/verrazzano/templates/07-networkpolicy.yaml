@@ -29,7 +29,7 @@ spec:
 ---
 # Network policy for Verrazzano console
 # Ingress: allow nginx-ingress-controller to connect to port 8000
-# Egress:  deny all
+# Egress:  allow kube-dns and istiod
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -53,6 +53,30 @@ spec:
       ports:
         - protocol: TCP
           port: 8000
+  egress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    # allow egress to istiod
+    - ports:
+        - port: 15012
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: istio-system
+          podSelector:
+            matchLabels:
+              app: istiod
 ---
 # Network policy for Verrazzano operator
 # Ingress: deny all
