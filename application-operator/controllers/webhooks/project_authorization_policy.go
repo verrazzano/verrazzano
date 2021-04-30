@@ -100,6 +100,9 @@ func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace
 				for _, principal := range authzPolicy.Spec.Rules[0].From[0].Source.Principals {
 					// For the namespace passed, only include the service accounts remaining for the namespace
 					split := strings.Split(principal, "/")
+					if len(split) != 5 {
+						return fmt.Errorf("expected format of Istio authorization policy is cluster.local/ns/<namespace>/sa/<service-account>")
+					}
 					if split[2] == namespace {
 						for _, sa := range saList {
 							if split[4] == sa {
