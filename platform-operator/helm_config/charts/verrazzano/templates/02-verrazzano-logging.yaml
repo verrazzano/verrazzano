@@ -36,10 +36,11 @@ data:
     # Prevent Fluentd from handling records containing its own logs. Otherwise
     # it can lead to an infinite loop, when error in sending one message generates
     # another message which also fails to be sent and so on.
-    <match fluent.**>
-      @type null
-      @id out_fluent_null
-    </match>
+    <label @FLUENT_LOG>
+      <match fluent.*>
+        @type null
+      </match>
+    </label>
 
     # Used for health checking
     <source>
@@ -107,8 +108,31 @@ data:
         fields_strip_underscores true
       </entry>
     </source>
+    <source>
+      @type systemd
+      @id in_systemd_run
+      read_from_head true
+      tag systemd
+      path /run/log/journal
+      <storage>
+        @type local
+        persistent true
+        path /tmp/run_journald_pos.json
+      </storage>
+      <entry>
+        fields_strip_underscores true
+      </entry>
+    </source>
 
   systemd-filter.conf: |
+    <filter systemd>
+       @type record_transformer
+       @id systemd_index
+       <record>
+          target_index verrazzano-systemd-journal
+       </record>
+    </filter>
+
     <filter systemd.kubelet>
       @type parser
       @id systemd_kubelet_parser
@@ -178,7 +202,7 @@ data:
       @id kubernetes_record_transformer
       enable_ruby true
       <record>
-        @target_index verrazzano-namespace-${record["kubernetes"]["namespace_name"]}
+        target_index verrazzano-namespace-${record["kubernetes"]["namespace_name"]}
       </record>
       <record>
         kubernetes_namespace_container_name ${record["kubernetes"]["namespace_name"]}.${record["kubernetes"]["container_name"]}
@@ -188,12 +212,21 @@ data:
     # parse verrazzano operators' json log
     <filter kubernetes.**_verrazzano-**_**operator**>
       @type parser
-      format json
       reserve_data true
       key_name log
       ignore_key_not_exist true
-      replace_invalid_sequence true
       emit_invalid_record_to_error true
+      <parse>
+         @type multi_format
+         <pattern>
+            format json
+            time_format %Y-%m-%dT%H:%M:%S.%NZ
+         </pattern>
+         # verrazzano-application-operator and weblogic-operator have none-format warnings
+         <pattern>
+            format none
+         </pattern>
+      </parse>
     </filter>
 
     # Remove the unnecessary field as the information is already available on
@@ -232,13 +265,20 @@ data:
     </filter>
 
   output.conf: |
+    <filter **>
+       @type record_transformer
+       @id cluster_name
+       <record>
+          cluster_name "#{ENV['CLUSTER_NAME']}"
+       </record>
+    </filter>
     <match **>
       @type elasticsearch
       @id out_elasticsearch
       @log_level info
       logstash_format true
-      logstash_prefix verrazzano-journal
-      target_index_key @target_index
+      logstash_prefix verrazzano-logstash
+      target_index_key target_index
       include_tag_key true
 
       template_file /fluentd/etc/elasticsearch-template-verrazzano.json
@@ -434,6 +474,9 @@ spec:
             - mountPath: /u01/data/docker/containers
               name: datadockercontainers
               readOnly: true
+            - mountPath: /run/log/journal
+              name: run-log-journal
+              readOnly: true
       serviceAccount: fluentd
       serviceAccountName: fluentd
       terminationGracePeriodSeconds: 30
@@ -456,6 +499,10 @@ spec:
             path: /u01/data/docker/containers
             type: ""
           name: datadockercontainers
+        - hostPath:
+            path: /run/log/journal
+            type: ""
+          name: run-log-journal
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1
