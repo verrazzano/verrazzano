@@ -113,12 +113,9 @@ if [[ "${ES_HOST}" == *.xip.io ]]; then
   done
   # patch /etc/hosts in the managed cluster beats pods by setting hostAliases
   kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system rollout status deploy verrazzano-operator
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging rollout status daemonset filebeat
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging rollout status daemonset journalbeat
-  ES_IP=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-  patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${ES_HOST}"'"],"ip":"'"${ES_IP}"'"}]}}}}'
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset filebeat --patch ${patch_data}
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset journalbeat --patch ${patch_data}
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging get daemonset filebeat -o json | jq .spec.template.spec.hostAliases
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging get daemonset journalbeat -o json | jq .spec.template.spec.hostAliases
+  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system rollout status daemonset fluentd
+  # ES_IP=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  # patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${ES_HOST}"'"],"ip":"'"${ES_IP}"'"}]}}}}'
+  # kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system patch daemonset fluentd --patch ${patch_data}
+  # kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get daemonset fluentd -o json | jq .spec.template.spec.hostAliases
 fi
