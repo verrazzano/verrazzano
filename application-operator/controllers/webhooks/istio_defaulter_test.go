@@ -623,7 +623,7 @@ func TestHandleProject1(t *testing.T) {
 		IstioClient:   istiofake.NewSimpleClientset(),
 	}
 
-	// Create a project referencing the default namespace
+	// Create a project in the verrazzano-mc namespace
 	project := &cluv1alpha1.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-project",
@@ -716,7 +716,7 @@ func TestHandleProject2(t *testing.T) {
 		IstioClient:   istiofake.NewSimpleClientset(),
 	}
 
-	// Create a project referencing the default namespace
+	// Create a project in the verrazzano-mc namespace
 	project := &cluv1alpha1.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-project",
@@ -873,7 +873,7 @@ func TestHandleProject3(t *testing.T) {
 		IstioClient:   istiofake.NewSimpleClientset(),
 	}
 
-	// Create a project referencing the default namespace
+	// Create a project in the verrazzano-mc namespace
 	project := &cluv1alpha1.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-project",

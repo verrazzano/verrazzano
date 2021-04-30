@@ -22,16 +22,16 @@ const verrazzanoIstioLabel = "verrazzano.io/istio"
 
 var apLogger = ctrl.Log.WithName("webhooks.project.authorization.policy")
 
-// AuthorizationPolicy type for fixing up authorization policies
+// AuthorizationPolicy type for fixing up authorization policies for projects
 type AuthorizationPolicy struct {
 	client.Client
 	KubeClient  kubernetes.Interface
 	IstioClient istioversionedclient.Interface
 }
 
-// deleteAuthorizationPoliciesForProjects updates authorization policies so that all applications within a project
+// cleanupAuthorizationPoliciesForProjects updates authorization policies so that all applications within a project
 // are allowed to talk to each other after delete of an appconfig
-func (ap *AuthorizationPolicy) deleteAuthorizationPoliciesForProjects(namespace string, appConfigName string) error {
+func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace string, appConfigName string) error {
 	// Get the list of defined projects
 	projectsList := &cluv1alpha1.VerrazzanoProjectList{}
 	listOptions := &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}
@@ -66,6 +66,11 @@ func (ap *AuthorizationPolicy) deleteAuthorizationPoliciesForProjects(namespace 
 						authzPolicyList = append(authzPolicyList, policy)
 					}
 				}
+			}
+
+			// After filtering there are no authorization policies so nothing to do - we can return now.
+			if len(authzPolicyList) == 0 {
+				return nil
 			}
 
 			// get a list of pods for the given namespace

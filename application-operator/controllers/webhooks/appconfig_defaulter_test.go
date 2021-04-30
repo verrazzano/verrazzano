@@ -208,7 +208,8 @@ func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryR
 	}
 	decoder := decoder()
 
-	webhook := &AppConfigWebhook{Client: mockClient,
+	webhook := &AppConfigWebhook{
+		Client:      mockClient,
 		KubeClient:  fake.NewSimpleClientset(),
 		IstioClient: istiofake.NewSimpleClientset(),
 	}
