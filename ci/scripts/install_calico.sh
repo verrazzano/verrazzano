@@ -14,7 +14,7 @@ download_calico() {
   cd ${CALICO_DIR}/calico
   tar xzvf "${CALICO_VERSION}".tgz --strip-components=1 -C ${CALICO_DIR}/calico/${CALICO_VERSION}
   rm ${CALICO_VERSION}.tgz
-  export CALICO_HOME=${CALICO_DIR}/calico/${CALICO_VERSION}
+  export CALICO_HOME=${CALICO_DIR}/calico
 }
 
 # Install Calico using the release bundle under CALICO_HOME. When the environment variable CALICO_HOME is set, the script
@@ -26,14 +26,14 @@ if [ -z "$CALICO_HOME" ]; then
   download_calico
 fi
 
-# Download the release bundle, if $CALICO_HOME doesn't exist
-if [ ! -d "${CALICO_HOME}" ]; then
-  echo "CALICO_HOME doesn't exist, downloading the calico release bundle."
+# Download the release bundle, if $CALICO_HOME/${CALICO_VERSION} doesn't exist
+if [ ! -d "${CALICO_HOME}/${CALICO_VERSION}" ]; then
+  echo "CALICO_HOME doesn't exist, downloading the Calico release bundle."
   download_calico
 fi
 
-echo "Load the docker image from Calico archives at ${CALICO_HOME}/images."
-cd ${CALICO_HOME}/images
+echo "Load the docker image from Calico archives at ${CALICO_HOME}/${CALICO_VERSION}/images."
+cd ${CALICO_HOME}/${CALICO_VERSION}/images
 kind load image-archive calico-cni.tar --name ${CLUSTER_NAME}
 kind load image-archive calico-dikastes.tar --name ${CLUSTER_NAME}
 kind load image-archive calico-flannel-migration-controller.tar --name ${CLUSTER_NAME}
@@ -42,6 +42,6 @@ kind load image-archive calico-node.tar --name ${CLUSTER_NAME}
 kind load image-archive calico-pod2daemon-flexvol.tar --name ${CLUSTER_NAME}
 kind load image-archive calico-typha.tar --name ${CLUSTER_NAME}
 
-echo "Apply ${CALICO_HOME}/k8s-manifests/calico.yaml."
-cd ${CALICO_HOME}/k8s-manifests
+echo "Apply ${CALICO_HOME}/${CALICO_VERSION}/k8s-manifests/calico.yaml."
+cd ${CALICO_HOME}/${CALICO_VERSION}/k8s-manifests
 kubectl apply -f calico.yaml
