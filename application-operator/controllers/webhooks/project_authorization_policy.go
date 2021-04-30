@@ -30,8 +30,9 @@ type AuthorizationPolicy struct {
 }
 
 // cleanupAuthorizationPoliciesForProjects updates authorization policies so that all applications within a project
-// are allowed to talk to each other after delete of an appconfig.  This function will fixup the remaining
-// authorization policies to not reference the deleted appconfig.
+// are allowed to talk to each other after delete of an appconfig.  This function is called from the appconfig-defaulter
+// webhook when an appconfig resource is deleted. This function will fixup the remaining authorization policies to not
+// reference the deleted appconfig.
 func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace string, appConfigName string) error {
 	// Get the list of defined projects
 	projectsList := &cluv1alpha1.VerrazzanoProjectList{}
@@ -104,7 +105,6 @@ func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace
 						}
 						continue
 					}
-					// make sure the sa
 					uniquePrincipals[principal] = true
 				}
 			}
@@ -122,7 +122,8 @@ func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace
 }
 
 // fixupAuthorizationPoliciesForProjects updates authorization policies so that all applications within a project
-// are allowed to talk to each other
+// are allowed to talk to each other. This function is called by the istio-defaulter webhook when authorization
+// policies are created.
 func (ap *AuthorizationPolicy) fixupAuthorizationPoliciesForProjects(namespace string) error {
 	// Get the list of defined projects
 	projectsList := &cluv1alpha1.VerrazzanoProjectList{}
