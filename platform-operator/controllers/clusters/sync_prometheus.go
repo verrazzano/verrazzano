@@ -188,23 +188,21 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(info *prometheusInf
 // deleteClusterPrometheusConfiguration deletes the managed cluster configuration from the prometheus configuration and updates the prometheus config
 // map
 func (r *VerrazzanoManagedClusterReconciler) deleteClusterPrometheusConfiguration(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	// get and mutate the prometheus config map
-	promConfigMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       configMapKind,
-			APIVersion: configMapVersion,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      prometheusConfigMapName,
-		}}
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, promConfigMap, func() error {
-		err := r.mutatePrometheusConfigMap(vmc, promConfigMap, nil)
-		if err != nil {
-			return err
-		}
+	// Get the Prometheus configuration.  The ConfigMap may not exist if this delete is being called
+	// during an uninstall of Verrazzano.
+	var promConfigMap = &corev1.ConfigMap{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: prometheusConfigMapName, Namespace: constants.VerrazzanoSystemNamespace}, promConfigMap)
+	if err != nil {
+		r.log.Warn(fmt.Sprintf("unable to delete Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err))
 		return nil
-	})
+	}
+
+	// Update Prometheus configuration to stop scraping for this VMC
+	err = r.mutatePrometheusConfigMap(vmc, promConfigMap, nil)
+	if err != nil {
+		return err
+	}
+	err = r.Client.Update(ctx, promConfigMap)
 	if err != nil {
 		return err
 	}

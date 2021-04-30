@@ -509,6 +509,13 @@ func TestDeleteVMC(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
 			// setup a scaled down existing scrape config entry for cluster1
+			configMap.TypeMeta = metav1.TypeMeta{
+				APIVersion: configMapVersion,
+				Kind:       configMapKind}
+			configMap.ObjectMeta = metav1.ObjectMeta{
+				Namespace: constants.VerrazzanoSystemNamespace,
+				Name:      prometheusConfigMapName,
+			}
 			configMap.Data = map[string]string{
 				"prometheus.yml": `global:
   scrape_interval: 20s
