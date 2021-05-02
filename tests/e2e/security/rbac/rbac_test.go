@@ -10,6 +10,7 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
@@ -281,34 +282,51 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 			clientset := pkg.GetKubernetesClientset()
 			bindings, _ := clientset.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{})
 			saName := sa.Name
-			testRun := false
+			bcount := 0
+			var rbinding v1.ClusterRoleBinding
 			for rb := range bindings.Items {
 				for sa := range bindings.Items[rb].Subjects {
-					// Get cluster role bindings for verrazzano-api and extract the cluster roles
-					// and assert that the role has only impersonate verb.
+					// Get cluster role bindings for verrazzano-api
 					if bindings.Items[rb].Subjects[sa].Name == saName {
-						gomega.Expect(bindings.Items[rb].Subjects[sa].Kind == "ServiceAccount").To(gomega.BeTrue(),
-							fmt.Sprintf("FAIL: The KIND for service account %s is different than ServiceAccount.",
-								bindings.Items[rb].Subjects[sa].Kind))
-
-						gomega.Expect(bindings.Items[rb].Subjects[sa].Namespace == verrazzanoSystemNS).To(gomega.BeTrue(),
-							fmt.Sprintf("FAIL: The namespace for service account %s is different than %s.",
-								bindings.Items[rb].Subjects[sa].Namespace, verrazzanoSystemNS))
-
-						crole := pkg.GetClusterRole(bindings.Items[rb].RoleRef.Name)
-						for rules := range crole.Rules {
-							verbs := crole.Rules[rules].Verbs
-							gomega.Expect(len(verbs) == 1).To(gomega.BeTrue(),
-								fmt.Sprintf("FAIL: The cluster role %s contains more than one verbs.", crole))
-							gomega.Expect(verbs[0] == impersonateVerb).To(gomega.BeTrue(),
-								fmt.Sprintf("FAIL: The cluster role %s contains more than one verbs.", crole))
-						}
-						testRun = true
+						gomega.Expect(bcount > 1).To(gomega.BeFalse())
+						rbinding = bindings.Items[rb]
+						bcount++
 					}
 				}
 			}
-			gomega.Expect(testRun).To(gomega.BeTrue(), fmt.Sprintf("FAIL: The validation for role binding of "+
-				"the Service Account of API Proxy did not run."))
+			// There should be a single cluster role binding, which references service account of Verrazzano API
+			gomega.Expect(len(rbinding.Subjects) > 1).To(gomega.BeFalse(),
+				fmt.Sprintf("FAIL: There are more than one Subjects for the cluster role binding %s", rbinding.Subjects))
+
+			// There should be a single subject of kind service account in verrazzano-system namespace
+			gomega.Expect(rbinding.Subjects[0].Kind == "ServiceAccount").To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The KIND for service account %s is different than ServiceAccount.", rbinding.Subjects[0].Kind))
+			gomega.Expect(rbinding.Subjects[0].Namespace == verrazzanoSystemNS).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The namespace for service account %s is different than %s.",
+					rbinding.Subjects[0].Namespace, verrazzanoSystemNS))
+
+			// There should be a single cluster role, with a single rule with resources - users and groups, and verbs impersonate
+			crole := pkg.GetClusterRole(rbinding.RoleRef.Name)
+			gomega.Expect(len(crole.Rules) == 1).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The cluster role %s contains more than one rules.", crole))
+
+			crule := crole.Rules[0]
+			gomega.Expect(len(crule.Resources) == 2).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: There are more resources than the expected users and groups %s", crule.Resources))
+			res := make(map[string]bool)
+			res["users"] = true
+			res["groups"] = true
+			for r := range crule.Resources {
+				delete(res, crule.Resources[r])
+			}
+			gomega.Expect(len(res) == 0).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The rule contains resource(s) other than expected users and groups - %s", crule.Resources))
+
+			verbs := crule.Verbs
+			gomega.Expect(len(verbs) == 1).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The cluster role %s contains more than one verbs.", crole))
+			gomega.Expect(verbs[0] == impersonateVerb).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The cluster role %s contains verb other than impersonate.", crole))
 		})
 	})
 })
