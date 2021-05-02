@@ -74,7 +74,7 @@ install_retries=0
 until kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}; do
   install_retries=$((install_retries+1))
   sleep 6
-  if [ "install_retries" -ge 10 ] ; then
+  if [ $install_retries -ge 10 ] ; then
     echo "Installation Failed trying to apply the Verazzano CR YAML"
     exit 1
   fi
@@ -84,5 +84,8 @@ ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/deb
 
 # wait for Verrazzano install to complete
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+if [ $? -ne 0 ]; then
+  exit 1
+fi
 
 exit 0
