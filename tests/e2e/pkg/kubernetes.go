@@ -498,6 +498,19 @@ func GetClusterRoleBinding(name string) *rbacv1.ClusterRoleBinding {
 	return crb
 }
 
+// ListClusterRoleBindings returns the list of cluster role bindings for the cluster
+func ListClusterRoleBidings() *rbacv1.ClusterRoleBindingList {
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	bindings, err := clientset.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role bindings with error: %v", err))
+	}
+
+	return bindings
+}
+
 // DoesRoleBindingContainSubject returns true if the RoleBinding exists and it contains the
 // specified subject
 func DoesRoleBindingContainSubject(namespace, name, subjectKind, subjectName string) bool {

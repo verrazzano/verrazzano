@@ -4,7 +4,6 @@
 package rbac_test
 
 import (
-	"context"
 	"fmt"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -12,7 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"time"
 )
@@ -279,8 +277,7 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 		})
 
 		ginkgo.It("Validate the role binding of the Service Account of Verrazzano API", func() {
-			clientset := pkg.GetKubernetesClientset()
-			bindings, _ := clientset.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{})
+			bindings := pkg.ListClusterRoleBidings()
 			saName := sa.Name
 			bcount := 0
 			var rbinding v1.ClusterRoleBinding
@@ -305,7 +302,7 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 				fmt.Sprintf("FAIL: The namespace for service account %s is different than %s.",
 					rbinding.Subjects[0].Namespace, verrazzanoSystemNS))
 
-			// There should be a single cluster role, with a single rule with resources - users and groups, and verbs impersonate
+			// There should be a single rule with resources - users and groups, and verbs impersonate
 			crole := pkg.GetClusterRole(rbinding.RoleRef.Name)
 			gomega.Expect(len(crole.Rules) == 1).To(gomega.BeTrue(),
 				fmt.Sprintf("FAIL: The cluster role %s contains more than one rules.", crole))
