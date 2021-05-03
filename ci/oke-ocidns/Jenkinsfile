@@ -17,10 +17,11 @@ def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
 def acmeEnvironments = [ "staging", "production" ]
 def certIssuers = [ "self-signed", "acme" ]
 def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : "VM.Standard2.8"
-def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
+def availableRegions = [  "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
+                          "uk-london-1", "us-phoenix-1" ]
 Collections.shuffle(availableRegions)
+def keepOKEClusterOnFailure = "false"
 
 pipeline {
     options {
@@ -202,6 +203,14 @@ pipeline {
                             # call create_oke_cluster with cluster access private (-p)
                             ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh -p
                         """
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        echo "Cluster create failed"
+                        keepOKEClusterOnFailure = "true"
                     }
                 }
             }
@@ -543,7 +552,7 @@ pipeline {
                 fi
                 if [ "${TEST_ENV}" == "kind" ]; then
                   ${WORKSPACE}/tests/e2e/config/scripts/delete-kind-cluster.sh
-                else
+                elif [ "${keepOKEClusterOnFailure}" == "false" ]; then
                   TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh
                 fi
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then

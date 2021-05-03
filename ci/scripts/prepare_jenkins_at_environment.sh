@@ -17,6 +17,7 @@ fi
 
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
+CALICO_VERSION=${3:-"3.18.1"}
 
 cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -26,7 +27,8 @@ cd ${TEST_SCRIPTS_DIR}
 
 if [ $INSTALL_CALICO == true ]; then
     echo "Install Calico"
-    kubectl apply -f https://docs.projectcalico.org/v3.18/manifests/calico.yaml
+    cd ${GO_REPO_PATH}/verrazzano
+    ./ci/scripts/install_calico.sh "${CLUSTER_NAME}" "${CALICO_VERSION}"
 fi
 
 echo "Install metallb"
@@ -72,7 +74,7 @@ install_retries=0
 until kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}; do
   install_retries=$((install_retries+1))
   sleep 6
-  if [ "install_retries" -ge 10 ] ; then
+  if [ $install_retries -ge 10 ] ; then
     echo "Installation Failed trying to apply the Verazzano CR YAML"
     exit 1
   fi
@@ -82,5 +84,8 @@ ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/deb
 
 # wait for Verrazzano install to complete
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+if [ $? -ne 0 ]; then
+  exit 1
+fi
 
 exit 0

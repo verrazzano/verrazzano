@@ -6,6 +6,7 @@ package cohworkload
 import (
 	"context"
 	"fmt"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"strings"
 	"testing"
 
@@ -17,7 +18,6 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
@@ -860,7 +860,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			// make sure JVM args were added and that the existing arg is still present
 			jvmArgs, _, _ := unstructured.NestedStringSlice(u.Object, specJvmArgsFields...)
 			assert.Equal(len(additionalJvmArgs)+1, len(jvmArgs))
-			assert.True(controllers.StringSliceContainsString(jvmArgs, existingJvmArg))
+			assert.True(vzstring.SliceContainsString(jvmArgs, existingJvmArg))
 
 			// make sure side car was added
 			sideCars, _, _ := unstructured.NestedSlice(u.Object, specField, "sideCars")

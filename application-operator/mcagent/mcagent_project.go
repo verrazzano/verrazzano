@@ -5,10 +5,10 @@ package mcagent
 
 import (
 	"fmt"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,7 +42,7 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 					// Add the project namespaces to the list of namespaces to watch.
 					// Check for duplicates values, even though they should never exist.
 					for _, namespace := range vp.Spec.Template.Namespaces {
-						if controllers.StringSliceContainsString(namespaces, namespace.Metadata.Name) {
+						if vzstring.SliceContainsString(namespaces, namespace.Metadata.Name) {
 							s.Log.Info(fmt.Sprintf("the namespace %s in project %s is a duplicate", namespace.Metadata.Name, vp.Name))
 						} else {
 							namespaces = append(namespaces, namespace.Metadata.Name)

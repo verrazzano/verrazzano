@@ -6,6 +6,7 @@ package mcagent
 import (
 	"context"
 	"encoding/json"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"path/filepath"
 	"testing"
 
@@ -13,7 +14,6 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -192,7 +192,7 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 			// Validate the namespace list that resulted from processing the VerrazzanoProject objects
 			assert.Equal(len(tt.fields.nsList), len(s.ProjectNamespaces), "number of expected namespaces did not match")
 			for _, namespace := range tt.fields.nsList {
-				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace.Metadata.Name), "expected namespace not being watched")
+				assert.True(vzstring.SliceContainsString(s.ProjectNamespaces, namespace.Metadata.Name), "expected namespace not being watched")
 			}
 		})
 	}
@@ -300,7 +300,7 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 			// Validate the namespace list that resulted from processing the VerrazzanoProject objects
 			assert.Equal(len(tt.fields.nsList), len(s.ProjectNamespaces), "number of expected namespaces did not match")
 			for _, namespace := range tt.fields.nsList {
-				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace.Metadata.Name), "expected namespace not being watched")
+				assert.True(vzstring.SliceContainsString(s.ProjectNamespaces, namespace.Metadata.Name), "expected namespace not being watched")
 			}
 		})
 	}
@@ -450,10 +450,10 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 			// Validate the namespace list that resulted from processing the VerrazzanoProject objects
 			assert.Equal(tt.expectedNamespaces, len(s.ProjectNamespaces), "number of expected namespaces did not match")
 			for _, namespace := range tt.vp1Fields.nsList {
-				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace.Metadata.Name), "expected namespace not being watched")
+				assert.True(vzstring.SliceContainsString(s.ProjectNamespaces, namespace.Metadata.Name), "expected namespace not being watched")
 			}
 			for _, namespace := range tt.vp2Fields.nsList {
-				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace.Metadata.Name), "expected namespace not being watched")
+				assert.True(vzstring.SliceContainsString(s.ProjectNamespaces, namespace.Metadata.Name), "expected namespace not being watched")
 			}
 		})
 	}

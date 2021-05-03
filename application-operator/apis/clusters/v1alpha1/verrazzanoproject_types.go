@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,6 +15,15 @@ type NamespaceTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata metav1.ObjectMeta    `json:"metadata"`
 	Spec     corev1.NamespaceSpec `json:"spec,omitempty"`
+}
+
+// NetworkPolicyTemplate has the metadata and spec of the underlying NetworkPolicy
+type NetworkPolicyTemplate struct {
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Metadata metav1.ObjectMeta `json:"metadata"`
+
+	// NetworkPolicySpec specifies the NetworkPolicy for a specific namespace / pod combination.
+	Spec netv1.NetworkPolicySpec `json:"spec,omitempty"`
 }
 
 // SecuritySpec defines the security configuration for a project
@@ -33,6 +43,10 @@ type ProjectTemplate struct {
 	// Security specifies the project security configuration
 	// +optional
 	Security SecuritySpec `json:"security,omitempty"`
+
+	// Network policies applied to namespaces in the project
+	// +optional
+	NetworkPolicies []NetworkPolicyTemplate `json:"networkPolicies,omitempty"`
 }
 
 // VerrazzanoProjectSpec defines the desired state of VerrazzanoProject

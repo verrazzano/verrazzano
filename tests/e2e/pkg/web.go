@@ -71,6 +71,14 @@ func RetryGetWithBasicAuth(url string, hostHeader string, username string, passw
 	return doGetWebPage(url, hostHeader, client, username, password)
 }
 
+// RetryPostWithBasicAuth retries POST using basic auth
+func RetryPostWithBasicAuth(url, body, username, password, kubeconfigPath string) (int, string) {
+	client := GetVerrazzanoHTTPClientForCluster(kubeconfigPath)
+	client.CheckRetry = GetRetryPolicy()
+	return doReq(url, "POST", "application/json", "", username, password, strings.NewReader(body), client)
+	//return doGetWebPage(url, hostHeader, client, username, password)
+}
+
 // doGetWebPage retries a web page
 func doGetWebPage(url string, hostHeader string, httpClient *retryablehttp.Client, username string, password string) (int, string) {
 	return doReq(url, "GET", "", hostHeader, username, password, nil, httpClient)
@@ -220,6 +228,13 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 		tr.Proxy = http.ProxyURL(tURLProxy)
 	}
 
+	// disable the custom DNS resolver
+	// setupCustomDNSResolver(tr, kubeconfigPath)
+
+	return &http.Client{Transport: tr}
+}
+
+func setupCustomDNSResolver(tr *http.Transport, kubeconfigPath string) {
 	ipResolve := getNginxNodeIP(kubeconfigPath)
 	if ipResolve != "" {
 		dialer := &net.Dialer{
@@ -249,8 +264,6 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 			return dialer.DialContext(ctx, network, addr)
 		}
 	}
-
-	return &http.Client{Transport: tr}
 }
 
 func getEnvName(kubeconfigPath string) string {

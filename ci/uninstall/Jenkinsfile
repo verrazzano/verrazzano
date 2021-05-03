@@ -406,7 +406,7 @@ pipeline {
                     }
                 }
                 failure {
-                    dumpK8sCluster('verrazzano-uninstall-failure-cluster-dump')
+                    dumpK8sCluster('verrazzano-reinstall-failure-cluster-dump')
                 }
             }
         }
