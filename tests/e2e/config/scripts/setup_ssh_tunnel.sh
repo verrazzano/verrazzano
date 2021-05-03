@@ -41,17 +41,6 @@ if [ -z "VCN_CIDR" ]; then
     exit 1
 fi
 
-# find availability domain for the bastion compute instance
-BASTION_AD=$(oci compute instance list \
-  --compartment-id "${TF_VAR_compartment_id}" \
-  --display-name "${TF_VAR_label_prefix}-bastion" \
-  | jq -r '.data[0]."availability-domain"')
-
-if [ -z "$BASTION_AD" ]; then
-    echo "Failed to get the AD for compute instance ${TF_VAR_label_prefix}-bastion"
-    exit 1
-fi
-
 # find bastion compute instance id
 BASTION_ID=$(oci compute instance list \
   --compartment-id "${TF_VAR_compartment_id}" \
