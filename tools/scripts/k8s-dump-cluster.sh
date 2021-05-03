@@ -120,7 +120,7 @@ fi
 if [ -z $DIRECTORY ]; then
   CAPTURE_DIR=$(mktemp -d $(pwd)/capture_XXXXXXX)
 else
-  mkdir $DIRECTORY
+  mkdir -p $DIRECTORY
   CAPTURE_DIR=$DIRECTORY
 fi
 
