@@ -41,24 +41,22 @@ if [ -z "VCN_CIDR" ]; then
     exit 1
 fi
 
-# find availability domain for the bastion compute instance
-BASTION_AD=$(oci compute instance list \
+# find bastion compute instance id
+BASTION_ID=$(oci compute instance list \
   --compartment-id "${TF_VAR_compartment_id}" \
   --display-name "${TF_VAR_label_prefix}-bastion" \
-  | jq -r '.data[0]."availability-domain"')
+  | jq -r '.data[0]."id"')
 
-if [ -z "$BASTION_AD" ]; then
-    echo "Failed to get the AD for compute instance ${TF_VAR_label_prefix}-bastion"
+if [ -z "$BASTION_ID" ]; then
+    echo "Failed to get the OCID for compute instance ${TF_VAR_label_prefix}-bastion"
     exit 1
 fi
 
 # find public IP for the bastion compute instance
-BASTION_IP=$(oci network public-ip list \
+BASTION_IP=$(oci compute instance list-vnics \
   --compartment-id "${TF_VAR_compartment_id}" \
-  --scope AVAILABILITY_DOMAIN \
-  --availability-domain "${BASTION_AD}" \
-  --all \
-  | jq -r '.data[] | select(."freeform-tags".role=="bastion") | ."ip-address"')
+  --instance-id "${BASTION_ID}" \
+  | jq -r '.data[0]."public-ip"')
 
 if [ -z "$BASTION_IP" ]; then
     echo "Failed to get the public IP for compute instance ${TF_VAR_label_prefix}-bastion"
