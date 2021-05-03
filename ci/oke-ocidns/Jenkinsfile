@@ -642,15 +642,15 @@ def dumpBobLogs() {
         export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/roberts-helidon-stock-application.log"
         ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n robert -r "roberts-helidon-stock-application-*" -m "robert helidon stock apps" -l -c roberts-helidon-stock-application || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/weblogic-operator.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-bobs-books-binding -r "weblogic-operator-*" -m "weblogic operator" -l -c weblogic-operator || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "weblogic-operator-*" -m "weblogic operator" -l -c weblogic-operator || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-ingresses.log"
         ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o ingress -n verrazzano-system -m "verrazzano system ingresses" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-bobs-books-binding-prometheus.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-bobs-books-binding-prometheus-0-*" -m "verrazzano system bobs books binding prometheus log" -l -c prometheus || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-bobs-books-binding-prometheus-gw.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-bobs-books-binding-prometheus-gw-*" -m "verrazzano system bobs books binding prometheus-gw log" -l -c prometheus-gw || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/monitoring-prom-pusher-bobs-books-binding.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n monitoring -r "prom-pusher-bobs-books-binding-*" -m "monitoring prom pusher bobs books binding" -l -c prometheus-pusher || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-prometheus.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-prometheus-0-*" -m "verrazzano system bobs books binding prometheus log" -l -c prometheus || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-prometheus-gw.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-prometheus-gw-*" -m "verrazzano system bobs books binding prometheus-gw log" -l -c prometheus-gw || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/monitoring-prom-pusher-system.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n monitoring -r "prom-pusher-system-*" -m "monitoring prom pusher bobs books binding" -l -c prometheus-pusher || echo "failed" > ${POST_DUMP_FAILED_FILE}
      """
 }
 
