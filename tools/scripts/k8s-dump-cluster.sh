@@ -189,6 +189,7 @@ function dump_extra_details_per_namespace() {
         fi
         kubectl --insecure-skip-tls-verify get ApplicationConfiguration -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/application-configurations.json || true
         kubectl --insecure-skip-tls-verify get Component -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/components.json || true
+        kubectl --insecure-skip-tls-verify get domains.weblogic.oracle -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/weblogic-domains.json || true
         kubectl --insecure-skip-tls-verify get IngressTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/ingress-traits.json || true
         kubectl --insecure-skip-tls-verify get Coherence -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/coherence.json || true
         kubectl --insecure-skip-tls-verify get gateway -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/gateways.json || true
@@ -198,6 +199,8 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get clusterrolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-role-bindings.json || true
         kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
         kubectl --insecure-skip-tls-verify get ns -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/namespace.json || true
+        kubectl --insecure-skip-tls-verify get pvc -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/persistent-volume-claims.json || true
+        kubectl --insecure-skip-tls-verify get pv -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/persistent-volumes.json || true
         kubectl --insecure-skip-tls-verify get multiclusterapplicationconfigurations -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-application-configurations.json || true
         kubectl --insecure-skip-tls-verify get multiclustercomponents -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-components.json || true
         kubectl --insecure-skip-tls-verify get multiclusterconfigmaps -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-config-maps.json || true
