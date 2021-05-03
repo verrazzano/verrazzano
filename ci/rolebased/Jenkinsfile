@@ -170,17 +170,6 @@ pipeline {
                     }
                 }
 
-                stage("Verrazzano API Proxy Validation") {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            sh """
-                                cd ${GO_REPO_PATH}/verrazzano
-                                ./tools/scripts/api-proxy-validation.sh
-                            """
-                        }
-                    }
-                }
-
                 stage('Run Acceptance Tests') {
                     environment {
                         TEST_ENV = "KIND"
