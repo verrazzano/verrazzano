@@ -289,14 +289,14 @@ func assertURLByIngressName(key string) {
 }
 
 func assertIngressURL(url string) {
-	assertUnAuthorized := assertURLAccessibleAndUnauthorized(url)
-	assertAuthorized := assertURLAccessibleAndAuthorized(url)
+	assertUnAuthorized := assertURLAccessibleAndUnauthorized
+	assertAuthorized := assertURLAccessibleAndAuthorized
 	pkg.Concurrently(
 		func() {
-			gomega.Eventually(assertUnAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertUnAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		func() {
-			gomega.Eventually(assertAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 	)
 }
@@ -356,18 +356,18 @@ func assertOidcIngressByName(key string) {
 }
 
 func assertOidcIngress(url string) {
-	assertUnAuthorized := assertOauthURLAccessibleAndUnauthorized(url)
-	assertBasicAuth := assertURLAccessibleAndAuthorized(url)
-	assertBearerAuth := assertBearerAuthorized(url)
+	assertUnAuthorized := assertOauthURLAccessibleAndUnauthorized
+	assertBasicAuth := assertURLAccessibleAndAuthorized
+	assertBearerAuth := assertBearerAuthorized
 	pkg.Concurrently(
 		func() {
-			gomega.Eventually(assertUnAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertUnAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		func() {
-			gomega.Eventually(assertBasicAuth, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertBasicAuth(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		func() {
-			gomega.Eventually(assertBearerAuth, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertBearerAuth(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 	)
 }
