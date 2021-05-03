@@ -499,7 +499,7 @@ func GetClusterRoleBinding(name string) *rbacv1.ClusterRoleBinding {
 }
 
 // ListClusterRoleBindings returns the list of cluster role bindings for the cluster
-func ListClusterRoleBidings() *rbacv1.ClusterRoleBindingList {
+func ListClusterRoleBindings() *rbacv1.ClusterRoleBindingList {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 

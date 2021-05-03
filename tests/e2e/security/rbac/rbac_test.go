@@ -277,7 +277,7 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 		})
 
 		ginkgo.It("Validate the role binding of the Service Account of Verrazzano API", func() {
-			bindings := pkg.ListClusterRoleBidings()
+			bindings := pkg.ListClusterRoleBindings()
 			saName := sa.Name
 			bcount := 0
 			var rbinding v1.ClusterRoleBinding
@@ -285,13 +285,13 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 				for sa := range bindings.Items[rb].Subjects {
 					// Get cluster role bindings for verrazzano-api
 					if bindings.Items[rb].Subjects[sa].Name == saName {
-						gomega.Expect(bcount > 1).To(gomega.BeFalse())
 						rbinding = bindings.Items[rb]
 						bcount++
 					}
 				}
 			}
 			// There should be a single cluster role binding, which references service account of Verrazzano API
+			gomega.Expect(bcount > 1).To(gomega.BeFalse())
 			gomega.Expect(len(rbinding.Subjects) > 1).To(gomega.BeFalse(),
 				fmt.Sprintf("FAIL: There are more than one Subjects for the cluster role binding %s", rbinding.Subjects))
 
