@@ -30,3 +30,17 @@ func RemoveStringFromSlice(slice []string, s string) []string {
 	}
 	return result
 }
+
+// UnorderedEqual checks if a map and array have the same string elements.
+// The same order is not required.
+func UnorderedEqual(mapBool map[string]bool, arrayStr []string) bool {
+	if len(mapBool) != len(arrayStr) {
+		return false
+	}
+	for element := range mapBool {
+		if !SliceContainsString(arrayStr, element) {
+			return false
+		}
+	}
+	return true
+}
