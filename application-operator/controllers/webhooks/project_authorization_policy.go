@@ -10,6 +10,7 @@ import (
 
 	cluv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -217,7 +218,7 @@ func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicy
 
 		// If the principals specified for the authorization policy do not have the expected principals then
 		// we need to update them.
-		if !unorderedEqual(uniquePrincipals, policy.Spec.Rules[0].From[0].Source.Principals) {
+		if !vzstring.UnorderedEqual(uniquePrincipals, policy.Spec.Rules[0].From[0].Source.Principals) {
 			var principals = []string{}
 			for principal := range uniquePrincipals {
 				principals = append(principals, principal)
@@ -232,27 +233,4 @@ func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicy
 	}
 
 	return nil
-}
-
-// unorderedEqual checks if a map and array have the same string elements
-func unorderedEqual(uniquePrincipals map[string]bool, principals []string) bool {
-	if len(uniquePrincipals) != len(principals) {
-		return false
-	}
-	for element := range uniquePrincipals {
-		if !contains(element, principals) {
-			return false
-		}
-	}
-	return true
-}
-
-// contains checks that a given string is in an array of strings
-func contains(given string, list []string) bool {
-	for _, matchValue := range list {
-		if matchValue == given {
-			return true
-		}
-	}
-	return false
 }
