@@ -95,9 +95,9 @@ data:
 ")
 
 VPROMUSR=$(echo -n $VERRAZZANO_INTERNAL_PROM_USER | base64)
-VPROM=$(echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64))
+VPROM=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
 VESUSR=$(echo -n $VERRAZZANO_INTERNAL_ES_USER | base64)
-VES=$(echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64))
+VES=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
 
   # Create a random secret for the verrazzano-prom-internal user
   kubectl apply -f <(echo "
