@@ -64,7 +64,7 @@ if [ -z "$BASTION_ID" ]; then
 fi
 
 # find public IP for the bastion compute instance
-BASTION_IP=$(oci compute instance listvnics \
+BASTION_IP=$(oci compute instance list-vnics \
   --compartment-id "${TF_VAR_compartment_id}" \
   --instance-id "${BASTION_ID}" \
   | jq -r '.data[0]."public-ip"')
