@@ -96,6 +96,7 @@ if [ ${status_code:-1} -eq 0 ]; then
 
     # Calico needs to be installed before any pods are created, so do it here before the nodes are ready
     if [ $INSTALL_CALICO == true ] ; then
+        ${GO_REPO_PATH}/verrazzano/ci/scipts/download_calico.sh ${CALICO_VERSION}
         ${SCRIPT_DIR}/install_calico_oke.sh ${CALICO_VERSION}
     fi
 
