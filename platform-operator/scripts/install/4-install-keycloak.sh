@@ -172,9 +172,9 @@ data:
     -- bash -c \
     "/opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --client admin-cli --password \$(cat /etc/${KCADMIN_SECRET}/password) && \
      /opt/jboss/keycloak/bin/kcadm.sh create users -r verrazzano-system -s username=${VERRAZZANO_INTERNAL_PROM_USER} -s enabled=true && \
-     /opt/jboss/keycloak/bin/kcadm.sh set-password -r verrazzano-system --username ${VERRAZZANO_INTERNAL_PROM_USER} --new-password $(echo "${VPROM}" | base64 --decode) && \
+     /opt/jboss/keycloak/bin/kcadm.sh set-password -r verrazzano-system --username ${VERRAZZANO_INTERNAL_PROM_USER} --new-password $(echo -n "${VPROM}" | base64 --decode) && \
      /opt/jboss/keycloak/bin/kcadm.sh create users -r verrazzano-system -s username=${VERRAZZANO_INTERNAL_ES_USER} -s enabled=true && \
-     /opt/jboss/keycloak/bin/kcadm.sh set-password -r verrazzano-system --username ${VERRAZZANO_INTERNAL_ES_USER} --new-password $(echo "${VES}" | base64 --decode) "
+     /opt/jboss/keycloak/bin/kcadm.sh set-password -r verrazzano-system --username ${VERRAZZANO_INTERNAL_ES_USER} --new-password $(echo -n "${VES}" | base64 --decode) "
 
 
   # Update the password policies.
