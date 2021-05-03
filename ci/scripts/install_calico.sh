@@ -34,13 +34,10 @@ fi
 
 echo "Load the docker image from Calico archives at ${CALICO_HOME}/${CALICO_VERSION}/images."
 cd ${CALICO_HOME}/${CALICO_VERSION}/images
-kind load image-archive calico-cni.tar --name ${CLUSTER_NAME}
-kind load image-archive calico-dikastes.tar --name ${CLUSTER_NAME}
-kind load image-archive calico-flannel-migration-controller.tar --name ${CLUSTER_NAME}
-kind load image-archive calico-kube-controllers.tar --name ${CLUSTER_NAME}
-kind load image-archive calico-node.tar --name ${CLUSTER_NAME}
-kind load image-archive calico-pod2daemon-flexvol.tar --name ${CLUSTER_NAME}
-kind load image-archive calico-typha.tar --name ${CLUSTER_NAME}
+for image_archive in *.tar; do
+    echo "Loading image archive $image_archive ..."
+    kind load image-archive "$image_archive" --name "${CLUSTER_NAME}"
+done
 
 echo "Apply ${CALICO_HOME}/${CALICO_VERSION}/k8s-manifests/calico.yaml."
 cd ${CALICO_HOME}/${CALICO_VERSION}/k8s-manifests

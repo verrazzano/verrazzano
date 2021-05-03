@@ -23,6 +23,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -34,6 +35,7 @@ const IstioAppLabel = "verrazzano.io/istio"
 
 // IstioWebhook type for istio defaulter webhook
 type IstioWebhook struct {
+	client.Client
 	IstioClient   istioversionedclient.Interface
 	Decoder       *admission.Decoder
 	KubeClient    kubernetes.Interface
@@ -90,8 +92,18 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 		}
 	}
 
-	// Create/update Istio Authorization policy.
+	// Create/update Istio Authorization policy for the given pod.
 	err = a.createUpdateAuthorizationPolicy(req.Namespace, serviceAccountName, appConfigOwnerRef)
+	if err != nil {
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	// Fixup Istio Authorization policies within a project
+	ap := &AuthorizationPolicy{
+		Client:      a.Client,
+		IstioClient: a.IstioClient,
+	}
+	err = ap.fixupAuthorizationPoliciesForProjects(req.Namespace)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
