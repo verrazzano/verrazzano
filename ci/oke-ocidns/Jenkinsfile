@@ -206,7 +206,7 @@ pipeline {
                             export TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP}
                             export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
 
-                            if [ ${params.CREATE_CLUSTER_USE_CALICO} == true ]; then
+                            if [ "${params.CREATE_CLUSTER_USE_CALICO}" == "true" ]; then
                                 echo "Download Calico"
                             fi
 
