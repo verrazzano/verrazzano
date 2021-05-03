@@ -11,7 +11,7 @@ import (
 	cluv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
+	"istio.io/client-go/pkg/apis/security/v1beta1"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -63,7 +63,7 @@ func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace
 
 			// Filter the authorization policies we retrieved.  Do not include authorization policies for the
 			// appconfig being deleted.
-			authzPolicyList := []clisecurity.AuthorizationPolicy{}
+			authzPolicyList := []v1beta1.AuthorizationPolicy{}
 			for _, policy := range tempAuthzPolicyList {
 				if value, ok := policy.Spec.Selector.MatchLabels[verrazzanoIstioLabel]; ok {
 					if value != appConfigName {
@@ -159,7 +159,7 @@ func (ap *AuthorizationPolicy) fixupAuthorizationPoliciesForProjects(namespace s
 			}
 
 			// Filter the authorization policies we retrieved
-			authzPolicyList := []clisecurity.AuthorizationPolicy{}
+			authzPolicyList := []v1beta1.AuthorizationPolicy{}
 			for _, policy := range tempAuthzPolicyList {
 				if _, ok := policy.Spec.Selector.MatchLabels[verrazzanoIstioLabel]; ok {
 					authzPolicyList = append(authzPolicyList, policy)
@@ -188,8 +188,8 @@ func (ap *AuthorizationPolicy) fixupAuthorizationPoliciesForProjects(namespace s
 
 // getAuthorizationPoliciesForProject returns a list of Istio authorization policies for a given list of namespaces.
 // The returned authorization policies must a have an owner reference to an applicationConfiguration resource.
-func (ap *AuthorizationPolicy) getAuthorizationPoliciesForProject(namespaceList []cluv1alpha1.NamespaceTemplate) ([]clisecurity.AuthorizationPolicy, error) {
-	var authzPolicyList = []clisecurity.AuthorizationPolicy{}
+func (ap *AuthorizationPolicy) getAuthorizationPoliciesForProject(namespaceList []cluv1alpha1.NamespaceTemplate) ([]v1beta1.AuthorizationPolicy, error) {
+	var authzPolicyList = []v1beta1.AuthorizationPolicy{}
 	for _, namespace := range namespaceList {
 		// Get the list of authorization policy resources in the namespace
 		list, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies(namespace.Metadata.Name).List(context.TODO(), metav1.ListOptions{})
@@ -209,23 +209,18 @@ func (ap *AuthorizationPolicy) getAuthorizationPoliciesForProject(namespaceList 
 }
 
 // updateAuthorizationPoliciesForProject updates Istio authorization policies for a project, if needed.
-func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicyList []clisecurity.AuthorizationPolicy, uniquePrincipals map[string]bool) error {
+func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicyList []v1beta1.AuthorizationPolicy, uniquePrincipals map[string]bool) error {
 	for _, authzPolicy := range authzPolicyList {
-		policy, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies(authzPolicy.Namespace).Get(context.TODO(), authzPolicy.Name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-
 		// If the principals specified for the authorization policy do not have the expected principals then
 		// we need to update them.
-		if !vzstring.UnorderedEqual(uniquePrincipals, policy.Spec.Rules[0].From[0].Source.Principals) {
+		if !vzstring.UnorderedEqual(uniquePrincipals, authzPolicy.Spec.Rules[0].From[0].Source.Principals) {
 			var principals = []string{}
 			for principal := range uniquePrincipals {
 				principals = append(principals, principal)
 			}
-			policy.Spec.Rules[0].From[0].Source.Principals = principals
+			authzPolicy.Spec.Rules[0].From[0].Source.Principals = principals
 			apLogger.Info(fmt.Sprintf("Updating project Istio authorization policy: %s:%s", authzPolicy.Namespace, authzPolicy.Name))
-			_, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies(authzPolicy.Namespace).Update(context.TODO(), policy, metav1.UpdateOptions{})
+			_, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies(authzPolicy.Namespace).Update(context.TODO(), &authzPolicy, metav1.UpdateOptions{})
 			if err != nil {
 				return err
 			}
