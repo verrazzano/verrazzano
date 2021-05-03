@@ -8,6 +8,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 PRIVATE_CLUSTER=${1:-false}
 INSTALL_CALICO=${2:-false}
+CALICO_VERSION=${3:-"3.18.1"}
 
 set_private_access() {
   echo "Cluster access set to private."
@@ -95,7 +96,7 @@ if [ ${status_code:-1} -eq 0 ]; then
 
     # Calico needs to be installed before any pods are created, so do it here before the nodes are ready
     if [ $INSTALL_CALICO == true ] ; then
-        ${SCRIPT_DIR}/install_calico_oke.sh
+        ${SCRIPT_DIR}/install_calico_oke.sh ${CALICO_VERSION}
     fi
 
     # Right after oke cluster is provisioned, it takes a while before any node is added to the cluster
