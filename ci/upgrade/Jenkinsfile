@@ -2,7 +2,6 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def SKIP_ACCEPTANCE_TESTS = false
 
 pipeline {
     options {
@@ -10,7 +9,7 @@ pipeline {
     }
 
     agent {
-       docker {
+        docker {
             image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
@@ -20,28 +19,33 @@ pipeline {
     }
 
     parameters {
-        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
-        booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
-        booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to true)', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
-        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
-        booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
+        choice (name: 'KUBERNETES_CLUSTER_VERSION',
+                description: 'Kubernetes Version for KinD Cluster',
+                // 1st choice is the default value
+                choices: [ "1.18", "1.19", "1.20", "1.17" ])
+        string (name: 'GIT_SHORT_COMMIT_FOR_INSTALL',
+                defaultValue: 'NONE',
+                description: 'This is the short commit hash to be used for install.',
+                trim: true)
+        string (name: 'GIT_COMMIT_TO_USE_FOR_UPGRADE_AND_TESTS',
+                defaultValue: 'NONE',
+                description: 'This is the full git commit hash used to do the upgrade and run the tests',
+                trim: true)
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                defaultValue: 'NONE',
+                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
+                trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
-                description: 'Wildcard DNS Domain',
+                description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "xip.io", "sslip.io"])
+        booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to true)', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
+        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
     }
 
     environment {
-        DOCKER_ANALYSIS_CI_IMAGE_NAME = 'verrazzano-analysis-jenkins'
-        DOCKER_ANALYSIS_PUBLISH_IMAGE_NAME = 'verrazzano-analysis'
-        DOCKER_ANALYSIS_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_ANALYSIS_PUBLISH_IMAGE_NAME : env.DOCKER_ANALYSIS_CI_IMAGE_NAME}"
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
-        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
-        DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
-        DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
-        DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
-        CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
@@ -66,20 +70,10 @@ pipeline {
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
-
-        JENKINS_READ = credentials('jenkins-auditor')
-
-        OCI_CLI_AUTH="instance_principal"
-        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-
-        // Used for dumping cluster from inside tests
-        DUMP_KUBECONFIG="${KUBECONFIG}"
-        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
     }
 
     stages {
@@ -90,11 +84,31 @@ pipeline {
                 """
 
                 script {
-                    def scmInfo = checkout scm
-                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    if (params.GIT_COMMIT_TO_USE_FOR_UPGRADE_AND_TESTS == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout scm
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE_FOR_UPGRADE_AND_TESTS}"
+                        def scmInfo = checkout([
+                                $class: 'GitSCM',
+                                branches: [[name: params.GIT_COMMIT_TO_USE_FOR_UPGRADE_AND_TESTS]],
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions: [],
+                                submoduleCfg: [],
+                                userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE_FOR_UPGRADE_AND_TESTS)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE_FOR_UPGRADE_AND_TESTS}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
+
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
@@ -103,14 +117,14 @@ pipeline {
                 script {
                     try {
                         sh """
-                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                        """
+                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                    """
                     } catch(error) {
                         echo "docker login failed, retrying after sleep"
                         retry(4) {
                             sleep(30)
                             sh """
-                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
                             """
                         }
                     }
@@ -143,234 +157,20 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
-                }
-            }
-        }
-
-        stage('Analysis Tool') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf {
-                        branch 'master';
-                        branch 'release-*';
-                    }
-                }
-            }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-            }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/tools/analysis
-                    make go-build
-                    cd out
-                    zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-                """
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/analysis-tool.zip', allowEmptyArchive: true
-                }
-            }
-        }
-
-        stage('Generate operator.yaml') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    case "${env.BRANCH_NAME}" in
-                        master|release-*)
-                            ;;
-                        *)
-                            echo "Adding image pull secrets to operator.yaml for non master/release branch"
-                            export IMAGE_PULL_SECRETS=verrazzano-container-registry
-                    esac
-                    DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
-                   """
-            }
-            post {
-                success {
-                    archiveArtifacts artifacts: "generated-operator.yaml", allowEmptyArchive: true
-                }
-            }
-        }
-
-        stage('Update operator.yaml') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                }
-            }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-            }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-                   """
-            }
-        }
-
-        stage('Build') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-                   """
-            }
-        }
-
-        stage('Quality and Compliance Checks') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    echo "run all linters"
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make check
-
-                    echo "copyright scan"
-                    time make copyright-check
-
-                    echo "Third party license check"
-                """
-                thirdpartyCheck()
-            }
-        }
-
-        stage('Unit Tests') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make -B coverage
-                """
-            }
-            post {
-                always {
-                    sh """
-                        cd ${GO_REPO_PATH}/verrazzano
-                        cp coverage.html ${WORKSPACE}
-                        cp coverage.xml ${WORKSPACE}
-                        build/copy-junit-output.sh ${WORKSPACE}
-                    """
-                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    cobertura(coberturaReportFile: 'coverage.xml',
-                      enableNewApi: true,
-                      autoUpdateHealth: false,
-                      autoUpdateStability: false,
-                      failUnstable: true,
-                      failUnhealthy: true,
-                      failNoReports: true,
-                      onlyStable: false,
-                      fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '75, 75, 75',
-                      packageCoverageTargets: '100, 0, 0',
-                    )
-                }
-            }
-        }
-
-        stage('Scan Image') {
-            when { not { buildingTag() } }
-            steps {
-                script {
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_ANALYSIS_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
-                }
-            }
-        }
-
-        stage('Integration Tests') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-
-                    make cleanup-cluster
-                    make create-cluster KIND_CONFIG="kind-config-ci.yaml"
-                    ../ci/scripts/setup_kind_for_jenkins.sh
-                    make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    ../build/copy-junit-output.sh ${WORKSPACE}
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make cleanup-cluster
-                    make integ-test KIND_CONFIG="kind-config-ci.yaml" CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    ../build/copy-junit-output.sh ${WORKSPACE}
-                    make cleanup-cluster
-                """
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
-
-        stage('Skip acceptance tests if commit message contains skip-at') {
-            steps {
-                script {
-                    // note that SKIP_ACCEPTANCE_TESTS will be false at this point (its default value)
-                    // so we are going to run the AT's unless this logic decides to skip them...
-
-                    // if we are planning to run the AT's (which is the default)
-                    if (params.RUN_ACCEPTANCE_TESTS == true) {
-                        SKIP_ACCEPTANCE_TESTS = false
-                        // check if the user has asked to skip AT using the commit message
-                        result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
-                        if (result == 0) {
-                            // found 'skip-at', so don't run them
-                            SKIP_ACCEPTANCE_TESTS = true
-                            echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
-                            echo "SKIP_ACCEPTANCE_TESTS is ${SKIP_ACCEPTANCE_TESTS}"
-                        }
-                    } else {
-                        SKIP_ACCEPTANCE_TESTS = true
-                    }
+                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE_FOR_UPGRADE_AND_TESTS
                 }
             }
         }
 
         stage('Acceptance Tests') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf {
-                        branch 'master';
-                        branch 'release-*';
-                        expression {SKIP_ACCEPTANCE_TESTS == false};
-                    }
-                }
-            }
-
             stages {
-
                 stage('Prepare AT environment') {
                     environment {
-                        VERRAZZANO_OPERATOR_IMAGE="NONE"
-                        KIND_KUBERNETES_CLUSTER_VERSION="1.18"
+                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_CLI_AUTH="instance_principal"
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                         OCI_OS_BUCKET="verrazzano-builds"
-                        OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
+                        OCI_OS_LOCATION="${params.GIT_SHORT_COMMIT_FOR_INSTALL}"
                     }
                     steps {
                         sh """
@@ -394,130 +194,98 @@ pipeline {
                     }
                 }
 
+                stage("upgrade-platform-operator") {
+                    steps {
+                        sh """
+                    echo "Upgrading the Verrazzano platform operator"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+
+                    # need to sleep since the old operator needs to transition to terminating state
+                    sleep 15
+                    
+                    # ensure operator pod is up
+                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                """
+                    }
+                }
+
+                stage("upgrade-verrazzano") {
+                    steps {
+                        sh """
+                    echo "Upgrading the Verrazzano installation"
+                    # Modify the version field in the verrazzano CR file to be this new verrazzano version
+                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    # Do the upgrade
+                    echo "Following is the verrazano CR file with the new version:"
+                    cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    # wait for the upgrade to complete
+                    kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+
+                    # ideally we don't need to wait here
+                    sleep 15
+                    echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
+                    helm list -A
+                """
+                    }
+                    post {
+                        always {
+                            dumpVerrazzanoPlatformOperatorLogs()
+                        }
+                    }
+                }
+
                 stage('Run Acceptance Tests') {
                     environment {
                         TEST_ENV = "KIND"
                     }
                     parallel {
                         stage('verify-install') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
-                            }
                             steps {
                                 runGinkgoRandomize('verify-install')
                             }
                         }
                         stage('verify-infra restapi') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
-                            }
                             steps {
                                 runGinkgoRandomize('verify-infra/restapi')
                             }
                         }
                         stage('verify-infra oam') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
-                            }
                             steps {
                                 runGinkgoRandomize('verify-infra/oam')
                             }
                         }
                         stage('verify-infra vmi') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
-                            }
                             steps {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        stage('istio authorization policy') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-                            }
-                            steps {
-                                runGinkgo('istio/authz')
-                            }
-                        }
-                        stage('security role based access') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
-                            }
-                            steps {
-                                runGinkgo('security/rbac')
-                            }
-                        }
-                        stage('examples logging helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
-                            }
-                            steps {
-                                runGinkgo('logging/helidon')
-                            }
-                        }
                         stage('examples todo') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
-                            }
                             steps {
                                 runGinkgo('examples/todo')
                             }
                         }
                         stage('examples socks') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
-                            }
                             steps {
                                 runGinkgo('examples/socks')
                             }
                         }
                         stage('examples spring') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
-                            }
                             steps {
                                 runGinkgo('examples/springboot')
                             }
                         }
                         stage('examples helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-                            }
                             steps {
                                 runGinkgo('examples/helidon')
-                            }
-                        }
-                        stage('examples helidon-config') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
-                            }
-                            steps {
-                                runGinkgo('examples/helidonconfig')
-                            }
-                        }
-                        stage('examples bobs') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
-                            }
-                            when {
-                                expression {params.RUN_SLOW_TESTS == true}
-                            }
-                            steps {
-                                runGinkgo('examples/bobsbooks')
-                            }
-                        }
-                        stage('console ingress') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
-                            }
-                            steps {
-                                runGinkgo('ingress/console')
                             }
                         }
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -528,38 +296,16 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
                         }
                     }
                 }
                 success {
                     script {
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
                         }
                     }
-                }
-            }
-        }
-
-        stage('Triggered Tests') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf {
-                        branch 'master';
-                        branch 'release-*';
-                        expression {params.TRIGGER_FULL_TESTS == true};
-                    }
-                }
-            }
-            steps {
-                script {
-                    build job: "verrazzano-push-triggered-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
-                        parameters: [
-                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
-                        ], wait: true
                 }
             }
         }
@@ -584,6 +330,7 @@ pipeline {
             sh """
                 cd ${GO_REPO_PATH}/verrazzano/platform-operator
                 make delete-cluster
+                cd ${WORKSPACE}/verrazzano
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
@@ -591,20 +338,11 @@ pipeline {
             """
         }
         failure {
-            sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
-            """
-            archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
-            sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.BRANCH_NAME}-${env.BUILD_NUMBER}/archive.zip --file archive.zip
-                rm archive.zip
-            """
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+                    subject: "Verrazzano: ${env.JOB_NAME} - Failed",
+                    body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
             script {
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
+                if (env.BRANCH_NAME == "master") {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
@@ -636,7 +374,7 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/analysis.report
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
     """
 }
 
