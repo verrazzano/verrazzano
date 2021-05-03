@@ -178,13 +178,6 @@ func main() {
 			os.Exit(1)
 		}
 
-		mgr.GetWebhookServer().CertDir = certDir
-		appconfigWebhook := &webhooks.AppConfigWebhook{Client: mgr.GetClient(), Defaulters: []webhooks.AppConfigDefaulter{
-			&webhooks.MetricsTraitDefaulter{},
-			&webhooks.LoggingScopeDefaulter{Client: mgr.GetClient()},
-		}}
-		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
-
 		// Get a Kubernetes dynamic client.
 		restConfig, err := clientcmd.BuildConfigFromFlags("", "")
 		if err != nil {
@@ -203,7 +196,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		clientSet, err := istioversionedclient.NewForConfig(restConfig)
+		istioClientSet, err := istioversionedclient.NewForConfig(restConfig)
 		if err != nil {
 			setupLog.Error(err, "Failed to create istio client")
 			os.Exit(1)
@@ -214,12 +207,27 @@ func main() {
 			webhooks.IstioDefaulterPath,
 			&webhook.Admission{
 				Handler: &webhooks.IstioWebhook{
+					Client:        mgr.GetClient(),
 					KubeClient:    kubeClient,
 					DynamicClient: dynamicClient,
-					IstioClient:   clientSet,
+					IstioClient:   istioClientSet,
 				},
 			},
 		)
+
+		mgr.GetWebhookServer().CertDir = certDir
+		appconfigWebhook := &webhooks.AppConfigWebhook{
+			Client:      mgr.GetClient(),
+			KubeClient:  kubeClient,
+			IstioClient: istioClientSet,
+			Defaulters: []webhooks.AppConfigDefaulter{
+				&webhooks.MetricsTraitDefaulter{},
+				&webhooks.LoggingScopeDefaulter{
+					Client: mgr.GetClient(),
+				},
+			},
+		}
+		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
 	}
 
 	logReconciler := loggingscope.NewReconciler(
