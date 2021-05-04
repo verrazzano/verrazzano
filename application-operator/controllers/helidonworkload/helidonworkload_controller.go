@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -236,18 +237,25 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 			},
 		}
 
-		// We only add a single Service for the Deployment, even if multiple
-		// ports or no ports are defined on the first container. This is to
-		// exclude the need for implementing garbage collection in the
-		// short-term in the case that ports are modified after creation.
-		if len(deploy.Spec.Template.Spec.Containers[0].Ports) > 0 {
-			s.Spec.Ports = []corev1.ServicePort{
-				{
-					Name:       deploy.GetName(),
-					Port:       deploy.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort,
-					TargetPort: intstr.FromInt(int(deploy.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort)),
-					Protocol:   corev1.ProtocolTCP,
-				},
+		for _, container := range deploy.Spec.Template.Spec.Containers {
+			if len(container.Ports) > 0 {
+				for _, port := range container.Ports {
+					// All ports within a ServiceSpec must have unique names.
+					// When considering the endpoints for a Service, this must match the 'name' field in the EndpointPort.
+					name := container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10)
+					protocol := corev1.ProtocolTCP
+					if len(port.Protocol) > 0 {
+						protocol = port.Protocol
+					}
+					servicePort := corev1.ServicePort{
+						Name:       name,
+						Port:       port.ContainerPort,
+						TargetPort: intstr.FromInt(int(port.ContainerPort)),
+						Protocol:   protocol,
+					}
+					r.Log.V(1).Info("Appending port to service", "servicePort", servicePort)
+					s.Spec.Ports = append(s.Spec.Ports, servicePort)
+				}
 			}
 		}
 		if y, err := yaml.Marshal(s); err != nil {
