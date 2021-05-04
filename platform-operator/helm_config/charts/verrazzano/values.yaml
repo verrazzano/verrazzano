@@ -48,9 +48,8 @@ kibana:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.14.0-20210331215025-6b42d76
-  prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
+  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-dev
+  imageVersion: 3357
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
   journalbeatImage: ghcr.io/verrazzano/journalbeat:6.8.3-20201016212623-05eabe44b
