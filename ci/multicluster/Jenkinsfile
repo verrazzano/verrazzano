@@ -583,11 +583,11 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                     echo "Install Calico"
                     cd ${GO_REPO_PATH}/verrazzano
                     ./ci/scripts/install_calico.sh "${CLUSTER_NAME_PREFIX}-$count" "${CALICO_VERSION}"
-                    kubectl wait --for=condition=ready nodes/${CLUSTER_NAME_PREFIX}-$count-control-plane --timeout=5m
-                    kubectl wait --for=condition=ready pods/kube-controller-manager-${CLUSTER_NAME_PREFIX}-$count-control-plane -n kube-system --timeout=5m
-                    echo "Listing pods in kube-system namespace ..."
-                    kubectl get pods -n kube-system
                 fi
+                kubectl wait --for=condition=ready nodes/${CLUSTER_NAME_PREFIX}-$count-control-plane --timeout=5m
+                kubectl wait --for=condition=ready pods/kube-controller-manager-${CLUSTER_NAME_PREFIX}-$count-control-plane -n kube-system --timeout=5m
+                echo "Listing pods in kube-system namespace ..."
+                kubectl get pods -n kube-system
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
                 ./tests/e2e/config/scripts/install-metallb.sh $metallbAddressRange
