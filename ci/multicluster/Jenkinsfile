@@ -68,7 +68,7 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "xip.io", "sslip.io"])
-        booleanParam (description: 'Whether to create kind cluster with Calico for AT testing', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
+        booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
     }
 
@@ -570,16 +570,16 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 # specify the cache name based on the count value, this is assuming 1 or 2 clusters
                 case "${count}" in
                     1)
-                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${params.CREATE_KIND_USE_CALICO} "vpo_integ"
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${params.CREATE_CLUSTER_USE_CALICO} "vpo_integ"
                         ;;
                     2)
-                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${params.CREATE_KIND_USE_CALICO} "apo_integ"
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${params.CREATE_CLUSTER_USE_CALICO} "apo_integ"
                         ;;
                     *)
-                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${params.CREATE_KIND_USE_CALICO} "NONE"
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${params.CREATE_CLUSTER_USE_CALICO} "NONE"
                         ;;
                 esac
-                if [ ${params.CREATE_KIND_USE_CALICO} == true ]; then
+                if [ ${params.CREATE_CLUSTER_USE_CALICO} == true ]; then
                     echo "Install Calico"
                     cd ${GO_REPO_PATH}/verrazzano
                     ./ci/scripts/install_calico.sh "${CLUSTER_NAME_PREFIX}-$count" "${CALICO_VERSION}"
@@ -744,7 +744,7 @@ def createOKEClusters() {
             mkdir -p ${KUBECONFIG_DIR}
             echo "Create OKE cluster"
             cd ${TEST_SCRIPTS_DIR}
-            TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
+            TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${CREATE_CLUSTER_USE_CALICO}
         """
     }
 }
