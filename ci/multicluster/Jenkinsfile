@@ -583,6 +583,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                     echo "Install Calico"
                     cd ${GO_REPO_PATH}/verrazzano
                     ./ci/scripts/install_calico.sh "${CLUSTER_NAME_PREFIX}-$count" "${CALICO_VERSION}"
+                    ./ci/scripts/wait_for_control_plane.sh "${CLUSTER_NAME}"
                 fi
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
