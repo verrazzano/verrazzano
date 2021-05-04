@@ -227,7 +227,8 @@ pipeline {
                             echo "Upgrading the Verrazzano installation"
                             # Modify the version field in the verrazzano CR file to be this new verrazzano version
                             cd ${GO_REPO_PATH}/verrazzano
-                            ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                            cp ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                            ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                             # Do the upgrade
                             echo "Following is the verrazano CR file with the new version:"
                             cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
