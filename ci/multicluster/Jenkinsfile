@@ -133,6 +133,7 @@ pipeline {
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+        LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
 
         ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
 
@@ -447,10 +448,26 @@ pipeline {
                 }
                 stage ('Uninstall Verrazzano') {
                     steps {
-                        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                        for(int count=1; count<=clusterCount; count++) {
-                            def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                            uninstallVerrazzano(count, installerPath)
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                            for(int count=1; count<=clusterCount; count++) {
+                                def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                                uninstallVerrazzano(count, installerPath)
+                            }
+                        }
+                    }
+                }
+                stage("Verify Uninstall") {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                            for(int count=1; count<=clusterCount; count++) {
+                                sh """
+                                    export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources
+                                    ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
+                                """
+                            }
                         }
                     }
                 }
@@ -620,7 +637,7 @@ def uninstallVerrazzano(count, verrazzanoConfig) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
             sh """
-                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 echo "Deleting \\$verrazzanoConfig"
                 kubectl delete -f ${verrazzanoConfig}
             """
