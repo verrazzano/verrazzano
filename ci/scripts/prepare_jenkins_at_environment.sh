@@ -31,6 +31,14 @@ if [ $INSTALL_CALICO == true ]; then
     ./ci/scripts/install_calico.sh "${CLUSTER_NAME}" "${CALICO_VERSION}"
 fi
 
+# With the Calico configuration to set disableDefaultCNI to true in the KIND configuration, the control plane node will
+# be ready only after applying calico.yaml. So wait for the KIND control plane node to be ready, before proceeding further,
+# with maximum wait period of 5 minutes.
+kubectl wait --for=condition=ready nodes/${CLUSTER_NAME}-control-plane --timeout=5m --all
+kubectl wait --for=condition=ready pods/kube-controller-manager-${CLUSTER_NAME}-control-plane -n kube-system --timeout=5m
+echo "Listing pods in kube-system namespace ..."
+kubectl get pods -n kube-system
+
 echo "Install metallb"
 cd ${GO_REPO_PATH}/verrazzano
 ./tests/e2e/config/scripts/install-metallb.sh
