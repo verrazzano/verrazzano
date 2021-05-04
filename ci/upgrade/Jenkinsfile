@@ -195,6 +195,10 @@ pipeline {
                     }
                 }
                 stage("upgrade-platform-operator") {
+                    environment {
+                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                        OCI_OS_BUCKET="verrazzano-builds"
+                    }
                     steps {
                         sh """
                         echo "Upgrading the Verrazzano platform operator"
@@ -216,6 +220,9 @@ pipeline {
                         sh """
                         echo "Upgrading the Verrazzano installation"
                         # Modify the version field in the verrazzano CR file to be this new verrazzano version
+                        cd ${GO_REPO_PATH}/verrazzano
+                        def props = readProperties file: '.verrazzano-development-version'
+                        VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                         ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                         # Do the upgrade
                         echo "Following is the verrazano CR file with the new version:"
