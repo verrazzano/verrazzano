@@ -35,6 +35,7 @@ fi
 # be ready only after applying calico.yaml. So wait for the KIND control plane node to be ready, before proceeding further,
 # with maximum wait period of 5 minutes.
 kubectl wait --for=condition=ready nodes/${CLUSTER_NAME}-control-plane --timeout=5m --all
+kubectl wait --for=condition=ready pods/kube-controller-manager-${CLUSTER_NAME}-control-plane -n kube-system --timeout=5m
 echo "Listing pods in kube-system namespace ..."
 kubectl get pods -n kube-system
 
