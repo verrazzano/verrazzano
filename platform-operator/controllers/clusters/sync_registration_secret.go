@@ -134,7 +134,7 @@ func (r *VerrazzanoManagedClusterReconciler) getVzPromSecret() (corev1.Secret, e
 	return secret, nil
 }
 
-// Get the Verrazzano ElasticSearch/FluentD secret
+// Get the Verrazzano Elasticsearch/FluentD secret
 func (r *VerrazzanoManagedClusterReconciler) getVzESSecret() (corev1.Secret, error) {
 	var secret corev1.Secret
 	nsn := types.NamespacedName{

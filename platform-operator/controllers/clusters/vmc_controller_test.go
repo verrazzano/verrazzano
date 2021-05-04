@@ -1289,7 +1289,7 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 			return nil
 		})
 
-	// Expect a call to get the verrazzano prometheus internal secret - return it
+	// Expect a call to get the Verrazzano Prometheus internal secret - return it
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoPromInternal}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
