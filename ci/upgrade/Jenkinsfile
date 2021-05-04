@@ -229,7 +229,7 @@ pipeline {
                         sleep 15
                         echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
                         helm list -A
-                """
+                    """
                     }
                     post {
                         always {
