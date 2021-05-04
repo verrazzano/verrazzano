@@ -60,11 +60,11 @@ func deployApplication() {
 		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create database credentials secret")
-	if _, err := pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"}); err != nil {
+	if _, err := pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "cidomain"}); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create JDBC credentials secret: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create encryption credentials secret")
-	if _, err := pkg.CreatePasswordSecret(namespace, "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "tododomain"}); err != nil {
+	if _, err := pkg.CreatePasswordSecret(namespace, "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "cidomain"}); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create encryption secret: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create component resources")
@@ -102,9 +102,9 @@ var _ = ginkgo.Describe("Verify application.", func() {
 		// GIVEN the app is deployed
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
-		ginkgo.It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
+		ginkgo.It("Verify 'cidomain-adminserver' and 'mysql' pods are running", func() {
 			gomega.Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{"mysql", "tododomain-adminserver"})
+				return pkg.PodsRunning(namespace, []string{"mysql", "cidomain-adminserver"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
 	})

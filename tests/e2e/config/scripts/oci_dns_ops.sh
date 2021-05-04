@@ -10,7 +10,7 @@ function usage {
     echo "usage: $0 [-o operation] [-c compartment_ocid] [-s subdomain_name] "
     echo "  -o operation               'create' or 'delete'. Optional.  Defaults to 'create'."
     echo "  -c compartment_ocid        Compartment OCID. Optional.  Defaults to TIBURON-DEV compartment OCID."
-    echo "  -s submdomain_name         subdomain prefix for v8o.oracledx.com. Required."
+    echo "  -s submdomain_name         subdomain prefix for v8o.io. Required."
     echo "  -h                         Help"
     echo
     exit 1
@@ -37,7 +37,7 @@ if [ -z "${SUBDOMAIN_NAME}" ] ; then
 fi
 
 set -o pipefail
-ZONE_NAME="${SUBDOMAIN_NAME}.v8o.oracledx.com"
+ZONE_NAME="${SUBDOMAIN_NAME}.v8o.io"
 
 zone_ocid=""
 if [ $OPERATION == "create" ]; then
