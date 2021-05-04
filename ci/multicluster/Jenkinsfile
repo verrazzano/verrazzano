@@ -448,7 +448,7 @@ pipeline {
                 }
                 stage ('Uninstall Verrazzano') {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        script {
                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
                             for(int count=1; count<=clusterCount; count++) {
                                 def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
@@ -459,7 +459,7 @@ pipeline {
                 }
                 stage("Verify Uninstall") {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        script {
                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
                             for(int count=1; count<=clusterCount; count++) {
                                 sh """
