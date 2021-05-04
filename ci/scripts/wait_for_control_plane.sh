@@ -4,7 +4,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-# This script waits for the KIND control plane to reach Ready status, with a default wait period of 300 seconds.
+# This script waits for the KIND control plane node to reach Ready status, with a default wait period of 300 seconds.
 # The script assumes the cluster access configuration is stored in ${HOME}/.kube/config or environment variable
 # KUBECONFIG is set appropriately.
 

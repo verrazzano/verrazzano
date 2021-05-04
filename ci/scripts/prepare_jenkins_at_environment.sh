@@ -31,8 +31,9 @@ if [ $INSTALL_CALICO == true ]; then
     ./ci/scripts/install_calico.sh "${CLUSTER_NAME}" "${CALICO_VERSION}"
 fi
 
-# With the Calico configuration in the KIND configuration, the control plane node will be ready only after applying calico.yaml.
-# So wait for the KIND control plane node to be ready, before proceeding further, with maximum wait period of 300 seconds.
+# With the Calico configuration to set disableDefaultCNI to true in the KIND configuration, the control plane node will
+# be ready only after applying calico.yaml. So wait for the KIND control plane node to be ready, before proceeding further,
+# with maximum wait period of 300 seconds.
 cd ${GO_REPO_PATH}/verrazzano
 ./ci/scripts/wait_for_control_plane.sh "${CLUSTER_NAME}"
 
