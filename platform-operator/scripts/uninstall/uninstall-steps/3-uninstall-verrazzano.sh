@@ -29,7 +29,7 @@ function delete_verrazzano() {
 
   # deleting verrazzanoprojects
   log "Deleting VerrazzanoProjects"
-  delete_k8s_resources verrazzanoproject ":metadata.name,:metadata.labels" "Could not delete VerrazzanoProjects from Verrazzano" '/verrazzano/ && ! /verrazzano-platform-operator/ && ! /verrazzano-install/ && ! /verrazzano-managed-cluster/ {print $1}' \
+  delete_k8s_resources verrazzanoproject ":metadata.name" "Could not delete VerrazzanoProjects from Verrazzano" "" "verrazzano-mc" \
     || return $? # return on pipefail
 
   # delete crds
