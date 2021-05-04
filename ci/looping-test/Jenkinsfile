@@ -15,7 +15,7 @@ pipeline {
             throttleEnabled: true,
             throttleOption: 'category'
         )
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
     }
 
     agent {
@@ -411,7 +411,11 @@ pipeline {
                 abort = true
                 sh """
                     echo "Run aborted - ensuring deletion of VZ cluster and operator"
-                    kubectl delete --ignore-not-found=true verrazzano my-verrazzano
+                    # Brute-force delete the VZ instance, and patch out the finalizer if necessary
+                    kubectl delete --ignore-not-found=true verrazzano my-verrazzano --wait=false
+                    kubectl wait --for=delete verrazzano my-verrazzano --timeout=20m || true
+                    kubectl patch verrazzano my-verrazzano -p '{"metadata":{"finalizers":null}}' --type=merge || true
+                    # Remove the platform operator and its resources
                     kubectl delete --ignore-not-found=true -f ${WORKSPACE}/acceptance-test-operator.yaml
                 """
             }
