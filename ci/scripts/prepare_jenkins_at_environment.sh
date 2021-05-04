@@ -33,9 +33,10 @@ fi
 
 # With the Calico configuration to set disableDefaultCNI to true in the KIND configuration, the control plane node will
 # be ready only after applying calico.yaml. So wait for the KIND control plane node to be ready, before proceeding further,
-# with maximum wait period of 300 seconds.
-cd ${GO_REPO_PATH}/verrazzano
-./ci/scripts/wait_for_control_plane.sh "${CLUSTER_NAME}"
+# with maximum wait period of 5 minutes.
+kubectl wait --for=condition=ready nodes/${CLUSTER_NAME}-control-plane --timeout=5m --all
+echo "Listing pods in kube-system namespace ..."
+kubectl get pods -n kube-system
 
 echo "Install metallb"
 cd ${GO_REPO_PATH}/verrazzano
