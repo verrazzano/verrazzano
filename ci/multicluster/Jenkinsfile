@@ -452,8 +452,13 @@ pipeline {
                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
                             for(int count=1; count<=clusterCount; count++) {
                                 def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                                uninstallVerrazzano(count, installerPath)
+                                def key = "vz-mgd-${count-1}"
+                                if (count == 1) {
+                                    key = "vz-admin"
+                                }
+                                verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
                             }
+                            parallel verrazzanoUninstallStages
                         }
                     }
                 }
