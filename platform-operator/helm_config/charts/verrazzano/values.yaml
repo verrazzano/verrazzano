@@ -69,7 +69,7 @@ monitoringOperator:
   grafanaImage: ghcr.io/verrazzano/grafana:v6.4.4
   prometheusImage: ghcr.io/verrazzano/prometheus:v2.13.1
   prometheusInitImage: ghcr.io/oracle/oraclelinux:7-slim
-  prometheusGatewayImage: ghcr.io/verrazzano/prometheus-pushgateway:1.2.0-20201016205229-164dd8b
+  prometheusGatewayImage: ghcr.io/verrazzano/prometheus-pushgateway:1.4.0-20210504204717-17368c9
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1
