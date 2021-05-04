@@ -138,6 +138,8 @@ relabel_configs:
 // Used to add new WebLogic scrape config to a Prometheus configmap
 const prometheusWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
 ##SSL_PROTOCOL##
+scrape_interval: 60s
+scrape_timeout: 45s
 kubernetes_sd_configs:
 - role: pod
   namespaces:

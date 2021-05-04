@@ -239,6 +239,11 @@ kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_N
 log "Adding label for disabling istio sidecar injection by default to ${VERRAZZANO_NS} namespace"
 kubectl label namespace ${VERRAZZANO_NS} "istio-injection=enabled" --overwrite
 
+# TEMP
+kubectl create secret docker-registry verrazzano-container-registry --docker-server=ghcr.io --docker-username=jmaron99 --docker-password=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 -n verrazzano-system
+kubectl create secret docker-registry verrazzano-container-registry --docker-server=ghcr.io --docker-username=jmaron99 --docker-password=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
+# END TEMP
+
 if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
 fi
