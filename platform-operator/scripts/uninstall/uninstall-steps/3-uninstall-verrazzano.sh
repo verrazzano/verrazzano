@@ -27,11 +27,6 @@ function delete_verrazzano() {
   log "Deleting Verrazzano secrets"
   kubectl delete secret verrazzano-managed-cluster-local --ignore-not-found=true || err_return $? "Could not delete secrets from Verrazzano" || return $?
 
-  # deleting verrazzanoprojects
-  log "Deleting VerrazzanoProjects"
-  delete_k8s_resources verrazzanoproject ":metadata.name" "Could not delete VerrazzanoProjects from Verrazzano" "" "verrazzano-mc" \
-    || return $? # return on pipefail
-
   # delete crds
   log "Deleting Verrazzano crd finalizers"
   patch_k8s_resources crds ":metadata.name" "Could not remove finalizers from CustomResourceDefinitions in Verrazzano" '/verrazzano.io/' '{"metadata":{"finalizers":null}}' \

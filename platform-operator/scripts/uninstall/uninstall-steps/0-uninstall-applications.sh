@@ -61,6 +61,15 @@ function delete_rancher_local_cluster {
   return 0
 }
 
+# Delete all of the MultiCluster resources in all namespaces
+function delete_multicluster_resources {
+    delete_k8s_resource_from_all_namespaces multiclusterapplicationconfigurations.clusters.verrazzano.io
+    delete_k8s_resource_from_all_namespaces multiclustercomponents.clusters.verrazzano.io
+    delete_k8s_resource_from_all_namespaces multiclusterconfigmaps.clusters.verrazzano.io
+    delete_k8s_resource_from_all_namespaces multiclusterloggingscopes.clusters.verrazzano.io
+    delete_k8s_resource_from_all_namespaces multiclustersecrets.clusters.verrazzano.io
+}
+
 # Delete all of the OAM ApplicationConfiguration resources in all namespaces.
 function delete_oam_applications_configurations {
   delete_k8s_resource_from_all_namespaces applicationconfigurations.core.oam.dev
@@ -71,6 +80,13 @@ function delete_oam_components {
   delete_k8s_resource_from_all_namespaces components.core.oam.dev
 }
 
+# Delete all of the VerrazzanoProject resources
+function delete_vp_resources {
+  delete_k8s_resources verrazzanoproject ":metadata.name" "Could not delete VerrazzanoProjects from Verrazzano" "" "verrazzano-mc"
+}
+
 action "Deleting Rancher Local Cluster" delete_rancher_local_cluster || exit 1
+action "Deleting Multicluster resources" delete_multicluster_resources || exit 1
 action "Deleting OAM application configurations" delete_oam_applications_configurations || exit 1
 action "Deleting OAM components" delete_oam_components || exit 1
+action "Deleting VerrazzanoProject resources" delete_vp_resources || exit 1
