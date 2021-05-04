@@ -198,37 +198,37 @@ pipeline {
                 stage("upgrade-platform-operator") {
                     steps {
                         sh """
-                    echo "Upgrading the Verrazzano platform operator"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
-
-                    # need to sleep since the old operator needs to transition to terminating state
-                    sleep 15
-
-                    # ensure operator pod is up
-                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                """
+                        echo "Upgrading the Verrazzano platform operator"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                        kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+    
+                        # need to sleep since the old operator needs to transition to terminating state
+                        sleep 15
+    
+                        # ensure operator pod is up
+                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                    """
                     }
                 }
 
                 stage("upgrade-verrazzano") {
                     steps {
                         sh """
-                    echo "Upgrading the Verrazzano installation"
-                    # Modify the version field in the verrazzano CR file to be this new verrazzano version
-                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                    # Do the upgrade
-                    echo "Following is the verrazano CR file with the new version:"
-                    cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                    kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                    # wait for the upgrade to complete
-                    kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-
-                    # ideally we don't need to wait here
-                    sleep 15
-                    echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-                    helm list -A
+                        echo "Upgrading the Verrazzano installation"
+                        # Modify the version field in the verrazzano CR file to be this new verrazzano version
+                        ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                        # Do the upgrade
+                        echo "Following is the verrazano CR file with the new version:"
+                        cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                        kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                        # wait for the upgrade to complete
+                        kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+    
+                        # ideally we don't need to wait here
+                        sleep 15
+                        echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
+                        helm list -A
                 """
                     }
                     post {
