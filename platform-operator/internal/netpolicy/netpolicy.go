@@ -172,13 +172,6 @@ func newNetworkPolicy(apiServerIP string, apiServerPort int32) *netv1.NetworkPol
 							Port:     &webhookPort,
 						},
 					},
-					From: []netv1.NetworkPolicyPeer{
-						{
-							IPBlock: &netv1.IPBlock{
-								CIDR: apiServerCidr,
-							},
-						},
-					},
 				},
 			},
 		},
