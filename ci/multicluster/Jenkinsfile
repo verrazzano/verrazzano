@@ -445,6 +445,15 @@ pipeline {
                         }
                     }
                 }
+                stage ('Uninstall Verrazzano') {
+                    steps {
+                        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                        for(int count=1; count<=clusterCount; count++) {
+                            def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                            uninstallVerrazzano(count, installerPath)
+                        }
+                    }
+                }
             }
             post {
                 failure {
@@ -599,6 +608,21 @@ def installVerrazzano(count, verrazzanoConfig) {
 
                 # wait for Verrazzano install to complete
                 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+            """
+        }
+    }
+}
+
+// Uninstall Verrazzano
+// - count is the cluster index into the $KUBECONFIG_DIR
+// - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
+def uninstallVerrazzano(count, verrazzanoConfig) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        script {
+            sh """
+                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                echo "Deleting \\$verrazzanoConfig"
+                kubectl delete -f ${verrazzanoConfig}
             """
         }
     }
