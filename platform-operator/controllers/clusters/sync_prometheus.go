@@ -96,8 +96,6 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 		return err
 	}
 	return nil
-
-	return nil
 }
 
 // getPrometheusConfig will get the ConfigMap containing the Prometheus configuration
