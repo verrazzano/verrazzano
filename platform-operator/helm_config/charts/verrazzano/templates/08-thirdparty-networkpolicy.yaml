@@ -658,3 +658,28 @@ spec:
           podSelector:
             matchLabels:
               k8s-app: kube-dns
+---
+# Network policy for Istiod
+# Ingress: allow ingress to port 15012 from verrazzano-system prometheus
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: istiod
+  namespace: istio-system
+spec:
+  podSelector:
+    matchLabels:
+      app: istiod
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 15012
+          protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: {{ .Release.Namespace }}
+          podSelector:
+            matchLabels:
+              app: system-prometheus
