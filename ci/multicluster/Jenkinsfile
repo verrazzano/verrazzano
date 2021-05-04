@@ -626,7 +626,7 @@ def installVerrazzano(count, verrazzanoConfig) {
                 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 
                 echo "Applying \$verrazzanoConfig"
-                kubectl apply -f ${verrazzanoConfig}
+                time kubectl apply -f ${verrazzanoConfig}
 
                 # wait for Verrazzano install to complete
                 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
@@ -644,7 +644,7 @@ def uninstallVerrazzano(count, verrazzanoConfig) {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 echo "Deleting \\$verrazzanoConfig"
-                kubectl delete -f ${verrazzanoConfig}
+                time kubectl delete -f ${verrazzanoConfig}
             """
         }
     }
