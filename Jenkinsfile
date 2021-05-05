@@ -765,9 +765,6 @@ def getPreviousCleanBuildCommit(currentCommitHash) {
 }
 
 def getSuspectList(previousCleanBuildCommitId, currentCommitHash, userMappings) {
-    userMappings.each { entry ->
-        echo "Key: $entry.key Value: $entry.value"
-    }
     def commits = sh(
         script: "git rev-list $currentCommitHash \"^$previousCleanBuildCommitId\"",
         returnStdout: true
@@ -780,7 +777,7 @@ def getSuspectList(previousCleanBuildCommitId, currentCommitHash, userMappings) 
         def author = sh(
             script: "git log --format='%ae' '$id^!'",
             returnStdout: true
-        )
+        ).trim()
         echo "DEBUG: author: ${author}, id: ${id}"
         if (userMappings.containsKey(author)) {
             def slackUser = userMappings.get(author)
