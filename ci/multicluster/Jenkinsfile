@@ -524,6 +524,7 @@ pipeline {
                     dumpOamKubernetesRuntimeLogs()
                     dumpVerrazzanoApiLogs()
                 }
+                dumpUninstallLogs()
             }
             archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -659,7 +660,10 @@ def uninstallVerrazzano(count, verrazzanoConfig) {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 echo "Deleting \\$verrazzanoConfig"
-                time kubectl delete -f ${verrazzanoConfig}
+                kubectl delete -f ${verrazzanoConfig} &
+
+                # wait for Verrazzano uninstall to complete
+                ./tests/e2e/config/scripts/wait-for-verrazzano-uninstall.sh
             """
         }
     }
@@ -944,6 +948,23 @@ def dumpInstallLogs() {
                 mkdir -p ${LOG_DIR}
                 kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install.log --tail -1
                 kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
+                echo "------------------------------------------"
+            """
+        }
+    }
+}
+
+def dumpUninstallLogs() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            sh """
+                ## dump verrazzano uninstall logs
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${LOG_DIR}
+                kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall.log --tail -1
+                kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall-job-pod.out
                 echo "------------------------------------------"
             """
         }
