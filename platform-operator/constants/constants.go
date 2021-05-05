@@ -15,10 +15,10 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 // Verrazzano is the name of the verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
 
-// VerrazzanoPromInternal is the name of the verrazzano internal prometheus secret in the Verrazzano system namespace
+// VerrazzanoPromInternal is the name of the Verrazzano internal Prometheus secret in the Verrazzano system namespace
 const VerrazzanoPromInternal = "verrazzano-prom-internal"
 
-// VerrazzanoESInternal is the name of the verrazzano internal elasticsearch secret in the Verrazzano system namespace
+// VerrazzanoESInternal is the name of the Verrazzano internal Elasticsearch secret in the Verrazzano system namespace
 const VerrazzanoESInternal = "verrazzano-es-internal"
 
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for verrazzano
