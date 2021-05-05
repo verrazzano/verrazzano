@@ -650,12 +650,14 @@ def installVerrazzano(count, verrazzanoConfig) {
 // - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
 def uninstallVerrazzano(count, verrazzanoConfig) {
     // For parallel execution, wrap this in a Groovy enclosure {}
-    return script {
-        sh """
-            export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-            echo "Deleting \\$verrazzanoConfig"
-            time kubectl delete -f ${verrazzanoConfig}
-        """
+    return {
+        script {
+            sh """
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                echo "Deleting \\$verrazzanoConfig"
+                time kubectl delete -f ${verrazzanoConfig}
+            """
+        }
     }
 }
 
@@ -663,12 +665,14 @@ def uninstallVerrazzano(count, verrazzanoConfig) {
 // - count is the cluster index into the $KUBECONFIG_DIR
 def verifyUninstall(count) {
     // For parallel execution, wrap this in a Groovy enclosure {}
-    return script {
-        sh """
-            export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-            ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources-cluster${count}
-            ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources-cluster${count}
-         """
+    return {
+        script {
+            sh """
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources-cluster${count}
+                ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources-cluster${count}
+            """
+        }
     }
 }
 
