@@ -469,14 +469,19 @@ pipeline {
                 stage("Verify Uninstall") {
                     steps {
                         script {
+                            // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
+                            // - the first one will always be the Admin cluster
+                            // - clusters 2-max are managed clusters
+                            def verifyUninstallStages = [:]
                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
                             for(int count=1; count<=clusterCount; count++) {
-                                sh """
-                                    export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources-cluster${count}
-                                    ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources-cluster${count}
-                                """
+                                def key = "vz-mgd-${count-1}"
+                                if (count == 1) {
+                                    key = "vz-admin"
+                                }
+                                verifyUninstallStages["${key}"] = verifyUninstall(count)
                             }
+                            parallel verifyUninstallStages
                         }
                     }
                 }
@@ -602,6 +607,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
 // - count is the cluster index into the $KUBECONFIG_DIR
 // - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
 def installVerrazzano(count, verrazzanoConfig) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
             sh """
@@ -643,14 +649,26 @@ def installVerrazzano(count, verrazzanoConfig) {
 // - count is the cluster index into the $KUBECONFIG_DIR
 // - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
 def uninstallVerrazzano(count, verrazzanoConfig) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        script {
-            sh """
-                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                echo "Deleting \\$verrazzanoConfig"
-                time kubectl delete -f ${verrazzanoConfig}
-            """
-        }
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return script {
+        sh """
+            export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+            echo "Deleting \\$verrazzanoConfig"
+            time kubectl delete -f ${verrazzanoConfig}
+        """
+    }
+}
+
+// Verify uninstall Verrazzano
+// - count is the cluster index into the $KUBECONFIG_DIR
+def verifyUninstall(count) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return script {
+        sh """
+            export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+            ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources-cluster${count}
+            ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources-cluster${count}
+         """
     }
 }
 
