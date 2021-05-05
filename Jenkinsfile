@@ -147,6 +147,8 @@ pipeline {
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
+                    def currentCommitHash = env.GIT_COMMIT
+                    debugNewGetSuspectList(currentCommitHash)
                     withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
                         def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
                         SUSPECT_LIST = getSuspectList( userMappings )
@@ -725,7 +727,37 @@ def dumpVerrazzanoApiLogs() {
 }
 
 @NonCPS
-def getSuspectList(userMappings) {
+def debugNewGetSuspectList(currentCommitHash) {
+    // Since we can't reproduce in a branch, we will need to first get debug info from master before we can determine this approach
+    // will really work there. It doesn't return anything but just debugs so we can tell if the approach will really work for us
+    // in master rather than relying solely on what Jenkins is giving us in the changeSets
+
+    // Determine if there was a previous successful build or not (ie: this is more for user branches rather than master),
+    // if this is the first run of a branch it will be null (no previous successful build yet)
+    def lastSuccessfulBuild = currentBuild.rawBuild.getPreviousSuccessfulBuild()
+    if (lastSuccessfulBuild == null) {
+        echo "There was not a previous successful build, not forming a suspect list. We should not see this in master, only in new branches"
+        // We don't really care about notifications/suspects on user branches (if we form long running branches with multiple folks
+        // we may care in the future and can add logic to handle those cases)
+        return
+    }
+
+    // If we have a previous successful build, form the rev-list based on the last commit that passed and the current commit.
+    // This assumes that the builds are generally being triggered by commits to the branch (master is what we care about), and
+    // it may be confused if someone is manually triggering runs and specifying various commit hashs back in time. Ie: this
+    // assumes the builds in the project are generally following the flow of commits in the scm repo. That should be enough to meet
+    // our needs here without adding special edge case handling (if we find we do need to do that we can add it)
+    def scmAction = build?.actions.find { action -> action instanceof jenkins.scm.api.SCMRevisionAction }
+    def lastSuccessfulCommitHash = scmAction?.revision?.hash
+    def commits = sh(
+        script: "git rev-list $currentCommitHash \"^$lastSuccessfulCommitHash\"",
+        returnStdout: true
+    ).split('\n')
+    echo "Commits are: $commits"
+}
+
+@NonCPS
+def getSuspectList(currentCommitHash, userMappings) {
     def suspectList = []
     def retValue = ""
     def changeSets = currentBuild.changeSets
