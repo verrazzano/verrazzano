@@ -53,7 +53,6 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		if err != nil {
 			s.Log.Error(err, "error processing multi-cluster resources")
 		}
-		s.updateDeployment("verrazzano-operator")
 		s.updateDeployment("verrazzano-monitoring-operator")
 		s.configureLogging()
 		if !s.AgentReadyToSync() {
