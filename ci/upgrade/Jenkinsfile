@@ -27,7 +27,7 @@ pipeline {
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash for the install',
                 trim: true)
-        string (name: 'GIT_COMMIT_TO_USE',
+        string (name: 'GIT_COMMIT_FOR_UPGRADE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash from the source build to be used for all jobs',
                 trim: true)
@@ -47,6 +47,7 @@ pipeline {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         GOPATH = '/home/opc/go'
+        OPERATOR_YAML = ''
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_EMAIL = credentials('github-packages-email')
@@ -84,16 +85,16 @@ pipeline {
                 """
 
                 script {
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
+                    if (params.GIT_COMMIT_FOR_UPGRADE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        echo "SCM checkout of ${params.GIT_COMMIT_FOR_UPGRADE}"
                         def scmInfo = checkout([
                                 $class: 'GitSCM',
-                                branches: [[name: params.GIT_COMMIT_TO_USE]],
+                                branches: [[name: params.GIT_COMMIT_FOR_UPGRADE]],
                                 doGenerateSubmoduleConfigurations: false,
                                 extensions: [],
                                 submoduleCfg: [],
@@ -101,8 +102,8 @@ pipeline {
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_FOR_UPGRADE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_FOR_UPGRADE}, Found: ${scmInfo.GIT_COMMIT}"
                             exit 1
                         }
                     }
@@ -157,7 +158,7 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
-                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_FOR_UPGRADE
                 }
             }
         }
@@ -170,8 +171,14 @@ pipeline {
                         OCI_CLI_AUTH="instance_principal"
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                         OCI_OS_BUCKET="verrazzano-builds"
-                        INSTALL_SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${GIT_COMMIT_FOR_INSTALL}").trim()
-                        OCI_OS_LOCATION="${INSTALL_SHORT_COMMIT_HASH}"
+                        if (params.GIT_COMMIT_FOR_INSTALL == "NONE") {
+                            echo "Specific GIT commit was not specified for install.  Using latest master release"
+                            OPERATOR_YAML = 'https://github.com/verrazzano/verrazzano/releases/latest/download/operator.yaml'
+                        } else {
+                            INSTALL_SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${GIT_COMMIT_FOR_INSTALL}").trim()
+                            OCI_OS_LOCATION="${INSTALL_SHORT_COMMIT_HASH}"
+                        }
+
                     }
                     steps {
                         sh """
@@ -234,7 +241,7 @@ pipeline {
                             cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                             kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                             # wait for the upgrade to complete
-                            kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                            kubectl wait --timeout=5m --for=condition=UpgradeComplete verrazzano/my-verrazzano
         
                             # ideally we don't need to wait here
                             sleep 15
