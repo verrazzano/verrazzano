@@ -765,7 +765,7 @@ def getPreviousCleanBuildCommit(currentCommitHash) {
 }
 
 def getSuspectList(previousCleanBuildCommitId, currentCommitHash, userMappings) {
-    map.each { entry ->
+    userMappings.each { entry ->
         echo "Key: $entry.key Value: $entry.value"
     }
     def commits = sh(
