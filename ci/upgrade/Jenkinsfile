@@ -25,11 +25,11 @@ pipeline {
                 choices: [ "1.18", "1.19", "1.20", "1.17" ])
         string (name: 'GIT_COMMIT_FOR_INSTALL',
                 defaultValue: 'NONE',
-                description: 'This is the full git commit hash for the install',
+                description: 'This is the full git commit hash for the install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
                 defaultValue: 'NONE',
-                description: 'This is the full git commit hash from the source build to be used for all jobs',
+                description: 'This is the full git commit hash for the target upgrade.  By default, the Verrazzano tip will be used.',
                 trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                 defaultValue: 'NONE',
