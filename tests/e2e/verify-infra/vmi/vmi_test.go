@@ -202,10 +202,6 @@ var _ = ginkgo.Describe("VMI", func() {
 			assertOidcIngressByName("vmi-system-prometheus")
 		})
 
-		ginkgo.It("Prometheus push gateway should be accessible", func() {
-			assertURLByIngressName("vmi-system-prometheus-gw")
-		})
-
 		ginkgo.It("Grafana endpoint should be accessible", func() {
 			gomega.Expect(ingressURLs).To(gomega.HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
 			assertOidcIngressByName("vmi-system-grafana")
@@ -235,10 +231,6 @@ var _ = ginkgo.Describe("VMI", func() {
 			)
 		})
 	}
-
-	ginkgo.It("Prometheus push gateway should be accessible", func() {
-		assertURLByIngressName("vmi-system-prometheus-gw")
-	})
 
 	ginkgo.It("Verify the instance info endpoint URLs", func() {
 		if !isManagedClusterProfile {
