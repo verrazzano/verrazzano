@@ -164,6 +164,7 @@ pipeline {
                     } else {
                         INSTALL_SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${GIT_COMMIT_FOR_INSTALL}").trim()
                         OCI_OS_LOCATION="${INSTALL_SHORT_COMMIT_HASH}"
+                        OPERATOR_YAML_FILE = ""
                     }
                 }
             }
