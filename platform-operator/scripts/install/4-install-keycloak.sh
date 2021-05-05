@@ -35,6 +35,9 @@ DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 function install_mysql {
   MYSQL_CHART_DIR=${CHARTS_DIR}/mysql
+  if is_chart_deployed mysql ${KEYCLOAK_NS} ${MYSQL_CHART_DIR} ; then
+    return 0
+  fi
 
   log "Check for Keycloak namespace"
   if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
@@ -70,34 +73,61 @@ function install_keycloak {
     error "ERROR: Must run 3-install-verrazzano.sh and then rerun this script."
     exit 1
   fi
-  # Replace strings in keycloak.json file
-  VZ_PW_SALT=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.salt}")
-  VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.hash}")
-  VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "adminsGroup: &default_adminsGroup " | awk '{ print $3 }')
 
-  sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g;s|VZ_ADMIN_GROUP|${VZ_ADMIN_GROUP}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
+  if ! is_chart_deployed keycloak ${KEYCLOAK_NS} ${KEYCLOAK_CHART_DIR} ; then
+    # Replace strings in keycloak.json file
+    VZ_PW_SALT=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.salt}")
+    VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.hash}")
+    VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "adminsGroup: &default_adminsGroup " | awk '{ print $3 }')
 
-  # Create keycloak secret
-  kubectl create secret generic keycloak-realm-cacert \
-      -n ${KEYCLOAK_NS} \
-      --from-file=realm.json=${TMP_DIR}/keycloak-sed.json
+    sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g;s|VZ_ADMIN_GROUP|${VZ_ADMIN_GROUP}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
 
-  # Create a random secret for the keycloakadmin user
-  kubectl apply -f <(echo "
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ${KCADMIN_SECRET}
-  namespace: ${KEYCLOAK_NS}
-type: Opaque
-data:
-  password: $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
-")
+    # Create keycloak secret
+    kubectl create secret generic --save-config --dry-run=client keycloak-realm-cacert -n ${KEYCLOAK_NS} \
+      --from-file=realm.json=${TMP_DIR}/keycloak-sed.json -o yaml | kubectl apply -f -
 
-VPROMUSR=$(echo -n $VERRAZZANO_INTERNAL_PROM_USER | base64)
-VPROM=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
-VESUSR=$(echo -n $VERRAZZANO_INTERNAL_ES_USER | base64)
-VES=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
+    # Create a random secret for the keycloakadmin user
+    update_secret_from_literal ${KCADMIN_SECRET} ${KEYCLOAK_NS} "$(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)"
+
+    # Check if using the optional imagePullSecret
+    local KEYCLOAK_ARGUMENTS=""
+    if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+      if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${KEYCLOAK_NS} > /dev/null 2>&1 ; then
+          copy_registry_secret "${KEYCLOAK_NS}"
+          KEYCLOAK_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+      fi
+    fi
+
+    if ! kubectl get secret --namespace ${KEYCLOAK_NS} mysql ; then
+      error "ERROR installing mysql. Please rerun this script."
+      exit 1
+    fi
+
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.username=${KCADMIN_USERNAME}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target=${DNS_TARGET_NAME}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].secretName=${ENV_NAME}-secret"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbUser=${MYSQL_USERNAME}"
+
+    # Handle any additional Keycloak install args
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS $(get_keycloak_helm_args_from_config)"
+
+    # Install keycloak helm chart
+    helm upgrade keycloak ${KEYCLOAK_CHART_DIR} \
+        --install \
+        --namespace ${KEYCLOAK_NS} \
+        -f $VZ_OVERRIDES_DIR/keycloak-values.yaml \
+        ${KEYCLOAK_ARGUMENTS} \
+        --timeout 10m \
+        --wait
+  fi
+
+  VPROMUSR=$(echo -n $VERRAZZANO_INTERNAL_PROM_USER | base64)
+  VPROM=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
+  VESUSR=$(echo -n $VERRAZZANO_INTERNAL_ES_USER | base64)
+  VES=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
 
   # Create a random secret for the verrazzano-prom-internal user
   kubectl apply -f <(echo "
@@ -125,40 +155,6 @@ data:
   username: ${VESUSR}
   password: ${VES}
 ")
-
-  # Check if using the optional imagePullSecret
-  local KEYCLOAK_ARGUMENTS=""
-  if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
-    if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${KEYCLOAK_NS} > /dev/null 2>&1 ; then
-        copy_registry_secret "${KEYCLOAK_NS}"
-        KEYCLOAK_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
-    fi
-  fi
-
-  if ! kubectl get secret --namespace ${KEYCLOAK_NS} mysql ; then
-    error "ERROR installing mysql. Please rerun this script."
-    exit 1
-  fi
-
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.username=${KCADMIN_USERNAME}"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target=${DNS_TARGET_NAME}"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].secretName=${ENV_NAME}-secret"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbUser=${MYSQL_USERNAME}"
-
-  # Handle any additional Keycloak install args
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS $(get_keycloak_helm_args_from_config)"
-
-  # Install keycloak helm chart
-  helm upgrade keycloak ${KEYCLOAK_CHART_DIR} \
-      --install \
-      --namespace ${KEYCLOAK_NS} \
-      -f $VZ_OVERRIDES_DIR/keycloak-values.yaml \
-      ${KEYCLOAK_ARGUMENTS} \
-      --timeout 10m \
-      --wait
 
   kubectl exec keycloak-0 \
     -n ${KEYCLOAK_NS} \
