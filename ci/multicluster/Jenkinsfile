@@ -660,7 +660,7 @@ def uninstallVerrazzano(count, verrazzanoConfig) {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 echo "Deleting \\$verrazzanoConfig"
-                kubectl delete -f ${verrazzanoConfig}
+                time kubectl delete -f ${verrazzanoConfig} --request-timeout=15m
             """
         }
     }
