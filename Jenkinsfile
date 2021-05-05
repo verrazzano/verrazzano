@@ -734,7 +734,7 @@ def debugNewGetSuspectList(currentCommitHash) {
 
     // Determine if there was a previous successful build or not (ie: this is more for user branches rather than master),
     // if this is the first run of a branch it will be null (no previous successful build yet)
-    def lastSuccessfulBuild = currentBuild.rawBuild.getPreviousSuccessfulBuild()
+    def lastSuccessfulBuild = currentBuild.previousSuccessfulBuild()
     if (lastSuccessfulBuild == null) {
         echo "There was not a previous successful build, not forming a suspect list. We should not see this in master, only in new branches"
         // We don't really care about notifications/suspects on user branches (if we form long running branches with multiple folks
