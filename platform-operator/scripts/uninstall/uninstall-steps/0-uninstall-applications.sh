@@ -66,11 +66,11 @@ function delete_multicluster_resources {
     kubectl delete secret -n verrazzano-system verrazzano-cluster-agent verrazzano-cluster-registration verrazzano-cluster-elasticsearch --ignore-not-found=true
     delete_k8s_resources verrazzanomanagedcluster ":metadata.name" "Could not delete VerrazzanoManagedClusters from Verrazzano" "" "verrazzano-mc"
     delete_k8s_resources verrazzanoproject ":metadata.name" "Could not delete VerrazzanoProjects from Verrazzano" "" "verrazzano-mc"
-    delete_k8s_resource_from_all_namespaces multiclusterapplicationconfigurations.clusters.verrazzano.io
-    delete_k8s_resource_from_all_namespaces multiclustercomponents.clusters.verrazzano.io
-    delete_k8s_resource_from_all_namespaces multiclusterconfigmaps.clusters.verrazzano.io
-    delete_k8s_resource_from_all_namespaces multiclusterloggingscopes.clusters.verrazzano.io
-    delete_k8s_resource_from_all_namespaces multiclustersecrets.clusters.verrazzano.io
+    delete_k8s_resource_from_all_namespaces multiclusterapplicationconfigurations.clusters.verrazzano.io no
+    delete_k8s_resource_from_all_namespaces multiclustercomponents.clusters.verrazzano.io no
+    delete_k8s_resource_from_all_namespaces multiclusterconfigmaps.clusters.verrazzano.io no
+    delete_k8s_resource_from_all_namespaces multiclusterloggingscopes.clusters.verrazzano.io no
+    delete_k8s_resource_from_all_namespaces multiclustersecrets.clusters.verrazzano.io no
 }
 
 # Delete all of the OAM ApplicationConfiguration resources in all namespaces.
