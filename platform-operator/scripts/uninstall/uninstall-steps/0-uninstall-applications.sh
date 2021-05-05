@@ -63,6 +63,8 @@ function delete_rancher_local_cluster {
 
 # Delete all of the MultiCluster resources in all namespaces
 function delete_multicluster_resources {
+    delete_k8s_resource_from_all_namespaces verrazzanomanagedclusters.clusters.verrazzano.io
+    kubectl delete secret -n ${VERRAZZANO_NS} verrazzano-cluster-agent verrazzano-cluster-registration verrazzano-cluster-elasticsearch
     delete_k8s_resource_from_all_namespaces multiclusterapplicationconfigurations.clusters.verrazzano.io
     delete_k8s_resource_from_all_namespaces multiclustercomponents.clusters.verrazzano.io
     delete_k8s_resource_from_all_namespaces multiclusterconfigmaps.clusters.verrazzano.io
