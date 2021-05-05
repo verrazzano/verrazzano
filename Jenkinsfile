@@ -759,7 +759,7 @@ def getPreviousCleanBuildCommit(currentCommitHash) {
         echo "empty commits in last change set found"
         return previousBuildLastCommitId
     }
-    def previousBuildLastCommitId = prevCommits[0].id
+    previousBuildLastCommitId = prevCommits[0].id
     echo "previous clean commit id = ${previousBuildLastCommitId}"
     return previousBuildLastCommitId
 }
