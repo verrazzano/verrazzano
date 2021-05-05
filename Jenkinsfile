@@ -765,6 +765,9 @@ def getPreviousCleanBuildCommit(currentCommitHash) {
 }
 
 def getSuspectList(previousCleanBuildCommitId, currentCommitHash, userMappings) {
+    map.each { entry ->
+        echo "Key: $entry.key Value: $entry.value"
+    }
     def commits = sh(
         script: "git rev-list $currentCommitHash \"^$previousCleanBuildCommitId\"",
         returnStdout: true
