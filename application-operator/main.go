@@ -225,6 +225,9 @@ func main() {
 				&webhooks.LoggingScopeDefaulter{
 					Client: mgr.GetClient(),
 				},
+				&webhooks.NetPolicyDefaulter{
+					Client: mgr.GetClient(),
+				},
 			},
 		}
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
