@@ -734,8 +734,8 @@ def debugNewGetSuspectList(currentCommitHash) {
 
     // Determine if there was a previous successful build or not (ie: this is more for user branches rather than master),
     // if this is the first run of a branch it will be null (no previous successful build yet)
-    def lastSuccessfulBuild = currentBuild.previousSuccessfulBuild()
-    if (lastSuccessfulBuild == null) {
+    def previousSuccessfulBuild = currentBuild.getPreviousSuccessfulBuild()
+    if (previousSuccessfulBuild == null) {
         echo "There was not a previous successful build, not forming a suspect list. We should not see this in master, only in new branches"
         // We don't really care about notifications/suspects on user branches (if we form long running branches with multiple folks
         // we may care in the future and can add logic to handle those cases)
@@ -747,7 +747,7 @@ def debugNewGetSuspectList(currentCommitHash) {
     // it may be confused if someone is manually triggering runs and specifying various commit hashs back in time. Ie: this
     // assumes the builds in the project are generally following the flow of commits in the scm repo. That should be enough to meet
     // our needs here without adding special edge case handling (if we find we do need to do that we can add it)
-    def scmAction = build?.actions.find { action -> action instanceof jenkins.scm.api.SCMRevisionAction }
+    def scmAction = previousSuccessfulBuild?.actions.find { action -> action instanceof jenkins.scm.api.SCMRevisionAction }
     def lastSuccessfulCommitHash = scmAction?.revision?.hash
     def commits = sh(
         script: "git rev-list $currentCommitHash \"^$lastSuccessfulCommitHash\"",
