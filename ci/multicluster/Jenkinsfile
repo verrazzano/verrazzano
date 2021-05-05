@@ -395,36 +395,40 @@ pipeline {
                         registerManagedClusters()
                     }
                 }
-                stage ('Verify Register') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                for(int count=2; count<=clusterCount; count++) {
-                                    sh """
-                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
-                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-register/...
-                                    """
+                stage ('Verify Multicluster') {
+                    parallel {
+                        stage ('Verify Register') {
+                            steps {
+                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                                    script {
+                                        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                                        for(int count=2; count<=clusterCount; count++) {
+                                            sh """
+                                                export MANAGED_CLUSTER_NAME="managed${count-1}"
+                                                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                                ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-register/...
+                                            """
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                }
-                stage ('Verify Managed Cluster Permissions') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                for(int count=2; count<=clusterCount; count++) {
-                                    sh """
-                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
-                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                        export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
-                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -v -stream -keepGoing --noColor multicluster/verify-permissions/...
-                                    """
+                        stage ('Verify Managed Cluster Permissions') {
+                            steps {
+                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                                    script {
+                                        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                                        for(int count=2; count<=clusterCount; count++) {
+                                            sh """
+                                                export MANAGED_CLUSTER_NAME="managed${count-1}"
+                                                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                                export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
+                                                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                                ginkgo -v -stream -keepGoing --noColor multicluster/verify-permissions/...
+                                            """
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -636,7 +640,7 @@ def installVerrazzano(count, verrazzanoConfig) {
                 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 
                 echo "Applying \$verrazzanoConfig"
-                time kubectl apply -f ${verrazzanoConfig}
+                kubectl apply -f ${verrazzanoConfig}
 
                 # wait for Verrazzano install to complete
                 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
