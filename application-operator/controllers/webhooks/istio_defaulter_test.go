@@ -14,7 +14,6 @@ import (
 	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -72,7 +71,7 @@ func TestHandleIstioDisabled(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Equal(t, v1.StatusReason("No action required, pod labeled with sidecar.istio.io/inject: false"), res.Result.Reason)
+	assert.Equal(t, metav1.StatusReason("No action required, pod labeled with sidecar.istio.io/inject: false"), res.Result.Reason)
 }
 
 // TestHandleNoOnwerReference tests handling an admission.Request
@@ -105,7 +104,7 @@ func TestHandleNoOnwerReference(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Equal(t, v1.StatusReason("No action required, pod is not a child of an ApplicationConfiguration resource"), res.Result.Reason)
+	assert.Equal(t, metav1.StatusReason("No action required, pod is not a child of an ApplicationConfiguration resource"), res.Result.Reason)
 }
 
 // TestHandleNoAppConfigOnwerReference tests handling an admission.Request
@@ -172,7 +171,7 @@ func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Equal(t, v1.StatusReason("No action required, pod is not a child of an ApplicationConfiguration resource"), res.Result.Reason)
+	assert.Equal(t, metav1.StatusReason("No action required, pod is not a child of an ApplicationConfiguration resource"), res.Result.Reason)
 }
 
 // TestHandleAppConfigOnwerReference1 tests handling an admission.Request

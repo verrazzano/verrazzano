@@ -5,16 +5,15 @@ package webhooks
 
 import (
 	"context"
-	v1 "k8s.io/api/core/v1"
 	"net/http"
 	"testing"
+
+	v1 "k8s.io/api/core/v1"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,8 +25,6 @@ import (
 // NotFoundError indicates an error caused by a StatusNotFound status
 type NotFoundError struct {
 }
-
-var emptyEsDetails = clusters.ElasticsearchDetails{}
 
 func (s NotFoundError) Error() string {
 	return "StatusNotFound"
@@ -300,7 +297,7 @@ func testLoggingScopeDefaulterDefault(t *testing.T, cli client.Client, configPat
 	for _, component := range appConfig.Spec.Components {
 		foundLoggingScope := false
 		for _, scope := range component.Scopes {
-			if scope.ScopeReference.APIVersion == apiVersion && scope.ScopeReference.Kind == v1alpha1.LoggingScopeKind && scope.ScopeReference.Name == scopeNames[component.ComponentName] {
+			if scope.ScopeReference.APIVersion == apiVersion && scope.ScopeReference.Kind == vzapi.LoggingScopeKind && scope.ScopeReference.Name == scopeNames[component.ComponentName] {
 				foundLoggingScope = true
 			}
 		}
