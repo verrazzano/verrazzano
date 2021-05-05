@@ -732,13 +732,10 @@ def getPreviousCleanBuildCommit(currentCommitHash) {
     // effectively it will give us a rev-list later that is empty (ie: if this is a new branch with no previous clean build)
     def previousCleanBuildCommitId = currentCommitHash
 
-    // Determine if there was a previous successful build or not (ie: this is more for user branches rather than master),
-    // if this is the first run of a branch it will be null (no previous successful build yet)
+     // if this is the first run of a branch it will be null (no previous successful build yet)
     def previousSuccessfulBuild = currentBuild.getPreviousSuccessfulBuild()
     if (previousSuccessfulBuild == null) {
         echo "There was not a previous successful build, not forming a suspect list. We should not see this in master, only in new branches"
-        // We don't really care about notifications/suspects on user branches (if we form long running branches with multiple folks
-        // we may care in the future and can add logic to handle those cases)
         return previousCleanBuildCommitId
     }
 
