@@ -449,6 +449,10 @@ pipeline {
                 stage ('Uninstall Verrazzano') {
                     steps {
                         script {
+                            // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
+                            // - the first one will always be the Admin cluster
+                            // - clusters 2-max are managed clusters
+                            def verrazzanoUninstallStages = [:]
                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
                             for(int count=1; count<=clusterCount; count++) {
                                 def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
