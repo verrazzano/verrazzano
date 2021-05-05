@@ -742,15 +742,19 @@ def debugNewGetSuspectList(currentCommitHash) {
         return
     }
 
+    // We don't have access to the raw build, but we can get the changeset from the previous build and get the commit from that
+    // Assuming the first one is the last change in the change set
+    def previousChangeSets = previousBuild.changeSets
+    def previousBuildLastCommitId = previousChangeSets[0].items[0].id
+    echo "previous clean commit id = ${previousBuildLastCommitId}"
+
     // If we have a previous successful build, form the rev-list based on the last commit that passed and the current commit.
     // This assumes that the builds are generally being triggered by commits to the branch (master is what we care about), and
     // it may be confused if someone is manually triggering runs and specifying various commit hashs back in time. Ie: this
     // assumes the builds in the project are generally following the flow of commits in the scm repo. That should be enough to meet
     // our needs here without adding special edge case handling (if we find we do need to do that we can add it)
-    def scmAction = previousSuccessfulBuild?.actions.find { action -> action instanceof jenkins.scm.api.SCMRevisionAction }
-    def lastSuccessfulCommitHash = scmAction?.revision?.hash
     def commits = sh(
-        script: "git rev-list $currentCommitHash \"^$lastSuccessfulCommitHash\"",
+        script: "git rev-list $currentCommitHash \"^$previousBuildLastCommitId\"",
         returnStdout: true
     ).split('\n')
     echo "Commits are: $commits"
