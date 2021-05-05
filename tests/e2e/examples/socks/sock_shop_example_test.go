@@ -215,7 +215,7 @@ var _ = AfterSuite(func() {
 func isSockShopServiceReady(name string) bool {
 	svc, err := pkg.GetKubernetesClientset().CoreV1().Services("sockshop").Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		Fail(fmt.Sprintf("Could not get services %v in sockshop: %v\n", name, err.Error()))
+		pkg.Log(pkg.Info, fmt.Sprintf("Could not get services %v in sockshop: %v\n", name, err.Error()))
 		return false
 	}
 	if len(svc.Spec.Ports) > 0 {
