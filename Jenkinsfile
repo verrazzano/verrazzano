@@ -744,7 +744,7 @@ def debugNewGetSuspectList(currentCommitHash) {
 
     // We don't have access to the raw build, but we can get the changeset from the previous build and get the commit from that
     // Assuming the first one is the last change in the change set
-    def previousChangeSets = previousBuild.changeSets
+    def previousChangeSets = previousSuccessfulBuild.changeSets
     def previousBuildLastCommitId = previousChangeSets[0].items[0].id
     echo "previous clean commit id = ${previousBuildLastCommitId}"
 
