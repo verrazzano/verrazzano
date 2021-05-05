@@ -82,10 +82,10 @@ function cleanup_rancher_local_cluster() {
     # patch out any remaining finalizers and check one more time for delete success.
     log "Found 'local' cluster object still present, removing..."
     kubectl delete --wait=false clusters.management.cattle.io local || true
-    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=1m || true
+    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=2m || true
     # Patch any dangling finalizers
     kubectl patch clusters.management.cattle.io local -p '{"metadata":{"finalizers":null}}' --type=merge || true
-    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=2m || true
+    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=1m || true
     if kubectl get cluster local > /dev/null 2>&1 ; then
       log "Unable to delete Rancher 'local' cluster object"
     else
