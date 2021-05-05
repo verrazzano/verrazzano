@@ -745,20 +745,21 @@ def debugNewGetSuspectList(currentCommitHash) {
     // We don't have access to the raw build, but we can get the changeset from the previous build and get the commit from that
     // Assuming the first one is the last change in the change set
     def previousChangeSets = previousSuccessfulBuild.changeSets
-    if (previousChangeSets == null) {
-        echo "Got null change sets from the previous successful build"
+    if (previousChangeSets.size() == 0) {
+        echo "No change sets found from the previous successful build"
         return
     }
-    if (previousChangeSets.length == 0) {
-        echo "Got empty change set array from the previous successful build"
+    def lastChangeSet = previousChangeSets.get(0)
+    if (lastChangeSet == null) {
+        echo "last change set was null"
         return
     }
-    if (previousChangeSets[0] == null) {
-        echo "Got null first element from change sets from the previous successful build, length was ${previousChangeSets.length}"
+    def prevCommits = lastChangeSet.items
+    if (prevCommits.length == 0) {
+        echo "empty commits in last change set found"
         return
     }
-
-    def previousBuildLastCommitId = previousChangeSets[0].items[0].id
+    def previousBuildLastCommitId = prevCommits[0].id
     echo "previous clean commit id = ${previousBuildLastCommitId}"
 
     // If we have a previous successful build, form the rev-list based on the last commit that passed and the current commit.
@@ -774,7 +775,7 @@ def debugNewGetSuspectList(currentCommitHash) {
 }
 
 @NonCPS
-def getSuspectList(currentCommitHash, userMappings) {
+def getSuspectList(userMappings) {
     def suspectList = []
     def retValue = ""
     def changeSets = currentBuild.changeSets
