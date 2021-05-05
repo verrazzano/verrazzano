@@ -247,18 +247,6 @@ spec:
       ports:
         - protocol: TCP
           port: 8775
-    # Allow ingress from Logging Journalbeat and Filebeat
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.binding: system
-      ports:
-        - protocol: TCP
-          port: 9200
-    # Allow ingress from anywhere since fluentd is in app ns (this will be removed once fluentd sidecars are gone)
-    - ports:
-        - protocol: TCP
-          port: 9200
   egress:
     # Allow egress to TCP/UDP for name resolution
     - to:
