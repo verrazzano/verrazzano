@@ -89,46 +89,14 @@ function install_keycloak {
     # Create a random secret for the keycloakadmin user
     update_secret_from_literal ${KCADMIN_SECRET} ${KEYCLOAK_NS} "$(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)"
 
-    VPROMUSR=$(echo -n $VERRAZZANO_INTERNAL_PROM_USER | base64)
-    VPROM=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
-    VESUSR=$(echo -n $VERRAZZANO_INTERNAL_ES_USER | base64)
-    VES=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
-
-    # Create a random secret for the verrazzano-prom-internal user
-    kubectl apply -f <(echo "
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ${VERRAZZANO_INTERNAL_PROM_USER}
-  namespace: ${VERRAZZANO_NS}
-type: Opaque
-data:
-  username: ${VPROMUSR}
-  password: ${VPROM}
-")
-
-
-    # Create a random secret for the verrazzano-es-internal user
-    kubectl apply -f <(echo "
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ${VERRAZZANO_INTERNAL_ES_USER}
-  namespace: ${VERRAZZANO_NS}
-type: Opaque
-data:
-  username: ${VESUSR}
-  password: ${VES}
-")
-
-  # Check if using the optional imagePullSecret
-  local KEYCLOAK_ARGUMENTS=""
-  if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
-    if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${KEYCLOAK_NS} > /dev/null 2>&1 ; then
-        copy_registry_secret "${KEYCLOAK_NS}"
-        KEYCLOAK_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+    # Check if using the optional imagePullSecret
+    local KEYCLOAK_ARGUMENTS=""
+    if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+      if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${KEYCLOAK_NS} > /dev/null 2>&1 ; then
+          copy_registry_secret "${KEYCLOAK_NS}"
+          KEYCLOAK_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+      fi
     fi
-  fi
 
     if ! kubectl get secret --namespace ${KEYCLOAK_NS} mysql ; then
       error "ERROR installing mysql. Please rerun this script."
@@ -155,6 +123,38 @@ data:
         --timeout 10m \
         --wait
   fi
+
+  VPROMUSR=$(echo -n $VERRAZZANO_INTERNAL_PROM_USER | base64)
+  VPROM=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
+  VESUSR=$(echo -n $VERRAZZANO_INTERNAL_ES_USER | base64)
+  VES=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
+
+  # Create a random secret for the verrazzano-prom-internal user
+  kubectl apply -f <(echo "
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${VERRAZZANO_INTERNAL_PROM_USER}
+  namespace: ${VERRAZZANO_NS}
+type: Opaque
+data:
+  username: ${VPROMUSR}
+  password: ${VPROM}
+")
+
+
+  # Create a random secret for the verrazzano-es-internal user
+  kubectl apply -f <(echo "
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${VERRAZZANO_INTERNAL_ES_USER}
+  namespace: ${VERRAZZANO_NS}
+type: Opaque
+data:
+  username: ${VESUSR}
+  password: ${VES}
+")
 
   kubectl exec keycloak-0 \
     -n ${KEYCLOAK_NS} \
