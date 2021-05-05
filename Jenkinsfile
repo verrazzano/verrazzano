@@ -148,10 +148,10 @@ pipeline {
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
                     def currentCommitHash = env.GIT_COMMIT
-                    debugNewGetSuspectList(currentCommitHash)
+                    def previousCleanBuildCommitId = getPreviousCleanBuildCommit(currentCommitHash)
                     withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
                         def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                        SUSPECT_LIST = getSuspectList( userMappings )
+                        SUSPECT_LIST = getSuspectList(previousBuildLastCommitId, currentCommitHash, userMappings)
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
                 }
@@ -727,10 +727,10 @@ def dumpVerrazzanoApiLogs() {
 }
 
 @NonCPS
-def debugNewGetSuspectList(currentCommitHash) {
-    // Since we can't reproduce in a branch, we will need to first get debug info from master before we can determine this approach
-    // will really work there. It doesn't return anything but just debugs so we can tell if the approach will really work for us
-    // in master rather than relying solely on what Jenkins is giving us in the changeSets
+def getPreviousCleanBuildCommit(currentCommitHash) {
+    // If we can't determine the previous clean commit hash for some reason, return the current hash
+    // effectively it will give us a rev-list later that is empty (ie: if this is a new branch with no previous clean build)
+    def previousBuildLastCommitId = currentCommitHash
 
     // Determine if there was a previous successful build or not (ie: this is more for user branches rather than master),
     // if this is the first run of a branch it will be null (no previous successful build yet)
@@ -739,7 +739,7 @@ def debugNewGetSuspectList(currentCommitHash) {
         echo "There was not a previous successful build, not forming a suspect list. We should not see this in master, only in new branches"
         // We don't really care about notifications/suspects on user branches (if we form long running branches with multiple folks
         // we may care in the future and can add logic to handle those cases)
-        return
+        return previousBuildLastCommitId
     }
 
     // We don't have access to the raw build, but we can get the changeset from the previous build and get the commit from that
@@ -747,61 +747,51 @@ def debugNewGetSuspectList(currentCommitHash) {
     def previousChangeSets = previousSuccessfulBuild.changeSets
     if (previousChangeSets.size() == 0) {
         echo "No change sets found from the previous successful build"
-        return
+        return previousBuildLastCommitId
     }
     def lastChangeSet = previousChangeSets.get(0)
     if (lastChangeSet == null) {
         echo "last change set was null"
-        return
+        return previousBuildLastCommitId
     }
     def prevCommits = lastChangeSet.items
     if (prevCommits.length == 0) {
         echo "empty commits in last change set found"
-        return
+        return previousBuildLastCommitId
     }
     def previousBuildLastCommitId = prevCommits[0].id
     echo "previous clean commit id = ${previousBuildLastCommitId}"
+    return previousBuildLastCommitId
+}
 
-    // If we have a previous successful build, form the rev-list based on the last commit that passed and the current commit.
-    // This assumes that the builds are generally being triggered by commits to the branch (master is what we care about), and
-    // it may be confused if someone is manually triggering runs and specifying various commit hashs back in time. Ie: this
-    // assumes the builds in the project are generally following the flow of commits in the scm repo. That should be enough to meet
-    // our needs here without adding special edge case handling (if we find we do need to do that we can add it)
+def getSuspectList(previousBuildLastCommitId, currentCommitHash, userMappings) {
     def commits = sh(
         script: "git rev-list $currentCommitHash \"^$previousBuildLastCommitId\"",
         returnStdout: true
     ).split('\n')
     echo "Commits are: $commits"
-}
-
-@NonCPS
-def getSuspectList(userMappings) {
     def suspectList = []
     def retValue = ""
-    def changeSets = currentBuild.changeSets
-    for (int i = 0; i < changeSets.size(); i++) {
-        def commits = changeSets[i].items
-        for (int j = 0; j < commits.length; j++) {
-            def commit = commits[j]
-            def displayName = commit.author.getDisplayName()
-            def fullName = commit.author.getFullName()
-            def id = commit.author.getId()
-            def author = commit.author.toString()
-            echo "DEBUG: author: ${author}, displayName: ${displayName}, fullName: ${fullName}, id: ${id}"
-            if (userMappings.containsKey(author)) {
-                def slackUser = userMappings.get(author)
-                if (!suspectList.contains(slackUser)) {
-                    echo "Added ${slackUser} as suspect"
-                    retValue += " ${slackUser}"
-                    suspectList.add(slackUser)
-                }
-            } else {
-                // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
-                if (!suspectList.contains(author)) {
-                    echo "Added ${author} as suspect"
-                    retValue += " ${author}"
-                    suspectList.add(author)
-                }
+    for (int i = 0; i < commits.length; i++) {
+        def id = commits[i]
+        def author = sh(
+            script: "git log --format='%ae' '$id^!'",
+            returnStdout: true
+        )
+        echo "DEBUG: author: ${author}, id: ${id}"
+        if (userMappings.containsKey(author)) {
+            def slackUser = userMappings.get(author)
+            if (!suspectList.contains(slackUser)) {
+                echo "Added ${slackUser} as suspect"
+                retValue += " ${slackUser}"
+                suspectList.add(slackUser)
+            }
+        } else {
+            // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+            if (!suspectList.contains(author)) {
+                echo "Added ${author} as suspect"
+                retValue += " ${author}"
+                suspectList.add(author)
             }
         }
     }
