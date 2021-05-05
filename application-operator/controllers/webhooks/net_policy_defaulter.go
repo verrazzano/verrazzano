@@ -36,17 +36,23 @@ func (n *NetPolicyDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, 
 	}
 
 	if !dryRun {
-		// label the namespace
-		err := n.ensureNamespaceLabel(appConfig.Namespace)
-		if err != nil {
-			return err
+		// label the namespace - retry if we get update conflicts
+		for retryCount := 0; retryCount < 5; retryCount++ {
+			err := n.ensureNamespaceLabel(appConfig.Namespace)
+			if err != nil {
+				if k8serrors.IsConflict(err) {
+					continue
+				}
+				return err
+			}
+			break
 		}
 
 		// create/update the network policy
 		logger.Info("Ensuring Istio network policy exists", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
 		netpol := newNetworkPolicy(appConfig)
 
-		_, err = controllerutil.CreateOrUpdate(context.TODO(), n.Client, &netpol, func() error {
+		_, err := controllerutil.CreateOrUpdate(context.TODO(), n.Client, &netpol, func() error {
 			netpol.Spec = newNetworkPolicySpec(appConfig.Namespace)
 			return nil
 		})
