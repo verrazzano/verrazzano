@@ -165,6 +165,9 @@ setup-cluster: create-cluster
 	echo 'Load Docker image for the Verrazzano application operator...'
 	time kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
+	# The application operator creates network policies in the istio-system namespace, so make sure it exists
+	kubectl create ns istio-system
+
 	echo 'Install OAM runtime and Verrazzano application operator...'
 	time installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
 

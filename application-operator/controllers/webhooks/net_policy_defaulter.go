@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -36,13 +37,16 @@ func (n *NetPolicyDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, 
 
 	if !dryRun {
 		// label the namespace
-		n.ensureNamespaceLabel(appConfig.Namespace)
+		err := n.ensureNamespaceLabel(appConfig.Namespace)
+		if err != nil {
+			return err
+		}
 
 		// create/update the network policy
 		logger.Info("Ensuring Istio network policy exists", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
 		netpol := newNetworkPolicy(appConfig)
 
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), n.Client, &netpol, func() error {
+		_, err = controllerutil.CreateOrUpdate(context.TODO(), n.Client, &netpol, func() error {
 			netpol.Spec = newNetworkPolicySpec(appConfig.Namespace)
 			return nil
 		})
@@ -63,9 +67,9 @@ func (n *NetPolicyDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, 
 		logger.Info("Deleting Istio network policy", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
 		netpol := newNetworkPolicy(appConfig)
 		err := n.Client.Delete(context.TODO(), &netpol, &client.DeleteOptions{})
-		if err != nil {
+		if err != nil && !k8serrors.IsNotFound(err) {
 			// log the error but don't return it so we continue processing
-			logger.Error(err, "Unable to delete network policy")
+			logger.Error(err, "Unable to delete network policy, ignoring")
 		}
 	}
 
@@ -81,6 +85,10 @@ func (n *NetPolicyDefaulter) ensureNamespaceLabel(namespace string) error {
 	if err != nil {
 		logger.Error(err, "Unable to fetch namespace", "namespace", namespace)
 		return err
+	}
+
+	if ns.ObjectMeta.Labels == nil {
+		ns.ObjectMeta.Labels = make(map[string]string)
 	}
 
 	val, exists := ns.ObjectMeta.Labels[constants.LabelVerrazzanoNamespace]
