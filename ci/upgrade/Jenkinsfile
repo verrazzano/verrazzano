@@ -171,16 +171,18 @@ pipeline {
                         OCI_CLI_AUTH="instance_principal"
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                         OCI_OS_BUCKET="verrazzano-builds"
-                        if (params.GIT_COMMIT_FOR_INSTALL == "NONE") {
-                            echo "Specific GIT commit was not specified for install.  Using latest master release"
-                            OPERATOR_YAML = 'https://github.com/verrazzano/verrazzano/releases/latest/download/operator.yaml'
-                        } else {
-                            INSTALL_SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${GIT_COMMIT_FOR_INSTALL}").trim()
-                            OCI_OS_LOCATION="${INSTALL_SHORT_COMMIT_HASH}"
-                        }
-
+                        OCI_OS_LOCATION=""
                     }
                     steps {
+                        script {
+                            if (params.GIT_COMMIT_FOR_INSTALL == "NONE") {
+                                echo "Specific GIT commit was not specified for install.  Using latest master release"
+                                OPERATOR_YAML = 'https://github.com/verrazzano/verrazzano/releases/latest/download/operator.yaml'
+                            } else {
+                                INSTALL_SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${GIT_COMMIT_FOR_INSTALL}").trim()
+                                OCI_OS_LOCATION="${INSTALL_SHORT_COMMIT_HASH}"
+                            }
+                        }
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
