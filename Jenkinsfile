@@ -151,7 +151,7 @@ pipeline {
                     def previousCleanBuildCommitId = getPreviousCleanBuildCommit(currentCommitHash)
                     withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
                         def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                        SUSPECT_LIST = getSuspectList(previousBuildLastCommitId, currentCommitHash, userMappings)
+                        SUSPECT_LIST = getSuspectList(previousCleanBuildCommitId, currentCommitHash, userMappings)
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
                 }
@@ -730,7 +730,7 @@ def dumpVerrazzanoApiLogs() {
 def getPreviousCleanBuildCommit(currentCommitHash) {
     // If we can't determine the previous clean commit hash for some reason, return the current hash
     // effectively it will give us a rev-list later that is empty (ie: if this is a new branch with no previous clean build)
-    def previousBuildLastCommitId = currentCommitHash
+    def previousCleanBuildCommitId = currentCommitHash
 
     // Determine if there was a previous successful build or not (ie: this is more for user branches rather than master),
     // if this is the first run of a branch it will be null (no previous successful build yet)
@@ -739,7 +739,7 @@ def getPreviousCleanBuildCommit(currentCommitHash) {
         echo "There was not a previous successful build, not forming a suspect list. We should not see this in master, only in new branches"
         // We don't really care about notifications/suspects on user branches (if we form long running branches with multiple folks
         // we may care in the future and can add logic to handle those cases)
-        return previousBuildLastCommitId
+        return previousCleanBuildCommitId
     }
 
     // We don't have access to the raw build, but we can get the changeset from the previous build and get the commit from that
@@ -747,26 +747,26 @@ def getPreviousCleanBuildCommit(currentCommitHash) {
     def previousChangeSets = previousSuccessfulBuild.changeSets
     if (previousChangeSets.size() == 0) {
         echo "No change sets found from the previous successful build"
-        return previousBuildLastCommitId
+        return previousCleanBuildCommitId
     }
     def lastChangeSet = previousChangeSets.get(0)
     if (lastChangeSet == null) {
         echo "last change set was null"
-        return previousBuildLastCommitId
+        return previousCleanBuildCommitId
     }
     def prevCommits = lastChangeSet.items
     if (prevCommits.length == 0) {
         echo "empty commits in last change set found"
-        return previousBuildLastCommitId
+        return previousCleanBuildCommitId
     }
-    previousBuildLastCommitId = prevCommits[0].id
-    echo "previous clean commit id = ${previousBuildLastCommitId}"
-    return previousBuildLastCommitId
+    previousCleanBuildCommitId = prevCommits[0].id
+    echo "previous clean commit id = ${previousCleanBuildCommitId}"
+    return previousCleanBuildCommitId
 }
 
-def getSuspectList(previousBuildLastCommitId, currentCommitHash, userMappings) {
+def getSuspectList(previousCleanBuildCommitId, currentCommitHash, userMappings) {
     def commits = sh(
-        script: "git rev-list $currentCommitHash \"^$previousBuildLastCommitId\"",
+        script: "git rev-list $currentCommitHash \"^$previousCleanBuildCommitId\"",
         returnStdout: true
     ).split('\n')
     echo "Commits are: $commits"
