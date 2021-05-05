@@ -10,8 +10,6 @@ set -o pipefail
 
 set -xv
 
-env
-
 if [ -z "$JENKINS_URL" ] || [ -z "$GO_REPO_PATH" ] || [ -z "$TESTS_EXECUTED_FILE" ] || [ -z "$WORKSPACE" ] || [ -z "$VERRAZZANO_OPERATOR_IMAGE" ] || [ -z "$INSTALL_CONFIG_FILE_KIND" ] || [ -z "$OCI_OS_LOCATION" ] || [ -z "$TEST_SCRIPTS_DIR" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
