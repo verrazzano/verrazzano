@@ -635,6 +635,8 @@ def installVerrazzano(count, verrazzanoConfig) {
                 echo "Wait for Operator to be ready"
                 cd ${GO_REPO_PATH}/verrazzano
                 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                
+                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
                 echo "Applying \$verrazzanoConfig"
                 kubectl apply -f ${verrazzanoConfig}
@@ -670,8 +672,8 @@ def verifyUninstall(count) {
         script {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources-cluster${count}
-                ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources-cluster${count}
+                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/post-uninstall-resources
+                ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}
             """
         }
     }
