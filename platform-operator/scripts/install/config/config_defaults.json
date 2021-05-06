@@ -4,7 +4,7 @@
    "dns": {
       "type": "wildcard",
       "wildcard": {
-         "domain": "xip.io"
+         "domain": "nip.io"
       }
    },
    "certificates": {

@@ -735,7 +735,7 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	domain := externalDNSAnno[len(constants.VzConsoleIngress)+1:]
 
 	// Get the DNS wildcard domain from the annotation if it exist.  This annotation is only available
-	// when the install is using DNS type wildcard (xip.io, nip.io, etc.)
+	// when the install is using DNS type wildcard (nip.io, sslip.io, etc.)
 	suffix := ""
 	wildcardDomainAnno, ok := ingress.Annotations[wildcardDomainKey]
 	if ok {

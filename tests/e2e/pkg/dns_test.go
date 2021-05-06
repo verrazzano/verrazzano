@@ -21,28 +21,28 @@ func TestValidWildcard(t *testing.T) {
 	}{
 		{
 			name:   "test1",
-			data:   "xip.io",
-			domain: "xip.io",
+			data:   "nip.io",
+			domain: "nip.io",
 		},
 		{
 			name:   "test2",
-			data:   "a.xip.io",
-			domain: "xip.io",
+			data:   "a.nip.io",
+			domain: "nip.io",
 		},
 		{
 			name:   "test3",
-			data:   "a.xip.io:33",
-			domain: "xip.io",
+			data:   "a.nip.io:33",
+			domain: "nip.io",
 		},
 		{
 			name:   "test4",
-			data:   "a.xip.io:33",
-			domain: "xip.io",
+			data:   "a.nip.io:33",
+			domain: "nip.io",
 		},
 		{
 			name:   "test5",
-			data:   "123.23.344.343.xip.io/foo:33",
-			domain: "xip.io",
+			data:   "123.23.344.343.nip.io/foo:33",
+			domain: "nip.io",
 		},
 		{
 			name:   "test6",

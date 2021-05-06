@@ -234,7 +234,7 @@ pipeline {
                         echo "Installing yq"
                         GO111MODULE=on go get github.com/mikefarah/yq/v4
                         export PATH=${HOME}/go/bin:${PATH}
-                        ./tests/e2e/config/scripts/process_xipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
+                        ./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
 
                         echo "Waiting for Operator to be ready"
                         cd ${GO_REPO_PATH}/verrazzano

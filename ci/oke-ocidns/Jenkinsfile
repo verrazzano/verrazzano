@@ -127,7 +127,7 @@ pipeline {
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
         INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_XIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
         INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
 
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
@@ -310,7 +310,7 @@ pipeline {
             }
         }
 
-        stage("setup-xip-io-config") {
+        stage("setup-nip-io-config") {
             when { expression { return params.TEST_ENV == 'magicdns_oke' } }
             steps {
                 script {
@@ -318,7 +318,7 @@ pipeline {
                         echo "Installing yq"
                         GO111MODULE=on go get github.com/mikefarah/yq/v4
                         export PATH=${HOME}/go/bin:${PATH}
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_xipio_install_yaml.sh $INSTALL_CONFIG_FILE_XIPIO
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
                     """
                 }
             }
@@ -346,7 +346,7 @@ pipeline {
                     echo "Installing Verrazzano on ${TEST_ENV}"
                     # apply config to create cluster
                     if [ "${TEST_ENV}" == "magicdns_oke" ]; then
-                      kubectl apply -f ${INSTALL_CONFIG_FILE_XIPIO}
+                      kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
                     elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
                       kubectl apply -f ${INSTALL_CONFIG_FILE_OCIDNS}
                     elif [ "${TEST_ENV}" == "kind" ]; then

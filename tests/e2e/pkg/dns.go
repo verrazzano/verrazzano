@@ -7,7 +7,7 @@ import "strings"
 
 // Returns well-known wildcard DNS name is used
 func GetWildcardDNS(s string) string {
-	wildcards := []string{"xip.io", "nip.io", "sslip.io"}
+	wildcards := []string{"nip.io", "sslip.io"}
 	for _, w := range wildcards {
 		if strings.Contains(s, w) {
 			return w

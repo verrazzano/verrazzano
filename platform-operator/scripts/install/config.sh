@@ -321,7 +321,7 @@ function get_acme_environment() {
 }
 
 # rancher needs to be accessed by the scripts running in-cluster
-# --resolve rancher.my-env.127.0.0.1.xip.io:nginx_node_port:nginx_host_ip
+# --resolve rancher.my-env.127.0.0.1.nip.io:nginx_node_port:nginx_host_ip
 function get_rancher_resolve() {
   local rancher_hostname=$1
   local resolve="--resolve ${rancher_hostname}:$(get_nginx_nodeport):$(get_nginx_hostip)"
