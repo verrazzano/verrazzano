@@ -354,21 +354,6 @@ func ListServices(namespace string) *corev1.ServiceList {
 	return services
 }
 
-// GetService returns a service in a given namespace for the cluster
-func GetService(namespace string, name string) *corev1.Service {
-	services := ListServices(namespace)
-	if services == nil {
-		ginkgo.Fail(fmt.Sprintf("No services in namespace %s", namespace))
-	}
-	for _, service := range services.Items {
-		if name == service.Name {
-			return &service
-		}
-	}
-	ginkgo.Fail(fmt.Sprintf("No service %s in namespace %s", name, namespace))
-	return nil
-}
-
 // GetNamespace returns a namespace
 func GetNamespace(name string) (*corev1.Namespace, error) {
 	// Get the Kubernetes clientset
@@ -446,7 +431,7 @@ func DoesClusterRoleExist(name string) bool {
 	clientset := GetKubernetesClientset()
 
 	clusterrole, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
 	}
 
@@ -478,7 +463,7 @@ func DoesClusterRoleBindingExist(name string) bool {
 	clientset := GetKubernetesClientset()
 
 	clusterrolebinding, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role binding %s with error: %v", name, err))
 	}
 
@@ -597,7 +582,7 @@ func GetConfigMap(configMapName string, namespace string) *corev1.ConfigMap {
 	clientset := GetKubernetesClientset()
 	cmi := clientset.CoreV1().ConfigMaps(namespace)
 	configMap, err := cmi.Get(context.TODO(), configMapName, metav1.GetOptions{})
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		ginkgo.Fail(fmt.Sprintf("Failed to get Config Map %v from namespace %v:  Error = %v ", configMapName, namespace, err))
 	}
 	return configMap
@@ -686,7 +671,7 @@ func CanIForAPIGroup(userOCID string, namespace string, verb string, resource st
 func GetServiceAccount(namespace, name string) *corev1.ServiceAccount {
 	clientset := GetKubernetesClientset()
 	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		ginkgo.Fail(fmt.Sprintf("Failed to get service account %s in namespace %s with error: %v", name, namespace, err))
 	}
 	return sa
