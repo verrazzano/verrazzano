@@ -5,6 +5,7 @@ package helidonworkload
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -75,6 +76,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 	log.Info("Retrieved workload", "apiVersion", workload.APIVersion, "kind", workload.Kind)
+
+	// if required info is not available in workload, log error and return
+	if len(workload.Spec.DeploymentTemplate.Metadata.GetName()) == 0 {
+		err := errors.New("VerrazzanoHelidonWorkload is missing required spec.deploymentTemplate.metadata.name")
+		log.Error(err, "workload", workload)
+		return reconcile.Result{Requeue: false}, err
+	}
 
 	// unwrap the apps/DeploymentSpec and meta/ObjectMeta
 	deploy, err := r.convertWorkloadToDeployment(&workload)

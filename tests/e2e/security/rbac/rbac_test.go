@@ -253,6 +253,9 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 	ginkgo.Context("for serviceaccount verrazzano-api", func() {
 		var apiProxy corev1.Pod
 		sa := pkg.GetServiceAccount(verrazzanoSystemNS, verrazzanoAPI)
+		if sa == nil {
+			ginkgo.Fail(fmt.Sprintf("Failed to get service account %s in namespace %s", verrazzanoAPI, verrazzanoSystemNS))
+		}
 		ginkgo.It("Validate the secret of the Service Account of Verrazzano API", func() {
 			// Get secret for the SA
 			saSecret := sa.Secrets[0]
