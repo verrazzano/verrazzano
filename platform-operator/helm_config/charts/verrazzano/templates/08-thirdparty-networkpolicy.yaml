@@ -660,7 +660,8 @@ spec:
               k8s-app: kube-dns
 ---
 # Network policy for Istiod
-# Ingress: allow ingress to port 15012 from verrazzano-system prometheus
+# Ingress: allow ingress to port 15012 from verrazzano-system prometheus (for Istio proxy sidecar)
+#          allow port 443 for webhooks
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -683,3 +684,6 @@ spec:
           podSelector:
             matchLabels:
               app: system-prometheus
+    - ports:
+        - port: 443
+          protocol: TCP
