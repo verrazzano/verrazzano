@@ -148,10 +148,10 @@ pipeline {
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
                     def currentCommitHash = env.GIT_COMMIT
-                    def previousCleanBuildCommitId = getPreviousCleanBuildCommit(currentCommitHash)
+                    def commitList = getCommitList()
                     withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
                         def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                        SUSPECT_LIST = getSuspectList(previousCleanBuildCommitId, currentCommitHash, userMappings)
+                        SUSPECT_LIST = getSuspectList(commitList, userMappings)
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
                 }
@@ -727,77 +727,65 @@ def dumpVerrazzanoApiLogs() {
 }
 
 @NonCPS
-def getPreviousCleanBuildCommit(currentCommitHash) {
-    // If we can't determine the previous clean commit hash for some reason, return the current hash
-    // effectively it will give us a rev-list later that is empty (ie: if this is a new branch with no previous clean build)
-    def previousCleanBuildCommitId = currentCommitHash
-
-     // if this is the first run of a branch it will be null (no previous successful build yet)
-    def previousSuccessfulBuild = currentBuild.getPreviousSuccessfulBuild()
-    if (previousSuccessfulBuild == null) {
-        echo "There was not a previous successful build, not forming a suspect list. We should not see this in master, only in new branches"
-        return previousCleanBuildCommitId
+def getCommitList() {
+    def commitList = []
+    def changeSets = currentBuild.changeSets
+    for (int i = 0; i < changeSets.size(); i++) {
+        def commits = changeSets[i].items
+        for (int j = 0; j < commits.length; j++) {
+            def id = commit.commitId
+            echo "Add commit id: ${id}"
+            commitList.add(id)
+        }
     }
-
-    // We don't have access to the raw build, but we can get the changeset from the previous build and get the commit from that
-    // Assuming the first one is the last change in the change set
-    def previousChangeSets = previousSuccessfulBuild.changeSets
-    if (previousChangeSets.size() == 0) {
-        echo "No change sets found from the previous successful build"
-        return previousCleanBuildCommitId
-    }
-    def lastChangeSet = previousChangeSets.get(0)
-    if (lastChangeSet == null) {
-        echo "last change set was null"
-        return previousCleanBuildCommitId
-    }
-    def prevCommits = lastChangeSet.items
-    if (prevCommits.length == 0) {
-        echo "empty commits in last change set found"
-        return previousCleanBuildCommitId
-    }
-    previousCleanBuildCommitId = prevCommits[0].id
-    echo "previous clean commit id = ${previousCleanBuildCommitId}"
-    return previousCleanBuildCommitId
+    return commitList
 }
 
-def getSuspectList(previousCleanBuildCommitId, currentCommitHash, userMappings) {
+def trimIfGithubNoreplyUser(userIn) {
+    if (userIn == null || !userIn.matches(".*\\+.*@users.noreply.github.com.*")) {
+        echo "Not a github noreply user, not trimming: ${userIn}"
+        return userIn
+    }
+    def userOut = userIn.substring(userIn.indexOf("+") + 1, userIn.indexOf("@"))
+    return userOut
+}
+
+def getSuspectList(commitList, userMappings) {
     def retValue = ""
     def commits = null
-    if (previousCleanBuildCommitId.equals(currentCommitHash)) {
-        echo "Previous and current are the same"
+    if (commitList.size() == 0) {
+        echo "No commits to form suspect list"
         return retValue
     }
-    def commits = sh(
-        script: "git rev-list $currentCommitHash \"^$previousCleanBuildCommitId\"",
-        returnStdout: true
-    ).split('\n')
-    echo "Commits are: $commits"
     def suspectList = []
-    for (int i = 0; i < commits.length; i++) {
+    for (int i = 0; i < commits.size(); i++) {
         def id = commits[i]
-        def author = sh(
+        def gitAuthor = sh(
             script: "git log --format='%ae' '$id^!'",
             returnStdout: true
         ).trim()
-        echo "DEBUG: author: ${author}, id: ${id}"
-        if (userMappings.containsKey(author)) {
-            def slackUser = userMappings.get(author)
-            if (!suspectList.contains(slackUser)) {
-                echo "Added ${slackUser} as suspect"
-                retValue += " ${slackUser}"
-                suspectList.add(slackUser)
+        if (gitAuthor != null) {
+            def author = trimIfGithubNoreplyUser(gitAuthor)
+            echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+            if (userMappings.containsKey(author)) {
+                def slackUser = userMappings.get(author)
+                if (!suspectList.contains(slackUser)) {
+                    echo "Added ${slackUser} as suspect"
+                    retValue += " ${slackUser}"
+                    suspectList.add(slackUser)
+                }
+            } else {
+                // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+                if (!suspectList.contains(author)) {
+                    echo "Added ${author} as suspect"
+                    retValue += " ${author}"
+                   suspectList.add(author)
+                }
             }
         } else {
-            // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
-            if (!suspectList.contains(author)) {
-                echo "Added ${author} as suspect"
-                retValue += " ${author}"
-                suspectList.add(author)
-            }
+            echo "No author returned from git"
         }
     }
     echo "returning suspect list: ${retValue}"
     return retValue
 }
-
