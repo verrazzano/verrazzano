@@ -745,12 +745,20 @@ def getCommitList() {
 }
 
 def trimIfGithubNoreplyUser(userIn) {
-    if (userIn == null || !userIn.matches(".*\\+.*@users.noreply.github.com.*")) {
+    if (userIn == null) {
         echo "Not a github noreply user, not trimming: ${userIn}"
         return userIn
     }
-    def userOut = userIn.substring(userIn.indexOf("+") + 1, userIn.indexOf("@"))
-    return userOut
+    if (userIn.matches(".*\\+.*@users.noreply.github.com.*")) {
+        def userOut = userIn.substring(userIn.indexOf("+") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    if (userIn.matches(".*<.*@users.noreply.github.com.*")) {
+        def userOut = userIn.substring(userIn.indexOf("<") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    echo "Not a github noreply user, not trimming: ${userIn}"
+    return userIn
 }
 
 def getSuspectList(commitList, userMappings) {
