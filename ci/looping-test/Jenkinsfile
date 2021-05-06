@@ -15,7 +15,7 @@ pipeline {
             throttleEnabled: true,
             throttleOption: 'category'
         )
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
     }
 
     agent {
@@ -28,10 +28,6 @@ pipeline {
     }
 
     parameters {
-        string (name: 'VERRAZZANO_BRANCH',
-                defaultValue: 'master',
-                description: 'Branch to clone and checkout the Verrazzano repo',
-                trim: true)
         choice (name: 'OKE_NODE_POOL',
                 description: 'OKE node pool configuration',
                 // 1st choice is the default value
@@ -189,7 +185,7 @@ pipeline {
                         cd ${GO_REPO_PATH}/verrazzano
                         if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
                             echo "Using operator.yaml from object storage"
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                             cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                         else
                             echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
@@ -202,8 +198,10 @@ pipeline {
                         # make sure ns exists
                         ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
 
+                        # make sure ns exists
+                        ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
                         # create secret in verrazzano-install ns
-                        ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+                        ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install" || true
 
                         ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
 
@@ -338,10 +336,8 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        echo "Removing any finalizers from the install namespace"
-                        kubectl patch namespace verrazzano-install -p '{"metadata":{"finalizers":null}}' --type=merge || true
                         echo "Deleting the platform operator"
-                        kubectl delete -f ${OPERATOR_YAML}
+                        kubectl delete -f ${WORKSPACE}/acceptance-test-operator.yaml
                     """
                 }
             }
@@ -393,7 +389,7 @@ pipeline {
                     try {
                         build job: 'verrazzano-create-oke-cluster',
                             parameters: [
-                                string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
+                                string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
                                 string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
                                 string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
                             ], wait: true
@@ -415,7 +411,11 @@ pipeline {
                 abort = true
                 sh """
                     echo "Run aborted - ensuring deletion of VZ cluster and operator"
-                    kubectl delete --ignore-not-found=true verrazzano my-verrazzano
+                    # Brute-force delete the VZ instance, and patch out the finalizer if necessary
+                    kubectl delete --ignore-not-found=true verrazzano my-verrazzano --wait=false
+                    kubectl wait --for=delete verrazzano my-verrazzano --timeout=20m || true
+                    kubectl patch verrazzano my-verrazzano -p '{"metadata":{"finalizers":null}}' --type=merge || true
+                    # Remove the platform operator and its resources
                     kubectl delete --ignore-not-found=true -f ${WORKSPACE}/acceptance-test-operator.yaml
                 """
             }
@@ -427,7 +427,6 @@ pipeline {
                     def failures = failureCount as String
                     build job: env.JOB_NAME,  // Use the current Job so it stays in-branch
                         parameters: [
-                            string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                             string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
                             string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
                             string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),

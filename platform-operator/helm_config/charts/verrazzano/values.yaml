@@ -49,12 +49,9 @@ kibana:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.14.0-20210331215025-6b42d76
+  imageVersion: 0.14.0-20210505125758-b639c8f
   prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
-  filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
-  journalbeatImage: ghcr.io/verrazzano/journalbeat:6.8.3-20201016212623-05eabe44b
-  fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
 
@@ -89,7 +86,7 @@ console:
   enabled: true
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.14.0-20210408111300-bfb4aef
+  imageVersion: 0.14.0-20210428141916-a65ecc0
 
 api:
   name: verrazzano-api

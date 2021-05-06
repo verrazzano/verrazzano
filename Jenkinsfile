@@ -734,6 +734,8 @@ def getSuspectList(userMappings) {
         for (int j = 0; j < commits.length; j++) {
             def commit = commits[j]
             def author = commit.author.toString()
+            def id = commit.commitId
+            echo "Commit id: ${id}   author: ${author}"
             if (userMappings.containsKey(author)) {
                 def slackUser = userMappings.get(author)
                 if (!suspectList.contains(slackUser)) {
@@ -754,4 +756,3 @@ def getSuspectList(userMappings) {
     echo "returning suspect list: ${retValue}"
     return retValue
 }
-

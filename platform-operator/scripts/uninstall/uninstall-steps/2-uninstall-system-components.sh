@@ -85,7 +85,7 @@ function cleanup_rancher_local_cluster() {
     kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=2m || true
     # Patch any dangling finalizers
     kubectl patch clusters.management.cattle.io local -p '{"metadata":{"finalizers":null}}' --type=merge || true
-    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=2m || true
+    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=1m || true
     if kubectl get cluster local > /dev/null 2>&1 ; then
       log "Unable to delete Rancher 'local' cluster object"
     else
@@ -177,6 +177,14 @@ function delete_rancher() {
       | xargsr -I resource kubectl annotate secret resource -n "${namespace}" field.cattle.io/projectId- \
       || err_return $? "Could not delete Annotations from Rancher" || return $? # return on pipefail
   done
+
+  # Remove the Rancher namespace finalizers; do it here since Rancher is not guaranteed to have been installed by VZ
+  # (it can now be opted-out by the user)
+  log "Removing Rancher Namespace Finalizers"
+  kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.finalizers" \
+    | awk '/controller.cattle.io/ {print $1}' \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    || err_return $? "Could not remove Rancher finalizers from all namespaces" || return $? # return on pipefail
 }
 
 action "Deleting Rancher Components" delete_rancher || exit 1
