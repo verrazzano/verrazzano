@@ -98,7 +98,6 @@ Install Verrazzano following the [installation instructions](https://verrazzano.
    vmi-system-grafana           <none>   grafana.vmi.system.default.140.141.142.143.xip.io         140.141.142.143   80, 443   7d2h
    vmi-system-kibana            <none>   kibana.vmi.system.default.140.141.142.143.xip.io          140.141.142.143   80, 443   7d2h
    vmi-system-prometheus        <none>   prometheus.vmi.system.default.140.141.142.143.xip.io      140.141.142.143   80, 443   7d2h
-   vmi-system-prometheus-gw     <none>   prometheus-gw.vmi.system.default.140.141.142.143.xip.io   140.141.142.143   80, 443   7d2h
    ```
 
    Using the ingress host information, some of the endpoints available are:

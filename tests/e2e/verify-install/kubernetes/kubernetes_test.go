@@ -155,7 +155,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 				gomega.Expect(vzComponentPresent(name, "verrazzano-system")).To(gomega.Equal(expected))
 			},
 			ginkgoExt.Entry("includes prometheus", "vmi-system-prometheus", true),
-			ginkgoExt.Entry("includes prometheus-gw", "vmi-system-prometheus-gw", true),
+			ginkgoExt.Entry("includes prometheus-gw", "vmi-system-prometheus-gw", false),
 			ginkgoExt.Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
 			ginkgoExt.Entry("includes es-data", "vmi-system-es-data", isProdProfile),
 			ginkgoExt.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),

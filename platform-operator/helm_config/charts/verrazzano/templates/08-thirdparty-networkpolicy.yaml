@@ -112,7 +112,7 @@ spec:
 ---
 # Network policy for VMI System Prometheus
 # Ingress: allow connect from the ingress controller to oidc port 8775
-#          allow connect from Prometheus Pusher and Grafana to port 9090
+#          allow connect from Grafana to port 9090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -136,7 +136,11 @@ spec:
       ports:
         - port: 8775
           protocol: TCP
-    - ports:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-grafana
+      ports:
         - port: 9090
           protocol: TCP
 ---
@@ -528,17 +532,6 @@ spec:
               app: verrazzano-console
       ports:
         - port: 8000
-          protocol: TCP
-    # Allow egress to Prometheus gateway at port 9091
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-system
-          podSelector:
-            matchLabels:
-              app: system-prometheus-gw
-      ports:
-        - port: 9091
           protocol: TCP
     # Allow egress to Rancher
     - to:

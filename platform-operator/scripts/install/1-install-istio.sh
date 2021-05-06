@@ -131,26 +131,6 @@ function install_istio()
         || return $?
     fi
 
-    if ! is_chart_deployed grafana istio-system ${ISTIO_CHART_DIR}/istio-telemetry/grafana ; then
-      log "Installing Istio Grafana"
-      helm upgrade grafana ${ISTIO_CHART_DIR}/istio-telemetry/grafana \
-        --install \
-        --namespace istio-system \
-        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        || return $?
-    fi
-
-    if ! is_chart_deployed prometheus istio-system ${ISTIO_CHART_DIR}/istio-telemetry/prometheus ; then
-      log "Installing Istio Prometheus"
-      helm upgrade prometheus ${ISTIO_CHART_DIR}/istio-telemetry/prometheus \
-        --install \
-        --namespace istio-system \
-        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        || return $?
-    fi
-
     log "Setting Istio global mesh policy to STRICT mode"
     kubectl apply -f <(echo "
 apiVersion: "security.istio.io/v1beta1"
