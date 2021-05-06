@@ -18,13 +18,15 @@ type VerrazzanoHelidonWorkloadSpec struct {
 
 // DeploymentTemplate should have the metadata and spec of the underlying apps/Deployment
 type DeploymentTemplate struct {
+	// +kubebuilder:validation:Required
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Metadata metav1.ObjectMeta `json:"metadata,omitempty"`
+	Metadata metav1.ObjectMeta `json:"metadata"`
 	// The deployment strategy to use to replace existing pods with new ones.
-	// +optional
+	// +kubebuilder:validation:Optional
 	// +patchStrategy=retainKeys
-	Strategy appsv1.DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys" protobuf:"bytes,4,opt,name=strategy"`
-	PodSpec  v1.PodSpec                `json:"podSpec,omitempty"`
+	Strategy appsv1.DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys"  protobuf:"bytes,4,opt,name=strategy"`
+	// +kubebuilder:validation:Required
+	PodSpec v1.PodSpec `json:"podSpec"`
 }
 
 // VerrazzanoHelidonWorkloadStatus defines the observed state of VerrazzanoHelidonWorkload
@@ -45,8 +47,8 @@ type VerrazzanoHelidonWorkloadStatus struct {
 type VerrazzanoHelidonWorkload struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   VerrazzanoHelidonWorkloadSpec   `json:"spec,omitempty"`
+	// +kubebuilder:validation:Required
+	Spec   VerrazzanoHelidonWorkloadSpec   `json:"spec"`
 	Status VerrazzanoHelidonWorkloadStatus `json:"status,omitempty"`
 }
 
