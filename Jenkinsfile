@@ -755,14 +755,13 @@ def trimIfGithubNoreplyUser(userIn) {
 
 def getSuspectList(commitList, userMappings) {
     def retValue = ""
-    def commits = null
-    if (commitList.size() == 0) {
+    if (commitList == null || commitList.size() == 0) {
         echo "No commits to form suspect list"
         return retValue
     }
     def suspectList = []
-    for (int i = 0; i < commits.size(); i++) {
-        def id = commits[i]
+    for (int i = 0; i < commitList.size(); i++) {
+        def id = commitList[i]
         def gitAuthor = sh(
             script: "git log --format='%ae' '$id^!'",
             returnStdout: true
