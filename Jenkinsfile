@@ -84,8 +84,6 @@ pipeline {
     }
 
     stages {
-        load "${GO_REPO_PATH}/verrazzano/ci/third-party-versions.groovy"
-
         stage('Clean workspace and checkout') {
             steps {
                 sh """
@@ -93,6 +91,7 @@ pipeline {
                 """
 
                 script {
+                    load "${GO_REPO_PATH}/verrazzano/ci/third-party-versions.groovy"
                     def scmInfo = checkout scm
                     env.GIT_COMMIT = scmInfo.GIT_COMMIT
                     env.GIT_BRANCH = scmInfo.GIT_BRANCH
