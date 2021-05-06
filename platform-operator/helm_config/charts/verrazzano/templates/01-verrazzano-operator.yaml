@@ -36,12 +36,6 @@ spec:
               value: {{ .Values.appBinding.useSystemVMI | quote }}
             - name: NODE_EXPORTER_IMAGE
               value: {{ .Values.verrazzanoOperator.nodeExporterImage }}
-            - name: FILEBEAT_IMAGE
-              value: {{ .Values.verrazzanoOperator.filebeatImage }}
-            - name: JOURNALBEAT_IMAGE
-              value: {{ .Values.verrazzanoOperator.journalbeatImage }}
-            - name: FLUENTD_IMAGE
-              value: {{ .Values.verrazzanoOperator.fluentdImage }}
             - name: ES_ENABLED
               value: {{ .Values.elasticSearch.enabled | quote }}
             - name: ES_MASTER_NODE_REQUEST_MEMORY

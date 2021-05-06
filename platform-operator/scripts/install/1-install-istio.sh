@@ -26,36 +26,40 @@ function create_secret {
   touch ./index.txt
   echo 1000 > ./serial
 
-  echo "Generating CA bundle for Istio"
+  if ! kubectl get secret cacerts -n istio-system > /dev/null 2>&1; then
+    log "Generating CA bundle for Istio"
 
-  # Create the private key for the root CA
-  openssl genrsa -out $CERTS_OUT/root-key.pem 4096 || return $?
+    # Create the private key for the root CA
+    openssl genrsa -out $CERTS_OUT/root-key.pem 4096 || return $?
 
-  # Generate a root CA with the private key
-  openssl req -config $CONFIG_DIR/istio_root_ca_config.txt -key $CERTS_OUT/root-key.pem -new -x509 -days 7300 -sha256 -extensions v3_ca -out $CERTS_OUT/root-cert.pem || return $?
+    # Generate a root CA with the private key
+    openssl req -config $CONFIG_DIR/istio_root_ca_config.txt -key $CERTS_OUT/root-key.pem -new -x509 -days 7300 -sha256 -extensions v3_ca -out $CERTS_OUT/root-cert.pem || return $?
 
-  # Create the private key for the intermediate CA
-  openssl genrsa -out $CERTS_OUT/ca-key.pem 4096 || return $?
+    # Create the private key for the intermediate CA
+    openssl genrsa -out $CERTS_OUT/ca-key.pem 4096 || return $?
 
-  # Generate certificate signing request (CSR)
-  openssl req -config $CONFIG_DIR/istio_intermediate_ca_config.txt -new -sha256 -key $CERTS_OUT/ca-key.pem -out $CERTS_OUT/intermediate-csr.pem || return $?
+    # Generate certificate signing request (CSR)
+    openssl req -config $CONFIG_DIR/istio_intermediate_ca_config.txt -new -sha256 -key $CERTS_OUT/ca-key.pem -out $CERTS_OUT/intermediate-csr.pem || return $?
 
-  # create intermediate cert using the root CA
-  openssl ca -batch -config $CONFIG_DIR/istio_root_ca_config.txt -extensions v3_intermediate_ca -days 3650 -notext -md sha256 \
-      -keyfile $CERTS_OUT/root-key.pem \
-      -cert $CERTS_OUT/root-cert.pem \
-      -in $CERTS_OUT/intermediate-csr.pem \
-      -out $CERTS_OUT/ca-cert.pem \
-      -outdir $CERTS_OUT || return $?
+    # create intermediate cert using the root CA
+    openssl ca -batch -config $CONFIG_DIR/istio_root_ca_config.txt -extensions v3_intermediate_ca -days 3650 -notext -md sha256 \
+        -keyfile $CERTS_OUT/root-key.pem \
+        -cert $CERTS_OUT/root-cert.pem \
+        -in $CERTS_OUT/intermediate-csr.pem \
+        -out $CERTS_OUT/ca-cert.pem \
+        -outdir $CERTS_OUT || return $?
 
-  # Create certificate chain file
-  cat $CERTS_OUT/ca-cert.pem $CERTS_OUT/root-cert.pem > $CERTS_OUT/cert-chain.pem || return $?
+    # Create certificate chain file
+    cat $CERTS_OUT/ca-cert.pem $CERTS_OUT/root-cert.pem > $CERTS_OUT/cert-chain.pem || return $?
 
-  kubectl create secret generic cacerts -n istio-system \
-      --from-file=$CERTS_OUT/ca-cert.pem \
-      --from-file=$CERTS_OUT/ca-key.pem  \
-      --from-file=$CERTS_OUT/root-cert.pem \
-      --from-file=$CERTS_OUT/cert-chain.pem || return $?
+    kubectl create secret generic cacerts -n istio-system \
+        --from-file=$CERTS_OUT/ca-cert.pem \
+        --from-file=$CERTS_OUT/ca-key.pem  \
+        --from-file=$CERTS_OUT/root-cert.pem \
+        --from-file=$CERTS_OUT/cert-chain.pem || return $?
+  else
+    log "Istio CA Certs bundle and secret already created"
+  fi
 
   rm -rf $CERTS_OUT
   rm -f ./index.txt* serial serial.old
@@ -67,56 +71,65 @@ function install_istio()
 {
     ISTIO_CHART_DIR=${CHARTS_DIR}/istio
 
-    log "Installing Istio base"
-    helm upgrade istio-base ${ISTIO_CHART_DIR}/base \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      --wait \
-      || return $?
-
+    if ! is_chart_deployed istio-base istio-system ${ISTIO_CHART_DIR}/base ; then
+      log "Installing Istio base"
+      helm upgrade istio-base ${ISTIO_CHART_DIR}/base \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        --wait \
+        || return $?
+    fi
     IMAGE_PULL_SECRETS_ARGUMENT=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
       IMAGE_PULL_SECRETS_ARGUMENT=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
-    log "Installing Istio discovery"
-    helm upgrade istiod ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      ${IMAGE_PULL_SECRETS_ARGUMENT} \
-      || return $?
+    if ! is_chart_deployed istiod istio-system ${ISTIO_CHART_DIR}/istio-control/istio-discovery ; then
+      log "Installing Istio discovery"
+      helm upgrade istiod ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
+    fi
 
     log "Generate Istio ingress specific configuration"
     local EXTRA_INGRESS_ARGUMENTS=""
     EXTRA_INGRESS_ARGUMENTS=$(get_istio_helm_args_from_config)
     EXTRA_INGRESS_ARGUMENTS="$EXTRA_INGRESS_ARGUMENTS --set gateways.istio-ingressgateway.type=${INGRESS_TYPE}"
 
-    log "Installing Istio ingress"
-    helm upgrade istio-ingress ${ISTIO_CHART_DIR}/gateways/istio-ingress \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      ${EXTRA_INGRESS_ARGUMENTS} \
-      ${IMAGE_PULL_SECRETS_ARGUMENT} \
-      || return $?
+    if ! is_chart_deployed istio-ingress istio-system ${ISTIO_CHART_DIR}/gateways/istio-ingress ; then
+      log "Installing Istio ingress"
+      helm upgrade istio-ingress ${ISTIO_CHART_DIR}/gateways/istio-ingress \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${EXTRA_INGRESS_ARGUMENTS} \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
+    fi
 
-    log "Installing Istio egress"
-    helm upgrade istio-egress ${ISTIO_CHART_DIR}/gateways/istio-egress \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      ${IMAGE_PULL_SECRETS_ARGUMENT} \
-      || return $?
+    if ! is_chart_deployed istio-egress istio-system ${ISTIO_CHART_DIR}/gateways/istio-egress ; then
+      log "Installing Istio egress"
+      helm upgrade istio-egress ${ISTIO_CHART_DIR}/gateways/istio-egress \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
+    fi
 
-    log "Installing istiocoredns"
-    helm upgrade istiocoredns ${ISTIO_CHART_DIR}/istiocoredns \
-      --install \
-      --namespace istio-system \
-      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-      ${IMAGE_PULL_SECRETS_ARGUMENT} \
-      || return $?
+    if ! is_chart_deployed istiocoredns istio-system ${ISTIO_CHART_DIR}/istiocoredns ; then
+      log "Installing istiocoredns"
+      helm upgrade istiocoredns ${ISTIO_CHART_DIR}/istiocoredns \
+        --install \
+        --namespace istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
+    fi
 
     log "Setting Istio global mesh policy to STRICT mode"
     kubectl apply -f <(echo "

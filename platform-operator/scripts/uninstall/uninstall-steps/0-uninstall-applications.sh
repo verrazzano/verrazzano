@@ -40,8 +40,8 @@ function delete_rancher_local_cluster {
       return 0
     fi
 
-    # Wait 180s for local cluster to delete
-    local max_retries=18
+    # Wait 60s for local cluster to delete; if not cleaned up, we will fix it up later during Rancher uninstall
+    local max_retries=6
     local retries=0
     while true ; do
       still_exists="$(curl -s $(get_rancher_resolve ${rancher_hostname}) -X GET -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")"
