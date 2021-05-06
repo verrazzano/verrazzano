@@ -95,7 +95,6 @@ pipeline {
                     env.GIT_COMMIT = scmInfo.GIT_COMMIT
                     env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                    load "${GO_REPO_PATH}/verrazzano/ci/third-party-versions.groovy"
                 }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
@@ -139,6 +138,7 @@ pipeline {
                 """
 
                 script {
+                    load "${GO_REPO_PATH}/verrazzano/ci/third-party-versions.groovy"
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
