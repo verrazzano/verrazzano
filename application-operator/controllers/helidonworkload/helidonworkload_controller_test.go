@@ -126,6 +126,66 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
+// TestReconcileWorkloadMissingData tests reconciling a VerrazzanoHelidonWorkload when the workload
+// can be fetched but doesn't contain all required data.
+// GIVEN a VerrazzanoHelidonWorkload resource has been created
+// WHEN the controller Reconcile function is called and we attempt to validate the workload and get an error
+// THEN return the error
+func TestReconcileWorkloadMissingData(t *testing.T) {
+	assert := asserts.New(t)
+	var mocker *gomock.Controller = gomock.NewController(t)
+	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+
+	appConfigName := "unit-test-app-config"
+	componentName := "unit-test-component"
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+	helidonTestContainerPort := v1.ContainerPort{
+		ContainerPort: 8080,
+		Name:          "http",
+	}
+	helidonTestContainer := v1.Container{
+		Name:  "hello-helidon-container-new",
+		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
+		Ports: []v1.ContainerPort{
+			helidonTestContainerPort,
+		},
+	}
+	deploymentTemplate := &vzapi.DeploymentTemplate{
+		Metadata: metav1.ObjectMeta{
+			Namespace: namespace,
+			Labels: map[string]string{
+				"app": "hello-helidon-deploy-new",
+			},
+		},
+		PodSpec: v1.PodSpec{
+			Containers: []v1.Container{
+				helidonTestContainer,
+			},
+		},
+	}
+
+	// expect a call to fetch the VerrazzanoHelidonWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+			workload.Spec.DeploymentTemplate = *deploymentTemplate
+			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoHelidonWorkload"
+			workload.Namespace = namespace
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.Equal("VerrazzanoHelidonWorkload is missing required spec.deploymentTemplate.metadata.name", err.Error())
+	assert.Equal(false, result.Requeue)
+}
+
 // TestReconcileCreateHelidon tests the basic happy path of reconciling a VerrazzanoHelidonWorkload. We
 // expect to write out a Deployment and Service but we aren't adding logging or any other scopes or traits.
 // GIVEN a VerrazzanoHelidonWorkload resource is created
