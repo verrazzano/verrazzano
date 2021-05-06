@@ -135,6 +135,9 @@ pipeline {
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+                    ls ${GO_REPO_PATH}/verrazzano
+                    ls ${GO_REPO_PATH}/verrazzano/ci
+                    ls ${GO_REPO_PATH}/verrazzano/ci/third-party-versions.groovy
                 """
 
                 script {
