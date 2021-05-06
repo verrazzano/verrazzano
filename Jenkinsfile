@@ -728,11 +728,14 @@ def dumpVerrazzanoApiLogs() {
 
 @NonCPS
 def getCommitList() {
+    echo "Checking for change sets"
     def commitList = []
     def changeSets = currentBuild.changeSets
     for (int i = 0; i < changeSets.size(); i++) {
+        echo "get commits from change set"
         def commits = changeSets[i].items
         for (int j = 0; j < commits.length; j++) {
+            def commit = commits[j]
             def id = commit.commitId
             echo "Add commit id: ${id}"
             commitList.add(id)
