@@ -113,7 +113,7 @@
                 "fieldPath": "spec.containers{controller}"
             },
             "reason": "Pulled",
-            "message": "Container image \"ghcr.io/verrazzano/nginx-ingress-controller:0.32-20201016205412-8580ea0ef\" already present on machine",
+            "message": "Container image \"ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210506202647-6ed3094bc\" already present on machine",
             "source": {
                 "component": "kubelet",
                 "host": "verrazzano-control-plane"
@@ -651,7 +651,7 @@
                 "fieldPath": "spec.containers{ingress-nginx-default-backend}"
             },
             "reason": "Pulled",
-            "message": "Container image \"ghcr.io/verrazzano/nginx-ingress-default-backend:0.32-20201016205412-8580ea0ef\" already present on machine",
+            "message": "Container image \"ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210506202647-6ed3094bc\" already present on machine",
             "source": {
                 "component": "kubelet",
                 "host": "verrazzano-control-plane"
