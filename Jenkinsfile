@@ -147,9 +147,11 @@ pipeline {
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
+                    def currentCommitHash = env.GIT_COMMIT
+                    def commitList = getCommitList()
                     withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
                         def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                        SUSPECT_LIST = getSuspectList( userMappings )
+                        SUSPECT_LIST = getSuspectList(commitList, userMappings)
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
                 }
@@ -210,6 +212,16 @@ pipeline {
             }
         }
 
+        stage('Build') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano
+                    make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+                   """
+            }
+        }
+
         stage('Update operator.yaml') {
             when {
                 allOf {
@@ -226,16 +238,6 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-                   """
-            }
-        }
-
-        stage('Build') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
                    """
             }
         }
@@ -725,17 +727,56 @@ def dumpVerrazzanoApiLogs() {
 }
 
 @NonCPS
-def getSuspectList(userMappings) {
-    def suspectList = []
-    def retValue = ""
+def getCommitList() {
+    echo "Checking for change sets"
+    def commitList = []
     def changeSets = currentBuild.changeSets
     for (int i = 0; i < changeSets.size(); i++) {
+        echo "get commits from change set"
         def commits = changeSets[i].items
         for (int j = 0; j < commits.length; j++) {
             def commit = commits[j]
-            def author = commit.author.toString()
             def id = commit.commitId
-            echo "Commit id: ${id}   author: ${author}"
+            echo "Add commit id: ${id}"
+            commitList.add(id)
+        }
+    }
+    return commitList
+}
+
+def trimIfGithubNoreplyUser(userIn) {
+    if (userIn == null) {
+        echo "Not a github noreply user, not trimming: ${userIn}"
+        return userIn
+    }
+    if (userIn.matches(".*\\+.*@users.noreply.github.com.*")) {
+        def userOut = userIn.substring(userIn.indexOf("+") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    if (userIn.matches(".*<.*@users.noreply.github.com.*")) {
+        def userOut = userIn.substring(userIn.indexOf("<") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    echo "Not a github noreply user, not trimming: ${userIn}"
+    return userIn
+}
+
+def getSuspectList(commitList, userMappings) {
+    def retValue = ""
+    if (commitList == null || commitList.size() == 0) {
+        echo "No commits to form suspect list"
+        return retValue
+    }
+    def suspectList = []
+    for (int i = 0; i < commitList.size(); i++) {
+        def id = commitList[i]
+        def gitAuthor = sh(
+            script: "git log --format='%ae' '$id^!'",
+            returnStdout: true
+        ).trim()
+        if (gitAuthor != null) {
+            def author = trimIfGithubNoreplyUser(gitAuthor)
+            echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
             if (userMappings.containsKey(author)) {
                 def slackUser = userMappings.get(author)
                 if (!suspectList.contains(slackUser)) {
@@ -748,9 +789,11 @@ def getSuspectList(userMappings) {
                 if (!suspectList.contains(author)) {
                     echo "Added ${author} as suspect"
                     retValue += " ${author}"
-                    suspectList.add(author)
+                   suspectList.add(author)
                 }
             }
+        } else {
+            echo "No author returned from git"
         }
     }
     echo "returning suspect list: ${retValue}"
