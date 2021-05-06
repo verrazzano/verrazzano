@@ -768,7 +768,7 @@ def getSuspectList(commitList, userMappings) {
         ).trim()
         if (gitAuthor != null) {
             def author = trimIfGithubNoreplyUser(gitAuthor)
-            echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+            echo "DEBUG: author: ${gitAuthor}, ${author},  id: ${id}"
             if (userMappings.containsKey(author)) {
                 def slackUser = userMappings.get(author)
                 if (!suspectList.contains(slackUser)) {
