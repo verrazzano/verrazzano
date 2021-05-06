@@ -63,13 +63,32 @@ function delete_rancher_local_cluster {
 
 # Delete all of the MultiCluster resources in all namespaces
 function delete_multicluster_resources {
-    kubectl delete secret -n verrazzano-system verrazzano-cluster-agent verrazzano-cluster-registration verrazzano-cluster-elasticsearch --ignore-not-found=true
+    # Get the cluster agent secret to determine whether this is a managed cluster
+    local is_managed_cluster="false"
+    kubectl get secret -n verrazzano-system verrazzano-cluster-agent > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      is_managed_cluster="true"
+    fi
+    echo "is_managed_cluster is ${is_managed_cluster}"
+    if [ "$is_managed_cluster" == "true" ] ; then
+      log "Deleting managed cluster secrets"
+      kubectl delete secret -n verrazzano-system verrazzano-cluster-agent verrazzano-cluster-registration verrazzano-cluster-elasticsearch --ignore-not-found=true
+      log "Wait for one minute, since it may take the agent up to a minute to detect secret deletion and stop syncing from admin cluster"
+      sleep 60
+    fi
+    log "Deleting VMCs"
     delete_k8s_resources verrazzanomanagedcluster ":metadata.name" "Could not delete VerrazzanoManagedClusters from Verrazzano" "" "verrazzano-mc"
+    log "Deleting VerrazzanoProjects"
     delete_k8s_resources verrazzanoproject ":metadata.name" "Could not delete VerrazzanoProjects from Verrazzano" "" "verrazzano-mc"
+    log "Deleting MultiClusterApplicationConfigurations"
     delete_k8s_resource_from_all_namespaces multiclusterapplicationconfigurations.clusters.verrazzano.io no
+    log "Deleting MultiClusterComponents"
     delete_k8s_resource_from_all_namespaces multiclustercomponents.clusters.verrazzano.io no
+    log "Deleting MultiClusterConfigMaps"
     delete_k8s_resource_from_all_namespaces multiclusterconfigmaps.clusters.verrazzano.io no
+    log "Deleting MultiClusterLoggingScopes"
     delete_k8s_resource_from_all_namespaces multiclusterloggingscopes.clusters.verrazzano.io no
+    log "Deleting MultiClusterSecrets"
     delete_k8s_resource_from_all_namespaces multiclustersecrets.clusters.verrazzano.io no
 }
 
