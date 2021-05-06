@@ -49,7 +49,7 @@ kibana:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-dev
-  imageVersion: 3357
+  imageVersion: 3367
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
   journalbeatImage: ghcr.io/verrazzano/journalbeat:6.8.3-20201016212623-05eabe44b
@@ -60,7 +60,7 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator-dev
-  imageVersion: 3365
+  imageVersion: 3367
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
