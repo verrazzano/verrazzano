@@ -1620,7 +1620,7 @@ func TestBuildIngressIPForNIPNodePort(t *testing.T) {
 
 // TestBuildIngressIPForNIPLoadBalancer tests buildDomain method
 // GIVEN a request to buildDomain
-// WHEN an NIP.io configuration is detected and the service type is LoadBalancer
+// WHEN an nip.io configuration is detected and the service type is LoadBalancer
 // THEN the correct domain is returned
 func TestBuildIngressIPForNIPLoadBalancer(t *testing.T) {
 	namespace := "verrazzano"
