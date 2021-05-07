@@ -75,6 +75,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Finalizer is present, so lets do the uninstall
 		if containsString(vz.ObjectMeta.Finalizers, finalizerName) {
+			// Cancel any running install jobs before installing
+			if err := r.cancelInstallJob(log, vz); err != nil {
+				return reconcile.Result{}, err
+			}
 			if err := r.createUninstallJob(log, vz); err != nil {
 				// If fail to start the uninstall, return with error so that it can be retried
 				return reconcile.Result{}, err
@@ -246,6 +250,28 @@ func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger
 	}
 
 	return nil
+}
+
+// cancelInstallJob Cancels a running install job by deleting the batch object
+func (r *Reconciler) cancelInstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	// Check if the job for running the install scripts exist
+	jobName := buildInstallJobName(vz.Name)
+	jobFound := &batchv1.Job{}
+	log.Debugf("Checking if install job %s exist", jobName)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: jobName, Namespace: vz.Namespace}, jobFound)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			// Got an error other than not found
+			return err
+		}
+		// Job not found
+		return nil
+	}
+	// Delete the Job in the foreground to ensure it's gone before continuing
+	propagationPolicy := metav1.DeletePropagationForeground
+	deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
+	log.Infof("Install job %s in progress, deleting", jobName)
+	return r.Delete(context.TODO(), jobFound, deleteOptions)
 }
 
 // createInstallJob creates the installation job

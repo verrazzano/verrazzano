@@ -43,9 +43,6 @@ spec:
     - ports:
         - port: 9443
           protocol: TCP
-      from:
-        - ipBlock:
-            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
   egress:
     - ports:
         - port: {{ .Values.kubernetes.service.endpoint.port }}
@@ -115,7 +112,7 @@ spec:
 ---
 # Network policy for VMI System Prometheus
 # Ingress: allow connect from the ingress controller to oidc port 8775
-#          allow connect from Prometheus Pusher and Grafana to port 9090
+#          allow connect from Grafana to port 9090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -139,7 +136,11 @@ spec:
       ports:
         - port: 8775
           protocol: TCP
-    - ports:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-grafana
+      ports:
         - port: 9090
           protocol: TCP
 ---
@@ -335,3 +336,240 @@ spec:
         - protocol: TCP
           port: 3306
 {{- end }}
+---
+# Network policy for Rancher cluster agent
+# Ingress: deny all
+# Egress:  Kubernetes API server, DNS for Rancher host lookups, and port 443 to talk to Rancher on the admin cluster
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cattle-cluster-agent
+  namespace: cattle-system
+spec:
+  podSelector:
+    matchLabels:
+      app: cattle-cluster-agent
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - ports:
+      - port: 443
+        protocol: TCP
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+    - ports:
+      - port: 53
+        protocol: UDP
+      - port: 53
+        protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    - ports:
+        - port: 8080
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: keycloak
+{{- if .Values.rancher.enabled }}
+---
+# Network policy for Rancher UI/API
+# Ingress: allow nginx ingress
+# Egress:  deny all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rancher
+  namespace: cattle-system
+spec:
+  podSelector:
+    matchLabels:
+      app: rancher
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: ingress-nginx
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 80
+---
+# Network policy for Rancher operator
+# Ingress: deny all
+# Egress:  Kubernetes API server
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rancher-operator
+  namespace: rancher-operator-system
+spec:
+  podSelector:
+    matchLabels:
+      app: rancher-operator
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+---
+# Network policy for Rancher webhook
+# Ingress: allow access from Kubernetes API server for webhook port 9443
+# Egress:  allow all egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rancher-webhook
+  namespace: cattle-system
+spec:
+  podSelector:
+    matchLabels:
+      app: rancher-webhook
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - port: 9443
+          protocol: TCP
+  egress:
+    - {}
+{{- end }}
+---
+# Network policy for NGINX Ingress controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress to port 443 from anywhere
+    - ports:
+        - port: 443
+          protocol: TCP
+    # Allow ingress to port 80 from verrazzano-system
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+      ports:
+        - port: 80
+          protocol: TCP
+  egress:
+    # Allow egress to Kubernetes API server
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+    # Allow egress to kub-dns for name resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow egress to ingress-nginx default backend
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: default-backend
+      ports:
+        - port: 8080
+          protocol: TCP
+    # Allow egress to verrazzano system pods at port 8775 (OIDC sidecar)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+      ports:
+        - port: 8775
+          protocol: TCP
+    # Allow egress to verrazzano console at port 8000
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: verrazzano-console
+      ports:
+        - port: 8000
+          protocol: TCP
+    # Allow egress to Rancher
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: cattle-system
+    # Allow egress to Keycloak at port 8080
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak
+      ports:
+        - port: 8080
+          protocol: TCP
+---
+# Network policy for NGINX Ingress default-backend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ingress-nginx-default-backend
+  namespace: ingress-nginx
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: default-backend
+  policyTypes:
+    - Ingress
+    # Deny all egress
+    - Egress
+  ingress:
+    # Allow ingress from ingress-nginx controller
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: controller
+      ports:
+        - port: 8080
+          protocol: TCP

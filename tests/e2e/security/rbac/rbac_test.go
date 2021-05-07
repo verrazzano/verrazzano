@@ -7,9 +7,13 @@ import (
 	"fmt"
 	"time"
 
+	"strings"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -23,6 +27,8 @@ const (
 	rbacTestNamespace  = "rbactest"
 	v80ProjectAdmin    = "ocid1.user.oc1..aaaaaaaallodotxfvg0g1antsyq3gonyyhblya66kiqjnp2kogonykvjwi19"
 	v80ProjectMonitor  = "ocid1.user.oc1..aaaaaaaallodotxfvg0yank33sq3gonyghblya66kiqjnp2kogonykvjwi19"
+	verrazzanoAPI      = "verrazzano-api"
+	impersonateVerb    = "impersonate"
 )
 
 var _ = ginkgo.BeforeSuite(func() {
@@ -243,13 +249,92 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 	})
 })
 
-var _ = ginkgo.Describe("Test RBAC Permission", func() {
+var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 	ginkgo.Context("for serviceaccount verrazzano-api", func() {
+		var apiProxy corev1.Pod
+		sa := pkg.GetServiceAccount(verrazzanoSystemNS, verrazzanoAPI)
+		if sa == nil {
+			ginkgo.Fail(fmt.Sprintf("Failed to get service account %s in namespace %s", verrazzanoAPI, verrazzanoSystemNS))
+		}
+		ginkgo.It("Validate the secret of the Service Account of Verrazzano API", func() {
+			// Get secret for the SA
+			saSecret := sa.Secrets[0]
+			clientset := pkg.GetKubernetesClientset()
+			pods := pkg.ListPodsInCluster(verrazzanoSystemNS, clientset)
+			secretMatched := false
+			for i := range pods.Items {
+				// Get the secret of the API proxy pod
+				if strings.HasPrefix(pods.Items[i].Name, verrazzanoAPI) {
+					apiProxy = pods.Items[i]
+					for j := range apiProxy.Spec.Volumes {
+						if apiProxy.Spec.Volumes[j].Secret != nil && apiProxy.Spec.Volumes[j].Secret.SecretName == saSecret.Name {
+							secretMatched = true
+							break
+						}
+					}
+					break
+				}
+			}
+			gomega.Expect(secretMatched).To(gomega.BeTrue(), fmt.Sprintf("FAIL: The secret name of ServiceAccount "+
+				"%s differs from the secret obtained from the Verrazzano API pod.", verrazzanoAPI))
+		})
+
+		ginkgo.It("Validate the role binding of the Service Account of Verrazzano API", func() {
+			bindings := pkg.ListClusterRoleBindings()
+			saName := sa.Name
+			bcount := 0
+			var rbinding v1.ClusterRoleBinding
+			for rb := range bindings.Items {
+				for sa := range bindings.Items[rb].Subjects {
+					// Get cluster role bindings for verrazzano-api
+					if bindings.Items[rb].Subjects[sa].Name == saName {
+						rbinding = bindings.Items[rb]
+						bcount++
+					}
+				}
+			}
+			// There should be a single cluster role binding, which references service account of Verrazzano API
+			gomega.Expect(bcount > 1).To(gomega.BeFalse())
+			gomega.Expect(len(rbinding.Subjects) > 1).To(gomega.BeFalse(),
+				fmt.Sprintf("FAIL: There are more than one Subjects for the cluster role binding %s", rbinding.Subjects))
+
+			// There should be a single subject of kind service account in verrazzano-system namespace
+			gomega.Expect(rbinding.Subjects[0].Kind == "ServiceAccount").To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The KIND for service account %s is different than ServiceAccount.", rbinding.Subjects[0].Kind))
+			gomega.Expect(rbinding.Subjects[0].Namespace == verrazzanoSystemNS).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The namespace for service account %s is different than %s.",
+					rbinding.Subjects[0].Namespace, verrazzanoSystemNS))
+
+			// There should be a single rule with resources - users and groups, and verbs impersonate
+			crole := pkg.GetClusterRole(rbinding.RoleRef.Name)
+			gomega.Expect(len(crole.Rules) == 1).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The cluster role %s contains more than one rules.", crole))
+
+			crule := crole.Rules[0]
+			gomega.Expect(len(crule.Resources) == 2).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: There are more resources than the expected users and groups %s", crule.Resources))
+			res := make(map[string]bool)
+			res["users"] = true
+			res["groups"] = true
+			for r := range crule.Resources {
+				delete(res, crule.Resources[r])
+			}
+			gomega.Expect(len(res) == 0).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The rule contains resource(s) other than expected users and groups - %s", crule.Resources))
+
+			verbs := crule.Verbs
+			gomega.Expect(len(verbs) == 1).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The cluster role %s contains more than one verbs.", crole))
+			gomega.Expect(verbs[0] == impersonateVerb).To(gomega.BeTrue(),
+				fmt.Sprintf("FAIL: The cluster role %s contains verb other than impersonate.", crole))
+		})
+
 		ginkgo.It("Fail impersonating any other service account", func() {
 			pkg.Log(pkg.Info, "Can verrazzano-api service account impersonate any other service account?  No")
 			allowed, reason := pkg.CanIForAPIGroupForServiceAccountOrUser("verrazzano-api", "", "impersonate", "serviceaccounts", "core", true, verrazzanoSystemNS)
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on impersonating service accounts: Allowed = %t, reason = %s", allowed, reason))
 		})
+
 	})
 })
 

@@ -1,8 +1,7 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def SKIP_ACCEPTANCE_TESTS = false
 
 pipeline {
     options {
@@ -10,7 +9,7 @@ pipeline {
     }
 
     agent {
-       docker {
+        docker {
             image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
@@ -20,28 +19,33 @@ pipeline {
     }
 
     parameters {
-        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
-        booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
+        choice (name: 'KUBERNETES_CLUSTER_VERSION',
+                description: 'Kubernetes Version for KinD Cluster',
+                // 1st choice is the default value
+                choices: [ "1.18", "1.19", "1.20", "1.17" ])
+        string (name: 'GIT_COMMIT_FOR_INSTALL',
+                defaultValue: 'NONE',
+                description: 'This is the full git commit hash for the install.  By default, the latest Master release will be installed',
+                trim: true)
+        string (name: 'GIT_COMMIT_FOR_UPGRADE',
+                defaultValue: 'NONE',
+                description: 'This is the full git commit hash for the target upgrade.  By default, the Verrazzano tip will be used.',
+                trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                 defaultValue: 'NONE',
-                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from VZ repo will be leveraged to create VZ platform operator',
+                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
                 trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "xip.io", "sslip.io"])
-        booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
+        booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to true)', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
     }
 
     environment {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
-        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
-        DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
-        DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
-        DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
-        CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
@@ -59,7 +63,6 @@ pipeline {
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
-        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
@@ -67,11 +70,10 @@ pipeline {
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
-
-        CALICO_VERSION="3.18.1"
     }
 
     stages {
@@ -82,8 +84,31 @@ pipeline {
                 """
 
                 script {
-                    checkout scm
+                    if (params.GIT_COMMIT_FOR_UPGRADE == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout scm
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        echo "SCM checkout of ${params.GIT_COMMIT_FOR_UPGRADE}"
+                        def scmInfo = checkout([
+                                $class: 'GitSCM',
+                                branches: [[name: params.GIT_COMMIT_FOR_UPGRADE]],
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions: [],
+                                submoduleCfg: [],
+                                userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_FOR_UPGRADE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_FOR_UPGRADE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
+
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
@@ -92,8 +117,8 @@ pipeline {
                 script {
                     try {
                         sh """
-                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                        """
+                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                    """
                     } catch(error) {
                         echo "docker login failed, retrying after sleep"
                         retry(4) {
@@ -131,27 +156,35 @@ pipeline {
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                    // update the description with some meaningful info
+                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_FOR_UPGRADE
+                    if (params.GIT_COMMIT_FOR_INSTALL == "NONE") {
+                        echo "Specific GIT commit was not specified for install.  Using latest master release"
+                        OPERATOR_YAML_FILE = 'https://github.com/verrazzano/verrazzano/releases/latest/download/operator.yaml'
+                    } else {
+                        INSTALL_SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${GIT_COMMIT_FOR_INSTALL}").trim()
+                        OCI_OS_LOCATION="${INSTALL_SHORT_COMMIT_HASH}"
+                        OPERATOR_YAML_FILE = ""
+                    }
                 }
             }
         }
 
         stage('Acceptance Tests') {
-
             stages {
-
                 stage('Prepare AT environment') {
                     environment {
-                        VERRAZZANO_OPERATOR_IMAGE="NONE"
-                        KIND_KUBERNETES_CLUSTER_VERSION="1.18"
+                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_CLI_AUTH="instance_principal"
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                         OCI_OS_BUCKET="verrazzano-builds"
-                        OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
+                        OCI_OS_LOCATION="${OCI_OS_LOCATION}"
+                        OPERATOR_YAML="${OPERATOR_YAML_FILE}"
                     }
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${CALICO_VERSION}
+                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
                     }
                     post {
@@ -169,202 +202,109 @@ pipeline {
                         }
                     }
                 }
+                stage("upgrade-platform-operator") {
+                    environment {
+                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                        OCI_CLI_AUTH="instance_principal"
+                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                        OCI_OS_BUCKET="verrazzano-builds"
+                    }
+                    steps {
+                        sh """
+                        echo "Upgrading the Verrazzano platform operator"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                        kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+    
+                        # need to sleep since the old operator needs to transition to terminating state
+                        sleep 15
+    
+                        # ensure operator pod is up
+                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                    """
+                    }
+                }
+
+                stage("upgrade-verrazzano") {
+                    steps {
+                        script {
+                            def props = readProperties file: '.verrazzano-development-version'
+                            VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                        }
+                        sh """
+                            echo "Upgrading the Verrazzano installation"
+                            # Modify the version field in the verrazzano CR file to be this new verrazzano version
+                            cd ${GO_REPO_PATH}/verrazzano
+                            cp ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                            ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                            # Do the upgrade
+                            echo "Following is the verrazano CR file with the new version:"
+                            cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                            kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                            # wait for the upgrade to complete
+                            kubectl wait --timeout=5m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+        
+                            # ideally we don't need to wait here
+                            sleep 15
+                            echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
+                            helm list -A
+                        """
+                    }
+                    post {
+                        always {
+                            dumpVerrazzanoPlatformOperatorLogs()
+                        }
+                    }
+                }
 
                 stage('Run Acceptance Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        PROJECT_ADMIN_ROLE = "verrazzano-project-admin"
-                        TEST_ROLE = "verrazzano-test-role"
                     }
-                    stages {
-                        stage ('Create test role') {
+                    parallel {
+                        stage('verify-install') {
                             steps {
-                                script {
-                                    sh """
-                                        cd ${GO_REPO_PATH}/verrazzano
-                                        kubectl apply -f ./tools/scripts/testrole.yaml || true
-                                    """
-                                }
+                                runGinkgoRandomize('verify-install')
                             }
                         }
-                        stage ('Run Tests') {
-                            parallel {
-                                stage('verify-install istio') {
-                                    environment {
-                                        TEST_ID = UUID.randomUUID().toString()
-                                        TEST_NAMESPACE = "installistio"
-                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
-                                    }
-                                    steps {
-                                        runGinkgoWithKubeClient('verify-install/istio')
-                                    }
-                                    post {
-                                        always {
-                                            sh """
-                                                cd ${GO_REPO_PATH}/verrazzano
-                                                ./tools/scripts/remove-test-kube-client.sh
-                                            """
-                                        }
-                                    }
-                                }
-                                stage('verify-install web') {
-                                    environment {
-                                        TEST_ID = UUID.randomUUID().toString()
-                                        TEST_NAMESPACE = "installweb"
-                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
-                                    }
-                                    steps {
-                                        runGinkgoWithKubeClient('verify-install/web')
-                                    }
-                                    post {
-                                        always {
-                                            sh """
-                                                cd ${GO_REPO_PATH}/verrazzano
-                                                ./tools/scripts/remove-test-kube-client.sh
-                                            """
-                                        }
-                                    }
-                                }
-                                stage('verify-install verrazzano') {
-                                    steps {
-                                        runGinkgoRandomize('verify-install/verrazzano')
-                                    }
-                                }
-                                stage('verify-install kubernetes') {
-                                    steps {
-                                        runGinkgoRandomize('verify-install/kubernetes')
-                                    }
-                                }
-                                stage('verify-infra restapi') {
-                                    environment {
-                                        TEST_ID = UUID.randomUUID().toString()
-                                        TEST_NAMESPACE = "infrarestapi"
-                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
-                                    }
-                                    steps {
-                                        runGinkgoWithKubeClient('verify-infra/restapi')
-                                    }
-                                    post {
-                                        always {
-                                            sh """
-                                                cd ${GO_REPO_PATH}/verrazzano
-                                                ./tools/scripts/remove-test-kube-client.sh
-                                            """
-                                        }
-                                    }
-                                }
-                                stage('verify-infra oam') {
-                                    environment {
-                                        TEST_ID = UUID.randomUUID().toString()
-                                        TEST_NAMESPACE = "infraoam"
-                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
-                                    }
-                                    steps {
-                                        runGinkgoWithKubeClient('verify-infra/oam')
-                                    }
-                                    post {
-                                        always {
-                                            sh """
-                                                cd ${GO_REPO_PATH}/verrazzano
-                                                ./tools/scripts/remove-test-kube-client.sh
-                                            """
-                                        }
-                                    }
-                                }
-                                stage('verify-infra vmi') {
-                                    steps {
-                                        runGinkgoRandomize('verify-infra/vmi')
-                                    }
-                                }
-                                stage('examples todo') {
-                                    when {
-                                        expression {params.RUN_EXAMPLE_TESTS == true}
-                                    }
-                                    steps {
-                                        runGinkgo('examples/todo')
-                                    }
-                                }
-                                stage('examples socks') {
-                                    environment {
-                                        TEST_ID = UUID.randomUUID().toString()
-                                        TEST_NAMESPACE = "sockshop"
-                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
-                                    }
-                                    when {
-                                        expression {params.RUN_EXAMPLE_TESTS == true}
-                                    }
-                                    steps {
-                                        runGinkgoWithKubeClient('examples/socks')
-                                    }
-                                    post {
-                                        always {
-                                            sh """
-                                                cd ${GO_REPO_PATH}/verrazzano
-                                                ./tools/scripts/remove-test-kube-client.sh
-                                            """
-                                        }
-                                    }
-                                }
-                                stage('examples springboot') {
-                                    environment {
-                                        TEST_ID = UUID.randomUUID().toString()
-                                        TEST_NAMESPACE = "springboot"
-                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
-                                    }
-                                    when {
-                                        expression {params.RUN_EXAMPLE_TESTS == true}
-                                    }
-                                    steps {
-                                        runGinkgoWithKubeClient('examples/springboot')
-                                    }
-                                    post {
-                                        always {
-                                            sh """
-                                                cd ${GO_REPO_PATH}/verrazzano
-                                                ./tools/scripts/remove-test-kube-client.sh
-                                            """
-                                        }
-                                    }
-                                }
-                                stage('examples helidon') {
-                                    environment {
-                                        TEST_ID = UUID.randomUUID().toString()
-                                        TEST_NAMESPACE = "hello-helidon"
-                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
-                                    }
-                                    when {
-                                        expression {params.RUN_EXAMPLE_TESTS == true}
-                                    }
-                                    steps {
-                                        runGinkgoWithKubeClient('examples/helidon')
-                                    }
-                                    post {
-                                        always {
-                                            sh """
-                                                cd ${GO_REPO_PATH}/verrazzano
-                                                ./tools/scripts/remove-test-kube-client.sh
-                                            """
-                                        }
-                                    }
-                                }
-                                stage('examples bobs books') {
-                                    when {
-                                        expression {params.RUN_EXAMPLE_TESTS == true}
-                                    }
-                                    steps {
-                                        runGinkgo('examples/bobsbooks')
-                                    }
-                                }
+                        stage('verify-infra restapi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/restapi')
+                            }
+                        }
+                        stage('verify-infra oam') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/oam')
+                            }
+                        }
+                        stage('verify-infra vmi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/vmi')
+                            }
+                        }
+                        stage('examples todo') {
+                            steps {
+                                runGinkgo('examples/todo')
+                            }
+                        }
+                        stage('examples socks') {
+                            steps {
+                                runGinkgo('examples/socks')
+                            }
+                        }
+                        stage('examples spring') {
+                            steps {
+                                runGinkgo('examples/springboot')
+                            }
+                        }
+                        stage('examples helidon') {
+                            steps {
+                                runGinkgo('examples/helidon')
                             }
                         }
                     }
                     post {
                         always {
-                            sh """
-                                cd ${GO_REPO_PATH}/verrazzano
-                                kubectl delete -f ./tools/scripts/testrole.yaml || true
-                            """
-
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
@@ -376,14 +316,14 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
                         }
                     }
                 }
                 success {
                     script {
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
                         }
                     }
                 }
@@ -410,23 +350,26 @@ pipeline {
             sh """
                 cd ${GO_REPO_PATH}/verrazzano/platform-operator
                 make delete-cluster
+                cd ${WORKSPACE}/verrazzano
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
                 fi
             """
-            deleteDir()
         }
         failure {
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+                    subject: "Verrazzano: ${env.JOB_NAME} - Failed",
+                    body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
             script {
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
+                if (env.BRANCH_NAME == "master") {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
             }
+        }
+        cleanup {
+            deleteDir()
         }
     }
 }
@@ -529,15 +472,4 @@ def dumpVerrazzanoApiLogs() {
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-api.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
-}
-
-def runGinkgoWithKubeClient(testSuitePath) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${GO_REPO_PATH}/verrazzano
-            ./tools/scripts/create-test-kube-client.sh
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
-        """
-    }
 }

@@ -4,9 +4,11 @@
 package pkg
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"strings"
 	"time"
 
@@ -110,10 +112,18 @@ func LogRecordFound(indexName string, after time.Time, fields map[string]string)
 // in the given cluster
 func LogRecordFoundInCluster(indexName string, after time.Time, fields map[string]string, kubeconfigPath string) bool {
 	searchResult := querySystemElasticSearch(indexName, fields, kubeconfigPath)
-	if searchResult == nil {
+	if len(searchResult) == 0 {
 		Log(Info, fmt.Sprintf("Expected to find log record matching fields %v", fields))
 		return false
 	}
+	found := findHits(searchResult, after)
+	if !found {
+		Log(Error, fmt.Sprintf("Failed to find recent log record for index %s", indexName))
+	}
+	return found
+}
+
+func findHits(searchResult map[string]interface{}, after time.Time) bool {
 	hits := Jq(searchResult, "hits", "hits")
 	if hits == nil {
 		Log(Info, "Expected to find hits in log record query results")
@@ -140,6 +150,109 @@ func LogRecordFoundInCluster(indexName string, after time.Time, fields map[strin
 		}
 		Log(Info, fmt.Sprintf("Found old record: %s", timestamp))
 	}
-	Log(Error, fmt.Sprintf("Failed to find recent log record for index %s", indexName))
 	return false
 }
+
+// FindLog returns true if a recent log record can be found in the index with matching filters.
+func FindLog(index string, match []Match, mustNot []Match) bool {
+	after := time.Now().Add(-24 * time.Hour)
+	query := ElasticQuery{
+		Filters: match,
+		MustNot: mustNot,
+	}
+	result := SearchLog(index, query)
+	found := findHits(result, after)
+	if !found {
+		Log(Error, fmt.Sprintf("Failed to find recent log record for index %s", index))
+	}
+	return found
+}
+
+var systemElasticHost string
+var elasticQueryTemplate *template.Template
+
+func systemES() string {
+	if systemElasticHost == "" {
+		systemElasticHost = getSystemElasticSearchIngressHost(GetKubeConfigPathFromEnv())
+	}
+	return systemElasticHost
+}
+
+// SearchLog search recent log records for the index with matching filters.
+func SearchLog(index string, query ElasticQuery) map[string]interface{} {
+	url := fmt.Sprintf("https://%s/%s/_search", systemES(), index)
+	if elasticQueryTemplate == nil {
+		temp, err := template.New("esQueryTemplate").Parse(queryTemplate)
+		if err != nil {
+			Log(Error, fmt.Sprintf("Error: %v", err))
+		}
+		elasticQueryTemplate = temp
+	}
+	var buffer bytes.Buffer
+	err := elasticQueryTemplate.Execute(&buffer, query)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error: %v", err))
+	}
+	Log(Debug, fmt.Sprintf("Search: %v \nQuery: \n%v", url, buffer.String()))
+	configPath := GetKubeConfigPathFromEnv()
+	status, resp := RetryPostWithBasicAuth(url, buffer.String(), "verrazzano", GetVerrazzanoPasswordInCluster(configPath), configPath)
+	var result map[string]interface{}
+	if status != 200 {
+		Log(Debug, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, status=%d", url, status))
+		return result
+	}
+	json.Unmarshal([]byte(resp), &result)
+	return result
+}
+
+// ElasticQuery describes an Elasticsearch Query
+type ElasticQuery struct {
+	Filters []Match
+	MustNot []Match
+}
+
+// Match describes a match_phrase in Elasticsearch Query
+type Match struct {
+	Key   string
+	Value string
+}
+
+const queryTemplate = `{
+  "size": 100,
+  "sort": [
+    {
+      "@timestamp": {
+        "order": "desc",
+        "unmapped_type": "boolean"
+      }
+    }
+  ],
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "match_all": {}
+        }
+{{range $filter := .Filters}} 
+		,
+        {
+          "match_phrase": {
+            "{{$filter.Key}}": "{{$filter.Value}}"
+          }
+        }
+{{end}}
+      ],
+      "must_not": [
+{{range $index, $mustNot := .MustNot}} 
+        {{if $index}},{{end}}
+        {
+          "match_phrase": {
+            "{{$mustNot.Key}}": "{{$mustNot.Value}}"
+          }
+        }
+{{end}}
+      ]
+    }
+  }
+}
+`

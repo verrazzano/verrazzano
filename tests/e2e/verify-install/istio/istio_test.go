@@ -30,12 +30,10 @@ var _ = ginkgo.Describe("Istio", func() {
 	ginkgoExt.DescribeTable("deployments",
 		func(namespace string) {
 			expectedDeployments := []string{
-				"grafana",
 				"istio-egressgateway",
 				"istio-ingressgateway",
 				"istiod",
 				"istiocoredns",
-				"prometheus",
 			}
 
 			deploymentNames := func(deploymentList *appsv1.DeploymentList) []string {

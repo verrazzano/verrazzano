@@ -43,11 +43,11 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.18.10", "v1.17.13" ])
+                choices: [ "v1.19.7", "v1.18.10", "v1.17.13" ])
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.18", "1.17" ])
+                choices: [ "1.19", "1.18", "1.17", "1.20" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -68,7 +68,7 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "xip.io", "sslip.io"])
-        booleanParam (description: 'Whether to create kind cluster with Calico for AT testing', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
+        booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
     }
 
@@ -139,6 +139,8 @@ pipeline {
 
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+
+        CALICO_VERSION="3.18.1"
     }
 
     stages {
@@ -327,7 +329,7 @@ pipeline {
                                 cd ${GO_REPO_PATH}/verrazzano
                                 if [ "NONE" = "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
                                     echo "Using the latest master branch operator.yaml from object storage"
-                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                                 else
                                     echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
@@ -568,19 +570,24 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 # specify the cache name based on the count value, this is assuming 1 or 2 clusters
                 case "${count}" in
                     1)
-                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${params.CREATE_KIND_USE_CALICO} "vpo_integ"
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${params.CREATE_CLUSTER_USE_CALICO} "vpo_integ"
                         ;;
                     2)
-                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${params.CREATE_KIND_USE_CALICO} "apo_integ"
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${params.CREATE_CLUSTER_USE_CALICO} "apo_integ"
                         ;;
                     *)
-                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${params.CREATE_KIND_USE_CALICO} "NONE"
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${params.CREATE_CLUSTER_USE_CALICO} "NONE"
                         ;;
                 esac
-                if [ ${params.CREATE_KIND_USE_CALICO} == true ]; then
+                if [ ${params.CREATE_CLUSTER_USE_CALICO} == true ]; then
                     echo "Install Calico"
-                    kubectl apply -f https://docs.projectcalico.org/v3.18/manifests/calico.yaml
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ./ci/scripts/install_calico.sh "${CLUSTER_NAME_PREFIX}-$count" "${CALICO_VERSION}"
                 fi
+                kubectl wait --for=condition=ready nodes/${CLUSTER_NAME_PREFIX}-$count-control-plane --timeout=5m
+                kubectl wait --for=condition=ready pods/kube-controller-manager-${CLUSTER_NAME_PREFIX}-$count-control-plane -n kube-system --timeout=5m
+                echo "Listing pods in kube-system namespace ..."
+                kubectl get pods -n kube-system
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
                 ./tests/e2e/config/scripts/install-metallb.sh $metallbAddressRange
@@ -740,7 +747,7 @@ def createOKEClusters() {
             mkdir -p ${KUBECONFIG_DIR}
             echo "Create OKE cluster"
             cd ${TEST_SCRIPTS_DIR}
-            TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
+            TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${CREATE_CLUSTER_USE_CALICO}
         """
     }
 }

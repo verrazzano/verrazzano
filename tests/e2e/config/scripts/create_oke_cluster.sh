@@ -6,11 +6,9 @@
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
-usage() {
-  echo "Usage: $0 [-p]" 1>&2
-  echo "-p create cluster with private endpoints" 1>&2
-  exit 1
-}
+PRIVATE_CLUSTER=${1:-false}
+INSTALL_CALICO=${2:-false}
+CALICO_VERSION=${3:-"3.18.1"}
 
 set_private_access() {
   echo "Cluster access set to private."
@@ -43,12 +41,9 @@ check_for_resources() {
   fi
 }
 
-while getopts ":p" arg; do
-  case $arg in
-    p) set_private_access;;
-    \?) usage;;
-  esac
-done
+if [ $PRIVATE_CLUSTER == true ] ; then
+    set_private_access
+fi
 
 if [ -z "$TF_VAR_compartment_id" ] ; then
     echo "TF_VAR_compartment_id env var must be set!"
@@ -72,7 +67,9 @@ check_for_resources LB load-balancer lb-100mbps-count 2
 echo 'Install OKE...'
 echo 'Create cluster...'
 cd ${SCRIPT_DIR}/terraform/cluster
+echo "Create cluster started at $(date)"
 ./create-cluster.sh
+echo "Create cluster completed at $(date)"
 status_code=$?
 if [ ${status_code:-1} -eq 0 ]; then
 
@@ -86,17 +83,28 @@ if [ ${status_code:-1} -eq 0 ]; then
       fi
     fi
 
-    echo "OKE Cluster creation request submitted."
+
+    echo "Updating generated KUBECONFIG $(date)"
     cat generated/kubeconfig > ${KUBECONFIG}
+    echo "Generated KUBECONFIG contents:"
+    cat ${KUBECONFIG}
     # Adding a Service Account Authentication Token to kubeconfig
     # https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengaddingserviceaccttoken.htm
     ${SCRIPT_DIR}/update_oke_kubeconfig.sh
+    echo "KUBECONFIG contents after update:"
+    cat ${KUBECONFIG}
+
+    # Calico needs to be installed before any pods are created, so do it here before the nodes are ready
+    if [ $INSTALL_CALICO == true ] ; then
+        ${WORKSPACE}/ci/scripts/download_calico.sh ${CALICO_VERSION}
+        ${SCRIPT_DIR}/install_calico_oke.sh ${CALICO_VERSION}
+    fi
 
     # Right after oke cluster is provisioned, it takes a while before any node is added to the cluster
     # The next command will wait for node to come up before continue
-    echo "Waiting for nodes to be added to cluster..."
+    echo "Waiting for nodes to be added to cluster at $(date)..."
     timeout 15m bash -c 'until kubectl get nodes | grep NAME; do sleep 10; done'
-    echo "Waiting for nodes to transition to 'READY'..."
+    echo "Waiting for nodes to transition to 'READY' at $(date)..."
     kubectl wait --for=condition=ready nodes --timeout=5m --all
 else
     echo "OKE Cluster creation request failed!"

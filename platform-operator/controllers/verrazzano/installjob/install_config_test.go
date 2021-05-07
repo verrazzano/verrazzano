@@ -16,11 +16,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// TestXipIoInstallDefaults tests the creation of an xip.io install default configuration
+// TestNipIoInstallDefaults tests the creation of an xip.io install default configuration
 // GIVEN a verrazzano.install.verrazzano.io custom resource
 //  WHEN I call GetInstallConfig
-//  THEN the xip.io install configuration is created and verified
-func TestXipIoInstallDefaults(t *testing.T) {
+//  THEN the nip.io install configuration is created and verified
+func TestNipIoInstallDefaults(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{}
 	config, err := GetInstallConfig(&vz)
 	assert.NoError(t, err)

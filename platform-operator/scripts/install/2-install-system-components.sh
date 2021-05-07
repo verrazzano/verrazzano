@@ -18,32 +18,33 @@ VERRAZZANO_DEFAULT_SECRET_NAME="verrazzano-ca-certificate-secret"
 function install_nginx_ingress_controller()
 {
     local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/ingress-nginx
+    if ! is_chart_deployed ingress-controller ingress-nginx ${NGINX_INGRESS_CHART_DIR} ; then
+      # Create the namespace for nginx
+      if ! kubectl get namespace ingress-nginx ; then
+          kubectl create namespace ingress-nginx
+      fi
 
-    # Create the namespace for nginx
-    if ! kubectl get namespace ingress-nginx ; then
-        kubectl create namespace ingress-nginx
+      # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
+      # these should be in .ingress.verrazzano.nginxInstallArgs[]
+      local EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
+
+      if [ "$DNS_TYPE" == "oci" ]; then
+        EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set-string controller.service.annotations.external-dns\.alpha\.kubernetes\.io/ttl=60"
+        local dns_zone=$(get_config_value ".dns.oci.dnsZoneName")
+        EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.external-dns\.alpha\.kubernetes\.io/hostname=verrazzano-ingress.${NAME}.${dns_zone}"
+      fi
+
+      local ingress_type=$(get_config_value ".ingress.type")
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.type=${ingress_type}"
+
+      helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
+        --namespace ingress-nginx \
+        -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
+        ${EXTRA_NGINX_ARGUMENTS} \
+        --timeout 15m0s \
+        --wait \
+        || return $?
     fi
-
-    # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
-    # these should be in .ingress.verrazzano.nginxInstallArgs[]
-    local EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
-
-    if [ "$DNS_TYPE" == "oci" ]; then
-      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set-string controller.service.annotations.external-dns\.alpha\.kubernetes\.io/ttl=60"
-      local dns_zone=$(get_config_value ".dns.oci.dnsZoneName")
-      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.external-dns\.alpha\.kubernetes\.io/hostname=verrazzano-ingress.${NAME}.${dns_zone}"
-    fi
-
-    local ingress_type=$(get_config_value ".ingress.type")
-    EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.type=${ingress_type}"
-
-    helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
-      --namespace ingress-nginx \
-      -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
-      ${EXTRA_NGINX_ARGUMENTS} \
-      --timeout 15m0s \
-      --wait \
-      || return $?
 
     # Label the ingress-nginx namespace so that we can apply network policies
     log "Adding label needed by network policies to ingress-nginx namespace"
@@ -161,19 +162,20 @@ function install_cert_manager()
     setup_cert_manager_crd
     kubectl apply -f "$TMP_DIR/00-crds.yaml" --validate=false
 
-    local EXTRA_CERT_MANAGER_ARGUMENTS=""
-    if [ "$CERT_ISSUER_TYPE" == "ca" ]; then
-      EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
+    if ! is_chart_deployed cert-manager cert-manager ${CERT_MANAGER_CHART_DIR} ; then
+      local EXTRA_CERT_MANAGER_ARGUMENTS=""
+      if [ "$CERT_ISSUER_TYPE" == "ca" ]; then
+        EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
+      fi
+
+      helm upgrade cert-manager ${CERT_MANAGER_CHART_DIR} \
+          --install \
+          --namespace cert-manager \
+          -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
+          ${EXTRA_CERT_MANAGER_ARGUMENTS} \
+          --wait \
+          || return $?
     fi
-
-    helm upgrade cert-manager ${CERT_MANAGER_CHART_DIR} \
-        --install \
-        --namespace cert-manager \
-        -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
-        ${EXTRA_CERT_MANAGER_ARGUMENTS} \
-        --wait \
-        || return $?
-
     setup_cluster_issuer
 
     kubectl -n cert-manager rollout status -w deploy/cert-manager
@@ -194,20 +196,22 @@ function install_external_dns()
     kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n cert-manager
   fi
 
-  helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
-      --install \
-      --namespace cert-manager \
-      -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
-      --set domainFilters[0]=${DNS_SUFFIX} \
-      --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
-      --set txtOwnerId=v8o-local-${NAME} \
-      --set txtPrefix=_v8o-local-${NAME}_ \
-      --set extraVolumes[0].name=config \
-      --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
-      --set extraVolumeMounts[0].name=config \
-      --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
-      --wait \
-      || return $?
+  if ! is_chart_deployed external-dns cert-manager ${EXTERNAL_DNS_CHART_DIR} ; then
+    helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
+        --install \
+        --namespace cert-manager \
+        -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
+        --set domainFilters[0]=${DNS_SUFFIX} \
+        --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
+        --set txtOwnerId=v8o-local-${NAME} \
+        --set txtPrefix=_v8o-local-${NAME}_ \
+        --set extraVolumes[0].name=config \
+        --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
+        --set extraVolumeMounts[0].name=config \
+        --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
+        --wait \
+        || return $?
+    fi
 }
 
 function ensure_rancher_admin_user() {
@@ -238,6 +242,13 @@ function ensure_rancher_admin_user() {
 }
 
 function reset_rancher_admin_password() {
+  if kubectl get secret cattle-system -n rancher-admin-secret 2>&1 > /dev/null ; then
+    log "Rancher admin secret exists, skipping"
+    return 0
+  fi
+
+  ensure_rancher_admin_user || return $?
+
   log "Reset Rancher admin password and create secrets"
   local STDERROR_FILE="${TMP_DIR}/rancher_resetpwd.err"
   local max_retries=5
@@ -262,47 +273,59 @@ function reset_rancher_admin_password() {
     log "Retry Rancher admin password reset..."
   done
 
-  kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
+  update_secret_from_literal rancher-admin-secret cattle-system "$ADMIN_PW"
+}
+
+function create_cattle_system_namespace()
+{
+    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
+        kubectl create namespace cattle-system
+    fi
+
+    log "Adding label needed by Rancher network policies to cattle-system namespace"
+    kubectl label namespace cattle-system "verrazzano.io/namespace=cattle-system" --overwrite
 }
 
 function install_rancher()
 {
     local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
 
-    log "Create Rancher namespace (if required)"
-    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
-        kubectl create namespace cattle-system
+    # Create the rancher-operator-system namespace so we can create network policies
+    if ! kubectl get namespace rancher-operator-system > /dev/null 2>&1; then
+        kubectl create namespace rancher-operator-system
     fi
 
     local INGRESS_TLS_SOURCE=""
     local EXTRA_RANCHER_ARGUMENTS=""
     local RANCHER_PATCH_DATA=""
     local useAdditionalCAs=false
-    if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
-      INGRESS_TLS_SOURCE="letsEncrypt"
-      if [ "$(get_acme_environment)" != "production" ]; then
-        log "Using ACME staging, enable use of additional trusted CAs for Rancher"
-        useAdditionalCAs=true
+    if ! is_chart_deployed rancher cattle-system ${RANCHER_CHART_DIR} ; then
+      if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
+        INGRESS_TLS_SOURCE="letsEncrypt"
+        if [ "$(get_acme_environment)" != "production" ]; then
+          log "Using ACME staging, enable use of additional trusted CAs for Rancher"
+          useAdditionalCAs=true
+        fi
+        EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment) --set additionalTrustedCAs=${useAdditionalCAs}"
+        RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"cert-manager.io/issuer-kind\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
+      elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
+        INGRESS_TLS_SOURCE="secret"
+        RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/cluster-issuer\":\"verrazzano-cluster-issuer\"}}}"
+      else
+        fail "certificates issuerType $CERT_ISSUER_TYPE is not supported.";
       fi
-      EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment) --set additionalTrustedCAs=${useAdditionalCAs}"
-      RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
-    elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
-      INGRESS_TLS_SOURCE="rancher"
-      RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/issuer\":\"rancher\",\"cert-manager.io/issuer-kind\":\"Issuer\"}}}"
-    else
-      fail "certificates issuerType $CERT_ISSUER_TYPE is not supported.";
+
+      log "Install Rancher"
+      # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
+      helm upgrade rancher ${RANCHER_CHART_DIR} \
+        --install --namespace cattle-system \
+        -f $VZ_OVERRIDES_DIR/rancher-values.yaml \
+        --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
+        --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+        ${EXTRA_RANCHER_ARGUMENTS}
     fi
 
-    log "Install Rancher"
-    # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-    helm upgrade rancher ${RANCHER_CHART_DIR} \
-      --install --namespace cattle-system \
-      -f $VZ_OVERRIDES_DIR/rancher-values.yaml \
-      --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
-      --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
-      ${EXTRA_RANCHER_ARGUMENTS}
-
-    if [ "$useAdditionalCAs" == "true" ]; then
+    if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 > /dev/null ; then
       log "Using ACME staging, create staging certs secret for Rancher"
       local acme_staging_certs=${TMP_DIR}/ca-additional.pem
       echo -n "" > ${acme_staging_certs}
@@ -340,7 +363,6 @@ function install_rancher()
     log "Rollout Rancher"
     kubectl -n cattle-system rollout status -w deploy/rancher || return $?
 
-    ensure_rancher_admin_user || return $?
     reset_rancher_admin_password || return $?
 }
 
@@ -444,9 +466,12 @@ action "Installing cert manager" install_cert_manager || exit 1
 if [ "$DNS_TYPE" == "oci" ]; then
   action "Installing external DNS" install_external_dns || exit 1
 fi
+
+# Always create the cattle-system namespace so we can create network policies
+action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1
+
 if [ $(is_rancher_enabled) == "true" ]; then
   action "Installing Rancher" install_rancher || exit 1
   action "Setting Rancher Server URL" set_rancher_server_url || true
   action "Patching Rancher Agents" patch_rancher_agents || true
 fi
-

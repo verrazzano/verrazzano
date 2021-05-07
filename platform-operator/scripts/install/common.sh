@@ -188,6 +188,75 @@ function call_curl {
   return 1
 }
 
+# Common function to create/update a generic secret from a literal string if it doesn't already exist
+# $1 the secret name
+# $2 the namespace for the secret
+# $3 the password secret
+function update_secret_from_literal() {
+  local secret_name=$1
+  local ns=$2
+  local password_secret=$3
+
+  kubectl apply -f <(echo "
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: ${secret_name}
+  namespace: ${ns}
+data:
+  password: $(echo -n "${password_secret}"|base64)
+")
+}
+
+# Get the current state of a helm chart
+# $1 chart name
+# $2 namespace
+# $3 chart location
+function get_deployment_status() {
+  echo -n $(helm status $1 -n $2 -o json 2>/dev/null | jq -r .info.status || true)
+}
+
+# Uninstalls a chart if it is stuck in "failed" or "unknown" state
+# $1 chart name
+# $2 namespace
+# $3 chart location
+function reset_chart(){
+  local ns=$2
+  local chartName=$1
+  local chartLocation=${3:-""}
+  # status values: unknown, deployed, uninstalled, superseded, failed, uninstalling, pending-install, pending-upgrade or pending-rollback
+  local deployment_status=$(get_deployment_status ${chartName} ${ns})
+  log "Deployment status for ${ns}/${chartName}: ${deployment_status}"
+  if [ "${deployment_status}" != "deployed" ]; then
+      log "Resetting chart state for ${ns}/${chartName} if necessary"
+      helm template ${chartName} -n ${ns} ${chartLocation}  |  kubectl delete -f - 2>&1 > /dev/null || true
+      helm uninstall -n ${ns} ${chartName} 2>&1 > /dev/null
+      return $?
+  fi
+  log "Chart ${ns}/${chartName} at ${chartLocation} status: ${deployment_status}"
+  return 0
+}
+
+# Returns "true" if the requested chart/ns is deployed, "false" otherwise
+# $1 chart name
+# $2 namespace
+function is_chart_deployed(){
+  local ns=$2
+  local chartName=$1
+  local chartLocation=${3:-""}
+
+  # Reset the chart state in case it's in a stuck/failed state
+  reset_chart ${chartName} ${ns} ${chartLocation} || return $?
+
+  # status values: unknown, deployed, uninstalled, superseded, failed, uninstalling, pending-install, pending-upgrade or pending-rollback
+  local deployment_status=$(get_deployment_status ${chartName} ${ns})
+  if [ "${deployment_status}" == "deployed" ]; then
+    log "Chart ${ns}/${chartName} in ${chartLocation} is already deployed"
+    return 0
+  fi
+  return 1
+}
 
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
 
