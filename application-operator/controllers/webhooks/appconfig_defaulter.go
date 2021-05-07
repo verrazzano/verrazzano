@@ -11,6 +11,7 @@ import (
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	v1beta12 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -25,10 +26,7 @@ import (
 var log = ctrl.Log.WithName("webhooks.appconfig-defaulter")
 
 // AppConfigDefaulterPath specifies the path of AppConfigDefaulter
-const (
-	AppConfigDefaulterPath = "/appconfig-defaulter"
-	istioSystemNamespace   = "istio-system"
-)
+const AppConfigDefaulterPath = "/appconfig-defaulter"
 
 // +kubebuilder:webhook:verbs=create;update,path=/appconfig-defaulter,mutating=true,failurePolicy=fail,groups=core.oam.dev,resources=ApplicationConfigurations,versions=v1alpha2,name=appconfig-defaulter.kb.io
 
@@ -127,7 +125,7 @@ func (a *AppConfigWebhook) cleanupAppConfig(appConfig *oamv1.ApplicationConfigur
 // cleanupCert cleans up the generated certificate for the given app config
 func (a *AppConfigWebhook) cleanupCert(appConfig *oamv1.ApplicationConfiguration) (err error) {
 	gatewayCertName := fmt.Sprintf("%s-%s-cert", appConfig.Namespace, appConfig.Name)
-	namespacedName := types.NamespacedName{Name: gatewayCertName, Namespace: istioSystemNamespace}
+	namespacedName := types.NamespacedName{Name: gatewayCertName, Namespace: constants.IstioSystemNamespace}
 	var cert *certapiv1alpha2.Certificate
 	cert, err = fetchCert(context.TODO(), a.Client, namespacedName)
 	if err != nil {
@@ -142,7 +140,7 @@ func (a *AppConfigWebhook) cleanupCert(appConfig *oamv1.ApplicationConfiguration
 // cleanupSecret cleans up the generated secret for the given app config
 func (a *AppConfigWebhook) cleanupSecret(appConfig *oamv1.ApplicationConfiguration) (err error) {
 	gatewaySecretName := fmt.Sprintf("%s-%s-cert-secret", appConfig.Namespace, appConfig.Name)
-	namespacedName := types.NamespacedName{Name: gatewaySecretName, Namespace: istioSystemNamespace}
+	namespacedName := types.NamespacedName{Name: gatewaySecretName, Namespace: constants.IstioSystemNamespace}
 	var secret *corev1.Secret
 	secret, err = fetchSecret(context.TODO(), a.Client, namespacedName)
 	if err != nil {
