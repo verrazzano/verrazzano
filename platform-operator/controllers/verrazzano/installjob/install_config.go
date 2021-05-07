@@ -246,7 +246,7 @@ func getDNSConfig(vz *installv1alpha1.Verrazzano) DNS {
 	return DNS{
 		Type: DNSTypeWildcard,
 		Wildcard: &WildcardDNS{
-			Domain: "xip.io",
+			Domain: "nip.io",
 		},
 	}
 }

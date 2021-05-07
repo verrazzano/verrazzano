@@ -155,7 +155,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 				gomega.Expect(vzComponentPresent(name, "verrazzano-system")).To(gomega.Equal(expected))
 			},
 			ginkgoExt.Entry("includes prometheus", "vmi-system-prometheus", true),
-			ginkgoExt.Entry("includes prometheus-gw", "vmi-system-prometheus-gw", true),
+			ginkgoExt.Entry("includes prometheus-gw", "vmi-system-prometheus-gw", false),
 			ginkgoExt.Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
 			ginkgoExt.Entry("includes es-data", "vmi-system-es-data", isProdProfile),
 			ginkgoExt.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
@@ -171,26 +171,26 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 						// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
 						// cluster is registered)
 						if !isManagedClusterProfile {
-							gomega.Eventually(pkg.PodsRunning("cattle-system", expectedPodsCattleSystem), waitTimeout, pollingInterval).
+							gomega.Eventually(func() bool { return pkg.PodsRunning("cattle-system", expectedPodsCattleSystem) }, waitTimeout, pollingInterval).
 								Should(gomega.BeTrue())
 						}
 					},
 					func() {
 						if !isManagedClusterProfile {
-							gomega.Eventually(pkg.PodsRunning("keycloak", expectedPodsKeycloak), waitTimeout, pollingInterval).
+							gomega.Eventually(func() bool { return pkg.PodsRunning("keycloak", expectedPodsKeycloak) }, waitTimeout, pollingInterval).
 								Should(gomega.BeTrue())
 						}
 					},
 					func() {
-						gomega.Eventually(pkg.PodsRunning("cert-manager", expectedPodsCertManager), waitTimeout, pollingInterval).
+						gomega.Eventually(func() bool { return pkg.PodsRunning("cert-manager", expectedPodsCertManager) }, waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 					func() {
-						gomega.Eventually(pkg.PodsRunning("ingress-nginx", expectedPodsIngressNginx), waitTimeout, pollingInterval).
+						gomega.Eventually(func() bool { return pkg.PodsRunning("ingress-nginx", expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 					func() {
-						gomega.Eventually(pkg.PodsRunning("verrazzano-system", expectedNonVMIPodsVerrazzanoSystem), waitTimeout, pollingInterval).
+						gomega.Eventually(func() bool { return pkg.PodsRunning("verrazzano-system", expectedNonVMIPodsVerrazzanoSystem) }, waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 				)

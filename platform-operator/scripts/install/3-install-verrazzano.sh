@@ -125,22 +125,23 @@ function install_verrazzano()
     EXTRA_V8O_ARGUMENTS="${EXTRA_V8O_ARGUMENTS} --set dns.wildcard.domain=$(get_config_value ".dns.wildcard.domain")"
   fi
 
-  helm \
-      upgrade --install verrazzano \
-      ${VZ_CHARTS_DIR}/verrazzano \
-      --namespace ${VERRAZZANO_NS} \
-      --set image.pullPolicy=IfNotPresent \
-      --set config.envName=${ENV_NAME} \
-      --set config.dnsSuffix=${DNS_SUFFIX} \
-      --set config.enableMonitoringStorage=true \
-      --set kubernetes.service.endpoint.ip=${ENDPOINT_ARRAY[0]} \
-      --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
-      --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
-      --set keycloak.enabled=$(is_keycloak_enabled) \
-      --set rancher.enabled=$(is_rancher_enabled) \
-      ${PROFILE_VALUES_OVERRIDE} \
-      ${EXTRA_V8O_ARGUMENTS} || return $?
-
+  if ! is_chart_deployed verrazzano ${VERRAZZANO_NS} ${VZ_CHARTS_DIR}/verrazzano ; then
+    helm \
+        upgrade --install verrazzano \
+        ${VZ_CHARTS_DIR}/verrazzano \
+        --namespace ${VERRAZZANO_NS} \
+        --set image.pullPolicy=IfNotPresent \
+        --set config.envName=${ENV_NAME} \
+        --set config.dnsSuffix=${DNS_SUFFIX} \
+        --set config.enableMonitoringStorage=true \
+        --set kubernetes.service.endpoint.ip=${ENDPOINT_ARRAY[0]} \
+        --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
+        --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
+        --set keycloak.enabled=$(is_keycloak_enabled) \
+        --set rancher.enabled=$(is_rancher_enabled) \
+        ${PROFILE_VALUES_OVERRIDE} \
+        ${EXTRA_V8O_ARGUMENTS} || return $?
+  fi
   log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
   kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
 
@@ -160,7 +161,9 @@ function install_verrazzano()
 }
 
 function install_oam_operator {
-
+  if is_chart_deployed oam-kubernetes-runtime ${VERRAZZANO_NS} ${CHARTS_DIR}/oam-kubernetes-runtime ; then
+    return 0
+  fi
   log "Install OAM Kubernetes operator"
   helm upgrade --install --wait oam-kubernetes-runtime \
     ${CHARTS_DIR}/oam-kubernetes-runtime \
@@ -174,6 +177,9 @@ function install_oam_operator {
 }
 
 function install_application_operator {
+  if is_chart_deployed verrazzano-application-operator ${VERRAZZANO_NS} $VZ_CHARTS_DIR/verrazzano-application-operator ; then
+    return 0
+  fi
 
   log "Install Verrazzano Kubernetes application operator"
   helm upgrade --install --wait verrazzano-application-operator \
@@ -189,11 +195,17 @@ function install_application_operator {
 
 function install_weblogic_operator {
 
-  log "Create WebLogic Kubernetes operator service account"
-  kubectl create serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa
-  if [ $? -ne 0 ]; then
-    error "Failed to create WebLogic Kubernetes operator service account."
-    return 1
+  if ! kubectl get serviceaccount weblogic-operator-sa -n ${VERRAZZANO_NS} > /dev/null 2>&1; then
+    log "Create WebLogic Kubernetes operator service account"
+    kubectl create serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa
+    if [ $? -ne 0 ]; then
+      error "Failed to create WebLogic Kubernetes operator service account."
+      return 1
+    fi
+  fi
+
+  if is_chart_deployed weblogic-operator ${VERRAZZANO_NS} ${CHARTS_DIR}/weblogic-operator ; then
+    return 0
   fi
 
   log "Install WebLogic Kubernetes operator"
@@ -213,6 +225,9 @@ function install_weblogic_operator {
 }
 
 function install_coherence_operator {
+  if is_chart_deployed coherence-operator ${VERRAZZANO_NS} ${CHARTS_DIR}/coherence-operator ; then
+    return 0
+  fi
 
   log "Install the Coherence Kubernetes operator"
   helm upgrade --install --wait coherence-operator \
@@ -238,11 +253,6 @@ kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_N
 
 log "Adding label for enabling istio sidecar injection by default to ${VERRAZZANO_NS} namespace"
 kubectl label namespace ${VERRAZZANO_NS} "istio-injection=enabled" --overwrite
-
-# TEMP
-kubectl create secret docker-registry verrazzano-container-registry --docker-server=ghcr.io --docker-username=jmaron99 --docker-password=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 -n verrazzano-system
-kubectl create secret docker-registry verrazzano-container-registry --docker-server=ghcr.io --docker-username=jmaron99 --docker-password=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
-# END TEMP
 
 if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1

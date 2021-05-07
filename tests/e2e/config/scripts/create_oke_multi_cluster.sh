@@ -7,6 +7,7 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 CLUSTER_COUNT=${1:-1}
 KUBECONFIG_DIR=$2
+INSTALL_CALICO=${3:-false}
 REQUIRED_VNC_COUNT=0
 REQUIRED_LB_COUNT=0
 CLUSTER_NAME_PREFIX="oke"
@@ -99,6 +100,10 @@ if [ ${status_code:-1} -eq 0 ]; then
       timeout 15m bash -c 'until kubectl get nodes | grep NAME; do sleep 10; done'
       echo "Waiting for nodes to transition to 'READY'..."
       kubectl wait --for=condition=ready nodes --timeout=5m --all
+
+      if [ $INSTALL_CALICO == true ] ; then
+        ${SCRIPT_DIR}/install_calico_oke.sh
+      fi
     done
 else
     echo "OKE Cluster creation request failed!"

@@ -129,9 +129,6 @@ spec:
     - ports:
         - port: 9443
           protocol: TCP
-      from:
-        - ipBlock:
-            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
 ---
 # Network policy for Verrazzano monitoring operator
 # Ingress: deny all

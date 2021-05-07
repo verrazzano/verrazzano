@@ -16,7 +16,7 @@ spec:
           name: todo-domain
           namespace: console-ingress
         spec:
-          domainUID: tododomain
+          domainUID: cidomain
           domainHome: /u01/domains/tododomain
           image: container-registry.oracle.com/verrazzano/example-todo:0.8.0
           imagePullSecrets:

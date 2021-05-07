@@ -53,20 +53,6 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 		},
 		helmComponent{
-			releaseName:             "grafana",
-			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/istio-telemetry/grafana"),
-			chartNamespace:          "istio-system",
-			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-		},
-		helmComponent{
-			releaseName:             "prometheus",
-			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/istio-telemetry/prometheus"),
-			chartNamespace:          "istio-system",
-			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-		},
-		helmComponent{
 			releaseName:             "ingress-controller",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"),
 			chartNamespace:          "ingress-nginx",

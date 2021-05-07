@@ -66,3 +66,54 @@ func Test_removeStringFromStringSlice(t *testing.T) {
 	assert.Equal("test-value-2", slice[1])
 	assert.Len(output, 2)
 }
+
+// TestUnorderedEqual tests the UnorderedEqual function
+func TestUnorderedEqual(t *testing.T) {
+	assert := asserts.New(t)
+	var mapBool map[string]bool
+	var arrayStr []string
+
+	// GIVEN a map and array with the same elements and order
+	// WHEN compared
+	// THEN the UnorderedEqual returns true
+	arrayStr = []string{"test-value-1", "test-value-2", "test-value-3"}
+	mapBool = make(map[string]bool)
+	mapBool["test-value-1"] = true
+	mapBool["test-value-2"] = true
+	mapBool["test-value-3"] = true
+	success := UnorderedEqual(mapBool, arrayStr)
+	assert.Equal(true, success)
+
+	// GIVEN a map and array with the same elements and different order
+	// WHEN compared
+	// THEN the UnorderedEqual returns true
+	arrayStr = []string{"test-value-2", "test-value-3", "test-value-1"}
+	mapBool = make(map[string]bool)
+	mapBool["test-value-1"] = true
+	mapBool["test-value-2"] = true
+	mapBool["test-value-3"] = true
+	success = UnorderedEqual(mapBool, arrayStr)
+	assert.Equal(true, success)
+
+	// GIVEN a map and array with the different number of elements
+	// WHEN compared
+	// THEN the UnorderedEqual returns false
+	arrayStr = []string{"test-value-2", "test-value-3"}
+	mapBool = make(map[string]bool)
+	mapBool["test-value-1"] = true
+	mapBool["test-value-2"] = true
+	mapBool["test-value-3"] = true
+	success = UnorderedEqual(mapBool, arrayStr)
+	assert.Equal(false, success)
+
+	// GIVEN a map and array with the same number of elements but different elements
+	// WHEN compared
+	// THEN the UnorderedEqual returns false
+	arrayStr = []string{"test-value-2", "test-value-3", "test-value-4"}
+	mapBool = make(map[string]bool)
+	mapBool["test-value-1"] = true
+	mapBool["test-value-5"] = true
+	mapBool["test-value-3"] = true
+	success = UnorderedEqual(mapBool, arrayStr)
+	assert.Equal(false, success)
+}

@@ -17,9 +17,9 @@ def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
 def acmeEnvironments = [ "staging", "production" ]
 def certIssuers = [ "self-signed", "acme" ]
 def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : "VM.Standard2.8"
-def availableRegions = [  "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
+def availableRegions = [  "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "uk-london-1", "us-phoenix-1" ]
+                          "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
 Collections.shuffle(availableRegions)
 def keepOKEClusterOnFailure = "false"
 
@@ -47,7 +47,7 @@ pipeline {
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
-                choices: [ "v1.18.10", "v1.17.13", "v1.16.15" ])
+                choices: [ "v1.19.7", "v1.18.10", "v1.17.13" ])
         choice (description: 'Certificate Issuer', name: 'CERT_ISSUER',
                 choices: certIssuers)
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
@@ -60,6 +60,9 @@ pipeline {
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
+        booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
+        choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
+                choices: acmeEnvironments)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
     }
 
@@ -127,7 +130,7 @@ pipeline {
         INSTALL_CONFIG_FILE_XIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
         INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
 
-        OCI_DNS_ZONE_NAME="z${zoneId}.v8o.oracledx.com"
+        OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         CERT_ISSUER="${params.CERT_ISSUER}"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
@@ -136,6 +139,8 @@ pipeline {
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+
+        CALICO_VERSION="3.18.1"
     }
 
     stages {
@@ -200,8 +205,8 @@ pipeline {
                             export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
                             export TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP}
                             export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
-                            # call create_oke_cluster with cluster access private (-p)
-                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh -p
+                            # call create_oke_cluster with cluster access private
+                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${params.CREATE_CLUSTER_USE_CALICO} ${env.CALICO_VERSION}
                         """
                     }
                 }

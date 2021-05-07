@@ -202,10 +202,6 @@ var _ = ginkgo.Describe("VMI", func() {
 			assertOidcIngressByName("vmi-system-prometheus")
 		})
 
-		ginkgo.It("Prometheus push gateway should be accessible", func() {
-			assertURLByIngressName("vmi-system-prometheus-gw")
-		})
-
 		ginkgo.It("Grafana endpoint should be accessible", func() {
 			gomega.Expect(ingressURLs).To(gomega.HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
 			assertOidcIngressByName("vmi-system-grafana")
@@ -235,10 +231,6 @@ var _ = ginkgo.Describe("VMI", func() {
 			)
 		})
 	}
-
-	ginkgo.It("Prometheus push gateway should be accessible", func() {
-		assertURLByIngressName("vmi-system-prometheus-gw")
-	})
 
 	ginkgo.It("Verify the instance info endpoint URLs", func() {
 		if !isManagedClusterProfile {
@@ -289,14 +281,14 @@ func assertURLByIngressName(key string) {
 }
 
 func assertIngressURL(url string) {
-	assertUnAuthorized := assertURLAccessibleAndUnauthorized(url)
-	assertAuthorized := assertURLAccessibleAndAuthorized(url)
+	assertUnAuthorized := assertURLAccessibleAndUnauthorized
+	assertAuthorized := assertURLAccessibleAndAuthorized
 	pkg.Concurrently(
 		func() {
-			gomega.Eventually(assertUnAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertUnAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		func() {
-			gomega.Eventually(assertAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 	)
 }
@@ -356,18 +348,18 @@ func assertOidcIngressByName(key string) {
 }
 
 func assertOidcIngress(url string) {
-	assertUnAuthorized := assertOauthURLAccessibleAndUnauthorized(url)
-	assertBasicAuth := assertURLAccessibleAndAuthorized(url)
-	assertBearerAuth := assertBearerAuthorized(url)
+	assertUnAuthorized := assertOauthURLAccessibleAndUnauthorized
+	assertBasicAuth := assertURLAccessibleAndAuthorized
+	assertBearerAuth := assertBearerAuthorized
 	pkg.Concurrently(
 		func() {
-			gomega.Eventually(assertUnAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertUnAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		func() {
-			gomega.Eventually(assertBasicAuth, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertBasicAuth(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		func() {
-			gomega.Eventually(assertBearerAuth, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertBearerAuth(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 	)
 }
