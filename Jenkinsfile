@@ -29,7 +29,7 @@ pipeline {
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
-                choices: [ "nip.io", "xip.io", "sslip.io"])
+                choices: [ "nip.io", "sslip.io"])
     }
 
     environment {

@@ -35,10 +35,10 @@ $ kubectl apply -f build/deploy/operator.yaml
 # Verify verrazzano-platform-operator pod is running
 $ kubectl get pods -n verrazzano-install
 
-# Initiate a Verrazzano install for xip.io
+# Initiate a Verrazzano install for nip.io
 $ kubectl apply -f config/samples/install-default.yaml
 
-# NOTE:  If you chose to deploy a cluster that makes use of OCI DNS perform the following instead of the xip.io
+# NOTE:  If you chose to deploy a cluster that makes use of OCI DNS perform the following instead of the nip.io
 # cluster deployment command:
 
 # Generate a secret named "oci" based on the OCI configuration profile you wish to leverage.  You
