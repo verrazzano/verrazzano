@@ -139,8 +139,6 @@ pipeline {
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
-
-        CALICO_VERSION="3.18.1"
     }
 
     stages {
@@ -206,7 +204,7 @@ pipeline {
                             export TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP}
                             export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
                             # call create_oke_cluster with cluster access private
-                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${params.CREATE_CLUSTER_USE_CALICO} ${env.CALICO_VERSION}
+                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${params.CREATE_CLUSTER_USE_CALICO}
                         """
                     }
                 }

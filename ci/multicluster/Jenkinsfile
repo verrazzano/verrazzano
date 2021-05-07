@@ -139,8 +139,6 @@ pipeline {
 
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
-
-        CALICO_VERSION="3.18.1"
     }
 
     stages {
@@ -582,7 +580,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 if [ ${params.CREATE_CLUSTER_USE_CALICO} == true ]; then
                     echo "Install Calico"
                     cd ${GO_REPO_PATH}/verrazzano
-                    ./ci/scripts/install_calico.sh "${CLUSTER_NAME_PREFIX}-$count" "${CALICO_VERSION}"
+                    ./ci/scripts/install_calico.sh "${CLUSTER_NAME_PREFIX}-$count"
                 fi
                 kubectl wait --for=condition=ready nodes/${CLUSTER_NAME_PREFIX}-$count-control-plane --timeout=5m
                 kubectl wait --for=condition=ready pods/kube-controller-manager-${CLUSTER_NAME_PREFIX}-$count-control-plane -n kube-system --timeout=5m
