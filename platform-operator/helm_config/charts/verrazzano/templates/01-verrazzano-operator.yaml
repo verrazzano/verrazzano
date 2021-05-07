@@ -34,8 +34,6 @@ spec:
           env:
             - name: USE_SYSTEM_VMI
               value: {{ .Values.appBinding.useSystemVMI | quote }}
-            - name: PROMETHEUS_PUSHER_IMAGE
-              value: {{ .Values.verrazzanoOperator.prometheusPusherImage }}
             - name: NODE_EXPORTER_IMAGE
               value: {{ .Values.verrazzanoOperator.nodeExporterImage }}
             - name: ES_ENABLED
