@@ -648,9 +648,8 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 	config := GetKubeConfig()
 
 	wt := config.WrapTransport // Config might already have a transport wrapper
-	var token []byte
 	if isServiceAccount {
-		token = GetTokenForServiceAccount(saOrUserOCID, saNamespace)
+		token := GetTokenForServiceAccount(saOrUserOCID, saNamespace)
 		clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 			&clientcmd.ClientConfigLoadingRules{ExplicitPath: GetKubeConfigPathFromEnv()},
 			&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}})

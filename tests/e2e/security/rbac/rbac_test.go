@@ -23,7 +23,7 @@ var (
 )
 
 const (
-	verrazzanoSystemNS = "default"
+	verrazzanoSystemNS = "verrazzano-system"
 	rbacTestNamespace  = "rbactest"
 	v80ProjectAdmin    = "ocid1.user.oc1..aaaaaaaallodotxfvg0g1antsyq3gonyyhblya66kiqjnp2kogonykvjwi19"
 	v80ProjectMonitor  = "ocid1.user.oc1..aaaaaaaallodotxfvg0yank33sq3gonyghblya66kiqjnp2kogonykvjwi19"
