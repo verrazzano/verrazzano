@@ -47,7 +47,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "v1.19.7", "v1.18.10", "v1.17.13" ])
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
-                      defaultValue: true,
+                      defaultValue: false,
                       description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)')
     }
 
@@ -430,12 +430,12 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
         }
         failure {
             script {
-                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
+                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
                 mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
                 subject: "Verrazzano: ${env.JOB_NAME} - Failed",
                 body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
