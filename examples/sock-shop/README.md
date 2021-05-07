@@ -57,7 +57,7 @@ Follow these steps to test the endpoints:
    ```
    $ HOST=$(kubectl get gateway -n sockshop -o jsonpath={.items[0].spec.servers[0].hosts[0]})
    $ echo $HOST
-   sockshop-appconf.sockshop.11.22.33.44.xip.io
+   sockshop-appconf.sockshop.11.22.33.44.nip.io
    ```
 
 1. Get the `EXTERNAL_IP` address of the `istio-ingressgateway` service.
@@ -85,7 +85,7 @@ Follow these steps to test the endpoints:
      # Get cart items
      $ curl -i -k https://${HOST}/carts/{username}/items --resolve ${HOST}:443:${ADDRESS}
      ```
-     If you are using `xip.io`, then you do not need to include `--resolve`.
+     If you are using `nip.io`, then you do not need to include `--resolve`.
 
    * **Local testing with a browser**
 
@@ -98,7 +98,7 @@ Follow these steps to test the endpoints:
      ```
      Then, you can access the application in a browser at `https://sockshop.example.com/catalogue`.
 
-     If you are using `xip.io`, then you can access the application in a browser using the `HOST` variable (for example, `https://${HOST}/catalogue`).  If you are going through a proxy, you may need to add `*.xip.io` to the `NO_PROXY` list.
+     If you are using `nip.io`, then you can access the application in a browser using the `HOST` variable (for example, `https://${HOST}/catalogue`).  If you are going through a proxy, you may need to add `*.nip.io` to the `NO_PROXY` list.
 
    * **Using your own DNS name**
 
@@ -145,13 +145,12 @@ the deployed Sock Shop application.  Accessing them may require the following:
     ```
     $ kubectl get ing -n verrazzano-system
     NAME                         CLASS    HOSTS                                                    ADDRESS          PORTS     AGE
-    verrazzano-ingress           <none>   verrazzano.default.140.238.94.217.xip.io                 140.238.94.217   80, 443   7d2h
-    vmi-system-es-ingest         <none>   elasticsearch.vmi.system.default.140.238.94.217.xip.io   140.238.94.217   80, 443   7d2h
-    vmi-system-grafana           <none>   grafana.vmi.system.default.140.238.94.217.xip.io         140.238.94.217   80, 443   7d2h
-    vmi-system-kibana            <none>   kibana.vmi.system.default.140.238.94.217.xip.io          140.238.94.217   80, 443   7d2h
-    vmi-system-prometheus        <none>   prometheus.vmi.system.default.140.238.94.217.xip.io      140.238.94.217   80, 443   7d2h
-    vmi-system-prometheus-gw     <none>   prometheus-gw.vmi.system.default.140.238.94.217.xip.io   140.238.94.217   80, 443   7d2h
-    ```  
+    verrazzano-ingress           <none>   verrazzano.default.140.238.94.217.nip.io                 140.238.94.217   80, 443   7d2h
+    vmi-system-es-ingest         <none>   elasticsearch.vmi.system.default.140.238.94.217.nip.io   140.238.94.217   80, 443   7d2h
+    vmi-system-grafana           <none>   grafana.vmi.system.default.140.238.94.217.nip.io         140.238.94.217   80, 443   7d2h
+    vmi-system-kibana            <none>   kibana.vmi.system.default.140.238.94.217.nip.io          140.238.94.217   80, 443   7d2h
+    vmi-system-prometheus        <none>   prometheus.vmi.system.default.140.238.94.217.nip.io      140.238.94.217   80, 443   7d2h
+     ```  
 
     Using the ingress host information, some of the endpoints available are:
 

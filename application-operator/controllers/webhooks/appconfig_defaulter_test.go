@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
-	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -215,7 +214,7 @@ func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryR
 	}
 	webhook.InjectDecoder(decoder)
 	req := admission.Request{
-		AdmissionRequest: admissionv1beta1.AdmissionRequest{Operation: v1beta1.Delete},
+		AdmissionRequest: admissionv1beta1.AdmissionRequest{Operation: admissionv1beta1.Delete},
 	}
 	req.OldObject = runtime.RawExtension{Raw: readYaml2Json(t, "hello-conf.yaml")}
 	if dryRun {

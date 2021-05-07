@@ -5,7 +5,8 @@
 #
 
 CALICO_DIR=$(cd $(dirname "$0"); pwd -P)
-CALICO_VERSION=${1:-"3.18.1"}
+
+CALICO_VERSION=$(grep 'calico-version=' ${SCRIPT_DIR}/../../.third-party-test-versions | sed 's/calico-version=//g')
 
 download_calico() {
   mkdir -p ${CALICO_DIR}/calico/${CALICO_VERSION}

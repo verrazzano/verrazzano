@@ -400,7 +400,7 @@ const OciConfigSecretFile = "oci.yaml"
 
 // Wildcard DNS type
 type Wildcard struct {
-	// DNS wildcard domain (xip.io, nip.io, etc.)
+	// DNS wildcard domain (nip.io, sslip.io, etc.)
 	Domain string `json:"domain"`
 }
 

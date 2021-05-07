@@ -131,7 +131,7 @@ spec:
                         description: DNS type of wildcard.  This is the default.
                         properties:
                           domain:
-                            description: DNS wildcard domain (xip.io, nip.io, etc.)
+                            description: DNS wildcard domain (nip.io, sslip.io, etc.)
                             type: string
                         required:
                         - domain

@@ -5,10 +5,16 @@
 #
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-CLUSTER_NAME=${1:-"kind"}
-CALICO_VERSION=${2:-"3.18.1"}
 
-$SCRIPT_DIR/download_calico.sh ${CALICO_VERSION}
+if [ -z $1 ]; then
+    echo "Cluster name is required to be supplied"
+    exit 1
+fi
+CLUSTER_NAME=$1
+
+CALICO_VERSION=$(grep 'calico-version=' ${SCRIPT_DIR}/../../.third-party-test-versions | sed 's/calico-version=//g')
+
+$SCRIPT_DIR/download_calico.sh
 
 echo "Load the docker image from Calico archives at ${CALICO_HOME}/${CALICO_VERSION}/images."
 cd ${CALICO_HOME}/${CALICO_VERSION}/images

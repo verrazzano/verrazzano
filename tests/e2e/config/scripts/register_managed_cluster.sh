@@ -61,15 +61,12 @@ spec:
   prometheusSecret: prometheus-${MANAGED_CLUSTER_NAME}
 EOF
 
-# wait for manifest to be created
-retries=0
-until kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get secret | grep verrazzano-cluster-${MANAGED_CLUSTER_NAME}-manifest; do
-  retries=$(($retries+1))
-  sleep 1
-  if [ "$retries" -ge 10 ] ; then
-    break
-  fi
-done
+# wait for VMC to be ready - that means the manifest has been created
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=15s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
+if [ $? -ne 0 ]; then
+  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 15 seconds. Registration failed."
+  exit 1
+fi
 
 # export manifest on admin
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 --decode > register-${MANAGED_CLUSTER_NAME}.yaml
@@ -77,5 +74,10 @@ kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED
 # obtain permission-constrained version of kubeconfig to be used by managed cluster
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-agent -n verrazzano-mc -o jsonpath={.data.admin\-kubeconfig} | base64 --decode > ${MANAGED_CLUSTER_DIR}/managed_kube_config
 
+echo "----------BEGIN register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
+cat register-${MANAGED_CLUSTER_NAME}.yaml
+echo "----------END register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
+
+echo "Applying register-${MANAGED_CLUSTER_NAME}.yaml"
 # register using the manifest on managed
 kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register-${MANAGED_CLUSTER_NAME}.yaml

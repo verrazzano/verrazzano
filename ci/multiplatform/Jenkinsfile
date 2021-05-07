@@ -98,7 +98,7 @@ pipeline {
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_XIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
         OCI_DNS_ZONE_SUFFIX=credentials('oci-dns-zone')
         OCI_DNS_ZONE_NAME="z${zoneId}." + "${OCI_DNS_ZONE_SUFFIX}"
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
@@ -283,7 +283,7 @@ pipeline {
                                             sh """
                                                 export PATH=${HOME}/go/bin:${PATH}
                                                 cd ${GO_REPO_PATH}/verrazzano
-                                                ./tests/e2e/config/scripts/process_xipio_install_yaml.sh $INSTALL_CONFIG_FILE_XIPIO
+                                                ./tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
                                             """
                                         }
                                     }
@@ -313,7 +313,7 @@ pipeline {
                                         echo "Installing Verrazzano on ${TEST_ENV}"
                                         # apply config to create cluster
                                         if [ "${TEST_ENV}" == "magicdns_oke" ]; then
-                                        kubectl apply -f ${INSTALL_CONFIG_FILE_XIPIO}
+                                        kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
                                         elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
                                         kubectl apply -f ${INSTALL_CONFIG_FILE_OCIDNS}
                                         elif [ "${TEST_ENV}" == "kind" ]; then

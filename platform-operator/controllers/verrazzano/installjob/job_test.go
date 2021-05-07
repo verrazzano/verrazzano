@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestNewJob tests the creation of a job with xip.io DNS specified
+// TestNewJob tests the creation of a job with nip.io DNS specified
 // GIVEN a request to create a job
-// WHEN xip.io DNS has been specified
-// THEN a job is created with the appropriate items to support an xip.io DNS based installation in INSTALL mode
+// WHEN nip.io DNS has been specified
+// THEN a job is created with the appropriate items to support an nip.io DNS based installation in INSTALL mode
 func TestNewJob(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test-job"

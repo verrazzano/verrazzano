@@ -667,7 +667,7 @@ func buildDomain(c client.Client, vz *installv1alpha1.Verrazzano) (string, error
 	return domain, nil
 }
 
-// buildDomainSuffix Get the configured domain suffix, or compute the xip.io domain
+// buildDomainSuffix Get the configured domain suffix, or compute the nip.io domain
 func buildDomainSuffix(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
 	dns := vz.Spec.Components.DNS
 	if dns != nil && dns.OCI != nil {
@@ -685,8 +685,8 @@ func buildDomainSuffix(c client.Client, vz *installv1alpha1.Verrazzano) (string,
 		return ipAddress + dns.Wildcard.Domain, nil
 	}
 
-	// Default to xip.io
-	return ipAddress + ".xip.io", nil
+	// Default to nip.io
+	return ipAddress + ".nip.io", nil
 }
 
 // getIngressIP get the Ingress IP, used for the wildcard case (magic DNS)
