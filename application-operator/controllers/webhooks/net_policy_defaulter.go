@@ -39,13 +39,14 @@ func (n *NetPolicyDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, 
 		// label the namespace - retry if we get update conflicts
 		for retryCount := 0; retryCount < 5; retryCount++ {
 			err := n.ensureNamespaceLabel(appConfig.Namespace)
-			if err != nil {
-				if k8serrors.IsConflict(err) {
-					continue
-				}
-				return err
+			if err == nil {
+				break
 			}
-			break
+
+			if k8serrors.IsConflict(err) {
+				continue
+			}
+			return err
 		}
 
 		// create/update the network policy
@@ -125,8 +126,10 @@ func newNetworkPolicy(appConfig *oamv1.ApplicationConfiguration) netv1.NetworkPo
 // newNetworkPolicySpec returns a NetworkPolicySpec struct populated with the istiod
 // ingress rule that allows ingress to istiod from the application namespace.
 func newNetworkPolicySpec(namespace string) netv1.NetworkPolicySpec {
+	const istiodTLSPort = 15012
+
 	tcpProtocol := corev1.ProtocolTCP
-	istiodPort := intstr.FromInt(15012)
+	istiodPort := intstr.FromInt(istiodTLSPort)
 
 	return netv1.NetworkPolicySpec{
 		PolicyTypes: []netv1.PolicyType{
