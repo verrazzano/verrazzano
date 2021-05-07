@@ -11,7 +11,7 @@
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645-lzq29",
                 "generateName": "ingress-controller-ingress-nginx-controller-7994b5645-",
                 "namespace": "ingress-nginx",
-                "selfLink": "/api/v1/namespaces/ingress-nginx/pods/ingress-controller-ingress-nginx-controller-7994b5645-lzq29",
+                "selfLink": "/api/v1/namespaces/ingress-nginx/pods/ingress-controller-ingress-nginx-controller:0.46.0-20210507204145-c1b5f14ce",
                 "uid": "7e762938-2c2e-479e-a6e4-778d0ba9bdfc",
                 "resourceVersion": "22689",
                 "creationTimestamp": "2021-03-20T19:57:24Z",
@@ -260,7 +260,7 @@
                 "containers": [
                     {
                         "name": "controller",
-                        "image": "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210506202647-6ed3094bc",
+                        "image": "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210507204145-c1b5f14ce",
                         "args": [
                             "/nginx-ingress-controller",
                             "--default-backend-service=ingress-nginx/ingress-controller-ingress-nginx-defaultbackend",
@@ -441,7 +441,7 @@
                         "lastState": {},
                         "ready": true,
                         "restartCount": 0,
-                        "image": "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210506202647-6ed3094bc",
+                        "image": "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210507204145-c1b5f14ce",
                         "imageID": "sha256:e1cba51257062e273476df8a9a21ea2316bef129dcd8f3ec6f7c8b563ba9d766",
                         "containerID": "containerd://ead1f1126e25e6105323d14b952aef01b2a45312d05df4eaa58f1a072f99751e",
                         "started": true
@@ -629,7 +629,7 @@
                 "containers": [
                     {
                         "name": "ingress-nginx-default-backend",
-                        "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:0.0.46.0-20210506202647-6ed3094bc32-20201016205412-8580ea0ef",
+                        "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210507204145-c1b5f14ce",
                         "ports": [
                             {
                                 "name": "http",
@@ -748,7 +748,7 @@
                         "lastState": {},
                         "ready": true,
                         "restartCount": 0,
-                        "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210506202647-6ed3094bc",
+                        "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210507204145-c1b5f14ce",
                         "imageID": "sha256:8c7735e236baacea0c8a8b20dbf16a451601dfc78c4b5332e4cbd41a8c8791b9",
                         "containerID": "containerd://ec308dbdc3f1194fc264c46c144083aeb6896fd671d7401c04d542faf39c7d53",
                         "started": true

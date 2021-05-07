@@ -114,7 +114,7 @@
                 "fieldPath": "spec.containers{controller}"
             },
             "reason": "Pulling",
-            "message": "Pulling image \"ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210506202647-6ed3094bc\"",
+            "message": "Pulling image \"ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210507204145-c1b5f14ce\"",
             "source": {
                 "component": "kubelet",
                 "host": "REDACTED-IP4-ADDRESS"
@@ -176,7 +176,7 @@
                 "fieldPath": "spec.containers{controller}"
             },
             "reason": "Pulled",
-            "message": "Successfully pulled image \"ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210506202647-6ed3094bc\"",
+            "message": "Successfully pulled image \"ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210507204145-c1b5f14ce\"",
             "source": {
                 "component": "kubelet",
                 "host": "REDACTED-IP4-ADDRESS"
@@ -827,7 +827,7 @@
                 "fieldPath": "spec.containers{ingress-nginx-default-backend}"
             },
             "reason": "Pulling",
-            "message": "Pulling image \"ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210506202647-6ed3094bc\"",
+            "message": "Pulling image \"ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210507204145-c1b5f14ce\"",
             "source": {
                 "component": "kubelet",
                 "host": "REDACTED-IP4-ADDRESS"
@@ -889,7 +889,7 @@
                 "fieldPath": "spec.containers{ingress-nginx-default-backend}"
             },
             "reason": "Pulled",
-            "message": "Successfully pulled image \"ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210506202647-6ed3094bc\"",
+            "message": "Successfully pulled image \"ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210507204145-c1b5f14ce\"",
             "source": {
                 "component": "kubelet",
                 "host": "REDACTED-IP4-ADDRESS"

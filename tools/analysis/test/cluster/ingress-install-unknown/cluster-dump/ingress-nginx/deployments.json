@@ -279,7 +279,7 @@
                         "containers": [
                             {
                                 "name": "controller",
-                                "image": "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210506202647-6ed3094bc",
+                                "image": "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210507204145-c1b5f14ce",
                                 "args": [
                                     "/nginx-ingress-controller",
                                     "--default-backend-service=ingress-nginx/ingress-controller-ingress-nginx-defaultbackend",
@@ -624,7 +624,7 @@
                         "containers": [
                             {
                                 "name": "ingress-nginx-default-backend",
-                                "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:00.46.0-20210506202647-6ed3094bc",
+                                "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210507204145-c1b5f14ce",
                                 "ports": [
                                     {
                                         "name": "http",
