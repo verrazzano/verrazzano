@@ -282,7 +282,6 @@ spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: keycloak
-      app: mysql
   policyTypes:
     - Ingress
     - Egress
