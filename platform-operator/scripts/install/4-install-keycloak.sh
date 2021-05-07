@@ -203,9 +203,6 @@ function patch_prometheus {
   if ! kubectl patch deployment vmi-system-prometheus-0 -n verrazzano-system --type='json' -p='[{"op": "add", "path": "/spec/template/metadata/annotations/traffic.sidecar.istio.io~1includeOutboundIPRanges", "value":'\"${keycloak_service_ip}'/32"}]'; then
     fail "Failed to patch the prometheus deployment"
   fi
-  # wait for prometheus pod to be ready
-  sleep 10
-  kubectl wait pod -l app=system-prometheus -n verrazzano-system --for=condition=Ready --timeout=5m
 }
 
 DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
