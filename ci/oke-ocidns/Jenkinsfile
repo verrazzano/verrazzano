@@ -31,7 +31,7 @@ pipeline {
 
     agent {
         docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS} --cap-add=NET_ADMIN"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             label "${agentLabel}"
@@ -288,9 +288,6 @@ pipeline {
             steps {
                 script {
                     sh """
-                        echo "Installing yq"
-                        GO111MODULE=on go get github.com/mikefarah/yq/v4
-                        export PATH=${HOME}/go/bin:${PATH}
                         ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT
                     """
                 }
@@ -313,9 +310,6 @@ pipeline {
             steps {
                 script {
                     sh """
-                        echo "Installing yq"
-                        GO111MODULE=on go get github.com/mikefarah/yq/v4
-                        export PATH=${HOME}/go/bin:${PATH}
                         ${WORKSPACE}/tests/e2e/config/scripts/process_xipio_install_yaml.sh $INSTALL_CONFIG_FILE_XIPIO
                     """
                 }
@@ -327,9 +321,6 @@ pipeline {
             steps {
                 script {
                     sh """
-                        echo "Installing yq"
-                        GO111MODULE=on go get github.com/mikefarah/yq/v4
-                        export PATH=${HOME}/go/bin:${PATH}
                         ${WORKSPACE}/tests/e2e/config/scripts/process_nodeport_install_yaml.sh $INSTALL_CONFIG_FILE_NODEPORT
                     """
                 }

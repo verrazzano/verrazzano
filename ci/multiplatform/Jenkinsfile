@@ -195,16 +195,6 @@ pipeline {
                                     }
                                 }
                         }
-                        stage ('Install yq'){
-                            steps {
-                                script {
-                                    sh """
-                                        echo "Installing yq"
-                                        GO111MODULE=on go get github.com/mikefarah/yq/v4
-                                    """
-                                }
-                            }
-                        }
 
                         stage('Configure verrazzano prerequisites') {
                             environment {

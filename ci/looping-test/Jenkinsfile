@@ -205,9 +205,6 @@ pipeline {
 
                         ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
 
-                        echo "Installing yq"
-                        GO111MODULE=on go get github.com/mikefarah/yq/v4
-                        export PATH=${HOME}/go/bin:${PATH}
                         ./tests/e2e/config/scripts/process_xipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
 
                         echo "Waiting for Operator to be ready"
