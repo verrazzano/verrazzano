@@ -154,6 +154,19 @@ data:
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
 }
 
+function patch_prometheus {
+  # get the keycloak service IP
+  keycloak_service_ip=$(kubectl get service/keycloak-http -n keycloak -o jsonpath='{.spec.clusterIP}')
+  log "Setting ${keycloak_service_ip} as keycloak http pod IP for prometheus deployment"
+  # patch the prometheus deployment
+  if ! kubectl patch deployment vmi-system-prometheus-0 -n verrazzano-system --type='json' -p='[{"op": "add", "path": "/spec/template/metadata/annotations/traffic.sidecar.istio.io~1includeOutboundIPRanges", "value":'\"${keycloak_service_ip}'/32"}]'; then
+    fail "Failed to patch the prometheus deployment"
+  fi
+  # wait for prometheus pod to be ready
+  sleep 10
+  kubectl wait pod -l app=system-prometheus -n verrazzano-system --for=condition=Ready --timeout=5m
+}
+
 DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
@@ -168,6 +181,9 @@ if [ $(is_keycloak_enabled) == "true" ]; then
     fi
 
   action "Installing Keycloak" install_keycloak || exit 1
+
+  action "patching the prometheus deployment to enable communication with keycloak" patch_prometheus || exit 1
+
 else
   log "Skip Keycloak installation, disabled"
 fi

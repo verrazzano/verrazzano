@@ -236,7 +236,7 @@ fi
 log "Adding label needed by network policies to ${VERRAZZANO_NS} namespace"
 kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_NS}" --overwrite
 
-log "Adding label for disabling istio sidecar injection by default to ${VERRAZZANO_NS} namespace"
+log "Adding label for enabling istio sidecar injection by default to ${VERRAZZANO_NS} namespace"
 kubectl label namespace ${VERRAZZANO_NS} "istio-injection=enabled" --overwrite
 
 # TEMP

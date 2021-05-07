@@ -18,7 +18,7 @@ global:
   istioNamespace: istio-system
   imagePullPolicy: IfNotPresent
   proxy:
-    readinessInitialDelaySeconds: 60
+    readinessFailureThreshold: 60
 
 gateways:
   istio-egressgateway:
