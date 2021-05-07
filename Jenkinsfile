@@ -137,11 +137,11 @@ pipeline {
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
                     ls ${GO_REPO_PATH}/verrazzano
                     ls ${GO_REPO_PATH}/verrazzano/ci
-                    ls ${GO_REPO_PATH}/verrazzano/ci/third-party-versions.groovy
+                    ls -al ${GO_REPO_PATH}/verrazzano/ci/thirdPartyVersions.groovy
                 """
 
                 script {
-                    load "${GO_REPO_PATH}/verrazzano/ci/third-party-versions.groovy"
+                    load "${GO_REPO_PATH}/verrazzano/ci/thirdPartyVersions.groovy"
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
