@@ -12,8 +12,8 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -22,7 +22,8 @@ import (
 var logger = ctrl.Log.WithName("webhooks.network.policy")
 
 type NetPolicyDefaulter struct {
-	Client client.Client
+	Client          client.Client
+	NamespaceClient typedv1.NamespaceInterface
 }
 
 // Default handles creating the Istio network policy for the application. The network policy is needed
@@ -86,9 +87,7 @@ func (n *NetPolicyDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, 
 // ensureNamespaceLabel fetches the namespace and checks to see if it has the Verrazzano
 // namespace label. If not, we add the label.
 func (n *NetPolicyDefaulter) ensureNamespaceLabel(namespace string) error {
-	var ns corev1.Namespace
-	namespacedName := types.NamespacedName{Name: namespace}
-	err := n.Client.Get(context.TODO(), namespacedName, &ns)
+	ns, err := n.NamespaceClient.Get(context.TODO(), namespace, metav1.GetOptions{})
 	if err != nil {
 		logger.Error(err, "Unable to fetch namespace", "namespace", namespace)
 		return err
@@ -103,7 +102,7 @@ func (n *NetPolicyDefaulter) ensureNamespaceLabel(namespace string) error {
 		logger.Info("Updating namespace with Verrazzano namespace label", "namespace", namespace)
 		ns.ObjectMeta.Labels[constants.LabelVerrazzanoNamespace] = namespace
 
-		err = n.Client.Update(context.TODO(), &ns, &client.UpdateOptions{})
+		_, err = n.NamespaceClient.Update(context.TODO(), ns, metav1.UpdateOptions{})
 		if err != nil {
 			logger.Error(err, "Unable to add label to namespace", "namespace", namespace)
 			return err

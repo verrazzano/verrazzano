@@ -226,7 +226,8 @@ func main() {
 					Client: mgr.GetClient(),
 				},
 				&webhooks.NetPolicyDefaulter{
-					Client: mgr.GetClient(),
+					Client:          mgr.GetClient(),
+					NamespaceClient: kubeClient.CoreV1().Namespaces(),
 				},
 			},
 		}

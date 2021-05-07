@@ -17,6 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/fake"
+	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -28,18 +30,18 @@ const (
 
 // erroringFakeClient is a client wrapper that allows us to simulate a conflict error on update
 type erroringFakeClient struct {
-	client.Client
+	typedv1.NamespaceInterface
 	conflictReturned bool
 }
 
 // Update returns a conflict error one time, and then passes through to the wrapped client on subsequent calls.
 // This allows us to test retries when updating the namespace with a label.
-func (e *erroringFakeClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
+func (e *erroringFakeClient) Update(ctx context.Context, ns *corev1.Namespace, opts metav1.UpdateOptions) (*corev1.Namespace, error) {
 	if !e.conflictReturned {
 		e.conflictReturned = true
-		return errors.NewConflict(schema.GroupResource{}, "", nil)
+		return nil, errors.NewConflict(schema.GroupResource{}, "", nil)
 	}
-	return e.Client.Update(ctx, obj, opts...)
+	return e.NamespaceInterface.Update(ctx, ns, opts)
 }
 
 // GIVEN an app config is being created
@@ -48,18 +50,19 @@ func (e *erroringFakeClient) Update(ctx context.Context, obj runtime.Object, opt
 func TestDefaultNetworkPolicy(t *testing.T) {
 	appConfig := &oamv1.ApplicationConfiguration{ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: appConfigName}}
 	fakeClient := newFakeClient()
-	defaulter := &NetPolicyDefaulter{Client: fakeClient}
+	fakeNamespaceClient := newFakeNamespaceClient()
+	defaulter := &NetPolicyDefaulter{Client: fakeClient, NamespaceClient: fakeNamespaceClient}
 
 	// create the test namespace so the defaulter can add a label to it
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}
-	fakeClient.Create(context.TODO(), ns, &client.CreateOptions{})
+	fakeNamespaceClient.Create(context.TODO(), ns, metav1.CreateOptions{})
 
 	// this is the function under test, we expect this to label the namespace and create the network policy
 	err := defaulter.Default(appConfig, false)
 	assert.NoError(t, err, "Unexpected error creating network policy")
 
 	// assert that the app namespace was labeled
-	assertNamespaceLabeled(t, fakeClient)
+	assertNamespaceLabeled(t, fakeNamespaceClient)
 
 	// assert that the network policy was created and the spec has the expected data
 	assertNetworkPolicy(t, fakeClient)
@@ -72,12 +75,13 @@ func TestDefaultNetworkPolicy(t *testing.T) {
 func TestRetryLabelNamespace(t *testing.T) {
 	appConfig := &oamv1.ApplicationConfiguration{ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: appConfigName}}
 	fakeClient := newFakeClient()
-	errFakeClient := &erroringFakeClient{Client: fakeClient, conflictReturned: false}
-	defaulter := &NetPolicyDefaulter{Client: errFakeClient}
+	fakeNamespaceClient := newFakeNamespaceClient()
+	errFakeClient := &erroringFakeClient{NamespaceInterface: fakeNamespaceClient, conflictReturned: false}
+	defaulter := &NetPolicyDefaulter{Client: fakeClient, NamespaceClient: errFakeClient}
 
 	// create the test namespace so the defaulter can add a label to it
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}
-	fakeClient.Create(context.TODO(), ns, &client.CreateOptions{})
+	fakeNamespaceClient.Create(context.TODO(), ns, metav1.CreateOptions{})
 
 	// this is the function under test, we expect this to label the namespace and create the network policy
 	err := defaulter.Default(appConfig, false)
@@ -87,7 +91,7 @@ func TestRetryLabelNamespace(t *testing.T) {
 	assert.True(t, errFakeClient.conflictReturned)
 
 	// assert that the app namespace was labeled
-	assertNamespaceLabeled(t, fakeClient)
+	assertNamespaceLabeled(t, fakeNamespaceClient)
 
 	// assert that the network policy was created and the spec has the expected data
 	assertNetworkPolicy(t, fakeClient)
@@ -153,6 +157,12 @@ func newFakeClient() client.Client {
 	return ctrlfake.NewFakeClientWithScheme(scheme)
 }
 
+// newFakeNamespaceClient returns a new fake namespace client
+func newFakeNamespaceClient() typedv1.NamespaceInterface {
+	clientSet := fake.NewSimpleClientset()
+	return clientSet.CoreV1().Namespaces()
+}
+
 // fetchNetworkPolicy fetches the network policy using the provided client
 func fetchNetworkPolicy(t *testing.T, client client.Client) (*netv1.NetworkPolicy, error) {
 	netPolicyName := testNamespace + "-" + appConfigName
@@ -180,11 +190,8 @@ func assertNoNetworkPolicy(t *testing.T, client client.Client) {
 }
 
 // assertNamespaceLabeled asserts that the namespace has been labeled with the Verrazzano namespace label.
-func assertNamespaceLabeled(t *testing.T, client client.Client) {
-	var ns corev1.Namespace
-	namespacedName := types.NamespacedName{Name: testNamespace}
-
-	err := client.Get(context.TODO(), namespacedName, &ns)
+func assertNamespaceLabeled(t *testing.T, client typedv1.NamespaceInterface) {
+	ns, err := client.Get(context.TODO(), testNamespace, metav1.GetOptions{})
 
 	assert.NoError(t, err, "Unexpected error fetching namespace")
 	assert.Equal(t, testNamespace, ns.Labels[constants.LabelVerrazzanoNamespace])
