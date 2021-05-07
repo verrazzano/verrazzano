@@ -135,15 +135,13 @@ pipeline {
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-                    ls ${GO_REPO_PATH}/verrazzano
-                    ls ${GO_REPO_PATH}/verrazzano/ci
-                    ls -al ${GO_REPO_PATH}/verrazzano/ci/thirdPartyVersions.groovy
                 """
 
                 script {
-                    load "${GO_REPO_PATH}/verrazzano/ci/thirdPartyVersions.groovy"
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    def thirdPartyTestProps = readProperties file: '.third-party-test-versions'
+                    CALICO_VERSION = thirdPartyTestProps['calico-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
