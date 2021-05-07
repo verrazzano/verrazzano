@@ -4,9 +4,7 @@
 package pkg
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -33,6 +31,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/homedir"
 )
 
@@ -668,21 +667,43 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 	var token []byte
 	if isServiceAccount {
 		token = GetTokenForServiceAccount(saOrUserOCID, saNamespace)
-		config.BearerToken = string(token)
-	}
-
-	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		if wt != nil {
-			rt = wt(rt)
-		}
-		header := &headerAdder{
-			rt: rt,
-		}
-		if !isServiceAccount {
-			header.headers = map[string][]string{"Impersonate-User": {saOrUserOCID}}
+		clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+			&clientcmd.ClientConfigLoadingRules{ExplicitPath: GetKubeConfigPathFromEnv()},
+			&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}})
+		rawConfig, err := clientConfig.RawConfig()
+		if err != nil {
+			ginkgo.Fail(fmt.Sprintf("Could not get rawconfig, error %v", err))
 		}
 
-		return header
+		rawConfig.AuthInfos["sa-token"] = &clientcmdapi.AuthInfo{Token: string(token)}
+		cluster := ""
+		if len(rawConfig.Clusters) > 0 {
+			for k, v := range rawConfig.Clusters {
+				if v != nil {
+					cluster = k
+					break
+				}
+			}
+		}
+
+		rawConfig.Contexts["sa-context"] = &clientcmdapi.Context{Cluster: cluster, AuthInfo: "sa-token"}
+		rawConfig.CurrentContext = "sa-context"
+		config, err = clientcmd.NewNonInteractiveClientConfig(rawConfig, "sa-context", &clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}}, clientConfig.ConfigAccess()).ClientConfig()
+		if err != nil {
+			ginkgo.Fail(fmt.Sprintf("Could not get config for sa, error %v", err))
+		}
+
+	} else {
+		config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+			if wt != nil {
+				rt = wt(rt)
+			}
+			header := &headerAdder{
+				rt:      rt,
+				headers: map[string][]string{"Impersonate-User": {saOrUserOCID}},
+			}
+			return header
+		}
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
@@ -719,54 +740,4 @@ func GetTokenForServiceAccount(sa string, namespace string) []byte {
 	}
 
 	return token
-}
-
-//CanIForAPIGroupForServiceAccountREST verifies servcieaccount privilege to impersonate other serviceaccounts using REST interface of K8S api directly
-func CanIForAPIGroupForServiceAccountREST(sa string, namespace string, verb string, resource string, group string, saNamespace string) (bool, string) {
-	canI := &v1beta1.SelfSubjectAccessReview{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "SelfSubjectAccessReview",
-			APIVersion: "authorization.k8s.io/v1",
-		},
-		Spec: v1beta1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &v1beta1.ResourceAttributes{
-				Namespace:   namespace,
-				Verb:        verb,
-				Group:       group,
-				Version:     "",
-				Resource:    resource,
-				Subresource: "",
-				Name:        "",
-			},
-		},
-	}
-
-	config := GetKubeConfig()
-
-	token := GetTokenForServiceAccount(sa, saNamespace)
-	config.BearerToken = string(token)
-
-	k8sAPI := &APIEndpoint{
-		AccessToken: string(token),
-		APIURL:      config.Host,
-		HTTPClient:  newRetryableHTTPClient(getHTTPClientWithCABundle(config.CAData, GetKubeConfigPathFromEnv())),
-	}
-
-	buff, err := json.Marshal(canI)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to marshal selfsubjectaccessreview: %v", err))
-	}
-
-	res, err := k8sAPI.Post("apis/authorization.k8s.io/v1/selfsubjectaccessreviews", bytes.NewBuffer(buff))
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to check perms: %v", err))
-	}
-
-	auth := v1beta1.SelfSubjectAccessReview{}
-	err = json.Unmarshal(res.Body, &auth)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to unmarshal selfsubjectaccessreview: %v", err))
-	}
-
-	return auth.Status.Allowed, auth.Status.Reason
 }

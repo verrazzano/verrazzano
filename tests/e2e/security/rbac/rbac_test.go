@@ -19,7 +19,7 @@ var (
 )
 
 const (
-	verrazzanoSystemNS = "verrazzano-system"
+	verrazzanoSystemNS = "default"
 	rbacTestNamespace  = "rbactest"
 	v80ProjectAdmin    = "ocid1.user.oc1..aaaaaaaallodotxfvg0g1antsyq3gonyyhblya66kiqjnp2kogonykvjwi19"
 	v80ProjectMonitor  = "ocid1.user.oc1..aaaaaaaallodotxfvg0yank33sq3gonyghblya66kiqjnp2kogonykvjwi19"
@@ -248,10 +248,6 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 		ginkgo.It("Fail impersonating any other service account", func() {
 			pkg.Log(pkg.Info, "Can verrazzano-api service account impersonate any other service account?  No")
 			allowed, reason := pkg.CanIForAPIGroupForServiceAccountOrUser("verrazzano-api", "", "impersonate", "serviceaccounts", "core", true, verrazzanoSystemNS)
-			if allowed {
-				//For kind based environments, golang based client does not return correct result and therefore we need to retry using REST API directly
-				allowed, reason = pkg.CanIForAPIGroupForServiceAccountREST("verrazzano-api", "", "impersonate", "serviceaccounts", "core", verrazzanoSystemNS)
-			}
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on impersonating service accounts: Allowed = %t, reason = %s", allowed, reason))
 		})
 	})
