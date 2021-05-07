@@ -13,7 +13,11 @@ CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/contr
 CREATE_LATEST_TAG=0
 
 CRD_OPTIONS ?= "crd:crdVersions=v1"
-KUBECONFIG ?= ${HOME}/.kube/config
+ifdef KUBECONFIG
+  KUBECONFIG ?= ${KUBECONFIG}
+else
+  KUBECONFIG ?= ${HOME}/.kube/config
+endif
 
 ifndef DOCKER_IMAGE_FULLNAME
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
@@ -54,6 +58,7 @@ GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 KIND_CONFIG ?= kind-config.yaml
 CRD_PATH=../platform-operator/helm_config/charts/verrazzano-application-operator/crds
+OAM_PATH=../platform-operator/thirdparty/charts/oam-kubernetes-runtime/crds
 
 CLUSTER_DUMP_LOCATION ?= application-operator-integ-cluster-dump
 
@@ -74,10 +79,18 @@ run:
 	# To enable webhooks: $(GO) run main.go --kubeconfig=${KUBECONFIG} --cert-dir=build/webhook-certs
 	$(GO) run main.go --kubeconfig=${KUBECONFIG} --enable-webhooks=false --metrics-addr=localhost:0
 
+
+.PHONY: install-oam-crds
+install-oam-crds:
+	kubectl apply -f ${OAM_PATH}
+
+.PHONY: install-verrazzano-crds
+install-verrazzano-crds:
+	kubectl apply -f ${CRD_PATH}
+
 # Install CRDs into a cluster
 .PHONY: install-crds
-install-crds: manifests
-	kubectl apply -f ${CRD_PATH}
+install-crds: manifests install-oam-crds install-verrazzano-crds
 
 # Uninstall CRDs from a cluster
 .PHONY: uninstall-crds
@@ -156,8 +169,7 @@ OPERATOR_SETUP = test/operatorsetup
 OAM_RUNTIME_IMAGE="ghcr.io/verrazzano/oam-kubernetes-runtime:v0.3.0-20210222205541-9e8d4fb"
 
 # These exports are needed for the install.sh
-export KUBECONFIG=${HOME}/.kube/config
-export VERRAZZANO_KUBECONFIG=${HOME}/.kube/config
+export VERRAZZANO_KUBECONFIG=${KUBECONFIG}
 export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: setup-cluster
