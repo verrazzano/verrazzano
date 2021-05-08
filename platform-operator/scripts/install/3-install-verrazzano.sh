@@ -271,6 +271,9 @@ if [ $(is_keycloak_enabled) == "true" ] && ! kubectl get namespace keycloak ; th
   # Label the keycloak namespace so that we istio injection is enabled
   log "Adding label needed for istio sidecar injection to keycloak namespace"
   kubectl label namespace keycloak "istio-injection=enabled" --overwrite
+  # Label the keycloak namespace so that we can apply network policies
+  log "Adding label needed by network policies to keycloak namespace"
+  kubectl label namespace keycloak "verrazzano.io/namespace=keycloak" --overwrite
 fi
 
 if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then

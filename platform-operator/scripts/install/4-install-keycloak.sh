@@ -187,10 +187,6 @@ data:
     fail "Failed to set password policy for realm Verrazzano-system"
   fi
 
-  # Label the keycloak namespace so that we can apply network policies
-  log "Adding label needed by network policies to keycloak namespace"
-  kubectl label namespace keycloak "verrazzano.io/namespace=keycloak" --overwrite
-
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
 }
