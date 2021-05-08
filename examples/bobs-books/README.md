@@ -82,17 +82,17 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
 1. Get the generated host name for the application.
    ```
    $ kubectl get gateway bobs-books-bobs-books-gw -n bobs-books -o jsonpath={.spec.servers[0].hosts[0]}
-   bobs-books.bobs-books.11.22.33.44.xip.io
+   bobs-books.bobs-books.11.22.33.44.nip.io
    ```
 
 1. Access the application. To access the application in a browser, you will need to do one of the following:
-    * **Option 1:** If you are using `xip.io`, then you can access the application using the generated host name. For example:
+    * **Option 1:** If you are using `nip.io`, then you can access the application using the generated host name. For example:
 
-      * Robert's Books UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/`.
+      * Robert's Books UI at `https://bobs-books.bobs-books.11.22.33.44.nip.io/`.
 
-      * Bobby's Books UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/bobbys-front-end`.
+      * Bobby's Books UI at `https://bobs-books.bobs-books.11.22.33.44.nip.io/bobbys-front-end`.
 
-      * Bob's order manager  UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/bobs-bookstore-order-manager/orders`.
+      * Bob's order manager  UI at `https://bobs-books.bobs-books.11.22.33.44.nip.io/bobs-bookstore-order-manager/orders`.
 
     * **Option 2:** Temporarily, modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), to add an entry mapping the host used by the application to the external IP address assigned to your gateway. For example:
       ```

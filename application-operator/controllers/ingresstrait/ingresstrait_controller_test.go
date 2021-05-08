@@ -1173,7 +1173,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 
 // TestBuildAppHostNameForDNS tests building a DNS hostname for the application
 // GIVEN an appName and a trait
-// WHEN the ingress domain is not XIP.IO
+// WHEN the ingress domain is not nip.io
 // THEN ensure that the correct DNS name is built
 func TestBuildAppHostNameForDNS(t *testing.T) {
 	assert := asserts.New(t)
@@ -1265,7 +1265,7 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 
 // TestFailureBuildAppHostNameForDNS tests failure of building a DNS hostname for the application
 // GIVEN an appName and a trait
-// WHEN the ingress domain is not XIP.IO and the verrazzano annotation is missing
+// WHEN the ingress domain is not nip.io and the verrazzano annotation is missing
 // THEN ensure that an error is returned
 func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 	assert := asserts.New(t)
@@ -1305,11 +1305,11 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 	assert.Contains(err.Error(), "Annotation external-dns.alpha.kubernetes.io/target missing from verrazzano ingress")
 }
 
-// TestBuildAppHostNameLoadBalancerXIP tests building a hostname for the application
+// TestBuildAppHostNameLoadBalancerNIP tests building a hostname for the application
 // GIVEN an appName and a trait
-// WHEN the ingress domain is XIP.IO and LoadBalancer is used
+// WHEN the ingress domain is nip.io and LoadBalancer is used
 // THEN ensure that the correct DNS name is built
-func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
+func TestBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1335,8 +1335,8 @@ func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Annotations: map[string]string{
-					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io",
-					"verrazzano.io/dns.wildcard.domain":       "xip.io",
+					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
+					"verrazzano.io/dns.wildcard.domain":       "nip.io",
 				},
 			}
 			return nil
@@ -1361,14 +1361,14 @@ func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal("myapp.myns.5.6.7.8.xip.io", domainName)
+	assert.Equal("myapp.myns.5.6.7.8.nip.io", domainName)
 }
 
-// TestFailureBuildAppHostNameLoadBalancerXIP tests a failure when building a hostname for the application
+// TestFailureBuildAppHostNameLoadBalancerNIP tests a failure when building a hostname for the application
 // GIVEN an appName and a trait
-// WHEN the ingress domain is XIP.IO and LoadBalancer is used, but an error occurs
+// WHEN the ingress domain is nip.io and LoadBalancer is used, but an error occurs
 // THEN ensure that the correct error is returned
-func TestFailureBuildAppHostNameLoadBalancerXIP(t *testing.T) {
+func TestFailureBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1394,8 +1394,8 @@ func TestFailureBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Annotations: map[string]string{
-					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io",
-					"verrazzano.io/dns.wildcard.domain":       "xip.io",
+					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
+					"verrazzano.io/dns.wildcard.domain":       "nip.io",
 				},
 			}
 			return nil
@@ -1420,11 +1420,11 @@ func TestFailureBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 	assert.Equal("istio-ingressgateway is missing loadbalancer IP", err.Error())
 }
 
-// TestBuildAppHostNameNodePortXIP tests building a hostname for the application
+// TestBuildAppHostNameNodePortNIP tests building a hostname for the application
 // GIVEN an appName and a trait
-// WHEN the ingress domain is XIP.IO and NodePort is used
+// WHEN the ingress domain is nip.io and NodePort is used
 // THEN ensure that the correct DNS name is built
-func TestBuildAppHostNameNodePortXIP(t *testing.T) {
+func TestBuildAppHostNameNodePortNIP(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1450,8 +1450,8 @@ func TestBuildAppHostNameNodePortXIP(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Annotations: map[string]string{
-					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io",
-					"verrazzano.io/dns.wildcard.domain":       "xip.io",
+					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
+					"verrazzano.io/dns.wildcard.domain":       "nip.io",
 				},
 			}
 			return nil
@@ -1485,14 +1485,14 @@ func TestBuildAppHostNameNodePortXIP(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal("myapp.myns.5.6.7.8.xip.io", domainName)
+	assert.Equal("myapp.myns.5.6.7.8.nip.io", domainName)
 }
 
-// TestFailureBuildAppHostNameNodePortXIP tests a failure when building a hostname for the application
+// TestFailureBuildAppHostNameNodePortNIP tests a failure when building a hostname for the application
 // GIVEN an appName and a trait
-// WHEN the ingress domain is XIP.IO and NodePort is used, but an error occurus
+// WHEN the ingress domain is nip.io and NodePort is used, but an error occurus
 // THEN ensure that the correct error is returned
-func TestFailureBuildAppHostNameNodePortXIP(t *testing.T) {
+func TestFailureBuildAppHostNameNodePortNIP(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1518,8 +1518,8 @@ func TestFailureBuildAppHostNameNodePortXIP(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Annotations: map[string]string{
-					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io",
-					"verrazzano.io/dns.wildcard.domain":       "xip.io",
+					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
+					"verrazzano.io/dns.wildcard.domain":       "nip.io",
 				},
 			}
 			return nil
@@ -1927,7 +1927,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", gw.Spec.Servers[0].Hosts[0])
 	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
@@ -1939,7 +1939,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", vs.Spec.Hosts[0])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:")
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/bobbys-front-end")
@@ -2027,7 +2027,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", gw.Spec.Servers[0].Hosts[0])
 	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
@@ -2039,7 +2039,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", vs.Spec.Hosts[0])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:")
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/test-path")
@@ -2132,7 +2132,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", gw.Spec.Servers[0].Hosts[0])
 	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
@@ -2144,7 +2144,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", vs.Spec.Hosts[0])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:")
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/bobbys-front-end")
@@ -2261,7 +2261,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", gw.Spec.Servers[0].Hosts[0])
 	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
@@ -2273,7 +2273,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	assert.NoError(err)
 	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", vs.Spec.Hosts[0])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:")
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/bobbys-front-end")
@@ -2379,7 +2379,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", gw.Spec.Servers[0].Hosts[0])
 	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
@@ -2392,7 +2392,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	assert.NoError(err)
 	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", vs.Spec.Hosts[0])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:")
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/bobbys-front-end")
@@ -2470,8 +2470,8 @@ func newVerrazzanoIngress(ipAddress string) *k8net.Ingress {
 			Name:      constants.VzConsoleIngress,
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Annotations: map[string]string{
-				"external-dns.alpha.kubernetes.io/target": fmt.Sprintf("verrazzano-ingress.default.%s.xip.io", ipAddress),
-				"verrazzano.io/dns.wildcard.domain":       "xip.io",
+				"external-dns.alpha.kubernetes.io/target": fmt.Sprintf("verrazzano-ingress.default.%s.nip.io", ipAddress),
+				"verrazzano.io/dns.wildcard.domain":       "nip.io",
 			},
 		},
 	}

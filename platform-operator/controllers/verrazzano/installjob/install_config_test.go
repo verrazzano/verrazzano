@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// TestNipIoInstallDefaults tests the creation of an xip.io install default configuration
+// TestNipIoInstallDefaults tests the creation of an nip.io install default configuration
 // GIVEN a verrazzano.install.verrazzano.io custom resource
 //  WHEN I call GetInstallConfig
 //  THEN the nip.io install configuration is created and verified
@@ -37,11 +37,11 @@ func TestNipIoInstallDefaults(t *testing.T) {
 	assert.Equalf(t, "", config.Rancher.Enabled, "Expected rancher enabled did not match")
 }
 
-// TestXipIoInstallNonDefaults tests the creation of an xip.io install non-default configuration
+// TestNipIoInstallNonDefaults tests the creation of an nip.io install non-default configuration
 // GIVEN a verrazzano.install.verrazzano.io custom resource
 //  WHEN I call GetInstallConfig
-//  THEN the xip.io install configuration is created and verified
-func TestXipIoInstallNonDefaults(t *testing.T) {
+//  THEN the nip.io install configuration is created and verified
+func TestNipIoInstallNonDefaults(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Profile:         "dev",
@@ -49,7 +49,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 			Components: installv1alpha1.ComponentSpec{
 				DNS: &installv1alpha1.DNSComponent{
 					Wildcard: &installv1alpha1.Wildcard{
-						Domain: "xip.io",
+						Domain: "nip.io",
 					},
 				},
 				Ingress: &installv1alpha1.IngressNginxComponent{
@@ -115,7 +115,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 	assert.Equalf(t, "testEnv", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, installv1alpha1.Dev, config.Profile, "Expected profile did not match")
 	assert.Equalf(t, DNSTypeWildcard, config.DNS.Type, "Expected DNS type did not match")
-	assert.Equalf(t, "xip.io", config.DNS.Wildcard.Domain, "Expected domain did not match")
+	assert.Equalf(t, "nip.io", config.DNS.Wildcard.Domain, "Expected domain did not match")
 
 	assert.Equalf(t, IngressTypeLoadBalancer, config.Ingress.Type, "Expected Ingress type did not match")
 	assert.Equalf(t, 1, len(config.Ingress.Verrazzano.NginxInstallArgs), "Expected nginxInstallArgs length did not match")

@@ -5,7 +5,7 @@
 
 INSTALL_CONFIG_TO_EDIT=$1
 DNS_WILDCARD_DOMAIN=${2:-"nip.io"}
-echo "Editing install config file for DNS Wildcard domain (e.g. xip.io) ${INSTALL_CONFIG_TO_EDIT}"
+echo "Editing install config file for DNS Wildcard domain (e.g. nip.io) ${INSTALL_CONFIG_TO_EDIT}"
 yq -i eval ".spec.environmentName = \"${VZ_ENVIRONMENT_NAME}\"" ${INSTALL_CONFIG_TO_EDIT}
 yq -i eval ".spec.profile = \"${INSTALL_PROFILE}\"" ${INSTALL_CONFIG_TO_EDIT}
 if [ $INSTALL_PROFILE == "dev" ]; then

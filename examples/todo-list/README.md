@@ -76,7 +76,7 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
    ```
    $ HOST=$(kubectl get gateway -n todo-list -o jsonpath={.items[0].spec.servers[0].hosts[0]})
    $ echo $HOST
-   todo-appconf.todo-list.11.22.33.44.xip.io
+   todo-appconf.todo-list.11.22.33.44.nip.io
    ```
 
 1. Get the `EXTERNAL_IP` address of the `istio-ingressgateway` service.
@@ -92,7 +92,7 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
      ```
      $ curl -sk https://${HOST}/todo/ --resolve ${HOST}:443:${ADDRESS}
      ```
-     If you are using `xip.io`, then you do not need to include `--resolve`.
+     If you are using `nip.io`, then you do not need to include `--resolve`.
    * **Local testing with a browser**
 
      Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
@@ -130,11 +130,11 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
    ```
    $ kubectl get ingress -n verrazzano-system
    NAME                         CLASS    HOSTS                                                     ADDRESS           PORTS     AGE
-   verrazzano-ingress           <none>   verrazzano.default.140.141.142.143.xip.io                 140.141.142.143   80, 443   7d2h
-   vmi-system-es-ingest         <none>   elasticsearch.vmi.system.default.140.141.142.143.xip.io   140.141.142.143   80, 443   7d2h
-   vmi-system-grafana           <none>   grafana.vmi.system.default.140.141.142.143.xip.io         140.141.142.143   80, 443   7d2h
-   vmi-system-kibana            <none>   kibana.vmi.system.default.140.141.142.143.xip.io          140.141.142.143   80, 443   7d2h
-   vmi-system-prometheus        <none>   prometheus.vmi.system.default.140.141.142.143.xip.io      140.141.142.143   80, 443   7d2h
+   verrazzano-ingress           <none>   verrazzano.default.140.141.142.143.nip.io                 140.141.142.143   80, 443   7d2h
+   vmi-system-es-ingest         <none>   elasticsearch.vmi.system.default.140.141.142.143.nip.io   140.141.142.143   80, 443   7d2h
+   vmi-system-grafana           <none>   grafana.vmi.system.default.140.141.142.143.nip.io         140.141.142.143   80, 443   7d2h
+   vmi-system-kibana            <none>   kibana.vmi.system.default.140.141.142.143.nip.io          140.141.142.143   80, 443   7d2h
+   vmi-system-prometheus        <none>   prometheus.vmi.system.default.140.141.142.143.nip.io      140.141.142.143   80, 443   7d2h
    ```
 
    Using the ingress host information, some of the endpoints available are:

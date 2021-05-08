@@ -17,7 +17,6 @@ fi
 
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
-CALICO_VERSION=${3:-"3.18.1"}
 
 cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -28,7 +27,7 @@ cd ${TEST_SCRIPTS_DIR}
 if [ $INSTALL_CALICO == true ]; then
     echo "Install Calico"
     cd ${GO_REPO_PATH}/verrazzano
-    ./ci/scripts/install_calico.sh "${CLUSTER_NAME}" "${CALICO_VERSION}"
+    ./ci/scripts/install_calico.sh "${CLUSTER_NAME}"
 fi
 
 # With the Calico configuration to set disableDefaultCNI to true in the KIND configuration, the control plane node will

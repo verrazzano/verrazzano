@@ -190,12 +190,6 @@ func main() {
 			os.Exit(1)
 		}
 
-		restConfig, err = clientcmd.BuildConfigFromFlags("", "")
-		if err != nil {
-			setupLog.Error(err, "unable to build kube config")
-			os.Exit(1)
-		}
-
 		istioClientSet, err := istioversionedclient.NewForConfig(restConfig)
 		if err != nil {
 			setupLog.Error(err, "Failed to create istio client")
@@ -224,6 +218,10 @@ func main() {
 				&webhooks.MetricsTraitDefaulter{},
 				&webhooks.LoggingScopeDefaulter{
 					Client: mgr.GetClient(),
+				},
+				&webhooks.NetPolicyDefaulter{
+					Client:          mgr.GetClient(),
+					NamespaceClient: kubeClient.CoreV1().Namespaces(),
 				},
 			},
 		}

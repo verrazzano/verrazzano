@@ -405,6 +405,10 @@ spec:
     - from:
       - namespaceSelector:
           matchLabels:
+            verrazzano.io/namespace: cattle-system
+    - from:
+      - namespaceSelector:
+          matchLabels:
             verrazzano.io/namespace: ingress-nginx
       - podSelector:
           matchLabels:
@@ -412,6 +416,18 @@ spec:
       ports:
         - protocol: TCP
           port: 80
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: cattle-system
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+
 ---
 # Network policy for Rancher operator
 # Ingress: deny all
@@ -572,4 +588,111 @@ spec:
               app.kubernetes.io/component: controller
       ports:
         - port: 8080
+          protocol: TCP
+---
+# Network policy for istio-system pod communication
+# Ingress: allow all pod-to-pod communication within the namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: istio-system
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+---
+# Network policy for Istio ingress gateway
+# Ingress: allow ingress to port 8443 from anywhere
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: istio-ingressgateway
+  namespace: istio-system
+spec:
+  podSelector:
+    matchLabels:
+      app: istio-ingressgateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 8443
+          protocol: TCP
+---
+# Network policy for Istio egress gateway
+# Ingress: allow ingress to port 8443 from anywhere
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: istio-egressgateway
+  namespace: istio-system
+spec:
+  podSelector:
+    matchLabels:
+      app: istio-egressgateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 8443
+          protocol: TCP
+---
+# Network policy for Istio coredns
+# Ingress: allow ingress to port 53 from kube-system DNS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: istiocoredns
+  namespace: istio-system
+spec:
+  podSelector:
+    matchLabels:
+      app: istiocoredns
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+---
+# Network policy for Istiod
+# Ingress: allow ingress to port 15012 from verrazzano-system prometheus (for Istio proxy sidecar)
+#          allow port 443 for webhooks
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: istiod-verrazzano-system
+  namespace: istio-system
+spec:
+  podSelector:
+    matchLabels:
+      app: istiod
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 15012
+          protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: {{ .Release.Namespace }}
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+    - ports:
+        - port: 443
           protocol: TCP

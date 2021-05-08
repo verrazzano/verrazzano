@@ -6,10 +6,10 @@ package webhooks
 import (
 	"context"
 	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 
 	runtimev1alpha1 "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -87,7 +87,7 @@ func createDefaultLoggingScope(name types.NamespacedName) *vzapi.LoggingScope {
 }
 
 // includeDefaultLoggingScope updates the scopes of the given component to include the default logging scope, if appropriate
-func includeDefaultLoggingScope(component *v1alpha2.ApplicationConfigurationComponent, defaultLoggingComponentScope oamv1.ComponentScope) (includeDefault bool) {
+func includeDefaultLoggingScope(component *oamv1.ApplicationConfigurationComponent, defaultLoggingComponentScope oamv1.ComponentScope) (includeDefault bool) {
 	includeDefault = true
 	var scopes []oamv1.ComponentScope
 	for _, scope := range component.Scopes {
@@ -108,7 +108,7 @@ func includeDefaultLoggingScope(component *v1alpha2.ApplicationConfigurationComp
 }
 
 // getDefaultLoggingScopeName gets the default logging scope name for a given app config
-func getDefaultLoggingScopeName(appConfig *v1alpha2.ApplicationConfiguration) string {
+func getDefaultLoggingScopeName(appConfig *oamv1.ApplicationConfiguration) string {
 	return fmt.Sprintf("default-%s-logging-scope", appConfig.Name)
 }
 

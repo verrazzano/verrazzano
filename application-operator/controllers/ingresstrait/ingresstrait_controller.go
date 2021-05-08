@@ -38,7 +38,6 @@ import (
 )
 
 const (
-	istioNamespace           = "istio-system"
 	gatewayAPIVersion        = "networking.istio.io/v1alpha3"
 	gatewayKind              = "Gateway"
 	virtualServiceAPIVersion = "networking.istio.io/v1alpha3"
@@ -302,7 +301,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 			APIVersion: certificateAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: istioNamespace,
+			Namespace: constants.IstioSystemNamespace,
 			Name:      certName,
 		}}
 
@@ -735,7 +734,7 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	domain := externalDNSAnno[len(constants.VzConsoleIngress)+1:]
 
 	// Get the DNS wildcard domain from the annotation if it exist.  This annotation is only available
-	// when the install is using DNS type wildcard (xip.io, nip.io, etc.)
+	// when the install is using DNS type wildcard (nip.io, sslip.io, etc.)
 	suffix := ""
 	wildcardDomainAnno, ok := ingress.Annotations[wildcardDomainKey]
 	if ok {
@@ -756,10 +755,9 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 // Get the IP from Istio resources
 func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, suffix string) (string, error) {
 	const istioIngressGateway = "istio-ingressgateway"
-	const istioNamespace = "istio-system"
 
 	istio := corev1.Service{}
-	err := cli.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: istioNamespace}, &istio)
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: constants.IstioSystemNamespace}, &istio)
 	if err != nil {
 		return "", err
 	}
