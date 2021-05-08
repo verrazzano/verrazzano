@@ -383,7 +383,6 @@ spec:
           podSelector:
             matchLabels:
               app: istiod
-
 {{- end }}
 ---
 # Network policy for Rancher cluster agent
@@ -776,12 +775,12 @@ spec:
               k8s-app: kube-dns
 ---
 # Network policy for Istiod
-# Ingress: allow ingress to port 15012 from verrazzano-system prometheus (for Istio proxy sidecar)
+# Ingress: allow ingress to port 15012 from verrazzano-system prometheus and keycloak (for Istio proxy sidecar)
 #          allow port 443 for webhooks
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: istiod-verrazzano-system
+  name: istiod-access
   namespace: istio-system
 spec:
   podSelector:
@@ -798,8 +797,32 @@ spec:
             matchLabels:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
+            matchExpressions:
+              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-api, verrazzano-console, system-es-master, system-grafana, system-kibana, ]}
+        - namespaceSelector:
             matchLabels:
-              app: system-prometheus
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              app: mysql
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: cattle-system
+          podSelector:
+            matchLabels:
+              app: rancher
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
     - ports:
         - port: 443
           protocol: TCP
