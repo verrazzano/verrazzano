@@ -16,7 +16,7 @@ def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
                        : ["kind", "magicdns_oke", "ocidns_oke"]
 def acmeEnvironments = [ "staging", "production" ]
 def certIssuers = [ "self-signed", "acme" ]
-def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : "largeexperimental"
 def availableRegions = [  "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
@@ -127,7 +127,7 @@ pipeline {
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
         INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_XIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
         INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
 
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
@@ -305,12 +305,12 @@ pipeline {
             }
         }
 
-        stage("setup-xip-io-config") {
+        stage("setup-nip-io-config") {
             when { expression { return params.TEST_ENV == 'magicdns_oke' } }
             steps {
                 script {
                     sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_xipio_install_yaml.sh $INSTALL_CONFIG_FILE_XIPIO
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
                     """
                 }
             }
@@ -335,7 +335,7 @@ pipeline {
                     echo "Installing Verrazzano on ${TEST_ENV}"
                     # apply config to create cluster
                     if [ "${TEST_ENV}" == "magicdns_oke" ]; then
-                      kubectl apply -f ${INSTALL_CONFIG_FILE_XIPIO}
+                      kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
                     elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
                       kubectl apply -f ${INSTALL_CONFIG_FILE_OCIDNS}
                     elif [ "${TEST_ENV}" == "kind" ]; then

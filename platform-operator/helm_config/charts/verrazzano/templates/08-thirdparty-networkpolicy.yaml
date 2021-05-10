@@ -405,6 +405,10 @@ spec:
     - from:
       - namespaceSelector:
           matchLabels:
+            verrazzano.io/namespace: cattle-system
+    - from:
+      - namespaceSelector:
+          matchLabels:
             verrazzano.io/namespace: ingress-nginx
       - podSelector:
           matchLabels:
@@ -412,6 +416,18 @@ spec:
       ports:
         - protocol: TCP
           port: 80
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: cattle-system
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+
 ---
 # Network policy for Rancher operator
 # Ingress: deny all

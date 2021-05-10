@@ -9,3 +9,5 @@ Here are some example applications for use with Verrazzano:
 * [Spring Boot](../examples/springboot-app/README.md)
 * [ToDo List](../examples/todo-list/README.md)
 * [Multicluster Examples](../examples/multicluster/README.md)
+
+Copyright (c) 2021, Oracle and/or its affiliates.

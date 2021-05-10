@@ -12,11 +12,11 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "VM.Standard2.8"
+            label "largeexperimental"
         }
     }
 
@@ -29,7 +29,7 @@ pipeline {
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
-                choices: [ "nip.io", "xip.io", "sslip.io"])
+                choices: [ "nip.io", "sslip.io"])
     }
 
     environment {
