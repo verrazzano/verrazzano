@@ -5,7 +5,7 @@ controller:
   image:
     repository: ghcr.io/verrazzano/nginx-ingress-controller
     tag: 0.46.0-20210510134749-abc2d2088
-    digest: sha256:b26939e1333c4e1fd7a8027a25254d771503a6082ebeafa8c520e58b7e3f
+    digest: sha256:b26939e1333c4e1fd7a8027a25254d771503a6082ebeafa8c520e58b7e3fbf23
   config:
     client-body-buffer-size: 64k
   metrics:
