@@ -75,19 +75,9 @@ function install_keycloak {
   fi
 
   if ! is_chart_deployed keycloak ${KEYCLOAK_NS} ${KEYCLOAK_CHART_DIR} ; then
-    # Replace strings in keycloak.json file
-    VZ_PW_SALT=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.salt}")
-    VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.hash}")
-    VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "adminsGroup: &default_adminsGroup " | awk '{ print $3 }')
-
-    sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g;s|VZ_ADMIN_GROUP|${VZ_ADMIN_GROUP}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
-
-    # Create keycloak secret
-    kubectl create secret generic --save-config --dry-run=client keycloak-realm-cacert -n ${KEYCLOAK_NS} \
-      --from-file=realm.json=${TMP_DIR}/keycloak-sed.json -o yaml | kubectl apply -f -
 
     # Create a random secret for the keycloakadmin user
-    update_secret_from_literal ${KCADMIN_SECRET} ${KEYCLOAK_NS} "$(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)"
+    update_secret_from_literal ${KCADMIN_SECRET} ${KEYCLOAK_NS} "$(generate_password)"
 
     # Check if using the optional imagePullSecret
     local KEYCLOAK_ARGUMENTS=""
@@ -124,10 +114,11 @@ function install_keycloak {
         --wait
   fi
 
-  VPROMUSR=$(echo -n $VERRAZZANO_INTERNAL_PROM_USER | base64)
-  VPROM=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
-  VESUSR=$(echo -n $VERRAZZANO_INTERNAL_ES_USER | base64)
-  VES=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)
+  VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "adminsGroup: &default_adminsGroup " | awk '{ print $3 }')
+  VZ_MONITOR_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "monitorsGroup: &default_monitorsGroup " | awk '{ print $3 }')
+
+  VPROM=$(generate_password)
+  VES=$(generate_password)
 
   # Create a random secret for the verrazzano-prom-internal user
   kubectl apply -f <(echo "
@@ -138,10 +129,9 @@ metadata:
   namespace: ${VERRAZZANO_NS}
 type: Opaque
 data:
-  username: ${VPROMUSR}
-  password: ${VPROM}
+  username: $(echo -n ${VERRAZZANO_INTERNAL_PROM_USER} | base64)
+  password: $(echo -n ${VPROM} | base64)
 ")
-
 
   # Create a random secret for the verrazzano-es-internal user
   kubectl apply -f <(echo "
@@ -152,38 +142,12 @@ metadata:
   namespace: ${VERRAZZANO_NS}
 type: Opaque
 data:
-  username: ${VESUSR}
-  password: ${VES}
+  username: $(echo -n ${VERRAZZANO_INTERNAL_ES_USER} | base64)
+  password: $(echo -n ${VES} | base64)
 ")
 
-  kubectl exec keycloak-0 \
-    -n ${KEYCLOAK_NS} \
-    -c keycloak \
-    -- bash -c \
-    "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
-
-  kubectl exec keycloak-0 \
-    -n ${KEYCLOAK_NS} \
-    -c keycloak \
-    -- bash -c \
-    "/opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --client admin-cli --password \$(cat /etc/${KCADMIN_SECRET}/password) && \
-     /opt/jboss/keycloak/bin/kcadm.sh create users -r verrazzano-system -s username=${VERRAZZANO_INTERNAL_PROM_USER} -s enabled=true && \
-     /opt/jboss/keycloak/bin/kcadm.sh set-password -r verrazzano-system --username ${VERRAZZANO_INTERNAL_PROM_USER} --new-password $(echo -n "${VPROM}" | base64 --decode) && \
-     /opt/jboss/keycloak/bin/kcadm.sh create users -r verrazzano-system -s username=${VERRAZZANO_INTERNAL_ES_USER} -s enabled=true && \
-     /opt/jboss/keycloak/bin/kcadm.sh set-password -r verrazzano-system --username ${VERRAZZANO_INTERNAL_ES_USER} --new-password $(echo -n "${VES}" | base64 --decode) "
-
-
-  # Update the password policies.
-  log "Setting password policies"
-  local POLICY="length(8) and notUsername"
-  local COMMAND="/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s 'passwordPolicy=\"${POLICY}\"' --no-config --server http://localhost:8080/auth --realm ${KCADMIN_REALM} --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
-  if ! kubectl exec keycloak-0 -n ${KEYCLOAK_NS} -c keycloak -- bash -c "${COMMAND}" ; then
-    fail "Failed to set password policy for realm master"
-  fi
-  local COMMAND="/opt/jboss/keycloak/bin/kcadm.sh update realms/Verrazzano-system -s 'passwordPolicy=\"${POLICY}\"' --no-config --server http://localhost:8080/auth --realm ${KCADMIN_REALM} --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
-  if ! kubectl exec keycloak-0 -n ${KEYCLOAK_NS} -c keycloak -- bash -c "${COMMAND}" ; then
-    fail "Failed to set password policy for realm Verrazzano-system"
-  fi
+  # Create the verrazzano-system realm and populate it with users, groups, clients, etc.
+  configure_keycloak_realms $VZ_SYS_REALM $VZ_ADMIN_GROUP $VZ_MONITOR_GROUP
 
   # Label the keycloak namespace so that we can apply network policies
   log "Adding label needed by network policies to keycloak namespace"
@@ -191,6 +155,155 @@ data:
 
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
+}
+
+function configure_keycloak_realms() {
+  local _VZ_REALM="$1"
+  local _VZ_ADMIN_GRP="$2"
+  local _VZ_MONITOR_GRP="$3"
+
+  local PW=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.password}" | base64 -d)
+
+  kubectl exec --stdin keycloak-0 -n keycloak -c keycloak -- bash -s <<EOF
+    export PATH="/opt/jboss/keycloak/bin:\$PATH"
+    unset JAVA_TOOL_OPTIONS
+
+    function log () {
+      echo "\$1"
+    }
+
+    function fail () {
+      log "\$1"
+      exit 1
+    }
+
+    log "Logging in as '$KCADMIN_USERNAME'"
+    kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password) || fail "Login failed"
+
+    log "Creating $_VZ_REALM realm"
+    kcadm.sh create realms -s realm=$_VZ_REALM -s enabled=false || fail "Failed to create realm"
+
+    log "Creating group $_VZ_ADMIN_GRP"
+    kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_ADMIN_GRP || fail "Failed to create group"
+
+    log "Creating group $_VZ_MONITOR_GRP"
+    kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_MONITOR_GRP || fail "Failed to create group"
+
+    log "Creating console_users role"
+    kcadm.sh create roles -r $_VZ_REALM -s name=console_users || fail "Failed to create role"
+
+    log "Adding console_users to default roles"
+    EXISTING=\$(kcadm.sh get realms/$_VZ_REALM --fields defaultRoles --format csv) || fail "Failed to get existing default roles"
+    kcadm.sh update realms/$_VZ_REALM -s "defaultRoles=[ \${EXISTING},\"console_users\" ]" || fail "Failed to update default roles"
+
+    log "Creating verrazzano user"
+    kcadm.sh create users -r $_VZ_REALM -s username=verrazzano -s groups[0]=verrazzano-admins -s enabled=true || fail "Failed to create user"
+
+    log "Granting realm admin roles to verrazzano user"
+    kcadm.sh add-roles -r $_VZ_REALM --uusername verrazzano --cclientid realm-management --rolename manage-realm --rolename manage-users || fail "Failed to grant roles"
+
+    log "Setting verrazzano user password"
+    kcadm.sh set-password -r $_VZ_REALM --username verrazzano --new-password $PW || fail "Failed to set user password"
+
+    log "Creating ${VERRAZZANO_INTERNAL_PROM_USER} user"
+    kcadm.sh create users -r $_VZ_REALM -s username=${VERRAZZANO_INTERNAL_PROM_USER} -s enabled=true || fail "Failed to create user"
+
+    log "Setting ${VERRAZZANO_INTERNAL_PROM_USER} user password"
+    kcadm.sh set-password -r $_VZ_REALM --username ${VERRAZZANO_INTERNAL_PROM_USER} --new-password ${VPROM} || fail "Failed to set user password"
+
+    log "Creating ${VERRAZZANO_INTERNAL_ES_USER} user"
+    kcadm.sh create users -r $_VZ_REALM -s username=${VERRAZZANO_INTERNAL_ES_USER} -s enabled=true || fail "Failed to create user"
+
+    log "Setting ${VERRAZZANO_INTERNAL_ES_USER} user password"
+    kcadm.sh set-password -r $_VZ_REALM --username ${VERRAZZANO_INTERNAL_ES_USER} --new-password ${VES} || fail "Failed to set user password"
+
+    log "Creating webui client"
+    kcadm.sh create clients -r $_VZ_REALM \
+      -s clientId=webui \
+      -s enabled=true \
+      -s publicClient=true \
+      -s "redirectUris=[ \
+        \"https://verrazzano.$ENV_NAME.$DNS_SUFFIX/*\", \
+        \"https://verrazzano.$ENV_NAME.$DNS_SUFFIX/verrazzano/authcallback\", \
+        \"https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX/*\", \
+        \"https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback\", \
+        \"https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX/*\", \
+        \"https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback\", \
+        \"https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*\", \
+        \"https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback\", \
+        \"https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*\", \
+        \"https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback\" \
+      ]" \
+      -s "webOrigins=[ \
+        \"https://verrazzano.$ENV_NAME.$DNS_SUFFIX\", \
+        \"https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX\", \
+        \"https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX\", \
+        \"https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX\", \
+        \"https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX\" \
+      ]" \
+      -s "protocolMappers=[ { \
+        \"name\": \"groupmember\", \
+        \"protocol\": \"openid-connect\", \
+        \"protocolMapper\": \"oidc-group-membership-mapper\", \
+        \"consentRequired\": false, \
+        \"config\": { \
+          \"full.path\": \"false\", \
+          \"id.token.claim\": \"true\", \
+          \"access.token.claim\": \"true\", \
+          \"claim.name\": \"groups\", \
+          \"userinfo.token.claim\": \"true\" \
+          } \
+        }, { \
+        \"name\": \"realm roles\", \
+        \"protocol\": \"openid-connect\", \
+        \"protocolMapper\": \"oidc-usermodel-realm-role-mapper\", \
+        \"consentRequired\": false, \
+        \"config\": { \
+          \"multivalued\": \"true\", \
+          \"id.token.claim\": \"true\", \
+          \"access.token.claim\": \"true\", \
+          \"claim.name\": \"realm_access.roles\" \
+          } \
+        } ]"
+    [ \$? -eq 0 ] || fail "Failed to create client"
+
+    log "Creating verrazzano-oath-client client"
+    kcadm.sh create clients -r $_VZ_REALM \
+      -s clientId=verrazzano-oauth-client \
+      -s enabled=true \
+      -s publicClient=true \
+      -s directAccessGrantsEnabled=true \
+      -s "redirectUris=[ \
+          \"https://kiali.$ENV_NAME.$DNS_SUFFIX/*\", \
+          \"https://telemetry.$ENV_NAME.$DNS_SUFFIX/*\", \
+          \"https://rancher.$ENV_NAME.$DNS_SUFFIX/*\" \
+      ]" \
+      -s "webOrigins=[ \"+\" ]"
+    [ \$? -eq 0 ] || fail "Failed to create client"
+
+    # default password policy
+    POLICY="length(8) and notUsername"
+
+    log "Setting password policy for master"
+    kcadm.sh update realms/master -s "passwordPolicy=\${POLICY}" || fail "Failed to set password policy for master"
+
+    log "Setting password policy for $_VZ_REALM"
+    kcadm.sh update realms/$_VZ_REALM -s "passwordPolicy=\${POLICY}" || fail "Failed to set password policy for $_VZ_REALM"
+
+    log "Configuring login theme for master"
+    kcadm.sh update realms/master -s loginTheme=oracle || fail "Failed to configure login theme"
+
+    log "Configuring login theme for $_VZ_REALM"
+    kcadm.sh update realms/$_VZ_REALM -s loginTheme=oracle || fail "Failed to configure login theme"
+
+    log "Enabling $_VZ_REALM realm"
+    kcadm.sh update realms/$_VZ_REALM -s enabled=true || fail "Failed to enable $_VZ_REALM realm"
+
+    log "Removing login config file"
+    rm \$HOME/.keycloak/kcadm.config || fail "Failed to remove login config file"
+
+EOF
+
 }
 
 DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
