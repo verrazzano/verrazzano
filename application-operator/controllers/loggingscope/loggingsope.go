@@ -6,6 +6,8 @@ package loggingscope
 import (
 	"context"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -18,15 +20,34 @@ const (
 	configMapKind       = "ConfigMap"
 )
 
+// LoggingScopeSpec defines the desired state of LoggingScope
+type LoggingScopeSpec struct {
+	// The fluentd image
+	FluentdImage string `json:"fluentdImage,omitempty"`
+
+	// URL for Elasticsearch
+	ElasticSearchURL string `json:"elasticSearchURL,omitempty"`
+
+	// Name of secret with Elasticsearch credentials
+	SecretName string `json:"secretName,omitempty"`
+}
+
+// LoggingScope is the Schema for the loggingscopes API
+type LoggingScope struct {
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec LoggingScopeSpec `json:"spec,omitempty"`
+}
+
 // Handler abstracts the FLUENTD integration for components
 type Handler interface {
-	Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (*ctrl.Result, error)
-	Remove(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (bool, error)
+	Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingScope) (*ctrl.Result, error)
+	Remove(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingScope) (bool, error)
 }
 
 // NewLoggingScope creates and populates a new logging scope
-func NewLoggingScope(ctx context.Context, cli client.Reader, fluentdImageOrverride string) (*vzapi.LoggingScope, error) {
-	scope := vzapi.LoggingScope{}
+func NewLoggingScope(ctx context.Context, cli client.Reader, fluentdImageOrverride string) (*LoggingScope, error) {
+	scope := LoggingScope{}
 
 	// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
 	// not the fields will be empty and we will set these fields to defaults below

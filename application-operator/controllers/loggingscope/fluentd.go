@@ -61,8 +61,8 @@ func init() {
 
 // FluentdManager is a general interface to interact with FLUENTD related resources
 type FluentdManager interface {
-	Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error)
-	Remove(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) bool
+	Apply(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error)
+	Remove(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) bool
 }
 
 // Fluentd is an implementation of FluentdManager.
@@ -87,7 +87,7 @@ type FluentdPod struct {
 
 // Apply applies FLUENTD configuration to create/update FLUENTD container, configmap, volumes and volume mounts.
 // Returns true if any changes are made; false otherwise.
-func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
+func (f *Fluentd) Apply(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
 	upToDate := f.isFluentdContainerUpToDate(fluentdPod.Containers, scope)
 	if !upToDate {
 		err := f.ensureFluentdConfigMapExists(resource.Namespace)
@@ -104,7 +104,7 @@ func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResou
 
 // Remove removes FLUENTD container, configmap, volumes and volume mounts.
 // Returns whether the remove action has been verified so that the caller knows when it is safe to forget the association.
-func (f *Fluentd) Remove(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) bool {
+func (f *Fluentd) Remove(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) bool {
 	configMapVerified := f.removeFluentdConfigMap(resource.Namespace, scope)
 	volumesVerified := f.removeFluentdVolumes(fluentdPod)
 	mountsVerified := f.removeFluentdVolumeMounts(fluentdPod)
@@ -116,7 +116,7 @@ func (f *Fluentd) Remove(scope *vzapi.LoggingScope, resource vzapi.QualifiedReso
 // ensureFluentdContainer ensures that the FLUENTD container is in the expected state. If a FLUENTD container already
 // exists, replace it with a container created with the current scope information. If no FLUENTD container already
 // exists, create one and add it to the FluentdPod.
-func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.LoggingScope, namespace string) {
+func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, scope *LoggingScope, namespace string) {
 	containers := fluentdPod.Containers
 	fluentdContainerIndex := -1
 	// iterate over existing containers looking for FLUENTD container
@@ -295,7 +295,7 @@ func (f *Fluentd) removeFluentdVolumes(fluentdPod *FluentdPod) bool {
 }
 
 // removeFluentdConfigMap removes the FLUENTD configmap
-func (f *Fluentd) removeFluentdConfigMap(namespace string, scope *vzapi.LoggingScope) bool {
+func (f *Fluentd) removeFluentdConfigMap(namespace string, scope *LoggingScope) bool {
 	configMapExists, err := resourceExists(f.Context, f, configMapAPIVersion, configMapKind, configMapName+"-"+f.WorkloadType, namespace)
 
 	if configMapExists {
@@ -306,7 +306,7 @@ func (f *Fluentd) removeFluentdConfigMap(namespace string, scope *vzapi.LoggingS
 }
 
 // isFluentdContainerUpToDate is used to determine if the FLUENTD container is in the current expected state
-func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *vzapi.LoggingScope) bool {
+func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *LoggingScope) bool {
 	for _, container := range containers {
 		if container.Name != FluentdContainerName {
 			continue
@@ -348,7 +348,7 @@ func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *v
 }
 
 // createFluentdContainer creates the FLUENTD container
-func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.LoggingScope, namespace string) corev1.Container {
+func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *LoggingScope, namespace string) corev1.Container {
 	container := corev1.Container{
 		Name:            "fluentd",
 		Args:            []string{"-c", "/etc/fluent.conf"},

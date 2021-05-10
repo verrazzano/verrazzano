@@ -17,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterloggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/verrazzanoproject"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
@@ -281,15 +280,6 @@ func main() {
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterConfigMap")
-		os.Exit(1)
-	}
-	if err = (&multiclusterloggingscope.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterLoggingScope"),
-		Scheme:       mgr.GetScheme(),
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterLoggingScope")
 		os.Exit(1)
 	}
 	if err = (&multiclusterapplicationconfiguration.Reconciler{

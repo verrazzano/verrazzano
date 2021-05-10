@@ -10,7 +10,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
@@ -238,7 +237,7 @@ func createTestFluentdPodForUpdate() *FluentdPod {
 }
 
 // addFluentdArtifactsToFluentdPod adds FLUENTD artifacts to a FluentdPod
-func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, scope *v1alpha1.LoggingScope, namespace string) {
+func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, scope *LoggingScope, namespace string) {
 	fluentd.ensureFluentdVolumes(fluentdPod)
 	fluentdPod.VolumeMounts = append(fluentdPod.VolumeMounts, fluentd.createStorageVolumeMount())
 	fluentdPod.Containers = append(fluentdPod.Containers, fluentd.createFluentdContainer(fluentdPod, scope, namespace))

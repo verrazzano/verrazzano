@@ -267,9 +267,8 @@ func TestHelidoHandlerRemoveNoDeployment(t *testing.T) {
 }
 
 // newLoggingScope creates a test logging scope
-func newLoggingScope(namespace, esHost, esSecret string) *vzapi.LoggingScope {
-	scope := vzapi.LoggingScope{}
-	scope.TypeMeta = kmeta.TypeMeta{APIVersion: vzapi.GroupVersion.Identifier(), Kind: vzapi.LoggingScopeKind}
+func newLoggingScope(namespace, esHost, esSecret string) *LoggingScope {
+	scope := LoggingScope{}
 	scope.ObjectMeta = kmeta.ObjectMeta{Namespace: namespace, Name: "testScopeName"}
 	scope.Spec.ElasticSearchURL = "http://esHost:9200"
 	scope.Spec.SecretName = esSecret

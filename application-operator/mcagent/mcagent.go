@@ -156,10 +156,6 @@ func (s *Syncer) SyncMultiClusterResources() {
 		if err != nil {
 			s.Log.Error(err, "Error syncing MultiClusterConfigMap objects")
 		}
-		err = s.syncMCLoggingScopeObjects(namespace)
-		if err != nil {
-			s.Log.Error(err, "Error syncing MultiClusterLoggingScope objects")
-		}
 		err = s.syncMCComponentObjects(namespace)
 		if err != nil {
 			s.Log.Error(err, "Error syncing MultiClusterComponent objects")
