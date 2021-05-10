@@ -117,7 +117,7 @@ type HelidonHandler struct {
 }
 
 // Apply applies a logging scope to a Kubernetes Deployment
-func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingScope) (*ctrl.Result, error) {
+func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingInfo) (*ctrl.Result, error) {
 	deploy, err := h.getDeployment(ctx, workload, scope)
 	if err != nil {
 		h.Log.Error(err, "Failed to fetch Deployment", "Deployment", workload.Name)
@@ -142,7 +142,7 @@ func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedReso
 }
 
 // ApplyToDeployment applies a logging scope to an existing in-memory Kubernetes Deployment
-func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingScope, deploy *kapps.Deployment) (*ctrl.Result, error) {
+func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingInfo, deploy *kapps.Deployment) (*ctrl.Result, error) {
 	appContainers, fluentdFound := searchContainers(deploy.Spec.Template.Spec.Containers)
 	h.Log.V(1).Info("Update Deployment", "Deployment", deploy.Name, "fluentdFound", fluentdFound)
 	if fluentdFound {
@@ -183,7 +183,7 @@ func searchContainers(containers []kcore.Container) ([]string, bool) {
 }
 
 // Remove removes a logging scope from a Kubernetes Deployment
-func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingScope) (bool, error) {
+func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingInfo) (bool, error) {
 	deploy, err := h.getDeployment(ctx, workload, scope)
 	if err != nil {
 		h.Log.Error(err, "Failed to fetch Deployment", "Deployment", workload.Name)
@@ -221,7 +221,7 @@ func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedRes
 }
 
 // getDeployment gets the Kubernetes Deployment
-func (h *HelidonHandler) getDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingScope) (*kapps.Deployment, error) {
+func (h *HelidonHandler) getDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingInfo) (*kapps.Deployment, error) {
 	deploy := &kapps.Deployment{}
 	deploy.Namespace = scope.GetNamespace()
 	deploy.Name = workload.Name
@@ -248,7 +248,7 @@ func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.Config
 }
 
 // CreateFluentdContainer creates a FLUENTD sidecar container.
-func CreateFluentdContainer(spec LoggingScopeSpec, namespace, workloadName string) kcore.Container {
+func CreateFluentdContainer(spec LoggingInfoSpec, namespace, workloadName string) kcore.Container {
 	container := kcore.Container{
 		Name:            FluentdContainerName,
 		Args:            []string{"-c", "/etc/fluent.conf"},
@@ -419,7 +419,7 @@ func fluentdConfigMapName(workloadName string) string {
 	return fmt.Sprintf("fluentd-config-helidon-%s", workloadName)
 }
 
-func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, scope *LoggingScope, workloadName string, appContainersNames []string, requiresCABundle bool) error {
+func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, scope *LoggingInfo, workloadName string, appContainersNames []string, requiresCABundle bool) error {
 	// check if configmap exists
 	name := fluentdConfigMapName(workloadName)
 	configMap := &kcore.ConfigMap{}

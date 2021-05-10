@@ -18,8 +18,8 @@ const (
 )
 
 // createTestLoggingScope creates a test logging scope
-func createTestLoggingScope(includeWorkload bool) *LoggingScope {
-	scope := LoggingScope{}
+func createTestLoggingScope(includeWorkload bool) *LoggingInfo {
+	scope := LoggingInfo{}
 	scope.ObjectMeta = k8smeta.ObjectMeta{
 		Namespace: testNamespace,
 		Name:      testScopeName}
@@ -30,7 +30,7 @@ func createTestLoggingScope(includeWorkload bool) *LoggingScope {
 	return &scope
 }
 
-func updateLoggingScope(scope *LoggingScope) {
+func updateLoggingScope(scope *LoggingInfo) {
 	scope.Spec.ElasticSearchURL = testESURLUpdate
 	scope.Spec.SecretName = testESSecretUpdate
 }

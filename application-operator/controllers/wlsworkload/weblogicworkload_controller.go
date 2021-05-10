@@ -215,7 +215,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 	return nil
 }
 
-// addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LoggingScope
+// addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LoggingInfo
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, upgradeApp bool, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
 	// If the Domain already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
 	// current Domain

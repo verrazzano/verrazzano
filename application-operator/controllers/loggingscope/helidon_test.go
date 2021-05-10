@@ -267,8 +267,8 @@ func TestHelidoHandlerRemoveNoDeployment(t *testing.T) {
 }
 
 // newLoggingScope creates a test logging scope
-func newLoggingScope(namespace, esHost, esSecret string) *LoggingScope {
-	scope := LoggingScope{}
+func newLoggingScope(namespace, esHost, esSecret string) *LoggingInfo {
+	scope := LoggingInfo{}
 	scope.ObjectMeta = kmeta.ObjectMeta{Namespace: namespace, Name: "testScopeName"}
 	scope.Spec.ElasticSearchURL = "http://esHost:9200"
 	scope.Spec.SecretName = esSecret
