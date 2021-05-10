@@ -489,14 +489,17 @@ pipeline {
             post {
                 failure {
                     script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
-                        }
+                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+                    }
+                }
+                aborted {
+                    script {
+                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                     }
                 }
                 success {
                     script {
-                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                         }
                     }
@@ -797,12 +800,14 @@ def createOKEClusters() {
 
 def dumpK8sCluster(dumpDirectory) {
     script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for(int count=1; count<=clusterCount; count++) {
-            sh """
+        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            for (int count = 1; count <= clusterCount; count++) {
+                sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count} -r ${dumpDirectory}-${count}/cluster-dump/analysis.report
             """
+            }
         }
     }
 }

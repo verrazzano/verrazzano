@@ -69,7 +69,7 @@ function delete_multicluster_resources {
     if [ $? -eq 0 ]; then
       is_managed_cluster="true"
     fi
-    echo "is_managed_cluster is ${is_managed_cluster}"
+    log "is_managed_cluster is ${is_managed_cluster}"
     if [ "$is_managed_cluster" == "true" ] ; then
       log "Deleting managed cluster secrets"
       kubectl delete secret -n verrazzano-system verrazzano-cluster-agent verrazzano-cluster-registration verrazzano-cluster-elasticsearch --ignore-not-found=true
