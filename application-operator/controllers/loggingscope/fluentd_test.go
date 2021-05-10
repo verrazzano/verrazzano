@@ -239,7 +239,7 @@ func createTestFluentdPodForUpdate() *FluentdPod {
 
 // addFluentdArtifactsToFluentdPod adds FLUENTD artifacts to a FluentdPod
 func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, scope *v1alpha1.LoggingScope, namespace string) {
-	fluentd.ensureFluentdVolumes(fluentdPod, scope)
+	fluentd.ensureFluentdVolumes(fluentdPod)
 	fluentdPod.VolumeMounts = append(fluentdPod.VolumeMounts, fluentd.createStorageVolumeMount())
 	fluentdPod.Containers = append(fluentdPod.Containers, fluentd.createFluentdContainer(fluentdPod, scope, namespace))
 }

@@ -326,12 +326,12 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 		}
 	}
 
-	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, workload.Namespace, workload.Labels, existingFluentdImage)
+	scope, err := loggingscope.NewLoggingScope(ctx, r.Client, existingFluentdImage)
 	if err != nil {
 		return err
 	}
 
-	if loggingScope == nil {
+	if scope == nil {
 		log.Info("No logging scope found for workload, nothing to do")
 		return nil
 	}
@@ -367,7 +367,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err = fluentdManager.Apply(loggingScope, resource, fluentdPod); err != nil {
+	if _, err = fluentdManager.Apply(scope, resource, fluentdPod); err != nil {
 		return err
 	}
 

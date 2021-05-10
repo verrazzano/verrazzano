@@ -90,11 +90,11 @@ type FluentdPod struct {
 func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
 	upToDate := f.isFluentdContainerUpToDate(fluentdPod.Containers, scope)
 	if !upToDate {
-		err := f.ensureFluentdConfigMapExists(resource.Namespace, scope)
+		err := f.ensureFluentdConfigMapExists(resource.Namespace)
 		if err != nil {
 			return false, err
 		}
-		f.ensureFluentdVolumes(fluentdPod, scope)
+		f.ensureFluentdVolumes(fluentdPod)
 		f.ensureFluentdVolumeMountExists(fluentdPod)
 		f.ensureFluentdContainer(fluentdPod, scope, resource.Namespace)
 		return true, nil
@@ -141,7 +141,7 @@ func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 // ensureFluentdVolumes ensures that the FLUENTD volumes exist. We expect 2 volumes, a FLUENTD volume and a
 // FLUENTD config map volume. If these already exist, nothing needs to be done. If they don't already exist,
 // create them and add to the FluentdPod.
-func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod, scope *vzapi.LoggingScope) {
+func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod) {
 	volumes := fluentdPod.Volumes
 	configMapVolumeExists := false
 	fluentdVolumeExists := false
@@ -182,7 +182,7 @@ func (f *Fluentd) ensureFluentdVolumeMountExists(fluentdPod *FluentdPod) {
 
 // ensureFluentdConfigMapExists ensures that the FLUENTD configmap exists. If it already exists, there is nothing
 // to do. If it doesn't exist, create it.
-func (f *Fluentd) ensureFluentdConfigMapExists(namespace string, scope *vzapi.LoggingScope) error {
+func (f *Fluentd) ensureFluentdConfigMapExists(namespace string) error {
 	// check if configmap exists
 	configMapExists, err := resourceExists(f.Context, f, configMapAPIVersion, configMapKind, configMapName+"-"+f.WorkloadType, namespace)
 	if err != nil {
