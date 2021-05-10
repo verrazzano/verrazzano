@@ -43,6 +43,12 @@ function install_mysql {
   if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
     log "Create Keycloak namespace"
     kubectl create namespace ${KEYCLOAK_NS}
+    # Label the keycloak namespace so that we istio injection is enabled
+    log "Adding label needed for istio sidecar injection to keycloak namespace"
+    kubectl label namespace keycloak "istio-injection=enabled" --overwrite
+    # Label the keycloak namespace so that we can apply network policies
+    log "Adding label needed by network policies to keycloak namespace"
+    kubectl label namespace keycloak "verrazzano.io/namespace=keycloak" --overwrite
   fi
 
   # Handle any additional MySQL install args that cannot be in mysql-values.yaml
@@ -191,6 +197,8 @@ data:
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
 }
 
+# configure the prometheus deployment to limit istio proxy based communication to the keycloak service only.  Other
+# outbound requests (scrapings) are done by prometheus using the mounted istio certs.
 function patch_prometheus {
   # get the keycloak service IP
   keycloak_service_ip=$(kubectl get service/keycloak-http -n keycloak -o jsonpath='{.spec.clusterIP}')
