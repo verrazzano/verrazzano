@@ -23,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
@@ -216,9 +215,6 @@ func main() {
 			IstioClient: istioClientSet,
 			Defaulters: []webhooks.AppConfigDefaulter{
 				&webhooks.MetricsTraitDefaulter{},
-				&webhooks.LoggingScopeDefaulter{
-					Client: mgr.GetClient(),
-				},
 				&webhooks.NetPolicyDefaulter{
 					Client:          mgr.GetClient(),
 					NamespaceClient: kubeClient.CoreV1().Namespaces(),
@@ -228,14 +224,6 @@ func main() {
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
 	}
 
-	logReconciler := loggingscope.NewReconciler(
-		mgr.GetClient(),
-		ctrl.Log.WithName("controllers").WithName("LoggingScope"),
-		mgr.GetScheme())
-	if err = logReconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "LoggingScope")
-		os.Exit(1)
-	}
 	if err = (&cohworkload.Reconciler{
 		Client:  mgr.GetClient(),
 		Log:     ctrl.Log.WithName("controllers").WithName("VerrazzanoCoherenceWorkload"),
