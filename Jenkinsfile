@@ -76,6 +76,7 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
+        OCI_OS_BUCKET="verrazzano-builds"
 
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -166,11 +167,6 @@ pipeline {
                     }
                 }
             }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/tools/analysis
@@ -225,11 +221,6 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                 }
-            }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
                 sh """
@@ -375,9 +366,6 @@ pipeline {
                     environment {
                         VERRAZZANO_OPERATOR_IMAGE="NONE"
                         KIND_KUBERNETES_CLUSTER_VERSION="1.18"
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
                         OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
                     }
                     steps {
