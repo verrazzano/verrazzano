@@ -611,11 +611,11 @@ pipeline {
             sh """
                 if [ env.JOB_NAME == "verrazzano/master" ]; then
                     cd ${GO_REPO_PATH}/verrazzano
-                    echo ${env.GIT_COMMIT} > $WORKSPACE/last-stable-commit.txt
+                    echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
                 else
                     cd ${GO_REPO_PATH}/verrazzano
-                    echo ${env.GIT_COMMIT} > $WORKSPACE/last-stable-commit.txt
+                    echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
                 fi
             """
