@@ -264,7 +264,7 @@
                 "containers": [
                     {
                         "name": "controller",
-                        "image": "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210507204145-c1b5f14ce",
+                        "image": "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210510134749-abc2d2088",
                         "args": [
                             "/nginx-ingress-controller",
                             "--default-backend-service=ingress-nginx/ingress-controller-ingress-nginx-defaultbackend",
@@ -458,7 +458,7 @@
                         },
                         "ready": false,
                         "restartCount": 7,
-                        "image": "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210507204145-c1b5f14ce",
+                        "image": "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210510134749-abc2d2088",
                         "imageID": "sha256:e1cba51257062e273476df8a9a21ea2316bef129dcd8f3ec6f7c8b563ba9d766",
                         "containerID": "containerd://8be87a6dd7cdac4e0e076a7b0f2b340d8871dd655dcc1d43d70a58ac97a10373",
                         "started": false
@@ -646,7 +646,7 @@
                 "containers": [
                     {
                         "name": "ingress-nginx-default-backend",
-                        "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210507204145-c1b5f14ce",
+                        "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210510134749-abc2d2088",
                         "ports": [
                             {
                                 "name": "http",
@@ -765,7 +765,7 @@
                         "lastState": {},
                         "ready": true,
                         "restartCount": 0,
-                        "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210507204145-c1b5f14ce",
+                        "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20210510134749-abc2d2088",
                         "imageID": "sha256:8c7735e236baacea0c8a8b20dbf16a451601dfc78c4b5332e4cbd41a8c8791b9",
                         "containerID": "containerd://26a19c6c6c0c3fc892caac265d485a7e23750cde4c52fbf11a990b5f6eb72846",
                         "started": true
