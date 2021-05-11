@@ -17,7 +17,7 @@ spec:
           namespace: bobs-books
         spec:
           replicas: 2
-          image: container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
+          image: container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210304163530-9bd2c07
           imagePullPolicy: IfNotPresent
           imagePullSecrets:
             - name: bobs-books-repo-credentials
