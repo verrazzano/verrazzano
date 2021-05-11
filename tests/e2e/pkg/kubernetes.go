@@ -4,12 +4,8 @@
 package pkg
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/remotecommand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -133,14 +129,17 @@ func DoesNamespaceExistInCluster(name string, kubeconfigPath string) bool {
 	return namespace != nil
 }
 
-// ListNamespaces returns a namespace list for the given list options
-func ListNamespaces(opts metav1.ListOptions) (*corev1.NamespaceList, error) {
-	return GetKubernetesClientset().CoreV1().Namespaces().List(context.TODO(), opts)
-}
+// ListNamespaces returns whether a namespace with the given name exists for the cluster
+func ListNamespaces() *corev1.NamespaceList {
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientset()
 
-// ListPods returns a pod list for the given namespace and list options
-func ListPods(namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
-	return GetKubernetesClientset().CoreV1().Pods(namespace).List(context.TODO(), opts)
+	namespaces, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get namespaces with error: %v", err))
+	}
+
+	return namespaces
 }
 
 // DoesJobExist returns whether a job with the given name and namespace exists for the cluster
@@ -178,25 +177,6 @@ func ListNodes() *corev1.NodeList {
 		ginkgo.Fail(fmt.Sprintf("Failed to list nodes with error: %v", err))
 	}
 	return nodes
-}
-
-// GetPodsFromSelector returns a collection of pods for the given namespace and selector
-func GetPodsFromSelector(selector *metav1.LabelSelector, namespace string) ([]corev1.Pod, error) {
-	var pods *corev1.PodList
-	var err error
-	if selector == nil {
-		pods, err = ListPods(namespace, metav1.ListOptions{})
-	} else {
-		var labelMap map[string]string
-		labelMap, err = metav1.LabelSelectorAsMap(selector)
-		if err == nil {
-			pods, err = ListPods(namespace, metav1.ListOptions{LabelSelector: labels.SelectorFromSet(labelMap).String()})
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	return pods.Items, nil
 }
 
 // ListPodsInCluster returns the list of pods in a given namespace for the cluster
@@ -586,32 +566,6 @@ func DoesRoleBindingExist(name string, namespace string) bool {
 	}
 
 	return rolebinding != nil
-}
-
-// Execute executes the given command on the pod and container identified by the given names and returns the
-// resulting stdout and stderr
-func Execute(podName, containerName, namespace string, command []string) (string, string, error) {
-	request := GetKubernetesClientset().CoreV1().RESTClient().Post().Resource("pods").Name(podName).
-		Namespace(namespace).SubResource("exec")
-	request.VersionedParams(
-		&corev1.PodExecOptions{
-			Command:   command,
-			Container: containerName,
-			Stdin:     false,
-			Stdout:    true,
-			Stderr:    true,
-			TTY:       false,
-		},
-		scheme.ParameterCodec,
-	)
-	executor, err := remotecommand.NewSPDYExecutor(GetKubeConfig(), "POST", request.URL())
-	if err != nil {
-		return "", "", err
-	}
-	var stdout, stderr bytes.Buffer
-	err = executor.Stream(remotecommand.StreamOptions{Stdout: &stdout, Stderr: &stderr})
-
-	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), err
 }
 
 // GetIstioClientset returns the clientset object for Istio

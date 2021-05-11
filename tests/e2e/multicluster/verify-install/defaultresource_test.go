@@ -12,7 +12,6 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var waitTimeout = 30 * time.Minute
@@ -31,10 +30,7 @@ var _ = ginkgo.Describe("Multi Cluster Install Validation",
 		ginkgo.It("has the expected namespaces", func() {
 			kubeConfig := os.Getenv("KUBECONFIG")
 			fmt.Println("Kube config ", kubeConfig)
-			namespaces, err := pkg.ListNamespaces(metav1.ListOptions{})
-			if err != nil {
-				ginkgo.Fail(fmt.Sprintf("Failed to get namespaces with error: %v", err))
-			}
+			namespaces := pkg.ListNamespaces()
 			gomega.Expect(nsListContains(namespaces.Items, "default")).To(gomega.Equal(true))
 			gomega.Expect(nsListContains(namespaces.Items, "kube-public")).To(gomega.Equal(true))
 			gomega.Expect(nsListContains(namespaces.Items, "kube-system")).To(gomega.Equal(true))
