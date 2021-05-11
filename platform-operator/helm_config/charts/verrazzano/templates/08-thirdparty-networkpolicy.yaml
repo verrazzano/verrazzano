@@ -465,31 +465,6 @@ spec:
         - protocol: TCP
           port: 80
   egress:
-    - ports:
-        - port: 53
-          protocol: UDP
-        - port: 53
-          protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: kube-system
-          podSelector:
-            matchLabels:
-              k8s-app: kube-dns
-    # allow egress to istiod
-    - ports:
-        - port: 15012
-          protocol: TCP
-        - port: 443
-          protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: istio-system
-          podSelector:
-            matchLabels:
-              app: istiod
     - to:
       - namespaceSelector:
           matchLabels:
@@ -519,9 +494,6 @@ spec:
     - Egress
   egress:
     - ports:
-        - port: 443
-          protocol: TCP
-    - ports:
         - port: {{ .Values.kubernetes.service.endpoint.port }}
           protocol: TCP
       to:
@@ -548,9 +520,7 @@ spec:
         - port: 9443
           protocol: TCP
   egress:
-    - ports:
-        - port: 443
-          protocol: TCP
+    - {}
 {{- end }}
 ---
 # Network policy for NGINX Ingress controller
@@ -805,7 +775,7 @@ spec:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
             matchExpressions:
-              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-api, verrazzano-console, system-es-master, system-grafana, system-kibana, ]}
+              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-api, verrazzano-console, system-es-master, system-grafana, system-kibana]}
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
@@ -818,12 +788,6 @@ spec:
           podSelector:
             matchLabels:
               app: mysql
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: cattle-system
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: fleet-system
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: ingress-nginx
