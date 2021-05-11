@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
@@ -326,7 +328,10 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 		}
 	}
 
-	scope, err := loggingscope.NewLoggingScope(ctx, r.Client, existingFluentdImage)
+	// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
+	// not the fields will be empty and we will set these fields to defaults below
+	elasticSearchDetails := clusters.FetchManagedClusterElasticSearchDetails(ctx, r.Client)
+	scope, err := loggingscope.NewLoggingScope(ctx, r.Client, existingFluentdImage, elasticSearchDetails)
 	if err != nil {
 		return err
 	}
