@@ -388,7 +388,8 @@ pipeline {
                             // Probably want to do this for release builds as well, for now only on demand with the parameter
                             if  [ ${params.GENERATE_TARBALL} == true ]; then
                                 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/tarball-cluster-dump -r ${WORKSPACE}/tarball-cluster-dump/analysis.report
-                                ci/scripts/generate_tarball.sh ${WORKSPACE}/tarball-cluster-dump/cluster-dump/images-on-nodes.csv ${WORKSPACE}/tarball.tar.gz
+                                mkdir ${WORKSPACE}/tar-files
+                                ci/scripts/generate_tarball.sh ${WORKSPACE}/tarball-cluster-dump/cluster-dump/images-on-nodes.csv ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
                                 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.BRANCH_NAME}-${env.BUILD_NUMBER}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
                             fi
                         """
