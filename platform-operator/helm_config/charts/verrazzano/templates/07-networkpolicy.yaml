@@ -141,7 +141,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      k8s-app: verrazzano-monitoring-operator
+      app: verrazzano-monitoring-operator
   policyTypes:
     - Ingress
     - Egress
