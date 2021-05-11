@@ -312,7 +312,7 @@ func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unst
 	return nil
 }
 
-// addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LoggingInfo
+// addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LoggingScope
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, upgradeApp bool, coherenceSpec map[string]interface{}, existingCoherence *v1.StatefulSet) error {
 	// If the Coherence StatefulSet already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
 	// current Coherence StatefulSet

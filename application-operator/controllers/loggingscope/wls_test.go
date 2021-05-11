@@ -66,7 +66,7 @@ func TestApply(t *testing.T) {
 		})
 	mockFluentd.EXPECT().
 		Apply(scope, resource, fluentdPod).
-		DoAndReturn(func(scope *LoggingInfo, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
+		DoAndReturn(func(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
 			updateFluentdPodForApply(fluentdPod)
 			return true, nil
 		})
@@ -121,7 +121,7 @@ func TestRemove(t *testing.T) {
 		})
 	mockFluentd.EXPECT().
 		Remove(scope, resource, fluentdPod).
-		DoAndReturn(func(scope *LoggingInfo, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
+		DoAndReturn(func(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
 			updateFluentdPodForRemove(fluentdPod)
 			return false, nil
 		})

@@ -95,7 +95,7 @@ type wlsHandler struct {
 }
 
 // Apply applies a logging scope to a WLS Domain
-func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingInfo) (*ctrl.Result, error) {
+func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingScope) (*ctrl.Result, error) {
 	name := resource.Name
 	domain := createWlsDomain(resource)
 
@@ -125,7 +125,7 @@ func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResource
 }
 
 // Remove removes a logging scope from a WLS Domain
-func (h *wlsHandler) Remove(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingInfo) (bool, error) {
+func (h *wlsHandler) Remove(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingScope) (bool, error) {
 	domain := createWlsDomain(resource)
 	// get the corresponding domain
 	key, _ := k8sclient.ObjectKeyFromObject(&domain)

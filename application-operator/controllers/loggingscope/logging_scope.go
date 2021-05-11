@@ -6,7 +6,7 @@ package loggingscope
 import (
 	"context"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,8 +20,8 @@ const (
 	configMapKind       = "ConfigMap"
 )
 
-// LoggingInfoSpec defines the desired state of LoggingInfo
-type LoggingInfoSpec struct {
+// LoggingScope contains information needed for logging
+type LoggingScope struct {
 	// The fluentd image
 	FluentdImage string
 
@@ -30,43 +30,41 @@ type LoggingInfoSpec struct {
 
 	// Name of secret with Elasticsearch credentials
 	SecretName string
-}
 
-// LoggingInfo is the Schema for the loggingscopes API
-type LoggingInfo struct {
-	metav1.ObjectMeta
-
-	Spec LoggingInfoSpec
+	// Namespace for the logging secret
+	SecretNamespace string
 }
 
 // Handler abstracts the FLUENTD integration for components
 type Handler interface {
-	Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingInfo) (*ctrl.Result, error)
-	Remove(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingInfo) (bool, error)
+	Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingScope) (*ctrl.Result, error)
+	Remove(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingScope) (bool, error)
 }
 
 // NewLoggingScope creates and populates a new logging scope
-func NewLoggingScope(ctx context.Context, cli client.Reader, fluentdImageOrverride string) (*LoggingInfo, error) {
-	scope := LoggingInfo{}
+func NewLoggingScope(ctx context.Context, cli client.Reader, fluentdImageOrverride string) (*LoggingScope, error) {
+	scope := LoggingScope{
+		SecretNamespace: constants.VerrazzanoSystemNamespace,
+	}
 
 	// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
 	// not the fields will be empty and we will set these fields to defaults below
 	elasticSearchDetails := clusters.FetchManagedClusterElasticSearchDetails(ctx, cli)
 	if elasticSearchDetails.URL != "" && elasticSearchDetails.SecretName != "" {
-		scope.Spec.ElasticSearchURL = elasticSearchDetails.URL
-		scope.Spec.SecretName = elasticSearchDetails.SecretName
+		scope.ElasticSearchURL = elasticSearchDetails.URL
+		scope.SecretName = elasticSearchDetails.SecretName
 	}
 
 	if len(fluentdImageOrverride) != 0 {
-		scope.Spec.FluentdImage = fluentdImageOrverride
+		scope.FluentdImage = fluentdImageOrverride
 	} else {
-		scope.Spec.FluentdImage = DefaultFluentdImage
+		scope.FluentdImage = DefaultFluentdImage
 	}
-	if scope.Spec.ElasticSearchURL == "" {
-		scope.Spec.ElasticSearchURL = DefaultElasticSearchURL
+	if scope.ElasticSearchURL == "" {
+		scope.ElasticSearchURL = DefaultElasticSearchURL
 	}
-	if scope.Spec.SecretName == "" {
-		scope.Spec.SecretName = DefaultSecretName
+	if scope.SecretName == "" {
+		scope.SecretName = DefaultSecretName
 	}
 	return &scope, nil
 }
