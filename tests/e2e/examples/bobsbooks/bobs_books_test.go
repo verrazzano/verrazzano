@@ -230,6 +230,16 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "bobbys-coherence")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "roberts-coherence")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+				},
 			)
 		})
 		// Verify Istio Prometheus scraped metrics

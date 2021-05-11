@@ -37,6 +37,9 @@ spec:
               heapSize: 1g
             args:
               - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+          coherence:
+            metrics:
+              enabled: true
           ports:
             - name: extend
               port: 9000
@@ -109,6 +112,9 @@ spec:
               heapSize: 1g
             args:
               - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+          coherence:
+            metrics:
+              enabled: true
           ports:
             - name: extend
               port: 9000
