@@ -43,6 +43,12 @@ function install_mysql {
   if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
     log "Create Keycloak namespace"
     kubectl create namespace ${KEYCLOAK_NS}
+    # Label the keycloak namespace so that we istio injection is enabled
+    log "Adding label needed for istio sidecar injection to keycloak namespace"
+    kubectl label namespace keycloak "istio-injection=enabled" --overwrite
+    # Label the keycloak namespace so that we can apply network policies
+    log "Adding label needed by network policies to keycloak namespace"
+    kubectl label namespace keycloak "verrazzano.io/namespace=keycloak" --overwrite
   fi
 
   # Handle any additional MySQL install args that cannot be in mysql-values.yaml
@@ -93,13 +99,15 @@ function install_keycloak {
       exit 1
     fi
 
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.username=${KCADMIN_USERNAME}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target=${DNS_TARGET_NAME}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].secretName=${ENV_NAME}-secret"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbUser=${MYSQL_USERNAME}"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.username=${KCADMIN_USERNAME}"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target=${DNS_TARGET_NAME}"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.nginx\.ingress\.kubernetes\.io/service-upstream=true"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.nginx\.ingress\.kubernetes\.io/upstream-vhost=keycloak-http.keycloak.svc.cluster.local"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].secretName=${ENV_NAME}-secret"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbUser=${MYSQL_USERNAME}"
 
     # Handle any additional Keycloak install args
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS $(get_keycloak_helm_args_from_config)"
@@ -148,10 +156,6 @@ data:
 
   # Create the verrazzano-system realm and populate it with users, groups, clients, etc.
   configure_keycloak_realms $VZ_SYS_REALM $VZ_ADMIN_GROUP $VZ_MONITOR_GROUP
-
-  # Label the keycloak namespace so that we can apply network policies
-  log "Adding label needed by network policies to keycloak namespace"
-  kubectl label namespace keycloak "verrazzano.io/namespace=keycloak" --overwrite
 
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
@@ -462,7 +466,18 @@ END
     rm \$HOME/.keycloak/kcadm.config || fail "Failed to remove login config file"
 
 EOF
+}
 
+# configure the prometheus deployment to limit istio proxy based communication to the keycloak service only.  Other
+# outbound requests (scrapings) are done by prometheus using the mounted istio certs.
+function patch_prometheus {
+  # get the keycloak service IP
+  keycloak_service_ip=$(kubectl get service/keycloak-http -n keycloak -o jsonpath='{.spec.clusterIP}')
+  log "Setting ${keycloak_service_ip} as keycloak http pod IP for prometheus deployment"
+  # patch the prometheus deployment
+  if ! kubectl patch deployment vmi-system-prometheus-0 -n verrazzano-system --type='json' -p='[{"op": "add", "path": "/spec/template/metadata/annotations/traffic.sidecar.istio.io~1includeOutboundIPRanges", "value":'\"${keycloak_service_ip}'/32"}]'; then
+    fail "Failed to patch the prometheus deployment"
+  fi
 }
 
 DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
@@ -479,6 +494,9 @@ if [ $(is_keycloak_enabled) == "true" ]; then
     fi
 
   action "Installing Keycloak" install_keycloak || exit 1
+
+  action "patching the prometheus deployment to enable communication with keycloak" patch_prometheus || exit 1
+
 else
   log "Skip Keycloak installation, disabled"
 fi

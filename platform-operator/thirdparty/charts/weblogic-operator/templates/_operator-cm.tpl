@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2020, Oracle Corporation and/or its affiliates.
+# Copyright (c) 2018, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 {{- define "operator.operatorConfigMap" }}
@@ -11,6 +11,13 @@ data:
     {{- else }}
   externalOperatorCert: {{ .externalOperatorCert | quote }}
     {{- end }}
+  {{- end }}
+  {{- $configmap := (lookup "v1" "ConfigMap" .Release.Namespace "weblogic-operator-cm") }}
+  {{- if (and $configmap $configmap.data) }}
+  {{- $internalOperatorCert := index $configmap.data "internalOperatorCert" }}
+  {{- if $internalOperatorCert }}
+  internalOperatorCert: {{ $internalOperatorCert }}
+  {{- end }}
   {{- end }}
   serviceaccount: {{ .serviceAccount | quote }}
   domainNamespaceSelectionStrategy: {{ (default "List" .domainNamespaceSelectionStrategy) | quote }}
