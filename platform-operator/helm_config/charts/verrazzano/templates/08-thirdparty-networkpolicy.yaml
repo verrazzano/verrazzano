@@ -481,6 +481,8 @@ spec:
     - ports:
         - port: 15012
           protocol: TCP
+        - port: 443
+          protocol: TCP
       to:
         - namespaceSelector:
             matchLabels:
@@ -517,6 +519,9 @@ spec:
     - Egress
   egress:
     - ports:
+        - port: 443
+          protocol: TCP
+    - ports:
         - port: {{ .Values.kubernetes.service.endpoint.port }}
           protocol: TCP
       to:
@@ -543,7 +548,9 @@ spec:
         - port: 9443
           protocol: TCP
   egress:
-    - {}
+    - ports:
+        - port: 443
+          protocol: TCP
 {{- end }}
 ---
 # Network policy for NGINX Ingress controller
@@ -814,9 +821,9 @@ spec:
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: cattle-system
-          podSelector:
+        - namespaceSelector:
             matchLabels:
-              app: rancher
+              verrazzano.io/namespace: fleet-system
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: ingress-nginx

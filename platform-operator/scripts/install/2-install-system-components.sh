@@ -295,6 +295,7 @@ function install_rancher()
     # Create the rancher-operator-system namespace so we can create network policies
     if ! kubectl get namespace rancher-operator-system > /dev/null 2>&1; then
         kubectl create namespace rancher-operator-system
+        kubectl label namespace rancher-operator-system istio-injection=enabled
     fi
 
     local INGRESS_TLS_SOURCE=""
@@ -358,6 +359,8 @@ function install_rancher()
     # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
     # OLCNE uses CRI-O and needs this change, and it doesn't hurt other cases
     kubectl patch deployments -n cattle-system rancher -p '{"spec":{"template":{"spec":{"containers":[{"name":"rancher","securityContext":{"capabilities":{"add":["MKNOD"]}}}]}}}}'
+    # enable peer to peer communication by not having peer-to-peer requests processed by istio envoy
+    kubectl patch deployments -n cattle-system rancher -p '{"spec":{"template":{"metadata":{"annotations":{"traffic.sidecar.istio.io/excludeInboundPorts": "443"}}}}}'
 
     log "Patch Rancher ingress"
     kubectl patch ingress rancher -n cattle-system -p "$RANCHER_PATCH_DATA" --type=merge

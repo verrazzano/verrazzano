@@ -18,7 +18,7 @@ global:
   istioNamespace: istio-system
   imagePullPolicy: IfNotPresent
   proxy:
-    readinessFailureThreshold: 60
+    readinessFailureThreshold: 90
 
 gateways:
   istio-egressgateway:
@@ -41,7 +41,7 @@ sidecarInjectorWebhook:
   rewriteAppHTTPProbe: true
   neverInjectSelector:
     - matchExpressions:
-        - {key: app, operator: In, values: [verrazzano-application-operator, verrazzano-operator, weblogic-operator, rancher-webhook]}
+        - {key: app, operator: In, values: [verrazzano-application-operator, verrazzano-operator, weblogic-operator, rancher-webhook, rancher-operator]}
     - matchExpressions:
         - {key: control-plane, operator: In, values: [coherence]}
     - matchExpressions:
