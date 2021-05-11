@@ -159,6 +159,36 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 	// 	})
 	// })
 
+	ginkgo.Context("Change Placement of app to Admin Cluster", func() {
+		ginkgo.It("Deploy change-placement manifests to admin cluster", func() {
+			err := examples.DeployChangePlacement(adminKubeconfig)
+			if err != nil {
+				ginkgo.Fail(err.Error())
+			}
+		})
+
+		ginkgo.It("MC Resources should be removed from managed cluster", func() {
+			gomega.Eventually(func() bool {
+				// app should not be placed in the managed cluster
+				return examples.VerifyMCResources(managedKubeconfig, false, false)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+
+		ginkgo.It("App should be removed from managed cluster", func() {
+			gomega.Eventually(func() bool {
+				// app should not be placed in the managed cluster
+				return examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, false)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+
+		ginkgo.It("App should be placed in admin cluster", func() {
+			gomega.Eventually(func() bool {
+				// app should be placed in the admin cluster
+				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, true)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+	})
+
 	ginkgo.Context("Delete resources on admin cluster", func() {
 		ginkgo.It("Delete all the things", func() {
 			err := cleanUp(adminKubeconfig)

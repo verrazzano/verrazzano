@@ -12,9 +12,11 @@ import (
 	"io/ioutil"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
 	memory "k8s.io/client-go/discovery/cached"
@@ -68,34 +70,17 @@ func createOrUpdateResourceFromBytes(data []byte, config *rest.Config) error {
 
 	reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
 	for {
-		// Read one section of the YAML
-		buf, err := reader.Read()
-		// Return success if the whole file has been read.
-		if err == io.EOF {
-			return nil
-		} else if err != nil {
-			return fmt.Errorf("failed to read resource section: %w", err)
-		}
-
 		// Unmarshall the YAML bytes into an Unstructured.
 		uns := &unstructured.Unstructured{
 			Object: map[string]interface{}{},
 		}
-		if err = yaml.Unmarshal(buf, &uns.Object); err != nil {
-			return fmt.Errorf("failed to unmarshal resource: %w", err)
-		}
-
-		// Check to make sure the namespace of the resource exists.
-		_, err = client.Resource(nsGvr).Get(context.TODO(), uns.GetNamespace(), metav1.GetOptions{})
+		unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns)
 		if err != nil {
-			return fmt.Errorf("failed to find resource namespace: %w", err)
+			return fmt.Errorf("failed to read resource from bytes: %w", err)
 		}
-
-		// Map the object's GVK to a GVR
-		unsGvk := schema.FromAPIVersionAndKind(uns.GetAPIVersion(), uns.GetKind())
-		unsMap, err := mapper.RESTMapping(unsGvk.GroupKind(), unsGvk.Version)
-		if err != nil {
-			return fmt.Errorf("failed to map resource kind: %w", err)
+		if unsMap == nil {
+			// all resources must have been read
+			return nil
 		}
 
 		// Attempt to create the resource.
@@ -116,6 +101,35 @@ func createOrUpdateResourceFromBytes(data []byte, config *rest.Config) error {
 		}
 	}
 	// no return since you can't get here
+}
+
+func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.DeferredDiscoveryRESTMapper, client dynamic.Interface, uns *unstructured.Unstructured) (*meta.RESTMapping, error) {
+	// Read one section of the YAML
+	buf, err := reader.Read()
+	// Return success if the whole file has been read.
+	if err == io.EOF {
+		return nil, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to read resource section: %w", err)
+	}
+
+	if err = yaml.Unmarshal(buf, &uns.Object); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal resource: %w", err)
+	}
+
+	// Check to make sure the namespace of the resource exists.
+	_, err = client.Resource(nsGvr).Get(context.TODO(), uns.GetNamespace(), metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to find resource namespace: %w", err)
+	}
+
+	// Map the object's GVK to a GVR
+	unsGvk := schema.FromAPIVersionAndKind(uns.GetAPIVersion(), uns.GetKind())
+	unsMap, err := mapper.RESTMapping(unsGvk.GroupKind(), unsGvk.Version)
+	if err != nil {
+		return unsMap, fmt.Errorf("failed to map resource kind: %w", err)
+	}
+	return unsMap, nil
 }
 
 // DeleteResourceFromFile deletes Kubernetes resources using names found in a YAML test data file.
@@ -155,28 +169,17 @@ func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
 
 	reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
 	for {
-		// Read one section of the YAML
-		buf, err := reader.Read()
-		// Return success if the whole file has been read.
-		if err == io.EOF {
-			return nil
-		} else if err != nil {
-			return fmt.Errorf("failed to read resource section: %w", err)
-		}
-
 		// Unmarshall the YAML bytes into an Unstructured.
 		uns := &unstructured.Unstructured{
 			Object: map[string]interface{}{},
 		}
-		if err = yaml.Unmarshal(buf, &uns.Object); err != nil {
-			return fmt.Errorf("failed to unmarshal resource: %w", err)
-		}
-
-		// Map the object's GVK to a GVR
-		unsGvk := schema.FromAPIVersionAndKind(uns.GetAPIVersion(), uns.GetKind())
-		unsMap, err := mapper.RESTMapping(unsGvk.GroupKind(), unsGvk.Version)
+		unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns)
 		if err != nil {
-			return fmt.Errorf("failed to map resource kind: %w", err)
+			return fmt.Errorf("failed to read resource from bytes: %w", err)
+		}
+		if unsMap == nil {
+			// all resources must have been read
+			return nil
 		}
 
 		// Delete the resource.
@@ -185,4 +188,48 @@ func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
 			fmt.Printf("Failed to delete %s/%v", uns.GetNamespace(), uns.GroupVersionKind())
 		}
 	}
+}
+
+// PatchResourceFromFileInCluster patches a Kubernetes resource from a given patch file in the specified cluster
+// This is intended to be equivalent to `kubectl patch`
+func PatchResourceFromFileInCluster(gvk schema.GroupVersionKind, namespace string, name string, patchFile string, kubeconfigPath string) error {
+	found, err := FindTestDataFile(patchFile)
+	if err != nil {
+		return fmt.Errorf("failed to find test data file: %w", err)
+	}
+	patchBytes, err := ioutil.ReadFile(found)
+	if err != nil {
+		return fmt.Errorf("failed to read test data file: %w", err)
+	}
+	Log(Info, fmt.Sprintf("Found resource: %s", found))
+
+	return patchResourceFromBytes(gvk, namespace, name, patchBytes, GetKubeConfigGivenPath(kubeconfigPath))
+}
+
+// patchResourceFromBytes patches a Kubernetes resource from bytes.
+// This is intended to be equivalent to `kubectl patch`
+func patchResourceFromBytes(gvk schema.GroupVersionKind, namespace string, name string, patchData []byte, config *rest.Config) error {
+	client, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	// convert the given GroupVersionKind to a GroupVersionResource
+	disco, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return fmt.Errorf("failed to create discovery client: %w", err)
+	}
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(disco))
+
+	restMapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return fmt.Errorf("failed to map GroupVersionKind to GroupVersionResource: %w", err)
+	}
+
+	// Attempt to patch the resource.
+	_, err = client.Resource(restMapping.Resource).Namespace(namespace).Patch(context.TODO(), name, types.MergePatchType, patchData, metav1.PatchOptions{})
+	if err != nil {
+		fmt.Printf("Failed to patch %s/%v", namespace, restMapping.Resource)
+	}
+	return nil
 }
