@@ -268,17 +268,127 @@ function configure_keycloak_realms() {
     [ \$? -eq 0 ] || fail "Failed to create client"
 
     log "Creating verrazzano-oath-client client"
-    kcadm.sh create clients -r $_VZ_REALM \
-      -s clientId=verrazzano-oauth-client \
-      -s enabled=true \
-      -s publicClient=true \
-      -s directAccessGrantsEnabled=true \
-      -s "redirectUris=[ \
-          \"https://kiali.$ENV_NAME.$DNS_SUFFIX/*\", \
-          \"https://telemetry.$ENV_NAME.$DNS_SUFFIX/*\", \
-          \"https://rancher.$ENV_NAME.$DNS_SUFFIX/*\" \
-      ]" \
-      -s "webOrigins=[ \"+\" ]"
+    kcadm.sh create clients -r $_VZ_REALM -f - <<\END
+{
+    "clientId" : "verrazzano-oauth-client",
+    "enabled" : true,
+    "rootUrl" : "",
+    "adminUrl" : "",
+    "surrogateAuthRequired" : false,
+    "directAccessGrantsEnabled" : "true",
+    "clientAuthenticatorType" : "client-secret",
+    "secret" : "de05ccdc-67df-47f3-81f6-37e61d195aba",
+    "redirectUris" : [
+        "https://kiali.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://telemetry.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://rancher.$ENV_NAME.$DNS_SUFFIX/*"
+    ],
+    "webOrigins" : [ "+" ],
+    "notBefore" : 0,
+    "bearerOnly" : false,
+    "consentRequired" : false,
+    "standardFlowEnabled" : true,
+    "implicitFlowEnabled" : false,
+    "directAccessGrantsEnabled" : true,
+    "serviceAccountsEnabled" : true,
+    "publicClient" : true,
+    "frontchannelLogout" : false,
+    "protocol" : "openid-connect",
+    "attributes" : {
+      "saml.assertion.signature" : "false",
+      "saml.force.post.binding" : "false",
+      "saml.multivalued.roles" : "false",
+      "saml.encrypt" : "false",
+      "saml.server.signature" : "false",
+      "saml.server.signature.keyinfo.ext" : "false",
+      "exclude.session.state.from.auth.response" : "false",
+      "saml_force_name_id_format" : "false",
+      "saml.client.signature" : "false",
+      "tls.client.certificate.bound.access.tokens" : "false",
+      "saml.authnstatement" : "false",
+      "display.on.consent.screen" : "false",
+      "saml.onetimeuse.condition" : "false"
+    },
+    "authenticationFlowBindingOverrides" : { },
+    "fullScopeAllowed" : true,
+    "nodeReRegistrationTimeout" : -1,
+    "protocolMappers" : [ {
+      "id" : "00770aa2-8e26-409a-9064-33608d249962",
+      "name" : "Client ID",
+      "protocol" : "openid-connect",
+      "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+      "consentRequired" : false,
+      "config" : {
+        "user.session.note" : "clientId",
+        "userinfo.token.claim" : "true",
+        "id.token.claim" : "true",
+        "access.token.claim" : "true",
+        "claim.name" : "clientId",
+        "jsonType.label" : "String"
+      }
+    }, {
+      "id" : "c3ee7ef0-f115-43fd-94f3-de12923a44a6",
+      "name" : "Client IP Address",
+      "protocol" : "openid-connect",
+      "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+      "consentRequired" : false,
+      "config" : {
+        "user.session.note" : "clientAddress",
+        "userinfo.token.claim" : "true",
+        "id.token.claim" : "true",
+        "access.token.claim" : "true",
+        "claim.name" : "clientAddress",
+        "jsonType.label" : "String"
+      }
+    }, {
+      "id" : "20fffc21-7483-4f25-b8b3-9240ecddb827",
+      "name" : "groups",
+      "protocol" : "openid-connect",
+      "protocolMapper" : "oidc-usermodel-realm-role-mapper",
+      "consentRequired" : false,
+      "config" : {
+        "multivalued" : "true",
+        "userinfo.token.claim" : "true",
+        "user.attribute" : "foo",
+        "id.token.claim" : "true",
+        "access.token.claim" : "true",
+        "claim.name" : "groups",
+        "jsonType.label" : "String"
+      }
+    }, {
+      "id": "67ef034c-ab84-42d3-9428-b2d6ca4d8979",
+      "name": "realm roles",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-realm-role-mapper",
+      "consentRequired": false,
+      "config": {
+        "multivalued": "true",
+        "user.attribute": "foo",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "realm_access.roles",
+        "jsonType.label": "String"
+      }
+    },
+    {
+      "id" : "e1d1e81b-308b-4f85-a55c-e75e1eff88e3",
+      "name" : "Client Host",
+      "protocol" : "openid-connect",
+      "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+      "consentRequired" : false,
+      "config" : {
+        "user.session.note" : "clientHost",
+        "userinfo.token.claim" : "true",
+        "id.token.claim" : "true",
+        "access.token.claim" : "true",
+        "claim.name" : "clientHost",
+        "jsonType.label" : "String"
+      }
+    } ],
+    "defaultClientScopes" : [ "web-origins", "role_list", "roles", "profile", "good-service", "email" ],
+    "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
+}
+END
     [ \$? -eq 0 ] || fail "Failed to create client"
 
     # default password policy
