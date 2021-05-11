@@ -68,6 +68,7 @@ func (s *Syncer) createOrUpdateMCAppConfig(mcAppConfig clustersv1alpha1.MultiClu
 	var mcAppConfigNew clustersv1alpha1.MultiClusterApplicationConfiguration
 	mcAppConfigNew.Namespace = mcAppConfig.Namespace
 	mcAppConfigNew.Name = mcAppConfig.Name
+	mcAppConfigNew.Labels = map[string]string{}
 	mcAppConfigNew.Labels[constants.LabelVerrazzanoMulticluster] = constants.LabelVerrazzanoMulticlusterDefault
 
 	// Create or update on the local cluster
