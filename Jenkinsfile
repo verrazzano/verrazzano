@@ -455,6 +455,18 @@ pipeline {
                                 runGinkgo('security/rbac')
                             }
                         }
+                        stage('security network policies') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-network-policies"
+                            }
+                            steps {
+                                script {
+                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                                        runGinkgo('security/network-policies')
+                                    }
+                                }
+                            }
+                        }
                         stage('examples logging helidon') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
