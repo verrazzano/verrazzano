@@ -152,7 +152,7 @@ func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.Q
 		duration := time.Duration(rand.IntnRange(5, 10)) * time.Second
 		return &ctrl.Result{Requeue: true, RequeueAfter: duration}, nil
 	}
-	requiresCABundle, err := ensureLoggingSecret(ctx, h, constants.VerrazzanoSystemNamespace, scope.SecretName)
+	requiresCABundle, err := ensureLoggingSecret(ctx, h, scope.SecretNamespace, scope.SecretName)
 	if err != nil {
 		return nil, err
 	}
@@ -223,9 +223,9 @@ func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedRes
 // getDeployment gets the Kubernetes Deployment
 func (h *HelidonHandler) getDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingScope) (*kapps.Deployment, error) {
 	deploy := &kapps.Deployment{}
-	deploy.Namespace = scope.SecretNamespace
+	deploy.Namespace = workload.Namespace
 	deploy.Name = workload.Name
-	depKey := client.ObjectKey{Name: workload.Name, Namespace: scope.SecretNamespace}
+	depKey := client.ObjectKey{Name: workload.Name, Namespace: workload.Namespace}
 	if err := h.Get(ctx, depKey, deploy); err != nil {
 		return nil, err
 	}

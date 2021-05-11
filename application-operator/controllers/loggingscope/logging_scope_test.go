@@ -3,6 +3,8 @@
 
 package loggingscope
 
+import "github.com/verrazzano/verrazzano/application-operator/constants"
+
 const (
 	testNamespace    = "test-namespace"
 	testAPIVersion   = "testv1"
@@ -16,7 +18,7 @@ func createTestLoggingScope(includeWorkload bool) *LoggingScope {
 	scope.ElasticSearchURL = testESURL
 	scope.SecretName = testESSecret
 	scope.FluentdImage = testFluentdImage
-
+	scope.SecretNamespace = constants.VerrazzanoSystemNamespace
 	return &scope
 }
 
