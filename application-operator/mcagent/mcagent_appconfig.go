@@ -68,8 +68,6 @@ func (s *Syncer) createOrUpdateMCAppConfig(mcAppConfig clustersv1alpha1.MultiClu
 	var mcAppConfigNew clustersv1alpha1.MultiClusterApplicationConfiguration
 	mcAppConfigNew.Namespace = mcAppConfig.Namespace
 	mcAppConfigNew.Name = mcAppConfig.Name
-	mcAppConfigNew.Labels = map[string]string{}
-	mcAppConfigNew.Labels[constants.LabelVerrazzanoMulticluster] = constants.LabelVerrazzanoMulticlusterDefault
 
 	// Create or update on the local cluster
 	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &mcAppConfigNew, func() error {
@@ -82,6 +80,12 @@ func mutateMCAppConfig(mcAppConfig clustersv1alpha1.MultiClusterApplicationConfi
 	mcAppConfigNew.Spec.Placement = mcAppConfig.Spec.Placement
 	mcAppConfigNew.Spec.Template = mcAppConfig.Spec.Template
 	mcAppConfigNew.Labels = mcAppConfig.Labels
+
+	// Add verrazzano generated labels if not already present
+	if mcAppConfigNew.Labels == nil {
+		mcAppConfigNew.Labels = map[string]string{}
+	}
+	mcAppConfigNew.Labels[constants.LabelVerrazzanoMulticluster] = constants.LabelVerrazzanoMulticlusterDefault
 }
 
 // appConfigPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace and the placement
