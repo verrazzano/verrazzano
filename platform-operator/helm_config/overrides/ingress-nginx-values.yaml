@@ -19,6 +19,9 @@ controller:
     prometheus.io/port: "10254"
     prometheus.io/scrape: "true"
     system.io/scrape: "true"
+    traffic.sidecar.istio.io/excludeInboundPorts: "80,443"
+    traffic.sidecar.istio.io/includeInboundPorts: ""
+    sidecar.istio.io/rewriteAppHTTPProbers: "true"
 defaultBackend:
   image:
     repository: ghcr.io/verrazzano/nginx-ingress-default-backend

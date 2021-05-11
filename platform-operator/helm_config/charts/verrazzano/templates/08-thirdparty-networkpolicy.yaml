@@ -56,6 +56,7 @@ spec:
 # Egress: allow connect to Prometheus port 9090
 #         allow connect to DNS lookup port 53 for both UDP and TCP
 #         allow connect to Keycloak port 8080
+#         allow connect to istiod port 15012
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -99,6 +100,17 @@ spec:
           podSelector:
             matchLabels:
               k8s-app: kube-dns
+    # allow egress to istiod
+    - ports:
+        - port: 15012
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: istio-system
+          podSelector:
+            matchLabels:
+              app: istiod
     - ports:
         - port: 8080
           protocol: TCP
@@ -260,7 +272,7 @@ spec:
 ---
 # Network policy for Keycloak
 # Ingress: allow nginx ingress and ingress from pods in the verrazzano-system namespace
-# Egress:  DNS and the port to talk to MySQL
+# Egress:  DNS, istiod and the port to talk to MySQL
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -304,6 +316,17 @@ spec:
           podSelector:
             matchLabels:
               k8s-app: kube-dns
+    # allow egress to istiod
+    - ports:
+        - port: 15012
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: istio-system
+          podSelector:
+            matchLabels:
+              app: istiod
     - ports:
       - port: 3306
         protocol: TCP
@@ -314,7 +337,7 @@ spec:
 ---
 # Network policy for Keycloak MySQL
 # Ingress: allow port 3306 from Keycloak pods
-# Egress:  deny all
+# Egress:  allow kube-dns and istiod
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -335,6 +358,31 @@ spec:
       ports:
         - protocol: TCP
           port: 3306
+  # allow egress to kube-dns
+  egress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    # allow egress to istiod
+    - ports:
+        - port: 15012
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: istio-system
+          podSelector:
+            matchLabels:
+              app: istiod
 {{- end }}
 ---
 # Network policy for Rancher cluster agent
@@ -388,7 +436,7 @@ spec:
 ---
 # Network policy for Rancher UI/API
 # Ingress: allow nginx ingress
-# Egress:  deny all
+# Egress:  allow kube-dns and istiod
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -565,6 +613,17 @@ spec:
       ports:
         - port: 8080
           protocol: TCP
+    # allow egress to istiod
+    - ports:
+        - port: 15012
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: istio-system
+          podSelector:
+            matchLabels:
+              app: istiod
 ---
 # Network policy for NGINX Ingress default-backend
 apiVersion: networking.k8s.io/v1
@@ -589,6 +648,30 @@ spec:
       ports:
         - port: 8080
           protocol: TCP
+  egress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    # allow egress to istiod
+    - ports:
+        - port: 15012
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: istio-system
+          podSelector:
+            matchLabels:
+              app: istiod
 ---
 # Network policy for istio-system pod communication
 # Ingress: allow all pod-to-pod communication within the namespace
@@ -669,12 +752,12 @@ spec:
               k8s-app: kube-dns
 ---
 # Network policy for Istiod
-# Ingress: allow ingress to port 15012 from verrazzano-system prometheus (for Istio proxy sidecar)
+# Ingress: allow ingress to port 15012 from verrazzano-system prometheus and keycloak (for Istio proxy sidecar)
 #          allow port 443 for webhooks
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: istiod-verrazzano-system
+  name: istiod-access
   namespace: istio-system
 spec:
   podSelector:
@@ -691,8 +774,26 @@ spec:
             matchLabels:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
+            matchExpressions:
+              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-api, verrazzano-console, system-es-master, system-grafana, system-kibana]}
+        - namespaceSelector:
             matchLabels:
-              app: system-prometheus
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              app: mysql
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
     - ports:
         - port: 443
           protocol: TCP
