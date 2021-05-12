@@ -9,13 +9,13 @@ spec:
   template:
     namespaces:
       - metadata:
-          name: multiclustertest
+          name: multiclustertest1
           labels:
             label1: "test1"
           annotations:
             annot1: "test1"
       - metadata:
-          name: some-other-ns
+          name: some-other-ns1
           labels:
             label2: "test2"
           annotations:
