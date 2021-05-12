@@ -21,7 +21,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
@@ -441,9 +441,9 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          "test-appconf",
@@ -554,9 +554,9 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	params := map[string]string{
 		"##APPCONF_NAME##":            "test-appconf",
@@ -687,9 +687,9 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          appConfigName,
@@ -807,11 +807,11 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	existingFluentdImage := "unit-test-image:latest"
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
-	containers := []corev1.Container{{Name: loggingscope.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          appConfigName,
