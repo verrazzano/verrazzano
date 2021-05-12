@@ -37,10 +37,9 @@ var _ = ginkgo.AfterEach(func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	//if failed {
-	// Temporary change
-	pkg.ExecuteClusterDumpWithEnvVarConfig()
-	//}
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	undeployToDoListExample()
 })
 
