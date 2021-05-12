@@ -8,6 +8,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const MultiClusterAppConfigKind = "MultiClusterApplicationConfiguration"
+const MultiClusterAppConfigResource = "multiclusterapplicationconfigurations"
+
 // MultiClusterApplicationConfigurationSpec defines the desired state of MultiClusterApplicationConfiguration
 type MultiClusterApplicationConfigurationSpec struct {
 	// The embedded OAM ApplicationConfiguration

@@ -192,7 +192,7 @@ func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
 
 // PatchResourceFromFileInCluster patches a Kubernetes resource from a given patch file in the specified cluster
 // This is intended to be equivalent to `kubectl patch`
-func PatchResourceFromFileInCluster(gvk schema.GroupVersionKind, namespace string, name string, patchFile string, kubeconfigPath string) error {
+func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace string, name string, patchFile string, kubeconfigPath string) error {
 	found, err := FindTestDataFile(patchFile)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
@@ -203,33 +203,21 @@ func PatchResourceFromFileInCluster(gvk schema.GroupVersionKind, namespace strin
 	}
 	Log(Info, fmt.Sprintf("Found resource: %s", found))
 
-	return patchResourceFromBytes(gvk, namespace, name, patchBytes, GetKubeConfigGivenPath(kubeconfigPath))
+	return patchResourceFromBytes(gvr, namespace, name, patchBytes, GetKubeConfigGivenPath(kubeconfigPath))
 }
 
 // patchResourceFromBytes patches a Kubernetes resource from bytes.
 // This is intended to be equivalent to `kubectl patch`
-func patchResourceFromBytes(gvk schema.GroupVersionKind, namespace string, name string, patchData []byte, config *rest.Config) error {
+func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, name string, patchData []byte, config *rest.Config) error {
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	// convert the given GroupVersionKind to a GroupVersionResource
-	disco, err := discovery.NewDiscoveryClientForConfig(config)
-	if err != nil {
-		return fmt.Errorf("failed to create discovery client: %w", err)
-	}
-	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(disco))
-
-	restMapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-	if err != nil {
-		return fmt.Errorf("failed to map GroupVersionKind to GroupVersionResource: %w", err)
-	}
-
 	// Attempt to patch the resource.
-	_, err = client.Resource(restMapping.Resource).Namespace(namespace).Patch(context.TODO(), name, types.MergePatchType, patchData, metav1.PatchOptions{})
+	_, err = client.Resource(gvr).Namespace(namespace).Patch(context.TODO(), name, types.MergePatchType, patchData, metav1.PatchOptions{})
 	if err != nil {
-		fmt.Printf("Failed to patch %s/%v", namespace, restMapping.Resource)
+		fmt.Printf("Failed to patch %s/%v", namespace, gvr)
 	}
 	return nil
 }

@@ -53,21 +53,21 @@ func DeployHelloHelidonApp(kubeConfigPath string) error {
 // DeployChangePlacement patches the hello-helidon example to be placed in admin cluster
 // and uses the given kubeConfigPath as the cluster in which to do the patch
 func DeployChangePlacement(kubeConfigPath string) error {
-	mcComp := clustersv1alpha1.MultiClusterComponent{}
-	mcApp := clustersv1alpha1.MultiClusterApplicationConfiguration{}
-	vp := clustersv1alpha1.VerrazzanoProject{}
+	mcCompGvr := clustersv1alpha1.GroupVersion.WithResource(clustersv1alpha1.MultiClusterComponentResource)
+	mcAppGvr := clustersv1alpha1.GroupVersion.WithResource(clustersv1alpha1.MultiClusterAppConfigResource)
+	vpGvr := clustersv1alpha1.GroupVersion.WithResource(clustersv1alpha1.VerrazzanoProjectResource)
 
-	if err := pkg.PatchResourceFromFileInCluster(mcComp.GroupVersionKind(), TestNamespace, componentName, "examples/multicluster/hello-helidon/patch-change-placement-to-admin.yaml", kubeConfigPath); err != nil {
+	if err := pkg.PatchResourceFromFileInCluster(mcCompGvr, TestNamespace, componentName, "examples/multicluster/hello-helidon/patch-change-placement-to-admin.yaml", kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to change placement of multicluster hello-helidon component resource: %v", err)
 	}
-	if err := pkg.PatchResourceFromFileInCluster(mcApp.GroupVersionKind(), TestNamespace, appConfigName, "examples/multicluster/hello-helidon/patch-change-placement-to-admin.yaml", kubeConfigPath); err != nil {
+	if err := pkg.PatchResourceFromFileInCluster(mcAppGvr, TestNamespace, appConfigName, "examples/multicluster/hello-helidon/patch-change-placement-to-admin.yaml", kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to change placement of multicluster hello-helidon application resource: %v", err)
 	}
 	// This is a temporary timer until this bug is fixed: VZ-2454
 	// Allow the MC objects to sync before the change in the VerrazzanoProject
 	time.Sleep(time.Minute)
 
-	if err := pkg.PatchResourceFromFileInCluster(vp.GroupVersionKind(), multiclusterNamespace, projectName,"examples/multicluster/hello-helidon/patch-change-placement-to-admin.yaml", kubeConfigPath); err != nil {
+	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projectName,"examples/multicluster/hello-helidon/patch-change-placement-to-admin.yaml", kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create VerrazzanoProject resource: %v", err)
 	}
 	return nil

@@ -8,6 +8,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const MultiClusterSecretKind = "MultiClusterSecret"
+const MultiClusterSecretResource = "multiclustersecrets"
+
 // MultiClusterSecretSpec defines the desired state of MultiClusterSecret
 type MultiClusterSecretSpec struct {
 	// The embedded Kubernetes secret
