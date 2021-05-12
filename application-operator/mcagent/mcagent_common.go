@@ -10,6 +10,9 @@ import (
 	"strings"
 	"time"
 
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -76,27 +79,38 @@ func (s *Syncer) processStatusUpdates() {
 
 // garbageCollect delete resources that have been orphaned
 func (s *Syncer) garbageCollect() {
-	mcLabel, err := labels.Parse(fmt.Sprintf("%s=%s", constants.LabelVerrazzanoMulticluster, constants.LabelVerrazzanoManagedDefault))
+	mcLabel, err := labels.Parse(fmt.Sprintf("%s=%s", constants.LabelVerrazzanoProject, constants.LabelVerrazzanoProjectDefault))
+	if err != nil {
+		s.Log.Error(err, "failed to create list selector on local cluster")
+	}
 	listOptionsGC := &client.ListOptions{LabelSelector: mcLabel}
 
-	// Delete orphaned MultiClusterApplicationConfiguration resources.
-	// Get the list of MultiClusterApplicationConfiguration resources on the
-	// local cluster and compare to the list received from the admin cluster.
-	// The admin cluster is the source of truth.
-	allLocalMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
+	// Get the list of namespaces that were created or managed by VerrazzanoProjects
+	vpNamespaceList := corev1.NamespaceList{}
+	err = s.LocalClient.List(s.Context, &vpNamespaceList, listOptionsGC)
 	if err != nil {
-		s.Log.Error(err, "failed to create list selector for MultiClusterApplicationConfiguration on local cluster")
+		s.Log.Error(err, "failed to get list of namespaces")
 	}
-	err = s.LocalClient.List(s.Context, &allLocalMCAppConfigs, listOptionsGC)
-	if err != nil {
-		s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
-	}
-	for _, mcAppConfig := range allLocalMCAppConfigs.Items {
-		// Delete each MultiClusterApplicationConfiguration object that is no longer placed on this cluster
-		if !s.isThisCluster(mcAppConfig.Spec.Placement) {
-			err := s.LocalClient.Delete(s.Context, &mcAppConfig)
+
+	// Perform garbage collection on namespaces that are no longer associated with a VerrazzanoProject
+	for _, namespace := range vpNamespaceList.Items {
+		if !vzstring.SliceContainsString(s.ProjectNamespaces, namespace.Name) {
+			allLocalMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
+			listOptions := &client.ListOptions{Namespace: namespace.Name}
+			err = s.LocalClient.List(s.Context, &allLocalMCAppConfigs, listOptions)
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterApplicationConfiguration with name %q and namespace %q", mcAppConfig.Name, mcAppConfig.Namespace))
+				s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
+			}
+			for _, mcAppConfig := range allLocalMCAppConfigs.Items {
+				// Delete each MultiClusterApplicationConfiguration object that is no longer exists on the admin cluster
+				var appConfig clustersv1alpha1.MultiClusterApplicationConfiguration
+				err := s.AdminClient.Get(s.Context, types.NamespacedName{Name: mcAppConfig.Name, Namespace: mcAppConfig.Namespace}, &appConfig)
+				if errors.IsNotFound(err) {
+					err := s.LocalClient.Delete(s.Context, &mcAppConfig)
+					if err != nil {
+						s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterApplicationConfiguration with name %q and namespace %q", mcAppConfig.Name, mcAppConfig.Namespace))
+					}
+				}
 			}
 		}
 	}
