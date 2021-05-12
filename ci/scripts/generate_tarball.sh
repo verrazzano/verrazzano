@@ -47,7 +47,11 @@ while read csv_line; do
     continue
   fi
 
-  # FIXME: Exclude more here: Calico, MetalLB, K8S images, etc...
+  # Skip kubernetes images, Calico, Kind, Metallb
+  if [[ "$image" == *"k8s.gcr.io"* ]] || [[ "$image" == *"calico"* ]] || [[ "$image" == *"kindest"* ]] || [[ "$image" == *"metallb"* ]]; then
+    echo "skipping: $image"
+    continue
+  fi
 
   # FIXME: Some of the CSV entries from the cluster-dump have a second row and that is the image without the hash, need
   # to get that output consistent so we can use it here (ie: for our purposes image without the hash in the first column
@@ -58,4 +62,4 @@ while read csv_line; do
   docker save -o $2/${tarname} ${image}
 done <$1
 
-tar -czf ${3} ${2}/*.tar
+tar -czf ${3} -C ${2} .
