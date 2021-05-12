@@ -215,8 +215,8 @@ func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace s
 	return patchResourceFromBytes(gvr, namespace, name, patchBytes, GetKubeConfigGivenPath(kubeconfigPath))
 }
 
-// patchResourceFromBytes patches a Kubernetes resource from bytes.
-// This is intended to be equivalent to `kubectl patch`
+// patchResourceFromBytes patches a Kubernetes resource from bytes. The contents of the byte slice must be in
+// JSON format. This is intended to be equivalent to `kubectl patch`.
 func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, name string, patchDataJson []byte, config *rest.Config) error {
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
