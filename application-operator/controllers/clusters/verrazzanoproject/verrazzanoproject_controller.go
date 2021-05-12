@@ -6,7 +6,6 @@ package verrazzanoproject
 import (
 	"context"
 	"fmt"
-
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
