@@ -35,10 +35,6 @@ var _ = ginkgo.BeforeSuite(func() {
 	if err := pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create helidon-logging application resource: %v", err))
 	}
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-logging-scope.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create helidon-logging application resource: %v", err))
-	}
-
 })
 
 var _ = ginkgo.AfterSuite(func() {
@@ -106,7 +102,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 
 	ginkgo.Context("Logging.", func() {
 		indexName := fmt.Sprintf("verrazzano-namespace-%s", testNamespace)
-		// GIVEN an application with logging enabled via a logging scope
+		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index for hello-helidon namespace is retrieved
 		// THEN verify that it is found
 		ginkgo.It("Verify Elasticsearch index for Logging exists", func() {
@@ -116,7 +112,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 		})
 		pkg.Concurrently(
 			func() {
-				// GIVEN an application with logging enabled via a logging scope
+				// GIVEN an application with logging enabled
 				// WHEN the log records are retrieved from the Elasticsearch index for hello-helidon-container
 				// THEN verify that at least one recent log record is found
 				ginkgo.It("Verify recent Elasticsearch log record exists", func() {
@@ -128,7 +124,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 				})
 			},
 			func() {
-				// GIVEN an application with logging enabled via a logging scope
+				// GIVEN an application with logging enabled
 				// WHEN the log records are retrieved from the Elasticsearch index for other-container
 				// THEN verify that at least one recent log record is found
 				ginkgo.It("Verify recent Elasticsearch log record of other-container exists", func() {

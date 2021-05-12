@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
@@ -326,12 +328,15 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 		}
 	}
 
-	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, workload.Namespace, workload.Labels, existingFluentdImage)
+	// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
+	// not the fields will be empty and we will set these fields to defaults below
+	elasticSearchDetails := clusters.FetchManagedClusterElasticSearchDetails(ctx, r.Client)
+	scope, err := loggingscope.NewLoggingScope(ctx, r.Client, existingFluentdImage, elasticSearchDetails)
 	if err != nil {
 		return err
 	}
 
-	if loggingScope == nil {
+	if scope == nil {
 		log.Info("No logging scope found for workload, nothing to do")
 		return nil
 	}
@@ -367,7 +372,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err = fluentdManager.Apply(loggingScope, resource, fluentdPod); err != nil {
+	if _, err = fluentdManager.Apply(scope, resource, fluentdPod); err != nil {
 		return err
 	}
 

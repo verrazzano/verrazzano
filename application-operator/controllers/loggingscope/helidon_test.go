@@ -24,7 +24,6 @@ import (
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	kapps "k8s.io/api/apps/v1"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -109,7 +108,7 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name)
+			fluentdContainer := CreateFluentdContainer(scope, workload.Namespace, workload.Name)
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -120,7 +119,7 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 				},
 			}
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, vol, CreateFluentdConfigMapVolume(workload.Name))
-			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
+			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.SecretName))
 			volumes := CreateFluentdHostPathVolumes()
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volumes...)
 			return nil
@@ -154,7 +153,7 @@ func TestHelidoHandlerRemove(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name)
+			fluentdContainer := CreateFluentdContainer(scope, workload.Namespace, workload.Name)
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -165,7 +164,7 @@ func TestHelidoHandlerRemove(t *testing.T) {
 				},
 			}
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, vol, CreateFluentdConfigMapVolume(workload.Name))
-			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
+			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.SecretName))
 			volumes := CreateFluentdHostPathVolumes()
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volumes...)
 			return nil
@@ -267,13 +266,12 @@ func TestHelidoHandlerRemoveNoDeployment(t *testing.T) {
 }
 
 // newLoggingScope creates a test logging scope
-func newLoggingScope(namespace, esHost, esSecret string) *vzapi.LoggingScope {
-	scope := vzapi.LoggingScope{}
-	scope.TypeMeta = kmeta.TypeMeta{APIVersion: vzapi.GroupVersion.Identifier(), Kind: vzapi.LoggingScopeKind}
-	scope.ObjectMeta = kmeta.ObjectMeta{Namespace: namespace, Name: "testScopeName"}
-	scope.Spec.ElasticSearchURL = "http://esHost:9200"
-	scope.Spec.SecretName = esSecret
-	scope.Spec.FluentdImage = "fluentd/image/location"
+func newLoggingScope(namespace, esHost, esSecret string) *LoggingScope {
+	scope := LoggingScope{}
+	scope.ElasticSearchURL = "http://esHost:9200"
+	scope.SecretName = esSecret
+	scope.SecretNamespace = namespace
+	scope.FluentdImage = "fluentd/image/location"
 	return &scope
 }
 

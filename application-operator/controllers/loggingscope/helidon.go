@@ -117,7 +117,7 @@ type HelidonHandler struct {
 }
 
 // Apply applies a logging scope to a Kubernetes Deployment
-func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (*ctrl.Result, error) {
+func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingScope) (*ctrl.Result, error) {
 	deploy, err := h.getDeployment(ctx, workload, scope)
 	if err != nil {
 		h.Log.Error(err, "Failed to fetch Deployment", "Deployment", workload.Name)
@@ -142,7 +142,7 @@ func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedReso
 }
 
 // ApplyToDeployment applies a logging scope to an existing in-memory Kubernetes Deployment
-func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope, deploy *kapps.Deployment) (*ctrl.Result, error) {
+func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingScope, deploy *kapps.Deployment) (*ctrl.Result, error) {
 	appContainers, fluentdFound := searchContainers(deploy.Spec.Template.Spec.Containers)
 	h.Log.V(1).Info("Update Deployment", "Deployment", deploy.Name, "fluentdFound", fluentdFound)
 	if fluentdFound {
@@ -152,7 +152,7 @@ func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.Q
 		duration := time.Duration(rand.IntnRange(5, 10)) * time.Second
 		return &ctrl.Result{Requeue: true, RequeueAfter: duration}, nil
 	}
-	requiresCABundle, err := ensureLoggingSecret(ctx, h, scope.GetNamespace(), scope.Spec.SecretName)
+	requiresCABundle, err := ensureLoggingSecret(ctx, h, scope.SecretNamespace, scope.SecretName)
 	if err != nil {
 		return nil, err
 	}
@@ -163,8 +163,8 @@ func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.Q
 	volumes := CreateFluentdHostPathVolumes()
 	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volumes...)
 	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdConfigMapVolume(workload.Name))
-	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
-	fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name)
+	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.SecretName))
+	fluentdContainer := CreateFluentdContainer(scope, workload.Namespace, workload.Name)
 	deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentdContainer)
 	return nil, nil
 }
@@ -183,7 +183,7 @@ func searchContainers(containers []kcore.Container) ([]string, bool) {
 }
 
 // Remove removes a logging scope from a Kubernetes Deployment
-func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (bool, error) {
+func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingScope) (bool, error) {
 	deploy, err := h.getDeployment(ctx, workload, scope)
 	if err != nil {
 		h.Log.Error(err, "Failed to fetch Deployment", "Deployment", workload.Name)
@@ -192,7 +192,7 @@ func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedRes
 	_, fluentdFound := searchContainers(deploy.Spec.Template.Spec.Containers)
 	var errors []string
 	if fluentdFound {
-		err := h.deleteFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name)
+		err := h.deleteFluentdConfigMap(ctx, scope.SecretNamespace, workload.Name)
 		if err != nil {
 			errors = append(errors, err.Error())
 		}
@@ -221,11 +221,11 @@ func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedRes
 }
 
 // getDeployment gets the Kubernetes Deployment
-func (h *HelidonHandler) getDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (*kapps.Deployment, error) {
+func (h *HelidonHandler) getDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *LoggingScope) (*kapps.Deployment, error) {
 	deploy := &kapps.Deployment{}
-	deploy.Namespace = scope.GetNamespace()
+	deploy.Namespace = workload.Namespace
 	deploy.Name = workload.Name
-	depKey := client.ObjectKey{Name: workload.Name, Namespace: scope.GetNamespace()}
+	depKey := client.ObjectKey{Name: workload.Name, Namespace: workload.Namespace}
 	if err := h.Get(ctx, depKey, deploy); err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.Config
 }
 
 // CreateFluentdContainer creates a FLUENTD sidecar container.
-func CreateFluentdContainer(spec vzapi.LoggingScopeSpec, namespace, workloadName string) kcore.Container {
+func CreateFluentdContainer(spec *LoggingScope, namespace, workloadName string) kcore.Container {
 	container := kcore.Container{
 		Name:            FluentdContainerName,
 		Args:            []string{"-c", "/etc/fluent.conf"},
@@ -419,18 +419,18 @@ func fluentdConfigMapName(workloadName string) string {
 	return fmt.Sprintf("fluentd-config-helidon-%s", workloadName)
 }
 
-func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, scope *vzapi.LoggingScope, workloadName string, appContainersNames []string, requiresCABundle bool) error {
+func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, scope *LoggingScope, workloadName string, appContainersNames []string, requiresCABundle bool) error {
 	// check if configmap exists
 	name := fluentdConfigMapName(workloadName)
 	configMap := &kcore.ConfigMap{}
-	err := h.Get(ctx, objKey(scope.Namespace, name), configMap)
+	err := h.Get(ctx, objKey(scope.SecretNamespace, name), configMap)
 	if kerrs.IsNotFound(err) {
 		conf, err := getFluentdConfigurationForHelidon(workloadName, appContainersNames, requiresCABundle)
 		if err != nil {
 			return err
 		}
 
-		if err = h.Create(ctx, CreateFluentdConfigMap(scope.Namespace, name, conf), &client.CreateOptions{}); err != nil {
+		if err = h.Create(ctx, CreateFluentdConfigMap(scope.SecretNamespace, name, conf), &client.CreateOptions{}); err != nil {
 			return err
 		}
 	}
