@@ -59,27 +59,46 @@ placement to be in a different cluster, which can be the admin cluster or a diff
 we will change the placement of the application to be in the admin cluster, by patching the multicluster resources
 as follows.
 
-1. Patch the `hello-helidon` multicluster resources to change their placement to be in the admin cluster.
+1. Specify the change placement patch file for changing the placement to admin cluster. We will use this environment
+   variable in subsequent steps:
    ```shell
-   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl patch mcappconf hello-helidon-appconf -n hello-helidon --type merge --patch "$(cat patch-change-placement-to-admin.yaml)"
-   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl patch mccomp hello-helidon-component -n hello-helidon --type merge --patch "$(cat patch-change-placement-to-admin.yaml)"
+   # To change the placement to the admin cluster
+   $ export CHANGE_PLACEMENT_PATCH_FILE="patch-change-placement-to-admin.yaml"
    ```
-1. View the multicluster resources to see that the placement has changed to be in the cluster named `local`, which is
-   the admin cluster.
+
+1. Patch the `hello-helidon` multicluster resources to change their placement.
+   ```shell
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl patch mcappconf hello-helidon-appconf -n hello-helidon --type merge --patch "$(cat $CHANGE_PLACEMENT_PATCH_FILE)"
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl patch mccomp hello-helidon-component -n hello-helidon --type merge --patch "$(cat $CHANGE_PLACEMENT_PATCH_FILE)"
+   ```
+1. View the multicluster resources to see that the placement has changed to be in a different cluster. Placement in the
+   admin cluster is indicated by a cluster name of `local`.
    ```shell
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get mccomp hello-helidon-component -n hello-helidon -o jsonpath='{.spec.placement}';echo
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get mcappconf hello-helidon-appconf -n hello-helidon -o jsonpath='{.spec.placement}';echo
    ```
-1. Patch the VerrazzanoProject to change its placement to be in the admin cluster.
+1. Patch the VerrazzanoProject to change its placement.
    ```shell
-   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl patch vp hello-helidon -n verrazzano-mc --type merge --patch "$(cat patch-change-placement-to-admin.yaml)"
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl patch vp hello-helidon -n verrazzano-mc --type merge --patch "$(cat $CHANGE_PLACEMENT_PATCH_FILE)"
    ```
 1. Wait for the application to be ready on the admin cluster.
    ```shell
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl wait --for=condition=Ready pods --all -n hello-helidon --timeout=300s
    ```
+   **Note:** If you are returning the application to the managed cluster, then instead wait for application to be ready
+   again on the managed cluster.
+   ```shell
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl wait --for=condition=Ready pods --all -n hello-helidon --timeout=300s
+   ```
 
-You can now test the example application running in the admin cluster.
+You can now test the example application running in the cluster where you have now placed it.
+
+To return the application back to the managed cluster named `managed1`, simply use the patch file provided for that
+purpose as the CHANGE_PLACEMENT_PATCH_FILE as shown below, then repeat the numbered steps above to complete the process.
+```shell
+   # To change the placement back to the managed cluster named managed1
+   $ export CHANGE_PLACEMENT_PATCH_FILE="patch-return-placement-to-managed1.yaml"
+```
 
 ## Undeploy the Hello World Helidon application
 
