@@ -18,7 +18,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istionet "istio.io/api/networking/v1alpha3"
@@ -108,15 +108,6 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
-			return nil
-		})
-	// expect call to fetch the MC registration secret
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				constants.ElasticsearchURLData: []byte("es.example.com"),
-			}
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -229,9 +220,9 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	fluentdImage := "unit-test-image:latest"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	// expect call to fetch existing coherence StatefulSet
 	cli.EXPECT().
@@ -252,17 +243,6 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			workload.Namespace = namespace
 			return nil
 		})
-
-	// expect call to fetch the MC registration secret
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				constants.ElasticsearchURLData: []byte("es.example.com"),
-			}
-			return nil
-		})
-
 	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
@@ -369,9 +349,9 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: newUpgradeVersion}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	// expect call to fetch existing coherence StatefulSet
 	cli.EXPECT().
@@ -391,16 +371,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
-			return nil
-		})
-
-	// expect call to fetch the MC registration secret
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				constants.ElasticsearchURLData: []byte("es.example.com"),
-			}
 			return nil
 		})
 	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
@@ -519,12 +489,12 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	existingFluentdImage := "unit-test-image:existing"
 	existingUpgradeVersion := "existing-upgrade-version"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: existingUpgradeVersion}
-	containers := []corev1.Container{{Name: loggingscope.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	// expect call to fetch existing coherence StatefulSet
 	cli.EXPECT().
@@ -553,15 +523,6 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
-			return nil
-		})
-	// expect call to fetch the MC registration secret
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				constants.ElasticsearchURLData: []byte("es.example.com"),
-			}
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -639,7 +600,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 	componentName := "unit-test-component"
 	existingFluentdImage := "unit-test-image:existing"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	containers := []corev1.Container{{Name: loggingscope.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
 
 	// simulate the "replicas" field changing to 3
 	replicasFromWorkload := int64(3)
@@ -670,15 +631,6 @@ func TestReconcileUpdateCR(t *testing.T) {
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
-			return nil
-		})
-	// expect call to fetch the MC registration secret
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				constants.ElasticsearchURLData: []byte("es.example.com"),
-			}
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -770,9 +722,9 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	// expect call to fetch existing coherence StatefulSet
 	cli.EXPECT().
@@ -799,15 +751,6 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
-			return nil
-		})
-	// expect call to fetch the MC registration secret
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				constants.ElasticsearchURLData: []byte("es.example.com"),
-			}
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -925,15 +868,6 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
-			return nil
-		})
-	// expect call to fetch the MC registration secret
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				constants.ElasticsearchURLData: []byte("es.example.com"),
-			}
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps

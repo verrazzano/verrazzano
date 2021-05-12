@@ -8,8 +8,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
@@ -17,7 +15,7 @@ import (
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	istionet "istio.io/api/networking/v1alpha3"
@@ -217,14 +215,14 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 	return nil
 }
 
-// addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LoggingScope
+// addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LogInfo
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, upgradeApp bool, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
 	// If the Domain already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
 	// current Domain
 	var existingFluentdImage string
 	if !upgradeApp {
 		for _, container := range existingDomain.Spec.ServerPod.Containers {
-			if container.Name == loggingscope.FluentdContainerName {
+			if container.Name == logging.FluentdContainerName {
 				existingFluentdImage = container.Image
 				break
 			}
@@ -233,8 +231,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
 	// not the fields will be empty and we will set these fields to defaults below
-	elasticSearchDetails := clusters.FetchManagedClusterElasticSearchDetails(ctx, r.Client)
-	scope, err := loggingscope.NewLoggingScope(ctx, r.Client, existingFluentdImage, elasticSearchDetails)
+	scope, err := logging.NewLogInfo(existingFluentdImage)
 	if err != nil {
 		return err
 	}
@@ -260,14 +257,14 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// fluentdPod starts with what's in the spec and we add in the FLUENTD things when Apply is
 	// called on the fluentdManager
-	fluentdPod := &loggingscope.FluentdPod{
+	fluentdPod := &logging.FluentdPod{
 		Containers:   extracted.Containers,
 		Volumes:      extracted.Volumes,
 		VolumeMounts: extracted.VolumeMounts,
-		LogPath:      loggingscope.BuildWLSLogPath(name),
-		HandlerEnv:   loggingscope.GetWlsSpecificContainerEnv(),
+		LogPath:      logging.BuildWLSLogPath(name),
+		HandlerEnv:   logging.GetWlsSpecificContainerEnv(),
 	}
-	fluentdManager := loggingscope.GetFluentd(ctx, r.Log, r.Client)
+	fluentdManager := logging.GetFluentd(ctx, r.Log, r.Client)
 
 	// fluentdManager.Apply wants a QRR but it only cares about the namespace (at least for
 	// this use case)
@@ -303,7 +300,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 	}
 
 	// logHome and logHomeEnabled fields need to be set to turn on logging
-	err = unstructured.SetNestedField(weblogic.Object, loggingscope.BuildWLSLogHome(name), specField, "logHome")
+	err = unstructured.SetNestedField(weblogic.Object, logging.BuildWLSLogHome(name), specField, "logHome")
 	if err != nil {
 		log.Error(err, "Unable to set logHome")
 		return err
