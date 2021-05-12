@@ -103,6 +103,7 @@ func (s *Syncer) garbageCollect() {
 			}
 			for _, mcAppConfig := range allLocalMCAppConfigs.Items {
 				// Delete each MultiClusterApplicationConfiguration object that is no longer exists on the admin cluster
+				s.Log.Info(fmt.Sprintf("perfoming garbage collection on %s", mcAppConfig.GroupVersionKind().String()))
 				var appConfig clustersv1alpha1.MultiClusterApplicationConfiguration
 				err := s.AdminClient.Get(s.Context, types.NamespacedName{Name: mcAppConfig.Name, Namespace: mcAppConfig.Namespace}, &appConfig)
 				if errors.IsNotFound(err) {
