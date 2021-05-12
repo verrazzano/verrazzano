@@ -70,3 +70,26 @@ spec:
       mode: ISTIO_MUTUAL
 ---
 {{- end }}
+## Prevent generation of HTTP Server header.
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: remove-server-header
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{ $gateway.labels | toYaml | indent 4 }}
+  release: {{ .Release.Name }}
+spec:
+  configPatches:
+    - applyTo: NETWORK_FILTER
+      match:
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+      patch:
+        operation: MERGE
+        value:
+          typed_config:
+            '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+            server_header_transformation: PASS_THROUGH
