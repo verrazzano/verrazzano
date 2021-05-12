@@ -25,7 +25,6 @@ func (s *Syncer) syncMCComponentObjects(namespace string) error {
 
 	// Write each of the records that are targeted to this cluster
 	for _, mcComponent := range allAdminMCComponents.Items {
-		mcComponent.GroupVersionKind()
 		if s.isThisCluster(mcComponent.Spec.Placement) {
 			_, err := s.createOrUpdateMCComponent(mcComponent)
 			if err != nil {
