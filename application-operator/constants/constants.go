@@ -67,6 +67,13 @@ const LabelVerrazzanoMulticluster = "verrazzano-mc"
 // LabelVerrazzanoMulticlusterDefault - default value for LabelVerrazzanoMulticluster
 const LabelVerrazzanoMulticlusterDefault = "true"
 
+// LabelVerrazzanoProject - constant for a Kubernetes label that is used to indicate if the
+// 	resource is managed by a VerrazzanoProject
+const LabelVerrazzanoProject = "verrazzano-project"
+
+// LabelVerrazzanoProjectDefault - default value for LabelVerrazzanoProject
+const LabelVerrazzanoProjectDefault = "true"
+
 // StatusUpdateChannelBufferSize - the number of status update messages that will be buffered
 // by the agent channel before controllers trying to send more status updates will start blocking
 const StatusUpdateChannelBufferSize = 50
