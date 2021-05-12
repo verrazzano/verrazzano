@@ -22,7 +22,8 @@ function install_nginx_ingress_controller()
       # Create the namespace for nginx
       if ! kubectl get namespace ingress-nginx ; then
           kubectl create namespace ingress-nginx
-      fi
+          kubectl label namespace ingress-nginx istio-injection=enabled
+    fi
 
       # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
       # these should be in .ingress.verrazzano.nginxInstallArgs[]
