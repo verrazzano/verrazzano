@@ -5,6 +5,7 @@ package integ_test
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"time"
 
@@ -152,6 +153,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
 		gomega.Eventually(func() bool {
 			namespace, err := K8sClient.GetNamespace("test-namespace-1")
+			log.Printf("CDD Testing VerrazzanoProject namespace generation test-namespace-1 is %+v", namespace)
 			if err == nil {
 				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
 					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
@@ -162,6 +164,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 		gomega.Eventually(func() bool {
 			namespace, err := K8sClient.GetNamespace("test-namespace-2")
+			log.Printf("CDD Testing VerrazzanoProject namespace generation test-namespace-2 is %+v", namespace)
 			if err == nil {
 				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
 					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
@@ -171,6 +174,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 			return false
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 		gomega.Eventually(func() bool {
+			log.Printf("CDD Testing VerrazzanoProject namespace generation validate testdefault labels")
 			vp, err := K8sClient.GetVerrazzanoProject(constants.VerrazzanoMultiClusterNamespace, "test-default-labels")
 			return err == nil && isStatusAsExpected(vp.Status, clustersv1alpha1.DeployComplete, clustersv1alpha1.Succeeded, "managed1")
 		}, timeout, pollInterval).Should(gomega.BeTrue())
