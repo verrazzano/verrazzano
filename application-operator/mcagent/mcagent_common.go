@@ -79,7 +79,7 @@ func (s *Syncer) processStatusUpdates() {
 
 // garbageCollect delete resources that have been orphaned
 func (s *Syncer) garbageCollect() {
-	mcLabel, err := labels.Parse(fmt.Sprintf("%s=%s", constants.LabelVerrazzanoProject, constants.LabelVerrazzanoProjectDefault))
+	mcLabel, err := labels.Parse(fmt.Sprintf("%s=%s", constants.LabelVerrazzanoManaged, constants.LabelVerrazzanoManagedDefault))
 	if err != nil {
 		s.Log.Error(err, "failed to create list selector on local cluster")
 	}

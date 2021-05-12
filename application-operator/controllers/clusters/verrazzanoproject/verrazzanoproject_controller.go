@@ -177,7 +177,6 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 	// Apply the standard Verrazzano labels
 	namespace.Labels[constants.LabelVerrazzanoManaged] = constants.LabelVerrazzanoManagedDefault
 	namespace.Labels[constants.LabelIstioInjection] = constants.LabelIstioInjectionDefault
-	namespace.Labels[constants.LabelVerrazzanoProject] = constants.LabelVerrazzanoProjectDefault
 
 	// Apply user specified labels, which may override standard Verrazzano labels
 	for label, value := range nsTemplate.Metadata.Labels {
