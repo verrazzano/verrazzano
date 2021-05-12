@@ -215,9 +215,13 @@ func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, n
 	}
 
 	// Attempt to patch the resource.
-	_, err = client.Resource(gvr).Namespace(namespace).Patch(context.TODO(), name, types.MergePatchType, patchData, metav1.PatchOptions{})
+	patchDataJson, err := utilyaml.ToJSON(patchData)
 	if err != nil {
-		fmt.Printf("Failed to patch %s/%v", namespace, gvr)
+		return fmt.Errorf("Could not convert patch data to JSON: %w", err)
+	}
+	_, err = client.Resource(gvr).Namespace(namespace).Patch(context.TODO(), name, types.MergePatchType, patchDataJson, metav1.PatchOptions{})
+	if err != nil {
+		return fmt.Errorf("Failed to patch %s/%v: %w", namespace, gvr, err)
 	}
 	return nil
 }
