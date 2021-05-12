@@ -155,7 +155,8 @@ func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
 	resp, err := httpClient.Get(url)
 	httpResp := ProcHTTPResponse(resp, err)
 	ExpectHTTPOk(httpResp, err, "Error doing http(s) get from "+url)
-	ExpectNoServerHeader(httpResp)
+	// VZ-2603: Assertion disabled until VZ-2599 is complete.
+	//ExpectNoServerHeader(httpResp)
 }
 
 // GetSystemVmiHTTPClient returns an HTTP client configured with the system vmi CA cert
