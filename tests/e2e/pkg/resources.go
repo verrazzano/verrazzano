@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
@@ -191,6 +192,7 @@ func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
 }
 
 // PatchResourceFromFileInCluster patches a Kubernetes resource from a given patch file in the specified cluster
+// If the given patch file has a ".yaml" extension, the contents will be converted to JSON
 // This is intended to be equivalent to `kubectl patch`
 func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace string, name string, patchFile string, kubeconfigPath string) error {
 	found, err := FindTestDataFile(patchFile)
@@ -203,22 +205,25 @@ func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace s
 	}
 	Log(Info, fmt.Sprintf("Found resource: %s", found))
 
+	if strings.HasSuffix(patchFile, ".yaml") {
+		patchBytes, err = utilyaml.ToJSON(patchBytes)
+		if err != nil {
+			return fmt.Errorf("Could not convert patch data to JSON: %w", err)
+		}
+	}
+
 	return patchResourceFromBytes(gvr, namespace, name, patchBytes, GetKubeConfigGivenPath(kubeconfigPath))
 }
 
 // patchResourceFromBytes patches a Kubernetes resource from bytes.
 // This is intended to be equivalent to `kubectl patch`
-func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, name string, patchData []byte, config *rest.Config) error {
+func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, name string, patchDataJson []byte, config *rest.Config) error {
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
 	// Attempt to patch the resource.
-	patchDataJson, err := utilyaml.ToJSON(patchData)
-	if err != nil {
-		return fmt.Errorf("Could not convert patch data to JSON: %w", err)
-	}
 	_, err = client.Resource(gvr).Namespace(namespace).Patch(context.TODO(), name, types.MergePatchType, patchDataJson, metav1.PatchOptions{})
 	if err != nil {
 		return fmt.Errorf("Failed to patch %s/%v: %w", namespace, gvr, err)

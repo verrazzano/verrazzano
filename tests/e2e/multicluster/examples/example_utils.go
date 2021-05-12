@@ -65,6 +65,7 @@ func DeployChangePlacement(kubeConfigPath string) error {
 	}
 	// This is a temporary timer until this bug is fixed: VZ-2454
 	// Allow the MC objects to sync before the change in the VerrazzanoProject
+	pkg.Log(pkg.Info, "Waiting one minute after patching MC resources, so that they are synchronized to managed cluster, before patching VerrazzanoProject")
 	time.Sleep(time.Minute)
 
 	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projectName,"examples/multicluster/hello-helidon/patch-change-placement-to-admin.yaml", kubeConfigPath); err != nil {
