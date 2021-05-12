@@ -76,7 +76,8 @@ kind: EnvoyFilter
 metadata:
   name: remove-server-header
   namespace: {{ .Release.Namespace }}
-  release: {{ .Release.Name }}
+  labels:
+    release: {{ .Release.Name }}
 spec:
   configPatches:
     - applyTo: NETWORK_FILTER
