@@ -63,7 +63,7 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 				})
 
 			ginkgo.It("should return no Server header",
-				func () {
+				func() {
 					httpClient := pkg.GetVerrazzanoHTTPClient()
 					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))

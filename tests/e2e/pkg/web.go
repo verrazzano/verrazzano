@@ -144,7 +144,7 @@ func ExpectHTTPStatus(status int, resp *HTTPResponse, err error, msg string) {
 func ExpectNoServerHeader(resp *HTTPResponse) {
 	// HTTP Server headers should never be returned.
 	for headerName, headerValues := range resp.Header {
-		if strings.EqualFold(headerName, "Server" ) {
+		if strings.EqualFold(headerName, "Server") {
 			gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("server"), fmt.Sprintf("Unexpected Server header %v", headerValues))
 		}
 	}

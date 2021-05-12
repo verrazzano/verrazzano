@@ -87,7 +87,7 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 	}
 	// HTTP Server headers should never be returned.
 	for headerName, headerValues := range resp.Header {
-		if strings.EqualFold(headerName, "Server" ) {
+		if strings.EqualFold(headerName, "Server") {
 			Log(Error, fmt.Sprintf("AssertURLAccessibleAndAuthorized: URL=%v, Unexpected Server header=%v", url, headerValues))
 			return false
 		}
