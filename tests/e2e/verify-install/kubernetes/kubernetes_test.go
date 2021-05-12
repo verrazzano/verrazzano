@@ -4,6 +4,7 @@
 package kubernetes_test
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -11,6 +12,7 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var waitTimeout = 15 * time.Minute
@@ -57,7 +59,10 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 
 		ginkgo.It("has the expected namespaces",
 			func() {
-				namespaces := pkg.ListNamespaces()
+				namespaces, err := pkg.ListNamespaces(metav1.ListOptions{})
+				if err != nil {
+					ginkgo.Fail(fmt.Sprintf("Failed to get namespaces with error: %v", err))
+				}
 				if isManagedClusterProfile {
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(gomega.BeFalse())
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(gomega.BeFalse())

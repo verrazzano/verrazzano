@@ -462,6 +462,18 @@ pipeline {
                                 runGinkgo('security/rbac')
                             }
                         }
+                        stage('security network policies') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-network-policies"
+                            }
+                            steps {
+                                script {
+                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                                        runGinkgo('security/network-policies')
+                                    }
+                                }
+                            }
+                        }
                         stage('examples logging helidon') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
@@ -621,7 +633,7 @@ pipeline {
             script {
                 if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
         }

@@ -61,8 +61,8 @@ func init() {
 
 // FluentdManager is a general interface to interact with FLUENTD related resources
 type FluentdManager interface {
-	Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error)
-	Remove(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) bool
+	Apply(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error)
+	Remove(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) bool
 }
 
 // Fluentd is an implementation of FluentdManager.
@@ -87,14 +87,14 @@ type FluentdPod struct {
 
 // Apply applies FLUENTD configuration to create/update FLUENTD container, configmap, volumes and volume mounts.
 // Returns true if any changes are made; false otherwise.
-func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
+func (f *Fluentd) Apply(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
 	upToDate := f.isFluentdContainerUpToDate(fluentdPod.Containers, scope)
 	if !upToDate {
-		err := f.ensureFluentdConfigMapExists(resource.Namespace, scope)
+		err := f.ensureFluentdConfigMapExists(resource.Namespace)
 		if err != nil {
 			return false, err
 		}
-		f.ensureFluentdVolumes(fluentdPod, scope)
+		f.ensureFluentdVolumes(fluentdPod)
 		f.ensureFluentdVolumeMountExists(fluentdPod)
 		f.ensureFluentdContainer(fluentdPod, scope, resource.Namespace)
 		return true, nil
@@ -104,8 +104,8 @@ func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResou
 
 // Remove removes FLUENTD container, configmap, volumes and volume mounts.
 // Returns whether the remove action has been verified so that the caller knows when it is safe to forget the association.
-func (f *Fluentd) Remove(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) bool {
-	configMapVerified := f.removeFluentdConfigMap(resource.Namespace, scope)
+func (f *Fluentd) Remove(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) bool {
+	configMapVerified := f.removeFluentdConfigMap(resource.Namespace)
 	volumesVerified := f.removeFluentdVolumes(fluentdPod)
 	mountsVerified := f.removeFluentdVolumeMounts(fluentdPod)
 	containersVerified := f.removeFluentdContainer(fluentdPod)
@@ -116,7 +116,7 @@ func (f *Fluentd) Remove(scope *vzapi.LoggingScope, resource vzapi.QualifiedReso
 // ensureFluentdContainer ensures that the FLUENTD container is in the expected state. If a FLUENTD container already
 // exists, replace it with a container created with the current scope information. If no FLUENTD container already
 // exists, create one and add it to the FluentdPod.
-func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.LoggingScope, namespace string) {
+func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, scope *LoggingScope, namespace string) {
 	containers := fluentdPod.Containers
 	fluentdContainerIndex := -1
 	// iterate over existing containers looking for FLUENTD container
@@ -141,7 +141,7 @@ func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 // ensureFluentdVolumes ensures that the FLUENTD volumes exist. We expect 2 volumes, a FLUENTD volume and a
 // FLUENTD config map volume. If these already exist, nothing needs to be done. If they don't already exist,
 // create them and add to the FluentdPod.
-func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod, scope *vzapi.LoggingScope) {
+func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod) {
 	volumes := fluentdPod.Volumes
 	configMapVolumeExists := false
 	fluentdVolumeExists := false
@@ -182,7 +182,7 @@ func (f *Fluentd) ensureFluentdVolumeMountExists(fluentdPod *FluentdPod) {
 
 // ensureFluentdConfigMapExists ensures that the FLUENTD configmap exists. If it already exists, there is nothing
 // to do. If it doesn't exist, create it.
-func (f *Fluentd) ensureFluentdConfigMapExists(namespace string, scope *vzapi.LoggingScope) error {
+func (f *Fluentd) ensureFluentdConfigMapExists(namespace string) error {
 	// check if configmap exists
 	configMapExists, err := resourceExists(f.Context, f, configMapAPIVersion, configMapKind, configMapName+"-"+f.WorkloadType, namespace)
 	if err != nil {
@@ -295,7 +295,7 @@ func (f *Fluentd) removeFluentdVolumes(fluentdPod *FluentdPod) bool {
 }
 
 // removeFluentdConfigMap removes the FLUENTD configmap
-func (f *Fluentd) removeFluentdConfigMap(namespace string, scope *vzapi.LoggingScope) bool {
+func (f *Fluentd) removeFluentdConfigMap(namespace string) bool {
 	configMapExists, err := resourceExists(f.Context, f, configMapAPIVersion, configMapKind, configMapName+"-"+f.WorkloadType, namespace)
 
 	if configMapExists {
@@ -306,7 +306,7 @@ func (f *Fluentd) removeFluentdConfigMap(namespace string, scope *vzapi.LoggingS
 }
 
 // isFluentdContainerUpToDate is used to determine if the FLUENTD container is in the current expected state
-func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *vzapi.LoggingScope) bool {
+func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *LoggingScope) bool {
 	for _, container := range containers {
 		if container.Name != FluentdContainerName {
 			continue
@@ -317,27 +317,27 @@ func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *v
 			case elasticSearchURLEnv:
 				host := envvar.Value
 				f.Log.Info("FLUENTD container ElasticSearch url", "url", host)
-				if host != scope.Spec.ElasticSearchURL {
+				if host != scope.ElasticSearchURL {
 					diffExists = true
 					break
 				}
 			case elasticSearchUserEnv:
 				secretName := envvar.ValueFrom.SecretKeyRef.LocalObjectReference.Name
 				f.Log.Info("FLUENTD container ElasticSearch user secret", "secret", secretName)
-				if secretName != scope.Spec.SecretName {
+				if secretName != scope.SecretName {
 					diffExists = true
 					break
 				}
 			case elasticSearchPwdEnv:
 				secretName := envvar.ValueFrom.SecretKeyRef.LocalObjectReference.Name
 				f.Log.Info("FLUENTD container ElasticSearch password secret", "secret", secretName)
-				if secretName != scope.Spec.SecretName {
+				if secretName != scope.SecretName {
 					diffExists = true
 					break
 				}
 			}
 			f.Log.Info("FLUENTD container image", "image", container.Image)
-			if container.Image != scope.Spec.FluentdImage {
+			if container.Image != scope.FluentdImage {
 				diffExists = true
 				break
 			}
@@ -348,11 +348,11 @@ func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *v
 }
 
 // createFluentdContainer creates the FLUENTD container
-func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.LoggingScope, namespace string) corev1.Container {
+func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *LoggingScope, namespace string) corev1.Container {
 	container := corev1.Container{
 		Name:            "fluentd",
 		Args:            []string{"-c", "/etc/fluent.conf"},
-		Image:           scope.Spec.FluentdImage,
+		Image:           scope.FluentdImage,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Env: []corev1.EnvVar{
 			{
@@ -388,7 +388,7 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: scope.Spec.SecretName,
+							Name: scope.SecretName,
 						},
 						Key: constants.ClusterNameData,
 						Optional: func(opt bool) *bool {
