@@ -89,8 +89,6 @@ func (s *Syncer) performAdminStatusUpdate(msg clusters.StatusUpdateMessage) erro
 		statusUpdateFunc = s.updateMultiClusterComponentStatus
 	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterConfigMap{}).String()) {
 		statusUpdateFunc = s.updateMultiClusterConfigMapStatus
-	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterLoggingScope{}).String()) {
-		statusUpdateFunc = s.updateMultiClusterLoggingScopeStatus
 	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterSecret{}).String()) {
 		statusUpdateFunc = s.updateMultiClusterSecretStatus
 	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.VerrazzanoProject{}).String()) {
