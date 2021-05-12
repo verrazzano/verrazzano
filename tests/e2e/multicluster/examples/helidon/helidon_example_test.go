@@ -160,7 +160,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 	// })
 
 	ginkgo.Context("Change Placement of app to Admin Cluster", func() {
-		ginkgo.It("Deploy change-placement manifests to admin cluster", func() {
+		ginkgo.It("Apply patch to change placement to admin cluster", func() {
 			err := examples.ChangePlacementToAdminCluster(adminKubeconfig)
 			if err != nil {
 				ginkgo.Fail(err.Error())
@@ -194,7 +194,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 	// a managed cluster are different, and we want to ensure we test the case where the destination cluster is
 	// each of the 2 types - admin and managed
 	ginkgo.Context("Return the app to Managed Cluster", func() {
-		ginkgo.It("Change placement back to managed cluster", func() {
+		ginkgo.It("Apply patch to change placement back to managed cluster", func() {
 			err := examples.ChangePlacementToManagedCluster(adminKubeconfig)
 			if err != nil {
 				ginkgo.Fail(err.Error())
