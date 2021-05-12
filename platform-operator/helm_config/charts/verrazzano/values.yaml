@@ -48,8 +48,8 @@ kibana:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.14.0-20210506185522-578eb9e
+  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-dev
+  imageVersion: 3380
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
