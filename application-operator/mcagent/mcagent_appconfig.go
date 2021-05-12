@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,12 +72,6 @@ func mutateMCAppConfig(mcAppConfig clustersv1alpha1.MultiClusterApplicationConfi
 	mcAppConfigNew.Spec.Placement = mcAppConfig.Spec.Placement
 	mcAppConfigNew.Spec.Template = mcAppConfig.Spec.Template
 	mcAppConfigNew.Labels = mcAppConfig.Labels
-
-	// Add verrazzano generated labels if not already present
-	if mcAppConfigNew.Labels == nil {
-		mcAppConfigNew.Labels = map[string]string{}
-	}
-	mcAppConfigNew.Labels[constants.LabelVerrazzanoMulticluster] = constants.LabelVerrazzanoMulticlusterDefault
 }
 
 // appConfigPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace and the placement
