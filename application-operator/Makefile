@@ -76,9 +76,8 @@ run:
 	# kubectl delete validatingwebhookconfigurations verrazzano-application-verrazzanoproject
 	# kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
 
-	# To enable webhooks: $(GO) run main.go --kubeconfig=${KUBECONFIG} --cert-dir=build/webhook-certs
+	# To enable webhooks: $(GO) run main.go --kubeconfig=${KUBECONFIG} --enable-webhooks=true --metrics-addr=localhost:0 --cert-dir=build/webhook-certs
 	$(GO) run main.go --kubeconfig=${KUBECONFIG} --enable-webhooks=false --metrics-addr=localhost:0
-
 
 .PHONY: install-oam-crds
 install-oam-crds:
