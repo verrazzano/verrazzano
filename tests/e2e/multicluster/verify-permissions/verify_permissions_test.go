@@ -79,25 +79,6 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
-		ginkgo.It("admin cluster - verify mc logging scope", func() {
-			gomega.Eventually(func() bool {
-				return findMultiClusterLoggingScope(testNamespace, "mymcloggingscope")
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc logging scope")
-
-			gomega.Eventually(func() bool {
-				// Verify we have the expected status update
-				loggingScope := clustersv1alpha1.MultiClusterLoggingScope{}
-				err := getMultiClusterResource(testNamespace, "mymcloggingscope", &loggingScope)
-				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d", len(loggingScope.Status.Clusters)))
-				if len(loggingScope.Status.Clusters) > 0 {
-					pkg.Log(pkg.Debug, string("cluster reported status: "+loggingScope.Status.Clusters[0].State))
-					pkg.Log(pkg.Debug, "cluster reported name: "+loggingScope.Status.Clusters[0].Name)
-				}
-				return err == nil && loggingScope.Status.State == clustersv1alpha1.Succeeded &&
-					isStatusAsExpected(loggingScope.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
-		})
-
 		ginkgo.It("admin cluster - verify mc secret", func() {
 			gomega.Eventually(func() bool {
 				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
@@ -147,19 +128,6 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			)
 		})
 
-		ginkgo.It("managed cluster has the expected mc and underlying logging scope", func() {
-			pkg.Concurrently(
-				func() {
-					gomega.Eventually(findLoggingScope(testNamespace, "mymcloggingscope"),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find logging scope")
-				},
-				func() {
-					gomega.Eventually(findMultiClusterLoggingScope(testNamespace, "mymcloggingscope"),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc loggging scope")
-				},
-			)
-		})
-
 		ginkgo.It("managed cluster has the expected mc and underlying secret", func() {
 			pkg.Concurrently(
 				func() {
@@ -195,27 +163,6 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			err = DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 			if err == nil {
 				ginkgo.Fail("Delete of config map succeeded")
-			}
-			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
-			}
-		})
-
-		ginkgo.It("managed cluster can access logging scope but not modify it", func() {
-			gomega.Eventually(findMultiClusterLoggingScope(testNamespace, "mymcloggingscope"),
-				waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc loggging scope")
-			// try to update
-			err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_loggingscope_update.yaml", &v1alpha1.LoggingScope{})
-			if err == nil {
-				ginkgo.Fail("Update to logging scope succeeded")
-			}
-			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
-			}
-			// try to delete
-			err = DeleteResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml", &v1alpha1.LoggingScope{})
-			if err == nil {
-				ginkgo.Fail("Delete of logging scope succeeded")
 			}
 			if !errors.IsForbidden(err) {
 				ginkgo.Fail("Wrong error generated - should be forbidden")
@@ -407,13 +354,6 @@ func deployTestResources() {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
 	}
 
-	// create a logging scope
-	pkg.Log(pkg.Info, "Creating MC logging scope")
-	err = CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml", &clustersv1alpha1.MultiClusterLoggingScope{})
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster logging scope: %v", err))
-	}
-
 	// create a secret
 	pkg.Log(pkg.Info, "Creating MC secret")
 	err = CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
@@ -433,13 +373,6 @@ func undeployTestResources() {
 	err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
-	}
-
-	// delete a logging scope
-	pkg.Log(pkg.Info, "Deleting MC logging scope")
-	err = DeleteResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml", &clustersv1alpha1.MultiClusterLoggingScope{})
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster logging scope: %v", err))
 	}
 
 	// delete a secret
@@ -508,26 +441,6 @@ func listResource(namespace string, object runtime.Object) error {
 	return clustersClient.List(context.TODO(), object, &client.ListOptions{Namespace: namespace})
 }
 
-// findLoggingScope returns true if the logging scope is found, false otherwise
-func findLoggingScope(namespace, name string) bool {
-	clustersClient, err := getClustersClient()
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
-	}
-
-	loggingscopeList := v1alpha1.LoggingScopeList{}
-	err = clustersClient.List(context.TODO(), &loggingscopeList, &client.ListOptions{Namespace: namespace})
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list logging scopes with error: %v", err))
-	}
-	for _, item := range loggingscopeList.Items {
-		if item.Name == name && item.Namespace == namespace {
-			return true
-		}
-	}
-	return false
-}
-
 // getMultiClusterResource returns a multi cluster resource based the provided multi cluster object's type and namespace
 func getMultiClusterResource(namespace, name string, object runtime.Object) error {
 	clustersClient, err := getClustersClient()
@@ -553,26 +466,6 @@ func findMultiClusterConfigMap(namespace, name string) bool {
 		ginkgo.Fail(fmt.Sprintf("Failed to list multi cluster configmaps with error: %v", err))
 	}
 	for _, item := range configmapList.Items {
-		if item.Name == name && item.Namespace == namespace {
-			return true
-		}
-	}
-	return false
-}
-
-// findMultiClusterLoggingScope returns true if the logging scope is found based on name and namespace, false otherwise
-func findMultiClusterLoggingScope(namespace, name string) bool {
-	clustersClient, err := getClustersClient()
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
-	}
-
-	loggingscopeList := clustersv1alpha1.MultiClusterLoggingScopeList{}
-	err = clustersClient.List(context.TODO(), &loggingscopeList, &client.ListOptions{Namespace: namespace})
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list multi cluster logging scopes with error: %v", err))
-	}
-	for _, item := range loggingscopeList.Items {
 		if item.Name == name && item.Namespace == namespace {
 			return true
 		}

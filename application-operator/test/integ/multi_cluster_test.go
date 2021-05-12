@@ -33,7 +33,6 @@ var (
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterconfigmaps.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclustercomponents.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterapplicationconfigurations.yaml", crdDir),
-		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterloggingscopes.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_verrazzanoprojects.yaml", crdDir),
 	}
 )
@@ -118,18 +117,6 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 			mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "invalid-mccm")
 			return err == nil && isStatusAsExpected(mcConfigMap.Status, clustersv1alpha1.DeployFailed, clustersv1alpha1.Failed, managedClusterName)
 		}, duration, pollInterval).Should(gomega.BeTrue())
-	})
-})
-
-var _ = ginkgo.Describe("Testing MultiClusterLoggingScope", func() {
-	ginkgo.It("Apply MultiClusterLoggingScope creates a LoggingScope ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_loggingscope_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""))
-		mcLogScope, err := K8sClient.GetMultiClusterLoggingScope(multiclusterTestNamespace, "mymcloggingscope")
-		gomega.Expect(err).To(gomega.BeNil())
-		gomega.Eventually(func() bool {
-			return loggingScopeExistsWithFields(multiclusterTestNamespace, "mymcloggingscope", mcLogScope)
-		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })
 
@@ -294,12 +281,6 @@ func appConfigExistsWithFields(namespace string, name string, multiClusterAppCon
 		return false
 	}
 	return true
-}
-
-func loggingScopeExistsWithFields(namespace string, name string, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope) bool {
-	fmt.Printf("Looking for LoggingScope %v/%v\n", namespace, name)
-	logScope, err := K8sClient.GetLoggingScope(namespace, name)
-	return err == nil && reflect.DeepEqual(logScope.Spec, mcLogScope.Spec.Template.Spec)
 }
 
 func componentExistsWithFields(namespace string, name string, multiClusterComp *clustersv1alpha1.MultiClusterComponent) bool {
