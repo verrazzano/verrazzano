@@ -57,7 +57,7 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator-dev
-  imageVersion: 3382
+  imageVersion: 3384
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
