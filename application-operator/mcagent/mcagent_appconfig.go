@@ -9,7 +9,6 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -40,13 +39,7 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 	// local cluster and compare to the list received from the admin cluster.
 	// The admin cluster is the source of truth.
 	allLocalMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
-	mcLabel, err := labels.Parse(fmt.Sprintf("%s=%s", constants.LabelVerrazzanoMulticluster, constants.LabelVerrazzanoManagedDefault))
-	if err != nil {
-		s.Log.Error(err, "failed to create list selector for MultiClusterApplicationConfiguration on local cluster")
-		return nil
-	}
-	listOptionsGC := &client.ListOptions{LabelSelector: mcLabel}
-	err = s.LocalClient.List(s.Context, &allLocalMCAppConfigs, listOptionsGC)
+	err = s.LocalClient.List(s.Context, &allLocalMCAppConfigs, listOptions)
 	if err != nil {
 		s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
 		return nil

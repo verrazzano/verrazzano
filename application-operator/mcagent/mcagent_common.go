@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -69,6 +70,34 @@ func (s *Syncer) processStatusUpdates() {
 			}
 		default:
 			break
+		}
+	}
+}
+
+// garbageCollect delete resources that have been orphaned
+func (s *Syncer) garbageCollect() {
+	mcLabel, err := labels.Parse(fmt.Sprintf("%s=%s", constants.LabelVerrazzanoMulticluster, constants.LabelVerrazzanoManagedDefault))
+	listOptionsGC := &client.ListOptions{LabelSelector: mcLabel}
+
+	// Delete orphaned MultiClusterApplicationConfiguration resources.
+	// Get the list of MultiClusterApplicationConfiguration resources on the
+	// local cluster and compare to the list received from the admin cluster.
+	// The admin cluster is the source of truth.
+	allLocalMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
+	if err != nil {
+		s.Log.Error(err, "failed to create list selector for MultiClusterApplicationConfiguration on local cluster")
+	}
+	err = s.LocalClient.List(s.Context, &allLocalMCAppConfigs, listOptionsGC)
+	if err != nil {
+		s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
+	}
+	for _, mcAppConfig := range allLocalMCAppConfigs.Items {
+		// Delete each MultiClusterApplicationConfiguration object that is no longer placed on this cluster
+		if !s.isThisCluster(mcAppConfig.Spec.Placement) {
+			err := s.LocalClient.Delete(s.Context, &mcAppConfig)
+			if err != nil {
+				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterApplicationConfiguration with name %q and namespace %q", mcAppConfig.Name, mcAppConfig.Namespace))
+			}
 		}
 	}
 }
