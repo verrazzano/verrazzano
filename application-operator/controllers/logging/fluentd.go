@@ -13,8 +13,6 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -37,21 +35,7 @@ const (
 	elasticSearchUserEnv = "ELASTICSEARCH_USER"
 	elasticSearchPwdEnv  = "ELASTICSEARCH_PASSWORD"
 
-	secretVolume    = "secret-volume"
-	secretMountPath = "/fluentd/secret"
-
 	CAFileConfig = "\n  ca_file /fluentd/secret/ca-bundle"
-)
-
-// ElasticSearchIndex defines the common index pattern
-const ElasticSearchIndex = "#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
-
-const (
-	// DefaultElasticSearchURL defines the default Elasticsearch URL used if it is not specified in the logging logInfo
-	DefaultElasticSearchURL = "http://vmi-system-es-ingest.verrazzano-system.svc.cluster.local:9200"
-
-	// DefaultSecretName defines the default Elasticsearch secret name used if it is not specified in the logging logInfo
-	DefaultSecretName = "verrazzano-es-internal"
 )
 
 // DefaultFluentdImage holds the default FLUENTD image that will be used if it is not specified in the logging logInfo
@@ -405,30 +389,11 @@ func (f *Fluentd) createFluentdConfigMapVolume(name string) corev1.Volume {
 	}
 }
 
-// createFluentdSecretVolume creates a FLUENTD secret volume
-func (f *Fluentd) createFluentdSecretVolume(secretName string) corev1.Volume {
-	return corev1.Volume{
-		Name: secretVolume,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: secretName},
-		},
-	}
-}
-
 // createStorageVolumeMount creates a storage volume mount
 func (f *Fluentd) createStorageVolumeMount() corev1.VolumeMount {
 	return corev1.VolumeMount{
 		Name:      f.StorageVolumeName,
 		MountPath: f.StorageVolumeMountPath,
-	}
-}
-
-// createSecretVolumeMount creates a secret volume mount
-func (f *Fluentd) createSecretVolumeMount() corev1.VolumeMount {
-	return corev1.VolumeMount{
-		Name:      secretVolume,
-		MountPath: secretMountPath,
 	}
 }
 
@@ -439,43 +404,6 @@ func resourceExists(ctx context.Context, r k8sclient.Reader, apiVersion, kind, n
 	resources.SetKind(kind)
 	err := r.List(ctx, &resources, k8sclient.InNamespace(namespace), k8sclient.MatchingFields{"metadata.name": name})
 	return len(resources.Items) != 0, err
-}
-
-func createEmptySecretForFluentdVolume(ctx context.Context, cli k8sclient.Client, namespace string, name string) error {
-	placeholderSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-	}
-	return cli.Create(ctx, placeholderSecret, &k8sclient.CreateOptions{})
-}
-
-// copies the logging related data from managed cluster secret to the given namespace/name IF it exists
-func copyManagedClusterLoggingSecret(ctx context.Context, cli k8sclient.Client, namespace string, name string) (bool, error) {
-	requiresCABundle := false
-	if name != clusters.MCRegistrationSecretFullName.Name {
-		// The managed cluster ES secret is not the one specified on the logging logInfo
-		// nothing to copy
-		return requiresCABundle, nil
-	}
-	secret := &corev1.Secret{}
-	err := cli.Get(ctx, clusters.MCRegistrationSecretFullName, secret)
-	if kerrs.IsNotFound(err) {
-		// Not a managed cluster, nothing to copyLoggingData
-		return requiresCABundle, nil
-	}
-	if err != nil {
-		return requiresCABundle, err
-	}
-	if len(secret.Data[constants.ElasticsearchCABundleData]) > 0 {
-		requiresCABundle = true
-	}
-	err = cli.Create(ctx, copyLoggingData(secret, namespace, name), &k8sclient.CreateOptions{})
-	if kerrs.IsAlreadyExists(err) {
-		return requiresCABundle, nil
-	}
-	return requiresCABundle, err
 }
 
 // copies the logging related data from one secret to another
@@ -503,21 +431,4 @@ func copyLoggingData(original *corev1.Secret, namespace, name string) *corev1.Se
 		},
 		Data: data,
 	}
-}
-
-// shouldUseManagedClusterLoggingSecret returns true if this is a managed cluster and the
-// logging logInfo specifies that the managed cluster Elasticsearch secret should be used
-func shouldUseManagedClusterLoggingSecret(ctx context.Context, cli k8sclient.Client, logginglogInfoSecretName string) bool {
-	if logginglogInfoSecretName != clusters.MCRegistrationSecretFullName.Name {
-		// We are not using the managed cluster Elasticsearch secret in our logging logInfo
-		return false
-	}
-	secret := &corev1.Secret{}
-	err := cli.Get(ctx, clusters.MCRegistrationSecretFullName, secret)
-	if kerrs.IsNotFound(err) {
-		// Not a managed cluster - can't use managed cluster ES secret
-		return false
-	}
-	// we retrieved the secret and there were no errors - we should use it
-	return err == nil
 }
