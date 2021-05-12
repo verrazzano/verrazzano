@@ -220,8 +220,8 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		})
 	})
 
-	ginkgo.Context("Delete resources on admin cluster", func() {
-		ginkgo.It("Delete all the things", func() {
+	ginkgo.Context("Delete resources", func() {
+		ginkgo.It("Delete resources on admin cluster", func() {
 			err := cleanUp(adminKubeconfig)
 			if err != nil {
 				ginkgo.Fail(err.Error())
@@ -233,17 +233,24 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 				return examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
-		ginkgo.It("Verify deletion on managed cluster", func() {
+
+		ginkgo.It("Verify automatic deletion on managed cluster", func() {
 			gomega.Eventually(func() bool {
 				return examples.VerifyHelloHelidonDeletedInManagedCluster(managedKubeconfig)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
-		if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig); err != nil {
-			ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace in managed cluster: %v\n", examples.TestNamespace, err))
-		}
-		if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig); err != nil {
-			ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace in admin cluster: %v\n", examples.TestNamespace, err))
-		}
+
+		ginkgo.It("Delete test namespace on managed cluster", func() {
+			if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig); err != nil {
+				ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace in managed cluster: %v\n", examples.TestNamespace, err))
+			}
+		})
+
+		ginkgo.It("Delete test namespace on admin cluster", func() {
+			if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig); err != nil {
+				ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace in admin cluster: %v\n", examples.TestNamespace, err))
+			}
+		})
 	})
 })
 
@@ -264,6 +271,8 @@ func cleanUp(kubeconfigPath string) error {
 
 	// NOTE: Wait one minute for MC resources to be synchronized before deleting the VerrazzanoProject. This is
 	// pending a fix for VZ-2454.
+	pkg.Log(pkg.Info, "Waiting one minute after deleting MC resources, so that they are synchronized to managed cluster, before deleting VerrazzanoProject")
+	time.Sleep(time.Minute)
 
 	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeconfigPath); err != nil {
 		return fmt.Errorf("Failed to delete hello-helidon project resource: %v", err)
