@@ -385,7 +385,6 @@ pipeline {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
-                            // Probably want to do this for release builds as well, for now only on demand with the parameter
                             if  [ ${params.GENERATE_TARBALL} == true ]; then
                                 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/tarball-cluster-dump -r ${WORKSPACE}/tarball-cluster-dump/analysis.report
                                 mkdir ${WORKSPACE}/tar-files

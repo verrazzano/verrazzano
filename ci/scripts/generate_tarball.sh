@@ -47,6 +47,8 @@ while read csv_line; do
     continue
   fi
 
+  # FIXME: Exclude more here: Calico, MetalLB, K8S images, etc...
+
   # FIXME: Some of the CSV entries from the cluster-dump have a second row and that is the image without the hash, need
   # to get that output consistent so we can use it here (ie: for our purposes image without the hash in the first column
   # is what we need and there are maybe a few that don't fit that)
