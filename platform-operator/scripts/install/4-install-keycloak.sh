@@ -165,7 +165,8 @@ function configure_keycloak_realms() {
   local _VZ_REALM="$1"
   local _VZ_ADMIN_GRP="$2"
   local _VZ_MONITOR_GRP="$3"
-
+  local _VZ_USER_GRP="$4"
+ 
   local PW=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.password}" | base64 -d)
 
   kubectl exec --stdin keycloak-0 -n keycloak -c keycloak -- bash -s <<EOF
@@ -184,27 +185,59 @@ function configure_keycloak_realms() {
     log "Logging in as '$KCADMIN_USERNAME'"
     kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password) || fail "Login failed"
 
+  ##  log "Deleting realm $_VZ_REALM"
+  ##  kcadm.sh delete realms/$_VZ_REALM || log "Failed to delete realm"
+
     log "Creating $_VZ_REALM realm"
     kcadm.sh create realms -s realm=$_VZ_REALM -s enabled=false || fail "Failed to create realm"
 
-    log "Creating group $_VZ_ADMIN_GRP"
-    kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_ADMIN_GRP || fail "Failed to create group"
+    log "Creating $_VZ_USER_GRP group"
+    USERS_GID=\$(kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_USER_GRP 2>&1 | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
+    log "Created group \$USERS_GID"
 
-    log "Creating group $_VZ_MONITOR_GRP"
-    kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_MONITOR_GRP || fail "Failed to create group"
+    log "Creating $_VZ_ADMIN_GRP group"
+    ADMINS_GID=\$(kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_ADMIN_GRP 2>&1 | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
+    log "Created group \$ADMINS_GID"
+
+    log "Creating $_VZ_MONITOR_GRP group"
+    MONITORS_GID=\$(kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_MONITOR_GRP 2>&1 | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
+    log "Created group \$MONITORS_GID"
 
     log "Creating console_users role"
     kcadm.sh create roles -r $_VZ_REALM -s name=console_users || fail "Failed to create role"
+
+    log "Creating Admin role"
+    kcadm.sh create roles -r $_VZ_REALM -s name=Admin || fail "Failed to create role"
+
+    log "Creating Viewer role"
+    kcadm.sh create roles -r $_VZ_REALM -s name=Viewer || fail "Failed to create role"
+
+    log "Granting console_users role to $_VZ_USER_GRP group"
+    kcadm.sh add-roles -r $_VZ_REALM --gid \$USERS_GID --rolename console_users || log "Failed to grant role"
+
+    log "Granting Admin role to $_VZ_ADMIN_GRP group"
+    kcadm.sh add-roles -r $_VZ_REALM --gid \$ADMINS_GID --rolename Admin || log "Failed to grant role"
+
+    log "Granting Viewer role to $_VZ_MONITOR_GRP group"
+    kcadm.sh add-roles -r $_VZ_REALM --gid \$MONITORS_GID --rolename Viewer || log "Failed to grant role"
 
     log "Adding console_users to default roles"
     EXISTING=\$(kcadm.sh get realms/$_VZ_REALM --fields defaultRoles --format csv) || fail "Failed to get existing default roles"
     kcadm.sh update realms/$_VZ_REALM -s "defaultRoles=[ \${EXISTING},\"console_users\" ]" || fail "Failed to update default roles"
 
+    # we'd like to use a default group instead of a default role, but there
+    # seems to be a bug that causes an exception when the defaultGroups field
+    # (but not the defaultRoles field) is set.
+
+##    log "Adding verrazzano-users to default groups"
+##    EXISTING=\$(kcadm.sh get realms/$_VZ_REALM --fields defaultGroups --format csv) || fail "Failed to get existing default groups"
+##    kcadm.sh update realms/$_VZ_REALM -s "defaultGroups=[ \${EXISTING},\"verrazzano-users\" ]" || fail "Failed to update default groups"
+
     log "Creating verrazzano user"
     kcadm.sh create users -r $_VZ_REALM -s username=verrazzano -s groups[0]=verrazzano-admins -s enabled=true || fail "Failed to create user"
 
     log "Granting realm admin roles to verrazzano user"
-    kcadm.sh add-roles -r $_VZ_REALM --uusername verrazzano --cclientid realm-management --rolename manage-realm --rolename manage-users || fail "Failed to grant roles"
+    kcadm.sh add-roles -r $_VZ_REALM --uusername verrazzano --cclientid realm-management --rolename realm-admin || fail "Failed to grant roles"
 
     log "Setting verrazzano user password"
     kcadm.sh set-password -r $_VZ_REALM --username verrazzano --new-password $PW || fail "Failed to set user password"
@@ -311,8 +344,6 @@ function configure_keycloak_realms() {
         "role_list",
         "roles",
         "profile",
-        "model-write",
-        "model-read",
         "email"
       ],
       "optionalClientScopes": [
@@ -438,7 +469,7 @@ END
           "jsonType.label" : "String"
         }
       } ],
-      "defaultClientScopes" : [ "web-origins", "role_list", "roles", "profile", "good-service", "email" ],
+      "defaultClientScopes" : [ "web-origins", "role_list", "roles", "profile", "email" ],
       "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
 }
 END
@@ -466,6 +497,7 @@ END
     rm \$HOME/.keycloak/kcadm.config || fail "Failed to remove login config file"
 
 EOF
+
 }
 
 # configure the prometheus deployment to limit istio proxy based communication to the keycloak service only.  Other
