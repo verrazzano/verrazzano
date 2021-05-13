@@ -102,6 +102,10 @@ func (s *Syncer) garbageCollect() {
 			ObjectList: &clustersv1alpha1.MultiClusterApplicationConfigurationList{},
 			Object:     &clustersv1alpha1.MultiClusterApplicationConfiguration{},
 		},
+		{
+			ObjectList: &clustersv1alpha1.MultiClusterComponentList{},
+			Object:     &clustersv1alpha1.MultiClusterComponent{},
+		},
 	}
 
 	for _, namespace := range vpNamespaceList.Items {
@@ -117,10 +121,10 @@ func (s *Syncer) garbageCollect() {
 					mcItem := item.(clusters.MultiClusterResource)
 					err := s.AdminClient.Get(s.Context, types.NamespacedName{Name: mcItem.GetName(), Namespace: mcItem.GetNamespace()}, mcObject.Object)
 					if errors.IsNotFound(err) {
-						s.Log.Info(fmt.Sprintf("perfoming garbage collection on %s with name %q in namespace %q", item.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
+						s.Log.Info(fmt.Sprintf("perfoming garbage collection on %s with name %s in namespace %s", item.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
 						err := s.LocalClient.Delete(s.Context, mcItem)
 						if err != nil {
-							s.Log.Error(err, fmt.Sprintf("failed to delete %s with name %q in namespace %q", mcItem.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
+							s.Log.Error(err, fmt.Sprintf("failed to delete %s with name %s in namespace %s", mcItem.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
 						}
 					}
 				}
