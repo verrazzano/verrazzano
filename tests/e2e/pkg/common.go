@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -80,6 +81,7 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 		Log(Error, fmt.Sprintf("AssertURLAccessibleAndAuthorized: URL=%v, Unexpected error=%v", url, err))
 		return false
 	}
+	ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		Log(Error, fmt.Sprintf("AssertURLAccessibleAndAuthorized: URL=%v, Unexpected statis code=%v", url, resp.StatusCode))
