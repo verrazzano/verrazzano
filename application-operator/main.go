@@ -257,47 +257,47 @@ func main() {
 
 	if err = (&multiclustersecret.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterSecret"),
+		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterSecretKind),
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterSecret")
+		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterSecretKind)
 		os.Exit(1)
 	}
 	if err = (&multiclustercomponent.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterComponent"),
+		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterComponentKind),
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterComponent")
+		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterComponentKind)
 		os.Exit(1)
 	}
 	if err = (&multiclusterconfigmap.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterConfigMap"),
+		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterConfigMapKind),
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterConfigMap")
+		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterConfigMapKind)
 		os.Exit(1)
 	}
 	if err = (&multiclusterapplicationconfiguration.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterApplicationConfiguration"),
+		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterAppConfigKind),
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterApplicationConfiguration")
+		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterAppConfigKind)
 		os.Exit(1)
 	}
 	if err = (&verrazzanoproject.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("VerrazzanoProject"),
+		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.VerrazzanoProjectKind),
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoProject")
+		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.VerrazzanoProjectKind)
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
