@@ -17,8 +17,4 @@ spec:
             kind: MetricsTrait
             spec:
               scraper: verrazzano-system/vmi-system-prometheus-0
-      scopes:
-        - scopeRef:
-            apiVersion: oam.verrazzano.io/v1alpha1
-            kind: LoggingScope
-            name: hello-loggingscope
+

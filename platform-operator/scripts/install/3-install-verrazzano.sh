@@ -251,6 +251,9 @@ fi
 log "Adding label needed by network policies to ${VERRAZZANO_NS} namespace"
 kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_NS}" --overwrite
 
+log "Adding label for enabling istio sidecar injection by default to ${VERRAZZANO_NS} namespace"
+kubectl label namespace ${VERRAZZANO_NS} "istio-injection=enabled" --overwrite
+
 if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
 fi
@@ -265,6 +268,12 @@ kubectl label namespace ${MONITORING_NS} "verrazzano.io/namespace=${MONITORING_N
 # If Keycloak is being installed, create the Keycloak namespace if it doesn't exist so we can apply network policies
 if [ $(is_keycloak_enabled) == "true" ] && ! kubectl get namespace keycloak ; then
   action "Creating keycloak namespace" kubectl create namespace keycloak || exit 1
+  # Label the keycloak namespace so that we istio injection is enabled
+  log "Adding label needed for istio sidecar injection to keycloak namespace"
+  kubectl label namespace keycloak "istio-injection=enabled" --overwrite
+  # Label the keycloak namespace so that we can apply network policies
+  log "Adding label needed by network policies to keycloak namespace"
+  kubectl label namespace keycloak "verrazzano.io/namespace=keycloak" --overwrite
 fi
 
 if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then

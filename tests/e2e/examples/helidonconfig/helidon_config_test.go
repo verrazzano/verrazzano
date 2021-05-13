@@ -136,7 +136,7 @@ var _ = ginkgo.Describe("Verify Helidon Config OAM App.", func() {
 
 	ginkgo.Context("Logging.", func() {
 		indexName := "verrazzano-namespace-helidon-config"
-		// GIVEN an application with logging enabled via a logging scope
+		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		ginkgo.It("Verify Elasticsearch index exists", func() {
@@ -145,7 +145,7 @@ var _ = ginkgo.Describe("Verify Helidon Config OAM App.", func() {
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for helidon config")
 		})
 
-		// GIVEN an application with logging enabled via a logging scope
+		// GIVEN an application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {

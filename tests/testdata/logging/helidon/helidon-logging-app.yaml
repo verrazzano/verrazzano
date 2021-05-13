@@ -27,8 +27,3 @@ spec:
                 - paths:
                     - path: "/greet"
                       pathType: Prefix
-      scopes:
-        - scopeRef:
-            apiVersion: oam.verrazzano.io/v1alpha1
-            kind: LoggingScope
-            name: logging-scope
