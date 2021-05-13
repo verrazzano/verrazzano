@@ -305,7 +305,59 @@ func TestNamespaceUniquenessForProjects(t *testing.T) {
 			},
 		},
 	}
-	// This test will fail because Verrazzano project test-project2 has conflicting namespace project4
+	// UPDATE FAIL This test will fail because Verrazzano project test-project2 has conflicting namespace project4
 	err = currentVP.validateNamespaceCanBeUsed()
 	assert.NotNil(t, err)
+
+	currentVP = VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "existing-project-1",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project",
+						},
+					},
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project4",
+						},
+					},
+				},
+			},
+		},
+	}
+	// This test will fail because Verrazzano project name, existing-project-1, is using a namespace in existing-project-2
+	err = currentVP.validateNamespaceCanBeUsed()
+	assert.NotNil(t, err)
+
+	currentVP = VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "existing-project-1",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project",
+						},
+					},
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project2",
+						},
+					},
+				},
+			},
+		},
+	}
+	// UPDATE PASS This test will pass because Verrazzano project name, existing-project-1, is not using a namespace associated with any existing projects
+	err = currentVP.validateNamespaceCanBeUsed()
+	assert.Nil(t, err)
 }

@@ -109,6 +109,9 @@ func (vp *VerrazzanoProject) validateNamespaceCanBeUsed() error {
 		nameSpace := ns.Metadata.Name
 		namespaceFound := false
 		for _, project := range projectsList.Items {
+			if project.Name == vp.Name {
+				continue
+			}
 			for _, ns := range project.Spec.Template.Namespaces {
 				if ns.Metadata.Name == nameSpace {
 					namespaceFound = true
