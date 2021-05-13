@@ -564,3 +564,15 @@ func TestValidateInProgress(t *testing.T) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
 }
+
+func TestValidateOciDnsSecret(t *testing.T) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: nil,
+			},
+		},
+	}
+
+	ValidateOciDnsSecret(client, &vz.Spec)
+}
