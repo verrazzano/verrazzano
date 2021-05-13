@@ -50,7 +50,7 @@ verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
   imageVersion: 0.14.0-20210506185522-578eb9e
-  nodeExporterImage: ghcr.io/verrazzano/node-exporter:1.1.2-20210508133541-8530488
+  nodeExporterImage: phx.ocir.io/stevengreenberginc/pabhat/node-exporter:1.0.0
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
 
