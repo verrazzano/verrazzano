@@ -11,7 +11,9 @@ spec:
     matchLabels:
       {{- include "ingress-nginx.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: default-backend
+{{- if not .Values.defaultBackend.autoscaling.enabled }}
   replicas: {{ .Values.defaultBackend.replicaCount }}
+{{- end }}
   revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   template:
     metadata:
@@ -36,20 +38,29 @@ spec:
     {{- end }}
       containers:
         - name: {{ template "ingress-nginx.name" . }}-default-backend
-          image: {{ .Values.defaultBackend.image.repository }}:{{ .Values.defaultBackend.image.tag }}
+          {{- with .Values.defaultBackend.image }}
+          image: "{{.repository}}:{{ .tag }}{{- if (.digest) -}} @{{.digest}} {{- end -}}"
+          {{- end }}
           imagePullPolicy: {{ .Values.defaultBackend.image.pullPolicy }}
         {{- if .Values.defaultBackend.extraArgs }}
           args:
           {{- range $key, $value := .Values.defaultBackend.extraArgs }}
-            {{- if $value }}
-            - --{{ $key }}={{ $value }}
-            {{- else }}
+            {{- /* Accept keys without values or with false as value */}}
+            {{- if eq ($value | quote | len) 2 }}
             - --{{ $key }}
+            {{- else }}
+            - --{{ $key }}={{ $value }}
             {{- end }}
           {{- end }}
         {{- end }}
           securityContext:
+            capabilities:
+              drop:
+              - ALL
             runAsUser: {{ .Values.defaultBackend.image.runAsUser }}
+            runAsNonRoot: {{ .Values.defaultBackend.image.runAsNonRoot }}
+            allowPrivilegeEscalation: {{ .Values.defaultBackend.image.allowPrivilegeEscalation }}
+            readOnlyRootFilesystem: {{ .Values.defaultBackend.image.readOnlyRootFilesystem}}
         {{- if .Values.defaultBackend.extraEnvs }}
           env: {{ toYaml .Values.defaultBackend.extraEnvs | nindent 12 }}
         {{- end }}
@@ -77,6 +88,9 @@ spec:
             - name: http
               containerPort: {{ .Values.defaultBackend.port }}
               protocol: TCP
+        {{- if .Values.defaultBackend.extraVolumeMounts }}
+          volumeMounts: {{- toYaml .Values.defaultBackend.extraVolumeMounts | nindent 12 }}
+        {{- end }}
         {{- if .Values.defaultBackend.resources }}
           resources: {{ toYaml .Values.defaultBackend.resources | nindent 12 }}
         {{- end }}
@@ -91,4 +105,7 @@ spec:
       affinity: {{ toYaml .Values.defaultBackend.affinity | nindent 8 }}
     {{- end }}
       terminationGracePeriodSeconds: 60
+    {{- if .Values.defaultBackend.extraVolumes }}
+      volumes: {{ toYaml .Values.defaultBackend.extraVolumes | nindent 8 }}
+    {{- end }}
 {{- end }}

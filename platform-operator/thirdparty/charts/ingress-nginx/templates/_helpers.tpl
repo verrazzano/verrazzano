@@ -35,7 +35,7 @@ Create a default fully qualified controller name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 */}}
 {{- define "ingress-nginx.controller.fullname" -}}
-{{- printf "%s-%s" (include "ingress-nginx.fullname" .) "controller" | trunc 63 | trimSuffix "-" -}}
+{{- printf "%s-%s" (include "ingress-nginx.fullname" .) .Values.controller.name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
@@ -48,7 +48,7 @@ Users can provide an override for an explicit service they want bound via `.Valu
 
 */}}
 {{- define "ingress-nginx.controller.publishServicePath" -}}
-{{- $defServiceName := printf "%s/%s" .Release.Namespace (include "ingress-nginx.controller.fullname" .) -}}
+{{- $defServiceName := printf "%s/%s" "$(POD_NAMESPACE)" (include "ingress-nginx.controller.fullname" .) -}}
 {{- $servicePath := default $defServiceName .Values.controller.publishService.pathOverride }}
 {{- print $servicePath | trimSuffix "-" -}}
 {{- end -}}
@@ -58,7 +58,7 @@ Create a default fully qualified default backend name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 */}}
 {{- define "ingress-nginx.defaultBackend.fullname" -}}
-{{- printf "%s-%s" (include "ingress-nginx.fullname" .) "defaultbackend" | trunc 63 | trimSuffix "-" -}}
+{{- printf "%s-%s" (include "ingress-nginx.fullname" .) .Values.defaultBackend.name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*

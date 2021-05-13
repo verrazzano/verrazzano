@@ -1819,7 +1819,7 @@
                 "fieldPath": "spec.containers{verrazzano-api}"
             },
             "reason": "Pulling",
-            "message": "Pulling image \"ghcr.io/verrazzano/nginx-ingress-controller:0.32-20210122132046-a84f6166a\"",
+            "message": "Pulling image \"ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210510134749-abc2d2088\"",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -1881,7 +1881,7 @@
                 "fieldPath": "spec.containers{verrazzano-api}"
             },
             "reason": "Pulled",
-            "message": "Successfully pulled image \"ghcr.io/verrazzano/nginx-ingress-controller:0.32-20210122132046-a84f6166a\"",
+            "message": "Successfully pulled image \"ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210510134749-abc2d2088\"",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
