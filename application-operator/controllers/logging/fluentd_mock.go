@@ -5,7 +5,7 @@
 // Source: github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope (interfaces: FluentdManager)
 
 // Package loggingscope is a generated GoMock package.
-package loggingscope
+package logging
 
 import (
 	reflect "reflect"
@@ -38,7 +38,7 @@ func (m *MockFluentdManager) EXPECT() *MockFluentdManagerMockRecorder {
 }
 
 // Apply mocks base method
-func (m *MockFluentdManager) Apply(arg0 *LoggingScope, arg1 v1alpha1.QualifiedResourceRelation, arg2 *FluentdPod) (bool, error) {
+func (m *MockFluentdManager) Apply(arg0 *LogInfo, arg1 v1alpha1.QualifiedResourceRelation, arg2 *FluentdPod) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Apply", arg0, arg1, arg2)
 	ret0, _ := ret[0].(bool)
@@ -53,7 +53,7 @@ func (mr *MockFluentdManagerMockRecorder) Apply(arg0, arg1, arg2 interface{}) *g
 }
 
 // Remove mocks base method
-func (m *MockFluentdManager) Remove(arg0 *LoggingScope, arg1 v1alpha1.QualifiedResourceRelation, arg2 *FluentdPod) bool {
+func (m *MockFluentdManager) Remove(arg0 *LogInfo, arg1 v1alpha1.QualifiedResourceRelation, arg2 *FluentdPod) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Remove", arg0, arg1, arg2)
 	ret0, _ := ret[0].(bool)

@@ -115,6 +115,30 @@ spec:
       ports:
         - protocol: TCP
           port: 9300
+    # Allow egress to CoreDNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # allow egress to istiod
+    - ports:
+        - port: 15012
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: istio-system
+          podSelector:
+            matchLabels:
+              app: istiod
 ---
 # Network policy for Elasticsearch Data
 # Ingress: allow from ES master to port 9300
@@ -186,6 +210,17 @@ spec:
       ports:
         - protocol: TCP
           port: 9300
+    # allow egress to istiod
+    - ports:
+        - port: 15012
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: istio-system
+          podSelector:
+            matchLabels:
+              app: istiod
 ---
 # Network policy for Elasticsearch Ingest
 # Ingress: allow from ingress controller to the OIDC sidecar port 8775
@@ -290,6 +325,17 @@ spec:
     - ports:
         - port: 8080
           protocol: TCP
+    # allow egress to istiod
+    - ports:
+        - port: 15012
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: istio-system
+          podSelector:
+            matchLabels:
+              app: istiod
   # end else
   {{- end }}
 ---
