@@ -60,7 +60,7 @@ func (in *MultiClusterApplicationConfiguration) GetStatus() MultiClusterResource
 	return in.Status
 }
 
-// GetItems returns the list of MultiClusterComponents
+// GetItems returns the list of MultiClusterApplicationConfiguration
 func (in *MultiClusterApplicationConfigurationList) GetItems() []runtime.Object {
 	objects := []runtime.Object{}
 	for _, item := range in.Items {

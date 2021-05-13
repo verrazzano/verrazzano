@@ -106,6 +106,14 @@ func (s *Syncer) garbageCollect() {
 			ObjectList: &clustersv1alpha1.MultiClusterComponentList{},
 			Object:     &clustersv1alpha1.MultiClusterComponent{},
 		},
+		{
+			ObjectList: &clustersv1alpha1.MultiClusterConfigMapList{},
+			Object:     &clustersv1alpha1.MultiClusterConfigMap{},
+		},
+		{
+			ObjectList: &clustersv1alpha1.MultiClusterSecretList{},
+			Object:     &clustersv1alpha1.MultiClusterSecret{},
+		},
 	}
 
 	for _, namespace := range vpNamespaceList.Items {
