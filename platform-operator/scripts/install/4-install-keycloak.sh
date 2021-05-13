@@ -124,6 +124,7 @@ function install_keycloak {
 
   VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "adminsGroup: &default_adminsGroup " | awk '{ print $3 }')
   VZ_MONITOR_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "monitorsGroup: &default_monitorsGroup " | awk '{ print $3 }')
+  VZ_USER_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "usersGroup: &default_usersGroup " | awk '{ print $3 }')
 
   VPROM=$(generate_password)
   VES=$(generate_password)
@@ -155,7 +156,7 @@ data:
 ")
 
   # Create the verrazzano-system realm and populate it with users, groups, clients, etc.
-  configure_keycloak_realms $VZ_SYS_REALM $VZ_ADMIN_GROUP $VZ_MONITOR_GROUP
+  configure_keycloak_realms $VZ_SYS_REALM $VZ_ADMIN_GROUP $VZ_MONITOR_GROUP $VZ_USER_GROUP
 
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
@@ -166,7 +167,7 @@ function configure_keycloak_realms() {
   local _VZ_ADMIN_GRP="$2"
   local _VZ_MONITOR_GRP="$3"
   local _VZ_USER_GRP="$4"
- 
+
   local PW=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.password}" | base64 -d)
 
   kubectl exec --stdin keycloak-0 -n keycloak -c keycloak -- bash -s <<EOF
