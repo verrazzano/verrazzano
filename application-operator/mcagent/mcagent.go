@@ -168,7 +168,7 @@ func (s *Syncer) SyncMultiClusterResources() {
 		s.processStatusUpdates()
 	}
 
-	// Delete resources that were orphaned by changed to VerrazzanoProject resources
+	// Delete resources that were orphaned by changes to VerrazzanoProject resources
 	s.garbageCollect()
 }
 
