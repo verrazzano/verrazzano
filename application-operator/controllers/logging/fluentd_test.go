@@ -1,7 +1,7 @@
 // Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package loggingscope
+package logging
 
 import (
 	"context"
@@ -40,7 +40,7 @@ func TestFluentdApply(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 
-	scope := createTestLoggingScope(true)
+	logInfo := createTestLogInfo(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
 
@@ -66,7 +66,7 @@ func TestFluentdApply(t *testing.T) {
 		})
 
 	// invoke method being tested
-	changesMade, err := fluentd.Apply(scope, resource, fluentdPod)
+	changesMade, err := fluentd.Apply(logInfo, resource, fluentdPod)
 
 	asserts.True(t, changesMade)
 	asserts.Nil(t, err)
@@ -84,8 +84,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 
-	scope := createTestLoggingScope(true)
-	updateLoggingScope(scope)
+	logInfo := createTestLogInfo(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPodForUpdate()
 
@@ -107,7 +106,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 		})
 
 	// invoke method being tested
-	changesMade, err := fluentd.Apply(scope, resource, fluentdPod)
+	changesMade, err := fluentd.Apply(logInfo, resource, fluentdPod)
 
 	asserts.True(t, changesMade)
 	asserts.Nil(t, err)
@@ -118,7 +117,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 }
 
 // TestFluentdApply tests the deletion of all FLUENTD resources in the system for a resource
-// GIVEN a resource with associated FLUENTD resources which is no longer associated with a logging scope
+// GIVEN a resource with associated FLUENTD resources which is no longer associated with a logging logInfo
 // WHEN Remove is called
 // THEN ensure that the expexted FLUENTD resources are removed
 func TestFluentdRemove(t *testing.T) {
@@ -126,11 +125,11 @@ func TestFluentdRemove(t *testing.T) {
 	mockClient := mocks.NewMockClient(mocker)
 
 	fluentd := &Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
-	scope := createTestLoggingScope(true)
+	logInfo := createTestLogInfo(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
 
-	addFluentdArtifactsToFluentdPod(fluentd, fluentdPod, scope, resource.Namespace)
+	addFluentdArtifactsToFluentdPod(fluentd, fluentdPod, logInfo, resource.Namespace)
 
 	// simulate config map existing
 	mockClient.EXPECT().
@@ -155,7 +154,7 @@ func TestFluentdRemove(t *testing.T) {
 			return nil
 		})
 
-	removeVerified := fluentd.Remove(scope, resource, fluentdPod)
+	removeVerified := fluentd.Remove(logInfo, resource, fluentdPod)
 
 	asserts.False(t, removeVerified)
 	testAssertFluentdPodForRemove(t, fluentdPod)
@@ -165,7 +164,7 @@ func TestFluentdRemove(t *testing.T) {
 // TestFluentdApply_ManagedClusterElasticsearch tests the creation of all FLUENTD resources in the \
 // system for a resource on a MANAGED cluster
 // GIVEN a desired state for FLUENTD resources where no resources yet exist
-// WHEN Apply is called on a Managed Cluster using the default logging scope
+// WHEN Apply is called on a Managed Cluster using the default logging logInfo
 // THEN ensure that the expected FLUENTD resources are created and the managed cluster's elasticsearch
 // secret is used to determine the ES endpoint
 func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
@@ -173,9 +172,7 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 	mockClient := mocks.NewMockClient(mocker)
 
 	managedClusterLoggingSecretKey := clusters.MCRegistrationSecretFullName
-	scope := createTestLoggingScope(true)
-	// loggingscope uses managed cluster elasticsearch secret
-	scope.SecretName = managedClusterLoggingSecretKey.Name
+	logInfo := createTestLogInfo(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
 
@@ -201,7 +198,7 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 		})
 
 	// invoke method being tested
-	changesMade, err := fluentd.Apply(scope, resource, fluentdPod)
+	changesMade, err := fluentd.Apply(logInfo, resource, fluentdPod)
 
 	asserts.True(t, changesMade)
 	asserts.Nil(t, err)
@@ -237,35 +234,16 @@ func createTestFluentdPodForUpdate() *FluentdPod {
 }
 
 // addFluentdArtifactsToFluentdPod adds FLUENTD artifacts to a FluentdPod
-func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, scope *LoggingScope, namespace string) {
+func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, logInfo *LogInfo, namespace string) {
 	fluentd.ensureFluentdVolumes(fluentdPod)
 	fluentdPod.VolumeMounts = append(fluentdPod.VolumeMounts, fluentd.createStorageVolumeMount())
-	fluentdPod.Containers = append(fluentdPod.Containers, fluentd.createFluentdContainer(fluentdPod, scope, namespace))
+	fluentdPod.Containers = append(fluentdPod.Containers, fluentd.createFluentdContainer(fluentdPod, logInfo, namespace))
 }
 
 // testAssertFluentdPodForApply asserts FluentdPod state for Apply
 func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod, loggingSecretName string) {
 	containers := fluentdPod.Containers
 	asserts.Len(t, containers, 2)
-	success := false
-	for _, container := range containers {
-		if container.Name == FluentdContainerName {
-			env := container.Env
-			for _, envVar := range env {
-				switch name := envVar.Name; name {
-				case elasticSearchURLEnv:
-					asserts.Equal(t, testESURL, envVar.Value)
-				case elasticSearchUserEnv:
-					asserts.Equal(t, loggingSecretName, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
-				case elasticSearchPwdEnv:
-					asserts.Equal(t, loggingSecretName, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
-				}
-
-			}
-			success = true
-		}
-	}
-	asserts.True(t, success)
 
 	volumes := fluentdPod.Volumes
 	asserts.Len(t, volumes, 3)
@@ -308,7 +286,7 @@ func testAssertFluentdPodForApplyUpdate(t *testing.T, fluentdPod *FluentdPod) {
 // testAssertFluentdPodForRemove asserts FluendPod state for Remove
 func testAssertFluentdPodForRemove(t *testing.T, fluentdPod *FluentdPod) {
 	asserts.Len(t, fluentdPod.Containers, 1)
-	// WebLogic FLUENTD volumes don't get removed as a result of disassociation from scope
+	// WebLogic FLUENTD volumes don't get removed as a result of disassociation from logInfo
 	asserts.Len(t, fluentdPod.Volumes, 2)
 	asserts.Len(t, fluentdPod.VolumeMounts, 2)
 }

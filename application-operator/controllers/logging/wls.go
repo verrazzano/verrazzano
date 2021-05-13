@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package loggingscope
+package logging
 
 import (
 	"context"
@@ -95,7 +95,7 @@ type wlsHandler struct {
 }
 
 // Apply applies a logging scope to a WLS Domain
-func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingScope) (*ctrl.Result, error) {
+func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LogInfo) (*ctrl.Result, error) {
 	name := resource.Name
 	domain := createWlsDomain(resource)
 
@@ -125,7 +125,7 @@ func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResource
 }
 
 // Remove removes a logging scope from a WLS Domain
-func (h *wlsHandler) Remove(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LoggingScope) (bool, error) {
+func (h *wlsHandler) Remove(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *LogInfo) (bool, error) {
 	domain := createWlsDomain(resource)
 	// get the corresponding domain
 	key, _ := k8sclient.ObjectKeyFromObject(&domain)

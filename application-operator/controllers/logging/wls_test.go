@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package loggingscope
+package logging
 
 import (
 	"context"
@@ -42,7 +42,7 @@ func TestApply(t *testing.T) {
 	defer func() { getFluentdManager = existingFluentdCreateFunc }()
 
 	resource := createTestResourceRelation()
-	scope := createTestLoggingScope(true)
+	scope := createTestLogInfo(true)
 
 	wlsDomain := createWlsDomain(resource)
 	fluentdPod := toFluentdPod(wlsDomain.Spec.ServerPod, resource, BuildWLSLogPath(resource.Name))
@@ -66,7 +66,7 @@ func TestApply(t *testing.T) {
 		})
 	mockFluentd.EXPECT().
 		Apply(scope, resource, fluentdPod).
-		DoAndReturn(func(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
+		DoAndReturn(func(scope *LogInfo, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
 			updateFluentdPodForApply(fluentdPod)
 			return true, nil
 		})
@@ -94,7 +94,7 @@ func TestRemove(t *testing.T) {
 	defer func() { getFluentdManager = existingFluentdCreateFunc }()
 
 	resource := createTestResourceRelation()
-	scope := createTestLoggingScope(true)
+	scope := createTestLogInfo(true)
 
 	wlsDomain := createWlsDomain(resource)
 	fluentdPod := toFluentdPod(wlsDomain.Spec.ServerPod, resource, "")
@@ -121,7 +121,7 @@ func TestRemove(t *testing.T) {
 		})
 	mockFluentd.EXPECT().
 		Remove(scope, resource, fluentdPod).
-		DoAndReturn(func(scope *LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
+		DoAndReturn(func(scope *LogInfo, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
 			updateFluentdPodForRemove(fluentdPod)
 			return false, nil
 		})
