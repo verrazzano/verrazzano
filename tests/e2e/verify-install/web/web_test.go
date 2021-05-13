@@ -63,8 +63,7 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 					gomega.Expect(time.Now().Before(certs[0].NotAfter)).To(gomega.BeTrue())
 				})
 
-			// VZ-2603: Assertion disabled until VZ-2599 is complete.
-			ginkgo.PIt("should return no Server header",
+			ginkgo.It("should return no Server header",
 				func() {
 					httpClient := pkg.GetVerrazzanoHTTPClient()
 					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
