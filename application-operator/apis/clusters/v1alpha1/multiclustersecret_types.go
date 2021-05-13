@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const MultiClusterSecretKind = "MultiClusterSecret"
@@ -66,4 +67,13 @@ func init() {
 // GetStatus returns the MultiClusterResourceStatus of this resource
 func (in *MultiClusterSecret) GetStatus() MultiClusterResourceStatus {
 	return in.Status
+}
+
+// GetItems returns the list of MultiClusterSecret
+func (in *MultiClusterSecretList) GetItems() []runtime.Object {
+	objects := []runtime.Object{}
+	for _, item := range in.Items {
+		objects = append(objects, item.DeepCopyObject())
+	}
+	return objects
 }
