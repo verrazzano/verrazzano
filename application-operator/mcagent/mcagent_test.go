@@ -80,6 +80,13 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list Namespace objects - return an empty list
+	mcMock.EXPECT().
+		List(gomock.Any(), &corev1.NamespaceList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, opts ...*client.ListOptions) error {
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
