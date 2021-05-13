@@ -179,7 +179,8 @@ func appEndpointAccessible(url string, hostname string) bool {
 		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
 		return false
 	}
-	defer resp.Body.Close()
+	bodyRaw, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected status code=%v", resp.StatusCode))
 		return false
@@ -191,10 +192,9 @@ func appEndpointAccessible(url string, hostname string) bool {
 			return false
 		}
 	}
-	respBytes, err := ioutil.ReadAll(resp.Body)
-	respBody := string(respBytes)
-	if !strings.Contains(respBody, "Hello World") {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected response body=%v", respBody))
+	bodyStr := string(bodyRaw)
+	if !strings.Contains(bodyStr, "Hello World") {
+		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected response body=%v", bodyStr))
 		return false
 	}
 	return true
