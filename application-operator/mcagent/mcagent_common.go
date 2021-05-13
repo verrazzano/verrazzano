@@ -93,23 +93,35 @@ func (s *Syncer) garbageCollect() {
 	}
 
 	// Perform garbage collection on namespaces that are no longer associated with a VerrazzanoProject
+	type gcObject struct {
+		ObjectList clusters.MultiClusterResourceList
+		Object     clusters.MultiClusterResource
+	}
+	gcObjectArray := []gcObject{
+		{
+			ObjectList: &clustersv1alpha1.MultiClusterApplicationConfigurationList{},
+			Object:     &clustersv1alpha1.MultiClusterApplicationConfiguration{},
+		},
+	}
+
 	for _, namespace := range vpNamespaceList.Items {
-		if !vzstring.SliceContainsString(s.ProjectNamespaces, namespace.Name) {
-			allLocalMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
-			listOptions := &client.ListOptions{Namespace: namespace.Name}
-			err = s.LocalClient.List(s.Context, &allLocalMCAppConfigs, listOptions)
-			if err != nil {
-				s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
-			}
-			for _, mcAppConfig := range allLocalMCAppConfigs.Items {
-				// Delete each MultiClusterApplicationConfiguration object that is no longer exists on the admin cluster
-				s.Log.Info(fmt.Sprintf("perfoming garbage collection on %s", mcAppConfig.GroupVersionKind().String()))
-				var appConfig clustersv1alpha1.MultiClusterApplicationConfiguration
-				err := s.AdminClient.Get(s.Context, types.NamespacedName{Name: mcAppConfig.Name, Namespace: mcAppConfig.Namespace}, &appConfig)
-				if errors.IsNotFound(err) {
-					err := s.LocalClient.Delete(s.Context, &mcAppConfig)
-					if err != nil {
-						s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterApplicationConfiguration with name %q and namespace %q", mcAppConfig.Name, mcAppConfig.Namespace))
+		for _, mcObject := range gcObjectArray {
+			if !vzstring.SliceContainsString(s.ProjectNamespaces, namespace.Name) {
+				listOptions := &client.ListOptions{Namespace: namespace.Name}
+				err = s.LocalClient.List(s.Context, mcObject.ObjectList, listOptions)
+				if err != nil {
+					s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
+				}
+				// Delete resources that are on the local cluster but no longer on the admin cluster
+				for _, item := range mcObject.ObjectList.GetItems() {
+					mcItem := item.(clusters.MultiClusterResource)
+					err := s.AdminClient.Get(s.Context, types.NamespacedName{Name: mcItem.GetName(), Namespace: mcItem.GetNamespace()}, mcObject.Object)
+					if errors.IsNotFound(err) {
+						s.Log.Info(fmt.Sprintf("perfoming garbage collection on %s with name %q in namespace %q", item.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
+						err := s.LocalClient.Delete(s.Context, mcItem)
+						if err != nil {
+							s.Log.Error(err, fmt.Sprintf("failed to delete %s with name %q in namespace %q", mcItem.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
+						}
 					}
 				}
 			}
