@@ -75,7 +75,6 @@ func changePlacement(kubeConfigPath string, patchFile string) error {
 	if err := pkg.PatchResourceFromFileInCluster(mcAppGvr, TestNamespace, appConfigName, patchFile, kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to change placement of multicluster hello-helidon application resource: %v", err)
 	}
-
 	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projectName, patchFile, kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create VerrazzanoProject resource: %v", err)
 	}

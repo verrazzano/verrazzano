@@ -10,13 +10,12 @@ import (
 	"strings"
 	"time"
 
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -91,6 +90,8 @@ func (s *Syncer) garbageCollect() {
 	if err != nil {
 		s.Log.Error(err, "failed to get list of namespaces")
 	}
+	s.Log.Info(fmt.Sprintf("list of namespaces found with label: %+v", vpNamespaceList))
+	s.Log.Info(fmt.Sprintf("list of namespaces in projects: %s", s.ProjectNamespaces))
 
 	// Perform garbage collection on namespaces that are no longer associated with a VerrazzanoProject
 	type gcObject struct {
