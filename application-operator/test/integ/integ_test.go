@@ -125,11 +125,6 @@ var _ = Describe("Testing hello app lifecycle", func() {
 		Expect(stderr).To(Equal(""))
 		//	Eventually(appComponentExists, for2s).Should(BeTrue())
 	})
-	It("apply loggingscope should result in a loggingscope in app namespace", func() {
-		_, stderr := util.Kubectl("apply -f testdata/loggingscope.yaml")
-		Expect(stderr).To(Equal(""))
-		//	Eventually(appComponentExists, for2s).Should(BeTrue())
-	})
 	It("apply app config should result in a app config in app namespace", func() {
 		Eventually(createAppConfig, for3m).Should(BeTrue())
 		Eventually(appConfigExists, for2s).Should(BeTrue())
@@ -154,9 +149,6 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	})
 	It("deleting app component", func() {
 		Eventually(canDeleteAppComponent, for5m).Should(BeTrue())
-	})
-	It("deleting app loggingscope", func() {
-		Eventually(canDeleteAppLoggingScope, for5m).Should(BeTrue())
 	})
 	It("deleting logging scope secret", func() {
 		command := fmt.Sprintf("delete secret %s -n %s", appLoggingScopeSecret, appNamespace)
@@ -230,12 +222,6 @@ func canDeleteAppConfig() bool {
 
 func canDeleteAppComponent() bool {
 	command := fmt.Sprintf("delete component -n %s hello-component", appNamespace)
-	_, stderr := util.Kubectl(command)
-	return stderr == ""
-}
-
-func canDeleteAppLoggingScope() bool {
-	command := fmt.Sprintf("delete loggingscope -n %s hello-loggingscope", appNamespace)
 	_, stderr := util.Kubectl(command)
 	return stderr == ""
 }

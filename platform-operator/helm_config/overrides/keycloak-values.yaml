@@ -5,7 +5,7 @@ keycloak:
 
   extraInitContainers: |
     - name: theme-provider
-      image: ghcr.io/verrazzano/keycloak-oracle-theme:0.14.0-20210331214916-1c47ce9
+      image: ghcr.io/verrazzano/keycloak-oracle-theme:0.15.0-20210510085250-01638c7
       imagePullPolicy: IfNotPresent
       command:
         - sh

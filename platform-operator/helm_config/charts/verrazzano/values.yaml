@@ -49,15 +49,15 @@ kibana:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.14.0-20210506185522-578eb9e
-  nodeExporterImage: phx.ocir.io/stevengreenberginc/pabhat/node-exporter:1.0.0
+  imageVersion: 0.15.0-20210512213227-2785c3a
+  nodeExporterImage: ghcr.io/verrazzano/node-exporter:1.0.0-20210513143333-a470f06
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
-  imageVersion: 0.15.0-20210510204900-4a0dd4f
+  imageVersion: 0.15.0-20210512224353-617a0c0
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -84,7 +84,7 @@ console:
   enabled: true
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.14.0-20210506133418-4154665
+  imageVersion: 0.15.0-20210512140333-bbb6bd7
 
 api:
   name: verrazzano-api
