@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/avast/retry-go"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -19,11 +18,6 @@ const (
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 20 * time.Minute
 	longPollingInterval  = 20 * time.Second
-)
-
-var (
-	retryDelay    = retry.Delay(shortPollingInterval)
-	retryAttempts = retry.Attempts(3)
 )
 
 var _ = ginkgo.BeforeSuite(func() {
@@ -88,12 +82,8 @@ func deployBobsBooksExample() {
 		ginkgo.Fail(fmt.Sprintf("Failed to create Bobs Books component resources: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create application resources")
-	err := retry.Do(
-		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml") },
-		retryAttempts, retryDelay)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create Bobs Books application resource: %v", err))
-	}
+	gomega.Eventually(func() error { return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml") },
+		shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books application resource").Should(gomega.BeNil())
 }
 
 func undeployBobsBooksExample() {
