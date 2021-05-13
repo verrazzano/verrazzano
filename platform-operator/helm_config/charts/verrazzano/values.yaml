@@ -84,7 +84,7 @@ console:
   enabled: true
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.15.0-20210510085558-af0974a
+  imageVersion: 0.15.0-20210512140333-bbb6bd7
 
 api:
   name: verrazzano-api
