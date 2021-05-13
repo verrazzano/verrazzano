@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/avast/retry-go"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -20,11 +19,6 @@ const (
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
-)
-
-var (
-	retryDelay    = retry.Delay(shortPollingInterval)
-	retryAttempts = retry.Attempts(3)
 )
 
 var _ = ginkgo.BeforeSuite(func() {
@@ -75,23 +69,14 @@ func deployToDoListExample() {
 	if _, err := pkg.CreatePasswordSecret("todo-list", "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "tododomain"}); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create encryption secret: %v", err))
 	}
-	pkg.Log(pkg.Info, "Create logging scope resource")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-logging-scope.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create ToDo List logging scope resource: %v", err))
-	}
 	pkg.Log(pkg.Info, "Create component resources")
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-components.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create ToDo List component resources: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create application resources")
-	err := retry.Do(
-		func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")
-		},
-		retryAttempts, retryDelay)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create application resource: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")},
+		shortWaitTimeout, shortPollingInterval, "Failed to create application resource").Should(gomega.BeNil())
 }
 
 func undeployToDoListExample() {
@@ -103,10 +88,6 @@ func undeployToDoListExample() {
 	pkg.Log(pkg.Info, "Delete components")
 	if err := pkg.DeleteResourceFromFile("examples/todo-list/todo-list-components.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete components: %v", err))
-	}
-	pkg.Log(pkg.Info, "Delete logging scope")
-	if err := pkg.DeleteResourceFromFile("examples/todo-list/todo-list-logging-scope.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete logging scope: %v", err))
 	}
 	pkg.Log(pkg.Info, "Delete namespace")
 	if err := pkg.DeleteNamespace("todo-list"); err != nil {
@@ -228,7 +209,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 	ginkgo.Context("Logging.", func() {
 		indexName := "verrazzano-namespace-todo-list"
 
-		// GIVEN a WebLogic application with logging enabled via a logging scope
+		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		ginkgo.It("Verify Elasticsearch index exists", func() {
@@ -237,7 +218,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for todo-list")
 		})
 
-		// GIVEN a WebLogic application with logging enabled via a logging scope
+		// GIVEN a WebLogic application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
 		pkg.Concurrently(
