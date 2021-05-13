@@ -372,8 +372,6 @@ spec:
               name: cert-volume
               readOnly: true
           env:
-            - name: ISTIO_PROXY_IMAGE
-              value: {{ .Values.monitoringOperator.istioProxyImage }}
             - name: GRAFANA_IMAGE
               value: {{ .Values.monitoringOperator.grafanaImage }}
             - name: PROMETHEUS_IMAGE
@@ -390,8 +388,6 @@ spec:
               value: {{ .Values.monitoringOperator.esInitImage }}
             - name: KIBANA_IMAGE
               value: {{ .Values.monitoringOperator.kibanaImage }}
-            - name: ELASTICSEARCH_WAIT_TARGET_VERSION
-              value: {{ .Values.monitoringOperator.esWaitTargetVersion }}
             - name: CONFIG_RELOADER_IMAGE
               value: {{ .Values.monitoringOperator.configReloaderImage }}
             - name: OIDC_PROXY_IMAGE
