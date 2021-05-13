@@ -6,6 +6,7 @@ package web_test
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -70,7 +71,8 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
 					resp, err := httpClient.Do(req)
 					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
-					defer resp.Body.Close()
+					ioutil.ReadAll(resp.Body)
+					resp.Body.Close()
 					// HTTP Server headers should never be returned.
 					for headerName, headerValues := range resp.Header {
 						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("server"), fmt.Sprintf("Unexpected Server header %v", headerValues))
