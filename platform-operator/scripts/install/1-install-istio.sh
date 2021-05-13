@@ -143,6 +143,28 @@ spec:
     mode: STRICT
 ")
 
+    log "Adding Istio server header network filter"
+    kubectl apply -f <(echo "
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: server-header-filter
+  namespace: istio-system
+spec:
+  configPatches:
+    - applyTo: NETWORK_FILTER
+      match:
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+      patch:
+        operation: MERGE
+        value:
+          typed_config:
+            '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+            server_header_transformation: PASS_THROUGH
+")
 }
 
 function update_coredns()
