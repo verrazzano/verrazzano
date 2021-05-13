@@ -90,7 +90,7 @@ func (s *Syncer) garbageCollect() {
 	if err != nil {
 		s.Log.Error(err, "failed to get list of namespaces")
 	}
-	s.Log.Info(fmt.Sprintf("list of namespaces found with label: %+v", vpNamespaceList))
+	s.Log.Info(fmt.Sprintf("list of namespaces found with label: %+v", vpNamespaceList.Items))
 	s.Log.Info(fmt.Sprintf("list of namespaces in projects: %s", s.ProjectNamespaces))
 
 	// Perform garbage collection on namespaces that are no longer associated with a VerrazzanoProject
@@ -118,6 +118,7 @@ func (s *Syncer) garbageCollect() {
 	}
 
 	for _, namespace := range vpNamespaceList.Items {
+		s.Log.Info(fmt.Sprintf("garbage collecting namespace %s", namespace))
 		for _, mcObject := range gcObjectArray {
 			if !vzstring.SliceContainsString(s.ProjectNamespaces, namespace.Name) {
 				listOptions := &client.ListOptions{Namespace: namespace.Name}
