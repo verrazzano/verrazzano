@@ -48,6 +48,7 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/run.sh .
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/helm_config ./platform-operator/helm_config
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/verrazzano-bom.json ./verrazzano-bom.json
 
 # Update the Verrazzano application operator image name in the chart override file
 RUN sed -i"" -e "s|image:|image: ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}|g" /verrazzano/platform-operator/helm_config/overrides/verrazzano-application-operator-values.yaml
