@@ -4,11 +4,13 @@
 package installjob
 
 import (
+	"os"
+	"strconv"
+
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strconv"
 )
 
 // JobConfig Defines the parameters for an install job
@@ -30,6 +32,10 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 		annotations = make(map[string]string, 1)
 		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
+
+	registry := os.Getenv("REGISTRY")
+	imageRepo := os.Getenv("IMAGE_REPO")
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        jobConfig.JobName,
@@ -64,6 +70,14 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							{
 								Name:  "VERRAZZANO_KUBECONFIG",
 								Value: "/home/verrazzano/kubeconfig",
+							},
+							{
+								Name:  "REGISTRY",
+								Value: registry,
+							},
+							{
+								Name:  "IMAGE_REPO",
+								Value: imageRepo,
 							},
 							{
 								// DEBUG property set to value 1 will direct more detailed output to stdout and

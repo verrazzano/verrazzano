@@ -258,6 +258,46 @@ function is_chart_deployed(){
   return 1
 }
 
+# This function builds "--set" helm args to override images using a bill of materials. The resulting
+# HELM_SET_ARGS variable can be passed to helm to override one or more images in a helm chart.
+# $1 the component (e.g. "istio")
+# $2 the chart name (e.g. "istiocoredns")
+function build_image_overrides(){
+  local component=$1
+  local chartName=$2
+  local registry=${REGISTRY}
+  local repository=${IMAGE_REPO}
+  local bomFile=/verrazzano/verrazzano-bom.json
+
+  # if registry is not overridden in environment, pull it from the BOM
+  if [ -z "${registry}" ]; then
+    registry=$(cat ${bomFile} | jq -r '.registry')
+  fi
+
+  # if repository is not overridden in environment, pull it from the BOM
+  if [ -z "${repository}" ]; then
+    repository=$(cat ${bomFile} | jq -r --arg C "${component}" '.components[] | select(.name == $C) | .repository')
+  fi
+
+  HELM_IMAGE_ARGS=""
+
+  local images=$(cat ${bomFile} | jq -r -c --arg C "${component}" --arg CH "${chartName}" '.components[] | select(.name == $C) | .subcomponents[] | select(.name == $CH) | .images[]')
+
+  # build --set arg for each image in the chart
+  for row in ${images}; do
+    local image=$(echo $row | jq -r '.image')
+    local tag=$(echo $row | jq -r '.tag')
+    local helmPath=$(echo $row | jq -r '.helmPath')
+    local helmTagPath=$(echo $row | jq -r '.helmTagPath')
+
+    if [ "${helmTagPath}" == "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmPath}=${registry}/${repository}/${image}:${tag} "
+    else
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmPath}=${registry}/${repository}/${image} --set ${helmTagPath}=${tag} "
+    fi
+  done
+}
+
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
 
 VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
