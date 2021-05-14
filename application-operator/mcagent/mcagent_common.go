@@ -129,6 +129,7 @@ func (s *Syncer) garbageCollect() {
 				// Delete resources that are on the local cluster but no longer on the admin cluster or placed on this cluster
 				for _, item := range mcObject.ObjectList.GetItems() {
 					mcItem := item.(clusters.MultiClusterResource)
+					s.Log.Info(fmt.Sprintf("processing %s in namespace %s and name %s", mcItem.GetObjectKind().GroupVersionKind().Kind, mcItem.GetNamespace(), mcItem.GetName()))
 					err := s.AdminClient.Get(s.Context, types.NamespacedName{Name: mcItem.GetName(), Namespace: mcItem.GetNamespace()}, mcObject.Object)
 					if errors.IsNotFound(err) || (err != nil && !s.isThisCluster(mcObject.Object.GetPlacement())) {
 						s.Log.Info(fmt.Sprintf("perfoming garbage collection on %s with name %s in namespace %s", item.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
@@ -136,6 +137,8 @@ func (s *Syncer) garbageCollect() {
 						if err != nil {
 							s.Log.Error(err, fmt.Sprintf("failed to delete %s with name %s in namespace %s", mcItem.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
 						}
+					} else {
+						s.Log.Error(err, "failed to fetch")
 					}
 				}
 			}
