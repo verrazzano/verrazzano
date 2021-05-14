@@ -11,7 +11,7 @@
             {
             "image": "cert-manager",
             "tag": "0.13.1-20201016205232-4c8f3fe38",
-            "helmPath": "image.repository"
+            "helmPath": "image.repository",
             "helmTagPath": "image.tag"
             }
           ]
