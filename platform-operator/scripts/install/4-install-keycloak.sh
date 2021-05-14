@@ -188,8 +188,8 @@ function configure_keycloak_realms() {
     log "Logging in as '$KCADMIN_USERNAME'"
     kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password) || fail "Login failed"
 
-  ##  log "Deleting realm $_VZ_REALM"
-  ##  kcadm.sh delete realms/$_VZ_REALM || log "Failed to delete realm"
+    ## log "Deleting realm $_VZ_REALM"
+    ## kcadm.sh delete realms/$_VZ_REALM || log "Failed to delete realm"
 
     log "Creating $_VZ_REALM realm"
     kcadm.sh create realms -s realm=$_VZ_REALM -s enabled=false || fail "Failed to create realm"
@@ -261,99 +261,32 @@ function configure_keycloak_realms() {
     log "Setting ${VERRAZZANO_INTERNAL_ES_USER} user password"
     kcadm.sh set-password -r $_VZ_REALM --username ${VERRAZZANO_INTERNAL_ES_USER} --new-password ${VES} || fail "Failed to set user password"
 
-##    log "(Re-)Creating admin-cli client"
-##    ADMIN_CLI=\$(kcadm.sh get clients -r $_VZ_REALM -q "clientId=admin-cli" --fields id --format csv --noquotes 2>&1) || fail "Failed to create group"
-##    if [ -n "\$ADMIN_CLI" ] ; then
-##        log "Deleting admin-cli client (id: clients/\${ADMIN_CLI})"
-##set -x
-##        kcadm.sh delete clients/\$ADMIN_CLI -r $_VZ_REALM || fail "Failed to delete client"
-##set +x
-##    else
-##        log "Existing admin-cli client not found"
-##    fi
-##    log "Creating admin-cli client"
-##    kcadm.sh create clients -r $_VZ_REALM -f - <<\END
-##  {
-##      "clientId" : "admin-cli",
-##      "name" : "${client_admin-cli}",
-##      "surrogateAuthRequired" : false,
-##      "enabled" : true,
-##      "clientAuthenticatorType" : "client-secret",
-##      "secret" : "**********",
-##      "redirectUris" : [ ],
-##      "webOrigins" : [ ],
-##      "notBefore" : 0,
-##      "bearerOnly" : false,
-##      "consentRequired" : false,
-##      "standardFlowEnabled" : false,
-##      "implicitFlowEnabled" : false,
-##      "directAccessGrantsEnabled" : true,
-##      "serviceAccountsEnabled" : false,
-##      "publicClient" : true,
-##      "frontchannelLogout" : false,
-##      "protocol" : "openid-connect",
-##      "attributes" : { },
-##      "authenticationFlowBindingOverrides" : { },
-##      "fullScopeAllowed" : false,
-##      "nodeReRegistrationTimeout" : 0,
-##      "protocolMappers": [
-##          {
-##            "name": "groupmember",
-##            "protocol": "openid-connect",
-##            "protocolMapper": "oidc-group-membership-mapper",
-##            "consentRequired": false,
-##            "config": {
-##              "full.path": "false",
-##              "id.token.claim": "true",
-##              "access.token.claim": "true",
-##              "claim.name": "groups",
-##              "userinfo.token.claim": "true"
-##            }
-##          }
-##        ],
-##        "defaultClientScopes": [
-##          "web-origins",
-##          "role_list",
-##          "roles",
-##          "profile",
-##          "email"
-##        ],
-##        "optionalClientScopes": [
-##          "address",
-##          "phone",
-##          "offline_access",
-##          "microprofile-jwt"
-##        ]
-##  }
-##END
-##    [ \$? -eq 0 ] || fail "Failed to create client"
-
     log "Creating webui client"
     kcadm.sh create clients -r $_VZ_REALM -f - <<\END
 {
-      "clientId": "webui",
+      "clientId" : "webui",
       "enabled": true,
       "surrogateAuthRequired": false,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "https://verrazzano.ENV_NAME.DNS_SUFFIX/*",
-        "https://verrazzano.ENV_NAME.DNS_SUFFIX/verrazzano/authcallback",
-        "https://elasticsearch.vmi.system.ENV_NAME.DNS_SUFFIX/*",
-        "https://elasticsearch.vmi.system.ENV_NAME.DNS_SUFFIX/_authentication_callback",
-        "https://prometheus.vmi.system.ENV_NAME.DNS_SUFFIX/*",
-        "https://prometheus.vmi.system.ENV_NAME.DNS_SUFFIX/_authentication_callback",
-        "https://grafana.vmi.system.ENV_NAME.DNS_SUFFIX/*",
-        "https://grafana.vmi.system.ENV_NAME.DNS_SUFFIX/_authentication_callback",
-        "https://kibana.vmi.system.ENV_NAME.DNS_SUFFIX/*",
-        "https://kibana.vmi.system.ENV_NAME.DNS_SUFFIX/_authentication_callback"
+        "https://verrazzano.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://verrazzano.$ENV_NAME.$DNS_SUFFIX/verrazzano/authcallback",
+        "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
+        "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
+        "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback"
       ],
       "webOrigins": [
-        "https://verrazzano.ENV_NAME.DNS_SUFFIX",
-        "https://elasticsearch.vmi.system.ENV_NAME.DNS_SUFFIX",
-        "https://prometheus.vmi.system.ENV_NAME.DNS_SUFFIX",
-        "https://grafana.vmi.system.ENV_NAME.DNS_SUFFIX",
-        "https://kibana.vmi.system.ENV_NAME.DNS_SUFFIX"
+        "https://verrazzano.$ENV_NAME.$DNS_SUFFIX",
+        "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX",
+        "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX",
+        "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX",
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -430,7 +363,7 @@ function configure_keycloak_realms() {
 END
     [ \$? -eq 0 ] || fail "Failed to create client"
 
-    log "Creating verrazzano-oath-client client"
+    log "Creating verrazzano-oauth-client client"
     kcadm.sh create clients -r $_VZ_REALM -f - <<\END
 {
       "clientId" : "verrazzano-oauth-client",
@@ -442,48 +375,22 @@ END
       "clientAuthenticatorType" : "client-secret",
       "secret" : "de05ccdc-67df-47f3-81f6-37e61d195aba",
       "redirectUris" : [ ],
-      "webOrigins" : [ ],
+      "webOrigins" : [ "+" ],
       "notBefore" : 0,
       "bearerOnly" : false,
       "consentRequired" : false,
-      "standardFlowEnabled" : true,
+      "standardFlowEnabled" : false,
       "implicitFlowEnabled" : false,
       "directAccessGrantsEnabled" : true,
-      "serviceAccountsEnabled" : true,
+      "serviceAccountsEnabled" : false,
       "publicClient" : true,
       "frontchannelLogout" : false,
       "protocol" : "openid-connect",
       "attributes" : { },
       "authenticationFlowBindingOverrides" : { },
-      "fullScopeAllowed" : false,
+      "fullScopeAllowed" : true,
       "nodeReRegistrationTimeout" : -1,
       "protocolMappers" : [ {
-        "name" : "Client ID",
-        "protocol" : "openid-connect",
-        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
-        "consentRequired" : false,
-        "config" : {
-          "user.session.note" : "clientId",
-          "userinfo.token.claim" : "true",
-          "id.token.claim" : "true",
-          "access.token.claim" : "true",
-          "claim.name" : "clientId",
-          "jsonType.label" : "String"
-        }
-      }, {
-        "name" : "Client IP Address",
-        "protocol" : "openid-connect",
-        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
-        "consentRequired" : false,
-        "config" : {
-          "user.session.note" : "clientAddress",
-          "userinfo.token.claim" : "true",
-          "id.token.claim" : "true",
-          "access.token.claim" : "true",
-          "claim.name" : "clientAddress",
-          "jsonType.label" : "String"
-        }
-      }, {
         "name" : "groups",
         "protocol" : "openid-connect",
         "protocolMapper" : "oidc-group-membership-mapper",
@@ -508,6 +415,32 @@ END
           "access.token.claim": "true",
           "claim.name": "realm_access.roles",
           "jsonType.label": "String"
+        }
+      }, {
+        "name" : "Client ID",
+        "protocol" : "openid-connect",
+        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+        "consentRequired" : false,
+        "config" : {
+          "user.session.note" : "clientId",
+          "userinfo.token.claim" : "true",
+          "id.token.claim" : "true",
+          "access.token.claim" : "true",
+          "claim.name" : "clientId",
+          "jsonType.label" : "String"
+        }
+      }, {
+        "name" : "Client IP Address",
+        "protocol" : "openid-connect",
+        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+        "consentRequired" : false,
+        "config" : {
+          "user.session.note" : "clientAddress",
+          "userinfo.token.claim" : "true",
+          "id.token.claim" : "true",
+          "access.token.claim" : "true",
+          "claim.name" : "clientAddress",
+          "jsonType.label" : "String"
         }
       }, {
         "name" : "Client Host",
