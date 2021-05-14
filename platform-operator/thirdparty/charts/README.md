@@ -21,11 +21,11 @@ helm fetch istio.io/istio-init --untar=true --version=${ISTIO_HELM_CHART_VERSION
 The `nginx-ingress` folder was created by running the following commands:
 
 ```
-export NGINX_HELM_CHART_VERSION=1.27.0
-rm -rf nginx-ingress
-helm repo add stable https://charts.helm.sh/stable
+export NGINX_HELM_CHART_VERSION=3.30.0
+rm -rf ingress-nginx
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
-helm fetch stable/nginx-ingress --untar=true --version=${NGINX_HELM_CHART_VERSION}
+helm fetch ingress-nginx/ingress-nginx --untar=true --version=${NGINX_HELM_CHART_VERSION}
 ```
 
 ## Cert-Manager

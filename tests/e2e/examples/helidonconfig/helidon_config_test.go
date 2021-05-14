@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/avast/retry-go"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -20,11 +19,6 @@ const (
 	longPollingInterval  = 20 * time.Second
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
-)
-
-var (
-	retryDelay    = retry.Delay(shortPollingInterval)
-	retryAttempts = retry.Attempts(3)
 )
 
 var _ = ginkgo.BeforeSuite(func() {
@@ -38,15 +32,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create helidon-config component resources: %v", err))
 	}
-	err := retry.Do(
-		func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
-		},
-		retryAttempts, retryDelay)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create helidon-config application resource: %v", err))
-	}
-
+	gomega.Eventually(func() error {
+			return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-app.yaml")},
+			shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").Should(gomega.BeNil())
 })
 
 var _ = ginkgo.AfterSuite(func() {
