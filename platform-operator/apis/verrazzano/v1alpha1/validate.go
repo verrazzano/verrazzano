@@ -134,8 +134,8 @@ func ValidateInProgress(state StateType) error {
 	return nil
 }
 
-// ValidateOciDnsSecret makes sure that the OCI DNS secret required by install exists
-func ValidateOciDnsSecret(client client.Client, spec *VerrazzanoSpec) error {
+// ValidateOciDNSSecret makes sure that the OCI DNS secret required by install exists
+func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 	if spec.Components.DNS != nil && spec.Components.DNS.OCI != nil {
 		secret := &corev1.Secret{}
 		err := client.Get(context.TODO(), types.NamespacedName{Name: spec.Components.DNS.OCI.OCIConfigSecret, Namespace: "default"}, secret)

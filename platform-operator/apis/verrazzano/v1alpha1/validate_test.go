@@ -568,8 +568,8 @@ func TestValidateInProgress(t *testing.T) {
 
 // TestValidateOciDnsSecretBadSecret tests that validate fails if a secret in the verrazzano CR does not exist
 // GIVEN a Verrazzano spec containing a secret that does not exist
-// WHEN ValidateOciDnsSecret is called
-// THEN an error is returned from ValidateOciDnsSecret
+// WHEN ValidateOciDNSSecret is called
+// THEN an error is returned from ValidateOciDNSSecret
 func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 	vz := Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -590,15 +590,15 @@ func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 	assert.NoError(t, err)
 	client := fake.NewFakeClientWithScheme(scheme)
 
-	err = ValidateOciDnsSecret(client, &vz.Spec)
+	err = ValidateOciDNSSecret(client, &vz.Spec)
 	assert.Error(t, err)
 	assert.Equal(t, "secret \"oci-bad-secret\" must be created in the default namespace before installing Verrrazzano for OCI DNS", err.Error())
 }
 
 // TestValidateOciDnsSecretGoodSecret tests that validate succeeds if a secret in the verrazzano CR exists
 // GIVEN a Verrazzano spec containing a secret that exists
-// WHEN ValidateOciDnsSecret is called
-// THEN success is returned from ValidateOciDnsSecret
+// WHEN ValidateOciDNSSecret is called
+// THEN success is returned from ValidateOciDNSSecret
 func TestValidateOciDnsSecretGoodSecret(t *testing.T) {
 	vz := Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -628,14 +628,14 @@ func TestValidateOciDnsSecretGoodSecret(t *testing.T) {
 	err = client.Create(context.TODO(), secret)
 	assert.NoError(t, err)
 
-	err = ValidateOciDnsSecret(client, &vz.Spec)
+	err = ValidateOciDNSSecret(client, &vz.Spec)
 	assert.NoError(t, err)
 }
 
 // TestValidateOciDnsSecretNoOci tests that validate succeeds if the DNS component is not OCI
 // GIVEN a Verrazzano spec containing a wildcard DNS component
-// WHEN ValidateOciDnsSecret is called
-// THEN success is returned from ValidateOciDnsSecret
+// WHEN ValidateOciDNSSecret is called
+// THEN success is returned from ValidateOciDNSSecret
 func TestValidateOciDnsSecretNoOci(t *testing.T) {
 	vz := Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -656,6 +656,6 @@ func TestValidateOciDnsSecretNoOci(t *testing.T) {
 	assert.NoError(t, err)
 	client := fake.NewFakeClientWithScheme(scheme)
 
-	err = ValidateOciDnsSecret(client, &vz.Spec)
+	err = ValidateOciDNSSecret(client, &vz.Spec)
 	assert.NoError(t, err)
 }
