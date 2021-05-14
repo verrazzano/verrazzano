@@ -131,7 +131,7 @@ func (s *Syncer) garbageCollect() {
 				for _, item := range mcObject.ObjectList.GetItems() {
 					mcItem := item.(clusters.MultiClusterResource)
 					err := s.AdminClient.Get(s.Context, types.NamespacedName{Name: mcItem.GetName(), Namespace: mcItem.GetNamespace()}, mcObject.Object)
-					if errors.IsNotFound(err) || s.isThisCluster(mcObject.Object.GetPlacement()) {
+					if errors.IsNotFound(err) || (err != nil && !s.isThisCluster(mcObject.Object.GetPlacement())) {
 						s.Log.Info(fmt.Sprintf("perfoming garbage collection on %s with name %s in namespace %s", item.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
 						err := s.LocalClient.Delete(s.Context, mcItem)
 						if err != nil {
