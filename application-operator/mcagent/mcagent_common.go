@@ -76,7 +76,9 @@ func (s *Syncer) processStatusUpdates() {
 	}
 }
 
-// garbageCollect delete resources that have been orphaned
+// garbageCollect
+// 	Remove multicluster resources that reside in namespaces that are no longer associated with
+// 	a VerrazzanoProject and either do not exist on the admin cluster or are no longer placed on this cluster.
 func (s *Syncer) garbageCollect() {
 	mcLabel, err := labels.Parse(fmt.Sprintf("%s=%s", constants.LabelVerrazzanoManaged, constants.LabelVerrazzanoManagedDefault))
 	if err != nil {
@@ -90,10 +92,9 @@ func (s *Syncer) garbageCollect() {
 	if err != nil {
 		s.Log.Error(err, "failed to get list of namespaces")
 	}
-	s.Log.Info(fmt.Sprintf("list of namespaces found with label: %+v", vpNamespaceList.Items))
 	s.Log.Info(fmt.Sprintf("list of namespaces in projects: %s", s.ProjectNamespaces))
 
-	// Perform garbage collection on namespaces that are no longer associated with a VerrazzanoProject
+	// Create table that drives garbage collection for each multicluster resource type
 	type gcObject struct {
 		ObjectList clusters.MultiClusterResourceList
 		Object     clusters.MultiClusterResource
@@ -117,8 +118,8 @@ func (s *Syncer) garbageCollect() {
 		},
 	}
 
+	// Perform garbage collection on namespaces that are no longer associated with a VerrazzanoProject
 	for _, namespace := range vpNamespaceList.Items {
-		s.Log.Info(fmt.Sprintf("garbage collecting namespace %s", namespace))
 		for _, mcObject := range gcObjectArray {
 			if !vzstring.SliceContainsString(s.ProjectNamespaces, namespace.Name) {
 				listOptions := &client.ListOptions{Namespace: namespace.Name}
@@ -126,11 +127,11 @@ func (s *Syncer) garbageCollect() {
 				if err != nil {
 					s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
 				}
-				// Delete resources that are on the local cluster but no longer on the admin cluster
+				// Delete resources that are on the local cluster but no longer on the admin cluster or placed on this cluster
 				for _, item := range mcObject.ObjectList.GetItems() {
 					mcItem := item.(clusters.MultiClusterResource)
 					err := s.AdminClient.Get(s.Context, types.NamespacedName{Name: mcItem.GetName(), Namespace: mcItem.GetNamespace()}, mcObject.Object)
-					if errors.IsNotFound(err) {
+					if errors.IsNotFound(err) || s.isThisCluster(mcObject.Object.GetPlacement()) {
 						s.Log.Info(fmt.Sprintf("perfoming garbage collection on %s with name %s in namespace %s", item.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
 						err := s.LocalClient.Delete(s.Context, mcItem)
 						if err != nil {

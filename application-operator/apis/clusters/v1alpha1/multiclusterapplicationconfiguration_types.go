@@ -60,9 +60,14 @@ func (in *MultiClusterApplicationConfiguration) GetStatus() MultiClusterResource
 	return in.Status
 }
 
+// GetPlacement returns the Placement of this resource
+func (in *MultiClusterApplicationConfiguration) GetPlacement() Placement {
+	return in.Spec.Placement
+}
+
 // GetItems returns the list of MultiClusterApplicationConfiguration
 func (in *MultiClusterApplicationConfigurationList) GetItems() []runtime.Object {
-	objects := []runtime.Object{}
+	var objects []runtime.Object
 	for _, item := range in.Items {
 		objects = append(objects, item.DeepCopyObject())
 	}

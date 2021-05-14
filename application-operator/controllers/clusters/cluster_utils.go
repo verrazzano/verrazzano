@@ -46,6 +46,7 @@ type MultiClusterResource interface {
 	runtime.Object
 	GetName() string
 	GetNamespace() string
+	GetPlacement() clustersv1alpha1.Placement
 	GetStatus() clustersv1alpha1.MultiClusterResourceStatus
 }
 
