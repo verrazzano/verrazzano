@@ -68,9 +68,14 @@ func (in *MultiClusterConfigMap) GetStatus() MultiClusterResourceStatus {
 	return in.Status
 }
 
+// GetPlacement returns the Placement of this resource
+func (in *MultiClusterConfigMap) GetPlacement() Placement {
+	return in.Spec.Placement
+}
+
 // GetItems returns the list of MultiClusterConfigMap
 func (in *MultiClusterConfigMapList) GetItems() []runtime.Object {
-	objects := []runtime.Object{}
+	var objects []runtime.Object
 	for _, item := range in.Items {
 		objects = append(objects, item.DeepCopyObject())
 	}
