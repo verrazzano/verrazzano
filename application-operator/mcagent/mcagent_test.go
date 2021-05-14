@@ -761,7 +761,8 @@ func TestGarbageCollection(t *testing.T) {
 	//                   that should get deleted because it no longer exists on the admin cluster.
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOpt *client.ListOptions) error {
+			assert.Equal(nsTest2, listOpt.Namespace)
 			list.Items = []clustersv1alpha1.MultiClusterApplicationConfiguration{testAppConfig}
 			return nil
 		})
