@@ -65,9 +65,9 @@ func ChangePlacementToManagedCluster(kubeconfigPath string) error {
 // changePlacement patches the hello-helidon example with the given patch file
 // and uses the given kubeConfigPath as the cluster in which to do the patch
 func changePlacement(kubeConfigPath string, patchFile string) error {
-	mcCompGvr := clustersv1alpha1.GroupVersion.WithResource(clustersv1alpha1.MultiClusterComponentResource)
-	mcAppGvr := clustersv1alpha1.GroupVersion.WithResource(clustersv1alpha1.MultiClusterAppConfigResource)
-	vpGvr := clustersv1alpha1.GroupVersion.WithResource(clustersv1alpha1.VerrazzanoProjectResource)
+	mcCompGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.MultiClusterComponentResource)
+	mcAppGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.MultiClusterAppConfigResource)
+	vpGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.VerrazzanoProjectResource)
 
 	if err := pkg.PatchResourceFromFileInCluster(mcCompGvr, TestNamespace, componentName, patchFile, kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to change placement of multicluster hello-helidon component resource: %v", err)
@@ -163,8 +163,8 @@ func HelidonNamespaceExists(kubeconfigPath string) bool {
 
 func projectExists(kubeconfigPath string) bool {
 	gvr := schema.GroupVersionResource{
-		Group:    clustersv1alpha1.GroupVersion.Group,
-		Version:  clustersv1alpha1.GroupVersion.Version,
+		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
+		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
 		Resource: "verrazzanoprojects",
 	}
 	return resourceExists(gvr, multiclusterNamespace, projectName, kubeconfigPath)
@@ -172,8 +172,8 @@ func projectExists(kubeconfigPath string) bool {
 
 func mcAppConfExists(kubeconfigPath string) bool {
 	gvr := schema.GroupVersionResource{
-		Group:    clustersv1alpha1.GroupVersion.Group,
-		Version:  clustersv1alpha1.GroupVersion.Version,
+		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
+		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
 		Resource: "multiclusterapplicationconfigurations",
 	}
 	return resourceExists(gvr, TestNamespace, appConfigName, kubeconfigPath)
@@ -181,8 +181,8 @@ func mcAppConfExists(kubeconfigPath string) bool {
 
 func mcComponentExists(kubeconfigPath string) bool {
 	gvr := schema.GroupVersionResource{
-		Group:    clustersv1alpha1.GroupVersion.Group,
-		Version:  clustersv1alpha1.GroupVersion.Version,
+		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
+		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
 		Resource: "multiclustercomponents",
 	}
 	return resourceExists(gvr, TestNamespace, componentName, kubeconfigPath)
@@ -190,8 +190,8 @@ func mcComponentExists(kubeconfigPath string) bool {
 
 func componentWorkloadExists(kubeconfigPath string) bool {
 	gvr := schema.GroupVersionResource{
-		Group:    oamv1alpha1.GroupVersion.Group,
-		Version:  oamv1alpha1.GroupVersion.Version,
+		Group:    oamv1alpha1.SchemeGroupVersion.Group,
+		Version:  oamv1alpha1.SchemeGroupVersion.Version,
 		Resource: "verrazzanohelidonworkloads",
 	}
 	return resourceExists(gvr, TestNamespace, workloadName, kubeconfigPath)
