@@ -1,7 +1,12 @@
 #!/bin/bash
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
+#
+# Script to allow users to load Verrazzano images into a private Docker registry.
+# - Using the Verrazzano BOM, pull/tag/push images into a target registry/repository
+# - Using a local cache of Verrazzano image tarballs, load into the local Docker registry and push to the remote registry/repo
+# - Clean up the local registry
+#
 set -o nounset
 set -o pipefail
 set -o errtrace
@@ -12,7 +17,8 @@ TO_REPO=
 BOM_FILE=./verrazzano-bom.json
 USELOCAL=0
 IMAGES_DIR=
-
+INCREMENTAL_CLEAN=false
+CLEAN_ALL=false
 DRY_RUN=false
 
 function exit_trap() {
@@ -74,15 +80,8 @@ function remove() {
 
 # Perform requirements checks and validate arguments
 function check() {
-  echo "Checking if docker is installed ..."
-  if ! docker --help >/dev/null; then
-    echo "[ERROR] docker is not installed, please install docker"
-    usage 1
-  fi
-
-  echo "Checking if jq is installed ..."
-  if ! jq --help >/dev/null; then
-    echo "[ERROR] jq is not install ... please install jq"
+  if [ "${INCREMENTAL_CLEAN}" == "true" ] && [ "${CLEAN_ALL}" == "true" ]; then
+    echo "Incremental clean and clean-all both specified, these can not be used together"
     usage 1
   fi
 
@@ -99,6 +98,18 @@ function check() {
     usage 1
   fi
 
+  echo "Checking if docker is installed ..."
+  if ! docker --help >/dev/null; then
+    echo "[ERROR] docker is not installed, please install docker"
+    usage 1
+  fi
+
+  echo "Checking if jq is installed ..."
+  if ! jq --help >/dev/null; then
+    echo "[ERROR] jq is not install ... please install jq"
+    usage 1
+  fi
+
 }
 
 function usage() {
@@ -109,12 +120,15 @@ usage:
 
   $0 -t <docker-registry> [-l <archive-path> -r <repository-path>]
   $0 -t <docker-registry> [-b <path> -r <repository-path>]
+  $0 -c [-b <path> | -l <archive-path>]
 
 Options:
  -t <docker-registry>   Target docker registry to push to, e.g., iad.ocir.io
  -r <repository-path>   Repository name/prefix for each image, e.g \"path/to/my/image\"; if not specified the default will be used according to the BOM
  -b <path>              Bill of materials (BOM) of Verrazzano components; if not specified, defaults to ./verrazzano-bom.json
  -l <archive-dir>       Use the specified directory to load local Docker image tarballs from instead of pulling from
+ -i                     Incrementally clean each local image after it has been successfully pushed
+ -c                     Clean all local images/tags
  -d                     Dry-run only, do not perform Docker operations
 
 Examples:
@@ -126,7 +140,8 @@ Examples:
   $0 -t lhcr.ocir.io -r 'myrepo/user1'
 
   # Loads all Verrazzano images into lhcr.ocir.io with into the repository 'myrepo/user1' using the BOM /path/to/my-bom.json
-  $0 -t lhcr.ocir.io -r 'myrepo/user1' -b /path/to/my-bom.json
+  # and removes the locally downloaded image after a successful push
+  $0 -c -t lhcr.ocir.io -r 'myrepo/user1' -b /path/to/my-bom.json
 
   # Loads all Docker tarball images in the directory /path/to/exploded/tarball into lhr.ocir.io in the repo 'myrepo'
   $0 -t lhcr.ocir.io -l /path/to/exploded/tarball -r myrepo
@@ -144,8 +159,13 @@ Examples:
 function process_image() {
   local from_image=$1
   local to_image=$2
-  echo "Processing image ${from_image} to ${to_image}"
 
+  if [ "${CLEAN_ALL}" == "true" ]; then
+    remove ${to_image} ${from_image}
+    return 0
+  fi
+
+  echo "Processing image ${from_image} to ${to_image}"
   local success=false
   for i in {1..10}; do
     # Only pull the image if we are not looking at local images
@@ -174,7 +194,9 @@ function process_image() {
     break
   done
 
-  remove ${to_image} ${from_image}
+  if [ "${INCREMENTAL_CLEAN}" == "true" ]; then
+    remove ${to_image} ${from_image}
+  fi
 
   if [[ "${success}" == "false" ]]; then
     echo "[ERROR] Failed to manage image [${from_image}]"
@@ -265,10 +287,14 @@ function main() {
   else
     process_images_from_registry
   fi
-  echo "[SUCCESS] All images pushed to [${TO_REGISTRY}]"
+  if [ "${CLEAN_ALL}" == "true" ]; then
+    echo "[SUCCESS] All local images cleaned"
+  else
+    echo "[SUCCESS] All images pushed to [${TO_REGISTRY}]"
+  fi
 }
 
-while getopts 'hdb:t:f:r:l:' opt
+while getopts 'hicdb:t:f:r:l:' opt
 do
   case $opt in
     d)
@@ -288,6 +314,12 @@ do
       ;;
     f)
       TARBALL=$OPTARG
+      ;;
+    i)
+      INCREMENTAL_CLEAN=true
+      ;;
+    c)
+      CLEAN_ALL=true
       ;;
     l)
       USELOCAL=1
