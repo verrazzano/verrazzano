@@ -38,7 +38,7 @@ var validSecret = corev1.Secret{
 // TestProcessAgentThreadNoProjects tests agent thread when no projects exist
 // GIVEN a request to process the agent loop
 // WHEN the a new VerrazzanoProjects resources exists
-// THEN ensure that there are no calls to sync any multi-cluste resources
+// THEN ensure that there are no calls to sync any multi-cluster resources
 func TestProcessAgentThreadNoProjects(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
@@ -690,4 +690,88 @@ func findVol(name string, vols *[]corev1.Volume) *corev1.Volume {
 		}
 	}
 	return nil
+}
+
+// TestGarbageCollection tests garbage collection thread when no projects exist
+// GIVEN a request to process the garbage collection loop
+// WHEN orphaned multi-cluster resources exists
+// THEN ensure the orphaned resources are deleted
+func TestGarbageCollection(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+	nsTest1 := "test-ns-1"
+	nsTest2 := "test-ns-2"
+
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+	//adminStatusMock := mocks.NewMockStatusWriter(adminMocker)
+
+	// Managed Cluster - expect call to list Namespace objects
+	mcMock.EXPECT().
+		List(gomock.Any(), &corev1.NamespaceList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, opts ...*client.ListOptions) error {
+			list.Items = []corev1.Namespace{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: nsTest1,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: nsTest2,
+					},
+				},
+			}
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration resources
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterComponent resources
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterConfigMap resources
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterSecret resources
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			return nil
+		})
+
+	// Make the request
+	// Do not include nsTest2 in the list of project namespaces
+	s := &Syncer{
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+		ProjectNamespaces:  []string{nsTest1},
+	}
+	s.garbageCollect()
+
+	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
+	assert.Equal(validSecret.ResourceVersion, s.SecretResourceVersion)
 }
