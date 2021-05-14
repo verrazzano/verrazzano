@@ -11,7 +11,8 @@
             {
             "image": "cert-manager",
             "tag": "0.13.1-20201016205232-4c8f3fe38",
-            "helmPath": "image.tag"
+            "helmPath": "image.repository"
+            "helmTagPath": "image.tag"
             }
           ]
         }
@@ -28,7 +29,7 @@
               "image": "coredns",
               "tag": "1.6.2",
               "helmPath": "istiocoredns.coreDNSImage",
-	      "helmTagPath": "istiocoredns.coreDNSTag"
+              "helmTagPath": "istiocoredns.coreDNSTag"
             },
             {
               "image": "istio-coredns-plugin",
