@@ -29,8 +29,8 @@ const (
 	keycloakAdminUserRealm          = "master"
 	keycloakAdminUserName           = "keycloakadmin"
 
-	keycloakApiClientId   = "verrazzano-oauth-client"
-	keycloakAdminClientId = "admin-cli"
+	keycloakAPIClientID   = "verrazzano-oauth-client"
+	keycloakAdminClientID = "admin-cli"
 )
 
 // NewKeycloakRESTClient creates a new Keycloak REST client.
@@ -47,7 +47,7 @@ func NewKeycloakAdminRESTClient() (*KeycloakRESTClient, error) {
 	keycloakAdminPassword := strings.TrimSpace(string(secret.Data["password"]))
 
 	keycloakLoginURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressHost, keycloakAdminUserRealm)
-	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", keycloakAdminUserName, keycloakAdminPassword, keycloakAdminClientId)
+	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", keycloakAdminUserName, keycloakAdminPassword, keycloakAdminClientID)
 	status, response := PostWithHostHeader(keycloakLoginURL, "application/x-www-form-urlencoded", ingressHost, strings.NewReader(body))
 	if status != 200 {
 		return nil, fmt.Errorf("failed to login as admin user")
