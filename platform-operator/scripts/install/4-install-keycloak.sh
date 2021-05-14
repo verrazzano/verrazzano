@@ -125,6 +125,7 @@ function install_keycloak {
   VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "adminsGroup: &default_adminsGroup " | awk '{ print $3 }')
   VZ_MONITOR_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "monitorsGroup: &default_monitorsGroup " | awk '{ print $3 }')
   VZ_USER_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "usersGroup: &default_usersGroup " | awk '{ print $3 }')
+  VZ_SYSTEM_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "systemGroup: &default_systemGroup " | awk '{ print $3 }')
 
   VPROM=$(generate_password)
   VES=$(generate_password)
@@ -156,7 +157,7 @@ data:
 ")
 
   # Create the verrazzano-system realm and populate it with users, groups, clients, etc.
-  configure_keycloak_realms $VZ_SYS_REALM $VZ_ADMIN_GROUP $VZ_MONITOR_GROUP $VZ_USER_GROUP
+  configure_keycloak_realms $VZ_SYS_REALM $VZ_ADMIN_GROUP $VZ_MONITOR_GROUP $VZ_USER_GROUP $VZ_SYSTEM_GROUP
 
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
@@ -260,13 +261,13 @@ function configure_keycloak_realms() {
     log "Setting ${VERRAZZANO_INTERNAL_ES_USER} user password"
     kcadm.sh set-password -r $_VZ_REALM --username ${VERRAZZANO_INTERNAL_ES_USER} --new-password ${VES} || fail "Failed to set user password"
 
-    log "Re-Creating admin-cli client"
+    log "(Re-)Creating admin-cli client"
     ADMIN_CLI=\$(kcadm.sh get clients -r $_VZ_REALM -q "clientId=admin-cli" --fields id --format csv --noquotes 2>&1) || fail "Failed to create group"
     if [ -n "\$ADMIN_CLI" ] ; then
         log "Deleting admin-cli client (id: clients/\${ADMIN_CLI})"
-set -x
-        kcadm.sh delete clients/\$ADMIN_CLI -r $_VZ_REALM 
-set +x
+        kcadm.sh delete clients/\$ADMIN_CLI -r $_VZ_REALM || fail "Failed to delete client"
+    else
+        log "Existing admin-cli client not found"
     fi
     log "Creating admin-cli client"
     kcadm.sh create clients -r $_VZ_REALM -f - <<\END
