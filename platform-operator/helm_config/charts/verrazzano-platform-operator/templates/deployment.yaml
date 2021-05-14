@@ -57,6 +57,14 @@ spec:
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
               value: {{ .Values.image }}
+            {{- if .Values.global.registry }}
+            - name: REGISTRY
+              value: {{ .Values.global.registry }}
+            {{- end }}
+            {{- if .Values.global.repository }}
+            - name: IMAGE_REPO
+              value: {{ .Values.global.repository }}
+            {{- end }}
             {{- if .Values.global.imagePullSecrets }}
             - name: IMAGE_PULL_SECRETS
               value: {{ join "," .Values.global.imagePullSecrets }}
