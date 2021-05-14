@@ -9,12 +9,13 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -454,7 +455,7 @@ func TestGetCurrentChartVersion(t *testing.T) {
 // THEN an error is returned and nil is returned for the chart SemVersion
 func TestGetCurrentChartVersionFileReadError(t *testing.T) {
 	readFileFunction = func(string) ([]byte, error) {
-		return []byte{}, errors.New("Unexpected file read error")
+		return []byte{}, errors.New("unexpected file read error")
 	}
 	defer func() {
 		readFileFunction = ioutil.ReadFile
@@ -565,14 +566,85 @@ func TestValidateInProgress(t *testing.T) {
 	}
 }
 
-func TestValidateOciDnsSecret(t *testing.T) {
+func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 	vz := Verrazzano{
 		Spec: VerrazzanoSpec{
 			Components: ComponentSpec{
-				DNS: nil,
+				DNS: &DNSComponent{
+					OCI: &OCI{
+						OCIConfigSecret: "oci-bad-secret",
+					},
+				},
 			},
 		},
 	}
 
-	ValidateOciDnsSecret(client, &vz.Spec)
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	err = ValidateOciDnsSecret(client, &vz.Spec)
+	if assert.Error(t, err) {
+		assert.Equal(t, "secret \"oci-bad-secret\" must be created in the default namespace before installing Verrrazzano for OCI DNS", err.Error())
+	}
+}
+
+func TestValidateOciDnsSecretGoodSecret(t *testing.T) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					OCI: &OCI{
+						OCIConfigSecret: "oci",
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "oci",
+			Namespace: "default",
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = ValidateOciDnsSecret(client, &vz.Spec)
+	assert.NoError(t, err)
+}
+
+func TestValidateOciDnsSecretNoOci(t *testing.T) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					Wildcard: &Wildcard{
+						Domain: "nip.io",
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	err = ValidateOciDnsSecret(client, &vz.Spec)
+	assert.NoError(t, err)
 }
