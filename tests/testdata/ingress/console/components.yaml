@@ -16,7 +16,7 @@ spec:
           name: todo-domain
           namespace: console-ingress
         spec:
-          domainUID: tododomain
+          domainUID: cidomain
           domainHome: /u01/domains/tododomain
           image: container-registry.oracle.com/verrazzano/example-todo:0.8.0
           imagePullSecrets:
@@ -73,7 +73,7 @@ spec:
                   # for MySQL, the last element in the URL is the database name, and must match the name inside the DB server
                   URL: "jdbc:mysql://mysql.todo-list.svc.cluster.local:3306/tododb"
                   PasswordEncrypted: '@@SECRET:tododomain-jdbc-tododb:password@@'
-                  DriverName: com.mysql.jdbc.Driver
+                  DriverName: com.mysql.cj.jdbc.Driver
                   Properties:
                     user:
                       Value: '@@SECRET:tododomain-jdbc-tododb:username@@'

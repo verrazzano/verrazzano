@@ -61,15 +61,12 @@ spec:
   prometheusSecret: prometheus-${MANAGED_CLUSTER_NAME}
 EOF
 
-# wait for manifest to be created
-retries=0
-until kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get secret | grep verrazzano-cluster-${MANAGED_CLUSTER_NAME}-manifest; do
-  retries=$(($retries+1))
-  sleep 1
-  if [ "$retries" -ge 10 ] ; then
-    break
-  fi
-done
+# wait for VMC to be ready - that means the manifest has been created
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=15s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
+if [ $? -ne 0 ]; then
+  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 15 seconds. Registration failed."
+  exit 1
+fi
 
 # export manifest on admin
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 --decode > register-${MANAGED_CLUSTER_NAME}.yaml
@@ -77,46 +74,10 @@ kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED
 # obtain permission-constrained version of kubeconfig to be used by managed cluster
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-agent -n verrazzano-mc -o jsonpath={.data.admin\-kubeconfig} | base64 --decode > ${MANAGED_CLUSTER_DIR}/managed_kube_config
 
+echo "----------BEGIN register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
+cat register-${MANAGED_CLUSTER_NAME}.yaml
+echo "----------END register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
+
+echo "Applying register-${MANAGED_CLUSTER_NAME}.yaml"
 # register using the manifest on managed
 kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register-${MANAGED_CLUSTER_NAME}.yaml
-
-# the following is not related to registering managed cluster, but to working around xip.io resolution problem
-set +e
-retries=0
-until [ "$retries" -ge 30 ]
-do
-  kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest && break
-  retries=$((retries+1))
-  sleep 5
-done
-ES_HOST=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.spec.rules[0].host}')
-if [[ "${ES_HOST}" == *.xip.io ]]; then
-  # wait until secret verrazzano-cluster-registration is present
-  retries=0
-  until [ "$retries" -ge 30 ]
-  do
-    kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano-cluster-registration && break
-    retries=$((retries+1))
-    sleep 5
-  done
-  REGISTRATION_VERSION=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano-cluster-registration -o jsonpath='{.metadata.resourceVersion}')
-  # wait until verrazzano-operator deployment has the same REGISTRATION_SECRET_VERSION as verrazzano-cluster-registration
-  retries=0
-  until [ "$retries" -ge 30 ]
-  do
-    ENV_VERSION=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get deployment verrazzano-operator -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="REGISTRATION_SECRET_VERSION")].value}')
-    if [[ ${REGISTRATION_VERSION} = ${ENV_VERSION} ]]; then
-      break
-    fi
-    retries=$((retries+1))
-    sleep 5
-  done
-  # patch /etc/hosts in the managed cluster beats pods by setting hostAliases
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system rollout status deploy verrazzano-operator
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging rollout status daemonset filebeat
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging rollout status daemonset journalbeat
-  ES_IP=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-  patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${ES_HOST}"'"],"ip":"'"${ES_IP}"'"}]}}}}'
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset filebeat --patch ${patch_data}
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset journalbeat --patch ${patch_data}
-fi

@@ -4,6 +4,7 @@
 package kubernetes_test
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -11,6 +12,7 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var waitTimeout = 15 * time.Minute
@@ -57,11 +59,17 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 
 		ginkgo.It("has the expected namespaces",
 			func() {
-				namespaces := pkg.ListNamespaces()
+				namespaces, err := pkg.ListNamespaces(metav1.ListOptions{})
+				if err != nil {
+					ginkgo.Fail(fmt.Sprintf("Failed to get namespaces with error: %v", err))
+				}
 				if isManagedClusterProfile {
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(gomega.BeFalse())
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(gomega.BeFalse())
-					gomega.Expect(nsListContains(namespaces.Items, "cattle-system")).To(gomega.BeFalse())
+					// Even though we do not install Rancher on managed clusters, we do create the namespace
+					// so we can create network policies. Rancher will run pods in this namespace once
+					// the managed cluster manifest YAML is applied to the managed cluster.
+					gomega.Expect(nsListContains(namespaces.Items, "cattle-system")).To(gomega.BeTrue())
 					gomega.Expect(nsListContains(namespaces.Items, "local")).To(gomega.BeFalse())
 				} else {
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(gomega.BeTrue())
@@ -137,8 +145,6 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 					gomega.Expect(vzComponentPresent(name, "cattle-system")).To(gomega.BeFalse())
 				},
 				ginkgoExt.Entry("includes rancher", "rancher", false),
-				ginkgoExt.Entry("includes rancher-agent", "cattle-node-agent", false),
-				ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", false),
 			)
 		} else {
 			ginkgoExt.DescribeTable("deployed rancher components",
@@ -146,8 +152,6 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 					gomega.Expect(vzComponentPresent(name, "cattle-system")).To(gomega.Equal(expected))
 				},
 				ginkgoExt.Entry("includes rancher", "rancher", true),
-				ginkgoExt.Entry("includes rancher-agent", "cattle-node-agent", true),
-				ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", true),
 			)
 		}
 
@@ -156,7 +160,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 				gomega.Expect(vzComponentPresent(name, "verrazzano-system")).To(gomega.Equal(expected))
 			},
 			ginkgoExt.Entry("includes prometheus", "vmi-system-prometheus", true),
-			ginkgoExt.Entry("includes prometheus-gw", "vmi-system-prometheus-gw", true),
+			ginkgoExt.Entry("includes prometheus-gw", "vmi-system-prometheus-gw", false),
 			ginkgoExt.Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
 			ginkgoExt.Entry("includes es-data", "vmi-system-es-data", isProdProfile),
 			ginkgoExt.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
@@ -169,29 +173,29 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			func() {
 				pkg.Concurrently(
 					func() {
-						// The test above asserts the namespace cattle-system doesn't exist for managed-cluster profile,
-						// so the following check is not enabled for that profile.
+						// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
+						// cluster is registered)
 						if !isManagedClusterProfile {
-							gomega.Eventually(pkg.PodsRunning("cattle-system", expectedPodsCattleSystem), waitTimeout, pollingInterval).
+							gomega.Eventually(func() bool { return pkg.PodsRunning("cattle-system", expectedPodsCattleSystem) }, waitTimeout, pollingInterval).
 								Should(gomega.BeTrue())
 						}
 					},
 					func() {
 						if !isManagedClusterProfile {
-							gomega.Eventually(pkg.PodsRunning("keycloak", expectedPodsKeycloak), waitTimeout, pollingInterval).
+							gomega.Eventually(func() bool { return pkg.PodsRunning("keycloak", expectedPodsKeycloak) }, waitTimeout, pollingInterval).
 								Should(gomega.BeTrue())
 						}
 					},
 					func() {
-						gomega.Eventually(pkg.PodsRunning("cert-manager", expectedPodsCertManager), waitTimeout, pollingInterval).
+						gomega.Eventually(func() bool { return pkg.PodsRunning("cert-manager", expectedPodsCertManager) }, waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 					func() {
-						gomega.Eventually(pkg.PodsRunning("ingress-nginx", expectedPodsIngressNginx), waitTimeout, pollingInterval).
+						gomega.Eventually(func() bool { return pkg.PodsRunning("ingress-nginx", expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 					func() {
-						gomega.Eventually(pkg.PodsRunning("verrazzano-system", expectedNonVMIPodsVerrazzanoSystem), waitTimeout, pollingInterval).
+						gomega.Eventually(func() bool { return pkg.PodsRunning("verrazzano-system", expectedNonVMIPodsVerrazzanoSystem) }, waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 				)

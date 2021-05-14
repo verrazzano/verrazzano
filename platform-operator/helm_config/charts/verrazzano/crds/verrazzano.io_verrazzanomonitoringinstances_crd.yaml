@@ -236,27 +236,6 @@ spec:
                 retentionPeriod:
                   type: number
                   pattern: '\d+'
-            prometheusGW:
-              properties:
-                configMap:
-                  type: string
-                  pattern: '^\w[^.]+$'
-                resources:
-                  properties:
-                    limitCPU:
-                      type: string
-                      pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
-                    limitMemory:
-                      type: string
-                      pattern: '^[1-9]\d*(Mi|Gi)$'
-                    requestCPU:
-                      type: string
-                      pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
-                    requestMemory:
-                      type: string
-                      pattern: '^[1-9]\d*(Mi|Gi)$'
-                maintenanceSchedule:
-                  type: string
             autoSecret:
               type: boolean
             secretsName:

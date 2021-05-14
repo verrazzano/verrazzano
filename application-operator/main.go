@@ -17,13 +17,11 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterloggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/verrazzanoproject"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
@@ -178,13 +176,6 @@ func main() {
 			os.Exit(1)
 		}
 
-		mgr.GetWebhookServer().CertDir = certDir
-		appconfigWebhook := &webhooks.AppConfigWebhook{Client: mgr.GetClient(), Defaulters: []webhooks.AppConfigDefaulter{
-			&webhooks.MetricsTraitDefaulter{},
-			&webhooks.LoggingScopeDefaulter{Client: mgr.GetClient()},
-		}}
-		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
-
 		// Get a Kubernetes dynamic client.
 		restConfig, err := clientcmd.BuildConfigFromFlags("", "")
 		if err != nil {
@@ -197,13 +188,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		restConfig, err = clientcmd.BuildConfigFromFlags("", "")
-		if err != nil {
-			setupLog.Error(err, "unable to build kube config")
-			os.Exit(1)
-		}
-
-		clientSet, err := istioversionedclient.NewForConfig(restConfig)
+		istioClientSet, err := istioversionedclient.NewForConfig(restConfig)
 		if err != nil {
 			setupLog.Error(err, "Failed to create istio client")
 			os.Exit(1)
@@ -214,22 +199,30 @@ func main() {
 			webhooks.IstioDefaulterPath,
 			&webhook.Admission{
 				Handler: &webhooks.IstioWebhook{
+					Client:        mgr.GetClient(),
 					KubeClient:    kubeClient,
 					DynamicClient: dynamicClient,
-					IstioClient:   clientSet,
+					IstioClient:   istioClientSet,
 				},
 			},
 		)
+
+		mgr.GetWebhookServer().CertDir = certDir
+		appconfigWebhook := &webhooks.AppConfigWebhook{
+			Client:      mgr.GetClient(),
+			KubeClient:  kubeClient,
+			IstioClient: istioClientSet,
+			Defaulters: []webhooks.AppConfigDefaulter{
+				&webhooks.MetricsTraitDefaulter{},
+				&webhooks.NetPolicyDefaulter{
+					Client:          mgr.GetClient(),
+					NamespaceClient: kubeClient.CoreV1().Namespaces(),
+				},
+			},
+		}
+		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
 	}
 
-	logReconciler := loggingscope.NewReconciler(
-		mgr.GetClient(),
-		ctrl.Log.WithName("controllers").WithName("LoggingScope"),
-		mgr.GetScheme())
-	if err = logReconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "LoggingScope")
-		os.Exit(1)
-	}
 	if err = (&cohworkload.Reconciler{
 		Client:  mgr.GetClient(),
 		Log:     ctrl.Log.WithName("controllers").WithName("VerrazzanoCoherenceWorkload"),
@@ -264,56 +257,47 @@ func main() {
 
 	if err = (&multiclustersecret.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterSecret"),
+		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterSecretKind),
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterSecret")
+		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterSecretKind)
 		os.Exit(1)
 	}
 	if err = (&multiclustercomponent.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterComponent"),
+		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterComponentKind),
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterComponent")
+		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterComponentKind)
 		os.Exit(1)
 	}
 	if err = (&multiclusterconfigmap.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterConfigMap"),
+		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterConfigMapKind),
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterConfigMap")
-		os.Exit(1)
-	}
-	if err = (&multiclusterloggingscope.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterLoggingScope"),
-		Scheme:       mgr.GetScheme(),
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterLoggingScope")
+		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterConfigMapKind)
 		os.Exit(1)
 	}
 	if err = (&multiclusterapplicationconfiguration.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterApplicationConfiguration"),
+		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterAppConfigKind),
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterApplicationConfiguration")
+		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterAppConfigKind)
 		os.Exit(1)
 	}
 	if err = (&verrazzanoproject.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("VerrazzanoProject"),
+		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.VerrazzanoProjectKind),
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoProject")
+		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.VerrazzanoProjectKind)
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

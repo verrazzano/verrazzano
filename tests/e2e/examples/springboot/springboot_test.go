@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-
-	"github.com/avast/retry-go"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -25,14 +23,20 @@ var shortPollingInterval = 10 * time.Second
 var shortWaitTimeout = 5 * time.Minute
 var longWaitTimeout = 10 * time.Minute
 var longPollingInterval = 20 * time.Second
-var retryDelay = retry.Delay(shortPollingInterval)
-var retryAttempts = retry.Attempts(3)
 
 var _ = ginkgo.BeforeSuite(func() {
 	deploySpringBootApplication()
 })
 
+var failed = false
+var _ = ginkgo.AfterEach(func() {
+	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
+})
+
 var _ = ginkgo.AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	undeploySpringBootApplication()
 })
 
@@ -52,12 +56,9 @@ func deploySpringBootApplication() {
 		ginkgo.Fail(fmt.Sprintf("Failed to create Spring Boot component resources: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create application resource")
-	err := retry.Do(
-		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-app.yaml") },
-		retryAttempts, retryDelay)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create Spring Boot application resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeNil(), "Failed to create Spring Boot application resource")
 }
 
 func undeploySpringBootApplication() {
@@ -115,7 +116,7 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 	})
 
 	ginkgo.It("Verify Verrazzano facts endpoint is working.", func() {
@@ -124,30 +125,29 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			gomega.Expect(len(content) > 0, fmt.Sprintf("An empty string returned from /facts endpoint %v", content))
 			return gomega.Expect(status).To(gomega.Equal(200))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 	})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "springboot-springboot-appconf-springboot-component-springboot-container"
+		indexName := "verrazzano-namespace-springboot"
 		ginkgo.It("Verify Elasticsearch index exists", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogIndexFound("verrazzano-namespace-springboot")
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Elasticsearch index for Spring Boot application.")
 			gomega.Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Elasticsearch index for Spring Boot application.")
 		})
-
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound("verrazzano-namespace-springboot", time.Now().Add(-24*time.Hour), map[string]string{
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "springboot-component",
 					"kubernetes.container_name":                 "springboot-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record.")
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"oam.component.name": "springboot-component"})
+					"kubernetes.labels.app_oam_dev\\/component": "springboot-component",
+					"kubernetes.labels.app_oam_dev\\/name":      "springboot-appconf",
+					"kubernetes.container_name":                 "springboot-container",
+				})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record.")
 		})
 	})

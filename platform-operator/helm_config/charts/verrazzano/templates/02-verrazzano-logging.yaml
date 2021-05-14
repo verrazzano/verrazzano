@@ -36,10 +36,11 @@ data:
     # Prevent Fluentd from handling records containing its own logs. Otherwise
     # it can lead to an infinite loop, when error in sending one message generates
     # another message which also fails to be sent and so on.
-    <match fluent.**>
-      @type null
-      @id out_fluent_null
-    </match>
+    <label @FLUENT_LOG>
+      <match fluent.*>
+        @type null
+      </match>
+    </label>
 
     # Used for health checking
     <source>
@@ -107,8 +108,31 @@ data:
         fields_strip_underscores true
       </entry>
     </source>
+    <source>
+      @type systemd
+      @id in_systemd_run
+      read_from_head true
+      tag systemd
+      path /run/log/journal
+      <storage>
+        @type local
+        persistent true
+        path /tmp/run_journald_pos.json
+      </storage>
+      <entry>
+        fields_strip_underscores true
+      </entry>
+    </source>
 
   systemd-filter.conf: |
+    <filter systemd>
+       @type record_transformer
+       @id systemd_index
+       <record>
+          target_index verrazzano-systemd-journal
+       </record>
+    </filter>
+
     <filter systemd.kubelet>
       @type parser
       @id systemd_kubelet_parser
@@ -168,6 +192,9 @@ data:
     <filter kubernetes.**>
       @type kubernetes_metadata
       @id kubernetes_metadata
+      # VZ-2637 need newer version to enable watch
+      # watch_retry_interval 20
+      watch false
     </filter>
 
     # rewrite_tag_filter does not support nested fields like
@@ -178,7 +205,7 @@ data:
       @id kubernetes_record_transformer
       enable_ruby true
       <record>
-        @target_index verrazzano-namespace-${record["kubernetes"]["namespace_name"]}
+        target_index verrazzano-namespace-${record["kubernetes"]["namespace_name"]}
       </record>
       <record>
         kubernetes_namespace_container_name ${record["kubernetes"]["namespace_name"]}.${record["kubernetes"]["container_name"]}
@@ -188,12 +215,21 @@ data:
     # parse verrazzano operators' json log
     <filter kubernetes.**_verrazzano-**_**operator**>
       @type parser
-      format json
       reserve_data true
       key_name log
       ignore_key_not_exist true
-      replace_invalid_sequence true
       emit_invalid_record_to_error true
+      <parse>
+         @type multi_format
+         <pattern>
+            format json
+            time_format %Y-%m-%dT%H:%M:%S.%NZ
+         </pattern>
+         # verrazzano-application-operator and weblogic-operator have none-format warnings
+         <pattern>
+            format none
+         </pattern>
+      </parse>
     </filter>
 
     # Remove the unnecessary field as the information is already available on
@@ -232,13 +268,20 @@ data:
     </filter>
 
   output.conf: |
+    <filter **>
+       @type record_transformer
+       @id cluster_name
+       <record>
+          cluster_name "#{ENV['CLUSTER_NAME']}"
+       </record>
+    </filter>
     <match **>
       @type elasticsearch
       @id out_elasticsearch
       @log_level info
       logstash_format true
-      logstash_prefix verrazzano-journal
-      target_index_key @target_index
+      logstash_prefix verrazzano-logstash
+      target_index_key target_index
       include_tag_key true
 
       template_file /fluentd/etc/elasticsearch-template-verrazzano.json
@@ -263,8 +306,10 @@ data:
       time_precision 9
 
       # Prevent reloading connections to Elasticsearch
-      reload_on_failure false
       reload_connections false
+      reconnect_on_error true
+      reload_on_failure true
+      slow_flush_log_threshold 120s
 
       hosts "#{ENV['ELASTICSEARCH_URL']}"
       ca_file /fluentd/secret/ca-bundle
@@ -272,6 +317,8 @@ data:
       user "#{ENV['ELASTICSEARCH_USER']}"
       password "#{ENV['ELASTICSEARCH_PASSWORD']}"
       bulk_message_request_threshold 16M
+      # 2 ^ 31
+      request_timeout 2147483648
       <buffer>
         @type file
         path /fluentd/log/elastic-buffer
@@ -279,9 +326,11 @@ data:
         flush_interval 5s
         retry_forever
         retry_max_interval 10
-        # Cap buffer memory usage to 8MiB/chunk * 8 chunks = 64 MiB
-        chunk_limit_size 8M
-        queue_limit_length 8
+        # Cap buffer memory usage to 16MiB/chunk * 10 chunks = 160 MiB
+        chunk_limit_size 16M
+        queue_limit_length 10
+        chunk_full_threshold 0.9
+        overflow_action drop_oldest_chunk
       </buffer>
     </match>
 
@@ -379,15 +428,16 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: fluentd
-    k8s-app: fluentd
 spec:
   selector:
     matchLabels:
-      k8s-app: fluentd
+      app: fluentd
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
       labels:
-        k8s-app: fluentd
+        app: fluentd
     spec:
       containers:
         - args:
@@ -399,7 +449,7 @@ spec:
             - name: FLUENT_ELASTICSEARCH_SED_DISABLE
               value: "true"
             - name: ELASTICSEARCH_URL
-              value: http://vmi-system-es-ingest:9200
+              value: http://vmi-system-es-ingest-oidc:8775
             - name: CLUSTER_NAME
               value: local
             - name: ELASTICSEARCH_USER
@@ -435,6 +485,12 @@ spec:
             - mountPath: /u01/data/docker/containers
               name: datadockercontainers
               readOnly: true
+            - mountPath: /run/log/journal
+              name: run-log-journal
+              readOnly: true
+            - mountPath: /var/lib/dbus
+              name: var-lib-dbus
+              readOnly: true
       serviceAccount: fluentd
       serviceAccountName: fluentd
       terminationGracePeriodSeconds: 30
@@ -457,6 +513,14 @@ spec:
             path: /u01/data/docker/containers
             type: ""
           name: datadockercontainers
+        - hostPath:
+            path: /run/log/journal
+            type: ""
+          name: run-log-journal
+        - hostPath:
+            path: /var/lib/dbus
+            type: ""
+          name: var-lib-dbus
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1

@@ -5972,6 +5972,9 @@ spec:
                           Default is RollingUpdate.
                         type: string
                     type: object
+                required:
+                - metadata
+                - podSpec
                 type: object
             required:
             - deploymentTemplate
@@ -6043,6 +6046,8 @@ spec:
                   type: object
                 type: array
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

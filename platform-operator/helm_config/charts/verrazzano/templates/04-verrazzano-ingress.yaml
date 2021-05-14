@@ -6,6 +6,9 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
+    {{- if .Values.dns.wildcard.domain}}
+    verrazzano.io/dns.wildcard.domain: {{ .Values.dns.wildcard.domain }}
+    {{- end }}
     external-dns.alpha.kubernetes.io/target: verrazzano-ingress.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
     kubernetes.io/tls-acme: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /$2
@@ -28,6 +31,8 @@ metadata:
     nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
     nginx.ingress.kubernetes.io/session-cookie-name: route
     nginx.ingress.kubernetes.io/session-cookie-samesite: Strict
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: "${service_name}.${namespace}.svc.cluster.local"
   name: verrazzano-ingress
   namespace: {{ .Release.Namespace }}
 spec:

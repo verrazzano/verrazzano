@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -17,7 +16,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istionet "istio.io/api/networking/v1alpha3"
@@ -104,12 +103,18 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			workload.Namespace = namespace
 			return nil
 		})
-	// expect a call to fetch the oam application configuration
+	// expect a call to list the FLUENTD config maps
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
-			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
-			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to get the namespace for the domain
@@ -165,15 +170,13 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
-	loggingScopeName := "unit-test-logging-scope"
 	fluentdImage := "unit-test-image:latest"
-	loggingSecretName := "logging-secret"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
@@ -193,24 +196,6 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			workload.Namespace = namespace
 			return nil
 		})
-	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
-			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
-			loggingScope := oamcore.ComponentScope{ScopeReference: oamrt.TypedReference{Kind: vzapi.LoggingScopeKind, Name: loggingScopeName}}
-			component.Scopes = []oamcore.ComponentScope{loggingScope}
-			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
-			return nil
-		})
-	// expect a call to fetch the logging scope
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: loggingScopeName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
-
-			loggingScope.Spec.SecretName = loggingSecretName
-			return nil
-		})
 	// expect a call to list the FLUENTD config maps
 	cli.EXPECT().
 		List(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -218,29 +203,11 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			// return no resources
 			return nil
 		})
-	// expect a call to get the Elasticsearch secret in app namespace - return not found
-	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
-	cli.EXPECT().
-		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.ParseGroupResource("v1.Secret"), loggingSecretName))
-
-	// expect a call to create an empty Elasticsearch secret in app namespace (default behavior, so
-	// that Fluentd volume mount works)
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *corev1.Secret, options *client.CreateOptions) error {
-			asserts.Equal(t, namespace, sec.Namespace)
-			asserts.Equal(t, loggingSecretName, sec.Name)
-			asserts.Nil(t, sec.Data)
-			asserts.Equal(t, client.CreateOptions{}, *options)
-			return nil
-		})
-
 	// no config maps found, so expect a call to create a config map with our parsing rules
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(loggingscope.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to get the namespace for the domain
@@ -298,16 +265,14 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
-	loggingScopeName := "unit-test-logging-scope"
 	fluentdImage := "unit-test-image:latest"
-	loggingSecretName := "logging-secret"
 	newUpgradeVersion := "new-upgrade"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: newUpgradeVersion}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
@@ -331,41 +296,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			workload.Status.CurrentUpgradeVersion = "oldVersion"
 			return nil
 		})
-	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
-			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
-			loggingScope := oamcore.ComponentScope{ScopeReference: oamrt.TypedReference{Kind: vzapi.LoggingScopeKind, Name: loggingScopeName}}
-			component.Scopes = []oamcore.ComponentScope{loggingScope}
-			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
-			return nil
-		})
-	// expect a call to fetch the logging scope
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: loggingScopeName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
-
-			loggingScope.Spec.SecretName = loggingSecretName
-			return nil
-		})
-	// expect a call to get the Elasticsearch secret in app namespace - return not found
-	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
-	cli.EXPECT().
-		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.ParseGroupResource("v1.Secret"), loggingSecretName))
-
-	// expect a call to create an empty Elasticsearch secret in app namespace (default behavior, so
-	// that Fluentd volume mount works)
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *corev1.Secret, options *client.CreateOptions) error {
-			asserts.Equal(t, namespace, sec.Namespace)
-			asserts.Equal(t, loggingSecretName, sec.Name)
-			asserts.Nil(t, sec.Data)
-			asserts.Equal(t, client.CreateOptions{}, *options)
-			return nil
-		})
 	// expect a call to list the FLUENTD config maps
 	cli.EXPECT().
 		List(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -377,10 +307,9 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(loggingscope.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
-
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
@@ -452,20 +381,18 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
-	loggingScopeName := "unit-test-logging-scope"
 	fluentdImage := "unit-test-image:latest"
 	existingFluentdImage := "unit-test-image:existing"
-	loggingSecretName := "logging-secret"
 	previousUpgradeVersion := "new-upgrade"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: previousUpgradeVersion}
 
 	// existing domain containers
-	containers := []corev1.Container{{Name: loggingscope.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
@@ -490,41 +417,6 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			workload.Status.CurrentUpgradeVersion = previousUpgradeVersion
 			return nil
 		})
-	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
-			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
-			loggingScope := oamcore.ComponentScope{ScopeReference: oamrt.TypedReference{Kind: vzapi.LoggingScopeKind, Name: loggingScopeName}}
-			component.Scopes = []oamcore.ComponentScope{loggingScope}
-			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
-			return nil
-		})
-	// expect a call to fetch the logging scope
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: loggingScopeName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
-
-			loggingScope.Spec.SecretName = loggingSecretName
-			return nil
-		})
-	// expect a call to get the Elasticsearch secret in app namespace - return not found
-	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
-	cli.EXPECT().
-		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.ParseGroupResource("v1.Secret"), loggingSecretName))
-
-	// expect a call to create an empty Elasticsearch secret in app namespace (default behavior, so
-	// that Fluentd volume mount works)
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *corev1.Secret, options *client.CreateOptions) error {
-			asserts.Equal(t, namespace, sec.Namespace)
-			asserts.Equal(t, loggingSecretName, sec.Name)
-			asserts.Nil(t, sec.Data)
-			asserts.Equal(t, client.CreateOptions{}, *options)
-			return nil
-		})
 	// expect a call to list the FLUENTD config maps
 	cli.EXPECT().
 		List(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -536,10 +428,9 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(loggingscope.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
-
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
@@ -603,12 +494,18 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			workload.Namespace = namespace
 			return nil
 		})
-	// expect a call to fetch the oam application configuration
+	// expect a call to list the FLUENTD config maps
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
-			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
-			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to get the namespace for the domain
@@ -730,68 +627,6 @@ func TestCopyLabelsFailure(t *testing.T) {
 
 	mocker.Finish()
 	assert.EqualError(err, "value cannot be set because .spec is not a map[string]interface{}")
-	assert.Equal(false, result.Requeue)
-}
-
-// TestAddLoggingFailure tests reconciling a VerrazzanoWebLogicWorkload with an attached logging scope
-// and we fail to fetch the logging scope data.
-// GIVEN a VerrazzanoWebLogicWorkload resource is created with a logging scope
-// WHEN the controller Reconcile function is called and there is an error fetching the logging scope
-// THEN expect an error to be returned
-func TestAddLoggingFailure(t *testing.T) {
-	assert := asserts.New(t)
-
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
-
-	appConfigName := "unit-test-app-config"
-	componentName := "unit-test-component"
-	loggingScopeName := "unit-test-logging-scope"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-
-	// expect call to fetch existing WebLogic Domain
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, coherence *wls.Domain) error {
-			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
-		})
-	// expect a call to fetch the VerrazzanoWebLogicWorkload
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			weblogicJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"domainUID":"unit-test-domain"}}`
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(weblogicJSON)}
-			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
-			workload.Namespace = namespace
-			return nil
-		})
-	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
-			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
-			loggingScope := oamcore.ComponentScope{ScopeReference: oamrt.TypedReference{Kind: vzapi.LoggingScopeKind, Name: loggingScopeName}}
-			component.Scopes = []oamcore.ComponentScope{loggingScope}
-			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
-			return nil
-		})
-	// expect a call to fetch the logging scope and return a NotFound error
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: loggingScopeName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
-			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
-		})
-
-	// create a request and reconcile it
-	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
-	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
-
-	mocker.Finish()
-	assert.Error(err)
-	assert.True(k8serrors.IsNotFound(err))
 	assert.Equal(false, result.Requeue)
 }
 

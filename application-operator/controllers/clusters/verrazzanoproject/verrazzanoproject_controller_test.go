@@ -6,6 +6,7 @@ package verrazzanoproject
 import (
 	"context"
 	"fmt"
+	netv1 "k8s.io/api/networking/v1"
 	"testing"
 	"time"
 
@@ -29,6 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const finalizer = "project.verrazzano.io"
+
 var testLabels = map[string]string{"label1": "test1", "label2": "test2"}
 
 var existingNS = clustersv1alpha1.NamespaceTemplate{
@@ -43,6 +46,33 @@ var newNS = clustersv1alpha1.NamespaceTemplate{
 	Metadata: metav1.ObjectMeta{
 		Name: "newNS",
 	},
+}
+
+var ns1 = clustersv1alpha1.NamespaceTemplate{
+	Metadata: metav1.ObjectMeta{
+		Name: "ns1",
+	},
+}
+var ns2 = clustersv1alpha1.NamespaceTemplate{
+	Metadata: metav1.ObjectMeta{
+		Name: "ns2",
+	},
+}
+
+var ns1Netpol = clustersv1alpha1.NetworkPolicyTemplate{
+	Metadata: metav1.ObjectMeta{
+		Name:      "ns1Netpol",
+		Namespace: "ns1",
+	},
+	Spec: netv1.NetworkPolicySpec{},
+}
+
+var ns2Netpol = clustersv1alpha1.NetworkPolicyTemplate{
+	Metadata: metav1.ObjectMeta{
+		Name:      "ns2Netpol",
+		Namespace: "ns2",
+	},
+	Spec: netv1.NetworkPolicySpec{},
 }
 
 // roleBindingMatcher is a gomock Matcher that matches a rbacv1.RoleBinding based on roleref name
@@ -110,6 +140,14 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 	monitorSubjects := []rbacv1.Subject{
 		{Kind: "Group", Name: "project-monitor-test-group"},
 		{Kind: "User", Name: "project-monitor-test-user"},
+	}
+
+	defaultAdminSubjects := []rbacv1.Subject{
+		{Kind: "Group", Name: fmt.Sprintf("verrazzano-project-%s-admins", existingVP)},
+	}
+
+	defaultMonitorSubjects := []rbacv1.Subject{
+		{Kind: "Group", Name: fmt.Sprintf("verrazzano-project-%s-monitors", existingVP)},
 	}
 
 	clusterList := []clustersv1alpha1.Cluster{
@@ -210,6 +248,15 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			mockClient := mocks.NewMockClient(mocker)
 			mockStatusWriter := mocks.NewMockStatusWriter(mocker)
 
+			expectedAdminSubjects := defaultAdminSubjects
+			if len(tt.fields.adminSubjects) > 0 {
+				expectedAdminSubjects = tt.fields.adminSubjects
+			}
+			expectedMonitorSubjects := defaultMonitorSubjects
+			if len(tt.fields.monitorSubjects) > 0 {
+				expectedMonitorSubjects = tt.fields.monitorSubjects
+			}
+
 			// expect call to get a verrazzanoproject
 			if tt.fields.vpName == existingVP {
 				mockClient.EXPECT().
@@ -217,9 +264,10 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 					DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
 						vp.Namespace = tt.fields.vpNamespace
 						vp.Name = tt.fields.vpName
+						vp.ObjectMeta.Finalizers = []string{finalizer}
 						vp.Spec.Template.Namespaces = tt.fields.nsList
-						vp.Spec.Template.Security.ProjectAdminSubjects = tt.fields.adminSubjects
-						vp.Spec.Template.Security.ProjectMonitorSubjects = tt.fields.monitorSubjects
+						vp.Spec.Template.Security.ProjectAdminSubjects = expectedAdminSubjects
+						vp.Spec.Template.Security.ProjectMonitorSubjects = expectedMonitorSubjects
 						vp.Spec.Placement.Clusters = tt.fields.placementList
 						return nil
 					})
@@ -245,11 +293,11 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 								return nil
 							})
 
-						if len(tt.fields.adminSubjects) > 0 {
-							mockUpdatedRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectAdminRole, projectAdminK8sRole, tt.fields.adminSubjects)
+						if len(expectedAdminSubjects) > 0 {
+							mockUpdatedRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectAdminRole, projectAdminK8sRole, expectedAdminSubjects)
 						}
-						if len(tt.fields.monitorSubjects) > 0 {
-							mockUpdatedRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, tt.fields.monitorSubjects)
+						if len(expectedMonitorSubjects) > 0 {
+							mockUpdatedRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, expectedMonitorSubjects)
 						}
 
 					} else { // not an existing namespace
@@ -266,21 +314,30 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 								return nil
 							})
 
-						if len(tt.fields.adminSubjects) > 0 {
-							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectAdminRole, projectAdminK8sRole, tt.fields.adminSubjects)
+						if len(expectedAdminSubjects) > 0 {
+							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectAdminRole, projectAdminK8sRole, expectedAdminSubjects)
 						}
-						if len(tt.fields.monitorSubjects) > 0 {
-							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, tt.fields.monitorSubjects)
+						if len(expectedMonitorSubjects) > 0 {
+							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, expectedMonitorSubjects)
 						}
 					}
 				} // END VerrazzanoProject is in the expected Multi cluster namespace
+
+				// expect call to list network policies
+				mockClient.EXPECT().
+					List(gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+						// return no resources
+						return nil
+					})
+
 				// status update should be to "succeeded" in both existing and new namespace
 				doExpectStatusUpdateSucceeded(mockClient, mockStatusWriter, assert)
 
 			} else { // The VerrazzanoProject is not an existing one i.e. not existingVP
 				mockClient.EXPECT().
 					Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
-					Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "VerrazzanoProject"}, tt.fields.vpName))
+					Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.GroupVersion.Group, Resource: clustersv1alpha1.VerrazzanoProjectResource}, tt.fields.vpName))
 			}
 
 			// Make the request
@@ -295,6 +352,103 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestNetworkPolicies tests the creation of network policies
+// GIVEN a VerrazzanoProject resource is create with specified network policies
+// WHEN the controller Reconcile function is called
+// THEN the network policies are created
+func TestNetworkPolicies(t *testing.T) {
+	const vpName = "testNetwokPolicies"
+
+	assert := asserts.New(t)
+
+	mocker := gomock.NewController(t)
+	mockClient := mocks.NewMockClient(mocker)
+	mockStatusWriter := mocks.NewMockStatusWriter(mocker)
+
+	// Expect call to get the project
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+			vp.Namespace = constants.VerrazzanoMultiClusterNamespace
+			vp.Name = vpName
+			vp.ObjectMeta.Finalizers = []string{finalizer}
+			vp.Spec.Template.Namespaces = []clustersv1alpha1.NamespaceTemplate{ns1}
+			vp.Spec.Template.NetworkPolicies = []clustersv1alpha1.NetworkPolicyTemplate{ns1Netpol}
+			vp.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: clusterstest.UnitTestClusterName}}
+			return nil
+		})
+
+	// expect call to get a namespace
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: ns1.Metadata.Name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+			return nil
+		})
+
+	// expect call to update the namespace
+	mockClient.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
+			return nil
+		})
+
+	defaultAdminSubjects := []rbacv1.Subject{
+		{Kind: "Group", Name: fmt.Sprintf("verrazzano-project-%s-admins", vpName)},
+	}
+	defaultMonitorSubjects := []rbacv1.Subject{
+		{Kind: "Group", Name: fmt.Sprintf("verrazzano-project-%s-monitors", vpName)},
+	}
+
+	mockUpdatedRoleBindingExpectations(assert, mockClient, ns1.Metadata.Name, projectAdminRole, projectAdminK8sRole, defaultAdminSubjects)
+	mockUpdatedRoleBindingExpectations(assert, mockClient, ns1.Metadata.Name, projectMonitorRole, projectMonitorK8sRole, defaultMonitorSubjects)
+
+	// expect call to get a network policy
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ns1Netpol.Metadata.Namespace, Name: ns1Netpol.Metadata.Name}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: ns1.Metadata.Namespace, Resource: "NetworkPolicy"}, ns1.Metadata.Name))
+
+	// Expect call to create the network policies in the namespace
+	mockClient.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, policy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
+			return nil
+		})
+
+	// Expect call to get the network policies in the namespace
+	mockClient.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *netv1.NetworkPolicyList, opts ...client.ListOption) error {
+			list.Items = []netv1.NetworkPolicy{{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "ns1Netpol"},
+				Spec:       netv1.NetworkPolicySpec{},
+			},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns2", Name: "ns2Netpol"},
+					Spec:       netv1.NetworkPolicySpec{},
+				}}
+			return nil
+		})
+
+	// Expect call to delete network policy ns2 since it is not defined in the project
+	mockClient.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, policy *netv1.NetworkPolicy, opts ...client.DeleteOption) error {
+			assert.Equal("ns2Netpol", policy.Name, "Incorrect NetworkPolicy being deleted")
+			return nil
+		})
+
+	// the status update should be to success status/conditions on the VerrazzanoProject
+	// status update should be to "succeeded" in both existing and new namespace
+	doExpectStatusUpdateSucceeded(mockClient, mockStatusWriter, assert)
+
+	// Make the request
+	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
+	reconciler := newVerrazzanoProjectReconciler(mockClient)
+	_, err := reconciler.Reconcile(request)
+	assert.NoError(err)
+
+	mocker.Finish()
 }
 
 // TestDeleteVerrazzanoProject tests deleting a VerrazzanoProject
@@ -316,6 +470,61 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 			vp.Spec.Template.Namespaces = []clustersv1alpha1.NamespaceTemplate{existingNS}
 			vp.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: clusterstest.UnitTestClusterName}}
 			vp.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			return nil
+		})
+
+	// Make the request
+	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
+	reconciler := newVerrazzanoProjectReconciler(mockClient)
+	_, err := reconciler.Reconcile(request)
+	assert.NoError(err)
+
+	mocker.Finish()
+}
+
+// TestDeleteVerrazzanoProjectFinalizer tests deleting a VerrazzanoProject with finalizer
+// GIVEN a VerrazzanoProject resource is deleted
+// WHEN the controller Reconcile function is called
+// THEN the resource is successfully cleaned up, including network policies
+func TestDeleteVerrazzanoProjectFinalizer(t *testing.T) {
+	vpName := "testDelete"
+	assert := asserts.New(t)
+
+	mocker := gomock.NewController(t)
+	mockClient := mocks.NewMockClient(mocker)
+
+	// Expect call to get the project
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+			vp.Namespace = constants.VerrazzanoMultiClusterNamespace
+			vp.Name = vpName
+			vp.ObjectMeta.Finalizers = []string{finalizer}
+			vp.Spec.Template.Namespaces = []clustersv1alpha1.NamespaceTemplate{existingNS}
+			vp.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: clusterstest.UnitTestClusterName}}
+			vp.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			return nil
+		})
+
+	// Expect call to get the network policies in the namespace
+	mockClient.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *netv1.NetworkPolicyList, opts ...client.ListOption) error {
+			list.Items = []netv1.NetworkPolicy{{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "existingNS", Name: "ns1"},
+				Spec:       netv1.NetworkPolicySpec{},
+			}}
+			return nil
+		})
+
+	// Expect call to delete network policies in the namespace
+	mockClient.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	// the status update should be to success status/conditions on the VerrazzanoProject
+	mockClient.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.VerrazzanoProject{})).
+		DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject) error {
+			assert.NotContainsf(vp.Finalizers, finalizer, "finalizer should be cleared")
 			return nil
 		})
 

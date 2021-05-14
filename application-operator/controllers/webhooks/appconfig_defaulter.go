@@ -9,34 +9,34 @@ import (
 	"fmt"
 	"net/http"
 
+	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
+	v1beta12 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	v1beta12 "k8s.io/api/admission/v1beta1"
-
-	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 var log = ctrl.Log.WithName("webhooks.appconfig-defaulter")
 
 // AppConfigDefaulterPath specifies the path of AppConfigDefaulter
-const (
-	AppConfigDefaulterPath = "/appconfig-defaulter"
-	istioSystemNamespace   = "istio-system"
-)
+const AppConfigDefaulterPath = "/appconfig-defaulter"
 
 // +kubebuilder:webhook:verbs=create;update,path=/appconfig-defaulter,mutating=true,failurePolicy=fail,groups=core.oam.dev,resources=ApplicationConfigurations,versions=v1alpha2,name=appconfig-defaulter.kb.io
 
 // AppConfigWebhook uses a list of AppConfigDefaulters to supply appconfig default values
 type AppConfigWebhook struct {
-	decoder    *admission.Decoder
-	Client     client.Client
-	Defaulters []AppConfigDefaulter
+	decoder     *admission.Decoder
+	Client      client.Client
+	KubeClient  kubernetes.Interface
+	IstioClient istioversionedclient.Interface
+	Defaulters  []AppConfigDefaulter
 }
 
 //AppConfigDefaulter supplies appconfig default values
@@ -59,10 +59,11 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 	appConfig := &oamv1.ApplicationConfiguration{}
 	//This json can be used to curl -X POST the webhook endpoint
 	log.V(1).Info("admission.Request", "request", req)
+	log.Info("Handling appconfig default",
+		"request.Operation", req.Operation, "appconfig.Name", req.Name)
 
 	// if the operation is Delete then decode the old object and call the defaulter to cleanup any app conf defaults
 	if req.Operation == v1beta12.Delete {
-		log.Info("cleaning up appconfig default", "appconfig.Name", req.Name)
 		err := a.decoder.DecodeRaw(req.OldObject, appConfig)
 		if err != nil {
 			return admission.Errored(http.StatusBadRequest, err)
@@ -82,8 +83,6 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 		return admission.Allowed("cleaned up appconfig default")
 	}
 
-	log.Info("Handling appconfig default",
-		"request.Operation", req.Operation, "appconfig.Name", req.Name)
 	err := a.decoder.Decode(req, appConfig)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
@@ -105,16 +104,28 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 // cleanupAppConfig cleans up the generated certificates and secrets associated with the given app config
 func (a *AppConfigWebhook) cleanupAppConfig(appConfig *oamv1.ApplicationConfiguration) (err error) {
 	err = a.cleanupCert(appConfig)
-	if err == nil {
-		err = a.cleanupSecret(appConfig)
+	if err != nil {
+		return
 	}
-	return
+
+	err = a.cleanupSecret(appConfig)
+	if err != nil {
+		return
+	}
+
+	// Fixup Istio Authorization policies within a project
+	ap := &AuthorizationPolicy{
+		Client:      a.Client,
+		KubeClient:  a.KubeClient,
+		IstioClient: a.IstioClient,
+	}
+	return ap.cleanupAuthorizationPoliciesForProjects(appConfig.Namespace, appConfig.Name)
 }
 
 // cleanupCert cleans up the generated certificate for the given app config
 func (a *AppConfigWebhook) cleanupCert(appConfig *oamv1.ApplicationConfiguration) (err error) {
 	gatewayCertName := fmt.Sprintf("%s-%s-cert", appConfig.Namespace, appConfig.Name)
-	namespacedName := types.NamespacedName{Name: gatewayCertName, Namespace: istioSystemNamespace}
+	namespacedName := types.NamespacedName{Name: gatewayCertName, Namespace: constants.IstioSystemNamespace}
 	var cert *certapiv1alpha2.Certificate
 	cert, err = fetchCert(context.TODO(), a.Client, namespacedName)
 	if err != nil {
@@ -129,7 +140,7 @@ func (a *AppConfigWebhook) cleanupCert(appConfig *oamv1.ApplicationConfiguration
 // cleanupSecret cleans up the generated secret for the given app config
 func (a *AppConfigWebhook) cleanupSecret(appConfig *oamv1.ApplicationConfiguration) (err error) {
 	gatewaySecretName := fmt.Sprintf("%s-%s-cert-secret", appConfig.Namespace, appConfig.Name)
-	namespacedName := types.NamespacedName{Name: gatewaySecretName, Namespace: istioSystemNamespace}
+	namespacedName := types.NamespacedName{Name: gatewaySecretName, Namespace: constants.IstioSystemNamespace}
 	var secret *corev1.Secret
 	secret, err = fetchSecret(context.TODO(), a.Client, namespacedName)
 	if err != nil {

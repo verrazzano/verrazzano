@@ -6,7 +6,6 @@ package integ_test
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -34,7 +33,6 @@ var (
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterconfigmaps.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclustercomponents.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterapplicationconfigurations.yaml", crdDir),
-		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterloggingscopes.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_verrazzanoprojects.yaml", crdDir),
 	}
 )
@@ -71,7 +69,7 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 			// Verify we have the expected status update
 			mcRetrievedSecret, err := K8sClient.GetMultiClusterSecret(multiclusterTestNamespace, "mymcsecret2")
 			return err == nil && mcRetrievedSecret.Status.State == clustersv1alpha1.Pending &&
-				isStatusAsExpected(mcRetrievedSecret.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, "managed1")
+				isStatusAsExpected(mcRetrievedSecret.Status, clustersv1alpha1.DeployComplete, clustersv1alpha1.Succeeded, "managed1")
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply MultiClusterComponent creates OAM component ", func() {
@@ -101,7 +99,7 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 		gomega.Eventually(func() bool {
 			// Verify we have the expected status update
 			mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "mymcconfigmap")
-			return err == nil && isStatusAsExpected(mcConfigMap.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
+			return err == nil && isStatusAsExpected(mcConfigMap.Status, clustersv1alpha1.DeployComplete, clustersv1alpha1.Succeeded, managedClusterName)
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply Invalid MultiClusterConfigMap results in Failed Status", func() {
@@ -117,20 +115,8 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 			// Verify the controller is not updating the status more than once with the failure,
 			// and is adding exactly one cluster level status entry
 			mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "invalid-mccm")
-			return err == nil && isStatusAsExpected(mcConfigMap.Status, clustersv1alpha1.DeployFailed, "", clustersv1alpha1.Failed, managedClusterName)
+			return err == nil && isStatusAsExpected(mcConfigMap.Status, clustersv1alpha1.DeployFailed, clustersv1alpha1.Failed, managedClusterName)
 		}, duration, pollInterval).Should(gomega.BeTrue())
-	})
-})
-
-var _ = ginkgo.Describe("Testing MultiClusterLoggingScope", func() {
-	ginkgo.It("Apply MultiClusterLoggingScope creates a LoggingScope ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_loggingscope_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""))
-		mcLogScope, err := K8sClient.GetMultiClusterLoggingScope(multiclusterTestNamespace, "mymcloggingscope")
-		gomega.Expect(err).To(gomega.BeNil())
-		gomega.Eventually(func() bool {
-			return loggingScopeExistsWithFields(multiclusterTestNamespace, "mymcloggingscope", mcLogScope)
-		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })
 
@@ -186,7 +172,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 		gomega.Eventually(func() bool {
 			vp, err := K8sClient.GetVerrazzanoProject(constants.VerrazzanoMultiClusterNamespace, "test-default-labels")
-			return err == nil && isStatusAsExpected(vp.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, "managed1")
+			return err == nil && isStatusAsExpected(vp.Status, clustersv1alpha1.DeployComplete, clustersv1alpha1.Succeeded, "managed1")
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply VerrazzanoProject to override default verrazzano labels", func() {
@@ -232,7 +218,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 		gomega.Eventually(func() bool {
 			vp, err := K8sClient.GetVerrazzanoProject(constants.VerrazzanoMultiClusterNamespace, "test-default-labels")
-			return err == nil && isStatusAsExpected(vp.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, "managed1")
+			return err == nil && isStatusAsExpected(vp.Status, clustersv1alpha1.DeployComplete, clustersv1alpha1.Succeeded, "managed1")
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })
@@ -297,12 +283,6 @@ func appConfigExistsWithFields(namespace string, name string, multiClusterAppCon
 	return true
 }
 
-func loggingScopeExistsWithFields(namespace string, name string, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope) bool {
-	fmt.Printf("Looking for LoggingScope %v/%v\n", namespace, name)
-	logScope, err := K8sClient.GetLoggingScope(namespace, name)
-	return err == nil && reflect.DeepEqual(logScope.Spec, mcLogScope.Spec.Template.Spec)
-}
-
 func componentExistsWithFields(namespace string, name string, multiClusterComp *clustersv1alpha1.MultiClusterComponent) bool {
 	fmt.Printf("Looking for OAM Component %v/%v\n", namespace, name)
 	component, err := K8sClient.GetOAMComponent(namespace, name)
@@ -360,13 +340,13 @@ func createRegistrationSecret() {
 }
 
 func isStatusAsExpected(status clustersv1alpha1.MultiClusterResourceStatus,
-	expectedConditionType clustersv1alpha1.ConditionType, conditionMsgContains string,
+	expectedConditionType clustersv1alpha1.ConditionType,
 	expectedClusterState clustersv1alpha1.StateType,
 	expectedClusterName string) bool {
 	matchingConditionCount := 0
 	matchingClusterStatusCount := 0
 	for _, condition := range status.Conditions {
-		if condition.Type == expectedConditionType && strings.Contains(condition.Message, conditionMsgContains) {
+		if condition.Type == expectedConditionType {
 			matchingConditionCount++
 		}
 	}

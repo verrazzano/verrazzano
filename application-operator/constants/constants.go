@@ -78,3 +78,6 @@ const LabelUpgradeVersion = "upgrade-version"
 
 // VzConsoleIngress - the name of the ingress for verrazzano console and api
 const VzConsoleIngress = "verrazzano-ingress"
+
+// IstioSystemNamespace - the Istio system namespace
+const IstioSystemNamespace = "istio-system"

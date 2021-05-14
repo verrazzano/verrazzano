@@ -39,6 +39,7 @@ const (
 // HTTPResponse represents an HTTP response
 type HTTPResponse struct {
 	StatusCode int
+	Header     http.Header
 	Body       []byte
 	BodyErr    error
 }
@@ -71,6 +72,14 @@ func RetryGetWithBasicAuth(url string, hostHeader string, username string, passw
 	return doGetWebPage(url, hostHeader, client, username, password)
 }
 
+// RetryPostWithBasicAuth retries POST using basic auth
+func RetryPostWithBasicAuth(url, body, username, password, kubeconfigPath string) (int, string) {
+	client := GetVerrazzanoHTTPClientForCluster(kubeconfigPath)
+	client.CheckRetry = GetRetryPolicy()
+	return doReq(url, "POST", "application/json", "", username, password, strings.NewReader(body), client)
+	//return doGetWebPage(url, hostHeader, client, username, password)
+}
+
 // doGetWebPage retries a web page
 func doGetWebPage(url string, hostHeader string, httpClient *retryablehttp.Client, username string, password string) (int, string) {
 	return doReq(url, "GET", "", hostHeader, username, password, nil, httpClient)
@@ -84,31 +93,31 @@ func Delete(url string, hostHeader string) (int, string) {
 // GetVerrazzanoNoRetryHTTPClient returns an Http client configured with the verrazzano CA cert
 func GetVerrazzanoNoRetryHTTPClient() *http.Client {
 	kubeconfigPath := GetKubeConfigPathFromEnv()
-	return getHTTPClientWIthCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
+	return getHTTPClientWithCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
 }
 
 // GetVerrazzanoHTTPClient returns an Http client configured with the verrazzano CA cert
 func GetVerrazzanoHTTPClient() *retryablehttp.Client {
 	kubeconfigPath := GetKubeConfigPathFromEnv()
-	rawClient := getHTTPClientWIthCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
+	rawClient := getHTTPClientWithCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
 	return newRetryableHTTPClient(rawClient)
 }
 
 // GetVerrazzanoHTTPClient returns an Http client configured with the verrazzano CA cert
 func GetVerrazzanoHTTPClientForCluster(kubeconfigPath string) *retryablehttp.Client {
-	rawClient := getHTTPClientWIthCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
+	rawClient := getHTTPClientWithCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
 	return newRetryableHTTPClient(rawClient)
 }
 
 // GetRancherHTTPClient returns an Http client configured with the Rancher CA cert
 func GetRancherHTTPClient(kubeconfigPath string) *retryablehttp.Client {
-	rawClient := getHTTPClientWIthCABundle(getRancherCACert(kubeconfigPath), kubeconfigPath)
+	rawClient := getHTTPClientWithCABundle(getRancherCACert(kubeconfigPath), kubeconfigPath)
 	return newRetryableHTTPClient(rawClient)
 }
 
 // GetKeycloakHTTPClient returns the Keycloak Http client
 func GetKeycloakHTTPClient(kubeconfigPath string) *retryablehttp.Client {
-	keycloakRawClient := getHTTPClientWIthCABundle(getKeycloakCACert(kubeconfigPath), kubeconfigPath)
+	keycloakRawClient := getHTTPClientWithCABundle(getKeycloakCACert(kubeconfigPath), kubeconfigPath)
 	client := newRetryableHTTPClient(keycloakRawClient)
 	client.CheckRetry = GetRetryPolicy()
 	return client
@@ -131,17 +140,28 @@ func ExpectHTTPStatus(status int, resp *HTTPResponse, err error, msg string) {
 	}
 }
 
+// ExpectNoServerHeader validates that the response does not include a Server header.
+func ExpectNoServerHeader(resp *HTTPResponse) {
+	// HTTP Server headers should never be returned.
+	for headerName, headerValues := range resp.Header {
+		if strings.EqualFold(headerName, "Server") {
+			gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("server"), fmt.Sprintf("Unexpected Server header %v", headerValues))
+		}
+	}
+}
+
 // ExpectHTTPGetOk submits a GET request and expect a status 200 response
 func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
 	resp, err := httpClient.Get(url)
 	httpResp := ProcHTTPResponse(resp, err)
 	ExpectHTTPOk(httpResp, err, "Error doing http(s) get from "+url)
+	ExpectNoServerHeader(httpResp)
 }
 
 // GetSystemVmiHTTPClient returns an HTTP client configured with the system vmi CA cert
 func GetSystemVmiHTTPClient() *retryablehttp.Client {
 	kubeconfigPath := GetKubeConfigPathFromEnv()
-	vmiRawClient := getHTTPClientWIthCABundle(getSystemVMICACert(kubeconfigPath), kubeconfigPath)
+	vmiRawClient := getHTTPClientWithCABundle(getSystemVMICACert(kubeconfigPath), kubeconfigPath)
 	client := newRetryableHTTPClient(vmiRawClient)
 	client.CheckRetry = GetRetryPolicy()
 	return client
@@ -209,8 +229,8 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	return resp.StatusCode, string(html)
 }
 
-// getHTTPClientWIthCABundle returns an HTTP client configured with the provided CA cert
-func getHTTPClientWIthCABundle(caData []byte, kubeconfigPath string) *http.Client {
+// getHTTPClientWithCABundle returns an HTTP client configured with the provided CA cert
+func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Client {
 	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCertPool(caData)}}
 
 	proxyURL := getProxyURL()
@@ -220,6 +240,13 @@ func getHTTPClientWIthCABundle(caData []byte, kubeconfigPath string) *http.Clien
 		tr.Proxy = http.ProxyURL(tURLProxy)
 	}
 
+	// disable the custom DNS resolver
+	// setupCustomDNSResolver(tr, kubeconfigPath)
+
+	return &http.Client{Transport: tr}
+}
+
+func setupCustomDNSResolver(tr *http.Transport, kubeconfigPath string) {
 	ipResolve := getNginxNodeIP(kubeconfigPath)
 	if ipResolve != "" {
 		dialer := &net.Dialer{
@@ -228,13 +255,14 @@ func getHTTPClientWIthCABundle(caData []byte, kubeconfigPath string) *http.Clien
 		}
 		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 			Log(Debug, fmt.Sprintf("original address %s", addr))
+			wildcardSuffix := GetWildcardDNS(addr)
 			if strings.Contains(addr, "127.0.0.1") && strings.Contains(addr, ":443") {
 				// resolve to the nginx node ip if address contains 127.0.0.1, for node port installation
 				addr = ipResolve + ":443"
 				Log(Debug, fmt.Sprintf("modified address %s", addr))
-			} else if strings.Contains(addr, "xip.io") && strings.Contains(addr, ":443") {
-				// resolve xip.io ourselves
-				resolving := strings.TrimSuffix(strings.TrimSuffix(addr, ":443"), ".xip.io")
+			} else if wildcardSuffix != "" && strings.Contains(addr, ":443") {
+				// resolve DNS wildcard ourselves
+				resolving := strings.TrimSuffix(strings.TrimSuffix(addr, ":443"), "."+wildcardSuffix)
 				four := resolving[strings.LastIndex(resolving, "."):]
 				resolving = strings.TrimSuffix(resolving, four)
 				three := resolving[strings.LastIndex(resolving, "."):]
@@ -248,8 +276,6 @@ func getHTTPClientWIthCABundle(caData []byte, kubeconfigPath string) *http.Clien
 			return dialer.DialContext(ctx, network, addr)
 		}
 	}
-
-	return &http.Client{Transport: tr}
 }
 
 func getEnvName(kubeconfigPath string) string {
@@ -331,13 +357,16 @@ func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
 
 // rootCertPool returns the root cert pool
 func rootCertPool(caData []byte) *x509.CertPool {
-	if len(caData) == 0 {
-		return nil
-	}
-
 	// if we have caData, use it
 	certPool := x509.NewCertPool()
-	certPool.AppendCertsFromPEM(caData)
+	for _, stagingCA := range getACMEStagingCAs() {
+		if len(stagingCA) > 0 {
+			certPool.AppendCertsFromPEM(stagingCA)
+		}
+	}
+	if len(caData) != 0 {
+		certPool.AppendCertsFromPEM(caData)
+	}
 	return certPool
 }
 

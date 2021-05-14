@@ -6,8 +6,11 @@ package web_test
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"strings"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -58,6 +61,68 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 					pkg.Log(pkg.Debug, "Not After: "+certs[0].NotAfter.String())
 					gomega.Expect(time.Now().After(certs[0].NotBefore)).To(gomega.BeTrue())
 					gomega.Expect(time.Now().Before(certs[0].NotAfter)).To(gomega.BeTrue())
+				})
+
+			ginkgo.It("should return no Server header",
+				func() {
+					httpClient := pkg.GetVerrazzanoHTTPClient()
+					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
+					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					resp, err := httpClient.Do(req)
+					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					ioutil.ReadAll(resp.Body)
+					resp.Body.Close()
+					// HTTP Server headers should never be returned.
+					for headerName, headerValues := range resp.Header {
+						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("server"), fmt.Sprintf("Unexpected Server header %v", headerValues))
+					}
+				})
+
+			ginkgo.It("should not return CORS Access-Control-Allow-Origin header when no Origin header is provided",
+				func() {
+					httpClient := pkg.GetVerrazzanoHTTPClient()
+					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
+					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					resp, err := httpClient.Do(req)
+					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					ioutil.ReadAll(resp.Body)
+					resp.Body.Close()
+					// HTTP Access-Control-Allow-Origin header should never be returned.
+					for headerName, headerValues := range resp.Header {
+						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
+					}
+				})
+
+			ginkgo.It("should not return CORS Access-Control-Allow-Origin header when Origin: * is provided",
+				func() {
+					httpClient := pkg.GetVerrazzanoHTTPClient()
+					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
+					req.Header.Add("Origin", "*")
+					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					resp, err := httpClient.Do(req)
+					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					ioutil.ReadAll(resp.Body)
+					resp.Body.Close()
+					// HTTP Access-Control-Allow-Origin header should never be returned.
+					for headerName, headerValues := range resp.Header {
+						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
+					}
+				})
+
+			ginkgo.It("should not return CORS Access-Control-Allow-Origin header when Origin: null is provided",
+				func() {
+					httpClient := pkg.GetVerrazzanoHTTPClient()
+					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
+					req.Header.Add("Origin", "null")
+					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					resp, err := httpClient.Do(req)
+					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					ioutil.ReadAll(resp.Body)
+					resp.Body.Close()
+					// HTTP Access-Control-Allow-Origin header should never be returned.
+					for headerName, headerValues := range resp.Header {
+						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
+					}
 				})
 		}
 	})

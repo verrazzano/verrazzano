@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"context"
 	"io/ioutil"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -20,7 +21,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
@@ -29,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -76,8 +78,8 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 func TestReconcileWorkloadNotFound(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
@@ -104,8 +106,8 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 func TestReconcileFetchWorkloadError(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
@@ -124,15 +126,75 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-// TestReconcileCreateCoherence tests the basic happy path of reconciling a VerrazzanoHelidonWorkload. We
+// TestReconcileWorkloadMissingData tests reconciling a VerrazzanoHelidonWorkload when the workload
+// can be fetched but doesn't contain all required data.
+// GIVEN a VerrazzanoHelidonWorkload resource has been created
+// WHEN the controller Reconcile function is called and we attempt to validate the workload and get an error
+// THEN return the error
+func TestReconcileWorkloadMissingData(t *testing.T) {
+	assert := asserts.New(t)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	appConfigName := "unit-test-app-config"
+	componentName := "unit-test-component"
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+	helidonTestContainerPort := v1.ContainerPort{
+		ContainerPort: 8080,
+		Name:          "http",
+	}
+	helidonTestContainer := v1.Container{
+		Name:  "hello-helidon-container-new",
+		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
+		Ports: []v1.ContainerPort{
+			helidonTestContainerPort,
+		},
+	}
+	deploymentTemplate := &vzapi.DeploymentTemplate{
+		Metadata: metav1.ObjectMeta{
+			Namespace: namespace,
+			Labels: map[string]string{
+				"app": "hello-helidon-deploy-new",
+			},
+		},
+		PodSpec: v1.PodSpec{
+			Containers: []v1.Container{
+				helidonTestContainer,
+			},
+		},
+	}
+
+	// expect a call to fetch the VerrazzanoHelidonWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+			workload.Spec.DeploymentTemplate = *deploymentTemplate
+			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoHelidonWorkload"
+			workload.Namespace = namespace
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.Equal("VerrazzanoHelidonWorkload is missing required spec.deploymentTemplate.metadata.name", err.Error())
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileCreateHelidon tests the basic happy path of reconciling a VerrazzanoHelidonWorkload. We
 // expect to write out a Deployment and Service but we aren't adding logging or any other scopes or traits.
 // GIVEN a VerrazzanoHelidonWorkload resource is created
 // WHEN the controller Reconcile function is called
 // THEN expect a Deployment and Service to be written
 func TestReconcileCreateHelidon(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
@@ -191,17 +253,6 @@ func TestReconcileCreateHelidon(t *testing.T) {
 			workload.Namespace = namespace
 			return nil
 		})
-	// expect a call to fetch the application configuration
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-app-config"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
-			appconf.Namespace = name.Namespace
-			appconf.Name = name.Name
-			appconf.APIVersion = oamapi.SchemeGroupVersion.String()
-			appconf.Kind = oamapi.ApplicationConfigurationKind
-			appconf.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: "unit-test-component"}}
-			return nil
-		})
 	// expect a call to create the Deployment
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -242,6 +293,137 @@ func TestReconcileCreateHelidon(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
+// TestReconcileCreateHelidonWithMultipleContainers tests the basic happy path of reconciling a VerrazzanoHelidonWorkload with multiple containers.
+// We expect to write out a Deployment and Service but we aren't adding logging or any other scopes or traits.
+// GIVEN a VerrazzanoHelidonWorkload resource is created
+// AND that the workload has multiple containers
+// WHEN the controller Reconcile function is called
+// THEN expect a Deployment and Service to be written with multiple containers
+func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
+	assert := asserts.New(t)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+
+	appConfigName := "unit-test-app-config"
+	componentName := "unit-test-component"
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+	helidonTestContainerPort := v1.ContainerPort{
+		ContainerPort: 8080,
+		Name:          "http",
+	}
+	helidonTestContainerPort2 := v1.ContainerPort{
+		ContainerPort: 8081,
+		Name:          "udp",
+		Protocol:      corev1.ProtocolUDP,
+	}
+	helidonTestContainer := v1.Container{
+		Name:  "hello-helidon-container-new",
+		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
+		Ports: []v1.ContainerPort{
+			helidonTestContainerPort,
+		},
+	}
+	helidonTestContainer2 := v1.Container{
+		Name:  "hello-helidon-container-new2",
+		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
+		Ports: []v1.ContainerPort{
+			helidonTestContainerPort2,
+		},
+	}
+	deploymentTemplate := &vzapi.DeploymentTemplate{
+		Metadata: metav1.ObjectMeta{
+			Name:      "hello-helidon-deployment-new",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"app": "hello-helidon-deploy-new",
+			},
+		},
+		PodSpec: v1.PodSpec{
+			Containers: []v1.Container{
+				helidonTestContainer,
+				helidonTestContainer2,
+			},
+		},
+	}
+	// expect call to fetch existing deployment
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "hello-helidon-deployment-new"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
+		})
+	// expect a call to fetch the application configuration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-app-config"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
+			appconf.Namespace = name.Namespace
+			appconf.Name = name.Name
+			appconf.APIVersion = oamapi.SchemeGroupVersion.String()
+			appconf.Kind = oamapi.ApplicationConfigurationKind
+			appconf.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: "unit-test-component"}}
+			return nil
+		})
+	// expect a call to fetch the VerrazzanoHelidonWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+			workload.Spec.DeploymentTemplate = *deploymentTemplate
+			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoHelidonWorkload"
+			workload.Namespace = namespace
+			return nil
+		})
+	// expect a call to create the Deployment
+	cli.EXPECT().
+		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment, patch client.Patch, applyOpts ...client.PatchOption) error {
+			assert.Equal(deploymentAPIVersion, deploy.APIVersion)
+			assert.Equal(deploymentKind, deploy.Kind)
+			// make sure the OAM component and app name labels were copied
+			assert.Equal(map[string]string{"app": "hello-helidon-deploy-new", "app.oam.dev/component": "unit-test-component", "app.oam.dev/name": "unit-test-app-config"}, deploy.GetLabels())
+			assert.Equal([]v1.Container{
+				helidonTestContainer,
+				helidonTestContainer2,
+			}, deploy.Spec.Template.Spec.Containers)
+
+			return nil
+		})
+	// expect a call to create the Service
+	cli.EXPECT().
+		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, service *v1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
+			assert.Equal(serviceAPIVersion, service.APIVersion)
+			assert.Equal(serviceKind, service.Kind)
+			assert.Equal(service.Spec.Ports[0].Name, helidonTestContainer.Name+"-"+strconv.FormatInt(int64(helidonTestContainer.Ports[0].ContainerPort), 10))
+			assert.Equal(service.Spec.Ports[0].Port, helidonTestContainer.Ports[0].ContainerPort)
+			assert.Equal(service.Spec.Ports[0].TargetPort, intstr.FromInt(int(helidonTestContainer.Ports[0].ContainerPort)))
+			assert.Equal(service.Spec.Ports[0].Protocol, corev1.ProtocolTCP)
+			assert.Equal(service.Spec.Ports[1].Name, helidonTestContainer2.Name+"-"+strconv.FormatInt(int64(helidonTestContainer2.Ports[0].ContainerPort), 10))
+			assert.Equal(service.Spec.Ports[1].Port, helidonTestContainer2.Ports[0].ContainerPort)
+			assert.Equal(service.Spec.Ports[1].TargetPort, intstr.FromInt(int(helidonTestContainer2.Ports[0].ContainerPort)))
+			assert.Equal(service.Spec.Ports[1].Protocol, helidonTestContainer2.Ports[0].Protocol)
+			return nil
+		})
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload) error {
+			assert.Len(workload.Status.Resources, 2)
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
 // TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope tests the basic happy path of reconciling a VerrazzanoHelidonWorkload that has a logging scope.
 // We expect to write out a Deployment, Service and Configmap.
 // GIVEN a VerrazzanoHelidonWorkload resource is created
@@ -250,8 +432,8 @@ func TestReconcileCreateHelidon(t *testing.T) {
 // THEN expect a Deployment, Service and Configmap to be written
 func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	testNamespace := "test-namespace"
@@ -259,9 +441,9 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          "test-appconf",
@@ -305,54 +487,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload.yaml", params))
 			return nil
 		}).Times(1)
-	// expect a call to fetch the application configuration
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-appconf"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
-			assert.NoError(updateObjectFromYAMLTemplate(appconf, "test/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
-			return nil
-		}).Times(1)
-	// expect a call to fetch the logging scope
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-logging-scope"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, scope *vzapi.LoggingScope) error {
-			assert.NoError(updateObjectFromYAMLTemplate(scope, "test/templates/logging_scope.yaml", params))
-			return nil
-		}).Times(1)
-	// expect a call to fetch the Fluentd config and return a not found error
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "fluentd-config-helidon-test-deployment"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "", Resource: "configmap"}, "fluentd-config-helidon-test-deployment")).
-		Times(1)
-
-	// expect a call to get the Elasticsearch secret in app namespace - return not found
-	testLoggingSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: loggingSecretName}
-	cli.EXPECT().
-		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
-
-	// expect a call to create an empty Elasticsearch secret in app namespace (default behavior, so
-	// that Fluentd volume mount works)
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *v1.Secret, options *client.CreateOptions) error {
-			asserts.Equal(t, testNamespace, sec.Namespace)
-			asserts.Equal(t, loggingSecretName, sec.Name)
-			asserts.Nil(t, sec.Data)
-			asserts.Equal(t, client.CreateOptions{}, *options)
-			return nil
-		})
-
-	// expect a call to create a Configmap
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(testNamespace, config.Namespace)
-			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
-			assert.Len(config.Data, 1)
-			assert.Contains(config.Data["fluentd.conf"], "label")
-			return nil
-		}).Times(1)
 
 	// expect a call to create the Deployment
 	cli.EXPECT().
@@ -363,7 +497,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 			// make sure the OAM component and app name labels were copied
 			assert.Equal(map[string]string{"app.oam.dev/component": "test-component", "app.oam.dev/name": "test-appconf"}, deploy.GetLabels())
 			assert.Equal(params["##CONTAINER_NAME##"], deploy.Spec.Template.Spec.Containers[0].Name)
-			assert.Len(deploy.Spec.Template.Spec.Containers, 2, "Expect 4 containers: app+sidecar")
+			assert.Len(deploy.Spec.Template.Spec.Containers, 1, "Expect 4 containers: app+sidecar")
 
 			// The app container should be unmodified for the Helidon use case.
 			c, found := findContainer(deploy.Spec.Template.Spec.Containers, "test-container")
@@ -373,23 +507,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 			assert.Equal(c.Ports[0].Name, "http")
 			assert.Equal(c.Ports[0].ContainerPort, int32(8080))
 			assert.Nil(c.VolumeMounts, "Expected app container to have no volume mounts")
-
-			// The side car should have env vars setup correctly and 4 mount volumes.
-			c, found = findContainer(deploy.Spec.Template.Spec.Containers, "fluentd")
-			assert.True(found, "Expected to find sidecar container test-container")
-			assert.Equal(fluentdImage, c.Image)
-			assert.Len(c.Env, 10, "Expect sidecar container to have 10 env vars")
-			assertEnvVar(t, c.Env, "WORKLOAD_NAME", "test-deployment")
-			assertEnvVarFromField(t, c.Env, "APP_CONF_NAME", "metadata.labels['app.oam.dev/name']")
-			assertEnvVarFromField(t, c.Env, "COMPONENT_NAME", "metadata.labels['app.oam.dev/component']")
-			assertEnvVar(t, c.Env, "ELASTICSEARCH_URL", "http://test-ingest-host:9200")
-			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_USER", "test-secret-name", "username")
-			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_PASSWORD", "test-secret-name", "password")
-			assert.Len(c.VolumeMounts, 4, "Expect sidecar container to have 4 volume mounts")
-			assertVolumeMount(t, c.VolumeMounts, "fluentd-config-volume", "/fluentd/etc/fluentd.conf", "fluentd.conf", true)
-			assertVolumeMount(t, c.VolumeMounts, "secret-volume", "/fluentd/secret", "", true)
-			assertVolumeMount(t, c.VolumeMounts, "varlog", "/var/log", "", true)
-			assertVolumeMount(t, c.VolumeMounts, "datadockercontainers", "/u01/data/docker/containers", "", true)
 			return nil
 		})
 	// expect a call to create the Service
@@ -428,8 +545,8 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 // AND expect that each application container has an associated logging sidecar container
 func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggingScope(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	testNamespace := "test-namespace"
@@ -437,9 +554,9 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	params := map[string]string{
 		"##APPCONF_NAME##":            "test-appconf",
@@ -479,51 +596,12 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
 			assert.NoError(updateObjectFromYAMLTemplate(appconf, "test/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
 			return nil
-		}).Times(2)
+		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload_multi_container.yaml", params))
-			return nil
-		}).Times(1)
-	// expect a call to fetch the logging scope
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-logging-scope"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, scope *vzapi.LoggingScope) error {
-			assert.NoError(updateObjectFromYAMLTemplate(scope, "test/templates/logging_scope.yaml", params))
-			return nil
-		}).Times(1)
-	// expect a call to fetch the Fluentd config and return a not found error
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "fluentd-config-helidon-test-deployment"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "", Resource: "configmap"}, "fluentd-config-helidon-test-deployment")).
-		Times(1)
-	// expect a call to get the Elasticsearch secret in app namespace - return not found
-	testLoggingSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: loggingSecretName}
-	cli.EXPECT().
-		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
-
-	// expect a call to create an empty Elasticsearch secret in app namespace (default behavior, so
-	// that Fluentd volume mount works)
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *v1.Secret, options *client.CreateOptions) error {
-			asserts.Equal(t, testNamespace, sec.Namespace)
-			asserts.Equal(t, loggingSecretName, sec.Name)
-			asserts.Nil(t, sec.Data)
-			asserts.Equal(t, client.CreateOptions{}, *options)
-			return nil
-		})
-	// expect a call to create a Configmap
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(testNamespace, config.Namespace)
-			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
-			assert.Len(config.Data, 1)
-			assert.Contains(config.Data["fluentd.conf"], "label")
 			return nil
 		}).Times(1)
 
@@ -538,7 +616,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 			assert.Equal(params["##CONTAINER_NAME_1##"], deploy.Spec.Template.Spec.Containers[0].Name)
 
 			// There should be 4 containers because a sidecar will be added for each original container.
-			assert.Len(deploy.Spec.Template.Spec.Containers, 3, "Expect 3 containers.  Two app and one sidecar.")
+			assert.Len(deploy.Spec.Template.Spec.Containers, 2, "Expect 2 containers.")
 
 			// The first app container should be unmodified.
 			c, found := findContainer(deploy.Spec.Template.Spec.Containers, "test-container-1")
@@ -557,25 +635,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 			assert.Equal(c.Ports[0].Name, "http2")
 			assert.Equal(c.Ports[0].ContainerPort, int32(8082))
 			assert.Nil(c.VolumeMounts, "Expected app container to have no volume mounts")
-
-			// The sidecar should have the correct env vars.
-			c, found = findContainer(deploy.Spec.Template.Spec.Containers, "fluentd")
-			assert.True(found, "Expected to find sidecar container fluentd")
-			assert.Equal(c.Name, "fluentd")
-			assert.Equal(fluentdImage, c.Image)
-			assert.Len(c.Env, 10, "Expect sidecar container to have 10 env vars")
-			assertEnvVar(t, c.Env, "WORKLOAD_NAME", "test-deployment")
-			assertEnvVarFromField(t, c.Env, "APP_CONF_NAME", "metadata.labels['app.oam.dev/name']")
-			assertEnvVarFromField(t, c.Env, "COMPONENT_NAME", "metadata.labels['app.oam.dev/component']")
-			assertEnvVar(t, c.Env, "ELASTICSEARCH_URL", "http://test-ingest-host:9200")
-			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_USER", loggingSecretName, "username")
-			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_PASSWORD", loggingSecretName, "password")
-			assert.Len(c.VolumeMounts, 4, "Expect sidecar container to have 4 volume mounts")
-			assertVolumeMount(t, c.VolumeMounts, "fluentd-config-volume", "/fluentd/etc/fluentd.conf", "fluentd.conf", true)
-			assertVolumeMount(t, c.VolumeMounts, "secret-volume", "/fluentd/secret", "", true)
-			assertVolumeMount(t, c.VolumeMounts, "varlog", "/var/log", "", true)
-			assertVolumeMount(t, c.VolumeMounts, "datadockercontainers", "/u01/data/docker/containers", "", true)
-
 			return nil
 		})
 	// expect a call to create the Service
@@ -613,8 +672,8 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 // THEN the Fluentd image should be retrieved from the env and the new update version should be set on the workload status
 func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	testNamespace := "test-namespace"
@@ -628,9 +687,9 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          appConfigName,
@@ -676,53 +735,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
 			return nil
 		}).Times(1)
-	// expect a call to fetch the application configuration
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-appconf"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
-			assert.NoError(updateObjectFromYAMLTemplate(appconf, "test/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
-			return nil
-		}).Times(1)
-	// expect a call to fetch the logging scope
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-logging-scope"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, scope *vzapi.LoggingScope) error {
-			assert.NoError(updateObjectFromYAMLTemplate(scope, "test/templates/logging_scope.yaml", params))
-			return nil
-		}).Times(1)
-	// expect a call to fetch the Fluentd config and return a not found error
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "fluentd-config-helidon-test-deployment"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "", Resource: "configmap"}, "fluentd-config-helidon-test-deployment")).
-		Times(1)
-
-	// expect a call to get the Elasticsearch secret in app namespace - return not found
-	testLoggingSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: loggingSecretName}
-	cli.EXPECT().
-		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
-
-	// expect a call to create an empty Elasticsearch secret in app namespace (default behavior, so
-	// that Fluentd volume mount works)
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *v1.Secret, options *client.CreateOptions) error {
-			asserts.Equal(t, testNamespace, sec.Namespace)
-			asserts.Equal(t, loggingSecretName, sec.Name)
-			asserts.Nil(t, sec.Data)
-			asserts.Equal(t, client.CreateOptions{}, *options)
-			return nil
-		})
-	// expect a call to create a Configmap
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(testNamespace, config.Namespace)
-			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
-			assert.Len(config.Data, 1)
-			assert.Contains(config.Data["fluentd.conf"], "label")
-			return nil
-		}).Times(1)
 
 	// expect a call to create the Deployment
 	cli.EXPECT().
@@ -733,7 +745,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			// make sure the OAM component and app name labels were copied
 			assert.Equal(labels, deploy.GetLabels())
 			assert.Equal(params["##CONTAINER_NAME##"], deploy.Spec.Template.Spec.Containers[0].Name)
-			assert.Len(deploy.Spec.Template.Spec.Containers, 2, "Expect 4 containers: app+sidecar")
+			assert.Len(deploy.Spec.Template.Spec.Containers, 1)
 
 			// The app container should be unmodified for the Helidon use case.
 			c, found := findContainer(deploy.Spec.Template.Spec.Containers, "test-container")
@@ -743,23 +755,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			assert.Equal(c.Ports[0].Name, "http")
 			assert.Equal(c.Ports[0].ContainerPort, int32(8080))
 			assert.Nil(c.VolumeMounts, "Expected app container to have no volume mounts")
-
-			// The side car should have env vars setup correctly and 4 mount volumes.
-			c, found = findContainer(deploy.Spec.Template.Spec.Containers, "fluentd")
-			assert.True(found, "Expected to find sidecar container test-container")
-			assert.Equal(fluentdImage, c.Image)
-			assert.Len(c.Env, 10, "Expect sidecar container to have 10 env vars")
-			assertEnvVar(t, c.Env, "WORKLOAD_NAME", "test-deployment")
-			assertEnvVarFromField(t, c.Env, "APP_CONF_NAME", "metadata.labels['app.oam.dev/name']")
-			assertEnvVarFromField(t, c.Env, "COMPONENT_NAME", "metadata.labels['app.oam.dev/component']")
-			assertEnvVar(t, c.Env, "ELASTICSEARCH_URL", "http://test-ingest-host:9200")
-			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_USER", "test-secret-name", "username")
-			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_PASSWORD", "test-secret-name", "password")
-			assert.Len(c.VolumeMounts, 4, "Expect sidecar container to have 4 volume mounts")
-			assertVolumeMount(t, c.VolumeMounts, "fluentd-config-volume", "/fluentd/etc/fluentd.conf", "fluentd.conf", true)
-			assertVolumeMount(t, c.VolumeMounts, "secret-volume", "/fluentd/secret", "", true)
-			assertVolumeMount(t, c.VolumeMounts, "varlog", "/var/log", "", true)
-			assertVolumeMount(t, c.VolumeMounts, "datadockercontainers", "/u01/data/docker/containers", "", true)
 			return nil
 		})
 	// expect a call to create the Service
@@ -797,8 +792,8 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 // THEN the existing Fluentd image should be reused
 func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	testNamespace := "test-namespace"
@@ -812,11 +807,11 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	existingFluentdImage := "unit-test-image:latest"
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
-	containers := []corev1.Container{{Name: loggingscope.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          appConfigName,
@@ -863,54 +858,6 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
 			return nil
 		}).Times(1)
-	// expect a call to fetch the application configuration
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-appconf"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
-			assert.NoError(updateObjectFromYAMLTemplate(appconf, "test/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
-			return nil
-		}).Times(1)
-	// expect a call to fetch the logging scope
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-logging-scope"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, scope *vzapi.LoggingScope) error {
-			assert.NoError(updateObjectFromYAMLTemplate(scope, "test/templates/logging_scope.yaml", params))
-			return nil
-		}).Times(1)
-	// expect a call to fetch the Fluentd config and return a not found error
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "fluentd-config-helidon-test-deployment"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "", Resource: "configmap"}, "fluentd-config-helidon-test-deployment")).
-		Times(1)
-
-	// expect a call to get the Elasticsearch secret in app namespace - return not found
-	testLoggingSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: loggingSecretName}
-	cli.EXPECT().
-		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
-
-	// expect a call to create an empty Elasticsearch secret in app namespace (default behavior, so
-	// that Fluentd volume mount works)
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *v1.Secret, options *client.CreateOptions) error {
-			asserts.Equal(t, testNamespace, sec.Namespace)
-			asserts.Equal(t, loggingSecretName, sec.Name)
-			asserts.Nil(t, sec.Data)
-			asserts.Equal(t, client.CreateOptions{}, *options)
-			return nil
-		})
-
-	// expect a call to create a Configmap
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(testNamespace, config.Namespace)
-			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
-			assert.Len(config.Data, 1)
-			assert.Contains(config.Data["fluentd.conf"], "label")
-			return nil
-		}).Times(1)
 
 	// expect a call to create the Deployment
 	cli.EXPECT().
@@ -921,7 +868,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			// make sure the OAM component and app name labels were copied
 			assert.Equal(labels, deploy.GetLabels())
 			assert.Equal(params["##CONTAINER_NAME##"], deploy.Spec.Template.Spec.Containers[0].Name)
-			assert.Len(deploy.Spec.Template.Spec.Containers, 2, "Expect 4 containers: app+sidecar")
+			assert.Len(deploy.Spec.Template.Spec.Containers, 1)
 
 			// The app container should be unmodified for the Helidon use case.
 			c, found := findContainer(deploy.Spec.Template.Spec.Containers, "test-container")
@@ -931,23 +878,6 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			assert.Equal(c.Ports[0].Name, "http")
 			assert.Equal(c.Ports[0].ContainerPort, int32(8080))
 			assert.Nil(c.VolumeMounts, "Expected app container to have no volume mounts")
-
-			// The side car should have env vars setup correctly and 4 mount volumes.
-			c, found = findContainer(deploy.Spec.Template.Spec.Containers, "fluentd")
-			assert.True(found, "Expected to find sidecar container test-container")
-			assert.Equal(existingFluentdImage, c.Image)
-			assert.Len(c.Env, 10, "Expect sidecar container to have 10 env vars")
-			assertEnvVar(t, c.Env, "WORKLOAD_NAME", "test-deployment")
-			assertEnvVarFromField(t, c.Env, "APP_CONF_NAME", "metadata.labels['app.oam.dev/name']")
-			assertEnvVarFromField(t, c.Env, "COMPONENT_NAME", "metadata.labels['app.oam.dev/component']")
-			assertEnvVar(t, c.Env, "ELASTICSEARCH_URL", "http://test-ingest-host:9200")
-			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_USER", "test-secret-name", "username")
-			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_PASSWORD", "test-secret-name", "password")
-			assert.Len(c.VolumeMounts, 4, "Expect sidecar container to have 4 volume mounts")
-			assertVolumeMount(t, c.VolumeMounts, "fluentd-config-volume", "/fluentd/etc/fluentd.conf", "fluentd.conf", true)
-			assertVolumeMount(t, c.VolumeMounts, "secret-volume", "/fluentd/secret", "", true)
-			assertVolumeMount(t, c.VolumeMounts, "varlog", "/var/log", "", true)
-			assertVolumeMount(t, c.VolumeMounts, "datadockercontainers", "/u01/data/docker/containers", "", true)
 			return nil
 		})
 	// expect a call to create the Service

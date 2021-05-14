@@ -98,6 +98,9 @@ spec:
                     lastUpdateTime:
                       description: LastUpdateTime of the resource state in this cluster
                       type: string
+                    message:
+                      description: Message with details about the status in this cluster
+                      type: string
                     name:
                       description: Name of the cluster
                       type: string

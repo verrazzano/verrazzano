@@ -62,6 +62,5 @@ func verifySystemVMIComponent(api *pkg.APIEndpoint, sysVmiHTTPClient *retryableh
 	ingress := api.GetIngress("verrazzano-system", ingressName)
 	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
 	gomega.Expect(vmiComponentURL).Should(gomega.HavePrefix(expectedURLPrefix))
-	pkg.AssertURLAccessibleAndAuthorized(sysVmiHTTPClient, vmiComponentURL, vmiCredentials)
-	return true
+	return pkg.AssertURLAccessibleAndAuthorized(sysVmiHTTPClient, vmiComponentURL, vmiCredentials)
 }

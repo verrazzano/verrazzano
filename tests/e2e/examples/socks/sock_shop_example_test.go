@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/avast/retry-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -20,13 +19,12 @@ import (
 )
 
 const (
+	shortWaitTimeout     = 5 * time.Minute
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 10 * time.Minute
 	pollingInterval      = 30 * time.Second
 )
 
-var retryDelay = retry.Delay(shortPollingInterval)
-var retryAttempts = retry.Attempts(3)
 var sockShop SockShop
 var username, password string
 
@@ -43,12 +41,9 @@ var _ = BeforeSuite(func() {
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml"); err != nil {
 		Fail(fmt.Sprintf("Failed to create Sock Shop component resources: %v", err))
 	}
-	err := retry.Do(
-		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml") },
-		retryAttempts, retryDelay)
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to create Sock Shop application resource: %v", err))
-	}
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").Should(BeNil())
 })
 
 // the list of expected pods
@@ -195,8 +190,16 @@ var _ = Describe("Sock Shop Application", func() {
 
 })
 
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || CurrentGinkgoTestDescription().Failed
+})
+
 // undeploys the application, components, and namespace
 var _ = AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	err := undeploySockShopApplication()
 	if err != nil {
 		Fail(fmt.Sprintf("Could not undeploy sock shop application: %v\n", err.Error()))
@@ -207,7 +210,7 @@ var _ = AfterSuite(func() {
 func isSockShopServiceReady(name string) bool {
 	svc, err := pkg.GetKubernetesClientset().CoreV1().Services("sockshop").Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		Fail(fmt.Sprintf("Could not get services %v in sockshop: %v\n", name, err.Error()))
+		pkg.Log(pkg.Info, fmt.Sprintf("Could not get services %v in sockshop: %v\n", name, err.Error()))
 		return false
 	}
 	if len(svc.Spec.Ports) > 0 {

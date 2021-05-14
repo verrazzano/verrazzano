@@ -43,7 +43,15 @@ var _ = ginkgo.BeforeSuite(func() {
 	deployNoIstioApplication()
 })
 
+var failed = false
+var _ = ginkgo.AfterEach(func() {
+	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
+})
+
 var _ = ginkgo.AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	undeployFooApplication()
 	undeployBarApplication()
 	undeployNoIstioApplication()
@@ -470,6 +478,9 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 			var httpsFound bool = false
 
 			configMap := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
+			if configMap == nil {
+				return false
+			}
 			dataMap := configMap.Data
 			v := dataMap[prometheusConfigMapName]
 			rdr := strings.NewReader(v)
@@ -505,6 +516,9 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 			var httpsFound bool = false
 
 			configMap := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
+			if configMap == nil {
+				return false
+			}
 			dataMap := configMap.Data
 			v := dataMap[prometheusConfigMapName]
 			rdr := strings.NewReader(v)
@@ -540,6 +554,9 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 			var httpsNotFound bool = true
 
 			configMap := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
+			if configMap == nil {
+				return false
+			}
 			dataMap := configMap.Data
 			v := dataMap[prometheusConfigMapName]
 			rdr := strings.NewReader(v)

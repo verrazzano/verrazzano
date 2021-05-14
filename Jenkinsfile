@@ -3,6 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
+def SUSPECT_LIST = ""
 
 pipeline {
     options {
@@ -22,9 +23,13 @@ pipeline {
     parameters {
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
-        booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to true)', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
+        booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
+        choice (name: 'WILDCARD_DNS_DOMAIN',
+                description: 'Wildcard DNS Domain',
+                // 1st choice is the default value
+                choices: [ "nip.io", "sslip.io"])
     }
 
     environment {
@@ -71,6 +76,11 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
+
+        // Used for dumping cluster from inside tests
+        DUMP_KUBECONFIG="${KUBECONFIG}"
+        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
     }
 
     stages {
@@ -135,6 +145,13 @@ pipeline {
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
+                    def currentCommitHash = env.GIT_COMMIT
+                    def commitList = getCommitList()
+                    withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+                        def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
+                        SUSPECT_LIST = getSuspectList(commitList, userMappings)
+                        echo "Suspect list: ${SUSPECT_LIST}"
+                    }
                 }
             }
         }
@@ -193,6 +210,16 @@ pipeline {
             }
         }
 
+        stage('Build') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano
+                    make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+                   """
+            }
+        }
+
         stage('Update operator.yaml') {
             when {
                 allOf {
@@ -209,16 +236,6 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-                   """
-            }
-        }
-
-        stage('Build') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
                    """
             }
         }
@@ -305,6 +322,7 @@ pipeline {
                     make cleanup-cluster
                     make integ-test KIND_CONFIG="kind-config-ci.yaml" CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
+                    make cleanup-cluster
                 """
             }
             post {
@@ -365,7 +383,7 @@ pipeline {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO}
+                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
                     }
                     post {
@@ -390,66 +408,117 @@ pipeline {
                     }
                     parallel {
                         stage('verify-install') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
+                            }
                             steps {
                                 runGinkgoRandomize('verify-install')
                             }
                         }
                         stage('verify-infra restapi') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
+                            }
                             steps {
                                 runGinkgoRandomize('verify-infra/restapi')
                             }
                         }
                         stage('verify-infra oam') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
+                            }
                             steps {
                                 runGinkgoRandomize('verify-infra/oam')
                             }
                         }
                         stage('verify-infra vmi') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
+                            }
                             steps {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
                         stage('istio authorization policy') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
+                            }
                             steps {
                                 runGinkgo('istio/authz')
                             }
                         }
                         stage('security role based access') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
+                            }
                             steps {
                                 runGinkgo('security/rbac')
                             }
                         }
+                        stage('security network policies') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-network-policies"
+                            }
+                            steps {
+                                script {
+                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                                        runGinkgo('security/network-policies')
+                                    }
+                                }
+                            }
+                        }
                         stage('examples logging helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
+                            }
                             steps {
                                 runGinkgo('logging/helidon')
                             }
                         }
                         stage('examples todo') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+                            }
                             steps {
                                 runGinkgo('examples/todo')
                             }
                         }
                         stage('examples socks') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
+                            }
                             steps {
                                 runGinkgo('examples/socks')
                             }
                         }
                         stage('examples spring') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
+                            }
                             steps {
                                 runGinkgo('examples/springboot')
                             }
                         }
                         stage('examples helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                            }
                             steps {
                                 runGinkgo('examples/helidon')
                             }
                         }
                         stage('examples helidon-config') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
+                            }
                             steps {
                                 runGinkgo('examples/helidonconfig')
                             }
                         }
                         stage('examples bobs') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
+                            }
                             when {
                                 expression {params.RUN_SLOW_TESTS == true}
                             }
@@ -458,6 +527,9 @@ pipeline {
                             }
                         }
                         stage('console ingress') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
+                            }
                             steps {
                                 runGinkgo('ingress/console')
                             }
@@ -465,7 +537,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -505,7 +577,8 @@ pipeline {
                 script {
                     build job: "verrazzano-push-triggered-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
-                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
                         ], wait: true
                 }
             }
@@ -549,11 +622,11 @@ pipeline {
             """
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
             subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}"
             script {
                 if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
         }
@@ -607,7 +680,7 @@ def dumpCattleSystemPods() {
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/rancher.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
@@ -615,7 +688,7 @@ def dumpNginxIngressControllerLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
@@ -659,6 +732,84 @@ def dumpVerrazzanoApiLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-api.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
+}
+
+@NonCPS
+def getCommitList() {
+    echo "Checking for change sets"
+    def commitList = []
+    def changeSets = currentBuild.changeSets
+    for (int i = 0; i < changeSets.size(); i++) {
+        echo "get commits from change set"
+        def commits = changeSets[i].items
+        for (int j = 0; j < commits.length; j++) {
+            def commit = commits[j]
+            def id = commit.commitId
+            echo "Add commit id: ${id}"
+            commitList.add(id)
+        }
+    }
+    return commitList
+}
+
+def trimIfGithubNoreplyUser(userIn) {
+    if (userIn == null) {
+        echo "Not a github noreply user, not trimming: ${userIn}"
+        return userIn
+    }
+    if (userIn.matches(".*\\+.*@users.noreply.github.com.*")) {
+        def userOut = userIn.substring(userIn.indexOf("+") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    if (userIn.matches(".*<.*@users.noreply.github.com.*")) {
+        def userOut = userIn.substring(userIn.indexOf("<") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    if (userIn.matches(".*@users.noreply.github.com")) {
+        def userOut = userIn.substring(0, userIn.indexOf("@"))
+        return userOut;
+    }
+    echo "Not a github noreply user, not trimming: ${userIn}"
+    return userIn
+}
+
+def getSuspectList(commitList, userMappings) {
+    def retValue = ""
+    if (commitList == null || commitList.size() == 0) {
+        echo "No commits to form suspect list"
+        return retValue
+    }
+    def suspectList = []
+    for (int i = 0; i < commitList.size(); i++) {
+        def id = commitList[i]
+        def gitAuthor = sh(
+            script: "git log --format='%ae' '$id^!'",
+            returnStdout: true
+        ).trim()
+        if (gitAuthor != null) {
+            def author = trimIfGithubNoreplyUser(gitAuthor)
+            echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+            if (userMappings.containsKey(author)) {
+                def slackUser = userMappings.get(author)
+                if (!suspectList.contains(slackUser)) {
+                    echo "Added ${slackUser} as suspect"
+                    retValue += " ${slackUser}"
+                    suspectList.add(slackUser)
+                }
+            } else {
+                // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+                if (!suspectList.contains(author)) {
+                    echo "Added ${author} as suspect"
+                    retValue += " ${author}"
+                   suspectList.add(author)
+                }
+            }
+        } else {
+            echo "No author returned from git"
+        }
+    }
+    echo "returning suspect list: ${retValue}"
+    return retValue
 }

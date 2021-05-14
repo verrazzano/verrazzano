@@ -53,7 +53,6 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		if err != nil {
 			s.Log.Error(err, "error processing multi-cluster resources")
 		}
-		s.updateDeployment("verrazzano-operator")
 		s.updateDeployment("verrazzano-monitoring-operator")
 		s.configureLogging()
 		if !s.AgentReadyToSync() {
@@ -156,10 +155,6 @@ func (s *Syncer) SyncMultiClusterResources() {
 		err = s.syncMCConfigMapObjects(namespace)
 		if err != nil {
 			s.Log.Error(err, "Error syncing MultiClusterConfigMap objects")
-		}
-		err = s.syncMCLoggingScopeObjects(namespace)
-		if err != nil {
-			s.Log.Error(err, "Error syncing MultiClusterLoggingScope objects")
 		}
 		err = s.syncMCComponentObjects(namespace)
 		if err != nil {
@@ -317,7 +312,7 @@ func updateLoggingDaemonSet(newSecret, secretVersion string, ds *appsv1.DaemonSe
 
 const (
 	defaultClusterName = "local"
-	defaultElasticURL  = "http://vmi-system-es-ingest:9200"
+	defaultElasticURL  = "http://vmi-system-es-ingest-oidc:8775"
 	defaultSecretName  = "verrazzano"
 )
 

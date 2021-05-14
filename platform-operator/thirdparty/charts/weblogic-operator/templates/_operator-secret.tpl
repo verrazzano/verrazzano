@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2020, Oracle Corporation and/or its affiliates.
+# Copyright (c) 2018, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 {{- define "operator.operatorSecrets" }}
@@ -10,7 +10,7 @@ data:
   externalOperatorKey: {{ .externalOperatorKey | quote }}
   {{- end }}
   {{- $secret := (lookup "v1" "Secret" .Release.Namespace "weblogic-operator-secrets") }}
-  {{- if $secret }}
+  {{- if (and $secret $secret.data) }}
   {{- $internalOperatorKey := index $secret.data "internalOperatorKey" }}
   {{- if $internalOperatorKey }}
   internalOperatorKey: {{ $internalOperatorKey }}

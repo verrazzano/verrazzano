@@ -83,7 +83,7 @@ var (
 	ingressURLs            map[string]string
 	volumeClaims           map[string]*corev1.PersistentVolumeClaim
 	elastic                *vmi.Elastic
-	waitTimeout            = 5 * time.Minute
+	waitTimeout            = 10 * time.Minute
 	pollingInterval        = 5 * time.Second
 	elasticWaitTimeout     = 2 * time.Minute
 	elasticPollingInterval = 5 * time.Second
@@ -153,31 +153,40 @@ var _ = ginkgo.Describe("VMI", func() {
 			gomega.Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "indices never created")
 		})
 
-		ginkgo.It("Elasticsearch filebeat Index should be accessible", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound("vmo-local-filebeat-"+time.Now().Format("2006.01.02"),
-					time.Now().Add(-24*time.Hour),
-					map[string]string{
-						"beat.version": "6.8.3"})
-			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a filebeat log record")
-			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound("verrazzano-namespace-verrazzano-system",
-					time.Now().Add(-24*time.Hour),
-					map[string]string{"caller": "*"})
-			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a verrazzano-system log record")
-
+		ginkgo.It("Elasticsearch verrazzano-system Index should be accessible", func() {
+			indexName := "verrazzano-namespace-verrazzano-system"
+			pkg.Concurrently(
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(indexName,
+							time.Now().Add(-24*time.Hour), map[string]string{
+								"kubernetes.container_name": "verrazzano-monitoring-operator",
+								"caller":                    "controller",
+								"cluster_name":              "local",
+							})
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(indexName,
+							time.Now().Add(-24*time.Hour), map[string]string{
+								"kubernetes.container_name": "verrazzano-application-operator",
+								"caller":                    "mcagent",
+								"cluster_name":              "local",
+							})
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a verrazzano-application-operator log record")
+				},
+			)
 		})
 
 		ginkgo.It("Elasticsearch systemd journal Index should be accessible", func() {
 			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
-					time.Now().Add(-24*time.Hour),
-					map[string]string{
-						"beat.version": "6.8.3"})
-			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a journalbeat log record")
-			gomega.Eventually(func() bool {
-				return len(pkg.FindLogIndexWithPrefix("verrazzano-journal")) > 0
-			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd journal log record")
+				return pkg.FindLog("verrazzano-systemd-journal",
+					[]pkg.Match{
+						{Key: "tag", Value: "systemd"},
+						{Key: "cluster_name", Value: "local"}},
+					[]pkg.Match{})
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 		})
 
 		ginkgo.It("Kibana endpoint should be accessible", func() {
@@ -191,10 +200,6 @@ var _ = ginkgo.Describe("VMI", func() {
 
 		ginkgo.It("Prometheus endpoint should be accessible", func() {
 			assertOidcIngressByName("vmi-system-prometheus")
-		})
-
-		ginkgo.It("Prometheus push gateway should be accessible", func() {
-			assertURLByIngressName("vmi-system-prometheus-gw")
 		})
 
 		ginkgo.It("Grafana endpoint should be accessible", func() {
@@ -226,10 +231,6 @@ var _ = ginkgo.Describe("VMI", func() {
 			)
 		})
 	}
-
-	ginkgo.It("Prometheus push gateway should be accessible", func() {
-		assertURLByIngressName("vmi-system-prometheus-gw")
-	})
 
 	ginkgo.It("Verify the instance info endpoint URLs", func() {
 		if !isManagedClusterProfile {
@@ -280,14 +281,14 @@ func assertURLByIngressName(key string) {
 }
 
 func assertIngressURL(url string) {
-	assertUnAuthorized := assertURLAccessibleAndUnauthorized(url)
-	assertAuthorized := assertURLAccessibleAndAuthorized(url)
+	assertUnAuthorized := assertURLAccessibleAndUnauthorized
+	assertAuthorized := assertURLAccessibleAndAuthorized
 	pkg.Concurrently(
 		func() {
-			gomega.Eventually(assertUnAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertUnAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		func() {
-			gomega.Eventually(assertAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 	)
 }
@@ -347,18 +348,18 @@ func assertOidcIngressByName(key string) {
 }
 
 func assertOidcIngress(url string) {
-	assertUnAuthorized := assertOauthURLAccessibleAndUnauthorized(url)
-	assertBasicAuth := assertURLAccessibleAndAuthorized(url)
-	assertBearerAuth := assertBearerAuthorized(url)
+	assertUnAuthorized := assertOauthURLAccessibleAndUnauthorized
+	assertBasicAuth := assertURLAccessibleAndAuthorized
+	assertBearerAuth := assertBearerAuthorized
 	pkg.Concurrently(
 		func() {
-			gomega.Eventually(assertUnAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertUnAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		func() {
-			gomega.Eventually(assertBasicAuth, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertBasicAuth(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		func() {
-			gomega.Eventually(assertBearerAuth, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool { return assertBearerAuth(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 	)
 }

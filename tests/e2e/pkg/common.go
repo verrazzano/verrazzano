@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -71,16 +72,29 @@ func assert(wg *sync.WaitGroup, assertion func()) {
 func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, credentials *UsernamePassword) bool {
 	req, err := retryablehttp.NewRequest("GET", url, nil)
 	if err != nil {
+		Log(Error, fmt.Sprintf("AssertURLAccessibleAndAuthorized: URL=%v, Unexpected error=%v", url, err))
 		return false
 	}
 	req.SetBasicAuth(credentials.Username, credentials.Password)
 	resp, err := client.Do(req)
 	if err != nil {
+		Log(Error, fmt.Sprintf("AssertURLAccessibleAndAuthorized: URL=%v, Unexpected error=%v", url, err))
 		return false
 	}
+	ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
-	Log(Info, fmt.Sprintf("AssertURLAccessibleAndAuthorized %v Response:%v Error:%v", url, resp.StatusCode, err))
-	return resp.StatusCode == http.StatusOK
+	if resp.StatusCode != http.StatusOK {
+		Log(Error, fmt.Sprintf("AssertURLAccessibleAndAuthorized: URL=%v, Unexpected statis code=%v", url, resp.StatusCode))
+		return false
+	}
+	// HTTP Server headers should never be returned.
+	for headerName, headerValues := range resp.Header {
+		if strings.EqualFold(headerName, "Server") {
+			Log(Error, fmt.Sprintf("AssertURLAccessibleAndAuthorized: URL=%v, Unexpected Server header=%v", url, headerValues))
+			return false
+		}
+	}
+	return true
 }
 
 // PodsRunning is identical to PodsRunningInCluster, except that it uses the cluster specified in the environment
@@ -208,9 +222,9 @@ func GetRetryPolicy() func(ctx context.Context, resp *http.Response, err error) 
 	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if err != nil {
 			if v, ok := err.(*neturl.Error); ok {
-				//DefaultRetryPolicy does not retry "x509: certificate signed by unknown authority" which may happen on ".xip.io" when starting
+				//DefaultRetryPolicy does not retry "x509: certificate signed by unknown authority" which may happen on wildcard DNS (e.g. nip.io) when starting
 				if _, ok := v.Err.(x509.UnknownAuthorityError); ok {
-					return strings.Contains(v.URL, ".xip.io"), v
+					return HasWildcardDNS(v.URL), v
 				}
 			}
 		}
@@ -262,7 +276,15 @@ func JTq(jtext string, path ...string) interface{} {
 // Jq queries JSON nodes with a JSON path
 func Jq(node interface{}, path ...string) interface{} {
 	for _, p := range path {
-		node = node.(map[string]interface{})[p]
+		if node == nil {
+			return nil
+		}
+		var nodeMap, ok = node.(map[string]interface{})
+		if ok {
+			node = nodeMap[p]
+		} else {
+			return nil
+		}
 	}
 	return node
 }

@@ -50,8 +50,7 @@ data:
       return content
     end
 
-    ngx.header["Access-Control-Allow-Origin"] =  ngx.req.get_headers()["origin"]
-    ngx.header["Access-Control-Allow-Headers"] =  "authorization"
+    ngx.header["Access-Control-Allow-Headers"] = "authorization"
 
     if ngx.req.get_method() == "OPTIONS" then
       ngx.status = 200
@@ -289,12 +288,12 @@ data:
     #!/bin/bash
 
     function reload() {
-      nginx -t
+      nginx -t -p /etc/nginx
       if [ $? -eq 0 ]
       then
         echo "Detected Nginx Configuration Change"
-        echo "Executing: nginx -s reload"
-        nginx -s reload
+        echo "Executing: nginx -s reload -p /etc/nginx"
+        nginx -s reload -p /etc/nginx
       fi
     }
 
@@ -340,6 +339,8 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
       labels:
         app: {{ .Values.api.name }}
     spec:

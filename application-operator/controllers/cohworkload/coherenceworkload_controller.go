@@ -14,7 +14,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	istionet "istio.io/api/networking/v1alpha3"
@@ -68,14 +68,7 @@ multiline_flush_interval 20s
 </filter>
 
 <match coherence-cluster>
-  @type elasticsearch
-  hosts "#{ENV['ELASTICSEARCH_URL']}"{{ .CAFile}}
-  user "#{ENV['ELASTICSEARCH_USER']}"
-  password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "` + loggingscope.ElasticSearchIndex + `"
-  key_name timestamp 
-  types timestamp:time
-  include_timestamp true
+  @type stdout
 </match>
 `
 
@@ -319,26 +312,28 @@ func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unst
 	return nil
 }
 
-// addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LoggingScope
+// addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LogInfo
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, upgradeApp bool, coherenceSpec map[string]interface{}, existingCoherence *v1.StatefulSet) error {
 	// If the Coherence StatefulSet already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
 	// current Coherence StatefulSet
 	var existingFluentdImage string
 	if !upgradeApp {
 		for _, container := range existingCoherence.Spec.Template.Spec.Containers {
-			if container.Name == loggingscope.FluentdContainerName {
+			if container.Name == logging.FluentdContainerName {
 				existingFluentdImage = container.Image
 				break
 			}
 		}
 	}
 
-	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, workload.Namespace, workload.Labels, existingFluentdImage)
+	// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
+	// not the fields will be empty and we will set these fields to defaults below
+	scope, err := logging.NewLogInfo(existingFluentdImage)
 	if err != nil {
 		return err
 	}
 
-	if loggingScope == nil {
+	if scope == nil {
 		log.Info("No logging scope found for workload, nothing to do")
 		return nil
 	}
@@ -352,13 +347,13 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// fluentdPod starts with what's in the spec and we add in the FLUENTD things when Apply is
 	// called on the fluentdManager
-	fluentdPod := &loggingscope.FluentdPod{
+	fluentdPod := &logging.FluentdPod{
 		Containers:   extracted.SideCars,
 		Volumes:      extracted.Volumes,
 		VolumeMounts: extracted.VolumeMounts,
 		LogPath:      "/logs",
 	}
-	fluentdManager := &loggingscope.Fluentd{
+	fluentdManager := &logging.Fluentd{
 		Context:                ctx,
 		Log:                    log,
 		Client:                 r.Client,
@@ -374,7 +369,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err = fluentdManager.Apply(loggingScope, resource, fluentdPod); err != nil {
+	if _, err = fluentdManager.Apply(scope, resource, fluentdPod); err != nil {
 		return err
 	}
 
@@ -458,7 +453,7 @@ func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace 
 // for the FLUENTD config map stored in "configMapVolumes", so we will pull the mount out from the
 // FLUENTD container and put it in its new home in the Coherence spec (this should all be handled
 // by the FLUENTD code at some point but I tried to limit the surgery for now)
-func moveConfigMapVolume(log logr.Logger, fluentdPod *loggingscope.FluentdPod, coherenceSpec map[string]interface{}) error {
+func moveConfigMapVolume(log logr.Logger, fluentdPod *logging.FluentdPod, coherenceSpec map[string]interface{}) error {
 	var fluentdVolMount corev1.VolumeMount
 
 	for _, container := range fluentdPod.Containers {

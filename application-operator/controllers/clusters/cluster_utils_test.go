@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -195,8 +197,8 @@ func TestStatusNeedsUpdate(t *testing.T) {
 		{Type: clustersv1alpha1.DeployComplete, Status: v1.ConditionTrue, LastTransitionTime: formattedConditionTimestamp},
 	}
 	curState := clustersv1alpha1.Failed
-	curCluster1Status := clustersv1alpha1.ClusterLevelStatus{Name: "cluster1", State: clustersv1alpha1.Succeeded, LastUpdateTime: formattedConditionTimestamp}
-	curCluster2Status := clustersv1alpha1.ClusterLevelStatus{Name: "cluster2", State: clustersv1alpha1.Failed, LastUpdateTime: formattedConditionTimestamp}
+	curCluster1Status := clustersv1alpha1.ClusterLevelStatus{Name: "cluster1", State: clustersv1alpha1.Succeeded, Message: "success msg", LastUpdateTime: formattedConditionTimestamp}
+	curCluster2Status := clustersv1alpha1.ClusterLevelStatus{Name: "cluster2", State: clustersv1alpha1.Failed, Message: "failure msg", LastUpdateTime: formattedConditionTimestamp}
 
 	curStatus := clustersv1alpha1.MultiClusterResourceStatus{
 		Conditions: curConditions,
@@ -209,23 +211,32 @@ func TestStatusNeedsUpdate(t *testing.T) {
 	existingCond := curConditions[0]
 	newCluster1Status := clustersv1alpha1.ClusterLevelStatus{
 		Name:           curCluster1Status.Name,
+		Message:        "cluster failed",
 		State:          clustersv1alpha1.Failed,
 		LastUpdateTime: formattedConditionTimestamp}
 	newCluster2Status := clustersv1alpha1.ClusterLevelStatus{
 		Name:           curCluster2Status.Name,
+		Message:        "cluster succeeded",
 		State:          clustersv1alpha1.Succeeded,
 		LastUpdateTime: formattedConditionTimestamp}
 
 	existingCondDiffTimestampCluster1 := clustersv1alpha1.Condition{
-		Type: curConditions[0].Type, Status: curConditions[0].Status, LastTransitionTime: otherTimestamp}
+		Type: curConditions[0].Type, Status: curConditions[0].Status,
+		Message: curConditions[0].Message, LastTransitionTime: otherTimestamp}
+
+	existingCondDiffMessageCluster1 := clustersv1alpha1.Condition{
+		Type: curConditions[0].Type, Status: curConditions[0].Status,
+		Message: "Some other different message", LastTransitionTime: curConditions[0].LastTransitionTime}
 
 	cluster1StatusDiffTimestamp := clustersv1alpha1.ClusterLevelStatus{
 		Name:           curCluster1Status.Name,
+		Message:        curCluster1Status.Message,
 		State:          curCluster1Status.State,
 		LastUpdateTime: otherTimestamp}
 
 	newClusterStatus := clustersv1alpha1.ClusterLevelStatus{
 		Name:           "newCluster",
+		Message:        "cluster succeeded",
 		State:          clustersv1alpha1.Succeeded,
 		LastUpdateTime: otherTimestamp}
 
@@ -251,6 +262,12 @@ func TestStatusNeedsUpdate(t *testing.T) {
 	// same condition, differing in cluster status timestamp - does not need update
 	asserts.False(t, StatusNeedsUpdate(curStatus, existingCondDiffTimestampCluster1, cluster1StatusDiffTimestamp))
 
+	// same condition, differing in condition message - needs update
+	asserts.True(t, StatusNeedsUpdate(curStatus, existingCondDiffMessageCluster1, curCluster1Status))
+
+	// same condition, differing in condition message - needs update
+	asserts.True(t, StatusNeedsUpdate(curStatus, existingCondDiffMessageCluster1, cluster1StatusDiffTimestamp))
+
 	// same condition, new cluster not present in conditions - needs update
 	asserts.True(t, StatusNeedsUpdate(curStatus, existingCond, newClusterStatus))
 }
@@ -262,20 +279,22 @@ func TestStatusNeedsUpdate(t *testing.T) {
 func TestCreateClusterLevelStatus(t *testing.T) {
 	formattedConditionTimestamp := time.Now().Format(time.RFC3339)
 	condition1 := clustersv1alpha1.Condition{
-		Type: clustersv1alpha1.DeployComplete, Status: v1.ConditionTrue, LastTransitionTime: formattedConditionTimestamp,
+		Type: clustersv1alpha1.DeployComplete, Status: v1.ConditionTrue, Message: "cond1 msg", LastTransitionTime: formattedConditionTimestamp,
 	}
 	condition2 := clustersv1alpha1.Condition{
-		Type: clustersv1alpha1.DeployFailed, Status: v1.ConditionTrue, LastTransitionTime: formattedConditionTimestamp,
+		Type: clustersv1alpha1.DeployFailed, Status: v1.ConditionTrue, Message: "cond2 msg", LastTransitionTime: formattedConditionTimestamp,
 	}
 	clusterState1 := CreateClusterLevelStatus(condition1, "cluster1")
 	asserts.Equal(t, "cluster1", clusterState1.Name)
 	asserts.Equal(t, clustersv1alpha1.Succeeded, clusterState1.State)
 	asserts.Equal(t, formattedConditionTimestamp, clusterState1.LastUpdateTime)
+	asserts.Equal(t, condition1.Message, clusterState1.Message)
 
 	clusterState2 := CreateClusterLevelStatus(condition2, "somecluster")
 	asserts.Equal(t, "somecluster", clusterState2.Name)
 	asserts.Equal(t, clustersv1alpha1.Failed, clusterState2.State)
 	asserts.Equal(t, formattedConditionTimestamp, clusterState2.LastUpdateTime)
+	asserts.Equal(t, condition2.Message, clusterState2.Message)
 }
 
 // TestComputeEffectiveState tests the ComputeEffectiveState function
@@ -419,4 +438,82 @@ func TestSetEffectiveStateIfChanged(t *testing.T) {
 
 	SetEffectiveStateIfChanged(placement, &secret.Status)
 	asserts.Equal(t, clustersv1alpha1.Failed, secret.Status.State)
+}
+
+// TestDeleteAssociatedResource tests that if DeleteAssociatedResource is called
+// the given resourceToDelete is deleted and the finalizer on the mcResource is removed
+// GIVEN a MultiCluster resource and a resourceToDelete,
+// WHEN TestDeleteAssociatedResource is called and the resourceToDelete is successfully deleted
+// THEN the finalizer should be removed
+// GIVEN a MultiCluster resource and a resourceToDelete,
+// WHEN TestDeleteAssociatedResource is called and it fails to delete the resourceToDelete
+// THEN the finalizer should NOT be removed
+func TestDeleteAssociatedResource(t *testing.T) {
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	mcResource := clustersv1alpha1.MultiClusterApplicationConfiguration{
+		Spec: clustersv1alpha1.MultiClusterApplicationConfigurationSpec{
+			Placement: clustersv1alpha1.Placement{
+				Clusters: []clustersv1alpha1.Cluster{{Name: "mycluster"}},
+			},
+		},
+	}
+	mcResource.Name = "mymcappconfig"
+	mcResource.Namespace = "myns"
+
+	resourceToDeleteName := types.NamespacedName{Name: "myappconfig", Namespace: "myns"}
+	finalizerToDelete := "thisfinalizergoes"
+	finalizerNotDelete := "thisfinalizerstays"
+
+	mcResource.SetFinalizers([]string{finalizerNotDelete, finalizerToDelete})
+
+	// GIVEN that the deletion succeeds
+	// THEN the finalizer should be removed
+
+	// expect get and delete the app config with name resourceToDeleteName, mocking successful deletion
+	expectGetAndDeleteAppConfig(t, cli, resourceToDeleteName, nil)
+
+	// The finalizer should be removed
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcApp *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.UpdateOption) error {
+			asserts.NotContains(t, mcApp.GetFinalizers(), finalizerToDelete)
+			asserts.Contains(t, mcApp.GetFinalizers(), finalizerNotDelete)
+			return nil
+		})
+
+	err := DeleteAssociatedResource(context.TODO(), cli, &mcResource, finalizerToDelete, &v1alpha2.ApplicationConfiguration{}, resourceToDeleteName)
+	asserts.Nil(t, err)
+
+	// GIVEN that the deletion fails
+	// THEN the finalizer should NOT be removed
+
+	// expect get and delete the app config with name resourceToDeleteName, mocking FAILED deletion
+	expectGetAndDeleteAppConfig(t, cli, resourceToDeleteName, errors.New("I will not delete you, resource"))
+
+	// There should be no more interactions i.e. the finalizer should not be removed
+
+	err = DeleteAssociatedResource(context.TODO(), cli, &mcResource, finalizerToDelete, &v1alpha2.ApplicationConfiguration{}, resourceToDeleteName)
+	asserts.NotNil(t, err)
+
+	mocker.Finish()
+}
+
+func expectGetAndDeleteAppConfig(t *testing.T, cli *mocks.MockClient, name types.NamespacedName, deleteErr error) {
+	cli.EXPECT().
+		Get(gomock.Any(), name, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *v1alpha2.ApplicationConfiguration) error {
+			appConfig.Name = name.Name
+			appConfig.Namespace = name.Namespace
+			return nil
+		})
+
+	cli.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, appConfig *v1alpha2.ApplicationConfiguration) error {
+			asserts.Equal(t, name.Name, appConfig.Name)
+			asserts.Equal(t, name.Namespace, appConfig.Namespace)
+			return deleteErr
+		})
 }

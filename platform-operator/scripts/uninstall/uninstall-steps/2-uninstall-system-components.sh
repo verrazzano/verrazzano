@@ -85,7 +85,7 @@ function cleanup_rancher_local_cluster() {
     kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=2m || true
     # Patch any dangling finalizers
     kubectl patch clusters.management.cattle.io local -p '{"metadata":{"finalizers":null}}' --type=merge || true
-    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=2m || true
+    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=1m || true
     if kubectl get cluster local > /dev/null 2>&1 ; then
       log "Unable to delete Rancher 'local' cluster object"
     else
@@ -112,6 +112,9 @@ function delete_rancher() {
   helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
     || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
 
+  log "Delete the additional CA secret for Rancher"
+  kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
+
   log "Deleting CRDs from rancher"
 
   local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
@@ -134,12 +137,12 @@ function delete_rancher() {
 
   # delete clusterrolebindings deployed by rancher
   log "Deleting ClusterRoleBindings"
-  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher/ {print $1}' \
+  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-/ {print $1}' \
     || return $? # return on pipefail
 
   # delete clusterroles
   log "Deleting ClusterRoles"
-  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io/ {print $1}' \
+  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io|fleetworkspace-|fleet-/ {print $1}' \
     || return $? # return on pipefail
 
   # delete rolebinding
@@ -174,6 +177,14 @@ function delete_rancher() {
       | xargsr -I resource kubectl annotate secret resource -n "${namespace}" field.cattle.io/projectId- \
       || err_return $? "Could not delete Annotations from Rancher" || return $? # return on pipefail
   done
+
+  # Remove the Rancher namespace finalizers; do it here since Rancher is not guaranteed to have been installed by VZ
+  # (it can now be opted-out by the user)
+  log "Removing Rancher Namespace Finalizers"
+  kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.finalizers" \
+    | awk '/controller.cattle.io/ {print $1}' \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    || err_return $? "Could not remove Rancher finalizers from all namespaces" || return $? # return on pipefail
 }
 
 action "Deleting Rancher Components" delete_rancher || exit 1

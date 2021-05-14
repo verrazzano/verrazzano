@@ -217,8 +217,9 @@ func TestReconcileCreateComponentFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
+	// expect an error and requeue upon failure
+	assert.NotNil(err)
+	assert.Equal(true, result.Requeue)
 }
 
 // TestReconcileCreateComponentFailed tests the path of reconciling a MultiClusterComponent
@@ -269,8 +270,9 @@ func TestReconcileUpdateComponentFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
+	// expect an error and requeue upon failure
+	assert.NotNil(err)
+	assert.Equal(true, result.Requeue)
 }
 
 // TestReconcilePlacementInDifferentCluster tests the path of reconciling a MultiClusterComponent which
@@ -349,7 +351,7 @@ func TestReconcileResourceNotFound(t *testing.T) {
 	// and return a not found error
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterComponent"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.GroupVersion.Group, Resource: clustersv1alpha1.MultiClusterComponentResource}, crName))
 
 	// expect no further action to be taken
 

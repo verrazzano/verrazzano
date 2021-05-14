@@ -536,6 +536,11 @@ func TestUninstallComplete(t *testing.T) {
 			return nil
 		})
 
+	// Expect a lookup of a running install job
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildInstallJobName(name)))
+
 	// Expect a call to get the uninstall Job - return that it exists
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
@@ -624,6 +629,11 @@ func TestUninstallStarted(t *testing.T) {
 			return nil
 		})
 
+	// Expect a lookup of a running install job
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildInstallJobName(name)))
+
 	// Expect a call to get the uninstall Job - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
@@ -675,6 +685,11 @@ func TestUninstallFailed(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+
+	// Expect a lookup of a running install job
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildInstallJobName(name)))
 
 	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
@@ -760,6 +775,11 @@ func TestUninstallSucceeded(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+
+	// Expect a lookup of a running install job
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildInstallJobName(name)))
 
 	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
@@ -1567,11 +1587,11 @@ func TestUpdateInternalConfigMap(t *testing.T) {
 	asserts.NoError(err)
 }
 
-// TestBuildIngressIPForXIPNodePort tests buildDomain method
+// TestBuildIngressIPForNIPNodePort tests buildDomain method
 // GIVEN a request to buildDomain
-// WHEN an xio.io configuration is detected and the service type is NodePort
+// WHEN an nip.io configuration is detected and the service type is NodePort
 // THEN the correct domain using 127.0.0.1 is returned
-func TestBuildIngressIPForXIPNodePort(t *testing.T) {
+func TestBuildIngressIPForNIPNodePort(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1592,17 +1612,17 @@ func TestBuildIngressIPForXIPNodePort(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "default.127.0.0.1.xip.io", suffix)
+	assert.Equal(t, "default.127.0.0.1.nip.io", suffix)
 
 	// Validate the results
 	mocker.Finish()
 }
 
-// TestBuildIngressIPForXIPLoadBalancer tests buildDomain method
+// TestBuildIngressIPForNIPLoadBalancer tests buildDomain method
 // GIVEN a request to buildDomain
-// WHEN an xio.io configuration is detected and the service type is LoadBalancer
+// WHEN an nip.io configuration is detected and the service type is LoadBalancer
 // THEN the correct domain is returned
-func TestBuildIngressIPForXIPLoadBalancer(t *testing.T) {
+func TestBuildIngressIPForNIPLoadBalancer(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1629,17 +1649,17 @@ func TestBuildIngressIPForXIPLoadBalancer(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "default.11.22.33.44.xip.io", suffix)
+	assert.Equal(t, "default.11.22.33.44.nip.io", suffix)
 
 	// Validate the results
 	mocker.Finish()
 }
 
-// TestBuildIngressIPForXIPGetError tests buildDomain method
+// TestBuildIngressIPForNIPGetError tests buildDomain method
 // GIVEN a request to buildDomain
-// WHEN an xio.io configuration is detected and the client.Get() call returns an error
+// WHEN an nip.io configuration is detected and the client.Get() call returns an error
 // THEN an error is returned
-func TestBuildIngressIPForXIPGetError(t *testing.T) {
+func TestBuildIngressIPForNIPGetError(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1665,11 +1685,11 @@ func TestBuildIngressIPForXIPGetError(t *testing.T) {
 	mocker.Finish()
 }
 
-// TestBuildIngressIPForXIPInvalidServiceType tests buildDomain method
+// TestBuildIngressIPForNIPInvalidServiceType tests buildDomain method
 // GIVEN a request to buildDomain
-// WHEN an xio.io configuration is detected with an invalid service type
+// WHEN an nip.io configuration is detected with an invalid service type
 // THEN an error is returned
-func TestBuildIngressIPForXIPInvalidServiceType(t *testing.T) {
+func TestBuildIngressIPForNIPInvalidServiceType(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1696,11 +1716,11 @@ func TestBuildIngressIPForXIPInvalidServiceType(t *testing.T) {
 	mocker.Finish()
 }
 
-// TestBuildIngressIPForXIPLoadBalancerOLCNE tests buildDomain method
+// TestBuildIngressIPForNIPLoadBalancerOLCNE tests buildDomain method
 // GIVEN a request to buildDomain
-// WHEN an xio.io configuration is detected and the service IP is in the expected location for OLCNE
+// WHEN an nip.io configuration is detected and the service IP is in the expected location for OLCNE
 // THEN the correct domain is returned
-func TestBuildIngressIPForXIPLoadBalancerOLCNE(t *testing.T) {
+func TestBuildIngressIPForNIPLoadBalancerOLCNE(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1724,17 +1744,17 @@ func TestBuildIngressIPForXIPLoadBalancerOLCNE(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "default.11.22.33.44.xip.io", suffix)
+	assert.Equal(t, "default.11.22.33.44.nip.io", suffix)
 
 	// Validate the results
 	mocker.Finish()
 }
 
-// TestBuildIngressIPForXIPLoadBalancerOLCNENoIPFound tests buildDomain method
+// TestBuildIngressIPForNIPLoadBalancerOLCNENoIPFound tests buildDomain method
 // GIVEN a request to buildDomain
-// WHEN an xio.io configuration is detected no service IP is in the expected location for OLCNE
+// WHEN an nip.io configuration is detected no service IP is in the expected location for OLCNE
 // THEN an error is returned
-func TestBuildIngressIPForXIPLoadBalancerOLCNENoIPFound(t *testing.T) {
+func TestBuildIngressIPForNIPLoadBalancerOLCNENoIPFound(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)

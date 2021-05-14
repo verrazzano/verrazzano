@@ -5,11 +5,12 @@ package helidon
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/avast/retry-go"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -20,11 +21,6 @@ const (
 	longPollingInterval  = 20 * time.Second
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
-)
-
-var (
-	retryDelay    = retry.Delay(shortPollingInterval)
-	retryAttempts = retry.Attempts(3)
 )
 
 var _ = ginkgo.BeforeSuite(func() {
@@ -38,13 +34,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create hello-helidon component resources: %v", err))
 	}
-	err := retry.Do(
-		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml") },
-		retryAttempts, retryDelay)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create hello-helidon application resource: %v", err))
-	}
-
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeNil(), "Failed to create hello-helidon application resource")
 })
 
 var _ = ginkgo.AfterSuite(func() {
@@ -127,14 +119,20 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 				func() {
 					gomega.Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 				},
+				func() {
+					gomega.Eventually(nodeExporterProcsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(nodeExporterDiskIoNow, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				},
 			)
 		})
 	})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
+		indexName := "verrazzano-namespace-hello-helidon"
 
-		// GIVEN an application with logging enabled via a logging scope
+		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		ginkgo.It("Verify Elasticsearch index exists", func() {
@@ -143,20 +141,22 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
 		})
 
-		// GIVEN an application with logging enabled via a logging scope
+		// GIVEN an application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"oam.applicationconfiguration.namespace": "hello-helidon",
-					"oam.applicationconfiguration.name":      "hello-helidon-appconf"})
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
-
-			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound("verrazzano-namespace-hello-helidon", time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
-					"kubernetes.container_name":            "hello-helidon-container"})
+					"kubernetes.container_name":            "hello-helidon-container",
+				})
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+			gomega.Eventually(func() bool {
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
+					"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-appconf",
+					"kubernetes.container_name":                 "hello-helidon-container",
+				})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})
@@ -167,8 +167,37 @@ func helloHelidonPodsRunning() bool {
 }
 
 func appEndpointAccessible(url string, hostname string) bool {
-	status, webpage := pkg.GetWebPageWithBasicAuth(url, hostname, "", "")
-	return (status == http.StatusOK) && (strings.Contains(webpage, "Hello World"))
+	req, err := retryablehttp.NewRequest("GET", url, nil)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		return false
+	}
+	req.Host = hostname
+	httpClient := pkg.GetVerrazzanoHTTPClient()
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		return false
+	}
+	bodyRaw, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected status code=%v", resp.StatusCode))
+		return false
+	}
+	// HTTP Server headers should never be returned.
+	for headerName, headerValues := range resp.Header {
+		if strings.EqualFold(headerName, "Server" ) {
+			pkg.Log(pkg.Error, fmt.Sprintf("Unexpected Server header=%v", headerValues))
+			return false
+		}
+	}
+	bodyStr := string(bodyRaw)
+	if !strings.Contains(bodyStr, "Hello World") {
+		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected response body=%v", bodyStr))
+		return false
+	}
+	return true
 }
 
 func appMetricsExists() bool {
@@ -181,4 +210,12 @@ func appComponentMetricsExists() bool {
 
 func appConfigMetricsExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-component")
+}
+
+func nodeExporterProcsRunning() bool {
+	return pkg.MetricsExist("node_procs_running", "job", "node-exporter")
+}
+
+func nodeExporterDiskIoNow() bool {
+	return pkg.MetricsExist("node_disk_io_now", "job", "node-exporter")
 }

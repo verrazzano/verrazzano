@@ -58,6 +58,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 				vmc, err := pkg.GetVerrazzanoManagedClusterClientset().ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
 				return err == nil &&
 					vmcStatusReady(vmc) &&
+					vmc.Status.LastAgentConnectTime != nil &&
 					vmc.Status.LastAgentConnectTime.After(time.Now().Add(-30*time.Minute))
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoManagedCluster")
 		})
@@ -101,30 +102,50 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 		})
 
 		ginkgo.It("admin cluster has the expected system logs from admin and managed cluster", func() {
+			verrazzanoIndex := "verrazzano-namespace-verrazzano-system"
+			systemdIndex := "verrazzano-systemd-journal"
 			pkg.Concurrently(
 				func() {
 					gomega.Eventually(func() bool {
-						return findLogs("vmo-local-filebeat-"+time.Now().Format("2006.01.02"),
-							"fields.verrazzano.cluster.name", "local")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a filebeat log record from admin cluster")
+						return pkg.FindLog(verrazzanoIndex,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
+								{Key: "cluster_name.keyword", Value: "local"}},
+							[]pkg.Match{
+								{Key: "cluster_name", Value: "managed1"}})
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				},
 				func() {
 					gomega.Eventually(func() bool {
-						return findLogs("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
-							"fields.verrazzano.cluster.name", "local")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a journalbeat log record from admin cluster")
+						return pkg.FindLog(systemdIndex,
+							[]pkg.Match{
+								{Key: "tag", Value: "systemd"},
+								{Key: "cluster_name.keyword", Value: "local"},
+								{Key: "SYSTEMD_UNIT", Value: "kubelet.service"}},
+							[]pkg.Match{
+								{Key: "cluster_name", Value: "managed1"}})
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				},
 				func() {
 					gomega.Eventually(func() bool {
-						return findLogs("vmo-local-filebeat-"+time.Now().Format("2006.01.02"),
-							"fields.verrazzano.cluster.name", managedClusterName)
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a filebeat log record from managed cluster")
+						return pkg.FindLog(verrazzanoIndex,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
+								{Key: "cluster_name.keyword", Value: "managed1"}},
+							[]pkg.Match{
+								{Key: "cluster_name.keyword", Value: "local"}})
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				},
 				func() {
 					gomega.Eventually(func() bool {
-						return findLogs("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
-							"fields.verrazzano.cluster.name", managedClusterName)
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a journalbeat log record from managed cluster")
+						return pkg.FindLog(systemdIndex,
+							[]pkg.Match{
+								{Key: "tag", Value: "systemd"},
+								{Key: "cluster_name", Value: "managed1"},
+								{Key: "SYSTEMD_UNIT.keyword", Value: "kubelet.service"}},
+							[]pkg.Match{
+								{Key: "cluster_name", Value: "local"}})
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				},
 			)
 		})

@@ -9,12 +9,13 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -454,7 +455,7 @@ func TestGetCurrentChartVersion(t *testing.T) {
 // THEN an error is returned and nil is returned for the chart SemVersion
 func TestGetCurrentChartVersionFileReadError(t *testing.T) {
 	readFileFunction = func(string) ([]byte, error) {
-		return []byte{}, errors.New("Unexpected file read error")
+		return []byte{}, errors.New("unexpected file read error")
 	}
 	defer func() {
 		readFileFunction = ioutil.ReadFile
@@ -563,4 +564,98 @@ func TestValidateInProgress(t *testing.T) {
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
+}
+
+// TestValidateOciDnsSecretBadSecret tests that validate fails if a secret in the verrazzano CR does not exist
+// GIVEN a Verrazzano spec containing a secret that does not exist
+// WHEN ValidateOciDNSSecret is called
+// THEN an error is returned from ValidateOciDNSSecret
+func TestValidateOciDnsSecretBadSecret(t *testing.T) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					OCI: &OCI{
+						OCIConfigSecret: "oci-bad-secret",
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	err = ValidateOciDNSSecret(client, &vz.Spec)
+	assert.Error(t, err)
+	assert.Equal(t, "secret \"oci-bad-secret\" must be created in the default namespace before installing Verrrazzano for OCI DNS", err.Error())
+}
+
+// TestValidateOciDnsSecretGoodSecret tests that validate succeeds if a secret in the verrazzano CR exists
+// GIVEN a Verrazzano spec containing a secret that exists
+// WHEN ValidateOciDNSSecret is called
+// THEN success is returned from ValidateOciDNSSecret
+func TestValidateOciDnsSecretGoodSecret(t *testing.T) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					OCI: &OCI{
+						OCIConfigSecret: "oci",
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "oci",
+			Namespace: "default",
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = ValidateOciDNSSecret(client, &vz.Spec)
+	assert.NoError(t, err)
+}
+
+// TestValidateOciDnsSecretNoOci tests that validate succeeds if the DNS component is not OCI
+// GIVEN a Verrazzano spec containing a wildcard DNS component
+// WHEN ValidateOciDNSSecret is called
+// THEN success is returned from ValidateOciDNSSecret
+func TestValidateOciDnsSecretNoOci(t *testing.T) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					Wildcard: &Wildcard{
+						Domain: "nip.io",
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	err = ValidateOciDNSSecret(client, &vz.Spec)
+	assert.NoError(t, err)
 }

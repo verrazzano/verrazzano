@@ -6,7 +6,7 @@ global:
   imagePullSecrets: []
 
 image:
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   terminationGracePeriodSeconds: 60
 
 appBinding:
@@ -49,19 +49,15 @@ kibana:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.14.0-20210331215025-6b42d76
-  prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
-  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
-  filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
-  journalbeatImage: ghcr.io/verrazzano/journalbeat:6.8.3-20201016212623-05eabe44b
-  fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6
+  imageVersion: 0.15.0-20210512213227-2785c3a
+  nodeExporterImage: ghcr.io/verrazzano/node-exporter:1.0.0-20210513143333-a470f06
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
-  imageVersion: 0.14.0-20210413210131-b2ec2e0
+  imageVersion: 0.15.0-20210512224353-617a0c0
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -69,16 +65,14 @@ monitoringOperator:
   grafanaImage: ghcr.io/verrazzano/grafana:v6.4.4
   prometheusImage: ghcr.io/verrazzano/prometheus:v2.13.1
   prometheusInitImage: ghcr.io/oracle/oraclelinux:7-slim
-  prometheusGatewayImage: ghcr.io/verrazzano/prometheus-pushgateway:1.2.0-20201016205229-164dd8b
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1
-  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.14.0-20210413210131-b2ec2e0
+  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.15.0-20210510204900-4a0dd4f
   esInitImage: ghcr.io/oracle/oraclelinux:7.8
   kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201130145840-7717e73
   configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e
-  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
-  oidcProxyImage: ghcr.io/verrazzano/nginx-ingress-controller:0.32-20210122132046-a84f6166a
+  oidcProxyImage: ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210510134749-abc2d2088
   oidcAuthEnabled: true
   RequestMemory: 48Mi
 
@@ -90,13 +84,13 @@ console:
   enabled: true
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.14.0-20210408111300-bfb4aef
+  imageVersion: 0.15.0-20210512140333-bbb6bd7
 
 api:
   name: verrazzano-api
   imageName: ghcr.io/verrazzano/nginx-ingress-controller
-  imageVersion: 0.32-20210122132046-a84f6166a
-  pullPolicy: Always
+  imageVersion: 0.46.0-20210510134749-abc2d2088
+  pullPolicy: IfNotPresent
   port: 8775
   impersonatorRoleName: impersonate-api-user
 
@@ -140,3 +134,7 @@ kubernetes:
 
 externaldns:
   enabled: false
+
+dns:
+  wildcard:
+    domain:

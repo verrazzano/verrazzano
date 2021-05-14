@@ -41,7 +41,7 @@ You need a Kubernetes cluster to run against.
     ```
 
 * Run the operator with webhooks:
-  * Run `installer/scripts/3-install-vz-oam.sh` to create `build/webhook-certs`
+  * Run `installer/scripts/4-install-vz-oam.sh` to create `build/webhook-certs`
   * Run the operator with webhooks enabled:
     ```
     go run main.go --kubeconfig=${KUBECONFIG} --cert-dir=build/webhook-certs
