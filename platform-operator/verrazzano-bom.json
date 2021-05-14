@@ -9,7 +9,7 @@
           "name": "cert-manager",
           "images": [
             {
-            "image": "cert-manager",
+            "image": "cert-manager-controller",
             "tag": "0.13.1-20201016205232-4c8f3fe38",
             "helmPath": "image.repository",
             "helmTagPath": "image.tag"
