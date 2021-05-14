@@ -317,12 +317,28 @@ function install_rancher()
       fi
 
       log "Install Rancher"
+
+      IMAGE_PULL_SECRETS_ARGUMENT=""
+      if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+        IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+      fi
+
+      # Settings required to point Rancher at a registry for background helm install
+      if [ -n "${REGISTRY}" ]; then
+        EXTRA_RANCHER_ARGUMENTS="${EXTRA_RANCHER_ARGUMENTS} --set systemDefaultRegistry=${REGISTRY}/${IMAGE_REPO} --set useBundledSystemChart=true"
+      fi
+
+      local chartName=rancher
+      build_image_overrides rancher ${chartName}
+
       # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-      helm upgrade rancher ${RANCHER_CHART_DIR} \
+      helm upgrade ${chartName} ${RANCHER_CHART_DIR} \
         --install --namespace cattle-system \
         -f $VZ_OVERRIDES_DIR/rancher-values.yaml \
         --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
         --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+        ${HELM_IMAGE_ARGS} \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
         ${EXTRA_RANCHER_ARGUMENTS}
     fi
 
@@ -463,13 +479,22 @@ DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
+# Always create the cattle-system namespace so we can create network policies
+action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1
+
+# Copy the optional global registry secret to the cattle-system namespace for pulling images from a private registry
+REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
+if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+  if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n cattle-system > /dev/null 2>&1 ; then
+    action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to cattle-system namespace" \
+        copy_registry_secret "cattle-system"
+  fi
+fi
+
 action "Installing cert manager" install_cert_manager || exit 1
 if [ "$DNS_TYPE" == "oci" ]; then
   action "Installing external DNS" install_external_dns || exit 1
 fi
-
-# Always create the cattle-system namespace so we can create network policies
-action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1
 
 if [ $(is_rancher_enabled) == "true" ]; then
   action "Installing Rancher" install_rancher || exit 1
