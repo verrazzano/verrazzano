@@ -74,8 +74,8 @@ func (in *MultiClusterSecret) GetPlacement() Placement {
 	return in.Spec.Placement
 }
 
-// GetItems returns the list of MultiClusterSecret
-func (in *MultiClusterSecretList) GetItems() []runtime.Object {
+// GetItemsAsRuntimeObjects returns the list of MultiClusterSecret as runtime objects
+func (in *MultiClusterSecretList) GetItemsAsRuntimeObjects() []runtime.Object {
 	var objects []runtime.Object
 	for _, item := range in.Items {
 		objects = append(objects, item.DeepCopyObject())

@@ -65,8 +65,8 @@ func (in *MultiClusterComponent) GetPlacement() Placement {
 	return in.Spec.Placement
 }
 
-// GetItems returns the list of MultiClusterComponents
-func (in *MultiClusterComponentList) GetItems() []runtime.Object {
+// GetItemsAsRuntimeObjects returns the list of MultiClusterComponents as runtime objects
+func (in *MultiClusterComponentList) GetItemsAsRuntimeObjects() []runtime.Object {
 	var objects []runtime.Object
 	for _, item := range in.Items {
 		objects = append(objects, item.DeepCopyObject())
