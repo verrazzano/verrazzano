@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/avast/retry-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -20,13 +19,12 @@ import (
 )
 
 const (
+	shortWaitTimeout     = 5 * time.Minute
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 10 * time.Minute
 	pollingInterval      = 30 * time.Second
 )
 
-var retryDelay = retry.Delay(shortPollingInterval)
-var retryAttempts = retry.Attempts(3)
 var sockShop SockShop
 var username, password string
 
@@ -43,12 +41,9 @@ var _ = BeforeSuite(func() {
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml"); err != nil {
 		Fail(fmt.Sprintf("Failed to create Sock Shop component resources: %v", err))
 	}
-	err := retry.Do(
-		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml") },
-		retryAttempts, retryDelay)
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to create Sock Shop application resource: %v", err))
-	}
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").Should(BeNil())
 })
 
 // the list of expected pods

@@ -5,9 +5,11 @@ package v1alpha1
 
 import (
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -45,6 +47,11 @@ func (v *Verrazzano) ValidateCreate() error {
 	}
 
 	if err := ValidateVersion(v.Spec.Version); err != nil {
+		return err
+	}
+
+	// Validate that the OCI DNS secret required by install exists
+	if err := ValidateOciDNSSecret(client, &v.Spec); err != nil {
 		return err
 	}
 
@@ -106,5 +113,6 @@ func getClient() (client.Client, error) {
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	AddToScheme(scheme)
+	clientgoscheme.AddToScheme(scheme)
 	return scheme
 }

@@ -767,6 +767,10 @@ def trimIfGithubNoreplyUser(userIn) {
         def userOut = userIn.substring(userIn.indexOf("<") + 1, userIn.indexOf("@"))
         return userOut;
     }
+    if (userIn.matches(".*@users.noreply.github.com")) {
+        def userOut = userIn.substring(0, userIn.indexOf("@"))
+        return userOut;
+    }
     echo "Not a github noreply user, not trimming: ${userIn}"
     return userIn
 }
