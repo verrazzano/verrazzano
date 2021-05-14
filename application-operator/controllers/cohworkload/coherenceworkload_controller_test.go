@@ -160,39 +160,6 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			namespace.Name = "test-namespace"
 			return nil
 		})
-	// expect a call to update a label for the namespace
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
-			assert.Equal(1, len(namespace.Labels))
-			assert.Equal(map[string]string{constants.LabelVerrazzanoNamespace: "test-namespace"}, namespace.Labels)
-			return nil
-		})
-	// expect call to fetch existing NetworkPolicy resource
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
-			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
-		})
-	// expect a call to create the NetworkPolicy resource
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
-			assert.Equal("NetworkPolicy", networkPolicy.Kind)
-			assert.Equal("networking.k8s.io/v1", networkPolicy.APIVersion)
-			assert.Equal(1, len(networkPolicy.Spec.PodSelector.MatchLabels))
-			assert.Equal(map[string]string{"control-plane": "coherence"}, networkPolicy.Spec.PodSelector.MatchLabels)
-			assert.Equal(0, len(networkPolicy.Spec.Ingress))
-			assert.Equal(1, len(networkPolicy.Spec.Egress))
-			assert.Nil(networkPolicy.Spec.Egress[0].Ports)
-			assert.Equal(1, len(networkPolicy.Spec.Egress[0].To))
-			assert.Equal(map[string]string{"coherenceComponent": "coherencePod"}, networkPolicy.Spec.Egress[0].To[0].PodSelector.MatchLabels)
-			assert.Equal(map[string]string{constants.LabelVerrazzanoNamespace: "test-namespace"}, networkPolicy.Spec.Egress[0].To[0].NamespaceSelector.MatchLabels)
-			assert.Nil(networkPolicy.Spec.Egress[0].To[0].IPBlock)
-			assert.Equal(1, len(networkPolicy.Spec.PolicyTypes))
-			assert.Equal(netv1.PolicyTypeEgress, networkPolicy.Spec.PolicyTypes[0])
-			return nil
-		})
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
