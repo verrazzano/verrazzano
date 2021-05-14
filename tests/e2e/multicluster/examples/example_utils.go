@@ -77,8 +77,8 @@ func changePlacement(kubeConfigPath string, patchFile string) error {
 	}
 	// This is a temporary timer until this bug is fixed: VZ-2454
 	// Allow the MC objects to sync before the change in the VerrazzanoProject
-	pkg.Log(pkg.Info, "Waiting one minute after patching MC resources, so that they are synchronized to managed cluster, before patching VerrazzanoProject")
-	time.Sleep(time.Minute)
+	pkg.Log(pkg.Info, "Waiting a little over a minute after patching MC resources, so that they are synchronized to managed cluster, before patching VerrazzanoProject")
+	time.Sleep(75*time.Second)
 
 	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projectName, patchFile, kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create VerrazzanoProject resource: %v", err)

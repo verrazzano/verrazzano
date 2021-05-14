@@ -269,10 +269,10 @@ func cleanUp(kubeconfigPath string) error {
 		return fmt.Errorf("Failed to delete multi-cluster hello-helidon component resources: %v", err)
 	}
 
-	// NOTE: Wait one minute for MC resources to be synchronized before deleting the VerrazzanoProject. This is
+	// NOTE: Wait a little over one minute for MC resources to be synchronized before deleting the VerrazzanoProject. This is
 	// pending a fix for VZ-2454.
-	pkg.Log(pkg.Info, "Waiting one minute after deleting MC resources, so that they are synchronized to managed cluster, before deleting VerrazzanoProject")
-	time.Sleep(time.Minute)
+	pkg.Log(pkg.Info, "Waiting a little over one minute after deleting MC resources, so that they are synchronized to managed cluster, before deleting VerrazzanoProject")
+	time.Sleep(75*time.Second)
 
 	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeconfigPath); err != nil {
 		return fmt.Errorf("Failed to delete hello-helidon project resource: %v", err)
