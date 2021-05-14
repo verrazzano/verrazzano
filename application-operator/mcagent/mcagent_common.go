@@ -92,7 +92,6 @@ func (s *Syncer) garbageCollect() {
 	if err != nil {
 		s.Log.Error(err, "failed to get list of namespaces")
 	}
-	s.Log.Info(fmt.Sprintf("list of namespaces in projects: %s", s.ProjectNamespaces))
 
 	// Create table that drives garbage collection for each multicluster resource type
 	type gcObject struct {
