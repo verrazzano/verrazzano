@@ -88,7 +88,7 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
 					ioutil.ReadAll(resp.Body)
 					resp.Body.Close()
-					// HTTP Server headers should never be returned.
+					// HTTP Access-Control-Allow-Origin header should never be returned.
 					for headerName, headerValues := range resp.Header {
 						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
 					}
@@ -104,7 +104,7 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
 					ioutil.ReadAll(resp.Body)
 					resp.Body.Close()
-					// HTTP Server headers should never be returned.
+					// HTTP Access-Control-Allow-Origin header should never be returned.
 					for headerName, headerValues := range resp.Header {
 						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
 					}
@@ -120,7 +120,7 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
 					ioutil.ReadAll(resp.Body)
 					resp.Body.Close()
-					// HTTP Server headers should never be returned.
+					// HTTP Access-Control-Allow-Origin header should never be returned.
 					for headerName, headerValues := range resp.Header {
 						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
 					}
