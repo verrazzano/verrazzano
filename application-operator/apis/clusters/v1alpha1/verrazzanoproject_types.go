@@ -10,6 +10,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const VerrazzanoProjectKind = "VerrazzanoProject"
+const VerrazzanoProjectResource = "verrazzanoprojects"
+
 // NamespaceTemplate has the metadata and spec of the underlying namespace
 type NamespaceTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields

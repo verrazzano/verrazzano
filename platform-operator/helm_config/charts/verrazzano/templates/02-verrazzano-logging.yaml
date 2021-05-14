@@ -192,6 +192,9 @@ data:
     <filter kubernetes.**>
       @type kubernetes_metadata
       @id kubernetes_metadata
+      # VZ-2637 need newer version to enable watch
+      # watch_retry_interval 20
+      watch false
     </filter>
 
     # rewrite_tag_filter does not support nested fields like
@@ -303,8 +306,10 @@ data:
       time_precision 9
 
       # Prevent reloading connections to Elasticsearch
-      reload_on_failure false
       reload_connections false
+      reconnect_on_error true
+      reload_on_failure true
+      slow_flush_log_threshold 120s
 
       hosts "#{ENV['ELASTICSEARCH_URL']}"
       ca_file /fluentd/secret/ca-bundle
@@ -312,6 +317,8 @@ data:
       user "#{ENV['ELASTICSEARCH_USER']}"
       password "#{ENV['ELASTICSEARCH_PASSWORD']}"
       bulk_message_request_threshold 16M
+      # 2 ^ 31
+      request_timeout 2147483648
       <buffer>
         @type file
         path /fluentd/log/elastic-buffer
@@ -319,9 +326,11 @@ data:
         flush_interval 5s
         retry_forever
         retry_max_interval 10
-        # Cap buffer memory usage to 8MiB/chunk * 8 chunks = 64 MiB
-        chunk_limit_size 8M
-        queue_limit_length 8
+        # Cap buffer memory usage to 16MiB/chunk * 10 chunks = 160 MiB
+        chunk_limit_size 16M
+        queue_limit_length 10
+        chunk_full_threshold 0.9
+        overflow_action drop_oldest_chunk
       </buffer>
     </match>
 
@@ -425,6 +434,8 @@ spec:
       app: fluentd
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
       labels:
         app: fluentd
     spec:
@@ -477,6 +488,9 @@ spec:
             - mountPath: /run/log/journal
               name: run-log-journal
               readOnly: true
+            - mountPath: /var/lib/dbus
+              name: var-lib-dbus
+              readOnly: true
       serviceAccount: fluentd
       serviceAccountName: fluentd
       terminationGracePeriodSeconds: 30
@@ -503,6 +517,10 @@ spec:
             path: /run/log/journal
             type: ""
           name: run-log-journal
+        - hostPath:
+            path: /var/lib/dbus
+            type: ""
+          name: var-lib-dbus
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1

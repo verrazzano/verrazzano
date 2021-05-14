@@ -39,6 +39,7 @@ const (
 // HTTPResponse represents an HTTP response
 type HTTPResponse struct {
 	StatusCode int
+	Header     http.Header
 	Body       []byte
 	BodyErr    error
 }
@@ -139,11 +140,23 @@ func ExpectHTTPStatus(status int, resp *HTTPResponse, err error, msg string) {
 	}
 }
 
+// ExpectNoServerHeader validates that the response does not include a Server header.
+func ExpectNoServerHeader(resp *HTTPResponse) {
+	// HTTP Server headers should never be returned.
+	for headerName, headerValues := range resp.Header {
+		if strings.EqualFold(headerName, "Server") {
+			gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("server"), fmt.Sprintf("Unexpected Server header %v", headerValues))
+		}
+	}
+}
+
 // ExpectHTTPGetOk submits a GET request and expect a status 200 response
 func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
 	resp, err := httpClient.Get(url)
 	httpResp := ProcHTTPResponse(resp, err)
 	ExpectHTTPOk(httpResp, err, "Error doing http(s) get from "+url)
+	// VZ-2603: Assertion disabled until VZ-2599 is complete.
+	//ExpectNoServerHeader(httpResp)
 }
 
 // GetSystemVmiHTTPClient returns an HTTP client configured with the system vmi CA cert

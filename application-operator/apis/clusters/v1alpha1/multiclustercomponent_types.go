@@ -8,6 +8,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const MultiClusterComponentKind = "MultiClusterComponent"
+const MultiClusterComponentResource = "multiclustercomponents"
+
 // MultiClusterComponentSpec defines the desired state of MultiClusterComponent
 type MultiClusterComponentSpec struct {
 	// The embedded OAM Component

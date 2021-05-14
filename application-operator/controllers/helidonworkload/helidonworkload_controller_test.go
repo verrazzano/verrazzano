@@ -21,7 +21,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
@@ -78,8 +78,8 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 func TestReconcileWorkloadNotFound(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
@@ -106,8 +106,8 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 func TestReconcileFetchWorkloadError(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
@@ -133,8 +133,8 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 // THEN return the error
 func TestReconcileWorkloadMissingData(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -193,8 +193,8 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 // THEN expect a Deployment and Service to be written
 func TestReconcileCreateHelidon(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
@@ -301,8 +301,8 @@ func TestReconcileCreateHelidon(t *testing.T) {
 // THEN expect a Deployment and Service to be written with multiple containers
 func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
@@ -432,8 +432,8 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 // THEN expect a Deployment, Service and Configmap to be written
 func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	testNamespace := "test-namespace"
@@ -441,9 +441,9 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          "test-appconf",
@@ -545,8 +545,8 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 // AND expect that each application container has an associated logging sidecar container
 func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggingScope(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	testNamespace := "test-namespace"
@@ -554,9 +554,9 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	params := map[string]string{
 		"##APPCONF_NAME##":            "test-appconf",
@@ -672,8 +672,8 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 // THEN the Fluentd image should be retrieved from the env and the new update version should be set on the workload status
 func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	testNamespace := "test-namespace"
@@ -687,9 +687,9 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          appConfigName,
@@ -792,8 +792,8 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 // THEN the existing Fluentd image should be reused
 func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	assert := asserts.New(t)
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	testNamespace := "test-namespace"
@@ -807,11 +807,11 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	existingFluentdImage := "unit-test-image:latest"
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := loggingscope.DefaultFluentdImage
-	loggingscope.DefaultFluentdImage = fluentdImage
-	defer func() { loggingscope.DefaultFluentdImage = initialDefaultFluentdImage }()
+	initialDefaultFluentdImage := logging.DefaultFluentdImage
+	logging.DefaultFluentdImage = fluentdImage
+	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
-	containers := []corev1.Container{{Name: loggingscope.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          appConfigName,

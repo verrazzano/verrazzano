@@ -90,7 +90,6 @@ pipeline {
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
-        SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
         CLUSTER_NAME_PREFIX = 'verrazzano'
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
@@ -446,22 +445,6 @@ pipeline {
                         }
                     }
                 }
-                stage ('Examples Change-Placement') {
-                    steps {
-                        script {
-                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            sh """
-                                export MANAGED_CLUSTER_NAME="managed1"
-                                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                export CLUSTER_COUNT=$clusterCount
-                                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-changeplacement"
-                                ginkgo -v -keepGoing --noColor multicluster/examples/change-placement/...
-                            """
-                        }
-                    }
-                }
             }
             post {
                 failure {
@@ -483,20 +466,7 @@ pipeline {
     }
     post {
         failure {
-            // sh """
-            //    curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
-            // """
-
             archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
-            //mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            //subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            //body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
-            //script {
-            //    if (env.JOB_NAME == "verrazzano/master") {
-            //        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-            //        slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
-            //    }
-            //}
         }
         always {
             script {
@@ -794,7 +764,7 @@ def dumpCattleSystemPods() {
                 export DIAGNOSTIC_LOG="${LOG_DIR}/cattle-system-pods.log"
                 ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/rancher.log"
-                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
             """
         }
     }
@@ -809,7 +779,7 @@ def dumpNginxIngressControllerLogs() {
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/nginx-ingress-controller.log"
-                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
             """
         }
     }
@@ -881,7 +851,7 @@ def dumpVerrazzanoApiLogs() {
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-api.log"
-                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
             """
         }
     }

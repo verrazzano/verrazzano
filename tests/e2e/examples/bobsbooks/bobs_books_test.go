@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/avast/retry-go"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -19,11 +18,6 @@ const (
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 20 * time.Minute
 	longPollingInterval  = 20 * time.Second
-)
-
-var (
-	retryDelay    = retry.Delay(shortPollingInterval)
-	retryAttempts = retry.Attempts(3)
 )
 
 var _ = ginkgo.BeforeSuite(func() {
@@ -83,21 +77,13 @@ func deployBobsBooksExample() {
 		map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books"}, nil); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
 	}
-	pkg.Log(pkg.Info, "Create logging scope resource")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-logging-scope.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create Bobs Books logging scope resource: %v", err))
-	}
 	pkg.Log(pkg.Info, "Create component resources")
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create Bobs Books component resources: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create application resources")
-	err := retry.Do(
-		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml") },
-		retryAttempts, retryDelay)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create Bobs Books application resource: %v", err))
-	}
+	gomega.Eventually(func() error { return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml") },
+		shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books application resource").Should(gomega.BeNil())
 }
 
 func undeployBobsBooksExample() {
@@ -273,7 +259,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 	})
 	ginkgo.Context("WebLogic logging.", func() {
 		bobsIndexName := "verrazzano-namespace-bobs-books"
-		// GIVEN a WebLogic application with logging enabled via a logging scope
+		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		ginkgo.It("Verify Elasticsearch index exists", func() {
@@ -282,7 +268,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+bobsIndexName)
 		})
 		pkg.Concurrently(
-			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-adminserver stdout is found
 			func() {
@@ -297,7 +283,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
-			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-adminserver log file is found
 			func() {
@@ -312,7 +298,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
-			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-managed-server stdout is found
 			func() {
@@ -327,7 +313,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
-			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-managed-server log file is found
 			func() {
@@ -343,7 +329,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 			},
 		)
 		pkg.Concurrently(
-			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-adminserver stdout is found
 			func() {
@@ -358,7 +344,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
-			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-adminserver log file is found
 			func() {
@@ -373,7 +359,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
-			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-managed-server stdout is found
 			func() {
@@ -388,7 +374,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
-			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-managed-server log file is found
 			func() {
@@ -407,7 +393,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 	})
 	ginkgo.Context("Coherence logging.", func() {
 		indexName := "verrazzano-namespace-bobs-books"
-		// GIVEN a Coherence application with logging enabled via a logging scope
+		// GIVEN a Coherence application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		ginkgo.It("Verify Elasticsearch index exists", func() {
@@ -415,7 +401,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				return pkg.LogIndexFound(indexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+indexName)
 		})
-		// GIVEN a Coherence application with logging enabled via a logging scope
+		// GIVEN a Coherence application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
 		ginkgo.It("Verify recent roberts-coherence log record exists", func() {
@@ -427,7 +413,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 		pkg.Concurrently(
-			// GIVEN a Coherence application with logging enabled via a logging scope
+			// GIVEN a Coherence application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-0 stdout is found
 			func() {
@@ -441,7 +427,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
-			// GIVEN a Coherence application with logging enabled via a logging scope
+			// GIVEN a Coherence application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-0 log file is found
 			func() {
@@ -457,7 +443,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				})
 			},
-			// GIVEN a Coherence application with logging enabled via a logging scope
+			// GIVEN a Coherence application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-1 stdout is found
 			func() {
@@ -475,7 +461,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 
 				})
 			},
-			// GIVEN a Coherence application with logging enabled via a logging scope
+			// GIVEN a Coherence application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-1 log file is found
 			func() {
