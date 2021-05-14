@@ -346,6 +346,8 @@ func deployTestResources() {
 	gomega.Eventually(func() bool {
 		return pkg.DoesNamespaceExist(anotherTestNamespace)
 	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Expected to find namespace %s", anotherTestNamespace))
+	//  30 sec sleep for investigating weird race
+	time.Sleep(60 * time.Second)
 
 	// create a config map
 	pkg.Log(pkg.Info, "Creating MC config map")
