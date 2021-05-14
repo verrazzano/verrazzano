@@ -566,6 +566,10 @@ func TestValidateInProgress(t *testing.T) {
 	}
 }
 
+// TestValidateOciDnsSecretBadSecret tests that validate fails if a secret in the verrazzano CR does not exist
+// GIVEN a Verrazzano spec containing a secret that does not exist
+// WHEN ValidateOciDnsSecret is called
+// THEN an error is returned from ValidateOciDnsSecret
 func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 	vz := Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -587,11 +591,14 @@ func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(scheme)
 
 	err = ValidateOciDnsSecret(client, &vz.Spec)
-	if assert.Error(t, err) {
-		assert.Equal(t, "secret \"oci-bad-secret\" must be created in the default namespace before installing Verrrazzano for OCI DNS", err.Error())
-	}
+	assert.Error(t, err)
+	assert.Equal(t, "secret \"oci-bad-secret\" must be created in the default namespace before installing Verrrazzano for OCI DNS", err.Error())
 }
 
+// TestValidateOciDnsSecretGoodSecret tests that validate succeeds if a secret in the verrazzano CR exists
+// GIVEN a Verrazzano spec containing a secret that exists
+// WHEN ValidateOciDnsSecret is called
+// THEN success is returned from ValidateOciDnsSecret
 func TestValidateOciDnsSecretGoodSecret(t *testing.T) {
 	vz := Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -625,6 +632,10 @@ func TestValidateOciDnsSecretGoodSecret(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestValidateOciDnsSecretNoOci tests that validate succeeds if the DNS component is not OCI
+// GIVEN a Verrazzano spec containing a wildcard DNS component
+// WHEN ValidateOciDnsSecret is called
+// THEN success is returned from ValidateOciDnsSecret
 func TestValidateOciDnsSecretNoOci(t *testing.T) {
 	vz := Verrazzano{
 		Spec: VerrazzanoSpec{
