@@ -55,7 +55,7 @@ type MultiClusterResource interface {
 // interface types
 type MultiClusterResourceList interface {
 	runtime.Object
-	GetItems() []runtime.Object
+	GetItemsAsRuntimeObjects() []runtime.Object
 }
 
 // StatusUpdateMessage represents a message sent to the Multi Cluster agent by the controllers

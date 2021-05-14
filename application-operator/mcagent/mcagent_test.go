@@ -124,7 +124,7 @@ func TestProcessAgentThreadSecretDeleted(t *testing.T) {
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			return (errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name))
+			return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name)
 		})
 
 	// Do not expect any further calls because the registration secret no longer exists
@@ -206,7 +206,7 @@ func Test_getEnvValue(t *testing.T) {
 // WHEN the env array contains such an env
 // THEN updates its value, append the env name/value if not found
 func Test_updateEnvValue(t *testing.T) {
-	testEnvs := []corev1.EnvVar{}
+	var testEnvs []corev1.EnvVar
 	newValue := "version2"
 	newEnvs := updateEnvValue(testEnvs, registrationSecretVersion, newValue)
 	asserts.Equal(t, registrationSecretVersion, newEnvs[0].Name, "expected env")
@@ -701,6 +701,34 @@ func TestGarbageCollection(t *testing.T) {
 	log := ctrl.Log.WithName("test")
 	nsTest1 := "test-ns-1"
 	nsTest2 := "test-ns-2"
+	name := "test-name"
+	managedClusterName := "managed1"
+	adminClusterName := "admin"
+
+	// Test Data
+	testAppConfig := clustersv1alpha1.MultiClusterApplicationConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: nsTest2,
+			Name:      name,
+		},
+		Spec: clustersv1alpha1.MultiClusterApplicationConfigurationSpec{
+			Placement: clustersv1alpha1.Placement{
+				Clusters: []clustersv1alpha1.Cluster{{Name: managedClusterName}},
+			},
+		},
+	}
+
+	testComp := clustersv1alpha1.MultiClusterComponent{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: nsTest2,
+			Name:      name,
+		},
+		Spec: clustersv1alpha1.MultiClusterComponentSpec{
+			Placement: clustersv1alpha1.Placement{
+				Clusters: []clustersv1alpha1.Cluster{{Name: adminClusterName}},
+			},
+		},
+	}
 
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
@@ -709,7 +737,6 @@ func TestGarbageCollection(t *testing.T) {
 	// Admin cluster mocks
 	adminMocker := gomock.NewController(t)
 	adminMock := mocks.NewMockClient(adminMocker)
-	//adminStatusMock := mocks.NewMockStatusWriter(adminMocker)
 
 	// Managed Cluster - expect call to list Namespace objects
 	mcMock.EXPECT().
@@ -730,28 +757,58 @@ func TestGarbageCollection(t *testing.T) {
 			return nil
 		})
 
-	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration resources
+	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration resources.  Return a resource
+	//                   that should get deleted because it no longer exists on the admin cluster.
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+			list.Items = []clustersv1alpha1.MultiClusterApplicationConfiguration{testAppConfig}
 			return nil
 		})
 
-	// Managed Cluster - expect call to list MultiClusterComponent resources
+	// Admin Cluster - expect a call to get the resource returned in the previous step.  Return it was not found.
+	adminMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: nsTest2, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcconfig *clustersv1alpha1.MultiClusterApplicationConfiguration) error {
+			return (errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Namespace"}, name.Name))
+		})
+
+	// Managed Cluster - expect call to delete orphaned MultiClusterApplicationConfiguration resource
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&testAppConfig), gomock.Any()).
+		Return(nil)
+
+	// Managed Cluster - expect call to list MultiClusterComponent resources.  Return a resource that
+	//                   should get deleted because it exists on the admin cluster but not placed on the managed cluster
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+			list.Items = []clustersv1alpha1.MultiClusterComponent{testComp}
 			return nil
 		})
 
-	// Managed Cluster - expect call to list MultiClusterConfigMap resources
+	// Admin Cluster - expect a call to get the resource returned in the previous step.  Return it was not found but the placement
+	//                 is not in the managed cluster
+	adminMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: nsTest2, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mccomp *clustersv1alpha1.MultiClusterComponent) error {
+			mccomp.Spec = testComp.Spec
+			return nil
+		})
+
+	// Managed Cluster - expect call to delete orphaned MultiClusterComponent resource
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&testComp), gomock.Any()).
+		Return(nil)
+
+	// Managed Cluster - expect call to list MultiClusterConfigMap resources. Return none found.
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
 			return nil
 		})
 
-	// Managed Cluster - expect call to list MultiClusterSecret resources
+	// Managed Cluster - expect call to list MultiClusterSecret resources. Return none found.
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {

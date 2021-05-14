@@ -120,16 +120,17 @@ func (s *Syncer) garbageCollect() {
 	// Perform garbage collection on namespaces that are no longer associated with a VerrazzanoProject
 	for _, namespace := range vpNamespaceList.Items {
 		for _, mcObject := range gcObjectArray {
+			// Process a namespace if it is no longer associated with a VerrazzanoProject
 			if !vzstring.SliceContainsString(s.ProjectNamespaces, namespace.Name) {
+				// List the multicluster resource type specified by the mcObject contents
 				listOptions := &client.ListOptions{Namespace: namespace.Name}
 				err = s.LocalClient.List(s.Context, mcObject.ObjectList, listOptions)
 				if err != nil {
-					s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
+					s.Log.Error(err, fmt.Sprintf("failed to list %s on local cluster in namespace %s", mcObject.Object.GetObjectKind().GroupVersionKind().Kind, namespace.Name))
 				}
-				// Delete resources that are on the local cluster but no longer on the admin cluster or placed on this cluster
-				for _, item := range mcObject.ObjectList.GetItems() {
+				// Delete resources that are on the local cluster but are either no longer on the admin cluster or placed on this cluster
+				for _, item := range mcObject.ObjectList.GetItemsAsRuntimeObjects() {
 					mcItem := item.(clusters.MultiClusterResource)
-					s.Log.Info(fmt.Sprintf("processing %s in namespace %s and name %s", mcItem.GetObjectKind().GroupVersionKind().Kind, mcItem.GetNamespace(), mcItem.GetName()))
 					err := s.AdminClient.Get(s.Context, types.NamespacedName{Name: mcItem.GetName(), Namespace: mcItem.GetNamespace()}, mcObject.Object)
 					if errors.IsNotFound(err) || (err == nil && !s.isThisCluster(mcObject.Object.GetPlacement())) {
 						s.Log.Info(fmt.Sprintf("perfoming garbage collection on %s with name %s in namespace %s", item.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
