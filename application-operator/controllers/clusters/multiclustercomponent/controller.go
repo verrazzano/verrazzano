@@ -44,6 +44,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// delete the wrapped resource since MC is being deleted
 	if !mcComp.ObjectMeta.DeletionTimestamp.IsZero() {
 		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcComp, finalizerName, &v1alpha2.Component{}, types.NamespacedName{Namespace: mcComp.Namespace, Name: mcComp.Name})
+		if err != nil {
+			logger.Error(err, "Failed to delete associated component and finalizer")
+		}
 		return ctrl.Result{}, err
 	}
 
