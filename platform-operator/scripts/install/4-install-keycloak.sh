@@ -167,6 +167,7 @@ function configure_keycloak_realms() {
   local _VZ_ADMIN_GRP="$2"
   local _VZ_MONITOR_GRP="$3"
   local _VZ_USER_GRP="$4"
+  local _VZ_SYSTEM_GRP="$5"
 
   local PW=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.password}" | base64 -d)
 
@@ -203,6 +204,10 @@ function configure_keycloak_realms() {
     log "Creating $_VZ_MONITOR_GRP group"
     MONITORS_GID=\$(kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_MONITOR_GRP 2>&1 | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
     log "Created group \$MONITORS_GID"
+
+    log "Creating $_VZ_SYSTEM_GRP group"
+    SYSTEM_GID=\$(kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_SYSTEM_GRP 2>&1 | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
+    log "Created group \$SYSTEM_GID"
 
     log "Creating console_users role"
     kcadm.sh create roles -r $_VZ_REALM -s name=console_users || fail "Failed to create role"
@@ -254,6 +259,71 @@ function configure_keycloak_realms() {
 
     log "Setting ${VERRAZZANO_INTERNAL_ES_USER} user password"
     kcadm.sh set-password -r $_VZ_REALM --username ${VERRAZZANO_INTERNAL_ES_USER} --new-password ${VES} || fail "Failed to set user password"
+
+    log "Re-Creating admin-cli client"
+    ADMIN_CLI=\$(kcadm.sh get clients -r $_VZ_REALM -q "clientId=admin-cli" --fields id --format csv --noquotes 2>&1) || fail "Failed to create group"
+    if [ -n "\$ADMIN_CLI" ] ; then
+        log "Deleting admin-cli client (id: clients/\${ADMIN_CLI})"
+set -x
+        kcadm.sh delete clients/\$ADMIN_CLI -r $_VZ_REALM 
+set +x
+    fi
+    log "Creating admin-cli client"
+    kcadm.sh create clients -r $_VZ_REALM -f - <<\END
+  {
+      "clientId" : "admin-cli",
+      "name" : "${client_admin-cli}",
+      "surrogateAuthRequired" : false,
+      "enabled" : true,
+      "clientAuthenticatorType" : "client-secret",
+      "secret" : "**********",
+      "redirectUris" : [ ],
+      "webOrigins" : [ ],
+      "notBefore" : 0,
+      "bearerOnly" : false,
+      "consentRequired" : false,
+      "standardFlowEnabled" : false,
+      "implicitFlowEnabled" : false,
+      "directAccessGrantsEnabled" : true,
+      "serviceAccountsEnabled" : false,
+      "publicClient" : true,
+      "frontchannelLogout" : false,
+      "protocol" : "openid-connect",
+      "attributes" : { },
+      "authenticationFlowBindingOverrides" : { },
+      "fullScopeAllowed" : false,
+      "nodeReRegistrationTimeout" : 0,
+      "protocolMappers": [
+          {
+            "name": "groupmember",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-group-membership-mapper",
+            "consentRequired": false,
+            "config": {
+              "full.path": "false",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "groups",
+              "userinfo.token.claim": "true"
+            }
+          }
+        ],
+        "defaultClientScopes": [
+          "web-origins",
+          "role_list",
+          "roles",
+          "profile",
+          "email"
+        ],
+        "optionalClientScopes": [
+          "address",
+          "phone",
+          "offline_access",
+          "microprofile-jwt"
+        ]
+  }
+END
+    [ \$? -eq 0 ] || fail "Failed to create client"
 
     log "Creating webui client"
     kcadm.sh create clients -r $_VZ_REALM -f - <<\END
