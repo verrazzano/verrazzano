@@ -261,70 +261,72 @@ function configure_keycloak_realms() {
     log "Setting ${VERRAZZANO_INTERNAL_ES_USER} user password"
     kcadm.sh set-password -r $_VZ_REALM --username ${VERRAZZANO_INTERNAL_ES_USER} --new-password ${VES} || fail "Failed to set user password"
 
-    log "(Re-)Creating admin-cli client"
-    ADMIN_CLI=\$(kcadm.sh get clients -r $_VZ_REALM -q "clientId=admin-cli" --fields id --format csv --noquotes 2>&1) || fail "Failed to create group"
-    if [ -n "\$ADMIN_CLI" ] ; then
-        log "Deleting admin-cli client (id: clients/\${ADMIN_CLI})"
-        kcadm.sh delete clients/\$ADMIN_CLI -r $_VZ_REALM || fail "Failed to delete client"
-    else
-        log "Existing admin-cli client not found"
-    fi
-    log "Creating admin-cli client"
-    kcadm.sh create clients -r $_VZ_REALM -f - <<\END
-  {
-      "clientId" : "admin-cli",
-      "name" : "${client_admin-cli}",
-      "surrogateAuthRequired" : false,
-      "enabled" : true,
-      "clientAuthenticatorType" : "client-secret",
-      "secret" : "**********",
-      "redirectUris" : [ ],
-      "webOrigins" : [ ],
-      "notBefore" : 0,
-      "bearerOnly" : false,
-      "consentRequired" : false,
-      "standardFlowEnabled" : false,
-      "implicitFlowEnabled" : false,
-      "directAccessGrantsEnabled" : true,
-      "serviceAccountsEnabled" : false,
-      "publicClient" : true,
-      "frontchannelLogout" : false,
-      "protocol" : "openid-connect",
-      "attributes" : { },
-      "authenticationFlowBindingOverrides" : { },
-      "fullScopeAllowed" : false,
-      "nodeReRegistrationTimeout" : 0,
-      "protocolMappers": [
-          {
-            "name": "groupmember",
-            "protocol": "openid-connect",
-            "protocolMapper": "oidc-group-membership-mapper",
-            "consentRequired": false,
-            "config": {
-              "full.path": "false",
-              "id.token.claim": "true",
-              "access.token.claim": "true",
-              "claim.name": "groups",
-              "userinfo.token.claim": "true"
-            }
-          }
-        ],
-        "defaultClientScopes": [
-          "web-origins",
-          "role_list",
-          "roles",
-          "profile",
-          "email"
-        ],
-        "optionalClientScopes": [
-          "address",
-          "phone",
-          "offline_access",
-          "microprofile-jwt"
-        ]
-  }
-END
-    [ \$? -eq 0 ] || fail "Failed to create client"
+##    log "(Re-)Creating admin-cli client"
+##    ADMIN_CLI=\$(kcadm.sh get clients -r $_VZ_REALM -q "clientId=admin-cli" --fields id --format csv --noquotes 2>&1) || fail "Failed to create group"
+##    if [ -n "\$ADMIN_CLI" ] ; then
+##        log "Deleting admin-cli client (id: clients/\${ADMIN_CLI})"
+##set -x
+##        kcadm.sh delete clients/\$ADMIN_CLI -r $_VZ_REALM || fail "Failed to delete client"
+##set +x
+##    else
+##        log "Existing admin-cli client not found"
+##    fi
+##    log "Creating admin-cli client"
+##    kcadm.sh create clients -r $_VZ_REALM -f - <<\END
+##  {
+##      "clientId" : "admin-cli",
+##      "name" : "${client_admin-cli}",
+##      "surrogateAuthRequired" : false,
+##      "enabled" : true,
+##      "clientAuthenticatorType" : "client-secret",
+##      "secret" : "**********",
+##      "redirectUris" : [ ],
+##      "webOrigins" : [ ],
+##      "notBefore" : 0,
+##      "bearerOnly" : false,
+##      "consentRequired" : false,
+##      "standardFlowEnabled" : false,
+##      "implicitFlowEnabled" : false,
+##      "directAccessGrantsEnabled" : true,
+##      "serviceAccountsEnabled" : false,
+##      "publicClient" : true,
+##      "frontchannelLogout" : false,
+##      "protocol" : "openid-connect",
+##      "attributes" : { },
+##      "authenticationFlowBindingOverrides" : { },
+##      "fullScopeAllowed" : false,
+##      "nodeReRegistrationTimeout" : 0,
+##      "protocolMappers": [
+##          {
+##            "name": "groupmember",
+##            "protocol": "openid-connect",
+##            "protocolMapper": "oidc-group-membership-mapper",
+##            "consentRequired": false,
+##            "config": {
+##              "full.path": "false",
+##              "id.token.claim": "true",
+##              "access.token.claim": "true",
+##              "claim.name": "groups",
+##              "userinfo.token.claim": "true"
+##            }
+##          }
+##        ],
+##        "defaultClientScopes": [
+##          "web-origins",
+##          "role_list",
+##          "roles",
+##          "profile",
+##          "email"
+##        ],
+##        "optionalClientScopes": [
+##          "address",
+##          "phone",
+##          "offline_access",
+##          "microprofile-jwt"
+##        ]
+##  }
+##END
+##    [ \$? -eq 0 ] || fail "Failed to create client"
 
     log "Creating webui client"
     kcadm.sh create clients -r $_VZ_REALM -f - <<\END
@@ -439,12 +441,8 @@ END
       "directAccessGrantsEnabled" : "true",
       "clientAuthenticatorType" : "client-secret",
       "secret" : "de05ccdc-67df-47f3-81f6-37e61d195aba",
-      "redirectUris" : [
-          "https://kiali.$ENV_NAME.$DNS_SUFFIX/*",
-          "https://telemetry.$ENV_NAME.$DNS_SUFFIX/*",
-          "https://rancher.$ENV_NAME.$DNS_SUFFIX/*"
-      ],
-      "webOrigins" : [ "+" ],
+      "redirectUris" : [ ],
+      "webOrigins" : [ ],
       "notBefore" : 0,
       "bearerOnly" : false,
       "consentRequired" : false,
@@ -455,23 +453,9 @@ END
       "publicClient" : true,
       "frontchannelLogout" : false,
       "protocol" : "openid-connect",
-      "attributes" : {
-        "saml.assertion.signature" : "false",
-        "saml.force.post.binding" : "false",
-        "saml.multivalued.roles" : "false",
-        "saml.encrypt" : "false",
-        "saml.server.signature" : "false",
-        "saml.server.signature.keyinfo.ext" : "false",
-        "exclude.session.state.from.auth.response" : "false",
-        "saml_force_name_id_format" : "false",
-        "saml.client.signature" : "false",
-        "tls.client.certificate.bound.access.tokens" : "false",
-        "saml.authnstatement" : "false",
-        "display.on.consent.screen" : "false",
-        "saml.onetimeuse.condition" : "false"
-      },
+      "attributes" : { },
       "authenticationFlowBindingOverrides" : { },
-      "fullScopeAllowed" : true,
+      "fullScopeAllowed" : false,
       "nodeReRegistrationTimeout" : -1,
       "protocolMappers" : [ {
         "name" : "Client ID",
@@ -502,12 +486,11 @@ END
       }, {
         "name" : "groups",
         "protocol" : "openid-connect",
-        "protocolMapper" : "oidc-usermodel-realm-role-mapper",
+        "protocolMapper" : "oidc-group-membership-mapper",
         "consentRequired" : false,
         "config" : {
           "multivalued" : "true",
-          "userinfo.token.claim" : "true",
-          "user.attribute" : "foo",
+          "userinfo.token.claim" : "false",
           "id.token.claim" : "true",
           "access.token.claim" : "true",
           "claim.name" : "groups",
@@ -526,8 +509,7 @@ END
           "claim.name": "realm_access.roles",
           "jsonType.label": "String"
         }
-      },
-      {
+      }, {
         "name" : "Client Host",
         "protocol" : "openid-connect",
         "protocolMapper" : "oidc-usersessionmodel-note-mapper",
