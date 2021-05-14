@@ -142,9 +142,8 @@ func ValidateOciDnsSecret(client client.Client, spec *VerrazzanoSpec) error {
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
 				return fmt.Errorf("secret \"%s\" must be created in the default namespace before installing Verrrazzano for OCI DNS", spec.Components.DNS.OCI.OCIConfigSecret)
-			} else {
-				return err
 			}
+			return err
 		}
 	}
 
