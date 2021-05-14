@@ -133,11 +133,13 @@ func (s *Syncer) garbageCollect() {
 					mcItem := item.(clusters.MultiClusterResource)
 					err := s.AdminClient.Get(s.Context, types.NamespacedName{Name: mcItem.GetName(), Namespace: mcItem.GetNamespace()}, mcObject.Object)
 					if errors.IsNotFound(err) || (err == nil && !s.isThisCluster(mcObject.Object.GetPlacement())) {
-						s.Log.Info(fmt.Sprintf("perfoming garbage collection on %s with name %s in namespace %s", item.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
+						s.Log.Info(fmt.Sprintf("perfoming garbage collection on %s with name %s in namespace %s", mcItem.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
 						err := s.LocalClient.Delete(s.Context, mcItem)
 						if err != nil {
 							s.Log.Error(err, fmt.Sprintf("failed to delete %s with name %s in namespace %s", mcItem.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
 						}
+					} else if err != nil && !errors.IsNotFound(err) {
+						s.Log.Error(err, fmt.Sprintf("failed to fetch %s with name %s in namespace %s", mcItem.GetObjectKind().GroupVersionKind().Kind, mcItem.GetName(), mcItem.GetNamespace()))
 					}
 				}
 			}
