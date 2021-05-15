@@ -14,24 +14,23 @@ import (
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"go.uber.org/zap"
-	k8net "k8s.io/api/networking/v1beta1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/client-go/rest"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
+	k8net "k8s.io/api/networking/v1beta1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -509,6 +508,13 @@ func TestDeleteVMC(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
 			// setup a scaled down existing scrape config entry for cluster1
+			configMap.TypeMeta = metav1.TypeMeta{
+				APIVersion: configMapVersion,
+				Kind:       configMapKind}
+			configMap.ObjectMeta = metav1.ObjectMeta{
+				Namespace: constants.VerrazzanoSystemNamespace,
+				Name:      prometheusConfigMapName,
+			}
 			configMap.Data = map[string]string{
 				"prometheus.yml": `global:
   scrape_interval: 20s

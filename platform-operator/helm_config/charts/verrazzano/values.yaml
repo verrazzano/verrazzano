@@ -50,7 +50,7 @@ verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
   imageVersion: 0.15.0-20210512213227-2785c3a
-  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
+  nodeExporterImage: ghcr.io/verrazzano/node-exporter:1.0.0-20210513143333-a470f06
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
 
@@ -72,7 +72,7 @@ monitoringOperator:
   esInitImage: ghcr.io/oracle/oraclelinux:7.8
   kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201130145840-7717e73
   configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e
-  oidcProxyImage: ghcr.io/verrazzano/nginx-ingress-controller:0.32-20210122132046-a84f6166a
+  oidcProxyImage: ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210510134749-abc2d2088
   oidcAuthEnabled: true
   RequestMemory: 48Mi
 
@@ -89,7 +89,7 @@ console:
 api:
   name: verrazzano-api
   imageName: ghcr.io/verrazzano/nginx-ingress-controller
-  imageVersion: 0.32-20210122132046-a84f6166a
+  imageVersion: 0.46.0-20210510134749-abc2d2088
   pullPolicy: IfNotPresent
   port: 8775
   impersonatorRoleName: impersonate-api-user

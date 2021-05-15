@@ -110,6 +110,7 @@ func ProcHTTPResponse(resp *http.Response, httpErr error) *HTTPResponse {
 	body, bodyErr := ioutil.ReadAll(resp.Body)
 	return &HTTPResponse{
 		StatusCode: resp.StatusCode,
+		Header:     resp.Header,
 		Body:       body,
 		BodyErr:    bodyErr,
 	}

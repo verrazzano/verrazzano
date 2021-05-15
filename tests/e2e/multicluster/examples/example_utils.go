@@ -50,19 +50,37 @@ func DeployHelloHelidonApp(kubeConfigPath string) error {
 	return nil
 }
 
-// DeployChangePlacement deploys the change-placement example to the cluster with the given kubeConfigPath
-func DeployChangePlacement(kubeConfigPath string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-comp.yaml", kubeConfigPath); err != nil {
-		return fmt.Errorf("Failed to create multi-cluster hello-helidon component resources: %v", err)
-	}
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-app.yaml", kubeConfigPath); err != nil {
-		return fmt.Errorf("Failed to create multi-cluster hello-helidon application resource: %v", err)
-	}
-	// This is a temporary timer until this bug is fixed: VZ-2448
-	// Allow the MC objects to sync before the change in the VerrazzanoProject
-	time.Sleep(time.Minute)
+// ChangePlacementToAdminCluster patches the hello-helidon example to be placed in the admin cluster
+// and uses the given kubeConfigPath as the cluster in which to do the patch
+func ChangePlacementToAdminCluster(kubeconfigPath string) error {
+	return changePlacement(kubeconfigPath, "examples/multicluster/hello-helidon/patch-change-placement-to-admin.yaml")
+}
 
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/verrazzano-project.yaml", kubeConfigPath); err != nil {
+// ChangePlacementToManagedCluster patches the hello-helidon example to be placed in the managed cluster
+// and uses the given kubeConfigPath as the cluster in which to do the patch
+func ChangePlacementToManagedCluster(kubeconfigPath string) error {
+	return changePlacement(kubeconfigPath, "examples/multicluster/hello-helidon/patch-return-placement-to-managed1.yaml")
+}
+
+// changePlacement patches the hello-helidon example with the given patch file
+// and uses the given kubeConfigPath as the cluster in which to do the patch
+func changePlacement(kubeConfigPath string, patchFile string) error {
+	mcCompGvr := clustersv1alpha1.GroupVersion.WithResource(clustersv1alpha1.MultiClusterComponentResource)
+	mcAppGvr := clustersv1alpha1.GroupVersion.WithResource(clustersv1alpha1.MultiClusterAppConfigResource)
+	vpGvr := clustersv1alpha1.GroupVersion.WithResource(clustersv1alpha1.VerrazzanoProjectResource)
+
+	if err := pkg.PatchResourceFromFileInCluster(mcCompGvr, TestNamespace, componentName, patchFile, kubeConfigPath); err != nil {
+		return fmt.Errorf("Failed to change placement of multicluster hello-helidon component resource: %v", err)
+	}
+	if err := pkg.PatchResourceFromFileInCluster(mcAppGvr, TestNamespace, appConfigName, patchFile, kubeConfigPath); err != nil {
+		return fmt.Errorf("Failed to change placement of multicluster hello-helidon application resource: %v", err)
+	}
+	// This is a temporary timer until this bug is fixed: VZ-2454
+	// Allow the MC objects to sync before the change in the VerrazzanoProject
+	pkg.Log(pkg.Info, "Waiting a little over a minute after patching MC resources, so that they are synchronized to managed cluster, before patching VerrazzanoProject")
+	time.Sleep(75*time.Second)
+
+	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projectName, patchFile, kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create VerrazzanoProject resource: %v", err)
 	}
 	return nil
@@ -116,19 +134,11 @@ func VerifyHelloHelidonDeletedAdminCluster(kubeconfigPath string, placedInCluste
 }
 
 func VerifyHelloHelidonDeletedInManagedCluster(kubeconfigPath string) bool {
-	return !projectExists(kubeconfigPath)
+	mcResDeleted := verifyMCResourcesDeleted(kubeconfigPath)
+	appDeleted := VerifyAppDeleted(kubeconfigPath)
 
-	// NOTE: These tests are disabled pending a fix for VZ-2454 - once fixed, the project check can be removed since
-	// it is part of verifyMCResourcesDeleted. It is here because it is the only thing that can be verified on a
-	// managed cluster due to the bug
+	return mcResDeleted && appDeleted
 
-	/*
-		mcResDeleted := verifyMCResourcesDeleted(kubeconfigPath)
-		appDeleted := verifyAppDeleted(kubeconfigPath)
-
-		return mcResDeleted && appDeleted
-
-	*/
 }
 
 // VerifyAppDeleted - verifies that the workload and pods are deleted on the the specified cluster

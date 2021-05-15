@@ -341,7 +341,7 @@ func TestReconcileResourceNotFound(t *testing.T) {
 	// and return a not found error
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterConfigMap"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.GroupVersion.Group, Resource: clustersv1alpha1.MultiClusterConfigMapResource}, crName))
 
 	// expect no further action to be taken
 

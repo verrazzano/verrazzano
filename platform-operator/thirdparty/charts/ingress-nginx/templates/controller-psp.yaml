@@ -1,4 +1,4 @@
-{{- if .Values.podSecurityPolicy.enabled -}}
+{{- if and .Values.podSecurityPolicy.enabled (empty .Values.controller.existingPsp) -}}
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
@@ -9,12 +9,18 @@ metadata:
 spec:
   allowedCapabilities:
     - NET_BIND_SERVICE
+{{- if .Values.controller.sysctls }}
+  allowedUnsafeSysctls:
+  {{- range $sysctl, $value := .Values.controller.sysctls }}
+  - {{ $sysctl }}
+  {{- end }}
+{{- end }}
   privileged: false
   allowPrivilegeEscalation: true
   # Allow core volume types.
   volumes:
     - 'configMap'
-    #- 'emptyDir'
+    - 'emptyDir'
     #- 'projected'
     - 'secret'
     #- 'downwardAPI'

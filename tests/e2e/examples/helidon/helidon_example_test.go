@@ -5,10 +5,12 @@ package helidon
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -165,8 +167,37 @@ func helloHelidonPodsRunning() bool {
 }
 
 func appEndpointAccessible(url string, hostname string) bool {
-	status, webpage := pkg.GetWebPageWithBasicAuth(url, hostname, "", "")
-	return (status == http.StatusOK) && (strings.Contains(webpage, "Hello World"))
+	req, err := retryablehttp.NewRequest("GET", url, nil)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		return false
+	}
+	req.Host = hostname
+	httpClient := pkg.GetVerrazzanoHTTPClient()
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		return false
+	}
+	bodyRaw, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected status code=%v", resp.StatusCode))
+		return false
+	}
+	// HTTP Server headers should never be returned.
+	for headerName, headerValues := range resp.Header {
+		if strings.EqualFold(headerName, "Server" ) {
+			pkg.Log(pkg.Error, fmt.Sprintf("Unexpected Server header=%v", headerValues))
+			return false
+		}
+	}
+	bodyStr := string(bodyRaw)
+	if !strings.Contains(bodyStr, "Hello World") {
+		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected response body=%v", bodyStr))
+		return false
+	}
+	return true
 }
 
 func appMetricsExists() bool {

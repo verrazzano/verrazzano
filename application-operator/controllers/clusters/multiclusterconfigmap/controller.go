@@ -45,6 +45,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// delete the wrapped resource since MC is being deleted
 	if !mcConfigMap.ObjectMeta.DeletionTimestamp.IsZero() {
 		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
+		if err != nil {
+			logger.Error(err, "Failed to delete associated configmap and finalizer")
+		}
 		return ctrl.Result{}, err
 	}
 
