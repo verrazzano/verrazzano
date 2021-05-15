@@ -188,27 +188,31 @@ function configure_keycloak_realms() {
     log "Logging in as '$KCADMIN_USERNAME'"
     kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password) || fail "Login failed"
 
-    ## log "Deleting realm $_VZ_REALM"
-    ## kcadm.sh delete realms/$_VZ_REALM || log "Failed to delete realm"
-
     log "Creating $_VZ_REALM realm"
     kcadm.sh create realms -s realm=$_VZ_REALM -s enabled=false || fail "Failed to create realm"
 
     log "Creating $_VZ_USER_GRP group"
-    USERS_GID=\$(kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_USER_GRP 2>&1 | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
-    log "Created group \$USERS_GID"
+    USER_GID=\$(kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_USER_GRP 2>&1) || fail "Failed to create group"
+    USER_GID=\$(echo "\$USER_GID" | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
+    log "Created group \$USER_GID"
 
     log "Creating $_VZ_ADMIN_GRP group"
-    ADMINS_GID=\$(kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_ADMIN_GRP 2>&1 | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
-    log "Created group \$ADMINS_GID"
+    ADMIN_GID=\$(kcadm.sh create groups/\$USER_GID/children -r $_VZ_REALM -s name=$_VZ_ADMIN_GRP 2>&1) || fail "Failed to create group"
+    ADMIN_GID=\$(echo "\$ADMIN_GID" | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
+    log "Created group \$ADMIN_GID"
 
     log "Creating $_VZ_MONITOR_GRP group"
-    MONITORS_GID=\$(kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_MONITOR_GRP 2>&1 | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
-    log "Created group \$MONITORS_GID"
+    MONITOR_GID=\$(kcadm.sh create groups/\$USER_GID/children -r $_VZ_REALM -s name=$_VZ_MONITOR_GRP 2>&1) || fail "Failed to create group"
+    MONITOR_GID=\$(echo "\$MONITOR_GID" | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
+    log "Created group \$MONITOR_GID"
 
     log "Creating $_VZ_SYSTEM_GRP group"
-    SYSTEM_GID=\$(kcadm.sh create groups -r $_VZ_REALM -s name=$_VZ_SYSTEM_GRP 2>&1 | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
+    SYSTEM_GID=\$(kcadm.sh create groups/\$USER_GID/children -r $_VZ_REALM -s name=$_VZ_SYSTEM_GRP 2>&1) || fail "Failed to create group"
+    SYSTEM_GID=\$(echo "\$SYSTEM_GID" | sed -e "s;^.*'\([^']*\)'.*$;\\1;") || fail "Failed to create group"
     log "Created group \$SYSTEM_GID"
+
+    log "Creating vz_api_access role"
+    kcadm.sh create roles -r $_VZ_REALM -s name=vz_api_access || fail "Failed to create role"
 
     log "Creating console_users role"
     kcadm.sh create roles -r $_VZ_REALM -s name=console_users || fail "Failed to create role"
@@ -219,47 +223,239 @@ function configure_keycloak_realms() {
     log "Creating Viewer role"
     kcadm.sh create roles -r $_VZ_REALM -s name=Viewer || fail "Failed to create role"
 
+    log "Granting vz_api_access role to $_VZ_USER_GRP group"
+    kcadm.sh add-roles -r $_VZ_REALM --gid \$USER_GID --rolename vz_api_access || log "Failed to grant role"
+
     log "Granting console_users role to $_VZ_USER_GRP group"
-    kcadm.sh add-roles -r $_VZ_REALM --gid \$USERS_GID --rolename console_users || log "Failed to grant role"
+    kcadm.sh add-roles -r $_VZ_REALM --gid \$USER_GID --rolename console_users || log "Failed to grant role"
 
     log "Granting Admin role to $_VZ_ADMIN_GRP group"
-    kcadm.sh add-roles -r $_VZ_REALM --gid \$ADMINS_GID --rolename Admin || log "Failed to grant role"
+    kcadm.sh add-roles -r $_VZ_REALM --gid \$ADMIN_GID --rolename Admin || log "Failed to grant role"
 
     log "Granting Viewer role to $_VZ_MONITOR_GRP group"
-    kcadm.sh add-roles -r $_VZ_REALM --gid \$MONITORS_GID --rolename Viewer || log "Failed to grant role"
+    kcadm.sh add-roles -r $_VZ_REALM --gid \$MONITOR_GID --rolename Viewer || log "Failed to grant role"
 
-    log "Adding console_users to default roles"
-    EXISTING=\$(kcadm.sh get realms/$_VZ_REALM --fields defaultRoles --format csv) || fail "Failed to get existing default roles"
-    kcadm.sh update realms/$_VZ_REALM -s "defaultRoles=[ \${EXISTING},\"console_users\" ]" || fail "Failed to update default roles"
+    log "Creating $VZ_USERNAME user"
+    kcadm.sh create users -r $_VZ_REALM -s username=$VZ_USERNAME -s groups[0]=/$_VZ_USER_GRP/$_VZ_ADMIN_GRP -s enabled=true || fail "Failed to create user"
 
-    # we'd like to use a default group instead of a default role, but there
-    # seems to be a bug that causes an exception when the defaultGroups field
-    # (but not the defaultRoles field) is set.
+    log "Granting realm admin roles to $VZ_USERNAME user"
+    kcadm.sh add-roles -r $_VZ_REALM --uusername $VZ_USERNAME --cclientid realm-management --rolename realm-admin || fail "Failed to grant roles"
 
-##    log "Adding verrazzano-users to default groups"
-##    EXISTING=\$(kcadm.sh get realms/$_VZ_REALM --fields defaultGroups --format csv) || fail "Failed to get existing default groups"
-##    kcadm.sh update realms/$_VZ_REALM -s "defaultGroups=[ \${EXISTING},\"verrazzano-users\" ]" || fail "Failed to update default groups"
+    log "Setting $VZ_USERNAME user password"
+    kcadm.sh set-password -r $_VZ_REALM --username $VZ_USERNAME --new-password $PW || fail "Failed to set user password"
 
-    log "Creating verrazzano user"
-    kcadm.sh create users -r $_VZ_REALM -s username=verrazzano -s groups[0]=verrazzano-admins -s enabled=true || fail "Failed to create user"
+    log "Creating $VERRAZZANO_INTERNAL_PROM_USER user"
+    kcadm.sh create users -r $_VZ_REALM -s username=$VERRAZZANO_INTERNAL_PROM_USER -s groups[0]=/$_VZ_USER_GRP/$_VZ_SYSTEM_GRP -s enabled=true || fail "Failed to create user"
 
-    log "Granting realm admin roles to verrazzano user"
-    kcadm.sh add-roles -r $_VZ_REALM --uusername verrazzano --cclientid realm-management --rolename realm-admin || fail "Failed to grant roles"
+    log "Setting $VERRAZZANO_INTERNAL_PROM_USER user password"
+    kcadm.sh set-password -r $_VZ_REALM --username $VERRAZZANO_INTERNAL_PROM_USER --new-password $VPROM || fail "Failed to set user password"
 
-    log "Setting verrazzano user password"
-    kcadm.sh set-password -r $_VZ_REALM --username verrazzano --new-password $PW || fail "Failed to set user password"
+    log "Creating $VERRAZZANO_INTERNAL_ES_USER user"
+    kcadm.sh create users -r $_VZ_REALM -s username=$VERRAZZANO_INTERNAL_ES_USER -s groups[0]=/$_VZ_USER_GRP/$_VZ_SYSTEM_GRP -s enabled=true || fail "Failed to create user"
 
-    log "Creating ${VERRAZZANO_INTERNAL_PROM_USER} user"
-    kcadm.sh create users -r $_VZ_REALM -s username=${VERRAZZANO_INTERNAL_PROM_USER} -s enabled=true || fail "Failed to create user"
+    log "Setting $VERRAZZANO_INTERNAL_ES_USER user password"
+    kcadm.sh set-password -r $_VZ_REALM --username $VERRAZZANO_INTERNAL_ES_USER --new-password $VES || fail "Failed to set user password"
 
-    log "Setting ${VERRAZZANO_INTERNAL_PROM_USER} user password"
-    kcadm.sh set-password -r $_VZ_REALM --username ${VERRAZZANO_INTERNAL_PROM_USER} --new-password ${VPROM} || fail "Failed to set user password"
+    log "Creating verrazzano-pkce client"
+    kcadm.sh create clients -r $_VZ_REALM -f - <<\END
+{
+      "clientId" : "verrazzano-pkce",
+      "enabled": true,
+      "surrogateAuthRequired": false,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "https://verrazzano.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://verrazzano.$ENV_NAME.$DNS_SUFFIX/verrazzano/authcallback",
+        "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
+        "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
+        "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback"
+      ],
+      "webOrigins": [
+        "https://verrazzano.$ENV_NAME.$DNS_SUFFIX",
+        "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX",
+        "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX",
+        "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX",
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "saml.assertion.signature": "false",
+        "saml.multivalued.roles": "false",
+        "saml.force.post.binding": "false",
+        "saml.encrypt": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "exclude.session.state.from.auth.response": "false",
+        "saml_force_name_id_format": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "pkce.code.challenge.method": "S256",
+        "saml.onetimeuse.condition": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+          {
+            "name": "groupmember",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-group-membership-mapper",
+            "consentRequired": false,
+            "config": {
+              "full.path": "false",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "groups",
+              "userinfo.token.claim": "true"
+            }
+          },
+          {
+            "name": "realm roles",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-realm-role-mapper",
+            "consentRequired": false,
+            "config": {
+              "multivalued": "true",
+              "user.attribute": "foo",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "realm_access.roles",
+              "jsonType.label": "String"
+            }
+          }
+        ],
+      "defaultClientScopes": [
+        "web-origins",
+        "role_list",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+}
+END
+    [ \$? -eq 0 ] || fail "Failed to create client"
 
-    log "Creating ${VERRAZZANO_INTERNAL_ES_USER} user"
-    kcadm.sh create users -r $_VZ_REALM -s username=${VERRAZZANO_INTERNAL_ES_USER} -s enabled=true || fail "Failed to create user"
-
-    log "Setting ${VERRAZZANO_INTERNAL_ES_USER} user password"
-    kcadm.sh set-password -r $_VZ_REALM --username ${VERRAZZANO_INTERNAL_ES_USER} --new-password ${VES} || fail "Failed to set user password"
+    log "Creating verrazzano-pg client"
+    kcadm.sh create clients -r $_VZ_REALM -f - <<\END
+{
+      "clientId" : "verrazzano-pg",
+      "enabled" : true,
+      "rootUrl" : "",
+      "adminUrl" : "",
+      "surrogateAuthRequired" : false,
+      "directAccessGrantsEnabled" : "true",
+      "clientAuthenticatorType" : "client-secret",
+      "secret" : "de05ccdc-67df-47f3-81f6-37e61d195aba",
+      "redirectUris" : [ ],
+      "webOrigins" : [ "+" ],
+      "notBefore" : 0,
+      "bearerOnly" : false,
+      "consentRequired" : false,
+      "standardFlowEnabled" : false,
+      "implicitFlowEnabled" : false,
+      "directAccessGrantsEnabled" : true,
+      "serviceAccountsEnabled" : false,
+      "publicClient" : true,
+      "frontchannelLogout" : false,
+      "protocol" : "openid-connect",
+      "attributes" : { },
+      "authenticationFlowBindingOverrides" : { },
+      "fullScopeAllowed" : true,
+      "nodeReRegistrationTimeout" : -1,
+      "protocolMappers" : [ {
+        "name" : "groups",
+        "protocol" : "openid-connect",
+        "protocolMapper" : "oidc-group-membership-mapper",
+        "consentRequired" : false,
+        "config" : {
+          "multivalued" : "true",
+          "userinfo.token.claim" : "false",
+          "id.token.claim" : "true",
+          "access.token.claim" : "true",
+          "claim.name" : "groups",
+          "jsonType.label" : "String"
+        }
+      }, {
+        "name": "realm roles",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-usermodel-realm-role-mapper",
+        "consentRequired": false,
+        "config": {
+          "multivalued": "true",
+          "user.attribute": "foo",
+          "id.token.claim": "true",
+          "access.token.claim": "true",
+          "claim.name": "realm_access.roles",
+          "jsonType.label": "String"
+        }
+      }, {
+        "name" : "Client ID",
+        "protocol" : "openid-connect",
+        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+        "consentRequired" : false,
+        "config" : {
+          "user.session.note" : "clientId",
+          "userinfo.token.claim" : "true",
+          "id.token.claim" : "true",
+          "access.token.claim" : "true",
+          "claim.name" : "clientId",
+          "jsonType.label" : "String"
+        }
+      }, {
+        "name" : "Client IP Address",
+        "protocol" : "openid-connect",
+        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+        "consentRequired" : false,
+        "config" : {
+          "user.session.note" : "clientAddress",
+          "userinfo.token.claim" : "true",
+          "id.token.claim" : "true",
+          "access.token.claim" : "true",
+          "claim.name" : "clientAddress",
+          "jsonType.label" : "String"
+        }
+      }, {
+        "name" : "Client Host",
+        "protocol" : "openid-connect",
+        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+        "consentRequired" : false,
+        "config" : {
+          "user.session.note" : "clientHost",
+          "userinfo.token.claim" : "true",
+          "id.token.claim" : "true",
+          "access.token.claim" : "true",
+          "claim.name" : "clientHost",
+          "jsonType.label" : "String"
+        }
+      } ],
+      "defaultClientScopes" : [ "web-origins", "role_list", "roles", "profile", "email" ],
+      "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
+}
+END
+    [ \$? -eq 0 ] || fail "Failed to create client"
 
     log "Creating webui client"
     kcadm.sh create clients -r $_VZ_REALM -f - <<\END
