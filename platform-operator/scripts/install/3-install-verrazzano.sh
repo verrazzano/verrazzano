@@ -126,8 +126,14 @@ function install_verrazzano()
   fi
 
   if ! is_chart_deployed verrazzano ${VERRAZZANO_NS} ${VZ_CHARTS_DIR}/verrazzano ; then
+    local chart_name=verrazzano
+    build_image_overrides verrazzano ${chart_name}
+    local image_args=${HELM_IMAGE_ARGS}
+    build_image_overrides monitoring-init-images monitoring-init-images
+    HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} ${image_args}"
+
     helm \
-        upgrade --install verrazzano \
+        upgrade --install ${chart_name} \
         ${VZ_CHARTS_DIR}/verrazzano \
         --namespace ${VERRAZZANO_NS} \
         --set image.pullPolicy=IfNotPresent \
@@ -139,6 +145,7 @@ function install_verrazzano()
         --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
         --set keycloak.enabled=$(is_keycloak_enabled) \
         --set rancher.enabled=$(is_rancher_enabled) \
+        ${HELM_IMAGE_ARGS} \
         ${PROFILE_VALUES_OVERRIDE} \
         ${EXTRA_V8O_ARGUMENTS} || return $?
   fi
@@ -280,6 +287,10 @@ if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
     action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${VERRAZZANO_NS} namespace" \
         copy_registry_secret "${VERRAZZANO_NS}"
+  fi
+  if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${MONITORING_NS} > /dev/null 2>&1 ; then
+    action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${MONITORING_NS} namespace" \
+        copy_registry_secret "${MONITORING_NS}"
   fi
 fi
 
