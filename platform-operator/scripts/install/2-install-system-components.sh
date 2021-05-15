@@ -334,11 +334,11 @@ function install_rancher()
         EXTRA_RANCHER_ARGUMENTS="${EXTRA_RANCHER_ARGUMENTS} --set systemDefaultRegistry=${REGISTRY}/${IMAGE_REPO} --set useBundledSystemChart=true"
       fi
 
-      local chartName=rancher
-      build_image_overrides rancher ${chartName}
+      local chart_name=rancher
+      build_image_overrides rancher ${chart_name}
 
       # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-      helm upgrade ${chartName} ${RANCHER_CHART_DIR} \
+      helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
         --install --namespace cattle-system \
         -f $VZ_OVERRIDES_DIR/rancher-values.yaml \
         --set hostname=rancher.${NAME}.${DNS_SUFFIX} \

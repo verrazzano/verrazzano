@@ -89,10 +89,10 @@ function install_istio()
 
     if ! is_chart_deployed istiod istio-system ${ISTIO_CHART_DIR}/istio-control/istio-discovery ; then
       log "Installing Istio discovery"
-      local chartName=istiod
-      build_image_overrides istio ${chartName}
+      local chart_name=istiod
+      build_image_overrides istio ${chart_name}
 
-      helm upgrade ${chartName} ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
+      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
         --install \
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
@@ -108,10 +108,10 @@ function install_istio()
 
     if ! is_chart_deployed istio-ingress istio-system ${ISTIO_CHART_DIR}/gateways/istio-ingress ; then
       log "Installing Istio ingress"
-      local chartName=istio-ingress
-      build_image_overrides istio ${chartName}
+      local chart_name=istio-ingress
+      build_image_overrides istio ${chart_name}
 
-      helm upgrade ${chartName} ${ISTIO_CHART_DIR}/gateways/istio-ingress \
+      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-ingress \
         --install \
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
@@ -123,10 +123,10 @@ function install_istio()
 
     if ! is_chart_deployed istio-egress istio-system ${ISTIO_CHART_DIR}/gateways/istio-egress ; then
       log "Installing Istio egress"
-      local chartName=istio-egress
-      build_image_overrides istio ${chartName}
+      local chart_name=istio-egress
+      build_image_overrides istio ${chart_name}
 
-      helm upgrade ${chartName} ${ISTIO_CHART_DIR}/gateways/istio-egress \
+      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-egress \
         --install \
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
@@ -137,10 +137,10 @@ function install_istio()
 
     if ! is_chart_deployed istiocoredns istio-system ${ISTIO_CHART_DIR}/istiocoredns ; then
       log "Installing istiocoredns"
-      local chartName=istiocoredns
-      build_image_overrides istio ${chartName}
+      local chart_name=istiocoredns
+      build_image_overrides istio ${chart_name}
 
-      helm upgrade ${chartName} ${ISTIO_CHART_DIR}/istiocoredns \
+      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istiocoredns \
         --install \
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
