@@ -29,7 +29,7 @@ const (
 	keycloakAdminUserRealm          = "master"
 	keycloakAdminUserName           = "keycloakadmin"
 
-	keycloakAPIClientID   = "verrazzano-oauth-client"
+	keycloakAPIClientID   = "verrazzano-pg"
 	keycloakAdminClientID = "admin-cli"
 )
 
