@@ -171,11 +171,22 @@ function install_oam_operator {
   if is_chart_deployed oam-kubernetes-runtime ${VERRAZZANO_NS} ${CHARTS_DIR}/oam-kubernetes-runtime ; then
     return 0
   fi
+
+  IMAGE_PULL_SECRETS_ARGUMENT=""
+  if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+    IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+  fi
+
   log "Install OAM Kubernetes operator"
-  helm upgrade --install --wait oam-kubernetes-runtime \
+  local chart_name=oam-kubernetes-runtime
+  build_image_overrides oam-kubernetes-runtime ${chart_name}
+
+  helm upgrade --install --wait ${chart_name} \
     ${CHARTS_DIR}/oam-kubernetes-runtime \
     --namespace "${VERRAZZANO_NS}" \
     -f $VZ_OVERRIDES_DIR/oam-kubernetes-runtime-values.yaml \
+    ${HELM_IMAGE_ARGS} \
+    ${IMAGE_PULL_SECRETS_ARGUMENT} \
     || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install OAM Kubernetes operator."
