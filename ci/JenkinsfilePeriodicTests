@@ -22,6 +22,7 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
+        BRANCH_NAME="tvlatas/periodic-tests"
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
