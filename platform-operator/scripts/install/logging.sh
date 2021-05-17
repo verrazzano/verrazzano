@@ -289,10 +289,10 @@ function fail() {
 function log() {
   local msg="$@"
   if [ ${DEBUG:-0} -ge 0 ]; then
-    echo -e "${msg}"
+    echo -e "$(_logging_timestamp) ${msg}"
   fi
   if [ ${DEBUG:-0} -ge 1 ]; then
-    echo -e "${msg}" >&${_LOGGING_CONSOLE_STDOUT}
+    echo -e "$(_logging_timestamp) ${msg}" >&${_LOGGING_CONSOLE_STDOUT}
   fi
 }
 
@@ -325,7 +325,7 @@ function trace() {
 # Generate a timestamp for logs.
 # Internal function
 function _logging_timestamp() {
-  date -u '+%Y-%m-%d %H:%M%:%S %Z'
+  date -u '+%Y-%m-%d %H:%M:%S %Z'
 }
 
 # Function used for interrupt (ie ^C) trap.
