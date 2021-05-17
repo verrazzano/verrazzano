@@ -1085,6 +1085,14 @@ Copyright 2020 The Crossplane Authors.
 Copyright 2019 The Kruise Authors.
 
 -------- Dependency
+github.com/docker/spdystream
+-------- Copyrights
+Copyright 2014-2015 Docker, Inc.
+Copyright © 2014-2015 Docker, Inc. All rights reserved, except as follows. Code is released under the Apache 2.0 license. The README.md file, and files in the "docs" folder are licensed under the Creative Commons Attribution 4.0 International License under the terms and conditions set forth in the file "LICENSE.docs". You may obtain a duplicate copy of the same license, titled CC-BY-SA-4.0, at http://creativecommons.org/licenses/by/4.0/.
+Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
+
+-------- Dependency
 github.com/go-logr/logr
 -------- Copyrights
 
@@ -1302,6 +1310,17 @@ Copyright 2014-2015 The Prometheus Authors
 This product includes software developed at
 SoundCloud Ltd. (http://soundcloud.com/).
 
+
+-------- Dependency
+github.com/spf13/cobra
+-------- Copyrights
+Copyright © 2015 Steve Francia <spf@spf13.com>.
+Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
+11 of the WIPO copyright treaty adopted on 20 December 1996, or
+Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
+Copyright © 2013 Steve Francia <spf@spf13.com>.
+Copyright 2015 Red Hat Inc. All rights reserved.
+Copyright 2016 French Ben. All rights reserved.
 
 -------- Dependency
 gomodules.xyz/jsonpatch/v2
@@ -1556,6 +1575,7 @@ Copyright 2020 The Kubernetes Authors.
 cloud.google.com/go
 github.com/crossplane/crossplane-runtime
 github.com/crossplane/oam-kubernetes-runtime
+github.com/docker/spdystream
 github.com/go-logr/logr
 github.com/go-logr/zapr
 github.com/golang/groupcache
@@ -1570,6 +1590,7 @@ github.com/prometheus/client_golang
 github.com/prometheus/client_model
 github.com/prometheus/common
 github.com/prometheus/procfs
+github.com/spf13/cobra
 gomodules.xyz/jsonpatch/v2
 google.golang.org/genproto
 google.golang.org/grpc
@@ -2440,4 +2461,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 3915f9df13bdc583854360b7932bf2c7
+License file based on go.mod with md5 sum: 4a899dcab6a96a8f93461ffd0c1596da
