@@ -18,6 +18,12 @@ pipeline {
         }
     }
 
+    environment {
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
+    }
+
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
     // commit has been stored in object storage. This job will fetch that commit from master and run extended tests using that.
     // This job is NOT currently setup to run extended tests from other branches, if you need to run those extended jobs you will
