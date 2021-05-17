@@ -10,6 +10,10 @@ import (
 	"net/http"
 	"strings"
 
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	securityv1beta1 "istio.io/api/security/v1beta1"
@@ -93,7 +97,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	}
 
 	// Create/update Istio Authorization policy for the given pod.
-	err = a.createUpdateAuthorizationPolicy(req.Namespace, serviceAccountName, appConfigOwnerRef)
+	err = a.createUpdateAuthorizationPolicy(req.Namespace, serviceAccountName, appConfigOwnerRef, pod.ObjectMeta.Labels)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -134,10 +138,24 @@ func (a *IstioWebhook) InjectDecoder(d *admission.Decoder) error {
 }
 
 // createUpdateAuthorizationPolicy will create/update an Istio authoriztion policy.
-func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, serviceAccountName string, ownerRef metav1.OwnerReference) error {
+func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, serviceAccountName string, ownerRef metav1.OwnerReference, labels map[string]string) error {
 	podPrincipal := fmt.Sprintf("cluster.local/ns/%s/sa/%s", namespace, serviceAccountName)
 	gwPrincipal := "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"
 	promPrincipal := "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator"
+	weblogicOperPrincipal := "cluster.local/ns/verrazzano-system/sa/weblogic-operator"
+
+	principals := []string{
+		podPrincipal,
+		gwPrincipal,
+		promPrincipal,
+	}
+	// If the pod is WebLogic then add the WebLogic operator principle so that the operator can
+	// communicate with the WebLogic servers
+	workloadType, found := labels[constants.LabelWorkloadType]
+	weblogicFound := found && workloadType == constants.WorkloadTypeWeblogic
+	if weblogicFound {
+		principals = append(principals, weblogicOperPrincipal)
+	}
 
 	// Check if authorization policy exist.  The name of the authorization policy is the owner reference name which happens
 	// to be the appconfig name.
@@ -153,11 +171,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 		fromRules := []*securityv1beta1.Rule_From{
 			{
 				Source: &securityv1beta1.Source{
-					Principals: []string{
-						podPrincipal,
-						gwPrincipal,
-						promPrincipal,
-					},
+					Principals: principals,
 				},
 			},
 		}
@@ -195,25 +209,27 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 		return err
 	}
 
-	// Check if we need to add a principal to an existing Istio authorization policy.
-	principalFound := false
-	for _, principal := range authPolicy.Spec.GetRules()[0].From[0].Source.Principals {
-		if principal == podPrincipal {
-			principalFound = true
-			break
+	// If the pod and/or WebLogic operator principals are missing then update the principal list
+	principalSet := vzstring.SliceToSet(authPolicy.Spec.GetRules()[0].From[0].Source.Principals)
+	var update bool
+	if _, ok := principalSet[podPrincipal]; !ok {
+		update = true
+		authPolicy.Spec.GetRules()[0].From[0].Source.Principals = append(authPolicy.Spec.GetRules()[0].From[0].Source.Principals, podPrincipal)
+	}
+	if weblogicFound {
+		if _, ok := principalSet[weblogicOperPrincipal]; !ok {
+			update = true
+			authPolicy.Spec.GetRules()[0].From[0].Source.Principals = append(authPolicy.Spec.GetRules()[0].From[0].Source.Principals, weblogicOperPrincipal)
 		}
 	}
-
-	// We did not find the principal in the Istio authorization policy so update the policy with the new principal.
-	if !principalFound {
-		authPolicy.Spec.GetRules()[0].From[0].Source.Principals = append(authPolicy.Spec.GetRules()[0].From[0].Source.Principals, podPrincipal)
+	// Update the policy with the principals that are missing
+	if update {
 		istioLogger.Info(fmt.Sprintf("Updating Istio authorization policy: %s:%s", namespace, ownerRef.Name))
 		_, err := a.IstioClient.SecurityV1beta1().AuthorizationPolicies(namespace).Update(context.TODO(), authPolicy, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
