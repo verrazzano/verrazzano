@@ -101,7 +101,7 @@ function pull_and_save_images() {
       done
     done
   done
-  tar -czf ${3} -C ${2} .
+  tar -czf $3 -C $2 .
 }
 
-pull_and_save_images
+pull_and_save_images $1 $2 $3
