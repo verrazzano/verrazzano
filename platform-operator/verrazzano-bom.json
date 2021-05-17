@@ -52,7 +52,7 @@
               "image": "external-dns",
               "tag": "v0.7.1-20201016205338-516bc8b2",
               "helmPath": "image.repository",
-              "helmRegistryPath": "image.registry",
+              "helmRegPath": "image.registry",
               "helmTagPath": "image.tag"
             }
           ]
