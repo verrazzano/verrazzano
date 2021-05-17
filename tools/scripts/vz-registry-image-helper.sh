@@ -301,6 +301,10 @@ function process_images_from_bom() {
       if [ -n "${target_repo}" ] && [ "${target_repo}" != "null" ]; then
         to_image_prefix=${to_image_prefix}/${target_repo}
       fi
+      # Rancher hack for now
+      if [ "${from_registry}" == "rancher" ]; then
+        to_image_prefix=${to_image_prefix}/${from_registry}
+      fi
 
       for base_image in ${image_names}; do
         # Build up the image name and target image name, and do a pull/tag/push
