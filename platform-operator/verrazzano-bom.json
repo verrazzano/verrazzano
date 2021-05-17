@@ -3,9 +3,9 @@
   "components": [
     {
       "name": "cert-manager",
-      "repository": "verrazzano",
       "subcomponents": [
         {
+          "repository": "verrazzano",
           "name": "cert-manager",
           "images": [
             {
@@ -20,9 +20,9 @@
     },
     {
       "name": "istio",
-      "repository": "verrazzano",
       "subcomponents": [
         {
+          "repository": "verrazzano",
           "name": "istiocoredns",
           "images": [
             {
@@ -39,6 +39,7 @@
           ]
         },
         {
+          "repository": "verrazzano",
           "name": "istiod",
           "images": [
             {
@@ -49,6 +50,7 @@
           ]
         },
         {
+          "repository": "verrazzano",
           "name": "istio-ingress",
           "images": [
             {
@@ -59,6 +61,7 @@
           ]
         },
         {
+          "repository": "verrazzano",
           "name": "istio-egress",
           "images": [
             {
@@ -72,9 +75,9 @@
     },
     {
       "name": "rancher",
-      "repository": "verrazzano",
       "subcomponents": [
         {
+          "repository": "verrazzano",
           "name": "rancher",
           "images": [
             {
@@ -86,6 +89,8 @@
           ]
         },
         {
+          "registry": "rancher",
+          "repository": "",
           "name": "additional-rancher",
           "images": [
             {
@@ -122,9 +127,9 @@
     },
     {
       "name": "verrazzano",
-      "repository": "verrazzano",
       "subcomponents": [
         {
+          "repository": "verrazzano",
           "name": "verrazzano",
           "images": [
             {
@@ -207,9 +212,9 @@
     },
     {
       "name": "monitoring-init-images",
-      "repository": "oracle",
       "subcomponents": [
         {
+          "repository": "oracle",
           "name": "monitoring-init-images",
           "images": [
             {

@@ -39,37 +39,74 @@ function list_components() {
 # Get the repository name for a component in the BOM
 function get_component_repo() {
   local compName=$1
-  cat ${BOM_FILE} | jq -r --arg comp ${compName} '.components[] | select(.name|test($comp)) | .repository'
+  cat ${BOM_FILE} | jq -r --arg comp ${compName} '.components[] | select(.name==$comp) | .repository'
+}
+
+# Get the subcomponent registry
+function get_subcomponent_registry() {
+  local compName=$1
+  local subCompName=$2
+  cat ${BOM_FILE} | jq -r --arg comp ${compName} --arg subcomp ${subCompName} '.components[] | select(.name==$comp) | .subcomponents[] | select(.name==$subcomp) | .registry'
+}
+
+# Get the repository name for a subcomponent in the BOM
+function get_subcomponent_repo() {
+  local compName=$1
+  local subCompName=$2
+  cat ${BOM_FILE} | jq -r --arg comp ${compName} --arg subcomp ${subCompName} '.components[] | select(.name==$comp) | .subcomponents[] | select(.name==$subcomp) | .repository'
+}
+
+# List the subcomponents names within a component in the BOM
+function list_subcomponent_names() {
+  local compName=$1
+  cat ${BOM_FILE} | jq -r --arg comp ${compName} \
+    '.components[] | select(.name==$comp) | .subcomponents[] | .name '
 }
 
 # List the base image names for all subcomponents of a component in the BOM, in the form <image-name>:<tag>
 function list_subcomponent_images() {
   local compName=$1
-  cat ${BOM_FILE} | jq -r --arg comp ${compName} \
-    '.components[] | select(.name|test($comp)) | .subcomponents[].images[] | "\(.image):\(.tag)"'
+  local subCompName=$2
+  cat ${BOM_FILE} | jq -r --arg comp ${compName} --arg subcomp ${subCompName} \
+    '.components[] | select(.name==$comp) | .subcomponents[] | select(.name==$subcomp) | .images[] | "\(.image):\(.tag)"'
 }
 
 # Main driver for pulling/saving images based on the Verrazzano bill of materials (BOM)
 function pull_and_save_images() {
   # Loop through registry components
   echo "Using image registry ${BOM_FILE}"
-  local from_registry=$(get_registry)
   local components=($(list_components))
+  local global_registry=$(get_registry)
   for component in "${components[@]}"; do
-    echo "Processing images for Verrazzano component ${component}"
-    # Load the repository and base image names for the component
-    local from_repository=$(get_component_repo $component)
-    local image_names=$(list_subcomponent_images $component)
-    for base_image in ${image_names}; do
-      # Build up the image name and target image name, and do a pull/tag/push
-      local from_image=${from_registry}/${from_repository}/${base_image}
-      echo "DEBUG: ${from_image}"
-      local tarname=$(echo "$from_image.tar" | sed -e 's;/;_;g' -e 's/:/-/g')
-      docker pull $from_image
-      docker save -o $2/${tarname} ${from_image}
+    # echo "Processing component: ${component}"
+    local sub_components=$(list_subcomponent_names ${component})
+    for subcomponent in ${sub_components}; do
+      #echo "  Processing subcomponent ${subcomponent}"
+      local override_registry=$(get_subcomponent_registry ${component} ${subcomponent})
+      local from_repository=$(get_subcomponent_repo ${component} ${subcomponent})
+      #echo "   override_registry=|${override_registry}|"
+      #echo "   from_repository=|${from_repository}|"
+      local subcomponent_path=""
+      if [ "$override_registry" == "null" ]; then
+        subcomponent_path="$global_registry"
+      else
+        subcomponent_path="$override_registry"
+      fi
+      if [ ! -z "$from_repository" ] && [ "$from_repository" != "null" ]; then
+        subcomponent_path="${subcomponent_path}/${from_repository}"
+      fi
+      local image_names=$(list_subcomponent_images ${component} ${subcomponent})
+      for base_image in ${image_names}; do
+        #echo "    Processing image ${base_image}"
+        local from_image=${subcomponent_path}/${base_image}
+        echo "DEBUG: would pull:  ${from_image}"
+        local tarname=$(echo "$from_image.tar" | sed -e 's;/;_;g' -e 's/:/-/g')
+        #docker pull $from_image
+        #docker save -o $2/${tarname} ${from_image}
+      done
     done
   done
-  tar -czf ${3} -C ${2} .
+  #tar -czf ${3} -C ${2} .
 }
 
 pull_and_save_images
