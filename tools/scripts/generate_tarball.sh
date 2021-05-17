@@ -78,14 +78,10 @@ function pull_and_save_images() {
   local components=($(list_components))
   local global_registry=$(get_registry)
   for component in "${components[@]}"; do
-    # echo "Processing component: ${component}"
     local sub_components=$(list_subcomponent_names ${component})
     for subcomponent in ${sub_components}; do
-      #echo "  Processing subcomponent ${subcomponent}"
       local override_registry=$(get_subcomponent_registry ${component} ${subcomponent})
       local from_repository=$(get_subcomponent_repo ${component} ${subcomponent})
-      #echo "   override_registry=|${override_registry}|"
-      #echo "   from_repository=|${from_repository}|"
       local subcomponent_path=""
       if [ "$override_registry" == "null" ]; then
         subcomponent_path="$global_registry"
@@ -97,16 +93,15 @@ function pull_and_save_images() {
       fi
       local image_names=$(list_subcomponent_images ${component} ${subcomponent})
       for base_image in ${image_names}; do
-        #echo "    Processing image ${base_image}"
         local from_image=${subcomponent_path}/${base_image}
-        echo "DEBUG: would pull:  ${from_image}"
+        echo "Processing:  ${from_image}"
         local tarname=$(echo "$from_image.tar" | sed -e 's;/;_;g' -e 's/:/-/g')
-        #docker pull $from_image
-        #docker save -o $2/${tarname} ${from_image}
+        docker pull $from_image
+        docker save -o $2/${tarname} ${from_image}
       done
     done
   done
-  #tar -czf ${3} -C ${2} .
+  tar -czf ${3} -C ${2} .
 }
 
 pull_and_save_images
