@@ -3,6 +3,5 @@
 
 image: ghcr.io/oracle/weblogic-kubernetes-operator:3.2.2
 
-pod:
-  annotations:
+podAnnotations:
     traffic.sidecar.istio.io/excludeOutboundPorts: "443"

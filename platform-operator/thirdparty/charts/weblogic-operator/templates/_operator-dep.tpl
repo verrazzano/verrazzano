@@ -23,7 +23,7 @@ spec:
         weblogic.operatorName: {{ .Release.Namespace | quote }}
         app: "weblogic-operator"
      annotations:
-       {{- range $key, $value := .Values.pod.annotations }}
+       {{- range $key, $value := .podAnnotations }}
          {{ $key }}: {{ $value | quote }}
        {{- end }}
     spec:
