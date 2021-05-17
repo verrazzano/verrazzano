@@ -166,8 +166,8 @@ func (s *Syncer) SyncMultiClusterResources() {
 		}
 
 		s.processStatusUpdates()
-	}
 
+	}
 }
 
 // Validate the agent secret
