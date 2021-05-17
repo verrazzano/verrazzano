@@ -84,7 +84,7 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 	ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		Log(Error, fmt.Sprintf("AssertURLAccessibleAndAuthorized: URL=%v, Unexpected statis code=%v", url, resp.StatusCode))
+		Log(Error, fmt.Sprintf("AssertURLAccessibleAndAuthorized: URL=%v, Unexpected status code=%v", url, resp.StatusCode))
 		return false
 	}
 	// HTTP Server headers should never be returned.
