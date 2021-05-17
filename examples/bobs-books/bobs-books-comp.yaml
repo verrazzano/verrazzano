@@ -358,6 +358,11 @@ spec:
                   JNDIName: [
                     jdbc/books
                   ]
+                JDBCConnectionPoolParams:
+                  TestConnectionsOnReserve: true
+                  InactiveConnectionTimeoutSeconds: 30
+                  ConnectionCreationRetryFrequencySeconds: 5
+                  TestFrequencySeconds: 10
                 JDBCDriverParams:
                   DriverName: com.mysql.cj.jdbc.Driver
                   URL: '@@SECRET:mysql-credentials:url@@'
