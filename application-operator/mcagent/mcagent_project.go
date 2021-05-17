@@ -5,6 +5,7 @@ package mcagent
 
 import (
 	"fmt"
+
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -86,7 +87,11 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 	}
 
 	// Update the list of namespaces being watched for multi-cluster objects
-	s.ProjectNamespaces = namespaces
+	s.ProjectNamespaces, err = s.getManagedNamespaces()
+	if err != nil {
+		s.Log.Error(err, "failed to get the list of Verrazzano managed namespaces")
+		return err
+	}
 
 	return nil
 }

@@ -14,7 +14,6 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -76,9 +75,34 @@ func (s *Syncer) processStatusUpdates() {
 	}
 }
 
+// getVerrazzanoManagedNamespaces - return the list of namespaces that have the Verrazzano managed label set to true
+func (s *Syncer) getManagedNamespaces() ([]string, error) {
+	nsListSelector, err := labels.Parse(fmt.Sprintf("%s=%s", constants.LabelVerrazzanoManaged, constants.LabelVerrazzanoManagedDefault))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create list selector on local cluster: %v", err)
+	}
+	listOptionsGC := &client.ListOptions{LabelSelector: nsListSelector}
+
+	// Get the list of namespaces that were created or managed by VerrazzanoProjects
+	vpNamespaceList := corev1.NamespaceList{}
+	err = s.LocalClient.List(s.Context, &vpNamespaceList, listOptionsGC)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get list of Verrazzano managed namespaces: %v", err)
+	}
+
+	// Convert the result to a list of strings
+	var nsList []string
+	for _, namespace := range vpNamespaceList.Items {
+		nsList = append(nsList, namespace.Name)
+	}
+
+	return nsList, nil
+}
+
 // garbageCollect
 // 	Remove multicluster resources that reside in namespaces that are no longer associated with
 // 	a VerrazzanoProject and either do not exist on the admin cluster or are no longer placed on this cluster.
+/*
 func (s *Syncer) garbageCollect() {
 	nsListSelector, err := labels.Parse(fmt.Sprintf("%s=%s", constants.LabelVerrazzanoManaged, constants.LabelVerrazzanoManagedDefault))
 	if err != nil {
@@ -146,6 +170,7 @@ func (s *Syncer) garbageCollect() {
 		}
 	}
 }
+*/
 
 // AgentReadyToSync - the agent has all the information it needs to sync resources i.e.
 // there is an agent secret and a kubernetes client to the Admin cluster was created

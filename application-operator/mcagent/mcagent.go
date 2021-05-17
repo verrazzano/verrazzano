@@ -168,8 +168,6 @@ func (s *Syncer) SyncMultiClusterResources() {
 		s.processStatusUpdates()
 	}
 
-	// Delete resources that were orphaned by changes to VerrazzanoProject resources
-	s.garbageCollect()
 }
 
 // Validate the agent secret
