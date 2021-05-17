@@ -352,6 +352,7 @@ pipeline {
             steps {
                 sh """
                     mkdir ${WORKSPACE}/tar-files
+                    chmod uog+w ${WORKSPACE}/tar-files
                     tools/scripts/generate_tarball.sh ${GO_REPO_PATH}/verrazzano/platform-operator/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}-${env.BUILD_NUMBER}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
                 """
