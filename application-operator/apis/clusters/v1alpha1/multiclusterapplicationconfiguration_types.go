@@ -6,7 +6,6 @@ package v1alpha1
 import (
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const MultiClusterAppConfigKind = "MultiClusterApplicationConfiguration"
@@ -58,18 +57,4 @@ func init() {
 // GetStatus returns the MultiClusterResourceStatus of this resource
 func (in *MultiClusterApplicationConfiguration) GetStatus() MultiClusterResourceStatus {
 	return in.Status
-}
-
-// GetPlacement returns the Placement of this resource
-func (in *MultiClusterApplicationConfiguration) GetPlacement() Placement {
-	return in.Spec.Placement
-}
-
-// GetItemsAsRuntimeObjects returns the list of MultiClusterApplicationConfiguration as runtime objects
-func (in *MultiClusterApplicationConfigurationList) GetItemsAsRuntimeObjects() []runtime.Object {
-	var objects []runtime.Object
-	for _, item := range in.Items {
-		objects = append(objects, item.DeepCopyObject())
-	}
-	return objects
 }

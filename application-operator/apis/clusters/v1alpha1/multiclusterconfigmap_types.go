@@ -5,7 +5,6 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const MultiClusterConfigMapKind = "MultiClusterConfigMap"
@@ -66,18 +65,4 @@ func init() {
 // GetStatus returns the MultiClusterResourceStatus of this resource
 func (in *MultiClusterConfigMap) GetStatus() MultiClusterResourceStatus {
 	return in.Status
-}
-
-// GetPlacement returns the Placement of this resource
-func (in *MultiClusterConfigMap) GetPlacement() Placement {
-	return in.Spec.Placement
-}
-
-// GetItemsAsRuntimeObjects returns the list of MultiClusterConfigMap as runtime objects
-func (in *MultiClusterConfigMapList) GetItemsAsRuntimeObjects() []runtime.Object {
-	var objects []runtime.Object
-	for _, item := range in.Items {
-		objects = append(objects, item.DeepCopyObject())
-	}
-	return objects
 }

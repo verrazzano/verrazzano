@@ -46,16 +46,7 @@ type MultiClusterResource interface {
 	runtime.Object
 	GetName() string
 	GetNamespace() string
-	GetPlacement() clustersv1alpha1.Placement
 	GetStatus() clustersv1alpha1.MultiClusterResourceStatus
-}
-
-// MultiClusterResourceList interface abstracts methods common to all MultiClusterXXXList resource types
-// It is defined outside the api resources package since deep-copy code generation cannot handle
-// interface types
-type MultiClusterResourceList interface {
-	runtime.Object
-	GetItemsAsRuntimeObjects() []runtime.Object
 }
 
 // StatusUpdateMessage represents a message sent to the Multi Cluster agent by the controllers
