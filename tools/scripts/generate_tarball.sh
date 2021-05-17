@@ -97,7 +97,7 @@ function pull_and_save_images() {
         echo "Processing:  ${from_image}"
         local tarname=$(echo "$from_image.tar" | sed -e 's;/;_;g' -e 's/:/-/g')
         docker pull $from_image
-        docker save -o $2/${tarname} ${from_image}
+        docker save ${from_image} > $2/${tarname}
       done
     done
   done
