@@ -276,7 +276,7 @@ function build_image_overrides(){
 
   # if repository is not overridden in environment, pull it from the BOM
   if [ -z "${repository}" ]; then
-    repository=$(cat ${bomFile} | jq -r --arg C "${component}" '.components[] | select(.name == $C) | .repository')
+    repository=$(cat ${bomFile} | jq -r -c --arg C "${component}" --arg CH "${chartName}" '.components[] | select(.name == $C) | .subcomponents[] | select(.name == $CH) | .repository')
   fi
 
   HELM_IMAGE_ARGS=""
@@ -287,13 +287,41 @@ function build_image_overrides(){
   for row in ${images}; do
     local image=$(echo $row | jq -r '.image')
     local tag=$(echo $row | jq -r '.tag')
-    local helmPath=$(echo $row | jq -r '.helmPath')
-    local helmTagPath=$(echo $row | jq -r '.helmTagPath')
 
-    if [ "${helmTagPath}" == "null" ]; then
-      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmPath}=${registry}/${repository}/${image}:${tag} "
+    local helmRegPath=$(echo $row | jq -r '.helmRegPath')
+    local helmRepoPath=$(echo $row | jq -r '.helmRepoPath')
+    local helmImagePath=$(echo $row | jq -r '.helmImagePath')
+    local helmTagPath=$(echo $row | jq -r '.helmTagPath')
+    local helmPath=$(echo $row | jq -r '.helmPath')
+
+    local fullPath=""
+
+    if [ "${helmRegPath}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmRegPath}=${registry} "
     else
-      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmPath}=${registry}/${repository}/${image} --set ${helmTagPath}=${tag} "
+      fullPath="${registry}/"
+    fi
+
+    if [ "${helmRepoPath}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmRepoPath}=${repository} "
+    else
+      fullPath="${fullPath}${repository}/"
+    fi
+
+    if [ "${helmImagePath}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmImagePath}=${image} "
+    else
+      fullPath="${fullPath}${image}"
+    fi
+
+    if [ "${helmTagPath}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmTagPath}=${tag} "
+    else
+      fullPath="${fullPath}:${tag}"
+    fi
+
+    if [ "${helmPath}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmPath}=${fullPath} "
     fi
   done
 }
