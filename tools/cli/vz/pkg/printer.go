@@ -29,7 +29,7 @@ func PrintTable(headings []string, data [][]string) error {
 
 }
 
-func formatOutput(headings []string, data[][]string) (string, error) {
+func formatOutput(headings []string, data [][]string) (string, error) {
 	// work out how long each column needs to be
 	var lengths []int
 

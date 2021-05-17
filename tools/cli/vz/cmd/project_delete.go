@@ -17,10 +17,10 @@ func init() {
 }
 
 var projectDeleteCmd = &cobra.Command{
-	Use: "delete name",
+	Use:   "delete name",
 	Short: "Delete a project",
-	Long: "Delete a project",
-	Args: cobra.ExactArgs(1),
+	Long:  "Delete a project",
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := deleteProject(args); err != nil {
 			return err

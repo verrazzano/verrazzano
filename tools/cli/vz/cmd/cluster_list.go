@@ -20,9 +20,9 @@ func init() {
 }
 
 var clusterListCmd = &cobra.Command{
-	Use: "list",
+	Use:   "list",
 	Short: "List the clusters",
-	Long: "List the clusters",
+	Long:  "List the clusters",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := listClusters(args); err != nil {
 			return err

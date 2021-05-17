@@ -18,9 +18,9 @@ func init() {
 }
 
 var projectListCmd = &cobra.Command{
-	Use: "list",
+	Use:   "list",
 	Short: "List projects",
-	Long: "List projects",
+	Long:  "List projects",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := listProjects(args); err != nil {
 			return err

@@ -24,9 +24,9 @@ func init() {
 }
 
 var helidonListCmd = &cobra.Command{
-	Use: "list",
+	Use:   "list",
 	Short: "List Helidon applications",
-	Long: "List Helidon applications",
+	Long:  "List Helidon applications",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := listHelidonApplications(args); err != nil {
 			return err
@@ -92,7 +92,7 @@ func listHelidonApplications(args []string) error {
 			app.Namespace,
 			app.Name,
 			pkg2.Age(app.CreationTimestamp),
-			pkg.GetHostnameFromGateway(app.Namespace, app.Name + "-appconf"),
+			pkg.GetHostnameFromGateway(app.Namespace, app.Name+"-appconf"),
 		}
 		data = append(data, rowData)
 	}

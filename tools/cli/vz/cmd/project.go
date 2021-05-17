@@ -12,7 +12,7 @@ func init() {
 }
 
 var projectCmd = &cobra.Command{
-	Use: "project",
+	Use:   "project",
 	Short: "Work with projects",
-	Long: "Work with projects",
+	Long:  "Work with projects",
 }

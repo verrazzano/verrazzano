@@ -18,10 +18,10 @@ func init() {
 }
 
 var loginCmd = &cobra.Command{
-	Use: "login [Verrazzano API Server address]",
+	Use:   "login [Verrazzano API Server address]",
 	Short: "Login to a Verrazzano environment",
-	Long: "Login to a Verrazzano environment",
-	Args: cobra.ExactArgs(1),
+	Long:  "Login to a Verrazzano environment",
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := login(args); err != nil {
 			return err

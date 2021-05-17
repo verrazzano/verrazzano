@@ -10,9 +10,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use: "vz",
+	Use:   "vz",
 	Short: "Verrazzano CLI",
-	Long: "Verrazzano CLI",
+	Long:  "Verrazzano CLI",
 }
 
 func Execute() {

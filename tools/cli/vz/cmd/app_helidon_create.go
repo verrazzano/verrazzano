@@ -14,11 +14,11 @@ import (
 
 var (
 	targetNamespace string
-	listenPort int32
-	image string
-	version string
-	description string
-	path string
+	listenPort      int32
+	image           string
+	version         string
+	description     string
+	path            string
 )
 
 // this template is used to create the YAML we need to apply on the server
@@ -80,13 +80,13 @@ spec:
 
 // this struct holds the data needed to populate the template
 type templateData struct {
-	Name string
-	Namespace string
-	Image string
-	ListenPort int32
-	Version string
+	Name        string
+	Namespace   string
+	Image       string
+	ListenPort  int32
+	Version     string
 	Description string
-	Path string
+	Path        string
 }
 
 func init() {
@@ -123,12 +123,12 @@ func createHelidonApplication(args []string) error {
 
 	// put data into struct
 	data := templateData{
-		Name: name,
-		Namespace: targetNamespace,
-		Image: image,
-		ListenPort: listenPort,
-		Version: version,
-		Path: path,
+		Name:        name,
+		Namespace:   targetNamespace,
+		Image:       image,
+		ListenPort:  listenPort,
+		Version:     version,
+		Path:        path,
 		Description: description,
 	}
 
@@ -136,7 +136,7 @@ func createHelidonApplication(args []string) error {
 
 	// use template to get populate template with data
 	var b bytes.Buffer
-	t, err:= template.New("comp").Parse(compTmpl)
+	t, err := template.New("comp").Parse(compTmpl)
 	if err != nil {
 		return err
 	}

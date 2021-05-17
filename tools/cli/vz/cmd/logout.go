@@ -13,9 +13,9 @@ func init() {
 }
 
 var logoutCmd = &cobra.Command{
-	Use: "logout",
+	Use:   "logout",
 	Short: "Logout from a Verrazzano environment",
-	Long: "Logout from a Verrazzano environment",
+	Long:  "Logout from a Verrazzano environment",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := logout(args); err != nil {
 			return err

@@ -10,7 +10,7 @@ import (
 
 var (
 	headings = []string{"NAME", "STATUS", "AGE"}
-	data = [][]string{
+	data     = [][]string{
 		{"first", "Ready", "4d"},
 		{"second", "Error", "23s"},
 	}

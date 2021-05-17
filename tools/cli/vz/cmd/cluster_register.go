@@ -18,9 +18,9 @@ func init() {
 }
 
 var clusterRegisterCmd = &cobra.Command{
-	Use: "register",
+	Use:   "register",
 	Short: "Register a cluster",
-	Long: "Register a cluster",
+	Long:  "Register a cluster",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := register(args); err != nil {
 			return err

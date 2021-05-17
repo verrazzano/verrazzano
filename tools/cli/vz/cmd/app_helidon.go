@@ -12,7 +12,7 @@ func init() {
 }
 
 var helidonCmd = &cobra.Command{
-	Use: "helidon",
+	Use:   "helidon",
 	Short: "Work with Helidon applications",
-	Long: "Work with Helidon applications",
+	Long:  "Work with Helidon applications",
 }

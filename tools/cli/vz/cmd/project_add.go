@@ -23,10 +23,10 @@ func init() {
 }
 
 var projectAddCmd = &cobra.Command{
-	Use: "add name",
+	Use:   "add name",
 	Short: "Add a project",
-	Long: "Add a project",
-	Args: cobra.ExactArgs(1),
+	Long:  "Add a project",
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := addProject(args); err != nil {
 			return err
@@ -41,16 +41,16 @@ func addProject(args []string) error {
 	// if no namespace was provided, default to a single namespace
 	// with the same name as the project itself
 	if len(projectNamespaces) == 0 {
-		projectNamespaces = []string{ projectName }
+		projectNamespaces = []string{projectName}
 	}
 
 	// prepare the project resource
 	project := v1alpha1.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: projectName,
+			Name:      projectName,
 			Namespace: "verrazzano-mc",
 		},
-		Spec:       v1alpha1.VerrazzanoProjectSpec{
+		Spec: v1alpha1.VerrazzanoProjectSpec{
 			Template: v1alpha1.ProjectTemplate{
 				Namespaces: func() []v1alpha1.NamespaceTemplate {
 					var namespaces []v1alpha1.NamespaceTemplate

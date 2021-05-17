@@ -12,7 +12,7 @@ func init() {
 }
 
 var appCmd = &cobra.Command{
-	Use: "app",
+	Use:   "app",
 	Short: "Information about applications",
-	Long: "Information about applications",
+	Long:  "Information about applications",
 }

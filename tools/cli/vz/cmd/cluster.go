@@ -12,7 +12,7 @@ func init() {
 }
 
 var clusterCmd = &cobra.Command{
-	Use: "cluster",
+	Use:   "cluster",
 	Short: "Information about clusters",
-	Long: "Information about clusters",
+	Long:  "Information about clusters",
 }
