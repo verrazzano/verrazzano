@@ -30,9 +30,9 @@ var _ = ginkgo.Describe("Verify Keycloak configuration", func() {
 				gomega.Eventually(verifyKeycloakMasterRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 			}
 		})
-		ginkgo.It("Verify Verrazzano-system realm password policy", func() {
+		ginkgo.It("Verify verrazzano-system realm password policy", func() {
 			if !isManagedClusterProfile {
-				// GIVEN the password policy setup for the Verrazzano-system realm during installation
+				// GIVEN the password policy setup for the verrazzano-system realm during installation
 				// WHEN valid and invalid password changes are attempted
 				// THEN verify valid passwords are accepted and invalid passwords are rejected.
 				gomega.Eventually(verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(gomega.BeTrue())
@@ -42,7 +42,7 @@ var _ = ginkgo.Describe("Verify Keycloak configuration", func() {
 })
 
 func verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect() bool {
-	return verifyKeycloakRealmPasswordPolicyIsCorrect("Verrazzano-system")
+	return verifyKeycloakRealmPasswordPolicyIsCorrect("verrazzano-system")
 }
 
 func verifyKeycloakMasterRealmPasswordPolicyIsCorrect() bool {
@@ -50,7 +50,7 @@ func verifyKeycloakMasterRealmPasswordPolicyIsCorrect() bool {
 }
 
 func verifyKeycloakRealmPasswordPolicyIsCorrect(realm string) bool {
-	kc, err := pkg.NewKeycloakRESTClient()
+	kc, err := pkg.NewKeycloakAdminRESTClient()
 	if err != nil {
 		fmt.Printf("Failed to create Keycloak REST client: %v\n", err)
 		return false

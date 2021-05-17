@@ -30,7 +30,6 @@ const (
 
 	// Username - the username of the verrazzano admin user
 	Username               = "verrazzano"
-	clientID               = "admin-cli"
 	realm                  = "verrazzano-system"
 	verrazzanoAPIURLPrefix = "20210501"
 	teapot                 = 418
