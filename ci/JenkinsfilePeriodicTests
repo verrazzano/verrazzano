@@ -79,7 +79,7 @@ pipeline {
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    boolean(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
+                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
                                 ], wait: true
                         }
                     }
