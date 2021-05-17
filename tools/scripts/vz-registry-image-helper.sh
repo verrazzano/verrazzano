@@ -7,7 +7,7 @@
 # - Using a local cache of Verrazzano image tarballs, load into the local Docker registry and push to the remote registry/repo
 # - Clean up the local registry
 #
-set -o nounset
+#set -o nounset
 set -o pipefail
 set -o errtrace
 
@@ -43,7 +43,7 @@ function load() {
   archive=$1
 
   echo ">> Loading archive: ${archive}"
-  run_docker load "${archive}"
+  run_docker load -i "${archive}"
 }
 
 # Wrapper for Docker pull
@@ -205,7 +205,7 @@ function process_image() {
 }
 
 # Get the global Docker registry specified in the BOM
-function get_registry() {
+function get_bom_global_registry() {
   cat ${BOM_FILE} | jq -r '.registry'
 }
 
@@ -214,17 +214,35 @@ function list_components() {
   cat ${BOM_FILE} | jq -r '.components[].name'
 }
 
-# Get the repository name for a component in the BOM
-function get_component_repo() {
+# List all the subcomponents for a component in the BOM
+function list_subcomponents() {
   local compName=$1
-  cat ${BOM_FILE} | jq -r --arg comp ${compName} '.components[] | select(.name|test($comp)) | .repository'
+  cat ${BOM_FILE} | jq -r --arg comp ${compName} '.components[] | select(.name == $comp) | .subcomponents[].name'
 }
 
-# List the base image names for all subcomponents of a component in the BOM, in the form <image-name>:<tag>
+# Get the repository name for a subcomponent in the BOM
+function get_subcomponent_repo() {
+  local compName=$1
+  local subcompName=$2
+  cat ${BOM_FILE} | jq -r -c --arg comp ${compName} --arg subcomp ${subcompName} '.components[] | select(.name == $comp) | .subcomponents[] | select(.name == $subcomp) | .repository'
+}
+
+function get_subcomponent_registry() {
+  local compName=$1
+  local subcompName=$2
+  local subcompRegistry=$(cat ${BOM_FILE} | jq -r -c --arg comp ${compName} --arg subcomp ${subcompName} '.components[] | select(.name == $comp) | .subcomponents[] | select(.name == $subcomp) | .registry')
+  if [ -z "$subcompRegistry" ] || [ "$subcompRegistry" == "null" ]; then
+    subcompRegistry=$(get_bom_global_registry)
+  fi
+  echo $subcompRegistry
+}
+
+# List the base image names for a subcomponent of a component in the BOM, in the form <image-name>:<tag>
 function list_subcomponent_images() {
   local compName=$1
-  cat ${BOM_FILE} | jq -r --arg comp ${compName} \
-    '.components[] | select(.name|test($comp)) | .subcomponents[].images[] | "\(.image):\(.tag)"'
+  local subcompName=$2
+  cat ${BOM_FILE} | jq -r --arg comp ${compName} --arg subcomp ${subcompName} \
+    '.components[] | select(.name == $comp) | .subcomponents[] | select(.name == $subcomp) | .images[] | "\(.image):\(.tag)"'
 }
 
 # Get the target repo if overridden, otherwise return the provided default
@@ -260,22 +278,36 @@ function process_local_archives() {
 }
 
 # Main driver for pulling/tagging/pushing images based on the Verrazzano bill of materials (BOM)
-function process_images_from_registry() {
+function process_images_from_bom() {
   # Loop through registry components
   echo "Using image registry ${BOM_FILE}"
-  local from_registry=$(get_registry)
   local components=($(list_components))
   for component in "${components[@]}"; do
-    echo "Processing images for Verrazzano component ${component}"
-    # Load the repository and base image names for the component
-    local from_repository=$(get_component_repo $component)
-    local image_names=$(list_subcomponent_images $component)
-    for base_image in ${image_names}; do
-      # Build up the image name and target image name, and do a pull/tag/push
-      local from_image=${from_registry}/${from_repository}/${base_image}
+    local subcomponents=($(list_subcomponents ${component}))
+    for subcomp in "${subcomponents[@]}"; do
+      echo "Processing images for Verrazzano subcomponent ${component}/${subcomp}"
+      # Load the repository and base image names for the component
+      local from_registry=$(get_subcomponent_registry $component $subcomp)
+      local from_repository=$(get_subcomponent_repo $component $subcomp)
+      local image_names=$(list_subcomponent_images $component $subcomp)
+
+      local from_image_prefix=${from_registry}
+      if [ -n "${from_repository}" ] && [ "${from_repository}" != "null" ]; then
+        from_image_prefix=${from_image_prefix}/${from_repository}
+      fi
+
+      local to_image_prefix=${TO_REGISTRY}
       local target_repo=$(get_target_repo ${from_repository})
-      local to_image=${TO_REGISTRY}/${target_repo}/${base_image}
-      process_image ${from_image} ${to_image}
+      if [ -n "${target_repo}" ] && [ "${target_repo}" != "null" ]; then
+        to_image_prefix=${to_image_prefix}/${target_repo}
+      fi
+
+      for base_image in ${image_names}; do
+        # Build up the image name and target image name, and do a pull/tag/push
+        local from_image=${from_image_prefix}/${base_image}
+        local to_image=${to_image_prefix}/${base_image}
+        process_image ${from_image} ${to_image}
+      done
     done
   done
 }
@@ -285,7 +317,7 @@ function main() {
   if [ "$USELOCAL" != "0" ]; then
     process_local_archives
   else
-    process_images_from_registry
+    process_images_from_bom
   fi
   if [ "${CLEAN_ALL}" == "true" ]; then
     echo "[SUCCESS] All local images cleaned"
@@ -294,40 +326,39 @@ function main() {
   fi
 }
 
-while getopts 'hicdb:t:f:r:l:' opt
-do
+while getopts 'hicdb:t:f:r:l:' opt; do
   case $opt in
-    d)
-      DRY_RUN=true
-      ;;
-    b)
-      BOM_FILE=$OPTARG
-      ;;
-    d)
-      DB_DUMP=$OPTARG
-      ;;
-    r)
-      TO_REPO=$OPTARG
-      ;;
-    t)
-      TO_REGISTRY=$OPTARG
-      ;;
-    f)
-      TARBALL=$OPTARG
-      ;;
-    i)
-      INCREMENTAL_CLEAN=true
-      ;;
-    c)
-      CLEAN_ALL=true
-      ;;
-    l)
-      USELOCAL=1
-      IMAGES_DIR="${OPTARG}"
-      ;;
-    h|?)
-      usage
-      ;;
+  d)
+    DRY_RUN=true
+    ;;
+  b)
+    BOM_FILE=$OPTARG
+    ;;
+  d)
+    DB_DUMP=$OPTARG
+    ;;
+  r)
+    TO_REPO=$OPTARG
+    ;;
+  t)
+    TO_REGISTRY=$OPTARG
+    ;;
+  f)
+    TARBALL=$OPTARG
+    ;;
+  i)
+    INCREMENTAL_CLEAN=true
+    ;;
+  c)
+    CLEAN_ALL=true
+    ;;
+  l)
+    USELOCAL=1
+    IMAGES_DIR="${OPTARG}"
+    ;;
+  h | ?)
+    usage
+    ;;
   esac
 done
 
