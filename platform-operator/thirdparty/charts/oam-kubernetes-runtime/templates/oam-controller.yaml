@@ -171,6 +171,10 @@ spec:
       serviceAccountName: {{ include "oam-kubernetes-runtime.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Release.Name }}
           securityContext:
