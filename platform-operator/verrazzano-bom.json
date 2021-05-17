@@ -45,6 +45,12 @@
               "image": "pilot",
               "tag": "1.7.3",
               "helmPath": "pilot.image"
+            },
+            {
+              "image": "proxyv2",
+              "tag": "1.7.3",
+              "helmPath": "unused",
+              "helmTagPath": "global.tag"
             }
           ]
         },
@@ -54,7 +60,8 @@
             {
               "image": "proxyv2",
               "tag": "1.7.3",
-              "helmPath": "global.proxy.image"
+              "helmPath": "unused",
+              "helmTagPath": "global.tag"
             }
           ]
         },
@@ -64,7 +71,8 @@
             {
               "image": "proxyv2",
               "tag": "1.7.3",
-              "helmPath": "global.proxy.image"
+              "helmPath": "unused",
+              "helmTagPath": "global.tag"
             }
           ]
         }
@@ -221,6 +229,23 @@
               "image": "oraclelinux",
               "tag": "7.8",
               "helmPath": "monitoringOperator.esInitImage"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "oam-kubernetes-runtime",
+      "repository": "verrazzano",
+      "subcomponents": [
+        {
+          "name": "oam-kubernetes-runtime",
+          "images": [
+            {
+              "image": "oam-kubernetes-runtime",
+              "tag": "v0.3.0-20210222205541-9e8d4fb",
+              "helmPath": "image.repository",
+              "helmTagPath": "image.tag"
             }
           ]
         }
