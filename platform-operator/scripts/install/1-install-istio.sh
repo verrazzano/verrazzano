@@ -76,6 +76,11 @@ function install_istio()
       IMAGE_PULL_SECRETS_ARGUMENT=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
+    ISTIO_HUB_OVERRIDE=""
+    if [ -n "${REGISTRY}" ]; then
+      ISTIO_HUB_OVERRIDE="--set global.hub=${REGISTRY}/${IMAGE_REPO} "
+    fi
+
     if ! is_chart_deployed istio-base istio-system ${ISTIO_CHART_DIR}/base ; then
       log "Installing Istio base"
       helm upgrade istio-base ${ISTIO_CHART_DIR}/base \
@@ -97,6 +102,7 @@ function install_istio()
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         ${HELM_IMAGE_ARGS} \
+        ${ISTIO_HUB_OVERRIDE} \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
         || return $?
     fi
@@ -116,6 +122,7 @@ function install_istio()
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         ${HELM_IMAGE_ARGS} \
+        ${ISTIO_HUB_OVERRIDE} \
         ${EXTRA_INGRESS_ARGUMENTS} \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
         || return $?
@@ -131,6 +138,7 @@ function install_istio()
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         ${HELM_IMAGE_ARGS} \
+        ${ISTIO_HUB_OVERRIDE} \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
         || return $?
     fi
