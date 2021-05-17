@@ -50,7 +50,7 @@
             {
               "image": "proxyv2",
               "tag": "1.7.3",
-              "helmPath": "unused",
+              "helmImagePath": "global.proxy.image",
               "helmTagPath": "global.tag"
             }
           ]
@@ -62,7 +62,7 @@
             {
               "image": "proxyv2",
               "tag": "1.7.3",
-              "helmPath": "unused",
+              "helmImagePath": "global.proxy.image",
               "helmTagPath": "global.tag"
             }
           ]
@@ -74,7 +74,7 @@
             {
               "image": "proxyv2",
               "tag": "1.7.3",
-              "helmPath": "unused",
+              "helmImagePath": "global.proxy.image",
               "helmTagPath": "global.tag"
             }
           ]
@@ -241,9 +241,9 @@
     },
     {
       "name": "oam-kubernetes-runtime",
-      "repository": "verrazzano",
       "subcomponents": [
         {
+          "repository": "verrazzano",
           "name": "oam-kubernetes-runtime",
           "images": [
             {
