@@ -2,6 +2,29 @@
   "registry": "ghcr.io",
   "components": [
     {
+      "name": "ingress-nginx",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "ingress-controller",
+          "images": [
+            {
+              "image": "nginx-ingress-controller",
+              "tag": "0.46.0-20210510134749-abc2d2088",
+              "helmPath": "controller.image.repository",
+              "helmTagPath": "controller.image.tag"
+            },
+            {
+              "image": "nginx-ingress-default-backend",
+              "tag": "0.46.0-20210510134749-abc2d2088",
+              "helmPath": "defaultBackend.image.repository",
+              "helmTagPath": "defaultBackend.image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "cert-manager",
       "subcomponents": [
         {
@@ -12,6 +35,24 @@
               "image": "cert-manager-controller",
               "tag": "0.13.1-20201016205232-4c8f3fe38",
               "helmPath": "image.repository",
+              "helmTagPath": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name":"external-dns",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "external-dns",
+          "images": [
+            {
+              "image": "external-dns",
+              "tag": "v0.7.1-20201016205338-516bc8b2",
+              "helmPath": "image.repository",
+              "helmRegistryPath": "image.registry",
               "helmTagPath": "image.tag"
             }
           ]
