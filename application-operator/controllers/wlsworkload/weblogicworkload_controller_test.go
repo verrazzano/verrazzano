@@ -392,7 +392,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		constants.LabelUpgradeVersion: previousUpgradeVersion, constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 
 	// existing domain containers
-	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.StdoutSidecarName, Image: existingFluentdImage}}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage

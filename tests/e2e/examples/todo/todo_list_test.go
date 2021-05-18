@@ -80,7 +80,8 @@ func deployToDoListExample() {
 	}
 	pkg.Log(pkg.Info, "Create application resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")},
+		return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")
+	},
 		shortWaitTimeout, shortPollingInterval, "Failed to create application resource").Should(gomega.BeNil())
 }
 
@@ -243,14 +244,67 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				})
 			},
 			func() {
-				ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+				ginkgo.It("Verify recent pattern-matched AdminServer log record exists", func() {
 					gomega.Eventually(func() bool {
-						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.weblogic_domainUID":  "tododomain",
-							"kubernetes.labels.app_oam_dev\\/name":  "todo-appconf",
-							"kubernetes.labels.weblogic_serverName": "AdminServer",
-							"kubernetes.container_name":             "fluentd",
-						})
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"}, //matches BEA-*
+								{Key: "serverName", Value: "tododomain-adminserver"},
+								{Key: "serverName2", Value: "AdminServer"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				ginkgo.It("Verify recent pattern-matched WebLogic Server log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"},          //matches BEA-*
+								{Key: "message", Value: "WebLogic Server"}, //contains WebLogic Server
+								{Key: "subSystem", Value: "WebLogicServer"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				ginkgo.It("Verify recent pattern-matched Security log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"}, //matches BEA-*
+								{Key: "serverName", Value: "tododomain-adminserver"},
+								{Key: "subSystem.keyword", Value: "Security"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				ginkgo.It("Verify recent pattern-matched multi-lines log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"},         //matches BEA-*
+								{Key: "message", Value: "Tunneling Ping"}, //"Tunneling Ping" in last line
+								{Key: "serverName", Value: "tododomain-adminserver"},
+								{Key: "subSystem.keyword", Value: "RJVM"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				ginkgo.It("Verify recent not-matched AdminServer log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "stream", Value: "stdout"}},
+							[]pkg.Match{
+								{Key: "serverName.keyword", Value: "tododomain-adminserver"}})
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},

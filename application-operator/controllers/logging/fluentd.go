@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	FluentdContainerName = "fluentd"
+	StdoutSidecarName    = "stdout-sidecar"
 	fluentdConfKey       = "fluentd.conf"
 	fluentdConfMountPath = "/fluentd/etc/fluentd.conf"
 	configMapName        = "fluentd-config"
@@ -107,7 +107,7 @@ func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, logInfo *LogInf
 	fluentdContainerIndex := -1
 	// iterate over existing containers looking for FLUENTD container
 	for i, container := range containers {
-		if container.Name == "fluentd" {
+		if container.Name == StdoutSidecarName {
 			// FLUENTD container found, save the index
 			fluentdContainerIndex = i
 			break
@@ -226,7 +226,7 @@ func (f *Fluentd) removeFluentdContainer(fluentdPod *FluentdPod) bool {
 	containers := fluentdPod.Containers
 	fluentdContainerIndex := -1
 	for i, container := range containers {
-		if container.Name == FluentdContainerName {
+		if container.Name == StdoutSidecarName {
 			fluentdContainerIndex = i
 			break
 		}
@@ -294,7 +294,7 @@ func (f *Fluentd) removeFluentdConfigMap(namespace string) bool {
 // isFluentdContainerUpToDate is used to determine if the FLUENTD container is in the current expected state
 func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, logInfo *LogInfo) bool {
 	for _, container := range containers {
-		if container.Name != FluentdContainerName {
+		if container.Name != StdoutSidecarName {
 			continue
 		}
 		if container.Image == logInfo.FluentdImage {
@@ -304,10 +304,10 @@ func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, logInfo 
 	return false
 }
 
-// createFluentdContainer creates the FLUENTD container
+// createFluentdContainer creates the FLUENTD stdout sidecar container
 func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, logInfo *LogInfo, namespace string) corev1.Container {
 	container := corev1.Container{
-		Name:            "fluentd",
+		Name:            StdoutSidecarName,
 		Args:            []string{"-c", "/etc/fluent.conf"},
 		Image:           logInfo.FluentdImage,
 		ImagePullPolicy: corev1.PullIfNotPresent,

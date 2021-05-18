@@ -811,7 +811,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	logging.DefaultFluentdImage = fluentdImage
 	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
-	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.StdoutSidecarName, Image: existingFluentdImage}}
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          appConfigName,

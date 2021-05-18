@@ -312,7 +312,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 	var existingFluentdImage string
 	if !upgradeApp {
 		for _, container := range existingCoherence.Spec.Template.Spec.Containers {
-			if container.Name == logging.FluentdContainerName {
+			if container.Name == logging.StdoutSidecarName {
 				existingFluentdImage = container.Image
 				break
 			}
@@ -450,7 +450,7 @@ func moveConfigMapVolume(log logr.Logger, fluentdPod *logging.FluentdPod, cohere
 	var fluentdVolMount corev1.VolumeMount
 
 	for _, container := range fluentdPod.Containers {
-		if container.Name == "fluentd" {
+		if container.Name == logging.StdoutSidecarName {
 			fluentdVolMount = container.VolumeMounts[0]
 			// Coherence needs the vol mount to match the config map name, so fix it, need
 			// to see if we can just change name set by the FLUENTD code
