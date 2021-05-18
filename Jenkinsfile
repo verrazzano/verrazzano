@@ -621,7 +621,7 @@ pipeline {
         success {
             // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
             sh """
-                if [ env.JOB_NAME == "verrazzano/master" ]; then
+                if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
                     cd ${GO_REPO_PATH}/verrazzano
                     echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
