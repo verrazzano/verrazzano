@@ -99,7 +99,7 @@ pipeline {
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
 
         TF_VAR_label_prefix = "${env.BRANCH_NAME == 'master' ? 'ocidns-master-' + env.BUILD_NUMBER : env.BUILD_NUMBER + '-' + env.TIMESTAMP}"
-        TF_VAR_state_name = ${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
+        TF_VAR_state_name = "${env.BUILD_NUMBER + '-' + env.TIMESTAMP + '-' + env.BRANCH_NAME}"
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
