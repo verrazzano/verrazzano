@@ -14,7 +14,9 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -71,6 +73,30 @@ func (s *Syncer) processStatusUpdates() {
 			break
 		}
 	}
+}
+
+// getVerrazzanoManagedNamespaces - return the list of namespaces that have the Verrazzano managed label set to true
+func (s *Syncer) getManagedNamespaces() ([]string, error) {
+	nsListSelector, err := labels.Parse(fmt.Sprintf("%s=%s", constants.LabelVerrazzanoManaged, constants.LabelVerrazzanoManagedDefault))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create list selector on local cluster: %v", err)
+	}
+	listOptionsGC := &client.ListOptions{LabelSelector: nsListSelector}
+
+	// Get the list of namespaces that were created or managed by VerrazzanoProjects
+	vpNamespaceList := corev1.NamespaceList{}
+	err = s.LocalClient.List(s.Context, &vpNamespaceList, listOptionsGC)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get list of Verrazzano managed namespaces: %v", err)
+	}
+
+	// Convert the result to a list of strings
+	var nsList []string
+	for _, namespace := range vpNamespaceList.Items {
+		nsList = append(nsList, namespace.Name)
+	}
+
+	return nsList, nil
 }
 
 // AgentReadyToSync - the agent has all the information it needs to sync resources i.e.
