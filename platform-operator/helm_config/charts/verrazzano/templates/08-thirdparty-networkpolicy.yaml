@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 # Network policy for WebLogic operator
-# Ingress: deny all
+# Ingress: allow from Istio ingress gateway
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -15,6 +15,10 @@ spec:
       app: weblogic-operator
   policyTypes:
     - Ingress
+  ingress:
+    - ports:
+      - port: 8443
+        protocol: TCP
 ---
 # Network policy for Coherence Operator
 # Ingress: allow connect from Kubernetes API server to validating webhook port 9443
