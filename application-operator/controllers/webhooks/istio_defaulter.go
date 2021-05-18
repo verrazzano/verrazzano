@@ -142,7 +142,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 	podPrincipal := fmt.Sprintf("cluster.local/ns/%s/sa/%s", namespace, serviceAccountName)
 	gwPrincipal := "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"
 	promPrincipal := "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator"
-	weblogicOperPrincipal := "cluster.local/ns/verrazzano-system/sa/weblogic-operator"
+	weblogicOperPrincipal := "cluster.local/ns/verrazzano-system/sa/weblogic-operator-sa"
 
 	principals := []string{
 		podPrincipal,
