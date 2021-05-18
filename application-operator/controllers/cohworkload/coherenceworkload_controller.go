@@ -14,14 +14,13 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	netv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -79,8 +78,6 @@ const (
 	workloadType              = "coherence"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
-	networkPolicyAPIVersion   = "networking.k8s.io/v1"
-	networkPolicyKind         = "NetworkPolicy"
 	coherenceControlPaneLabel = "control-plane"
 	coherenceComponentLabel   = "coherenceComponent"
 	coherenceExtendPort       = 9000
@@ -235,10 +232,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.createNetworkPolicies(ctx, log, namespace, u, workload.ObjectMeta.Labels); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	if err = r.updateUpgradeVersionInStatus(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -312,26 +305,28 @@ func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unst
 	return nil
 }
 
-// addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LoggingScope
+// addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LogInfo
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, upgradeApp bool, coherenceSpec map[string]interface{}, existingCoherence *v1.StatefulSet) error {
 	// If the Coherence StatefulSet already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
 	// current Coherence StatefulSet
 	var existingFluentdImage string
 	if !upgradeApp {
 		for _, container := range existingCoherence.Spec.Template.Spec.Containers {
-			if container.Name == loggingscope.FluentdContainerName {
+			if container.Name == logging.FluentdContainerName {
 				existingFluentdImage = container.Image
 				break
 			}
 		}
 	}
 
-	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, workload.Namespace, workload.Labels, existingFluentdImage)
+	// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
+	// not the fields will be empty and we will set these fields to defaults below
+	scope, err := logging.NewLogInfo(existingFluentdImage)
 	if err != nil {
 		return err
 	}
 
-	if loggingScope == nil {
+	if scope == nil {
 		log.Info("No logging scope found for workload, nothing to do")
 		return nil
 	}
@@ -345,13 +340,13 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// fluentdPod starts with what's in the spec and we add in the FLUENTD things when Apply is
 	// called on the fluentdManager
-	fluentdPod := &loggingscope.FluentdPod{
+	fluentdPod := &logging.FluentdPod{
 		Containers:   extracted.SideCars,
 		Volumes:      extracted.Volumes,
 		VolumeMounts: extracted.VolumeMounts,
 		LogPath:      "/logs",
 	}
-	fluentdManager := &loggingscope.Fluentd{
+	fluentdManager := &logging.Fluentd{
 		Context:                ctx,
 		Log:                    log,
 		Client:                 r.Client,
@@ -367,7 +362,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err = fluentdManager.Apply(loggingScope, resource, fluentdPod); err != nil {
+	if _, err = fluentdManager.Apply(scope, resource, fluentdPod); err != nil {
 		return err
 	}
 
@@ -451,7 +446,7 @@ func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace 
 // for the FLUENTD config map stored in "configMapVolumes", so we will pull the mount out from the
 // FLUENTD container and put it in its new home in the Coherence spec (this should all be handled
 // by the FLUENTD code at some point but I tried to limit the surgery for now)
-func moveConfigMapVolume(log logr.Logger, fluentdPod *loggingscope.FluentdPod, coherenceSpec map[string]interface{}) error {
+func moveConfigMapVolume(log logr.Logger, fluentdPod *logging.FluentdPod, coherenceSpec map[string]interface{}) error {
 	var fluentdVolMount corev1.VolumeMount
 
 	for _, container := range fluentdPod.Containers {
@@ -577,83 +572,6 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-// createNetworkPolicy creates networkPolicies required by Coherence pods.
-func (r *Reconciler) createNetworkPolicies(ctx context.Context, log logr.Logger, appNamespace *corev1.Namespace, coherence *unstructured.Unstructured, workloadLabels map[string]string) error {
-	appName, ok := workloadLabels[oam.LabelAppName]
-	if !ok {
-		return errors.New("OAM app name label missing from metadata, unable to generate network policies")
-	}
-
-	// Add required label to application namespace if not already included.
-	label, ok := appNamespace.Labels[constants.LabelVerrazzanoNamespace]
-	if !ok || label != constants.VerrazzanoSystemNamespace {
-		if appNamespace.Labels == nil {
-			appNamespace.Labels = make(map[string]string)
-		}
-		appNamespace.Labels[constants.LabelVerrazzanoNamespace] = appNamespace.Name
-		err := r.Update(ctx, appNamespace)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Create a network policy in the verrazzano-system namespace, if it does not already exist.
-	// This network policy is an egress for the Coherence operator to Coherence pods in application namespaces.
-	networkPolicy := &netv1.NetworkPolicy{}
-	appNamespaceName := fmt.Sprintf("coh-%s-%s", appNamespace.Name, appName)
-	err := r.Get(ctx, client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: appNamespaceName}, networkPolicy)
-	if err != nil && k8serrors.IsNotFound(err) {
-		networkPolicy = &netv1.NetworkPolicy{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: networkPolicyAPIVersion,
-				Kind:       networkPolicyKind},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: constants.VerrazzanoSystemNamespace,
-				Name:      appNamespaceName,
-			},
-			Spec: netv1.NetworkPolicySpec{
-				PodSelector: metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						coherenceControlPaneLabel: "coherence",
-					},
-				},
-				PolicyTypes: []netv1.PolicyType{
-					netv1.PolicyTypeEgress,
-				},
-				Egress: []netv1.NetworkPolicyEgressRule{
-					{
-						To: []netv1.NetworkPolicyPeer{
-							{
-								NamespaceSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										constants.LabelVerrazzanoNamespace: appNamespace.Name,
-									},
-								},
-								PodSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										coherenceComponentLabel: "coherencePod",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		log.Info(fmt.Sprintf("Creating network policy %s:%s", constants.VerrazzanoSystemNamespace, appNamespaceName))
-		err = r.Create(ctx, networkPolicy)
-		if err != nil {
-			return err
-		}
-	} else if err != nil {
-		return err
-	}
-	log.Info(fmt.Sprintf("Network policy %s:%s already exist", constants.VerrazzanoSystemNamespace, appNamespaceName))
 
 	return nil
 }

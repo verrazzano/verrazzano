@@ -31,6 +31,8 @@ metadata:
     nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
     nginx.ingress.kubernetes.io/session-cookie-name: route
     nginx.ingress.kubernetes.io/session-cookie-samesite: Strict
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: "${service_name}.${namespace}.svc.cluster.local"
   name: verrazzano-ingress
   namespace: {{ .Release.Namespace }}
 spec:

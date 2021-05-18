@@ -90,7 +90,6 @@ pipeline {
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
-        SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
         CLUSTER_NAME_PREFIX = 'verrazzano'
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
@@ -134,6 +133,7 @@ pipeline {
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+        LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
 
         ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
 
@@ -446,19 +446,42 @@ pipeline {
                         }
                     }
                 }
-                stage ('Examples Change-Placement') {
+                stage ('Uninstall Verrazzano') {
                     steps {
                         script {
+                            // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
+                            // - the first one will always be the Admin cluster
+                            // - clusters 2-max are managed clusters
+                            def verrazzanoUninstallStages = [:]
                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            sh """
-                                export MANAGED_CLUSTER_NAME="managed1"
-                                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                export CLUSTER_COUNT=$clusterCount
-                                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-changeplacement"
-                                ginkgo -v -keepGoing --noColor multicluster/examples/change-placement/...
-                            """
+                            for(int count=1; count<=clusterCount; count++) {
+                                def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                                def key = "vz-mgd-${count-1}"
+                                if (count == 1) {
+                                    key = "vz-admin"
+                                }
+                                verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
+                            }
+                            parallel verrazzanoUninstallStages
+                        }
+                    }
+                }
+                stage("Verify Uninstall") {
+                    steps {
+                        script {
+                            // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
+                            // - the first one will always be the Admin cluster
+                            // - clusters 2-max are managed clusters
+                            def verifyUninstallStages = [:]
+                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                            for(int count=1; count<=clusterCount; count++) {
+                                def key = "vz-mgd-${count-1}"
+                                if (count == 1) {
+                                    key = "vz-admin"
+                                }
+                                verifyUninstallStages["${key}"] = verifyUninstall(count)
+                            }
+                            parallel verifyUninstallStages
                         }
                     }
                 }
@@ -466,14 +489,17 @@ pipeline {
             post {
                 failure {
                     script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
-                        }
+                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+                    }
+                }
+                aborted {
+                    script {
+                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                     }
                 }
                 success {
                     script {
-                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                         }
                     }
@@ -483,20 +509,7 @@ pipeline {
     }
     post {
         failure {
-            // sh """
-            //    curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
-            // """
-
             archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
-            //mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            //subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            //body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
-            //script {
-            //    if (env.JOB_NAME == "verrazzano/master") {
-            //        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-            //        slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
-            //    }
-            //}
         }
         always {
             script {
@@ -510,8 +523,9 @@ pipeline {
                     dumpOamKubernetesRuntimeLogs()
                     dumpVerrazzanoApiLogs()
                 }
+                dumpUninstallLogs()
             }
-            archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -597,6 +611,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
 // - count is the cluster index into the $KUBECONFIG_DIR
 // - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
 def installVerrazzano(count, verrazzanoConfig) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
             sh """
@@ -623,12 +638,45 @@ def installVerrazzano(count, verrazzanoConfig) {
                 echo "Wait for Operator to be ready"
                 cd ${GO_REPO_PATH}/verrazzano
                 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                
+                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
                 echo "Applying \$verrazzanoConfig"
                 kubectl apply -f ${verrazzanoConfig}
 
                 # wait for Verrazzano install to complete
                 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+            """
+        }
+    }
+}
+
+// Uninstall Verrazzano
+// - count is the cluster index into the $KUBECONFIG_DIR
+// - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
+def uninstallVerrazzano(count, verrazzanoConfig) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            sh """
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                echo "Deleting \\$verrazzanoConfig"
+                time kubectl delete -f ${verrazzanoConfig}
+            """
+        }
+    }
+}
+
+// Verify uninstall Verrazzano
+// - count is the cluster index into the $KUBECONFIG_DIR
+def verifyUninstall(count) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            sh """
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/post-uninstall-resources
+                ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}
             """
         }
     }
@@ -749,12 +797,14 @@ def createOKEClusters() {
 
 def dumpK8sCluster(dumpDirectory) {
     script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for(int count=1; count<=clusterCount; count++) {
-            sh """
+        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            for (int count = 1; count <= clusterCount; count++) {
+                sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count} -r ${dumpDirectory}-${count}/cluster-dump/analysis.report
             """
+            }
         }
     }
 }
@@ -791,7 +841,7 @@ def dumpCattleSystemPods() {
                 export DIAGNOSTIC_LOG="${LOG_DIR}/cattle-system-pods.log"
                 ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/rancher.log"
-                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
             """
         }
     }
@@ -806,7 +856,7 @@ def dumpNginxIngressControllerLogs() {
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/nginx-ingress-controller.log"
-                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
             """
         }
     }
@@ -878,7 +928,7 @@ def dumpVerrazzanoApiLogs() {
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-api.log"
-                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
             """
         }
     }
@@ -895,6 +945,23 @@ def dumpInstallLogs() {
                 mkdir -p ${LOG_DIR}
                 kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install.log --tail -1
                 kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
+                echo "------------------------------------------"
+            """
+        }
+    }
+}
+
+def dumpUninstallLogs() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            sh """
+                ## dump verrazzano uninstall logs
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${LOG_DIR}
+                kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall.log --tail -1
+                kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall-job-pod.out
                 echo "------------------------------------------"
             """
         }

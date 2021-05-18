@@ -5,7 +5,7 @@ keycloak:
 
   extraInitContainers: |
     - name: theme-provider
-      image: ghcr.io/verrazzano/keycloak-oracle-theme:0.14.0-20210331214916-1c47ce9
+      image: ghcr.io/verrazzano/keycloak-oracle-theme:0.15.0-20210510085250-01638c7
       imagePullPolicy: IfNotPresent
       command:
         - sh
@@ -24,16 +24,12 @@ keycloak:
   image:
     tag: 10.0.1-20201016212759-30d98b0
     repository: ghcr.io/verrazzano/keycloak
-  extraArgs: -Dkeycloak.import=/etc/keycloak/realm.json
 
   containerSecurityContext:
     runAsUser: 0
     runAsNonRoot: false
 
   extraVolumes: |
-    - name: keycloak-config
-      secret:
-        secretName: keycloak-realm-cacert
     - name: theme
       emptyDir: {}
     - name: cacerts
@@ -42,8 +38,6 @@ keycloak:
       secret:
          secretName: keycloak-http
   extraVolumeMounts: |
-    - name: keycloak-config
-      mountPath: /etc/keycloak
     - name: theme
       mountPath: /opt/jboss/keycloak/themes/oracle
     - name: keycloak-http
@@ -58,9 +52,18 @@ keycloak:
       kubernetes.io/ingress.class: nginx
       kubernetes.io/tls-acme: "true"
       external-dns.alpha.kubernetes.io/ttl: "60"
+      nginx.ingress.kubernetes.io/service-upstream: "true"
+      nginx.ingress.kubernetes.io/upstream-vhost: "keycloak-http.${namespace}.svc.cluster.local"
 
   persistence:
     deployPostgres: false
     dbVendor: mysql
     dbHost: mysql
     dbPort: 3306
+
+  readinessProbe: |
+    httpGet:
+      path: {{ if ne .Values.keycloak.basepath "" }}/{{ .Values.keycloak.basepath }}{{ end }}/realms/master
+      port: http
+    initialDelaySeconds: 45
+    timeoutSeconds: 1

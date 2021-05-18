@@ -1,16 +1,19 @@
-apiVersion: v1
-appVersion: 0.32.0
-description: Ingress controller for Kubernetes using NGINX as a reverse proxy and
-  load balancer
+annotations:
+  artifacthub.io/changes: |
+    - Removes the possibility of using localhost in ExternalNames as endpoints
+apiVersion: v2
+appVersion: 0.46.0
+description: Ingress controller for Kubernetes using NGINX as a reverse proxy and load balancer
 home: https://github.com/kubernetes/ingress-nginx
 icon: https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Nginx_logo.svg/500px-Nginx_logo.svg.png
 keywords:
 - ingress
 - nginx
-kubeVersion: '>=1.10.0-0'
+kubeVersion: '>=1.16.0-0'
 maintainers:
 - name: ChiefAlexander
 name: ingress-nginx
 sources:
 - https://github.com/kubernetes/ingress-nginx
-version: 2.0.3
+type: application
+version: 3.30.0

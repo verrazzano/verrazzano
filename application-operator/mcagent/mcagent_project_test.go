@@ -6,7 +6,6 @@ package mcagent
 import (
 	"context"
 	"encoding/json"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"path/filepath"
 	"testing"
 
@@ -16,6 +15,8 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -171,6 +172,19 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 					return nil
 				})
 
+			// Managed cluster - expect call to list Namespace objects - return list defined for this test run
+			localMock.EXPECT().
+				List(gomock.Any(), &corev1.NamespaceList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
+				DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, listOptions *client.ListOptions) error {
+					for _, namespace := range tt.fields.nsList {
+						list.Items = append(list.Items, corev1.Namespace{
+							ObjectMeta: namespace.Metadata,
+							Spec:       namespace.Spec,
+						})
+					}
+					return nil
+				})
+
 			// Make the request
 			s := &Syncer{
 				AdminClient:        adminMock,
@@ -274,6 +288,19 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 					return nil
 				})
 
+			// Managed cluster - expect call to list Namespace objects - return list defined for this test run
+			localMock.EXPECT().
+				List(gomock.Any(), &corev1.NamespaceList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
+				DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, listOptions *client.ListOptions) error {
+					for _, namespace := range tt.fields.nsList {
+						list.Items = append(list.Items, corev1.Namespace{
+							ObjectMeta: namespace.Metadata,
+							Spec:       namespace.Spec,
+						})
+					}
+					return nil
+				})
+
 			// Managed Cluster - expect a call to delete a VerrazzanoProject object
 			localMock.EXPECT().
 				Delete(gomock.Any(), gomock.Eq(&testProjOrphan), gomock.Any()).
@@ -339,23 +366,6 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 				[]clustersv1alpha1.Cluster{{Name: testClusterName}},
 			},
 			4,
-			false,
-		},
-		{
-			"DuplicateNamespace",
-			fields{
-				constants.VerrazzanoMultiClusterNamespace,
-				"newVP",
-				[]clustersv1alpha1.NamespaceTemplate{testNamespace1, testNamespace2},
-				[]clustersv1alpha1.Cluster{{Name: testClusterName}},
-			},
-			fields{
-				constants.VerrazzanoMultiClusterNamespace,
-				"newVP",
-				[]clustersv1alpha1.NamespaceTemplate{testNamespace3, testNamespace1},
-				[]clustersv1alpha1.Cluster{{Name: testClusterName}},
-			},
-			3,
 			false,
 		},
 	}
@@ -424,6 +434,25 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 					DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
 						list.Items = append(list.Items, testProj1)
 						list.Items = append(list.Items, testProj2)
+						return nil
+					})
+
+				// Managed cluster - expect call to list Namespace objects - return list defined for this test run
+				localMock.EXPECT().
+					List(gomock.Any(), &corev1.NamespaceList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
+					DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, listOptions *client.ListOptions) error {
+						for _, namespace := range tt.vp1Fields.nsList {
+							list.Items = append(list.Items, corev1.Namespace{
+								ObjectMeta: namespace.Metadata,
+								Spec:       namespace.Spec,
+							})
+						}
+						for _, namespace := range tt.vp2Fields.nsList {
+							list.Items = append(list.Items, corev1.Namespace{
+								ObjectMeta: namespace.Metadata,
+								Spec:       namespace.Spec,
+							})
+						}
 						return nil
 					})
 
@@ -500,6 +529,19 @@ func TestRemovePlacementVerrazzanoProject(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: vpNamespace, Name: vpName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
 			testProj.DeepCopyInto(vp)
+			return nil
+		})
+
+	// Managed cluster - expect call to list Namespace objects - return list defined for this test run
+	localMock.EXPECT().
+		List(gomock.Any(), &corev1.NamespaceList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
+		DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, listOptions *client.ListOptions) error {
+			for _, namespace := range nsList {
+				list.Items = append(list.Items, corev1.Namespace{
+					ObjectMeta: namespace.Metadata,
+					Spec:       namespace.Spec,
+				})
+			}
 			return nil
 		})
 

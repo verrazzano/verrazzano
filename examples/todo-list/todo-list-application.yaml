@@ -26,11 +26,6 @@ spec:
                 - paths:
                     - path: "/todo"
                       pathType: Prefix
-      scopes:
-        - scopeRef:
-            apiVersion: oam.verrazzano.io/v1alpha1
-            kind: LoggingScope
-            name: logging-scope
     - componentName: todo-jdbc-configmap
     - componentName: todo-mysql-configmap
     - componentName: todo-mysql-service

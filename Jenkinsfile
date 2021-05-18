@@ -76,6 +76,7 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
+        OCI_OS_BUCKET="verrazzano-builds"
 
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -166,11 +167,6 @@ pipeline {
                     }
                 }
             }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/tools/analysis
@@ -225,11 +221,6 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                 }
-            }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
                 sh """
@@ -375,9 +366,6 @@ pipeline {
                     environment {
                         VERRAZZANO_OPERATOR_IMAGE="NONE"
                         KIND_KUBERNETES_CLUSTER_VERSION="1.18"
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
                         OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
                     }
                     steps {
@@ -453,6 +441,18 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('security/rbac')
+                            }
+                        }
+                        stage('security network policies') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-network-policies"
+                            }
+                            steps {
+                                script {
+                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                                        runGinkgo('security/network-policies')
+                                    }
+                                }
                             }
                         }
                         stage('examples logging helidon') {
@@ -614,9 +614,19 @@ pipeline {
             script {
                 if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
+        }
+        success {
+            // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
+            sh """
+                if [ env.JOB_NAME == "verrazzano/master" ]; then
+                    cd ${GO_REPO_PATH}/verrazzano
+                    echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
+                fi
+            """
         }
         cleanup {
             deleteDir()
@@ -668,7 +678,7 @@ def dumpCattleSystemPods() {
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/rancher.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
@@ -676,7 +686,7 @@ def dumpNginxIngressControllerLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
@@ -720,7 +730,7 @@ def dumpVerrazzanoApiLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-api.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
@@ -753,6 +763,10 @@ def trimIfGithubNoreplyUser(userIn) {
     }
     if (userIn.matches(".*<.*@users.noreply.github.com.*")) {
         def userOut = userIn.substring(userIn.indexOf("<") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    if (userIn.matches(".*@users.noreply.github.com")) {
+        def userOut = userIn.substring(0, userIn.indexOf("@"))
         return userOut;
     }
     echo "Not a github noreply user, not trimming: ${userIn}"

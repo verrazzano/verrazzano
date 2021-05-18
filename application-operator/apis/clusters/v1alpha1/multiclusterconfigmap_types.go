@@ -7,6 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const MultiClusterConfigMapKind = "MultiClusterConfigMap"
+const MultiClusterConfigMapResource = "multiclusterconfigmaps"
+
 // MultiClusterConfigMapSpec defines the desired state of MultiClusterConfigMap
 type MultiClusterConfigMapSpec struct {
 	// The embedded Kubernetes ConfigMap

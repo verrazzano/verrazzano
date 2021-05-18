@@ -21,11 +21,11 @@ helm fetch istio.io/istio-init --untar=true --version=${ISTIO_HELM_CHART_VERSION
 The `nginx-ingress` folder was created by running the following commands:
 
 ```
-export NGINX_HELM_CHART_VERSION=1.27.0
-rm -rf nginx-ingress
-helm repo add stable https://charts.helm.sh/stable
+export NGINX_HELM_CHART_VERSION=3.30.0
+rm -rf ingress-nginx
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
-helm fetch stable/nginx-ingress --untar=true --version=${NGINX_HELM_CHART_VERSION}
+helm fetch ingress-nginx/ingress-nginx --untar=true --version=${NGINX_HELM_CHART_VERSION}
 ```
 
 ## Cert-Manager
@@ -94,7 +94,7 @@ The `wls-operator` folder was created by running the following commands:
 
 ```
 export WEBLOGIC_OPERATOR_CHART_REPO=https://oracle.github.io/weblogic-kubernetes-operator/charts
-export WEBLOGIC_OPERATOR_CHART_VERSION=3.1.0
+export WEBLOGIC_OPERATOR_CHART_VERSION=3.2.2
 rm -rf weblogic-operator
 helm repo add weblogic-operator ${WEBLOGIC_OPERATOR_CHART_REPO}
 helm repo update
