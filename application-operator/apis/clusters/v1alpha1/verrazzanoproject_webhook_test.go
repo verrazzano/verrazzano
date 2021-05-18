@@ -282,6 +282,9 @@ func TestNamespaceUniquenessForProjects(t *testing.T) {
 	// This test will fail because Verrazzano project test-project1 has conflicting namespace project2
 	err = currentVP.validateNamespaceCanBeUsed()
 	assert.NotNil(t, err)
+	// This test will fail same as above but this time coming in through parent validator
+	err = currentVP.validateVerrazzanoProject()
+	assert.NotNil(t, err)
 
 	currentVP = VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
