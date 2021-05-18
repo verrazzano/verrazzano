@@ -339,6 +339,7 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                     anyOf {
+                        branch 'master';
                         branch 'release-*';
                         expression {params.GENERATE_TARBALL == true};
                     }
