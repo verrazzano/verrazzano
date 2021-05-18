@@ -90,8 +90,6 @@ func (vp *VerrazzanoProject) validateNetworkPolicies() error {
 }
 
 func (vp *VerrazzanoProject) validateNamespaceCanBeUsed() error {
-	var conflictingNamespace string
-	var conflictingProjectName string
 
 	c, err := getControllerRuntimeClient()
 	if err != nil {
@@ -105,26 +103,17 @@ func (vp *VerrazzanoProject) validateNamespaceCanBeUsed() error {
 		return fmt.Errorf("failed to get existing Verrazzano projects: %s", err)
 	}
 
-	for _, ns := range vp.Spec.Template.Namespaces {
-		nameSpace := ns.Metadata.Name
-		namespaceFound := false
-		for _, project := range projectsList.Items {
-			if project.Name == vp.Name {
+	for _, currentNS := range vp.Spec.Template.Namespaces {
+		for _, existingProject := range projectsList.Items {
+			if existingProject.Name == vp.Name {
 				continue
 			}
-			for _, ns := range project.Spec.Template.Namespaces {
-				if ns.Metadata.Name == nameSpace {
-					namespaceFound = true
-					conflictingNamespace = ns.Metadata.Name
-					conflictingProjectName = project.Name
-					break
+			for _, existingNS := range existingProject.Spec.Template.Namespaces {
+				if existingNS.Metadata.Name == currentNS.Metadata.Name {
+					return fmt.Errorf("project namespace %s already being used by project %s. projects cannot share a namespace", existingNS.Metadata.Name, existingProject.Name)
 				}
 			}
 		}
-		if namespaceFound {
-			return fmt.Errorf("project namespace %s already being used by project %s. projects cannot share a namespace", conflictingNamespace, conflictingProjectName)
-		}
-
 	}
 	return nil
 }
