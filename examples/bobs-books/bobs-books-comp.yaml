@@ -358,11 +358,6 @@ spec:
                   JNDIName: [
                     jdbc/books
                   ]
-                JDBCConnectionPoolParams:
-                  TestConnectionsOnReserve: true
-                  InactiveConnectionTimeoutSeconds: 30
-                  ConnectionCreationRetryFrequencySeconds: 5
-                  TestFrequencySeconds: 10
                 JDBCDriverParams:
                   DriverName: com.mysql.cj.jdbc.Driver
                   URL: '@@SECRET:mysql-credentials:url@@'
@@ -371,11 +366,14 @@ spec:
                     user:
                       Value: '@@SECRET:mysql-credentials:username@@'
                 JDBCConnectionPoolParams:
+                  ConnectionCreationRetryFrequencySeconds: 5
                   ConnectionReserveTimeoutSeconds: 10
                   InitialCapacity: 0
+                  InactiveConnectionTimeoutSeconds: 60
                   MaxCapacity: 5
                   MinCapacity: 0
                   TestConnectionsOnReserve: true
+                  TestFrequencySeconds: 10
                   TestTableName: SQL SELECT 1
 ---
 apiVersion: core.oam.dev/v1alpha2
