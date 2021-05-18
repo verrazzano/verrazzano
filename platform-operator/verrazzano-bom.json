@@ -296,6 +296,59 @@
           ]
         }
       ]
+    },
+    {
+      "name": "verrazzano-application-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-application-operator",
+          "images": [
+            {
+              "image": "verrazzano-application-operator",
+              "tag": "0.15.0-20210513184258-dd739a17",
+              "helmPath": "image"
+            },
+            {
+              "image": "fluentd-kubernetes-daemonset",
+              "tag": "v1.10.4-20201016214205-7f37ac6",
+              "helmPath": "fluentdImage"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "weblogic-operator",
+      "subcomponents": [
+        {
+          "repository": "oracle",
+          "name": "weblogic-operator",
+          "images": [
+            {
+              "image": "weblogic-kubernetes-operator",
+              "tag": "3.2.2",
+              "helmPath": "image"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "coherence-operator",
+      "subcomponents": [
+        {
+          "repository": "oracle",
+          "name": "coherence-operator",
+          "images": [
+            {
+              "image": "coherence-operator",
+              "tag": "3.1.3",
+              "helmPath": "image"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
