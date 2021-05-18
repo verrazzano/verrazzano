@@ -271,8 +271,9 @@ function process_local_archives() {
     local from_image=$(tar xOvf $file manifest.json | jq -r '.[0].RepoTags[0]')
     local from_image_name=$(basename $from_image)
     local from_repository=$(dirname $from_image | cut -d \/ -f 2-)
+
     local target_repo=$(get_target_repo ${from_repository})
-    local to_image=${TO_REGISTRY}/${target_repo}/${from_image_name}
+    local to_image=${TO_REGISTRY}/${target_repo}/${from_repository}/${from_image_name}
     process_image ${from_image} ${to_image}
   done
 }
@@ -297,14 +298,10 @@ function process_images_from_bom() {
       fi
 
       local to_image_prefix=${TO_REGISTRY}
-      local target_repo=$(get_target_repo ${from_repository})
-      if [ -n "${target_repo}" ] && [ "${target_repo}" != "null" ]; then
-        to_image_prefix=${to_image_prefix}/${target_repo}
+      if [ -n "${TO_REPO}" ]; then
+        to_image_prefix=${to_image_prefix}/${TO_REPO}
       fi
-      # Rancher hack for now
-      if [ "${from_registry}" == "rancher" ]; then
-        to_image_prefix=${to_image_prefix}/${from_registry}
-      fi
+      to_image_prefix=${to_image_prefix}/${from_repository}
 
       for base_image in ${image_names}; do
         # Build up the image name and target image name, and do a pull/tag/push
