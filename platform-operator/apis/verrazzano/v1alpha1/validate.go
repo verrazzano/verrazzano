@@ -15,6 +15,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -126,6 +129,22 @@ func ValidateActiveInstall(client client.Client) error {
 func ValidateInProgress(state StateType) error {
 	if state == Installing || state == Uninstalling || state == Upgrading {
 		return fmt.Errorf("Updates to resource not allowed while install, uninstall or upgrade is in progress")
+	}
+
+	return nil
+}
+
+// ValidateOciDNSSecret makes sure that the OCI DNS secret required by install exists
+func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
+	if spec.Components.DNS != nil && spec.Components.DNS.OCI != nil {
+		secret := &corev1.Secret{}
+		err := client.Get(context.TODO(), types.NamespacedName{Name: spec.Components.DNS.OCI.OCIConfigSecret, Namespace: "default"}, secret)
+		if err != nil {
+			if k8serrors.IsNotFound(err) {
+				return fmt.Errorf("secret \"%s\" must be created in the default namespace before installing Verrrazzano for OCI DNS", spec.Components.DNS.OCI.OCIConfigSecret)
+			}
+			return err
+		}
 	}
 
 	return nil

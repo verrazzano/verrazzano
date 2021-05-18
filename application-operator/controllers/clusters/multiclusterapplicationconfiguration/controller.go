@@ -48,6 +48,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if !mcAppConfig.ObjectMeta.DeletionTimestamp.IsZero() {
 		// delete the wrapped resource since MC is being deleted
 		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcAppConfig, finalizerName, &v1alpha2.ApplicationConfiguration{}, types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
+		if err != nil {
+			logger.Error(err, "Failed to delete associated app config and finalizer")
+		}
 		return reconcile.Result{}, err
 	}
 

@@ -326,6 +326,16 @@ function build_image_overrides(){
   done
 }
 
+function generate_password() {
+  local -i _default_size=16
+  local -i _minsize=12
+  local -i _maxsize=256
+  local -i _pwsize=${1:-${_default_size}}
+  [[ ${_pwsize} -lt ${_minsize} ]] && _pwsize=${_minsize}
+  [[ ${_pwsize} -gt ${_maxsize} ]] && _pwsize=${_maxsize}
+  dd if=/dev/urandom bs=${_pwsize} count=3 2>/dev/null | base64 | tr -d '+/=' | cut -c1-${_pwsize}
+}
+
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
 
 VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"

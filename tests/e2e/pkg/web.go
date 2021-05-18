@@ -30,7 +30,6 @@ const (
 
 	// Username - the username of the verrazzano admin user
 	Username               = "verrazzano"
-	clientID               = "admin-cli"
 	realm                  = "verrazzano-system"
 	verrazzanoAPIURLPrefix = "20210501"
 	teapot                 = 418
@@ -155,8 +154,7 @@ func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
 	resp, err := httpClient.Get(url)
 	httpResp := ProcHTTPResponse(resp, err)
 	ExpectHTTPOk(httpResp, err, "Error doing http(s) get from "+url)
-	// VZ-2603: Assertion disabled until VZ-2599 is complete.
-	//ExpectNoServerHeader(httpResp)
+	ExpectNoServerHeader(httpResp)
 }
 
 // GetSystemVmiHTTPClient returns an HTTP client configured with the system vmi CA cert

@@ -77,6 +77,7 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
+        OCI_OS_BUCKET="verrazzano-builds"
 
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -167,11 +168,6 @@ pipeline {
                     }
                 }
             }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/tools/analysis
@@ -226,11 +222,6 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                 }
-            }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
                 sh """
@@ -334,32 +325,6 @@ pipeline {
             }
         }
 
-        stage('Generate Tarball') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf {
-                        branch 'master';
-                        branch 'release-*';
-                        expression {params.GENERATE_TARBALL == true};
-                    }
-                }
-            }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-            }
-            steps {
-                sh """
-                    mkdir ${WORKSPACE}/tar-files
-                    chmod uog+w ${WORKSPACE}/tar-files
-                    tools/scripts/generate_tarball.sh ${GO_REPO_PATH}/verrazzano/platform-operator/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}-${env.BUILD_NUMBER}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
-                """
-            }
-        }
-
         stage('Skip acceptance tests if commit message contains skip-at') {
             steps {
                 script {
@@ -402,9 +367,6 @@ pipeline {
                     environment {
                         VERRAZZANO_OPERATOR_IMAGE="NONE"
                         KIND_KUBERNETES_CLUSTER_VERSION="1.18"
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
                         OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
                     }
                     steps {
@@ -657,6 +619,25 @@ pipeline {
                 }
             }
         }
+        success {
+            sh """
+                if [ "${env.BRANCH_NAME}" == "master" ] || [ "${params.GENERATE_TARBALL}" == "true" ]; then
+                    mkdir ${WORKSPACE}/tar-files
+                    chmod uog+w ${WORKSPACE}/tar-files
+                    tools/scripts/generate_tarball.sh ${GO_REPO_PATH}/verrazzano/platform-operator/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}-${env.BUILD_NUMBER}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
+                fi
+            """
+
+            // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
+            sh """
+                if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
+                    cd ${GO_REPO_PATH}/verrazzano
+                    echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
+                fi
+            """
+        }
         cleanup {
             deleteDir()
         }
@@ -792,6 +773,10 @@ def trimIfGithubNoreplyUser(userIn) {
     }
     if (userIn.matches(".*<.*@users.noreply.github.com.*")) {
         def userOut = userIn.substring(userIn.indexOf("<") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    if (userIn.matches(".*@users.noreply.github.com")) {
+        def userOut = userIn.substring(0, userIn.indexOf("@"))
         return userOut;
     }
     echo "Not a github noreply user, not trimming: ${userIn}"

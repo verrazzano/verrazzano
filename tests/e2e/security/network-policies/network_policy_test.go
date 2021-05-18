@@ -5,19 +5,20 @@ package network_policy_test
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"strings"
-	"time"
 )
 
 const (
-	connectTestCmdFmt = "curl -v --max-time %d telnet://%s:%d 2>&1"
+	connectTestCmdFmt = "timeout %d curl -v http://%s:%d 2>&1"
 	connectedFmt      = "Connected to %s (%s) port %d"
+	curlCode52        = "exit code 52"
 	testNamespace     = "netpol-test"
 )
 
@@ -67,7 +68,9 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 	// THEN the expected pod must be running in the test namespace
 	ginkgo.Describe("Verify test pod is running.", func() {
 		ginkgo.It("and waiting for expected pod must be running", func() {
-			gomega.Eventually(podsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool {
+				return pkg.PodsRunning(testNamespace, expectedPods)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
 
@@ -263,25 +266,9 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 	ginkgo.It("Negative Test NetworkPolicy Rules", func() {
 		pkg.Concurrently(
 			func() {
-				pkg.Log(pkg.Info, "Negative test  cattle-cluster-agent egress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "cattle-cluster-agent"}}, "cattle-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 6443, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test  cattle-cluster-agent egress failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "cattle-cluster-agent"}}, "cattle-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 443, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test  cattle-cluster-agent egress failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "cattle-cluster-agent"}}, "cattle-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 53, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test  cattle-cluster-agent egress failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "cattle-cluster-agent"}}, "cattle-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 8080, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test  cattle-cluster-agent egress failed: reason = %s", err))
-			},
-			func() {
 				pkg.Log(pkg.Info, "Negative test  rancher ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", 80, false)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test  rancher egress failed: reason = %s", err))
-			},
-			func() {
-				pkg.Log(pkg.Info, "Negative test rancher egress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 6443, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test rancher egress failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Negative test cert-manager ingress rules")
@@ -289,30 +276,10 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test cert-manager ingress failed: reason = %s", err))
 			},
 			func() {
-				pkg.Log(pkg.Info, "Negative test cert-manager egress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "cert-manager"}}, "cert-manager", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 6443, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test cert-manager egress rules failed: reason = %s", err))
-			},
-			func() {
 				pkg.Log(pkg.Info, "Negative test ingress-nginx-controller ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"}}, "ingress-nginx", 80, false)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test ingress-nginx-controller ingress failed: reason = %s", err))
 			},
-			//func() {
-			//	pkg.Log(pkg.Info, "Negative test ingress-nginx-controller egress rules")
-			//	err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 6443, false)
-			//	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test ingress-nginx-controller egress failed: reason = %s", err))
-			//	err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 53, false)
-			//	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test ingress-nginx-controller egress failed: reason = %s", err))
-			//	err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 8775, false)
-			//	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test ingress-nginx-controller egress failed: reason = %s", err))
-			//	err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 8000, false)
-			//	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test ingress-nginx-controller egress failed: reason = %s", err))
-			//	err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 80, false)
-			//	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test ingress-nginx-controller egress failed: reason = %s", err))
-			//	err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 8080, false)
-			//	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test ingress-nginx-controller egress failed: reason = %s", err))
-			//},
 			func() {
 				pkg.Log(pkg.Info, "Negative test ingress-nginx-default-backend ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "default-backend"}}, "ingress-nginx", 8080, false)
@@ -340,32 +307,6 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "keycloak"}}, "keycloak", 8080, false)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test keycloak ingress rules failed: reason = %s", err))
 			},
-			//func() {
-			//	pkg.Log(pkg.Info, "Negative test keycloak egress rules")
-			//	err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "keycloak"}}, "keycloak", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 53, false)
-			//	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test keycloak egress rules failed: reason = %s", err))
-			//	err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "keycloak"}}, "keycloak", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 3306, false)
-			//	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test keycloak egress rules failed: reason = %s", err))
-			//},
-			func() {
-				pkg.Log(pkg.Info, "Negative test monitoring egress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"verrazzano.io/namespace": "monitoring"}}, "monitoring", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 9100, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test monitoring egress rules failed: reason = %s", err))
-			},
-			func() {
-				pkg.Log(pkg.Info, "Negative test verrazzano-platform-operator egress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-platform-operator"}}, "verrazzano-install", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 6443, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-platform-operator egress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-platform-operator"}}, "verrazzano-install", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 53, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-platform-operator egress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-platform-operator"}}, "verrazzano-install", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 443, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-platform-operator egress rules failed: reason = %s", err))
-			},
-			func() {
-				pkg.Log(pkg.Info, "Negative test oam-kubernetes-runtime egress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "oam-kubernetes-runtime"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 6443, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test oam-kubernetes-runtime egress rules failed: reason = %s", err))
-			},
 			func() {
 				pkg.Log(pkg.Info, "Negative test verrazzano-api ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-api"}}, "verrazzano-system", 8775, false)
@@ -377,16 +318,11 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-console ingress rules failed: reason = %s", err))
 			},
 			func() {
-				pkg.Log(pkg.Info, "Negative test verrazzano-operator egress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-operator"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 6443, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-operator egress rules failed: reason = %s", err))
-			},
-			func() {
 				pkg.Log(pkg.Info, "Negative test vmi-system-es-master ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 8775, false)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-es-master ingress rules failed: reason = %s", err))
-				//err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 9200, false)
-				//gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-es-master ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 9200, false)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-es-master ingress rules failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 8775, false)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-es-master ingress rules failed: reason = %s", err))
 			},
@@ -394,15 +330,6 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				pkg.Log(pkg.Info, "Negative test vmi-system-grafana ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-grafana"}}, "verrazzano-system", 8775, false)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-grafana ingress rules failed: reason = %s", err))
-			},
-			func() {
-				pkg.Log(pkg.Info, "Negative test vmi-system-grafana egress rules")
-				//err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-grafana"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 9090, false)
-				//gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-grafana egress rules failed: reason = %s", err))
-				//err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-grafana"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 53, false)
-				//gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-grafana egress rules failed: reason = %s", err))
-				//err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-grafana"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 8080, false)
-				//gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-grafana egress rules failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Negative test vmi-system-kibana ingress rules")
@@ -413,11 +340,6 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				pkg.Log(pkg.Info, "Negative test vmi-system-prometheus ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", 8775, false)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-prometheus ingress rules failed: reason = %s", err))
-			},
-			func() {
-				pkg.Log(pkg.Info, "Negative test vweblogic-operator egress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", 6443, false)
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Negative test weblogic-operator egress rules failed: reason = %s", err))
 			},
 		)
 	})
@@ -439,7 +361,7 @@ func testAccess(fromSelector metav1.LabelSelector, fromNamespace string, toSelec
 		}
 		if len(pods) > 0 {
 			toPod := pods[0]
-			access := attemptAccess(&fromPod, &toPod, port, 3, 1)
+			access := attemptConnection(&fromPod, &toPod, port, 10)
 			if access && !expectAccess {
 				return fmt.Errorf(fmt.Sprintf("Should NOT be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
 			} else if !access && expectAccess {
@@ -450,24 +372,19 @@ func testAccess(fromSelector metav1.LabelSelector, fromNamespace string, toSelec
 	return nil
 }
 
-// attemptAccess attempts to access a given pod from another pod on a given port
-func attemptAccess(fromPod, toPod *corev1.Pod, port, steps int, duration time.Duration) bool {
-	var accessed bool
-	b := wait.Backoff{Steps: steps, Duration: duration * time.Second, Factor: 2.0, Jitter: 0.1}
-	for ; !accessed && b.Steps > 0; b.Step() {
-		command := fmt.Sprintf(connectTestCmdFmt, b.Duration/time.Second, toPod.Status.PodIP, port)
-		pkg.Log(pkg.Info, fmt.Sprintf("Executing command on pod %s.%s (%s)", fromPod.Namespace, fromPod.Name, command))
-		stdout, _, _ := pkg.Execute(fromPod.Name, fromPod.Spec.Containers[0].Name, fromPod.Namespace, []string{"sh", "-c", command})
-		accessed = strings.Contains(stdout, fmt.Sprintf(connectedFmt, toPod.Status.PodIP, toPod.Status.PodIP, port))
-	}
-	if accessed {
-		pkg.Log(pkg.Info, fmt.Sprintf("Accessed pod %s.%s from pod %s.%s on port %d", toPod.Namespace, toPod.Name, fromPod.Namespace, fromPod.Name, port))
-	} else {
-		pkg.Log(pkg.Info, fmt.Sprintf("Could NOT access pod %s.%s from pod %s.%s on port %d", toPod.Namespace, toPod.Name, fromPod.Namespace, fromPod.Name, port))
-	}
-	return accessed
-}
+// attemptConnection attempts to access a given pod from another pod on a given port
+func attemptConnection(fromPod, toPod *corev1.Pod, port int, duration time.Duration) bool {
+	command := fmt.Sprintf(connectTestCmdFmt, duration, toPod.Status.PodIP, port)
+	pkg.Log(pkg.Info, fmt.Sprintf("Executing command on pod %s.%s (%s)", fromPod.Namespace, fromPod.Name, command))
+	stdout, _, err := pkg.Execute(fromPod.Name, fromPod.Spec.Containers[0].Name, fromPod.Namespace, []string{"sh", "-c", command})
+	// check response for 'Connected' message; fail on error except for 'curl: (52) Empty reply from server'
+	connected := strings.Contains(stdout, fmt.Sprintf(connectedFmt, toPod.Status.PodIP, toPod.Status.PodIP, port)) &&
+		(err == nil || strings.Contains(fmt.Sprintf("%q", err), curlCode52))
 
-func podsRunning() bool {
-	return pkg.PodsRunning(testNamespace, expectedPods)
+	if connected {
+		pkg.Log(pkg.Info, fmt.Sprintf("Connected from pod %s.%s to %s.%s on port %d", fromPod.Namespace, fromPod.Name, toPod.Namespace, toPod.Name, port))
+	} else {
+		pkg.Log(pkg.Info, fmt.Sprintf("Can NOT connect from pod %s.%s to %s.%s on port %d", fromPod.Namespace, fromPod.Name, toPod.Namespace, toPod.Name, port))
+	}
+	return connected
 }

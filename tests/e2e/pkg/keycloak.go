@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"io/ioutil"
+
+	"github.com/hashicorp/go-retryablehttp"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,10 +28,13 @@ const (
 	keycloakAdminUserPasswordSecret = "keycloak-http"
 	keycloakAdminUserRealm          = "master"
 	keycloakAdminUserName           = "keycloakadmin"
+
+	keycloakAPIClientID   = "verrazzano-pg"
+	keycloakAdminClientID = "admin-cli"
 )
 
 // NewKeycloakRESTClient creates a new Keycloak REST client.
-func NewKeycloakRESTClient() (*KeycloakRESTClient, error) {
+func NewKeycloakAdminRESTClient() (*KeycloakRESTClient, error) {
 	kubeconfigPath := GetKubeConfigPathFromEnv()
 	ingress, _ := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses(keycloakNamespace).Get(context.TODO(), keycloadIngressName, k8smeta.GetOptions{})
 	ingressHost := ingress.Spec.Rules[0].Host
@@ -43,7 +47,7 @@ func NewKeycloakRESTClient() (*KeycloakRESTClient, error) {
 	keycloakAdminPassword := strings.TrimSpace(string(secret.Data["password"]))
 
 	keycloakLoginURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressHost, keycloakAdminUserRealm)
-	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", keycloakAdminUserName, keycloakAdminPassword, clientID)
+	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", keycloakAdminUserName, keycloakAdminPassword, keycloakAdminClientID)
 	status, response := PostWithHostHeader(keycloakLoginURL, "application/x-www-form-urlencoded", ingressHost, strings.NewReader(body))
 	if status != 200 {
 		return nil, fmt.Errorf("failed to login as admin user")

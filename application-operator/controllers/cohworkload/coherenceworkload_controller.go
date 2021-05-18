@@ -21,7 +21,6 @@ import (
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	netv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -79,8 +78,6 @@ const (
 	workloadType              = "coherence"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
-	networkPolicyAPIVersion   = "networking.k8s.io/v1"
-	networkPolicyKind         = "NetworkPolicy"
 	coherenceControlPaneLabel = "control-plane"
 	coherenceComponentLabel   = "coherenceComponent"
 	coherenceExtendPort       = 9000
@@ -232,10 +229,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if err = r.createOrUpdateDestinationRule(ctx, log, namespace.Name, namespace.Labels, workload.ObjectMeta.Labels); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err = r.createNetworkPolicies(ctx, log, namespace, u, workload.ObjectMeta.Labels); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -579,83 +572,6 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-// createNetworkPolicy creates networkPolicies required by Coherence pods.
-func (r *Reconciler) createNetworkPolicies(ctx context.Context, log logr.Logger, appNamespace *corev1.Namespace, coherence *unstructured.Unstructured, workloadLabels map[string]string) error {
-	appName, ok := workloadLabels[oam.LabelAppName]
-	if !ok {
-		return errors.New("OAM app name label missing from metadata, unable to generate network policies")
-	}
-
-	// Add required label to application namespace if not already included.
-	label, ok := appNamespace.Labels[constants.LabelVerrazzanoNamespace]
-	if !ok || label != constants.VerrazzanoSystemNamespace {
-		if appNamespace.Labels == nil {
-			appNamespace.Labels = make(map[string]string)
-		}
-		appNamespace.Labels[constants.LabelVerrazzanoNamespace] = appNamespace.Name
-		err := r.Update(ctx, appNamespace)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Create a network policy in the verrazzano-system namespace, if it does not already exist.
-	// This network policy is an egress for the Coherence operator to Coherence pods in application namespaces.
-	networkPolicy := &netv1.NetworkPolicy{}
-	appNamespaceName := fmt.Sprintf("coh-%s-%s", appNamespace.Name, appName)
-	err := r.Get(ctx, client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: appNamespaceName}, networkPolicy)
-	if err != nil && k8serrors.IsNotFound(err) {
-		networkPolicy = &netv1.NetworkPolicy{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: networkPolicyAPIVersion,
-				Kind:       networkPolicyKind},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: constants.VerrazzanoSystemNamespace,
-				Name:      appNamespaceName,
-			},
-			Spec: netv1.NetworkPolicySpec{
-				PodSelector: metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						coherenceControlPaneLabel: "coherence",
-					},
-				},
-				PolicyTypes: []netv1.PolicyType{
-					netv1.PolicyTypeEgress,
-				},
-				Egress: []netv1.NetworkPolicyEgressRule{
-					{
-						To: []netv1.NetworkPolicyPeer{
-							{
-								NamespaceSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										constants.LabelVerrazzanoNamespace: appNamespace.Name,
-									},
-								},
-								PodSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										coherenceComponentLabel: "coherencePod",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		log.Info(fmt.Sprintf("Creating network policy %s:%s", constants.VerrazzanoSystemNamespace, appNamespaceName))
-		err = r.Create(ctx, networkPolicy)
-		if err != nil {
-			return err
-		}
-	} else if err != nil {
-		return err
-	}
-	log.Info(fmt.Sprintf("Network policy %s:%s already exist", constants.VerrazzanoSystemNamespace, appNamespaceName))
 
 	return nil
 }

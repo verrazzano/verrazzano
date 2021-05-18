@@ -46,8 +46,10 @@ function err_return() {
 
 # Deletes kubernetes resources from all namespaces
 # $1 resource-type - type of the resources being deleted
+# $2 crd-delete-flag - value of "yes" or "no" to also delete crd, default is "yes" for compatibility
 function delete_k8s_resource_from_all_namespaces() {
   local res=$1
+  local delcrd=$2
   if kubectl get crd "${res}"> /dev/null 2>&1 ; then
     IFS=$'\n' read -r -d '' -a namespaces < <( kubectl get namespaces --no-headers -o custom-columns=":metadata.name" && printf '\0' )
     for ns in "${namespaces[@]}" ; do
@@ -57,8 +59,10 @@ function delete_k8s_resource_from_all_namespaces() {
     done
   fi
   # Delete the CRDs, without any CRs based on that, from all the namespaces
-  if kubectl get crd "${res}"> /dev/null 2>&1 ; then
-    kubectl delete crd "${res}" --ignore-not-found > /dev/null 2>&1
+  if [ -z "${delcrd}" ] || [ "${delcrd}" == "yes" ]; then
+    if kubectl get crd "${res}"> /dev/null 2>&1 ; then
+      kubectl delete crd "${res}" --ignore-not-found > /dev/null 2>&1
+    fi
   fi
 }
 
