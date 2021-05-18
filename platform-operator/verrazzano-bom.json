@@ -138,6 +138,7 @@
           ]
         },
         {
+          "registry": "docker.io",
           "repository": "rancher",
           "name": "additional-rancher",
           "images": [
