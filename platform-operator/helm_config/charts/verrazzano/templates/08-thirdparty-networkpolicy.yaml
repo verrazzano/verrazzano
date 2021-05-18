@@ -466,7 +466,7 @@ spec:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
             matchExpressions:
-              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-api, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana]}
+              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-api, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator]}
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
