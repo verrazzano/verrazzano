@@ -199,11 +199,21 @@ function install_application_operator {
     return 0
   fi
 
+  IMAGE_PULL_SECRETS_ARGUMENT=""
+  if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+    IMAGE_PULL_SECRETS_ARGUMENT=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+  fi
+
   log "Install Verrazzano Kubernetes application operator"
-  helm upgrade --install --wait verrazzano-application-operator \
+  local chart_name=verrazzano-application-operator
+  build_image_overrides verrazzano-application-operator ${chart_name}
+
+  helm upgrade --install --wait ${chart_name} \
     $VZ_CHARTS_DIR/verrazzano-application-operator \
     --namespace "${VERRAZZANO_NS}" \
     -f $VZ_OVERRIDES_DIR/verrazzano-application-operator-values.yaml \
+    ${HELM_IMAGE_ARGS} \
+    ${IMAGE_PULL_SECRETS_ARGUMENT} \
     ${EXTRA_V8O_ARGUMENTS} || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install Verrazzano Kubernetes application operator."
@@ -226,8 +236,16 @@ function install_weblogic_operator {
     return 0
   fi
 
+  IMAGE_PULL_SECRETS_ARGUMENT=""
+  if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+    IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+  fi
+
   log "Install WebLogic Kubernetes operator"
-  helm upgrade --install --wait weblogic-operator \
+  local chart_name=weblogic-operator
+  build_image_overrides weblogic-operator ${chart_name}
+
+  helm upgrade --install --wait ${chart_name} \
     ${CHARTS_DIR}/weblogic-operator \
     --namespace "${VERRAZZANO_NS}" \
     -f $VZ_OVERRIDES_DIR/weblogic-values.yaml \
@@ -235,6 +253,8 @@ function install_weblogic_operator {
     --set domainNamespaceSelectionStrategy=LabelSelector \
     --set domainNamespaceLabelSelector=verrazzano-managed \
     --set enableClusterRoleBinding=true \
+    ${HELM_IMAGE_ARGS} \
+    ${IMAGE_PULL_SECRETS_ARGUMENT} \
     || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install WebLogic Kubernetes operator."
@@ -247,11 +267,21 @@ function install_coherence_operator {
     return 0
   fi
 
+  IMAGE_PULL_SECRETS_ARGUMENT=""
+  if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+    IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+  fi
+
   log "Install the Coherence Kubernetes operator"
-  helm upgrade --install --wait coherence-operator \
+  local chart_name=coherence-operator
+  build_image_overrides coherence-operator ${chart_name}
+
+  helm upgrade --install --wait ${chart_name} \
     ${CHARTS_DIR}/coherence-operator \
     --namespace "${VERRAZZANO_NS}" \
     -f $VZ_OVERRIDES_DIR/coherence-values.yaml \
+    ${HELM_IMAGE_ARGS} \
+    ${IMAGE_PULL_SECRETS_ARGUMENT} \
     || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install the Coherence Kubernetes operator."
