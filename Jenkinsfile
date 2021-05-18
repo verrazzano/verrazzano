@@ -76,6 +76,7 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
+        OCI_OS_BUCKET="verrazzano-builds"
 
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -166,11 +167,6 @@ pipeline {
                     }
                 }
             }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/tools/analysis
@@ -225,11 +221,6 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                 }
-            }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
                 sh """
@@ -375,9 +366,6 @@ pipeline {
                     environment {
                         VERRAZZANO_OPERATOR_IMAGE="NONE"
                         KIND_KUBERNETES_CLUSTER_VERSION="1.18"
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
                         OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
                     }
                     steps {
@@ -629,6 +617,16 @@ pipeline {
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
+        }
+        success {
+            // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
+            sh """
+                if [ env.JOB_NAME == "verrazzano/master" ]; then
+                    cd ${GO_REPO_PATH}/verrazzano
+                    echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
+                fi
+            """
         }
         cleanup {
             deleteDir()
