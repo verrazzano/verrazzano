@@ -231,9 +231,9 @@ function reset_chart(){
   local deployment_status=$(get_deployment_status ${chartName} ${ns})
   log "Deployment status for ${ns}/${chartName}: ${deployment_status}"
   if [ "${deployment_status}" != "deployed" ]; then
-      log "Resetting chart state for ${ns}/${chartName} if necessary"
-      helm template ${chartName} -n ${ns} ${chartLocation}  |  kubectl delete -f - 2>&1 > /dev/null || true
-      helm uninstall -n ${ns} ${chartName} 2>&1 > /dev/null
+      log "Resetting chart state for ${ns}/${chartName} at ${chartLocation} if necessary"
+      helm template ${chartName} -n ${ns} ${chartLocation} 2>/dev/null |  kubectl delete -f - 2>/dev/null || true
+      helm uninstall -n ${ns} ${chartName} 2>/dev/null
       return $?
   fi
   log "Chart ${ns}/${chartName} at ${chartLocation} status: ${deployment_status}"
