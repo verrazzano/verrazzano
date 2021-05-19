@@ -4,8 +4,8 @@ The Hello World Helidon example is a Helidon-based service that returns a "Hello
 
 ## Prerequisites
 
-1. Create a multicluster Verrazzano installation with one admin and one managed cluster, and register the managed
-   cluster. Instructions on how to do this can be found [here](https://verrazzano.io/docs/setup/multicluster/multicluster/).
+Create a multicluster Verrazzano installation with one admin and one managed cluster, and register the managed cluster.
+Instructions on how to do this can be found [here](https://verrazzano.io/docs/setup/multicluster/multicluster/).
 
 The Hello World Helidon application deployment artifacts are contained in the Verrazzano project located at
 `<VERRAZZANO_HOME>/examples/multicluster/hello-helidon`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
