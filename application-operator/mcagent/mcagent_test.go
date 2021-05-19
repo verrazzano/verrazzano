@@ -38,7 +38,7 @@ var validSecret = corev1.Secret{
 // TestProcessAgentThreadNoProjects tests agent thread when no projects exist
 // GIVEN a request to process the agent loop
 // WHEN the a new VerrazzanoProjects resources exists
-// THEN ensure that there are no calls to sync any multi-cluste resources
+// THEN ensure that there are no calls to sync any multi-cluster resources
 func TestProcessAgentThreadNoProjects(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
@@ -80,6 +80,13 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list Namespace objects - return an empty list
+	mcMock.EXPECT().
+		List(gomock.Any(), &corev1.NamespaceList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, opts ...*client.ListOptions) error {
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
@@ -117,7 +124,7 @@ func TestProcessAgentThreadSecretDeleted(t *testing.T) {
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			return (errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name))
+			return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name)
 		})
 
 	// Do not expect any further calls because the registration secret no longer exists
@@ -199,7 +206,7 @@ func Test_getEnvValue(t *testing.T) {
 // WHEN the env array contains such an env
 // THEN updates its value, append the env name/value if not found
 func Test_updateEnvValue(t *testing.T) {
-	testEnvs := []corev1.EnvVar{}
+	var testEnvs []corev1.EnvVar
 	newValue := "version2"
 	newEnvs := updateEnvValue(testEnvs, registrationSecretVersion, newValue)
 	asserts.Equal(t, registrationSecretVersion, newEnvs[0].Name, "expected env")

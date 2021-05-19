@@ -94,12 +94,12 @@ function delete_multicluster_resources {
 
 # Delete all of the OAM ApplicationConfiguration resources in all namespaces.
 function delete_oam_applications_configurations {
-  delete_k8s_resource_from_all_namespaces applicationconfigurations.core.oam.dev
+  delete_k8s_resource_from_all_namespaces applicationconfigurations.core.oam.dev no
 }
 
 # Delete all of the OAM Component resources in all namespaces.
 function delete_oam_components {
-  delete_k8s_resource_from_all_namespaces components.core.oam.dev
+  delete_k8s_resource_from_all_namespaces components.core.oam.dev no
 }
 
 action "Deleting Rancher Local Cluster" delete_rancher_local_cluster || exit 1

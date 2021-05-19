@@ -5,7 +5,6 @@ package mcagent
 
 import (
 	"fmt"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -26,9 +25,6 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 		return client.IgnoreNotFound(err)
 	}
 
-	// Rebuild the list of namespaces to watch for multi-cluster objects.
-	var namespaces []string
-
 	// Write each of the records in verrazzano-mc namespace
 	for _, vp := range allAdminProjects.Items {
 		if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
@@ -38,16 +34,6 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 					s.Log.Error(err, "Error syncing object",
 						"VerrazzanoProject",
 						types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name})
-				} else {
-					// Add the project namespaces to the list of namespaces to watch.
-					// Check for duplicates values, even though they should never exist.
-					for _, namespace := range vp.Spec.Template.Namespaces {
-						if vzstring.SliceContainsString(namespaces, namespace.Metadata.Name) {
-							s.Log.Info(fmt.Sprintf("the namespace %s in project %s is a duplicate", namespace.Metadata.Name, vp.Name))
-						} else {
-							namespaces = append(namespaces, namespace.Metadata.Name)
-						}
-					}
 				}
 			} else {
 				// Remove the VerrazzanoProject resource if it is on the local cluster but no longer
@@ -86,7 +72,11 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 	}
 
 	// Update the list of namespaces being watched for multi-cluster objects
-	s.ProjectNamespaces = namespaces
+	s.ProjectNamespaces, err = s.getManagedNamespaces()
+	if err != nil {
+		s.Log.Error(err, "failed to get the list of Verrazzano managed namespaces")
+		return err
+	}
 
 	return nil
 }

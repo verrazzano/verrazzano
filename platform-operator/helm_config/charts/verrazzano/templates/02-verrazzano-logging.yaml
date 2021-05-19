@@ -192,9 +192,7 @@ data:
     <filter kubernetes.**>
       @type kubernetes_metadata
       @id kubernetes_metadata
-      # VZ-2637 need newer version to enable watch
-      # watch_retry_interval 20
-      watch false
+      watch_retry_interval 20
     </filter>
 
     # rewrite_tag_filter does not support nested fields like
