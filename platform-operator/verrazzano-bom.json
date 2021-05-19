@@ -349,6 +349,56 @@
           ]
         }
       ]
+    },
+    {
+      "name": "mysql",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "mysql",
+          "images": [
+            {
+              "image": "mysql",
+              "tag": "8.0.20",
+              "helmPath": "image",
+              "helmTagPath": "imageTag"
+            },
+            {
+              "image": "oraclelinux",
+              "tag": "7-slim",
+              "helmPath": "busybox.image",
+              "helmTagPath": "busybox.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "keycloak",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "keycloak",
+          "images": [
+            {
+              "image": "keycloak",
+              "tag": "10.0.1-20201016212759-30d98b0",
+              "helmPath": "keycloak.image.repository",
+              "helmTagPath": "keycloak.image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "keycloak-oracle-theme",
+          "images": [
+            {
+              "image": "keycloak-oracle-theme",
+              "tag": "0.15.0-20210510085250-01638c7"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -323,6 +323,8 @@ function build_image_overrides(){
     if [ "${helmPath}" != "null" ]; then
       HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmPath}=${fullPath} "
     fi
+
+    HELM_RAW_IMAGE="${fullPath}"
   done
 }
 
