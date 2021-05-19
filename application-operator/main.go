@@ -176,7 +176,7 @@ func main() {
 			&webhook.Admission{Handler: &webhooks.VerrazzanoProjectValidator{}})
 
 		// Get a Kubernetes dynamic client.
-		restConfig, err := clientcmd.BuildConfigFromFlags("", "/Users/kminder/.kube/config")
+		restConfig, err := clientcmd.BuildConfigFromFlags("", "")
 		if err != nil {
 			setupLog.Error(err, "unable to build kube config")
 			os.Exit(1)
