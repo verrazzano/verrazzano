@@ -196,20 +196,18 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 	})
 
 	ginkgo.Context("Metrics.", func() {
-		// patch pod "tododomain-adminserver" with prometheus annotations
-		// this step is not needed once WLS added prometheus annotations in admin server
-		ginkgo.It("Wait for running 'tododomain-adminserver'", func() {
-			gomega.Eventually(func() bool {
-				return pkg.PodsRunning("todo-list", []string{"tododomain-adminserver"})
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
-		})
-		addPrometheusAnnotations()
-
 		// Verify Prometheus scraped metrics
 		// GIVEN a deployed WebLogic application
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that metrics are being collected
 		ginkgo.It("Retrieve Prometheus scraped metrics", func() {
+			// patch pod "tododomain-adminserver" with prometheus annotations
+			// this step is not needed once WLS added prometheus annotations in admin server
+			gomega.Eventually(func() bool {
+				return pkg.PodsRunning("todo-list", []string{"tododomain-adminserver"})
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find running pod tododomain-adminserver")
+			addPrometheusAnnotations()
+
 			gomega.Eventually(func() bool {
 				return pkg.MetricsExist("wls_scrape_mbeans_count_total", "app_oam_dev_name", "todo-appconf")
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find metrics for todo-list")
