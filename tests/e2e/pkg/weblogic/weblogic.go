@@ -17,14 +17,16 @@ import (
 	"k8s.io/client-go/util/jsonpath"
 )
 
-// ServerStatus contains the status information for a WebLogic server
-type ServerStatus struct {
+const Healthy = "ok"
+
+// ServerHealth contains the health information for a WebLogic server
+type ServerHealth struct {
 	ServerName string
-	Status     string
+	Health     string
 }
 
 // ListDomains returns the list of WebLogic domains in unstructured format
-func ListDomains(namespace string, kubeconfigPath string) (*unstructured.UnstructuredList, error) {
+func ListDomains(namespace string) (*unstructured.UnstructuredList, error) {
 	client := pkg.GetDynamicClient()
 	domains, err := client.Resource(getScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -43,14 +45,14 @@ func GetDomain(namespace string, name string) (*unstructured.Unstructured, error
 	return domain, nil
 }
 
-// GetServerStatusSlice returns the WebLogic scheme needed to get unstructured data
-func GetServerStatusSlice(uDomain *unstructured.Unstructured) ([]ServerStatus, error) {
+// GetHealthOfServers returns an array of ServerHealth objects
+func GetHealthOfServers(uDomain *unstructured.Unstructured) ([]ServerHealth, error) {
 	// Separator for list of servers
 	const serverSep = ","
 	// Separator for server fields
 	const fieldSep = ":"
 	// Template used to parse for the server health status
-	const template = `{range .status.servers[*]}{.health.overallHealth} {end}`
+	const template = `{range .status.servers[*]}{.serverName}:{.health.overallHealth},{end}`
 
 	// Get the string that has the server status health
 	s, err := findData(uDomain, template)
@@ -58,20 +60,23 @@ func GetServerStatusSlice(uDomain *unstructured.Unstructured) ([]ServerStatus, e
 		return nil, err
 	}
 	// fmt.Printf("servers: %s\n", s)
-	// Convert the string to a slice of ServerStatus
+	// Convert the string to a slice of ServerHealth
 	servers := strings.Split(s, serverSep)
 	if len(servers) == 0 {
 		return nil, errors.New("No WebLogic servers found in domain CR")
 	}
-	var ss []ServerStatus
+	var ss []ServerHealth
 	for _, server := range servers {
+		if len(server) == 0 {
+			break
+		}
 		fields := strings.Split(server, fieldSep)
-		if len(fields) != 0 {
+		if len(fields) == 0 {
 			return nil, errors.New("WebLogic server fields not found in domain CR")
 		}
-		ss = append(ss, ServerStatus{
+		ss = append(ss, ServerHealth{
 			ServerName: strings.TrimSpace(fields[0]),
-			Status:     strings.TrimSpace(fields[1]),
+			Health:     strings.TrimSpace(fields[1]),
 		})
 	}
 	return ss, nil
@@ -110,7 +115,7 @@ func findData(uDomain *unstructured.Unstructured, template string) (string, erro
 	if err != nil {
 		return "", err
 	}
-	// Convert to ServerStatus structs
+	// Convert to ServerHealth structs
 	s := buf.String()
 	return s, nil
 }

@@ -14,14 +14,41 @@ import (
 	"k8s.io/client-go/util/jsonpath"
 )
 
-func TestListDomains(t *testing.T) {
-	assert := asserts.New(t)
-
-	res, err := ListDomains("todo-list", "/Users/pmackin/.kube/config-oke")
-	assert.NoError(err)
-	assert.NotNil(res)
-	//	assert.NoError(checkServerStatus(&res.Items[0]))
-}
+//func TestGetDomains(t *testing.T) {
+//	assert := asserts.New(t)
+//
+//	domain, err := GetDomain("todo-list", "todo-domain")
+//	assert.NoError(err)
+//	assert.NotNil(domain)
+//
+//	sh, err := GetHealthOfServers(domain)
+//	assert.NoError(err)
+//	assert.Equal("AdminServer", sh[0].ServerName)
+//	assert.Equal("ok", sh[0].Health)
+//
+//	sh, err = GetHealthOfServersUsingStruct(domain)
+//	assert.NoError(err)
+//	assert.Equal("AdminServer", sh[0].ServerName)
+//	assert.Equal("ok", sh[0].Health)
+//}
+//
+//func TestListDomains(t *testing.T) {
+//	assert := asserts.New(t)
+//
+//	domains, err := ListDomains("todo-list")
+//	assert.NoError(err)
+//	assert.NotNil(domains)
+//
+//	sh, err := GetHealthOfServers(&domains.Items[0])
+//	assert.NoError(err)
+//	assert.Equal("AdminServer", sh[0].ServerName)
+//	assert.Equal("ok", sh[0].Health)
+//
+//	sh, err = GetHealthOfServersUsingStruct(&domains.Items[0])
+//	assert.NoError(err)
+//	assert.Equal("AdminServer", sh[0].ServerName)
+//	assert.Equal("ok", sh[0].Health)
+//}
 
 func TestJsonPathKind(t *testing.T) {
 	assert := asserts.New(t)
