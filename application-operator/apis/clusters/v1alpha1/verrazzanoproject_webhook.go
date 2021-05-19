@@ -148,7 +148,7 @@ func validateTargetClustersExist(c client.Client, p *VerrazzanoProject) error {
 		vmc := v1alpha1.VerrazzanoManagedCluster{}
 		err := c.Get(context.TODO(), key, &vmc)
 		if err != nil {
-			return err
+			return fmt.Errorf("target managed cluster %s is not registered: %v", cluster.Name, err)
 		}
 	}
 	return nil
