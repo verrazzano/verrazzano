@@ -9,6 +9,9 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -64,6 +67,11 @@ func TestVerrazzanoProject(t *testing.T) {
 	// Test data
 	testVP := testProject
 
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	// Test create
 	err := testVP.ValidateCreate()
 	assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource")
@@ -82,6 +90,11 @@ func TestInvalidNamespace(t *testing.T) {
 	// Test data
 	testVP := testProject
 	testVP.Namespace = "invalid-namespace"
+
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
 
 	// Test create
 	err := testVP.ValidateCreate()
@@ -104,6 +117,11 @@ func TestInvalidNamespaces(t *testing.T) {
 	testVP := testProject
 	testVP.Spec.Template.Namespaces = []NamespaceTemplate{}
 
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	// Test create
 	err := testVP.ValidateCreate()
 	assert.Error(t, err, "Expected failure for invalid namespace list")
@@ -123,6 +141,11 @@ func TestNetworkPolicyNamespace(t *testing.T) {
 	// Test data
 	testVP := testNetworkPolicy
 
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	// Test create
 	err := testVP.ValidateCreate()
 	assert.NoError(t, err, "Error validating VerrazzanProject with NetworkPolicyTemplate")
@@ -141,6 +164,11 @@ func TestNetworkPolicyMissingNamespace(t *testing.T) {
 	testVP := testNetworkPolicy
 	testVP.Spec.Template.Namespaces[0].Metadata.Name = "ns2"
 
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	// Test create
 	err := testVP.ValidateCreate()
 	assert.EqualError(t, err, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
@@ -148,4 +176,191 @@ func TestNetworkPolicyMissingNamespace(t *testing.T) {
 	// Test update
 	err = testVP.ValidateUpdate(&VerrazzanoProject{})
 	assert.EqualError(t, err, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
+}
+
+// TestNamespaceUniquenessForProjects tests that the namespace of a VerrazzanoProject N does not conflict with a preexisting project
+// GIVEN a call validate VerrazzanoProject on create or update
+// WHEN the VerrazzanoProject has a a namespace that conflicts with any pre-existing projects
+// THEN the validation should fail
+func TestNamespaceUniquenessForProjects(t *testing.T) {
+
+	// When creating the fake client, prepopulate it with 2 Verrazzano projects
+	// existingVP1 has namespaces project1 and project2
+	// existingVP2 has namespaces project3 and project4
+	// Adding any new Verrazzano projects with these namespaces will fail validation
+	existingVP1 := &VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "existing-project-1",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project1",
+						},
+					},
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project2",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	existingVP2 := &VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "existing-project-2",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project3",
+						},
+					},
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project4",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	objs := []runtime.Object{existingVP1, existingVP2}
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme(), objs...), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
+	currentVP := VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-project",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project",
+						},
+					},
+				},
+			},
+		},
+	}
+	// This test will succeed because Verrazzano project test-project has unique namespace project
+	err := currentVP.validateNamespaceCanBeUsed()
+	assert.Nil(t, err)
+
+	currentVP = VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-project1",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project2",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// This test will fail because Verrazzano project test-project1 has conflicting namespace project2
+	err = currentVP.validateNamespaceCanBeUsed()
+	assert.NotNil(t, err)
+	// This test will fail same as above but this time coming in through parent validator
+	err = currentVP.validateVerrazzanoProject()
+	assert.NotNil(t, err)
+
+	currentVP = VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-project2",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project",
+						},
+					},
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project4",
+						},
+					},
+				},
+			},
+		},
+	}
+	// UPDATE FAIL This test will fail because Verrazzano project test-project2 has conflicting namespace project4
+	err = currentVP.validateNamespaceCanBeUsed()
+	assert.NotNil(t, err)
+
+	currentVP = VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "existing-project-1",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project",
+						},
+					},
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project4",
+						},
+					},
+				},
+			},
+		},
+	}
+	// This test will fail because Verrazzano project name, existing-project-1, is using a namespace in existing-project-2
+	err = currentVP.validateNamespaceCanBeUsed()
+	assert.NotNil(t, err)
+
+	currentVP = VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "existing-project-1",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project",
+						},
+					},
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "project2",
+						},
+					},
+				},
+			},
+		},
+	}
+	// UPDATE PASS This test will pass because Verrazzano project name, existing-project-1, is not using a namespace associated with any existing projects
+	err = currentVP.validateNamespaceCanBeUsed()
+	assert.Nil(t, err)
 }

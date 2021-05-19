@@ -207,6 +207,9 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 		labels[oam.LabelAppName] = appName
 	}
 
+	// Set the label indicating this is WebLogic workload
+	labels[constants.LabelWorkloadType] = constants.WorkloadTypeWeblogic
+
 	err := unstructured.SetNestedStringMap(weblogic.Object, labels, specServerPodLabelsFields...)
 	if err != nil {
 		log.Error(err, "Unable to set labels in spec serverPod")

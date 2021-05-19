@@ -44,3 +44,12 @@ func UnorderedEqual(mapBool map[string]bool, arrayStr []string) bool {
 	}
 	return true
 }
+
+// SliceToSet converts a slice of strings to a set of strings
+func SliceToSet(list []string) map[string]bool {
+	outSet := make(map[string]bool)
+	for _, f := range list {
+		outSet[f] = true
+	}
+	return outSet
+}

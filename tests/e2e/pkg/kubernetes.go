@@ -130,7 +130,7 @@ func DoesNamespaceExistInCluster(name string, kubeconfigPath string) bool {
 		ginkgo.Fail(fmt.Sprintf("Failed to get namespace %s with error: %v", name, err))
 	}
 
-	return namespace != nil
+	return namespace != nil && len(namespace.Name) > 0
 }
 
 // ListNamespaces returns a namespace list for the given list options

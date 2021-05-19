@@ -397,6 +397,16 @@ function is_keycloak_enabled() {
   echo ${keycloak_enabled}
 }
 
+# Return a flag indicating whether this is an installation leveraging OCI DNS
+function is_oci_dns() {
+  local dns_type=$(get_config_value '.dns.type')
+  if [ "$dns_type" == "oci" ]; then
+    echo "true"
+  else
+    echo "false"
+  fi
+}
+
 if [ -z "$INSTALL_CONFIG_FILE" ]; then
   INSTALL_CONFIG_FILE=$DEFAULT_CONFIG_FILE
 fi

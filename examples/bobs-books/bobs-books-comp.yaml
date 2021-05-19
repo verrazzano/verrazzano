@@ -366,11 +366,14 @@ spec:
                     user:
                       Value: '@@SECRET:mysql-credentials:username@@'
                 JDBCConnectionPoolParams:
+                  ConnectionCreationRetryFrequencySeconds: 5
                   ConnectionReserveTimeoutSeconds: 10
                   InitialCapacity: 0
+                  InactiveConnectionTimeoutSeconds: 60
                   MaxCapacity: 5
                   MinCapacity: 0
                   TestConnectionsOnReserve: true
+                  TestFrequencySeconds: 10
                   TestTableName: SQL SELECT 1
 ---
 apiVersion: core.oam.dev/v1alpha2
