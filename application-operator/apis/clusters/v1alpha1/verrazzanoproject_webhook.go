@@ -4,30 +4,21 @@
 package v1alpha1
 
 import (
+	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"golang.org/x/net/context"
+	k8sadmission "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
-
-var getControllerRuntimeClient = getClient
-var _ webhook.Validator = &VerrazzanoProject{}
 
 // log is for logging in this package.
 var log = logf.Log.WithName("verrazzanoproject-resource")
-
-// SetupWebhookWithManager is used to let the controller manager know about the webhook
-func (vp *VerrazzanoProject) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(vp).
-		Complete()
-}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (vp *VerrazzanoProject) ValidateCreate() error {
@@ -118,21 +109,55 @@ func (vp *VerrazzanoProject) validateNamespaceCanBeUsed() error {
 	return nil
 }
 
-// getClient returns a controller runtime client for the Verrazzano resource
-func getClient() (client.Client, error) {
-	config, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	return client.New(config, client.Options{Scheme: newScheme()})
+type VerrazzanoProjectValidator struct {
+	client  client.Client
+	decoder *admission.Decoder
 }
 
-// newScheme creates a new scheme that includes this package's object for use by client
-func newScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	AddToScheme(scheme)
-	scheme.AddKnownTypes(schema.GroupVersion{
-		Version: "v1",
-	}, &corev1.Secret{})
-	return scheme
+// InjectClient injects the client.
+func (v *VerrazzanoProjectValidator) InjectClient(c client.Client) error {
+	v.client = c
+	return nil
+}
+
+// InjectDecoder injects the decoder.
+func (v *VerrazzanoProjectValidator) InjectDecoder(d *admission.Decoder) error {
+	v.decoder = d
+	return nil
+}
+
+func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	p := &VerrazzanoProject{}
+	err := v.decoder.Decode(req, p)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	log.Info("client=%v", v.client)
+	log.Info("operation=%v", req.Operation)
+	log.Info("object=%v", p)
+
+	switch req.Operation {
+	case k8sadmission.Create:
+		return translateErrorToResponse(v.validateCreate(p))
+	case k8sadmission.Update:
+		return translateErrorToResponse(v.validateUpdate(p))
+	default:
+		return admission.Allowed("")
+	}
+}
+
+func translateErrorToResponse(err error) admission.Response {
+	if err == nil {
+		return admission.Allowed("")
+	}
+	return admission.Denied(err.Error())
+}
+
+func (v *VerrazzanoProjectValidator) validateCreate(p *VerrazzanoProject) error {
+	return p.ValidateCreate()
+}
+
+func (v *VerrazzanoProjectValidator) validateUpdate(p *VerrazzanoProject) error {
+	return p.ValidateUpdate(p)
 }
