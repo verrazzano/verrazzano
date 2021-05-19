@@ -1,12 +1,13 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package webhooks
 
 import (
 	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
@@ -85,7 +86,7 @@ func TestInvalidNamespaces(t *testing.T) {
 
 	// Test data
 	testVP := testProject
-	testVP.Spec.Template.Namespaces = []NamespaceTemplate{}
+	testVP.Spec.Template.Namespaces = []v1alpha12.NamespaceTemplate{}
 	testMC := testManagedCluster
 	asrt.NoError(v.client.Create(context.TODO(), &testMC))
 
@@ -348,14 +349,14 @@ func TestNamespaceUniquenessForProjects(t *testing.T) {
 func TestValidationFailureForProjectCreationWithoutTargetClusters(t *testing.T) {
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
-	p := VerrazzanoProject{
+	p := v1alpha12.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-project-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: VerrazzanoProjectSpec{
-			Template: ProjectTemplate{
-				Namespaces: []NamespaceTemplate{
+		Spec: v1alpha12.VerrazzanoProjectSpec{
+			Template: v1alpha12.ProjectTemplate{
+				Namespaces: []v1alpha12.NamespaceTemplate{
 					{
 						Metadata: metav1.ObjectMeta{
 							Name: "test-target-namespace",
@@ -383,17 +384,17 @@ func TestValidationFailureForProjectCreationWithoutTargetClusters(t *testing.T) 
 func TestValidationFailureForProjectCreationTargetingMissingManagedCluster(t *testing.T) {
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
-	p := VerrazzanoProject{
+	p := v1alpha12.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-project-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: VerrazzanoProjectSpec{
-			Placement: Placement{
-				Clusters: []Cluster{{Name: "invalid-cluster-name"}},
+		Spec: v1alpha12.VerrazzanoProjectSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "invalid-cluster-name"}},
 			},
-			Template: ProjectTemplate{
-				Namespaces: []NamespaceTemplate{
+			Template: v1alpha12.ProjectTemplate{
+				Namespaces: []v1alpha12.NamespaceTemplate{
 					{
 						Metadata: metav1.ObjectMeta{
 							Name: "test-target-namespace",
@@ -432,17 +433,17 @@ func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *t
 			ServiceAccount:               "test-service-account",
 		},
 	}
-	p := VerrazzanoProject{
+	p := v1alpha12.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-project-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: VerrazzanoProjectSpec{
-			Placement: Placement{
-				Clusters: []Cluster{{Name: "valid-cluster-name"}},
+		Spec: v1alpha12.VerrazzanoProjectSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "valid-cluster-name"}},
 			},
-			Template: ProjectTemplate{
-				Namespaces: []NamespaceTemplate{
+			Template: v1alpha12.ProjectTemplate{
+				Namespaces: []v1alpha12.NamespaceTemplate{
 					{
 						Metadata: metav1.ObjectMeta{
 							Name: "test-target-namespace",
@@ -478,17 +479,17 @@ func TestValidationSuccessForProjectCreationWithoutTargetClustersOnManagedCluste
 			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}
-	p := VerrazzanoProject{
+	p := v1alpha12.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-project-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: VerrazzanoProjectSpec{
-			Placement: Placement{
-				Clusters: []Cluster{{Name: "invalid-cluster-name"}},
+		Spec: v1alpha12.VerrazzanoProjectSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "invalid-cluster-name"}},
 			},
-			Template: ProjectTemplate{
-				Namespaces: []NamespaceTemplate{
+			Template: v1alpha12.ProjectTemplate{
+				Namespaces: []v1alpha12.NamespaceTemplate{
 					{
 						Metadata: metav1.ObjectMeta{
 							Name: "test-target-namespace",

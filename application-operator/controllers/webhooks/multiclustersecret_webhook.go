@@ -1,11 +1,12 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package webhooks
 
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"net/http"
 
 	k8sadmission "k8s.io/api/admission/v1beta1"
@@ -33,7 +34,7 @@ func (v *MultiClusterSecretValidator) InjectDecoder(d *admission.Decoder) error 
 
 // Handle performs validation of created or updated MultiClusterSecret resources.
 func (v *MultiClusterSecretValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	mcs := &MultiClusterSecret{}
+	mcs := &v1alpha1.MultiClusterSecret{}
 	err := v.decoder.Decode(req, mcs)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
@@ -48,7 +49,7 @@ func (v *MultiClusterSecretValidator) Handle(ctx context.Context, req admission.
 }
 
 // validateMultiClusterSecret performs validation checks on the resource
-func validateMultiClusterSecret(c client.Client, mcs *MultiClusterSecret) error {
+func validateMultiClusterSecret(c client.Client, mcs *v1alpha1.MultiClusterSecret) error {
 	if len(mcs.Spec.Placement.Clusters) == 0 {
 		return fmt.Errorf("One or more target clusters must be provided")
 	}

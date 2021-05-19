@@ -1,10 +1,11 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package webhooks
 
 import (
 	"encoding/json"
+	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
@@ -28,17 +29,17 @@ var testManagedCluster = v1alpha1.VerrazzanoManagedCluster{
 	},
 }
 
-var testProject = VerrazzanoProject{
+var testProject = v1alpha12.VerrazzanoProject{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "test",
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 	},
-	Spec: VerrazzanoProjectSpec{
-		Placement: Placement{
-			Clusters: []Cluster{{Name: "test-managed-cluster-name"}},
+	Spec: v1alpha12.VerrazzanoProjectSpec{
+		Placement: v1alpha12.Placement{
+			Clusters: []v1alpha12.Cluster{{Name: "test-managed-cluster-name"}},
 		},
-		Template: ProjectTemplate{
-			Namespaces: []NamespaceTemplate{
+		Template: v1alpha12.ProjectTemplate{
+			Namespaces: []v1alpha12.NamespaceTemplate{
 				{
 					Metadata: metav1.ObjectMeta{
 						Name: "newNS1",
@@ -49,24 +50,24 @@ var testProject = VerrazzanoProject{
 	},
 }
 
-var testNetworkPolicy = VerrazzanoProject{
+var testNetworkPolicy = v1alpha12.VerrazzanoProject{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "test",
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 	},
-	Spec: VerrazzanoProjectSpec{
-		Placement: Placement{
-			Clusters: []Cluster{{Name: "test-managed-cluster-name"}},
+	Spec: v1alpha12.VerrazzanoProjectSpec{
+		Placement: v1alpha12.Placement{
+			Clusters: []v1alpha12.Cluster{{Name: "test-managed-cluster-name"}},
 		},
-		Template: ProjectTemplate{
-			Namespaces: []NamespaceTemplate{
+		Template: v1alpha12.ProjectTemplate{
+			Namespaces: []v1alpha12.NamespaceTemplate{
 				{
 					Metadata: metav1.ObjectMeta{
 						Name: "ns1",
 					},
 				},
 			},
-			NetworkPolicies: []NetworkPolicyTemplate{
+			NetworkPolicies: []v1alpha12.NetworkPolicyTemplate{
 				{
 					Metadata: metav1.ObjectMeta{
 						Namespace: "ns1",
@@ -94,7 +95,7 @@ func newAdmissionRequest(op admissionv1beta1.Operation, obj interface{}) admissi
 // This is a test utility function used by other multi-cluster resource validation tests.
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	AddToScheme(scheme)
+	v1alpha12.AddToScheme(scheme)
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &corev1.Secret{})

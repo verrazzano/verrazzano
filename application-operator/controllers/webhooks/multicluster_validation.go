@@ -1,11 +1,12 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package webhooks
 
 import (
 	"context"
 	"fmt"
+	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	core "k8s.io/api/core/v1"
@@ -27,7 +28,7 @@ func isLocalClusterAdminCluster(c client.Client) bool {
 
 // validateTargetClustersExist determines if all of the target clusters of the project have
 // corresponding managed cluster resources.
-func validateTargetClustersExist(c client.Client, p Placement) error {
+func validateTargetClustersExist(c client.Client, p v1alpha12.Placement) error {
 	for _, cluster := range p.Clusters {
 		key := client.ObjectKey{Name: cluster.Name, Namespace: constants.VerrazzanoMultiClusterNamespace}
 		vmc := v1alpha1.VerrazzanoManagedCluster{}

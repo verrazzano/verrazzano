@@ -1,11 +1,12 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package webhooks
 
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"net/http"
 
 	k8sadmission "k8s.io/api/admission/v1beta1"
@@ -33,7 +34,7 @@ func (v *MultiClusterConfigmapValidator) InjectDecoder(d *admission.Decoder) err
 
 // Handle performs validation of created or updated MultiClusterConfigmap resources.
 func (v *MultiClusterConfigmapValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	mccm := &MultiClusterConfigMap{}
+	mccm := &v1alpha1.MultiClusterConfigMap{}
 	err := v.decoder.Decode(req, mccm)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
@@ -48,7 +49,7 @@ func (v *MultiClusterConfigmapValidator) Handle(ctx context.Context, req admissi
 }
 
 // validateMultiClusterConfigmap performs validation checks on the resource
-func validateMultiClusterConfigmap(c client.Client, mccm *MultiClusterConfigMap) error {
+func validateMultiClusterConfigmap(c client.Client, mccm *v1alpha1.MultiClusterConfigMap) error {
 	if len(mccm.Spec.Placement.Clusters) == 0 {
 		return fmt.Errorf("One or more target clusters must be provided")
 	}

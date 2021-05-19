@@ -1,11 +1,12 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package webhooks
 
 import (
 	"context"
 	"github.com/stretchr/testify/assert"
+	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
@@ -33,12 +34,12 @@ func newMultiClusterApplicationConfigurationValidator() MultiClusterApplicationC
 func TestValidationFailureForMultiClusterApplicationConfigurationCreationWithoutTargetClusters(t *testing.T) {
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
-	p := MultiClusterApplicationConfiguration{
+	p := v1alpha12.MultiClusterApplicationConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mcapplicationconfiguration-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: MultiClusterApplicationConfigurationSpec{},
+		Spec: v1alpha12.MultiClusterApplicationConfigurationSpec{},
 	}
 
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
@@ -58,14 +59,14 @@ func TestValidationFailureForMultiClusterApplicationConfigurationCreationWithout
 func TestValidationFailureForMultiClusterApplicationConfigurationCreationTargetingMissingManagedCluster(t *testing.T) {
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
-	p := MultiClusterApplicationConfiguration{
+	p := v1alpha12.MultiClusterApplicationConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mcapplicationconfiguration-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: MultiClusterApplicationConfigurationSpec{
-			Placement: Placement{
-				Clusters: []Cluster{{Name: "invalid-cluster-name"}},
+		Spec: v1alpha12.MultiClusterApplicationConfigurationSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "invalid-cluster-name"}},
 			},
 		},
 	}
@@ -98,14 +99,14 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationTargeti
 			ServiceAccount:               "test-service-account",
 		},
 	}
-	mcc := MultiClusterApplicationConfiguration{
+	mcc := v1alpha12.MultiClusterApplicationConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mcapplicationconfiguration-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: MultiClusterApplicationConfigurationSpec{
-			Placement: Placement{
-				Clusters: []Cluster{{Name: "valid-cluster-name"}},
+		Spec: v1alpha12.MultiClusterApplicationConfigurationSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "valid-cluster-name"}},
 			},
 		},
 	}
@@ -135,14 +136,14 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}
-	mcc := MultiClusterApplicationConfiguration{
+	mcc := v1alpha12.MultiClusterApplicationConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mcapplicationconfiguration-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: MultiClusterApplicationConfigurationSpec{
-			Placement: Placement{
-				Clusters: []Cluster{{Name: "invalid-cluster-name"}},
+		Spec: v1alpha12.MultiClusterApplicationConfigurationSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "invalid-cluster-name"}},
 			},
 		},
 	}

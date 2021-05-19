@@ -173,7 +173,7 @@ func main() {
 		}
 		mgr.GetWebhookServer().Register(
 			"/validate-clusters-verrazzano-io-v1alpha1-verrazzanoproject",
-			&webhook.Admission{Handler: &clustersv1alpha1.VerrazzanoProjectValidator{}})
+			&webhook.Admission{Handler: &webhooks.VerrazzanoProjectValidator{}})
 
 		// Get a Kubernetes dynamic client.
 		restConfig, err := clientcmd.BuildConfigFromFlags("", "/Users/kminder/.kube/config")
@@ -229,7 +229,7 @@ func main() {
 		}
 		mgr.GetWebhookServer().Register(
 			"/validate-clusters-verrazzano-io-v1alpha1-multiclusterapplicationconfiguration",
-			&webhook.Admission{Handler: &clustersv1alpha1.MultiClusterApplicationConfigurationValidator{}})
+			&webhook.Admission{Handler: &webhooks.MultiClusterApplicationConfigurationValidator{}})
 
 		// MultiClusterComponent validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterComponentName)
@@ -239,7 +239,7 @@ func main() {
 		}
 		mgr.GetWebhookServer().Register(
 			"/validate-clusters-verrazzano-io-v1alpha1-multiclustercomponent",
-			&webhook.Admission{Handler: &clustersv1alpha1.MultiClusterComponentValidator{}})
+			&webhook.Admission{Handler: &webhooks.MultiClusterComponentValidator{}})
 
 		// MultiClusterConfigMap validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterConfigMapName)
@@ -249,7 +249,7 @@ func main() {
 		}
 		mgr.GetWebhookServer().Register(
 			"/validate-clusters-verrazzano-io-v1alpha1-multiclusterconfigmap",
-			&webhook.Admission{Handler: &clustersv1alpha1.MultiClusterConfigmapValidator{}})
+			&webhook.Admission{Handler: &webhooks.MultiClusterConfigmapValidator{}})
 
 		// MultiClusterSecret validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterSecretName)
@@ -259,7 +259,7 @@ func main() {
 		}
 		mgr.GetWebhookServer().Register(
 			"/validate-clusters-verrazzano-io-v1alpha1-multiclustersecret",
-			&webhook.Admission{Handler: &clustersv1alpha1.MultiClusterSecretValidator{}})
+			&webhook.Admission{Handler: &webhooks.MultiClusterSecretValidator{}})
 	}
 
 	if err = (&cohworkload.Reconciler{

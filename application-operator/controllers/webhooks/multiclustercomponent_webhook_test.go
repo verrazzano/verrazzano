@@ -1,11 +1,12 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package webhooks
 
 import (
 	"context"
 	"github.com/stretchr/testify/assert"
+	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
@@ -33,12 +34,12 @@ func newMultiClusterComponentValidator() MultiClusterComponentValidator {
 func TestValidationFailureForMultiClusterComponentCreationWithoutTargetClusters(t *testing.T) {
 	asrt := assert.New(t)
 	v := newMultiClusterComponentValidator()
-	p := MultiClusterComponent{
+	p := v1alpha12.MultiClusterComponent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mccomponent-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: MultiClusterComponentSpec{},
+		Spec: v1alpha12.MultiClusterComponentSpec{},
 	}
 
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
@@ -58,14 +59,14 @@ func TestValidationFailureForMultiClusterComponentCreationWithoutTargetClusters(
 func TestValidationFailureForMultiClusterComponentCreationTargetingMissingManagedCluster(t *testing.T) {
 	asrt := assert.New(t)
 	v := newMultiClusterComponentValidator()
-	p := MultiClusterComponent{
+	p := v1alpha12.MultiClusterComponent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mccomponent-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: MultiClusterComponentSpec{
-			Placement: Placement{
-				Clusters: []Cluster{{Name: "invalid-cluster-name"}},
+		Spec: v1alpha12.MultiClusterComponentSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "invalid-cluster-name"}},
 			},
 		},
 	}
@@ -98,14 +99,14 @@ func TestValidationSuccessForMultiClusterComponentCreationTargetingExistingManag
 			ServiceAccount:               "test-service-account",
 		},
 	}
-	mcc := MultiClusterComponent{
+	mcc := v1alpha12.MultiClusterComponent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mccomponent-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: MultiClusterComponentSpec{
-			Placement: Placement{
-				Clusters: []Cluster{{Name: "valid-cluster-name"}},
+		Spec: v1alpha12.MultiClusterComponentSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "valid-cluster-name"}},
 			},
 		},
 	}
@@ -135,14 +136,14 @@ func TestValidationSuccessForMultiClusterComponentCreationWithoutTargetClustersO
 			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}
-	mcc := MultiClusterComponent{
+	mcc := v1alpha12.MultiClusterComponent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mccomponent-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec: MultiClusterComponentSpec{
-			Placement: Placement{
-				Clusters: []Cluster{{Name: "invalid-cluster-name"}},
+		Spec: v1alpha12.MultiClusterComponentSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "invalid-cluster-name"}},
 			},
 		},
 	}

@@ -1,11 +1,12 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package webhooks
 
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"net/http"
 
 	k8sadmission "k8s.io/api/admission/v1beta1"
@@ -33,7 +34,7 @@ func (v *MultiClusterApplicationConfigurationValidator) InjectDecoder(d *admissi
 
 // Handle performs validation of created or updated MultiClusterApplicationConfiguration resources.
 func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	mcac := &MultiClusterApplicationConfiguration{}
+	mcac := &v1alpha1.MultiClusterApplicationConfiguration{}
 	err := v.decoder.Decode(req, mcac)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
@@ -48,7 +49,7 @@ func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Conte
 }
 
 // validateMultiClusterApplicationConfiguration performs validation checks on the resource
-func validateMultiClusterApplicationConfiguration(c client.Client, mcac *MultiClusterApplicationConfiguration) error {
+func validateMultiClusterApplicationConfiguration(c client.Client, mcac *v1alpha1.MultiClusterApplicationConfiguration) error {
 	if len(mcac.Spec.Placement.Clusters) == 0 {
 		return fmt.Errorf("One or more target clusters must be provided")
 	}

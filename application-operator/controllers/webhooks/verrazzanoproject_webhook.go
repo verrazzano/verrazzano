@@ -1,11 +1,12 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package webhooks
 
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"net/http"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -40,7 +41,7 @@ func (v *VerrazzanoProjectValidator) InjectDecoder(d *admission.Decoder) error {
 
 // Handle performs validation of created or updated VerrazzanoProject resources.
 func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	prj := &VerrazzanoProject{}
+	prj := &v1alpha1.VerrazzanoProject{}
 	err := v.decoder.Decode(req, prj)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
@@ -55,7 +56,7 @@ func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.R
 }
 
 // validateVerrazzanoProject performs validation checks on the resource
-func validateVerrazzanoProject(c client.Client, vp *VerrazzanoProject) error {
+func validateVerrazzanoProject(c client.Client, vp *v1alpha1.VerrazzanoProject) error {
 	if vp.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
 		return fmt.Errorf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
 	}
@@ -86,7 +87,7 @@ func validateVerrazzanoProject(c client.Client, vp *VerrazzanoProject) error {
 }
 
 // validateNetworkPolicies validates the network polices specified in the project
-func validateNetworkPolicies(vp *VerrazzanoProject) error {
+func validateNetworkPolicies(vp *v1alpha1.VerrazzanoProject) error {
 	// Build the set of project namespaces for validation
 	nsSet := make(map[string]bool)
 	for _, ns := range vp.Spec.Template.Namespaces {
