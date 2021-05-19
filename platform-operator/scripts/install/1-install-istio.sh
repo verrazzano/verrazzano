@@ -76,9 +76,11 @@ function install_istio()
       IMAGE_PULL_SECRETS_ARGUMENT=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
+    # We just need to build the ISTIO_HUB_OVERRIDE once, using any chart that will reveal it
     ISTIO_HUB_OVERRIDE=""
     if [ -n "${REGISTRY}" ]; then
-      ISTIO_HUB_OVERRIDE="--set global.hub=${REGISTRY}/${IMAGE_REPO} "
+      local repository=$(build_component_repo_name istio istiod)
+      ISTIO_HUB_OVERRIDE="--set global.hub=${REGISTRY}/${repository} "
     fi
 
     if ! is_chart_deployed istio-base istio-system ${ISTIO_CHART_DIR}/base ; then

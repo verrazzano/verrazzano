@@ -17,6 +17,8 @@ MANIFESTS_DIR=$(cd $SOURCE_DIR/../../thirdparty/manifests; pwd -P)
 
 . ${SOURCE_DIR}/logging.sh
 
+BOM_FILE=${BOM_FILE:-/verrazzano/verrazzano-bom.json}
+
 # DEPRECATED: This function is deprecated and is replaced by the status function in logging.sh
 function consoleout() {
   status "$@"
@@ -258,6 +260,30 @@ function is_chart_deployed(){
   return 1
 }
 
+# Get the repo for Docker images at the component/chart level from the BOM
+# $1 the component (e.g. "istio")
+# $2 the chart name (e.g. "istiocoredns")
+function get_component_repo_from_bom() {
+  local component=$1
+  local chartName=$2
+  cat ${BOM_FILE} | jq -r -c --arg C "${component}" --arg CH "${chartName}" '.components[] | select(.name == $C) | .subcomponents[] | select(.name == $CH) | .repository'
+}
+
+# Get the full-repositoryrepo for Docker images based on BOM and env var settings
+# $1 the component (e.g. "istio")
+# $2 the chart name (e.g. "istiocoredns")
+function build_component_repo_name() {
+  local component=$1
+  local chartName=$2
+  # Get the component-level repository from the BOM
+  local repository=$(get_component_repo_from_bom $component $chartName)
+  if [ -n "${IMAGE_REPO}" ]; then
+    # If there's a user-supplied repo in the env, prepend it to the repo component-level repo we got from the BOM
+    repository=${IMAGE_REPO}/${repository}
+  fi
+  echo ${repository}
+}
+
 # This function builds "--set" helm args to override images using a bill of materials. The resulting
 # HELM_SET_ARGS variable can be passed to helm to override one or more images in a helm chart.
 # $1 the component (e.g. "istio")
@@ -266,18 +292,15 @@ function build_image_overrides(){
   local component=$1
   local chartName=$2
   local registry=${REGISTRY}
-  local repository=${IMAGE_REPO}
-  local bomFile=/verrazzano/verrazzano-bom.json
+  local bomFile=${BOM_FILE}
 
   # if registry is not overridden in environment, pull it from the BOM
   if [ -z "${registry}" ]; then
     registry=$(cat ${bomFile} | jq -r '.registry')
   fi
 
-  # if repository is not overridden in environment, pull it from the BOM
-  if [ -z "${repository}" ]; then
-    repository=$(cat ${bomFile} | jq -r -c --arg C "${component}" --arg CH "${chartName}" '.components[] | select(.name == $C) | .subcomponents[] | select(.name == $CH) | .repository')
-  fi
+  # Build the full component-level repository from the BOM and the env
+  local repository=$(build_component_repo_name $component $chartName)
 
   HELM_IMAGE_ARGS=""
 
