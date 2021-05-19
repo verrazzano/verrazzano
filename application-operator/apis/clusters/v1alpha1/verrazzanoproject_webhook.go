@@ -49,10 +49,6 @@ func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.R
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	log.Info("client=%v", v.client)
-	log.Info("operation=%v", req.Operation)
-	log.Info("object=%v", p)
-
 	switch req.Operation {
 	case k8sadmission.Create:
 		return translateErrorToResponse(validateVerrazzanoProject(v.client, p))
