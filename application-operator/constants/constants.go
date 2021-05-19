@@ -60,6 +60,12 @@ const LabelVerrazzanoNamespace = "verrazzano.io/namespace"
 // LabelIstioInjectionDefault - default value for LabelIstioInjection
 const LabelIstioInjectionDefault = "enabled"
 
+// LabelWorkloadType - the type of workload, such as WebLogic
+const LabelWorkloadType = "verrazzano.io/workload-type"
+
+// WorkloadTypeWeblogic indicates the workload is WebLogic
+const WorkloadTypeWeblogic = "weblogic"
+
 // StatusUpdateChannelBufferSize - the number of status update messages that will be buffered
 // by the agent channel before controllers trying to send more status updates will start blocking
 const StatusUpdateChannelBufferSize = 50

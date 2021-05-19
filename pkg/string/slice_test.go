@@ -117,3 +117,37 @@ func TestUnorderedEqual(t *testing.T) {
 	success = UnorderedEqual(mapBool, arrayStr)
 	assert.Equal(false, success)
 }
+
+// TestSliceToSet tests the SliceContainsString function
+func TestSliceToSet(t *testing.T) {
+	assert := asserts.New(t)
+	slice := []string{"s1", "s2", "s3"}
+
+	// GIVEN a slice with several strings
+	// WHEN the slice is converted to a set
+	// THEN verify the set is correct
+	set := SliceToSet(slice)
+	assert.Len(set, 3)
+	assert.Contains(slice, "s1", "Set should contain string")
+	assert.Contains(slice, "s2", "Set should contain string")
+	assert.Contains(slice, "s3", "Set should contain string")
+	assert.NotContains(slice, "s4", "Set should not contain string")
+}
+
+// TestEmptyOrNilSliceToSet tests the SliceContainsString function
+func TestEmptyOrNilSliceToSet(t *testing.T) {
+	assert := asserts.New(t)
+	slice := []string{}
+
+	// GIVEN an empty slice
+	// WHEN the slice is converted to a set
+	// THEN verify the set is empty
+	set := SliceToSet(slice)
+	assert.Len(set, 0, "Empty slice should result in empty set")
+
+	// GIVEN an nil slice
+	// WHEN the slice is converted to a set
+	// THEN verify the set is empty
+	set = SliceToSet(nil)
+	assert.Len(set, 0, "Nil slice should result in empty set")
+}
