@@ -4,7 +4,6 @@
 package v1alpha1
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -15,15 +14,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	"sigs.k8s.io/yaml"
 	"testing"
-	"text/template"
 )
 
 var testManagedCluster = v1alpha1.VerrazzanoManagedCluster{
@@ -540,86 +535,3 @@ func newScheme() *runtime.Scheme {
 	v1alpha1.AddToScheme(scheme)
 	return scheme
 }
-
-// newTestProject creates a new VerrazzanoProject with the provided name and target namespace.
-func newTestProject(projectName string, targetNamespace string) VerrazzanoProject {
-	return VerrazzanoProject{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      projectName,
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-		Spec: VerrazzanoProjectSpec{
-			Template: ProjectTemplate{
-				Namespaces: []NamespaceTemplate{
-					{
-						Metadata: metav1.ObjectMeta{
-							Name: targetNamespace,
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-//	vmc := `
-//apiVersion: clusters.verrazzano.io/v1alpha1
-//kind: VerrazzanoManagedCluster
-//metadata:
-//  name: managed1
-//  namespace: verrazzano-mc
-//spec:
-//  managedClusterManifestSecret: verrazzano-cluster-managed1-manifest
-//  prometheusSecret: prometheus-managed1
-//  serviceAccount: verrazzano-cluster-managed1`
-//	asrt.NoError(createResourceFromTemplate(cli, vmc, map[string]string{}))
-
-// executeTemplate reads a template from a file and replaces values in the template from param maps
-// template - The filename of a template
-// params - a vararg of param maps
-func executeTemplate(s string, d interface{}) (string, error) {
-	t, err := template.New(s).Parse(s)
-	if err != nil {
-		return "", err
-	}
-	var buf bytes.Buffer
-	err = t.ExecuteTemplate(&buf, s, d)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
-// updateUnstructuredFromYAMLTemplate updates an unstructured from a populated YAML template file.
-// uns - The unstructured to update
-// template - The template file
-// params - The param maps to merge into the template
-func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template string, data interface{}) error {
-	str, err := executeTemplate(template, data)
-	if err != nil {
-		return err
-	}
-	bytes, err := yaml.YAMLToJSON([]byte(str))
-	if err != nil {
-		return err
-	}
-	_, _, err = unstructured.UnstructuredJSONScheme.Decode(bytes, nil, uns)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// createResourceFromTemplate builds a resource by merging the data with the template file and then
-// creates the resource using the client.
-func createResourceFromTemplate(cli client.Client, template string, data interface{}) error {
-	uns := unstructured.Unstructured{}
-	if err := updateUnstructuredFromYAMLTemplate(&uns, template, data); err != nil {
-		return err
-	}
-	if err := cli.Create(context.TODO(), &uns); err != nil {
-		return err
-	}
-	return nil
-}
-

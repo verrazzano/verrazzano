@@ -21,30 +21,46 @@ import (
 // log is for logging in this package.
 var log = logf.Log.WithName("verrazzanoproject-resource")
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (vp *VerrazzanoProject) ValidateCreate() error {
-	log.Info("validate create", "name", vp.Name)
-
-	return vp.validateVerrazzanoProject()
+type VerrazzanoProjectValidator struct {
+	client  client.Client
+	decoder *admission.Decoder
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (vp *VerrazzanoProject) ValidateUpdate(old runtime.Object) error {
-	log.Info("validate update", "name", vp.Name)
-
-	return vp.validateVerrazzanoProject()
-}
-
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (vp *VerrazzanoProject) ValidateDelete() error {
-	log.Info("validate delete", "name", vp.Name)
-
-	// Webhook is not configured for deletes so function will not be called.
+// InjectClient injects the client.
+func (v *VerrazzanoProjectValidator) InjectClient(c client.Client) error {
+	v.client = c
 	return nil
 }
 
+// InjectDecoder injects the decoder.
+func (v *VerrazzanoProjectValidator) InjectDecoder(d *admission.Decoder) error {
+	v.decoder = d
+	return nil
+}
+
+func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	p := &VerrazzanoProject{}
+	err := v.decoder.Decode(req, p)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	log.Info("client=%v", v.client)
+	log.Info("operation=%v", req.Operation)
+	log.Info("object=%v", p)
+
+	switch req.Operation {
+	case k8sadmission.Create:
+		return translateErrorToResponse(validateVerrazzanoProject(v.client, p))
+	case k8sadmission.Update:
+		return translateErrorToResponse(validateVerrazzanoProject(v.client, p))
+	default:
+		return admission.Allowed("")
+	}
+}
+
 // Perform validation checks on the resource
-func (vp *VerrazzanoProject) validateVerrazzanoProject() error {
+func validateVerrazzanoProject(c client.Client, vp *VerrazzanoProject)  error {
 	if vp.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
 		return fmt.Errorf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
 	}
@@ -57,7 +73,7 @@ func (vp *VerrazzanoProject) validateVerrazzanoProject() error {
 		return fmt.Errorf("One or more target clusters must be provided")
 	}
 
-	if err := vp.validateNetworkPolicies(); err != nil {
+	if err := validateNetworkPolicies(vp); err != nil {
 		return err
 	}
 
@@ -65,11 +81,15 @@ func (vp *VerrazzanoProject) validateVerrazzanoProject() error {
 		return err
 	}
 
+	if err := validateTargetClustersExist(c, vp); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // Validate the network polices specified in the project
-func (vp *VerrazzanoProject) validateNetworkPolicies() error {
+func validateNetworkPolicies(vp *VerrazzanoProject)  error {
 	// Build the set of project namespaces for validation
 	nsSet := make(map[string]bool)
 	for _, ns := range vp.Spec.Template.Namespaces {
@@ -114,42 +134,16 @@ func (vp *VerrazzanoProject) validateNamespaceCanBeUsed() error {
 	return nil
 }
 
-type VerrazzanoProjectValidator struct {
-	client  client.Client
-	decoder *admission.Decoder
-}
-
-// InjectClient injects the client.
-func (v *VerrazzanoProjectValidator) InjectClient(c client.Client) error {
-	v.client = c
-	return nil
-}
-
-// InjectDecoder injects the decoder.
-func (v *VerrazzanoProjectValidator) InjectDecoder(d *admission.Decoder) error {
-	v.decoder = d
-	return nil
-}
-
-func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	p := &VerrazzanoProject{}
-	err := v.decoder.Decode(req, p)
-	if err != nil {
-		return admission.Errored(http.StatusBadRequest, err)
+func validateTargetClustersExist(c client.Client, p *VerrazzanoProject) error {
+	for _, cluster := range p.Spec.Placement.Clusters {
+		key := client.ObjectKey{Name: cluster.Name, Namespace: constants.VerrazzanoMultiClusterNamespace}
+		vmc := v1alpha1.VerrazzanoManagedCluster{}
+		err := c.Get(context.TODO(), key, &vmc)
+		if err != nil {
+			return err
+		}
 	}
-
-	log.Info("client=%v", v.client)
-	log.Info("operation=%v", req.Operation)
-	log.Info("object=%v", p)
-
-	switch req.Operation {
-	case k8sadmission.Create:
-		return translateErrorToResponse(v.validateCreate(p))
-	case k8sadmission.Update:
-		return translateErrorToResponse(v.validateUpdate(p))
-	default:
-		return admission.Allowed("")
-	}
+	return nil
 }
 
 func translateErrorToResponse(err error) admission.Response {
@@ -157,40 +151,4 @@ func translateErrorToResponse(err error) admission.Response {
 		return admission.Allowed("")
 	}
 	return admission.Denied(err.Error())
-}
-
-func (v *VerrazzanoProjectValidator) validateCreate(p *VerrazzanoProject) error {
-	err := p.ValidateCreate()
-	if err != nil {
-		return err
-	}
-	err = v.validateTargetClustersExist(p)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (v *VerrazzanoProjectValidator) validateUpdate(p *VerrazzanoProject) error {
-	err := p.ValidateUpdate(p)
-	if err != nil {
-		return err
-	}
-	err = v.validateTargetClustersExist(p)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (v *VerrazzanoProjectValidator) validateTargetClustersExist(p *VerrazzanoProject) error {
-	for _, cluster := range p.Spec.Placement.Clusters {
-		key := client.ObjectKey{Name: cluster.Name, Namespace: constants.VerrazzanoMultiClusterNamespace}
-		vmc := v1alpha1.VerrazzanoManagedCluster{}
-		err := v.client.Get(context.TODO(), key, &vmc)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
