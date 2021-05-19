@@ -22,6 +22,10 @@ spec:
      labels:
         weblogic.operatorName: {{ .Release.Namespace | quote }}
         app: "weblogic-operator"
+     annotations:
+       {{- range $key, $value := .podAnnotations }}
+         {{ $key }}: {{ $value | quote }}
+       {{- end }}
     spec:
       serviceAccountName: {{ .serviceAccount | quote }}
       {{- with .nodeSelector }}

@@ -2,3 +2,6 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 image: ghcr.io/oracle/weblogic-kubernetes-operator:3.2.2
+
+podAnnotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "443"

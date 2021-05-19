@@ -69,6 +69,15 @@ spec:
                 JDBCDataSourceParams:
                   GlobalTransactionsProtocol: OnePhaseCommit
                   JNDIName: jdbc/ToDoDB
+                JDBCConnectionPoolParams:
+                  ConnectionCreationRetryFrequencySeconds: 5
+                  ConnectionReserveTimeoutSeconds: 10
+                  InitialCapacity: 0
+                  InactiveConnectionTimeoutSeconds: 60
+                  MaxCapacity: 5
+                  MinCapacity: 0
+                  TestConnectionsOnReserve: true
+                  TestFrequencySeconds: 10
                 JDBCDriverParams:
                   # for MySQL, the last element in the URL is the database name, and must match the name inside the DB server
                   URL: "jdbc:mysql://mysql.todo-list.svc.cluster.local:3306/tododb"

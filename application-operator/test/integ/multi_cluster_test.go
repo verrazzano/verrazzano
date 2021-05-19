@@ -179,7 +179,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_namespace_override_labels.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be updated successfully")
 		gomega.Eventually(func() bool {
-			namespace, err := K8sClient.GetNamespace("test-namespace-1")
+			namespace, err := K8sClient.GetNamespace("test-namespace-11")
 			if err == nil {
 				return namespace.Labels[constants.LabelIstioInjection] == "disabled" &&
 					namespace.Labels[constants.LabelVerrazzanoManaged] == "false" &&
@@ -189,7 +189,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 			return false
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 		gomega.Eventually(func() bool {
-			namespace, err := K8sClient.GetNamespace("test-namespace-2")
+			namespace, err := K8sClient.GetNamespace("test-namespace-12")
 			if err == nil {
 				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
 					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&

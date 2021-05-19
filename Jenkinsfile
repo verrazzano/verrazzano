@@ -621,7 +621,7 @@ pipeline {
         }
         success {
             sh """
-                if [ "${env.BRANCH_NAME}" == "master" ] || [ "${params.GENERATE_TARBALL}" == "true" ]; then
+                if [ "${params.GENERATE_TARBALL}" == "true" ]; then
                     mkdir ${WORKSPACE}/tar-files
                     chmod uog+w ${WORKSPACE}/tar-files
                     tools/scripts/generate_tarball.sh ${GO_REPO_PATH}/verrazzano/platform-operator/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz

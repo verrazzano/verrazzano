@@ -9,7 +9,7 @@ spec:
   template:
     namespaces:
       - metadata:
-          name: test-namespace-1
+          name: test-namespace-11
           labels:
             label1: "test1"
             istio-injection: "disabled"
@@ -17,7 +17,7 @@ spec:
           annotations:
             annot1: "test1"
       - metadata:
-          name: test-namespace-2
+          name: test-namespace-12
           labels:
             label2: "test2"
           annotations:
