@@ -2,6 +2,22 @@
   "registry": "ghcr.io",
   "components": [
     {
+      "name": "verrazzano-platform-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-platform-operator",
+          "images": [
+            {
+              "image": "verrazzano-platform-operator",
+              "tag": "0.15.0-20210519205437-9cd1da0b",
+              "helmPath": "image"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "ingress-nginx",
       "subcomponents": [
         {
@@ -240,7 +256,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.10.4-20201016214205-7f37ac6",
+              "tag": "v1.12.3-20210517195222-f345ec2",
               "helmPath": "logging.fluentdImage"
             },
             {
@@ -311,7 +327,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.10.4-20201016214205-7f37ac6",
+              "tag": "v1.12.3-20210517195222-f345ec2",
               "helmPath": "fluentdImage"
             }
           ]
