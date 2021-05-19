@@ -20,7 +20,7 @@ func TestListDomains(t *testing.T) {
 	res, err := ListDomains("todo-list", "/Users/pmackin/.kube/config-oke")
 	assert.NoError(err)
 	assert.NotNil(res)
-	assert.NoError(checkServerStatus(&res.Items[0]))
+	//	assert.NoError(checkServerStatus(&res.Items[0]))
 }
 
 func TestJsonPathKind(t *testing.T) {
@@ -52,7 +52,7 @@ func TestJsonPathHealth(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	const template = `{range .status.servers[*]}{.health.overallHealth} {end}`
+	const template = `{range .status.servers[*]}{.serverName}:{.health.overallHealth},{end}`
 	j := jsonpath.New("test")
 	err = j.Parse(template)
 	assert.NoError(err)
@@ -62,5 +62,5 @@ func TestJsonPathHealth(t *testing.T) {
 	assert.NoError(err)
 
 	s := buf.String()
-	fmt.Printf("health: %s\n", s)
+	fmt.Printf("servers: %s\n", s)
 }

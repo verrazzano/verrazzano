@@ -7,59 +7,110 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/util/jsonpath"
 )
 
+// ServerStatus contains the status information for a WebLogic server
+type ServerStatus struct {
+	ServerName string
+	Status     string
+}
+
 // ListDomains returns the list of WebLogic domains in unstructured format
 func ListDomains(namespace string, kubeconfigPath string) (*unstructured.UnstructuredList, error) {
-	client, err := dynamic.NewForConfig(pkg.GetKubeConfigGivenPath(kubeconfigPath))
+	client := pkg.GetDynamicClient()
+	domains, err := client.Resource(getScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+		return nil, err
 	}
-	scheme := schema.GroupVersionResource{
+	return domains, nil
+}
+
+// GetDomain returns a WebLogic domains in unstructured format
+func GetDomain(namespace string, name string) (*unstructured.Unstructured, error) {
+	client := pkg.GetDynamicClient()
+	domain, err := client.Resource(getScheme()).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return domain, nil
+}
+
+// GetServerStatusSlice returns the WebLogic scheme needed to get unstructured data
+func GetServerStatusSlice(uDomain *unstructured.Unstructured) ([]ServerStatus, error) {
+	// Separator for list of servers
+	const serverSep = ","
+	// Separator for server fields
+	const fieldSep = ":"
+	// Template used to parse for the server health status
+	const template = `{range .status.servers[*]}{.health.overallHealth} {end}`
+
+	// Get the string that has the server status health
+	s, err := findData(uDomain, template)
+	if err != nil {
+		return nil, err
+	}
+	// fmt.Printf("servers: %s\n", s)
+	// Convert the string to a slice of ServerStatus
+	servers := strings.Split(s, serverSep)
+	if len(servers) == 0 {
+		return nil, errors.New("No WebLogic servers found in domain CR")
+	}
+	var ss []ServerStatus
+	for _, server := range servers {
+		fields := strings.Split(server, fieldSep)
+		if len(fields) != 0 {
+			return nil, errors.New("WebLogic server fields not found in domain CR")
+		}
+		ss = append(ss, ServerStatus{
+			ServerName: strings.TrimSpace(fields[0]),
+			Status:     strings.TrimSpace(fields[1]),
+		})
+	}
+	return ss, nil
+}
+
+// getScheme returns the WebLogic scheme needed to get unstructured data
+func getScheme() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
 		Group:    "weblogic.oracle",
 		Version:  "v8",
 		Resource: "domains",
 	}
-	res, err := client.Resource(scheme).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
-	return res, nil
 }
 
-func checkServerStatus(u *unstructured.Unstructured) error {
+// findData returns a string from the unstructured domain that matches the template
+func findData(uDomain *unstructured.Unstructured, template string) (string, error) {
 	// Convert the unstructured domain into domain object that can be parsed
-	jsonDomain, err := u.MarshalJSON()
+	jsonDomain, err := uDomain.MarshalJSON()
 	if err != nil {
-		return err
+		return "", err
 	}
 	var domain interface{}
 	err = json.Unmarshal([]byte(jsonDomain), &domain)
 	if err != nil {
-		return err
+		return "", err
 	}
-
 	// Parse the template
-	const template = `{range .status.servers[*]}{.health.overallHealth} {end}`
 	j := jsonpath.New("domain")
 	err = j.Parse(template)
 	if err != nil {
-		return err
+		return "", err
 	}
-
-	// Execute the search for the data
+	// Execute the search for the server status
 	buf := new(bytes.Buffer)
 	err = j.Execute(buf, domain)
 	if err != nil {
-		return err
+		return "", err
 	}
-
+	// Convert to ServerStatus structs
 	s := buf.String()
-	fmt.Printf("health: %s\n", s)
-	return nil
+	return s, nil
 }
