@@ -17,8 +17,10 @@ VERRAZZANO_NS=verrazzano-system
 
 function delete_verrazzano() {
   # delete helm installation of Verrazzano
+  # - specifically delete the verrazzano-system/verrazzano chart, since it's possible the
+  #   verrazzano-platform-operator might get installed via helm separately
   log "Deleting Verrazzano"
-  helm ls -A \
+  helm ls -n verrazzano-system \
     | awk '/verrazzano/ {print $1}' \
     | xargsr helm uninstall -n verrazzano-system \
     || err_return $? "Could not delete verrazzano from helm" || return $? # return on pipefail
