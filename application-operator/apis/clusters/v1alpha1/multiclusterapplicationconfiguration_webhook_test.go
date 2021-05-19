@@ -40,8 +40,13 @@ func TestValidationFailureForMultiClusterApplicationConfigurationCreationWithout
 		},
 		Spec: MultiClusterApplicationConfigurationSpec{},
 	}
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected multi-cluster application configuration validation to fail due to missing placement information.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster application configuration validation to fail due to missing placement information.")
 }
 
@@ -64,8 +69,13 @@ func TestValidationFailureForMultiClusterApplicationConfigurationCreationTargeti
 			},
 		},
 	}
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected multi-cluster application configuration validation to fail due to missing placement information.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster application configuration validation to fail due to missing placement information.")
 }
 
@@ -100,9 +110,14 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationTargeti
 		},
 	}
 	asrt.NoError(v.client.Create(context.TODO(), &mc))
+
 	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
 	res := v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster application configuration create validation to succeed.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, mcc)
+	res = v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected multi-cluster application configuration update validation to succeed.")
 }
 
 // TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithoutTargetClustersOnManagedCluster tests allowing the creation
@@ -132,7 +147,12 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 		},
 	}
 	asrt.NoError(v.client.Create(context.TODO(), &s))
+
 	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
 	res := v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected multi-cluster application configuration validation to succeed with missing placement information on managed cluster.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, mcc)
+	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster application configuration validation to succeed with missing placement information on managed cluster.")
 }

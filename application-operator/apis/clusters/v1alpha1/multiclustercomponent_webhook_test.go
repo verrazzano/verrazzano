@@ -40,8 +40,13 @@ func TestValidationFailureForMultiClusterComponentCreationWithoutTargetClusters(
 		},
 		Spec: MultiClusterComponentSpec{},
 	}
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
 }
 
@@ -64,8 +69,13 @@ func TestValidationFailureForMultiClusterComponentCreationTargetingMissingManage
 			},
 		},
 	}
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
 }
 
@@ -100,8 +110,13 @@ func TestValidationSuccessForMultiClusterComponentCreationTargetingExistingManag
 		},
 	}
 	asrt.NoError(v.client.Create(context.TODO(), &mc))
+
 	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
 	res := v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected multi-cluster component create validation to succeed.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, mcc)
+	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster component create validation to succeed.")
 }
 
@@ -132,7 +147,12 @@ func TestValidationSuccessForMultiClusterComponentCreationWithoutTargetClustersO
 		},
 	}
 	asrt.NoError(v.client.Create(context.TODO(), &s))
+
 	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
 	res := v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected multi-cluster component validation to succeed with missing placement information on managed cluster.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, mcc)
+	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster component validation to succeed with missing placement information on managed cluster.")
 }

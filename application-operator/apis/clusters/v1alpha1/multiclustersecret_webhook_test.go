@@ -40,8 +40,13 @@ func TestValidationFailureForMultiClusterSecretCreationWithoutTargetClusters(t *
 		},
 		Spec: MultiClusterSecretSpec{},
 	}
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected multi-cluster secret validation to fail due to missing placement information.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster secret validation to fail due to missing placement information.")
 }
 
@@ -64,8 +69,13 @@ func TestValidationFailureForMultiClusterSecretCreationTargetingMissingManagedCl
 			},
 		},
 	}
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected multi-cluster secret validation to fail due to missing placement information.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster secret validation to fail due to missing placement information.")
 }
 
@@ -100,9 +110,14 @@ func TestValidationSuccessForMultiClusterSecretCreationTargetingExistingManagedC
 		},
 	}
 	asrt.NoError(v.client.Create(context.TODO(), &c))
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster secret create validation to succeed.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected multi-cluster secret update validation to succeed.")
 }
 
 // TestValidationSuccessForMultiClusterSecretCreationWithoutTargetClustersOnManagedCluster tests allowing the creation
@@ -132,7 +147,12 @@ func TestValidationSuccessForMultiClusterSecretCreationWithoutTargetClustersOnMa
 		},
 	}
 	asrt.NoError(v.client.Create(context.TODO(), &s))
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected multi-cluster secret validation to succeed with missing placement information on managed cluster.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster secret validation to succeed with missing placement information on managed cluster.")
 }

@@ -365,8 +365,13 @@ func TestValidationFailureForProjectCreationWithoutTargetClusters(t *testing.T) 
 			},
 		},
 	}
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected project validation to fail due to missing placement information.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project validation to fail due to missing placement information.")
 }
 
@@ -398,8 +403,13 @@ func TestValidationFailureForProjectCreationTargetingMissingManagedCluster(t *te
 			},
 		},
 	}
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected project validation to fail due to missing placement information.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project validation to fail due to missing placement information.")
 }
 
@@ -443,9 +453,14 @@ func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *t
 		},
 	}
 	asrt.NoError(v.client.Create(context.TODO(), &c))
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected project create validation to succeed.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected project update validation to succeed.")
 }
 
 // TestValidationSuccessForProjectCreationWithoutTargetClustersOnManagedCluster tests allowing the creation
@@ -484,7 +499,12 @@ func TestValidationSuccessForProjectCreationWithoutTargetClustersOnManagedCluste
 		},
 	}
 	asrt.NoError(v.client.Create(context.TODO(), &s))
+
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected project validation to succeed with missing placement information on managed cluster.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected project validation to succeed with missing placement information on managed cluster.")
 }
