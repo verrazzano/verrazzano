@@ -65,6 +65,9 @@ var testNetworkPolicy = VerrazzanoProject{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 	},
 	Spec: VerrazzanoProjectSpec{
+		Placement: Placement{
+			Clusters: []Cluster{{Name: "test-managed-cluster-name"}},
+		},
 		Template: ProjectTemplate{
 			Namespaces: []NamespaceTemplate{
 				{
@@ -166,16 +169,23 @@ func TestInvalidNamespaces(t *testing.T) {
 // WHEN the VerrazzanoProject has a NetworkPolicyTemplate with a namespace that exists in the project
 // THEN the validation should succeed
 func TestNetworkPolicyNamespace(t *testing.T) {
+	asrt := assert.New(t)
+	v := newVerrazzanoProjectValidator()
+
 	// Test data
 	testVP := testNetworkPolicy
+	testMC := testManagedCluster
+	asrt.NoError(v.client.Create(context.TODO(), &testMC))
 
 	// Test create
-	err := testVP.ValidateCreate()
-	assert.NoError(t, err, "Error validating VerrazzanProject with NetworkPolicyTemplate")
+	req := newAdmissionRequest(admissionv1beta1.Create, testVP)
+	res := v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Error validating VerrazzanProject with NetworkPolicyTemplate")
 
 	// Test update
-	err = testVP.ValidateUpdate(&VerrazzanoProject{})
-	assert.NoError(t, err, "Error validating VerrazzanProject with NetworkPolicyTemplate")
+	req = newAdmissionRequest(admissionv1beta1.Update, testVP)
+	res = v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Error validating VerrazzanProject with NetworkPolicyTemplate")
 }
 
 // TestNetworkPolicyMissingNamespace tests the validation of VerrazzanoProject NetworkPolicyTemplate
@@ -183,17 +193,26 @@ func TestNetworkPolicyNamespace(t *testing.T) {
 // WHEN the VerrazzanoProject has a NetworkPolicyTemplate with a namespace that does not exist in the project
 // THEN the validation should fail
 func TestNetworkPolicyMissingNamespace(t *testing.T) {
+	asrt := assert.New(t)
+	v := newVerrazzanoProjectValidator()
+
 	// Test data
 	testVP := testNetworkPolicy
 	testVP.Spec.Template.Namespaces[0].Metadata.Name = "ns2"
+	testMC := testManagedCluster
+	asrt.NoError(v.client.Create(context.TODO(), &testMC))
 
 	// Test create
-	err := testVP.ValidateCreate()
-	assert.EqualError(t, err, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
+	req := newAdmissionRequest(admissionv1beta1.Create, testVP)
+	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected project validation to fail due to missing network policy")
+	asrt.Containsf(res.Result.Reason, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
 
 	// Test update
-	err = testVP.ValidateUpdate(&VerrazzanoProject{})
-	assert.EqualError(t, err, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
+	req = newAdmissionRequest(admissionv1beta1.Update, testVP)
+	res = v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected project validation to fail due to missing network policy")
+	asrt.Containsf(res.Result.Reason, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
 }
 
 // TestNamespaceUniquenessForProjects tests that the namespace of a VerrazzanoProject N does not conflict with a preexisting project
