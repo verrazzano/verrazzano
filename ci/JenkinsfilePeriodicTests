@@ -101,8 +101,19 @@ pipeline {
         }
     }
 
-
     post {
+        success {
+            sh """
+                if [ "${env.BRANCH_NAME}" == "master" ]; then
+                    mkdir ${WORKSPACE}/tar-files
+                    chmod uog+w ${WORKSPACE}/tar-files
+                    tools/scripts/generate_tarball.sh ${GO_REPO_PATH}/verrazzano/platform-operator/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
+                    echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/tarball-commit.txt
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/tarball-commit.txt --file $WORKSPACE/tarball-commit.txt
+                fi
+            """
+        }
         cleanup {
             deleteDir()
         }
