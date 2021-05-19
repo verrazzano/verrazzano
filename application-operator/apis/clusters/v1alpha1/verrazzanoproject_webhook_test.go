@@ -351,12 +351,12 @@ func TestNamespaceUniquenessForProjects(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestValidationFailureForProjectCreationWithoutManagedCluster tests preventing the creation
-// of a VerrazzanoProject resources that references a non-existent managed cluster.
+// TestValidationFailureForProjectCreationWithoutTargetClusters tests preventing the creation
+// of a VerrazzanoProject resources that is missing Placement information.
 // GIVEN a call to validate a VerrazzanoProject resource
-// WHEN the VerrazzanoProject resource references a VerrazzanoManagedCluster that does not exist
+// WHEN the VerrazzanoProject resource is missing Placement information
 // THEN the validation should fail.
-func TestValidationFailureForProjectCreationWithoutManagedCluster(t *testing.T) {
+func TestValidationFailureForProjectCreationWithoutTargetClusters(t *testing.T) {
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
 	p := VerrazzanoProject{
@@ -379,6 +379,84 @@ func TestValidationFailureForProjectCreationWithoutManagedCluster(t *testing.T) 
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project validation to fail due to missing placement information.")
+}
+
+// TestValidationFailureForProjectCreationTargetingMissingManagedCluster tests preventing the creation
+// of a VerrazzanoProject resources that references a non-existent managed cluster.
+// GIVEN a call to validate a VerrazzanoProject resource
+// WHEN the VerrazzanoProject resource references a VerrazzanoManagedCluster that does not exist
+// THEN the validation should fail.
+func TestValidationFailureForProjectCreationTargetingMissingManagedCluster(t *testing.T) {
+	asrt := assert.New(t)
+	v := newVerrazzanoProjectValidator()
+	p := VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-project-name",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Placement: Placement{
+				Clusters: []Cluster{{Name: "invalid-cluster-name"}},
+			},
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "test-target-namespace",
+						},
+					},
+				},
+			},
+		},
+	}
+	req := newAdmissionRequest(admissionv1beta1.Create, p)
+	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected project validation to fail due to missing placement information.")
+}
+
+// TestValidationSuccessForProjectCreationTargetingExistingManagedCluster tests allowing the creation
+// of a VerrazzanoProject resources that references an existent managed cluster.
+// GIVEN a call to validate a VerrazzanoProject resource
+// WHEN the VerrazzanoProject resource references a VerrazzanoManagedCluster that does exist
+// THEN the validation should pass.
+func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *testing.T) {
+	asrt := assert.New(t)
+	v := newVerrazzanoProjectValidator()
+	c := v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-cluser-name",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec:       v1alpha1.VerrazzanoManagedClusterSpec{
+			PrometheusSecret: "test-prometheus-secret",
+			ManagedClusterManifestSecret: "test-cluster-manifest-secret",
+			ServiceAccount: "test-service-account",
+		},
+	}
+	p := VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-project-name",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Placement: Placement{
+				Clusters: []Cluster{{Name: "valid-cluster-name"}},
+			},
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "test-target-namespace",
+						},
+					},
+				},
+			},
+		},
+	}
+	asrt.NoError(v.client.Create(context.TODO(), &c))
+	req := newAdmissionRequest(admissionv1beta1.Create, p)
+	res := v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected project validation to succeed.")
 }
 
 // newVerrazzanoProjectValidator creates a new VerrazzanoProjectValidator

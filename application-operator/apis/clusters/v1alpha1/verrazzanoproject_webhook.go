@@ -52,6 +52,10 @@ func (vp *VerrazzanoProject) validateVerrazzanoProject() error {
 		return fmt.Errorf("One or more namespaces must be provided")
 	}
 
+	if len(vp.Spec.Placement.Clusters) == 0 {
+		return fmt.Errorf("One or more target clusters must be provided")
+	}
+
 	if err := vp.validateNetworkPolicies(); err != nil {
 		return err
 	}
