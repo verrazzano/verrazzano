@@ -47,4 +47,3 @@ func translateErrorToResponse(err error) admission.Response {
 	}
 	return admission.Denied(err.Error())
 }
-

@@ -60,4 +60,3 @@ func validateMultiClusterComponent(c client.Client, mcc *v1alpha1.MultiClusterCo
 	}
 	return nil
 }
-
