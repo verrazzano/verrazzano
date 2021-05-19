@@ -6,9 +6,6 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -43,17 +40,15 @@ func (v *VerrazzanoProjectValidator) InjectDecoder(d *admission.Decoder) error {
 
 // Handle performs validation of created or updated VerrazzanoProject resources.
 func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	p := &VerrazzanoProject{}
-	err := v.decoder.Decode(req, p)
+	prj := &VerrazzanoProject{}
+	err := v.decoder.Decode(req, prj)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
 	switch req.Operation {
-	case k8sadmission.Create:
-		return translateErrorToResponse(validateVerrazzanoProject(v.client, p))
-	case k8sadmission.Update:
-		return translateErrorToResponse(validateVerrazzanoProject(v.client, p))
+	case k8sadmission.Create, k8sadmission.Update:
+		return translateErrorToResponse(validateVerrazzanoProject(v.client, prj))
 	default:
 		return admission.Allowed("")
 	}
@@ -82,7 +77,7 @@ func validateVerrazzanoProject(c client.Client, vp *VerrazzanoProject) error {
 	}
 
 	if isLocalClusterAdminCluster(c) {
-		if err := validateTargetClustersExist(c, vp); err != nil {
+		if err := validateTargetClustersExist(c, vp.Spec.Placement); err != nil {
 			return err
 		}
 	}
@@ -134,37 +129,4 @@ func (vp *VerrazzanoProject) validateNamespaceCanBeUsed() error {
 		}
 	}
 	return nil
-}
-
-// validateTargetClustersExist determines if all of the target clusters of the project have
-// corresponding managed cluster resources.
-func validateTargetClustersExist(c client.Client, p *VerrazzanoProject) error {
-	for _, cluster := range p.Spec.Placement.Clusters {
-		key := client.ObjectKey{Name: cluster.Name, Namespace: constants.VerrazzanoMultiClusterNamespace}
-		vmc := v1alpha1.VerrazzanoManagedCluster{}
-		err := c.Get(context.TODO(), key, &vmc)
-		if err != nil {
-			return fmt.Errorf("target managed cluster %s is not registered: %v", cluster.Name, err)
-		}
-	}
-	return nil
-}
-
-// isLocalClusterAdminCluster determines if the local cluster is the admin cluster.
-func isLocalClusterAdminCluster(c client.Client) bool {
-	s := v1.Secret{}
-	k := client.ObjectKey{Name: "verrazzano-cluster-registration", Namespace: constants.VerrazzanoSystemNamespace}
-	err := c.Get(context.TODO(), k, &s)
-	if err != nil && errors.IsNotFound(err) {
-		return true
-	}
-	return false
-}
-
-// translateErrorToResponse translates an error to an admission.Response
-func translateErrorToResponse(err error) admission.Response {
-	if err == nil {
-		return admission.Allowed("")
-	}
-	return admission.Denied(err.Error())
 }

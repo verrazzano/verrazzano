@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	k8sadmission "k8s.io/api/admission/v1beta1"
@@ -32,27 +33,29 @@ func (v *MultiClusterConfigmapValidator) InjectDecoder(d *admission.Decoder) err
 
 // Handle performs validation of created or updated MultiClusterConfigmap resources.
 func (v *MultiClusterConfigmapValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	p := &MultiClusterConfigMap{}
-	err := v.decoder.Decode(req, p)
+	mccm := &MultiClusterConfigMap{}
+	err := v.decoder.Decode(req, mccm)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	log.Info("client=%v", v.client)
-	log.Info("operation=%v", req.Operation)
-	log.Info("object=%v", p)
-
 	switch req.Operation {
-	case k8sadmission.Create:
-		return translateErrorToResponse(validateMultiClusterConfigmap(v.client, p))
-	case k8sadmission.Update:
-		return translateErrorToResponse(validateMultiClusterConfigmap(v.client, p))
+	case k8sadmission.Create, k8sadmission.Update:
+		return translateErrorToResponse(validateMultiClusterConfigmap(v.client, mccm))
 	default:
 		return admission.Allowed("")
 	}
 }
 
 // validateMultiClusterConfigmap performs validation checks on the resource
-func validateMultiClusterConfigmap(c client.Client, mc *MultiClusterConfigMap) error {
+func validateMultiClusterConfigmap(c client.Client, mccm *MultiClusterConfigMap) error {
+	if len(mccm.Spec.Placement.Clusters) == 0 {
+		return fmt.Errorf("One or more target clusters must be provided")
+	}
+	if isLocalClusterAdminCluster(c) {
+		if err := validateTargetClustersExist(c, mccm.Spec.Placement); err != nil {
+			return err
+		}
+	}
 	return nil
 }

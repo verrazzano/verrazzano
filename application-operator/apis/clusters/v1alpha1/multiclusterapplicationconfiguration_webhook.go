@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	k8sadmission "k8s.io/api/admission/v1beta1"
@@ -32,36 +33,29 @@ func (v *MultiClusterApplicationConfigurationValidator) InjectDecoder(d *admissi
 
 // Handle performs validation of created or updated MultiClusterApplicationConfiguration resources.
 func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	p := &MultiClusterApplicationConfiguration{}
-	err := v.decoder.Decode(req, p)
+	mcac := &MultiClusterApplicationConfiguration{}
+	err := v.decoder.Decode(req, mcac)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	log.Info("client=%v", v.client)
-	log.Info("operation=%v", req.Operation)
-	log.Info("object=%v", p)
-
 	switch req.Operation {
-	case k8sadmission.Create:
-		return translateErrorToResponse(validateMultiClusterApplicationConfiguration(v.client, p))
-	case k8sadmission.Update:
-		return translateErrorToResponse(validateMultiClusterApplicationConfiguration(v.client, p))
+	case k8sadmission.Create, k8sadmission.Update:
+		return translateErrorToResponse(validateMultiClusterApplicationConfiguration(v.client, mcac))
 	default:
 		return admission.Allowed("")
 	}
 }
 
 // validateMultiClusterApplicationConfiguration performs validation checks on the resource
-func validateMultiClusterApplicationConfiguration(c client.Client, mc *MultiClusterApplicationConfiguration) error {
-	return nil
-}
-
-// TODO: remove when synced up with VerrazzanoProject changes
-// translateErrorToResponse translates an error to an admission.Response
-func translateErrorToResponse(err error) admission.Response {
-	if err == nil {
-		return admission.Allowed("")
+func validateMultiClusterApplicationConfiguration(c client.Client, mcac *MultiClusterApplicationConfiguration) error {
+	if len(mcac.Spec.Placement.Clusters) == 0 {
+		return fmt.Errorf("One or more target clusters must be provided")
 	}
-	return admission.Denied(err.Error())
+	if isLocalClusterAdminCluster(c) {
+		if err := validateTargetClustersExist(c, mcac.Spec.Placement); err != nil {
+			return err
+		}
+	}
+	return nil
 }

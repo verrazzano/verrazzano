@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	k8sadmission "k8s.io/api/admission/v1beta1"
@@ -32,27 +33,30 @@ func (v *MultiClusterComponentValidator) InjectDecoder(d *admission.Decoder) err
 
 // Handle performs validation of created or updated MultiClusterComponent resources.
 func (v *MultiClusterComponentValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	p := &MultiClusterComponent{}
-	err := v.decoder.Decode(req, p)
+	mcc := &MultiClusterComponent{}
+	err := v.decoder.Decode(req, mcc)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	log.Info("client=%v", v.client)
-	log.Info("operation=%v", req.Operation)
-	log.Info("object=%v", p)
-
 	switch req.Operation {
-	case k8sadmission.Create:
-		return translateErrorToResponse(validateMultiClusterComponent(v.client, p))
-	case k8sadmission.Update:
-		return translateErrorToResponse(validateMultiClusterComponent(v.client, p))
+	case k8sadmission.Create, k8sadmission.Update:
+		return translateErrorToResponse(validateMultiClusterComponent(v.client, mcc))
 	default:
 		return admission.Allowed("")
 	}
 }
 
 // validateMultiClusterComponent performs validation checks on the resource
-func validateMultiClusterComponent(c client.Client, mc *MultiClusterComponent) error {
+func validateMultiClusterComponent(c client.Client, mcc *MultiClusterComponent) error {
+	if len(mcc.Spec.Placement.Clusters) == 0 {
+		return fmt.Errorf("One or more target clusters must be provided")
+	}
+	if isLocalClusterAdminCluster(c) {
+		if err := validateTargetClustersExist(c, mcc.Spec.Placement); err != nil {
+			return err
+		}
+	}
 	return nil
 }
+
