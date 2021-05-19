@@ -83,7 +83,8 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
+		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
@@ -171,7 +172,8 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
 	fluentdImage := "unit-test-image:latest"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
+		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -267,7 +269,8 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	componentName := "unit-test-component"
 	fluentdImage := "unit-test-image:latest"
 	newUpgradeVersion := "new-upgrade"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: newUpgradeVersion}
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
+		constants.LabelUpgradeVersion: newUpgradeVersion, constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -334,11 +337,12 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
 
-			// make sure the OAM component and app name labels were copied
+			// make sure the OAM component and app name labels were copied and the WebLogic type lobel applied
 			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
-			assert.Equal(2, len(specLabels))
+			assert.Equal(3, len(specLabels))
 			assert.Equal("unit-test-component", specLabels["app.oam.dev/component"])
 			assert.Equal("unit-test-app-config", specLabels["app.oam.dev/name"])
+			assert.Equal(constants.WorkloadTypeWeblogic, specLabels[constants.LabelWorkloadType])
 
 			// make sure the FLUENTD sidecar was added
 			containers, _, _ := unstructured.NestedSlice(u.Object, specServerPodContainersFields...)
@@ -384,7 +388,8 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	fluentdImage := "unit-test-image:latest"
 	existingFluentdImage := "unit-test-image:existing"
 	previousUpgradeVersion := "new-upgrade"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: previousUpgradeVersion}
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
+		constants.LabelUpgradeVersion: previousUpgradeVersion, constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 
 	// existing domain containers
 	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
@@ -474,7 +479,8 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
+		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().

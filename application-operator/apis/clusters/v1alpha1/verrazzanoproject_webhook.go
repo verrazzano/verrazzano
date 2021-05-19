@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -15,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+var getControllerRuntimeClient = getClient
 var _ webhook.Validator = &VerrazzanoProject{}
 
 // log is for logging in this package.
@@ -63,6 +65,10 @@ func (vp *VerrazzanoProject) validateVerrazzanoProject() error {
 		return err
 	}
 
+	if err := vp.validateNamespaceCanBeUsed(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -78,6 +84,35 @@ func (vp *VerrazzanoProject) validateNetworkPolicies() error {
 		if ok := nsSet[policyTemplate.Metadata.Namespace]; !ok {
 			return fmt.Errorf("namespace %s used in NetworkPolicy %s does not exist in project",
 				policyTemplate.Metadata.Namespace, policyTemplate.Metadata.Name)
+		}
+	}
+	return nil
+}
+
+func (vp *VerrazzanoProject) validateNamespaceCanBeUsed() error {
+
+	c, err := getControllerRuntimeClient()
+	if err != nil {
+		return fmt.Errorf("failed to get a runtime client: %s", err)
+	}
+
+	projectsList := &VerrazzanoProjectList{}
+	listOptions := &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}
+	err = c.List(context.TODO(), projectsList, listOptions)
+	if err != nil {
+		return fmt.Errorf("failed to get existing Verrazzano projects: %s", err)
+	}
+
+	for _, currentNS := range vp.Spec.Template.Namespaces {
+		for _, existingProject := range projectsList.Items {
+			if existingProject.Name == vp.Name {
+				continue
+			}
+			for _, existingNS := range existingProject.Spec.Template.Namespaces {
+				if existingNS.Metadata.Name == currentNS.Metadata.Name {
+					return fmt.Errorf("project namespace %s already being used by project %s. projects cannot share a namespace", existingNS.Metadata.Name, existingProject.Name)
+				}
+			}
 		}
 	}
 	return nil
