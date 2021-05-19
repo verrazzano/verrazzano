@@ -166,18 +166,18 @@ func main() {
 		}
 
 		// VerrazzanoProject validating webhook
-		err = certificates.UpdateVerrazzanoProjectValidatingWebhookConfiguration(kubeClient, caCert)
-		if err != nil {
-			setupLog.Error(err, "unable to update verrazzanoproject validation webhook configuration")
-			os.Exit(1)
-		}
-		if err = (&clustersv1alpha1.VerrazzanoProject{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "VerrazzanoProject")
-			os.Exit(1)
-		}
+		//err = certificates.UpdateVerrazzanoProjectValidatingWebhookConfiguration(kubeClient, caCert)
+		//if err != nil {
+		//	setupLog.Error(err, "unable to update verrazzanoproject validation webhook configuration")
+		//	os.Exit(1)
+		//}
+		//if err = (&clustersv1alpha1.VerrazzanoProject{}).SetupWebhookWithManager(mgr); err != nil {
+		//	setupLog.Error(err, "unable to create webhook", "webhook", "VerrazzanoProject")
+		//	os.Exit(1)
+		//}
 
 		// Get a Kubernetes dynamic client.
-		restConfig, err := clientcmd.BuildConfigFromFlags("", "")
+		restConfig, err := clientcmd.BuildConfigFromFlags("", "/Users/kminder/.kube/config")
 		if err != nil {
 			setupLog.Error(err, "unable to build kube config")
 			os.Exit(1)
@@ -221,6 +221,9 @@ func main() {
 			},
 		}
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
+		mgr.GetWebhookServer().Register(
+			"/validate-clusters-verrazzano-io-v1alpha1-verrazzanoproject",
+			&webhook.Admission{Handler: &clustersv1alpha1.VerrazzanoProjectValidator{}})
 	}
 
 	if err = (&cohworkload.Reconciler{
