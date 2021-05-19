@@ -64,7 +64,7 @@ func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.R
 }
 
 // validateVerrazzanoProject performs validation checks on the resource
-func validateVerrazzanoProject(c client.Client, vp *VerrazzanoProject)  error {
+func validateVerrazzanoProject(c client.Client, vp *VerrazzanoProject) error {
 	if vp.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
 		return fmt.Errorf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
 	}
@@ -95,7 +95,7 @@ func validateVerrazzanoProject(c client.Client, vp *VerrazzanoProject)  error {
 }
 
 // validateNetworkPolicies validates the network polices specified in the project
-func validateNetworkPolicies(vp *VerrazzanoProject)  error {
+func validateNetworkPolicies(vp *VerrazzanoProject) error {
 	// Build the set of project namespaces for validation
 	nsSet := make(map[string]bool)
 	for _, ns := range vp.Spec.Template.Namespaces {

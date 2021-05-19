@@ -165,17 +165,6 @@ func main() {
 			os.Exit(1)
 		}
 
-		// VerrazzanoProject validating webhook
-		//err = certificates.UpdateVerrazzanoProjectValidatingWebhookConfiguration(kubeClient, caCert)
-		//if err != nil {
-		//	setupLog.Error(err, "unable to update verrazzanoproject validation webhook configuration")
-		//	os.Exit(1)
-		//}
-		//if err = (&clustersv1alpha1.VerrazzanoProject{}).SetupWebhookWithManager(mgr); err != nil {
-		//	setupLog.Error(err, "unable to create webhook", "webhook", "VerrazzanoProject")
-		//	os.Exit(1)
-		//}
-
 		// Get a Kubernetes dynamic client.
 		restConfig, err := clientcmd.BuildConfigFromFlags("", "/Users/kminder/.kube/config")
 		if err != nil {

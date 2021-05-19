@@ -23,13 +23,13 @@ import (
 
 var testManagedCluster = v1alpha1.VerrazzanoManagedCluster{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "test-managed-cluster-name",
+		Name:      "test-managed-cluster-name",
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 	},
-	Spec:       v1alpha1.VerrazzanoManagedClusterSpec{
-		PrometheusSecret: "test-prometheus-secret",
+	Spec: v1alpha1.VerrazzanoManagedClusterSpec{
+		PrometheusSecret:             "test-prometheus-secret",
 		ManagedClusterManifestSecret: "test-cluster-manifest-secret",
-		ServiceAccount: "test-service-account",
+		ServiceAccount:               "test-service-account",
 	},
 }
 
@@ -150,13 +150,13 @@ func TestInvalidNamespaces(t *testing.T) {
 	req := newAdmissionRequest(admissionv1beta1.Create, testVP)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project create validation to fail for invalid namespace list")
-	asrt.Containsf(res.Result.Reason, fmt.Sprintf("One or more namespaces must be provided"), "unexpected failure string")
+	asrt.Containsf(res.Result.Reason, "One or more namespaces must be provided", "unexpected failure string")
 
 	// Test update
 	req = newAdmissionRequest(admissionv1beta1.Update, testVP)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project create validation to fail for invalid namespace list")
-	asrt.Containsf(res.Result.Reason, fmt.Sprintf("One or more namespaces must be provided"), "unexpected failure string")
+	asrt.Containsf(res.Result.Reason, "One or more namespaces must be provided", "unexpected failure string")
 }
 
 // TestNetworkPolicyNamespace tests the validation of VerrazzanoProject NetworkPolicyTemplate
@@ -470,13 +470,13 @@ func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *t
 	v := newVerrazzanoProjectValidator()
 	c := v1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "valid-cluster-name",
+			Name:      "valid-cluster-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Spec:       v1alpha1.VerrazzanoManagedClusterSpec{
-			PrometheusSecret: "test-prometheus-secret",
+		Spec: v1alpha1.VerrazzanoManagedClusterSpec{
+			PrometheusSecret:             "test-prometheus-secret",
 			ManagedClusterManifestSecret: "test-cluster-manifest-secret",
-			ServiceAccount: "test-service-account",
+			ServiceAccount:               "test-service-account",
 		},
 	}
 	p := VerrazzanoProject{
@@ -556,12 +556,12 @@ func newVerrazzanoProjectValidator() VerrazzanoProjectValidator {
 }
 
 // newAdmissionRequest creates a new admissionRequest with the provided operation and object.
-func newAdmissionRequest(op admissionv1beta1.Operation, obj interface{}) admission.Request{
+func newAdmissionRequest(op admissionv1beta1.Operation, obj interface{}) admission.Request {
 	raw := runtime.RawExtension{}
 	bytes, _ := json.Marshal(obj)
 	raw.Raw = bytes
 	req := admission.Request{
-		admissionv1beta1.AdmissionRequest{
+		AdmissionRequest: admissionv1beta1.AdmissionRequest{
 			Operation: op, Object: raw}}
 	return req
 }
