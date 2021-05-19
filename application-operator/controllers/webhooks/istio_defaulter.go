@@ -10,12 +10,10 @@ import (
 	"net/http"
 	"strings"
 
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-
 	"github.com/gertd/go-pluralize"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	"istio.io/api/type/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
