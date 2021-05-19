@@ -505,6 +505,47 @@ func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *t
 	asrt.True(res.Allowed, "Expected project create validation to succeed.")
 }
 
+// TestValidationSuccessForProjectCreationWithoutTargetClustersOnManagedCluster tests allowing the creation
+// of a VerrazzanoProject resources that is missing target cluster information when on managed cluster.
+// GIVEN a call to validate a VerrazzanoProject resource
+// WHEN the VerrazzanoProject resource is missing Placement information
+// AND the validation is being done on a managed cluster
+// THEN the validation should succeed.
+func TestValidationSuccessForProjectCreationWithoutTargetClustersOnManagedCluster(t *testing.T) {
+	asrt := assert.New(t)
+	v := newVerrazzanoProjectValidator()
+	s := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano-cluster-registration",
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+	}
+	p := VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-project-name",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: VerrazzanoProjectSpec{
+			Placement: Placement{
+				Clusters: []Cluster{{Name: "invalid-cluster-name"}},
+			},
+			Template: ProjectTemplate{
+				Namespaces: []NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "test-target-namespace",
+						},
+					},
+				},
+			},
+		},
+	}
+	asrt.NoError(v.client.Create(context.TODO(), &s))
+	req := newAdmissionRequest(admissionv1beta1.Create, p)
+	res := v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected project validation to succeed withmissing placement information on managed cluster.")
+}
+
 // newVerrazzanoProjectValidator creates a new VerrazzanoProjectValidator
 func newVerrazzanoProjectValidator() VerrazzanoProjectValidator {
 	scheme := newScheme()

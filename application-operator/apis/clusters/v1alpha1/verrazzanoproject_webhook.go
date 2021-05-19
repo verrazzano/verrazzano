@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -21,6 +23,7 @@ import (
 // log is for logging in this package.
 var log = logf.Log.WithName("verrazzanoproject-resource")
 
+// VerrazzanoProjectValidator is a struct holding objects used during VerrazzanoProject validation.
 type VerrazzanoProjectValidator struct {
 	client  client.Client
 	decoder *admission.Decoder
@@ -38,6 +41,7 @@ func (v *VerrazzanoProjectValidator) InjectDecoder(d *admission.Decoder) error {
 	return nil
 }
 
+// Handle performs validation of created or updated VerrazzanoProject resources.
 func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	p := &VerrazzanoProject{}
 	err := v.decoder.Decode(req, p)
@@ -59,7 +63,7 @@ func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.R
 	}
 }
 
-// Perform validation checks on the resource
+// validateVerrazzanoProject performs validation checks on the resource
 func validateVerrazzanoProject(c client.Client, vp *VerrazzanoProject)  error {
 	if vp.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
 		return fmt.Errorf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
@@ -81,14 +85,16 @@ func validateVerrazzanoProject(c client.Client, vp *VerrazzanoProject)  error {
 		return err
 	}
 
-	if err := validateTargetClustersExist(c, vp); err != nil {
-		return err
+	if isLocalClusterAdminCluster(c) {
+		if err := validateTargetClustersExist(c, vp); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-// Validate the network polices specified in the project
+// validateNetworkPolicies validates the network polices specified in the project
 func validateNetworkPolicies(vp *VerrazzanoProject)  error {
 	// Build the set of project namespaces for validation
 	nsSet := make(map[string]bool)
@@ -134,6 +140,8 @@ func (vp *VerrazzanoProject) validateNamespaceCanBeUsed() error {
 	return nil
 }
 
+// validateTargetClustersExist determines if all of the target clusters of the project have
+// corresponding managed cluster resources.
 func validateTargetClustersExist(c client.Client, p *VerrazzanoProject) error {
 	for _, cluster := range p.Spec.Placement.Clusters {
 		key := client.ObjectKey{Name: cluster.Name, Namespace: constants.VerrazzanoMultiClusterNamespace}
@@ -146,6 +154,18 @@ func validateTargetClustersExist(c client.Client, p *VerrazzanoProject) error {
 	return nil
 }
 
+// isLocalClusterAdminCluster determines if the local cluster is the admin cluster.
+func isLocalClusterAdminCluster(c client.Client) bool {
+	s := v1.Secret{}
+	k := client.ObjectKey{Name: "verrazzano-cluster-registration", Namespace: constants.VerrazzanoSystemNamespace}
+	err := c.Get(context.TODO(), k, &s)
+	if err != nil && errors.IsNotFound(err) {
+		return true
+	}
+	return false
+}
+
+// translateErrorToResponse translates an error to an admission.Response
 func translateErrorToResponse(err error) admission.Response {
 	if err == nil {
 		return admission.Allowed("")
