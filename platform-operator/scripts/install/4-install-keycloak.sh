@@ -68,8 +68,12 @@ function install_mysql {
   fi
 
   log "Install MySQL helm chart"
+
   local chart_name=mysql
   build_image_overrides mysql ${chart_name}
+  local image_args=${HELM_IMAGE_ARGS}
+  build_image_overrides mysql oraclelinux
+  HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} ${image_args}"
 
   helm upgrade ${chart_name} ${MYSQL_CHART_DIR} \
       --install \

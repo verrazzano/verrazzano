@@ -362,7 +362,13 @@
               "tag": "8.0.20",
               "helmPath": "image",
               "helmTagPath": "imageTag"
-            },
+            }
+          ]
+        },
+        {
+          "repository": "oracle",
+          "name": "oraclelinux",
+          "images": [
             {
               "image": "oraclelinux",
               "tag": "7-slim",
