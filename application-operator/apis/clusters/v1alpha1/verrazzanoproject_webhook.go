@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"net/http"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -159,9 +160,37 @@ func translateErrorToResponse(err error) admission.Response {
 }
 
 func (v *VerrazzanoProjectValidator) validateCreate(p *VerrazzanoProject) error {
-	return p.ValidateCreate()
+	err := p.ValidateCreate()
+	if err != nil {
+		return err
+	}
+	err = v.validateTargetClustersExist(p)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (v *VerrazzanoProjectValidator) validateUpdate(p *VerrazzanoProject) error {
-	return p.ValidateUpdate(p)
+	err := p.ValidateUpdate(p)
+	if err != nil {
+		return err
+	}
+	err = v.validateTargetClustersExist(p)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *VerrazzanoProjectValidator) validateTargetClustersExist(p *VerrazzanoProject) error {
+	for _, cluster := range p.Spec.Placement.Clusters {
+		key := client.ObjectKey{Name: cluster.Name, Namespace: constants.VerrazzanoMultiClusterNamespace}
+		vmc := v1alpha1.VerrazzanoManagedCluster{}
+		err := v.client.Get(context.TODO(), key, &vmc)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -26,12 +26,27 @@ import (
 	"text/template"
 )
 
+var testManagedCluster = v1alpha1.VerrazzanoManagedCluster{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "test-managed-cluster-name",
+		Namespace: constants.VerrazzanoMultiClusterNamespace,
+	},
+	Spec:       v1alpha1.VerrazzanoManagedClusterSpec{
+		PrometheusSecret: "test-prometheus-secret",
+		ManagedClusterManifestSecret: "test-cluster-manifest-secret",
+		ServiceAccount: "test-service-account",
+	},
+}
+
 var testProject = VerrazzanoProject{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "test",
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 	},
 	Spec: VerrazzanoProjectSpec{
+		Placement: Placement{
+			Clusters: []Cluster{{Name: "test-managed-cluster-name"}},
+		},
 		Template: ProjectTemplate{
 			Namespaces: []NamespaceTemplate{
 				{
@@ -75,16 +90,21 @@ var testNetworkPolicy = VerrazzanoProject{
 // WHEN the VerrazzanoProject is properly formed
 // THEN the validation should succeed
 func TestVerrazzanoProject(t *testing.T) {
+	asrt := assert.New(t)
+	v := newVerrazzanoProjectValidator()
+
 	// Test data
 	testVP := testProject
+	testMC := testManagedCluster
+	asrt.NoError(v.client.Create(context.TODO(), &testMC))
 
-	// Test create
-	err := testVP.ValidateCreate()
-	assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource")
+	req := newAdmissionRequest(admissionv1beta1.Create, testVP)
+	res := v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected project validation to succeed.")
 
-	// Test update
-	err = testVP.ValidateUpdate(&VerrazzanoProject{})
-	assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource")
+	req = newAdmissionRequest(admissionv1beta1.Update, testVP)
+	res = v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected project validation to succeed.")
 }
 
 // TestInvalidNamespace tests the validation of VerrazzanoProject resource
@@ -92,20 +112,26 @@ func TestVerrazzanoProject(t *testing.T) {
 // WHEN the VerrazzanoProject contains an invalid namespace
 // THEN the validation should fail
 func TestInvalidNamespace(t *testing.T) {
+	asrt := assert.New(t)
+	v := newVerrazzanoProjectValidator()
 
 	// Test data
 	testVP := testProject
 	testVP.Namespace = "invalid-namespace"
+	testMC := testManagedCluster
+	asrt.NoError(v.client.Create(context.TODO(), &testMC))
 
 	// Test create
-	err := testVP.ValidateCreate()
-	assert.Error(t, err, "Expected failure for invalid namespace")
-	assert.Containsf(t, err.Error(), fmt.Sprintf("resource must be %q", constants.VerrazzanoMultiClusterNamespace), "unexpected failure string")
+	req := newAdmissionRequest(admissionv1beta1.Create, testVP)
+	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected project create validation to fail.")
+	asrt.Containsf(res.Result.Reason, fmt.Sprintf("resource must be %q", constants.VerrazzanoMultiClusterNamespace), "unexpected failure string")
 
 	// Test update
-	err = testVP.ValidateUpdate(&VerrazzanoProject{})
-	assert.Error(t, err, "Expected failure for invalid namespace")
-	assert.Containsf(t, err.Error(), fmt.Sprintf("resource must be %q", constants.VerrazzanoMultiClusterNamespace), "unexpected failure string")
+	req = newAdmissionRequest(admissionv1beta1.Update, testVP)
+	res = v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected project update validation to fail.")
+	asrt.Containsf(res.Result.Reason, fmt.Sprintf("resource must be %q", constants.VerrazzanoMultiClusterNamespace), "unexpected failure string")
 }
 
 // TestInvalidNamespaces tests the validation of VerrazzanoProject resource
@@ -113,20 +139,26 @@ func TestInvalidNamespace(t *testing.T) {
 // WHEN the VerrazzanoProject contains an invalid namespace list
 // THEN the validation should fail
 func TestInvalidNamespaces(t *testing.T) {
+	asrt := assert.New(t)
+	v := newVerrazzanoProjectValidator()
 
 	// Test data
 	testVP := testProject
 	testVP.Spec.Template.Namespaces = []NamespaceTemplate{}
+	testMC := testManagedCluster
+	asrt.NoError(v.client.Create(context.TODO(), &testMC))
 
 	// Test create
-	err := testVP.ValidateCreate()
-	assert.Error(t, err, "Expected failure for invalid namespace list")
-	assert.Containsf(t, err.Error(), "One or more namespaces must be provided", "unexpected failure string")
+	req := newAdmissionRequest(admissionv1beta1.Create, testVP)
+	res := v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected project create validation to fail for invalid namespace list")
+	asrt.Containsf(res.Result.Reason, fmt.Sprintf("One or more namespaces must be provided"), "unexpected failure string")
 
 	// Test update
-	err = testVP.ValidateUpdate(&VerrazzanoProject{})
-	assert.Error(t, err, "Expected failure for invalid namespace list")
-	assert.Containsf(t, err.Error(), "One or more namespaces must be provided", "unexpected failure string")
+	req = newAdmissionRequest(admissionv1beta1.Update, testVP)
+	res = v.Handle(context.TODO(), req)
+	asrt.False(res.Allowed, "Expected project create validation to fail for invalid namespace list")
+	asrt.Containsf(res.Result.Reason, fmt.Sprintf("One or more namespaces must be provided"), "unexpected failure string")
 }
 
 // TestNetworkPolicyNamespace tests the validation of VerrazzanoProject NetworkPolicyTemplate
@@ -424,7 +456,7 @@ func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *t
 	v := newVerrazzanoProjectValidator()
 	c := v1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-cluser-name",
+			Name: "valid-cluster-name",
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec:       v1alpha1.VerrazzanoManagedClusterSpec{
@@ -456,7 +488,7 @@ func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *t
 	asrt.NoError(v.client.Create(context.TODO(), &c))
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
-	asrt.True(res.Allowed, "Expected project validation to succeed.")
+	asrt.True(res.Allowed, "Expected project create validation to succeed.")
 }
 
 // newVerrazzanoProjectValidator creates a new VerrazzanoProjectValidator
