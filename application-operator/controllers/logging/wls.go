@@ -49,7 +49,7 @@ const WlsFluentdParsingRules = `<match fluent.**>
   #   format10:   <1584470515029> 
   #   format11:   <[severity-value: 64] [rid: 0] [partition-id: 0] [partition-name: DOMAIN] > 
   #   format12:   <BEA-002959> 
-  #   formart13:  <Self-tuning thread pool contains 0 running threads, 1 idle threads, and 12 standby threads>
+  #   formart13:  <Self-tuning thread pool contains 0 running threads, 1 idle threads, and 12 standby threads> 
   <parse>
 	@type multiline
 	format_firstline /^####/
