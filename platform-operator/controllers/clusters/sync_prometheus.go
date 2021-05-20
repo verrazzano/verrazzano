@@ -32,7 +32,6 @@ honor_labels: true
 metrics_path: '/federate'
 params:
   'match[]':
-   - '{job="prometheus"}'
    - '{__name__=~"..*"}'
 static_configs:
 - targets:
