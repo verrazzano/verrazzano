@@ -1,0 +1,10 @@
+apiVersion: core.oam.dev/v1alpha2
+kind: WorkloadDefinition
+metadata:
+  name: deployments.apps
+spec:
+  childResourceKinds:
+  - apiVersion: apps/v1
+    kind: ReplicaSet
+  definitionRef:
+    name: deployments.apps

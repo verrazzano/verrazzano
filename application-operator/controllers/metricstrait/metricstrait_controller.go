@@ -34,6 +34,7 @@ const (
 	// Kubernetes resource Kinds
 	configMapKind   = "ConfigMap"
 	deploymentKind  = "Deployment"
+	replicaSetKind  = "ReplicaSet"
 	statefulSetKind = "StatefulSet"
 	podKind         = "Pod"
 
@@ -315,6 +316,12 @@ func (r *Reconciler) createOrUpdateRelatedResources(ctx context.Context, trait *
 			if !vznav.IsOwnedByVerrazzanoWorkloadKind(workload) {
 				status.RecordOutcome(r.updateRelatedStatefulSet(ctx, trait, workload, traitDefaults, child))
 			}
+		case k8sapps.SchemeGroupVersion.WithKind(replicaSetKind):
+			// In the case of a workload having an owner that is a wrapper kind, the status is not being updated here
+			// as this is handled by the wrapper owner which is the corresponding Verrazzano wrapper resource/controller.
+			if !vznav.IsOwnedByVerrazzanoWorkloadKind(workload) {
+				status.RecordOutcome(r.updateRelatedReplicaSet(ctx, trait, workload, traitDefaults, child))
+			}
 		case k8score.SchemeGroupVersion.WithKind(podKind):
 			// In the case of a workload having an owner that is a wrapper kind, the status is not being updated here
 			// as this is handled by the wrapper owner which is the corresponding Verrazzano wrapper resource/controller.
@@ -535,6 +542,31 @@ func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.
 	return ref, res, err
 }
 
+// updateRelatedStatefulSet updates the labels and annotations of a related workload stateful set.
+// For example coherence workloads produce related stateful sets.
+func (r *Reconciler) updateRelatedReplicaSet(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+	r.Log.Info("Update workload replica set", "statefulSet", vznav.GetNamespacedNameFromUnstructured(child))
+	ref := vzapi.QualifiedResourceRelation{APIVersion: child.GetAPIVersion(), Kind: child.GetKind(), Namespace: child.GetNamespace(), Name: child.GetName(), Role: sourceRole}
+	replicaSet := &k8sapps.ReplicaSet{
+		TypeMeta:   metav1.TypeMeta{APIVersion: child.GetAPIVersion(), Kind: child.GetKind()},
+		ObjectMeta: metav1.ObjectMeta{Namespace: child.GetNamespace(), Name: child.GetName()},
+	}
+	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, replicaSet, func() error {
+		// If the replicaset was not found don't attempt to create or update it.
+		if replicaSet.CreationTimestamp.IsZero() {
+			r.Log.Info("Workload child statefulset not found")
+			return apierrors.NewNotFound(schema.GroupResource{Group: replicaSet.APIVersion, Resource: replicaSet.Kind}, replicaSet.Name)
+		}
+		replicaSet.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, replicaSet.Spec.Template.ObjectMeta.Annotations)
+		replicaSet.Spec.Template.ObjectMeta.Labels = MutateLabels(trait, workload, replicaSet.Spec.Template.ObjectMeta.Labels)
+		return nil
+	})
+	if err != nil && !apierrors.IsNotFound(err) {
+		r.Log.Info("Failed to update workload child statefulset", "child", vznav.GetNamespacedNameFromObjectMeta(replicaSet.ObjectMeta), "error", err)
+	}
+	return ref, res, err
+}
+
 // updateRelatedPod updates the labels and annotations of a related workload pod.
 // For example WLS workloads produce related pods.
 func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
@@ -698,6 +730,11 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 
 	// Match any version of APIVersion=core.oam.dev and Kind=ContainerizedWorkload
 	if matched, _ := regexp.MatchString("^core.oam.dev/.*\\.ContainerizedWorkload$", apiVerKind); matched {
+		return r.NewTraitDefaultsForGenericWorkload()
+	}
+
+	// Match any version of APIVersion=core.oam.dev and Kind=ContainerizedWorkload
+	if matched, _ := regexp.MatchString("^apps/.*\\.Deployment$", apiVerKind); matched {
 		return r.NewTraitDefaultsForGenericWorkload()
 	}
 
