@@ -248,7 +248,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 					gomega.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
 								{Key: "messageID", Value: "BEA-"}, //matches BEA-*
 								{Key: "serverName", Value: "tododomain-adminserver"},
 								{Key: "serverName2", Value: "AdminServer"}},
@@ -261,7 +261,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 					gomega.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
 								{Key: "messageID", Value: "BEA-"},          //matches BEA-*
 								{Key: "message", Value: "WebLogic Server"}, //contains WebLogic Server
 								{Key: "subSystem", Value: "WebLogicServer"}},
@@ -274,7 +274,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 					gomega.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
 								{Key: "messageID", Value: "BEA-"}, //matches BEA-*
 								{Key: "serverName", Value: "tododomain-adminserver"},
 								{Key: "subSystem.keyword", Value: "Security"}},
@@ -287,7 +287,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 					gomega.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
 								{Key: "messageID", Value: "BEA-"},         //matches BEA-*
 								{Key: "message", Value: "Tunneling Ping"}, //"Tunneling Ping" in last line
 								{Key: "serverName", Value: "tododomain-adminserver"},
@@ -301,7 +301,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 					gomega.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
 								{Key: "stream", Value: "stdout"}},
 							[]pkg.Match{
 								{Key: "serverName.keyword", Value: "tododomain-adminserver"}})

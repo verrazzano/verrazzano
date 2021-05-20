@@ -303,7 +303,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
 							"kubernetes.pod_name":                   "bobbys-front-end-adminserver",
-							"kubernetes.container_name":             "stdout-sidecar",
+							"kubernetes.container_name":             "fluentd-stdout-sidecar",
 						})
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
@@ -331,7 +331,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					gomega.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
 								{Key: "kubernetes.labels.weblogic_domainUID", Value: "bobbys-front-end"},
 								{Key: "kubernetes.labels.weblogic_serverName", Value: "managed-server1"},
 								{Key: "messageID", Value: "BEA-"},         //matches BEA-*
@@ -369,7 +369,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
 							"kubernetes.pod_name":                   "bobs-bookstore-adminserver",
-							"kubernetes.container_name":             "stdout-sidecar",
+							"kubernetes.container_name":             "fluentd-stdout-sidecar",
 						})
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
@@ -397,7 +397,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					gomega.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "stdout-sidecar"},
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
 								{Key: "kubernetes.labels.weblogic_domainUID", Value: "bobs-bookstore"},
 								{Key: "kubernetes.labels.weblogic_serverName", Value: "managed-server1"},
 								{Key: "messageID", Value: "BEA-"},                //matches BEA-*
@@ -448,7 +448,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 								{Key: "kubernetes.labels.coherenceCluster", Value: "roberts-coherence"},
 								{Key: "kubernetes.pod_name", Value: "roberts-coherence-0"},
 								{Key: "product", Value: "Oracle Coherence"},
-								{Key: "kubernetes.container_name", Value: "stdout-sidecar"}},
+								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"}},
 							[]pkg.Match{ //MustNot
 								{Key: "kubernetes.container_name", Value: "coherence"}})
 					}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd log record")
@@ -466,7 +466,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 								{Key: "kubernetes.pod_name", Value: "roberts-coherence-1"},
 								{Key: "kubernetes.container_name.keyword", Value: "coherence"}},
 							[]pkg.Match{ //MustNot
-								{Key: "kubernetes.container_name", Value: "stdout-sidecar"},
+								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"},
 							})
 					}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 
@@ -483,7 +483,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 								{Key: "kubernetes.labels.coherenceCluster", Value: "roberts-coherence"},
 								{Key: "kubernetes.pod_name", Value: "roberts-coherence-1"},
 								{Key: "product", Value: "Oracle Coherence"},
-								{Key: "kubernetes.container_name", Value: "stdout-sidecar"}},
+								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"}},
 							[]pkg.Match{})
 					}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				})
@@ -500,7 +500,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 								{Key: "kubernetes.labels.coherenceCluster", Value: "bobbys-coherence"},
 								{Key: "coherence.cluster.name", Value: "bobbys-coherence"},
 								{Key: "product", Value: "Oracle Coherence"},
-								{Key: "kubernetes.container_name", Value: "stdout-sidecar"}},
+								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"}},
 							[]pkg.Match{})
 					}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				})
