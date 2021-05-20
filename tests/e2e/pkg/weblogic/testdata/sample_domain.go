@@ -9,65 +9,8 @@ const Domain = `
   "apiVersion": "weblogic.oracle/v8",
   "kind": "Domain",
   "metadata": {
-    "creationTimestamp": "2021-05-19T16:39:59Z",
-    "generation": 1,
-    "managedFields": [
-      {
-        "apiVersion": "weblogic.oracle/v8",
-        "fieldsType": "FieldsV1",
-        "fieldsV1": {
-          "f:status": {
-            ".": {},
-            "f:clusters": {},
-            "f:conditions": {},
-            "f:introspectJobFailureCount": {},
-            "f:servers": {},
-            "f:startTime": {}
-          }
-        },
-        "manager": "Kubernetes Java Client",
-        "operation": "Update",
-        "time": "2021-05-19T16:39:59Z"
-      },
-      {
-        "apiVersion": "weblogic.oracle/v8",
-        "fieldsType": "FieldsV1",
-        "fieldsV1": {
-          "f:metadata": {
-            "f:ownerReferences": {
-              ".": {},
-              "k:{\"uid\":\"eb223c7d-2f56-41f4-ba48-07446b1deab6\"}": {
-                ".": {},
-                "f:apiVersion": {},
-                "f:blockOwnerDeletion": {},
-                "f:controller": {},
-                "f:kind": {},
-                "f:name": {},
-                "f:uid": {}
-              }
-            }
-          }
-        },
-        "manager": "verrazzano-application-operator",
-        "operation": "Update",
-        "time": "2021-05-19T16:39:59Z"
-      }
-    ],
     "name": "todo-domain",
-    "namespace": "todo-list",
-    "ownerReferences": [
-      {
-        "apiVersion": "oam.verrazzano.io/v1alpha1",
-        "blockOwnerDeletion": true,
-        "controller": true,
-        "kind": "VerrazzanoWebLogicWorkload",
-        "name": "todo-domain",
-        "uid": "eb223c7d-2f56-41f4-ba48-07446b1deab6"
-      }
-    ],
-    "resourceVersion": "47481",
-    "selfLink": "/apis/weblogic.oracle/v8/namespaces/todo-list/domains/todo-domain",
-    "uid": "6a0c128c-e7df-4434-9bb3-ff71683b454d"
+    "namespace": "todo-list"
   },
   "spec": {
     "configuration": {
@@ -241,7 +184,7 @@ const Domain = `
             }
           ]
         },
-        "nodeName": "10.0.10.39",
+        "nodeName": "0.0.1.2",
         "serverName": "AdminServer",
         "state": "RUNNING"
       },
@@ -257,7 +200,7 @@ const Domain = `
             }
           ]
         },
-        "nodeName": "10.0.10.49",
+        "nodeName": "1.2.3.4",
         "serverName": "ManagedServer",
         "state": "RUNNING"
       }
