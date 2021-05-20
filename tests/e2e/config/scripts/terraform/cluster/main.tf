@@ -48,4 +48,5 @@ module "oke" {
   existing_key_id = ""
 
   use_signed_images = false
+  image_signing_keys = []
 }
