@@ -23,8 +23,14 @@ var log = logf.Log.WithName("verrazzanoproject-resource")
 
 // VerrazzanoProjectValidator is a struct holding objects used during VerrazzanoProject validation.
 type VerrazzanoProjectValidator struct {
-	Client  client.Client
+	client  client.Client
 	decoder *admission.Decoder
+}
+
+// InjectClient injects the client.
+func (v *VerrazzanoProjectValidator) InjectClient(c client.Client) error {
+	v.client = c
+	return nil
 }
 
 // InjectDecoder injects the decoder.
@@ -43,7 +49,7 @@ func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.R
 
 	switch req.Operation {
 	case k8sadmission.Create, k8sadmission.Update:
-		return translateErrorToResponse(validateVerrazzanoProject(v.Client, prj))
+		return translateErrorToResponse(validateVerrazzanoProject(v.client, prj))
 	default:
 		return admission.Allowed("")
 	}

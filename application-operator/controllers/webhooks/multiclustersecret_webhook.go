@@ -16,8 +16,14 @@ import (
 
 // MultiClusterSecretValidator is a struct holding objects used during validation.
 type MultiClusterSecretValidator struct {
-	Client  client.Client
+	client  client.Client
 	decoder *admission.Decoder
+}
+
+// InjectClient injects the client.
+func (v *MultiClusterSecretValidator) InjectClient(c client.Client) error {
+	v.client = c
+	return nil
 }
 
 // InjectDecoder injects the decoder.
@@ -36,7 +42,7 @@ func (v *MultiClusterSecretValidator) Handle(ctx context.Context, req admission.
 
 	switch req.Operation {
 	case k8sadmission.Create, k8sadmission.Update:
-		return translateErrorToResponse(validateMultiClusterSecret(v.Client, mcs))
+		return translateErrorToResponse(validateMultiClusterSecret(v.client, mcs))
 	default:
 		return admission.Allowed("")
 	}
