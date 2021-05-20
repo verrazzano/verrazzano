@@ -6,9 +6,11 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	clusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,14 +31,20 @@ func isLocalClusterAdminCluster(c client.Client) bool {
 // validateTargetClustersExist determines if all of the target clusters of the project have
 // corresponding managed cluster resources.  The results are only valid when this
 // is executed against an admin cluster.
-func validateTargetClustersExist(c client.Client, p v1alpha12.Placement) error {
+func validateTargetClustersExist(c client.Client, p clusters.Placement) error {
 	for _, cluster := range p.Clusters {
 		targetClusterName := cluster.Name
 		// If the target cluster name is local then assume it is valid.
 		if targetClusterName != "local" {
 			key := client.ObjectKey{Name: targetClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
-			vmc := v1alpha1.VerrazzanoManagedCluster{}
-			err := c.Get(context.TODO(), key, &vmc)
+			// Need to use unstructured here to avoid a dependency on the platform operator
+			vmc := &unstructured.Unstructured{}
+			vmc.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   "clusters.verrazzano.io",
+				Version: "alpha1",
+				Kind:    "VerrazzanoManagedCluster",
+			})
+			err := c.Get(context.TODO(), key, vmc)
 			if err != nil {
 				return fmt.Errorf("target managed cluster %s is not registered: %v", cluster.Name, err)
 			}

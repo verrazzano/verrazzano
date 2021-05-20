@@ -4,7 +4,7 @@ apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterApplicationConfiguration
 metadata:
   name: placement-clusters-invalid-appconf
-  namespace: hello-helidon
+  namespace: verrazzano-mc
 spec:
   template:
     metadata:

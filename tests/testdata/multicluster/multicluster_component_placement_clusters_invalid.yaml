@@ -4,7 +4,7 @@ apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterComponent
 metadata:
   name: placement-clusters-invalid-component
-  namespace: hello-helidon
+  namespace: verrazzano-mc
 spec:
   template:
     spec:

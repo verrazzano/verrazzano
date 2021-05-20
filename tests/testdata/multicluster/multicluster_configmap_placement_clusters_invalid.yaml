@@ -4,7 +4,7 @@ apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterConfigMap
 metadata:
   name: placement-clusters-invalid-configmap
-  namespace: multiclustertest
+  namespace: verrazzano-mc
 spec:
   template:
     metadata:
