@@ -25,8 +25,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/onsi/ginkgo"
-	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	vmoclient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
+	//	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	//	vmoclient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -210,17 +210,17 @@ func ListPodsInCluster(namespace string, clientset *kubernetes.Clientset) *corev
 	return pods
 }
 
-// GetVerrazzanoMonitoringInstance returns the a Verrazzano monitoring instance in a given namespace for the cluster
-func GetVerrazzanoMonitoringInstance(namespace string, name string) (*vmov1.VerrazzanoMonitoringInstance, error) {
-	// Get the Kubernetes clientset
-	clientset := GetVMOClientset()
-
-	vmi, err := clientset.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		ginkgo.Fail(fmt.Sprintf("Failed to get Verrazzano monitoring instance %s in namespace %s with error: %v", name, namespace, err))
-	}
-	return vmi, err
-}
+//  // GetVerrazzanoMonitoringInstance returns the a Verrazzano monitoring instance in a given namespace for the cluster
+//  func GetVerrazzanoMonitoringInstance(namespace string, name string) (*vmov1.VerrazzanoMonitoringInstance, error) {
+//  	// Get the Kubernetes clientset
+//  	clientset := GetVMOClientset()
+//
+//  	vmi, err := clientset.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+//  	if err != nil && !errors.IsNotFound(err) {
+//  		ginkgo.Fail(fmt.Sprintf("Failed to get Verrazzano monitoring instance %s in namespace %s with error: %v", name, namespace, err))
+//  	}
+//  	return vmi, err
+//  }
 
 // DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
 func DoesPodExist(namespace string, name string) bool {
@@ -273,19 +273,19 @@ func createClientset(config *restclient.Config) *kubernetes.Clientset {
 	return clientset
 }
 
-// GetVMOClientset returns the Kubernetes clientset for the Verrazzano Monitoring Operator
-func GetVMOClientset() *vmoclient.Clientset {
-	// use the current context in the kubeconfig
-	config := GetKubeConfig()
-
-	// create the clientset once and cache it
-	clientset, err := vmoclient.NewForConfig(config)
-	if err != nil {
-		ginkgo.Fail("Could not get Verrazzano Monitoring Operator clientset")
-	}
-
-	return clientset
-}
+//  // GetVMOClientset returns the Kubernetes clientset for the Verrazzano Monitoring Operator
+//  func GetVMOClientset() *vmoclient.Clientset {
+//  	// use the current context in the kubeconfig
+//  	config := GetKubeConfig()
+//
+//  	// create the clientset once and cache it
+//  	clientset, err := vmoclient.NewForConfig(config)
+//  	if err != nil {
+//  		ginkgo.Fail("Could not get Verrazzano Monitoring Operator clientset")
+//  	}
+//
+//  	return clientset
+//  }
 
 // GetVerrazzanoManagedClusterClientset returns the Kubernetes clientset for the VerrazzanoManagedCluster
 func GetVerrazzanoManagedClusterClientset() *vmcClient.Clientset {

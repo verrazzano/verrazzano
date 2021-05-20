@@ -202,3 +202,13 @@ create-test-deploy:
 	else \
 		echo "VZ_DEV_IMAGE not defined, please set it to a valid image name/tag"; \
 	fi
+
+.PHONY: generate-api-proxy
+generate-api-proxy:
+	hack/generate-api-proxy-configmap.sh \
+        ../pkg/proxy/conf_lua_template.go \
+        ../pkg/proxy/auth_lua_template.go \
+        ../pkg/proxy/nginx_conf_template.go \
+        ../pkg/proxy/startup_sh_template.go \
+        > helm_config/charts/verrazzano/templates/06-verrazzano-api-configmap.yaml
+
