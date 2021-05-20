@@ -4,7 +4,7 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoProject
 metadata:
-  name: project-managed1
+  name: placement-clusters-invalid-project
   namespace: verrazzano-mc
 spec:
   template:

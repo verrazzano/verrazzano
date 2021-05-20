@@ -4,6 +4,7 @@
 package resources_test
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -13,13 +14,11 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-const shortWaitTimeout = 10 * time.Minute
-const shortPollInterval = 10 * time.Second
+const shortWaitTimeout = 3 * time.Minute
+const shortPollInterval = 5 * time.Second
 
 const multiclusterNamespace = "verrazzano-mc"
 const verrazzanoSystemNamespace = "verrazzano-system"
-
-var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 
 var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 	ginkgo.Context("Admin Cluster", func() {
@@ -29,37 +28,79 @@ var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 
 		ginkgo.It("Create VerrazzanoProject with invalid content", func() {
 			gomega.Eventually(func() bool {
-				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-placement-cluster-invalid.yaml")
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-placement-clusters-invalid.yaml")
 				if err == nil {
 					pkg.Log(pkg.Error, "Expected an error creating invalid VerrazzanoProject")
 					return false
 				}
-				if strings.Contains(err.Error(), "admission webhook") {
-					return true
+				if !strings.Contains(err.Error(), "invalid-cluster-name") {
+					pkg.Log(pkg.Error, fmt.Sprintf("Expected an error message creating invalid VerrazzanoProject: %v", err))
+					return false
 				}
-				return false
+				return true
 			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected VerrazzanoProject validation error")
 		})
 
-	})
-
-	ginkgo.Context("Managed Cluster", func() {
-		ginkgo.BeforeEach(func() {
-			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
-		})
-
-		ginkgo.It("Create VerrazzanoProject with invalid content", func() {
+		ginkgo.It("Create MultiClusterSecret with invalid content", func () {
 			gomega.Eventually(func() bool {
-				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-placement-clusters-empty.yaml")
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_placement_clusters_invalid.yaml")
 				if err == nil {
-					pkg.Log(pkg.Error, "Expected an error creating invalid VerrazzanoProject")
+					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
 					return false
 				}
-				if strings.Contains(err.Error(), "admission webhook") {
-					return true
+				if !strings.Contains(err.Error(), "invalid-cluster-name") {
+					pkg.Log(pkg.Error, fmt.Sprintf("Expected an error message creating invalid resource: %v", err))
+					return false
 				}
-				return false
-			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected VerrazzanoProject validation error")
+				return true
+			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected a resource validation error")
 		})
+
+		ginkgo.It("Create MultiClusterConfigmap with invalid content", func () {
+			gomega.Eventually(func() bool {
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_placement_clusters_invalid.yaml")
+				if err == nil {
+					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
+					return false
+				}
+				if !strings.Contains(err.Error(), "invalid-cluster-name") {
+					pkg.Log(pkg.Error, fmt.Sprintf("Expected an error message creating invalid resource: %v", err))
+					return false
+				}
+				return true
+			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected a resource validation error")
+		})
+
+		ginkgo.It("Create MultiClusterComponent with invalid content", func () {
+			gomega.Eventually(func() bool {
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_component_placement_clusters_invalid.yaml")
+				if err == nil {
+					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
+					return false
+				}
+				if !strings.Contains(err.Error(), "invalid-cluster-name") {
+					pkg.Log(pkg.Error, fmt.Sprintf("Expected an error message creating invalid resource: %v", err))
+					return false
+				}
+				return true
+			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected a resource validation error")
+		})
+
+		ginkgo.It("Create MultiClusterApplicationConfiguration with invalid content", func () {
+			gomega.Eventually(func() bool {
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_appconf_placement_clusters_invalid.yaml")
+				if err == nil {
+					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
+					return false
+				}
+				if !strings.Contains(err.Error(), "invalid-cluster-name") {
+					pkg.Log(pkg.Error, fmt.Sprintf("Expected an error message creating invalid resource: %v", err))
+					return false
+				}
+				return true
+			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected a resource validation error")
+		})
+
 	})
+
 })

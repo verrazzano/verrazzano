@@ -1,0 +1,32 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: MultiClusterComponent
+metadata:
+  name: placement-clusters-invalid-component
+  namespace: hello-helidon
+spec:
+  template:
+    spec:
+      workload:
+        apiVersion: oam.verrazzano.io/v1alpha1
+        kind: VerrazzanoHelidonWorkload
+        metadata:
+          name: hello-helidon-workload
+          namespace: hello-helidon
+          labels:
+            app: hello-helidon
+        spec:
+          deploymentTemplate:
+            metadata:
+              name: hello-helidon-deployment
+            podSpec:
+              containers:
+                - name: hello-helidon-container
+                  image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.12-1-20210409130027-707ecc4"
+                  ports:
+                    - containerPort: 8080
+                      name: http
+  placement:
+    clusters:
+      - name: invalid-cluster-name
