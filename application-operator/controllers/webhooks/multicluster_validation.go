@@ -27,14 +27,19 @@ func isLocalClusterAdminCluster(c client.Client) bool {
 }
 
 // validateTargetClustersExist determines if all of the target clusters of the project have
-// corresponding managed cluster resources.
+// corresponding managed cluster resources.  The results are only valid when this
+// is executed against an admin cluster.
 func validateTargetClustersExist(c client.Client, p v1alpha12.Placement) error {
 	for _, cluster := range p.Clusters {
-		key := client.ObjectKey{Name: cluster.Name, Namespace: constants.VerrazzanoMultiClusterNamespace}
-		vmc := v1alpha1.VerrazzanoManagedCluster{}
-		err := c.Get(context.TODO(), key, &vmc)
-		if err != nil {
-			return fmt.Errorf("target managed cluster %s is not registered: %v", cluster.Name, err)
+		targetClusterName := cluster.Name
+		// If the target cluster name is local then assume it is valid.
+		if targetClusterName != "local" {
+			key := client.ObjectKey{Name: targetClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
+			vmc := v1alpha1.VerrazzanoManagedCluster{}
+			err := c.Get(context.TODO(), key, &vmc)
+			if err != nil {
+				return fmt.Errorf("target managed cluster %s is not registered: %v", cluster.Name, err)
+			}
 		}
 	}
 	return nil

@@ -22,7 +22,7 @@ func newMultiClusterComponentValidator() MultiClusterComponentValidator {
 	scheme := newScheme()
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := fake.NewFakeClientWithScheme(scheme)
-	v := MultiClusterComponentValidator{Client: cli, decoder: decoder}
+	v := MultiClusterComponentValidator{client: cli, decoder: decoder}
 	return v
 }
 
@@ -110,7 +110,7 @@ func TestValidationSuccessForMultiClusterComponentCreationTargetingExistingManag
 			},
 		},
 	}
-	asrt.NoError(v.Client.Create(context.TODO(), &mc))
+	asrt.NoError(v.client.Create(context.TODO(), &mc))
 
 	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
 	res := v.Handle(context.TODO(), req)
@@ -147,7 +147,7 @@ func TestValidationSuccessForMultiClusterComponentCreationWithoutTargetClustersO
 			},
 		},
 	}
-	asrt.NoError(v.Client.Create(context.TODO(), &s))
+	asrt.NoError(v.client.Create(context.TODO(), &s))
 
 	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
 	res := v.Handle(context.TODO(), req)

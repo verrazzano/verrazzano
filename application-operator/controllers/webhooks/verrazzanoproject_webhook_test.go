@@ -509,3 +509,42 @@ func TestValidationSuccessForProjectCreationWithoutTargetClustersOnManagedCluste
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected project validation to succeed with missing placement information on managed cluster.")
 }
+
+// TestValidationSuccessForProjectCreationTargetingLocalCluster tests allowing the creation
+// of a VerrazzanoProject resources on the local admin cluster.
+// GIVEN a call to validate a VerrazzanoProject resource
+// WHEN the VerrazzanoProject resource targets the local cluster via Placement information
+// AND the validation is being done on the admin cluster
+// THEN the validation should succeed.
+func TestValidationSuccessForProjectCreationTargetingLocalCluster(t *testing.T) {
+	asrt := assert.New(t)
+	v := newVerrazzanoProjectValidator()
+	p := v1alpha12.VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-project-name",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: v1alpha12.VerrazzanoProjectSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "local"}},
+			},
+			Template: v1alpha12.ProjectTemplate{
+				Namespaces: []v1alpha12.NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "test-target-namespace",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	req := newAdmissionRequest(admissionv1beta1.Create, p)
+	res := v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected project validation to succeed with placement targeting local cluster.")
+
+	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	res = v.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, "Expected project validation to succeed with placement targeting local cluster.")
+}
