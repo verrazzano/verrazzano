@@ -212,7 +212,6 @@ pipeline {
                 failure {
                     script {
                         echo "Cluster create failed"
-                        keepOKEClusterOnFailure = "true"
                     }
                 }
             }
