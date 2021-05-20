@@ -16,14 +16,8 @@ import (
 
 // MultiClusterApplicationConfigurationValidator is a struct holding objects used during validation.
 type MultiClusterApplicationConfigurationValidator struct {
-	client  client.Client
+	Client  client.Client
 	decoder *admission.Decoder
-}
-
-// InjectClient injects the client.
-func (v *MultiClusterApplicationConfigurationValidator) InjectClient(c client.Client) error {
-	v.client = c
-	return nil
 }
 
 // InjectDecoder injects the decoder.
@@ -42,7 +36,7 @@ func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Conte
 
 	switch req.Operation {
 	case k8sadmission.Create, k8sadmission.Update:
-		return translateErrorToResponse(validateMultiClusterApplicationConfiguration(v.client, mcac))
+		return translateErrorToResponse(validateMultiClusterApplicationConfiguration(v.Client, mcac))
 	default:
 		return admission.Allowed("")
 	}

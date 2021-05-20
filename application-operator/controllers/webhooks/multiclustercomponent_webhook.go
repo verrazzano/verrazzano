@@ -16,14 +16,8 @@ import (
 
 // MultiClusterComponentValidator is a struct holding objects used during validation.
 type MultiClusterComponentValidator struct {
-	client  client.Client
+	Client  client.Client
 	decoder *admission.Decoder
-}
-
-// InjectClient injects the client.
-func (v *MultiClusterComponentValidator) InjectClient(c client.Client) error {
-	v.client = c
-	return nil
 }
 
 // InjectDecoder injects the decoder.
@@ -42,7 +36,7 @@ func (v *MultiClusterComponentValidator) Handle(ctx context.Context, req admissi
 
 	switch req.Operation {
 	case k8sadmission.Create, k8sadmission.Update:
-		return translateErrorToResponse(validateMultiClusterComponent(v.client, mcc))
+		return translateErrorToResponse(validateMultiClusterComponent(v.Client, mcc))
 	default:
 		return admission.Allowed("")
 	}

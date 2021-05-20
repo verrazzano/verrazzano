@@ -22,7 +22,7 @@ func newMultiClusterApplicationConfigurationValidator() MultiClusterApplicationC
 	scheme := newScheme()
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := fake.NewFakeClientWithScheme(scheme)
-	v := MultiClusterApplicationConfigurationValidator{client: cli, decoder: decoder}
+	v := MultiClusterApplicationConfigurationValidator{Client: cli, decoder: decoder}
 	return v
 }
 
@@ -110,7 +110,7 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationTargeti
 			},
 		},
 	}
-	asrt.NoError(v.client.Create(context.TODO(), &mc))
+	asrt.NoError(v.Client.Create(context.TODO(), &mc))
 
 	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
 	res := v.Handle(context.TODO(), req)
@@ -147,7 +147,7 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 			},
 		},
 	}
-	asrt.NoError(v.client.Create(context.TODO(), &s))
+	asrt.NoError(v.Client.Create(context.TODO(), &s))
 
 	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
 	res := v.Handle(context.TODO(), req)

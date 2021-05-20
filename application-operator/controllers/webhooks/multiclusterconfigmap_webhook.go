@@ -16,14 +16,8 @@ import (
 
 // MultiClusterConfigmapValidator is a struct holding objects used during validation.
 type MultiClusterConfigmapValidator struct {
-	client  client.Client
+	Client  client.Client
 	decoder *admission.Decoder
-}
-
-// InjectClient injects the client.
-func (v *MultiClusterConfigmapValidator) InjectClient(c client.Client) error {
-	v.client = c
-	return nil
 }
 
 // InjectDecoder injects the decoder.
@@ -42,7 +36,7 @@ func (v *MultiClusterConfigmapValidator) Handle(ctx context.Context, req admissi
 
 	switch req.Operation {
 	case k8sadmission.Create, k8sadmission.Update:
-		return translateErrorToResponse(validateMultiClusterConfigmap(v.client, mccm))
+		return translateErrorToResponse(validateMultiClusterConfigmap(v.Client, mccm))
 	default:
 		return admission.Allowed("")
 	}

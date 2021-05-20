@@ -23,7 +23,7 @@ func newVerrazzanoProjectValidator() VerrazzanoProjectValidator {
 	scheme := newScheme()
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := fake.NewFakeClientWithScheme(scheme)
-	v := VerrazzanoProjectValidator{client: cli, decoder: decoder}
+	v := VerrazzanoProjectValidator{Client: cli, decoder: decoder}
 	return v
 }
 
@@ -38,7 +38,7 @@ func TestVerrazzanoProject(t *testing.T) {
 	// Test data
 	testVP := testProject
 	testMC := testManagedCluster
-	asrt.NoError(v.client.Create(context.TODO(), &testMC))
+	asrt.NoError(v.Client.Create(context.TODO(), &testMC))
 
 	req := newAdmissionRequest(admissionv1beta1.Create, testVP)
 	res := v.Handle(context.TODO(), req)
@@ -61,7 +61,7 @@ func TestInvalidNamespace(t *testing.T) {
 	testVP := testProject
 	testVP.Namespace = "invalid-namespace"
 	testMC := testManagedCluster
-	asrt.NoError(v.client.Create(context.TODO(), &testMC))
+	asrt.NoError(v.Client.Create(context.TODO(), &testMC))
 
 	// Test create
 	req := newAdmissionRequest(admissionv1beta1.Create, testVP)
@@ -88,7 +88,7 @@ func TestInvalidNamespaces(t *testing.T) {
 	testVP := testProject
 	testVP.Spec.Template.Namespaces = []v1alpha12.NamespaceTemplate{}
 	testMC := testManagedCluster
-	asrt.NoError(v.client.Create(context.TODO(), &testMC))
+	asrt.NoError(v.Client.Create(context.TODO(), &testMC))
 
 	// Test create
 	req := newAdmissionRequest(admissionv1beta1.Create, testVP)
@@ -114,7 +114,7 @@ func TestNetworkPolicyNamespace(t *testing.T) {
 	// Test data
 	testVP := testNetworkPolicy
 	testMC := testManagedCluster
-	asrt.NoError(v.client.Create(context.TODO(), &testMC))
+	asrt.NoError(v.Client.Create(context.TODO(), &testMC))
 
 	// Test create
 	req := newAdmissionRequest(admissionv1beta1.Create, testVP)
@@ -139,7 +139,7 @@ func TestNetworkPolicyMissingNamespace(t *testing.T) {
 	testVP := testNetworkPolicy
 	testVP.Spec.Template.Namespaces[0].Metadata.Name = "ns2"
 	testMC := testManagedCluster
-	asrt.NoError(v.client.Create(context.TODO(), &testMC))
+	asrt.NoError(v.Client.Create(context.TODO(), &testMC))
 
 	// Test create
 	req := newAdmissionRequest(admissionv1beta1.Create, testVP)
@@ -453,7 +453,7 @@ func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *t
 			},
 		},
 	}
-	asrt.NoError(v.client.Create(context.TODO(), &c))
+	asrt.NoError(v.Client.Create(context.TODO(), &c))
 
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
@@ -499,7 +499,7 @@ func TestValidationSuccessForProjectCreationWithoutTargetClustersOnManagedCluste
 			},
 		},
 	}
-	asrt.NoError(v.client.Create(context.TODO(), &s))
+	asrt.NoError(v.Client.Create(context.TODO(), &s))
 
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
