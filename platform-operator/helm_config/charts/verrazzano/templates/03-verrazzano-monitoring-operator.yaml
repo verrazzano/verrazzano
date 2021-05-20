@@ -368,9 +368,8 @@ spec:
             requests:
               memory: {{ .Values.monitoringOperator.RequestMemory }}
           volumeMounts:
-            - mountPath: /cert
-              name: cert-volume
-              readOnly: true
+            - name: cert-volume
+              mountPath: /etc/certs
           env:
             - name: ISTIO_PROXY_IMAGE
               value: {{ .Values.monitoringOperator.istioProxyImage }}
@@ -415,8 +414,7 @@ spec:
       serviceAccountName: {{ .Values.monitoringOperator.name }}
       volumes:
         - name: cert-volume
-          secret:
-            secretName: vmo-tls
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
