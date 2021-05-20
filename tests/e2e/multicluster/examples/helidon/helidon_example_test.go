@@ -5,6 +5,7 @@ package mchelidon
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
@@ -127,8 +128,10 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		ginkgo.It("Verify Prometheus metrics exist on admin cluster", func() {
 			gomega.Eventually(func() bool {
 				fmt.Println("Admin Kube Config ", adminKubeconfig)
+				printKubeConfig(adminKubeconfig)
 				adKConfig := os.Getenv("ADMIN_KUBECONFIG")
 				fmt.Println("Admin Kube Config from environment ", adKConfig)
+				printKubeConfig(adKConfig)
 				return appMetricsExists(adKConfig)
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
@@ -278,4 +281,17 @@ func cleanUp(kubeconfigPath string) error {
 
 func appMetricsExists(kubeconfigPath string) bool {
 	return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, kubeconfigPath)
+}
+
+func printKubeConfig(configPath string)  {
+	fmt.Println("Kube Config ", configPath)
+	fmt.Println("---------------------------------------------------------------")
+	content, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		fmt.Println("Error in reading kubeconfig ", err)
+		return
+	}
+	text := string(content)
+	fmt.Println(text)
+	fmt.Println("---------------------------------------------------------------")
 }
