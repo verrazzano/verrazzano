@@ -11,9 +11,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// QueryMetric queries a metric from the specified Prometheus host
-func QueryMetric(metricsName string, prometheusHost string, kubeconfigPath string) (string, error) {
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", prometheusHost, metricsName)
+// QueryMetric queries a metric from the Prometheus host, derived from the kubeconfig
+func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(kubeconfigPath), metricsName)
 	status, content := GetWebPageWithBasicAuthForCluster(metricsURL, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	if status != 200 {
 		Log(Error, fmt.Sprintf("Error retrieving metric %s, status %d", metricsName, status))
