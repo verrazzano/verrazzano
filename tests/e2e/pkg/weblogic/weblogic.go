@@ -25,16 +25,6 @@ type ServerHealth struct {
 	Health     string
 }
 
-// ListDomains returns the list of WebLogic domains in unstructured format
-func ListDomains(namespace string) (*unstructured.UnstructuredList, error) {
-	client := pkg.GetDynamicClient()
-	domains, err := client.Resource(getScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return domains, nil
-}
-
 // GetDomain returns a WebLogic domains in unstructured format
 func GetDomain(namespace string, name string) (*unstructured.Unstructured, error) {
 	client := pkg.GetDynamicClient()

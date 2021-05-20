@@ -3,6 +3,7 @@
 
 package testdata
 
+// Domain has sample WebLogic domain CR data
 const Domain = `
 {
   "apiVersion": "weblogic.oracle/v8",
