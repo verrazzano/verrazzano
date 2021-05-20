@@ -46,4 +46,6 @@ module "oke" {
   service_account_cluster_role_binding = ""
 
   existing_key_id = ""
+
+  use_signed_images = false
 }
