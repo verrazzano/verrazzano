@@ -58,7 +58,7 @@ func buildKubeConfig(kubeconfig string) *restclient.Config {
 	var err error
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not get current context from kubeconfig %v, the error %v", kubeconfig, err))
+		ginkgo.Fail("Could not get current context from kubeconfig " + kubeconfig)
 	}
 
 	return config

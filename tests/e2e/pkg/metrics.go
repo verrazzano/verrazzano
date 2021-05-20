@@ -12,21 +12,7 @@ import (
 )
 
 // QueryMetric queries a metric from the specified Prometheus host
-func QueryMetric(metricsName string, prometheusHost string) (string, error) {
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", prometheusHost, metricsName)
-	status, content := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", GetVerrazzanoPassword())
-	if status != 200 {
-		Log(Error, fmt.Sprintf("Error retrieving metric %s, status %d", metricsName, status))
-		// do not call ginkgo.Fail() here - this method is called in Eventually funcs, so if you call Fail()
-		// you essentially limit all of those to only one attempt, which defeats the purpose
-		return "", errors.New("no content")
-	}
-	Log(Info, fmt.Sprintf("metric: %s", content))
-	return content, nil
-}
-
-// QueryMetricInCluster queries a metric from the specified Prometheus host, using a given kubeconfig
-func QueryMetricInCluster(metricsName string, prometheusHost string, kubeconfigPath string) (string, error) {
+func QueryMetric(metricsName string, prometheusHost string, kubeconfigPath string) (string, error) {
 	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", prometheusHost, metricsName)
 	status, content := GetWebPageWithBasicAuthForCluster(metricsURL, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	if status != 200 {
