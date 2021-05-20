@@ -212,7 +212,7 @@ data:
     </filter>
 
     # parse sidecar stdout
-    <filter kubernetes.**_stdout-sidecar-**>
+    <filter kubernetes.**_fluentd-stdout-sidecar-**>
       @type parser
       @id stdout_log_text
       key_name log
