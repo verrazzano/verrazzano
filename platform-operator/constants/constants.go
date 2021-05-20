@@ -50,3 +50,9 @@ const ServerDataKey = "server"
 
 // VzConsoleIngress - the name of the ingress for verrazzano console and api
 const VzConsoleIngress = "verrazzano-ingress"
+
+// RegistryOverrideEnvVar is the environment variable name used to override the registry housing images we install
+const RegistryOverrideEnvVar = "REGISTRY"
+
+// ImageRepoOverrideEnvVar is the environment variable name used to set the image repository
+const ImageRepoOverrideEnvVar = "IMAGE_REPO"

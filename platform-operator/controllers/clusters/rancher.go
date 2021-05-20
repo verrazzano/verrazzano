@@ -15,10 +15,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
 	gabs "github.com/Jeffail/gabs/v2"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1beta1"
@@ -119,8 +121,51 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 		return "", err
 	}
 
+	regYAML = fixRancherAgentImage(regYAML, log)
+
 	log.Infof("Successfully registered managed cluster in Rancher with name: %s", clusterName)
 	return regYAML, nil
+}
+
+// fixRancherAgentImage patches the Rancher agent image when the Verrazzano installation overrides
+// the image registry. The Rancher agent image is baked into the primary Rancher image so in order
+// to load Rancher agent from a different registry we replace it here in the generated
+// registration YAML.
+//
+// Possible future enhancement: Pull the image and tag from the BOM file and ignore what Rancher generates?
+func fixRancherAgentImage(regYAML string, log *zap.SugaredLogger) string {
+	// if the Verrazzano installation is using the default image registry, there's nothing to do
+	registry := os.Getenv(constants.RegistryOverrideEnvVar)
+	if registry == "" {
+		return regYAML
+	}
+
+	// pull the Rancher agent image out of the registration YAML
+	r := regexp.MustCompile(`image: (?P<image>.*)`)
+	match := r.FindStringSubmatch(regYAML)
+	if len(match) != 2 {
+		return regYAML
+	}
+
+	// split the image path and pull out the repo and image:tag
+	imageParts := strings.Split(match[1], "/")
+	if len(imageParts) < 2 {
+		return regYAML
+	}
+
+	image := imageParts[len(imageParts)-2] + "/" + imageParts[len(imageParts)-1]
+
+	// build a new image path using the registry override (and optionally a repo override)
+	imagePath := registry
+	if repo := os.Getenv(constants.ImageRepoOverrideEnvVar); repo != "" {
+		imagePath = imagePath + "/" + repo
+	}
+	imagePath = imagePath + "/" + image
+
+	log.Infof("Replacing Rancher agent image in registration YAML with: %s", imagePath)
+
+	// replace the image in the regYAML with the new image path
+	return strings.Replace(regYAML, match[1], imagePath, 1)
 }
 
 // importClusterToRancher uses the Rancher API to import the cluster. The cluster will show as "pending" until the registration
