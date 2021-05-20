@@ -9,9 +9,6 @@ CALICO_VERSION=$(grep ‘calico-version=’ ${SCRIPT_DIR}/../../../../.third-par
 
 echo "Install Calico ${CALICO_VERSION}..."
 
-echo "FORCING FAILURE TEMPORARY"
-CALICO_VERSION=""
-
 # CALICO_HOME must be set to the location of the downloaded Calico bundle
 CALICO_YAML=${CALICO_HOME}/${CALICO_VERSION}/k8s-manifests/calico-policy-only.yaml
 
