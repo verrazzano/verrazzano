@@ -4,8 +4,8 @@
 package weblogic
 
 import (
-	"bytes"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
@@ -26,16 +26,35 @@ func TestJsonPathHealth(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	const template = `{range .status.servers[*]}{.serverName}:{.health.overallHealth},{end}`
+	// const template = `{range .status.servers[*]}{.serverName}:{.health.overallHealth},{end}`
+	const template = `{.status.servers[*]}`
 	j := jsonpath.New("test")
 	err = j.Parse(template)
 	assert.NoError(err)
 
-	buf := new(bytes.Buffer)
+	/*buf := new(bytes.Buffer)
 	err = j.Execute(buf, domain)
 	assert.NoError(err)
 	s := buf.String()
-	assert.Equal(s, "AdminServer:ok,ManagedServer:bad,", "jsonpath returned wrong value")
+	assert.Equal(s, "AdminServer:ok,ManagedServer:bad,", "jsonpath returned wrong value")*/
+
+	results, err := j.FindResults(domain)
+	serverHealth := make(map[string]string)
+	for rarr := range results {
+		for r := range results[rarr] {
+			fmt.Printf("type is %v, kind is %v\n", results[rarr][r].Type().String(), results[rarr][r].Kind().String())
+			if results[rarr][r].CanInterface() {
+				serverMap, ok := results[rarr][r].Interface().(map[string]interface{})
+				fmt.Printf("ok is %v, got map: %v\n", ok, serverMap)
+				serverName := serverMap["serverName"].(string)
+				healthMap := serverMap["health"].(map[string]interface{})
+				serverHealth[serverName] = healthMap["overallHealth"].(string)
+			}
+			// fmt.Printf("%v %v \n", results[rarr][r].Interface(), results[rarr][r])
+			// fmt.Printf("%v \n", results[rarr][r].MapKeys())
+		}
+	}
+	fmt.Printf("health map: %v\n", serverHealth)
 }
 
 // TestGetHealthOfServers tests the extraction of WebLogic server health information from an unstructured domain
@@ -53,8 +72,8 @@ func TestGetHealthOfServers(t *testing.T) {
 
 	assert.NoError(err)
 	assert.Len(healths, 2, "wrong number of server health items returned")
-	assert.Equal("AdminServer", healths[0].ServerName)
-	assert.Equal("ok", healths[0].Health)
-	assert.Equal("ManagedServer", healths[1].ServerName)
-	assert.Equal("bad", healths[1].Health)
+	//assert.Equal("AdminServer", healths[0].ServerName)
+	assert.Equal("ok", healths["AdminServer"])
+	//assert.Equal("ManagedServer", healths[1].ServerName)
+	assert.Equal("bad", healths["ManagedServer"])
 }

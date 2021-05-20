@@ -4,11 +4,11 @@
 package weblogic
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"strings"
+	"fmt"
+	"reflect"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,12 +18,7 @@ import (
 )
 
 const Healthy = "ok"
-
-// ServerHealth contains the health information for a WebLogic server
-type ServerHealth struct {
-	ServerName string
-	Health     string
-}
+const overallHealth = "overallHealth"
 
 // GetDomain returns a WebLogic domains in unstructured format
 func GetDomain(namespace string, name string) (*unstructured.Unstructured, error) {
@@ -35,41 +30,48 @@ func GetDomain(namespace string, name string) (*unstructured.Unstructured, error
 	return domain, nil
 }
 
-// GetHealthOfServers returns an array of ServerHealth objects
-func GetHealthOfServers(uDomain *unstructured.Unstructured) ([]ServerHealth, error) {
+// GetHealthOfServers returns a slice of strings, each item representing the health of a server in the domain
+func GetHealthOfServers(uDomain *unstructured.Unstructured) ([]string, error) {
 	// Separator for list of servers
 	const serverSep = ","
 	// Separator for server fields
 	const fieldSep = ":"
-	// Template used to parse for the server health status
-	const template = `{range .status.servers[*]}{.serverName}:{.health.overallHealth},{end}`
+	// jsonpath template used to extract the server info
+	const template = `{.status.servers[*].health}`
 
 	// Get the string that has the server status health
-	s, err := findData(uDomain, template)
+	results, err := findData(uDomain, template)
+
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Printf("servers: %s\n", s)
-	// Convert the string to a slice of ServerHealth
-	servers := strings.Split(s, serverSep)
-	if len(servers) == 0 {
+
+	var serverHealth []string
+	for i := range results {
+		for j := range results[i] {
+			if results[i][j].CanInterface() {
+				// Get the underlying interface object out of the reflect.Value object in results[i][j]
+				serverHealthIntf := results[i][j].Interface()
+
+				// Cast the interface{} object to a map[string]interface{} (since we know that is what the health object is)
+				// (if type is wrong, instead of panicking the cast will return false for the 2nd return value)
+				healthMap, ok := serverHealthIntf.(map[string]interface{})
+				if !ok {
+					pkg.Log(pkg.Error, fmt.Sprintf("Could not get WebLogic server result # %d as a map, its type is %v", i, reflect.TypeOf(serverHealthIntf)))
+					continue
+				}
+				// append the overallHealth value ("ok" or otherwise) to a string slice, one entry per server.
+				serverHealth = append(serverHealth, healthMap[overallHealth].(string))
+			} else {
+				pkg.Log(pkg.Error, fmt.Sprintf("Could not convert WebLogic server result # %d to an interface, its type is %s", i, results[i][j].Type().String()))
+			}
+		}
+	}
+
+	if len(serverHealth) == 0 {
 		return nil, errors.New("No WebLogic servers found in domain CR")
 	}
-	var ss []ServerHealth
-	for _, server := range servers {
-		if len(server) == 0 {
-			break
-		}
-		fields := strings.Split(server, fieldSep)
-		if len(fields) == 0 {
-			return nil, errors.New("WebLogic server fields not found in domain CR")
-		}
-		ss = append(ss, ServerHealth{
-			ServerName: strings.TrimSpace(fields[0]),
-			Health:     strings.TrimSpace(fields[1]),
-		})
-	}
-	return ss, nil
+	return serverHealth, nil
 }
 
 // getScheme returns the WebLogic scheme needed to get unstructured data
@@ -81,31 +83,24 @@ func getScheme() schema.GroupVersionResource {
 	}
 }
 
-// findData returns a string from the unstructured domain that matches the template
-func findData(uDomain *unstructured.Unstructured, template string) (string, error) {
+// findData returns the results for the specified value from the unstructured domain that matches the template
+func findData(uDomain *unstructured.Unstructured, template string) ([][]reflect.Value, error) {
 	// Convert the unstructured domain into domain object that can be parsed
 	jsonDomain, err := uDomain.MarshalJSON()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	var domain interface{}
 	err = json.Unmarshal([]byte(jsonDomain), &domain)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// Parse the template
 	j := jsonpath.New("domain")
 	err = j.Parse(template)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	// Execute the search for the server status
-	buf := new(bytes.Buffer)
-	err = j.Execute(buf, domain)
-	if err != nil {
-		return "", err
-	}
-	// Convert to ServerHealth structs
-	s := buf.String()
-	return s, nil
+
+	return j.FindResults(domain)
 }

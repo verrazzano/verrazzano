@@ -139,7 +139,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 					return false
 				}
 				healths, err := weblogic.GetHealthOfServers(domain)
-				if err != nil || healths[0].Health != weblogic.Healthy {
+				if err != nil || healths[0] != weblogic.Healthy {
 					return false
 				}
 				return true
