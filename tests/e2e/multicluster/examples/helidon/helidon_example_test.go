@@ -120,6 +120,20 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		}
 	})
 
+	// GIVEN an admin cluster and at least one managed cluster
+	// WHEN the example application has been deployed to the admin cluster
+	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
+	ginkgo.Context("Metrics", func() {
+		ginkgo.It("Verify Prometheus metrics exist on admin cluster", func() {
+			gomega.Eventually(func() bool {
+				fmt.Println("Admin Kube Config ", adminKubeconfig)
+				adKConfig := os.Getenv("ADMIN_KUBECONFIG")
+				fmt.Println("Admin Kube Config from environment ", adKConfig)
+				return appMetricsExists(adKConfig)
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+		})
+	})
+
 	ginkgo.Context("Logging", func() {
 		indexName := "verrazzano-namespace-hello-helidon"
 
@@ -143,17 +157,6 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 					"kubernetes.container_name":                 "hello-helidon-container",
 				}, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
-		})
-	})
-
-	// GIVEN an admin cluster and at least one managed cluster
-	// WHEN the example application has been deployed to the admin cluster
-	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
-	ginkgo.Context("Metrics", func() {
-		ginkgo.It("Verify Prometheus metrics exist on admin cluster", func() {
-			gomega.Eventually(func() bool {
-				return appMetricsExists(adminKubeconfig)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
 
