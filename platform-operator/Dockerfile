@@ -21,8 +21,6 @@ FROM ghcr.io/oracle/oraclelinux:7-slim
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
-# Install specific versions of device-mapper, device-mapper-libs and dracut as a temporary workaround
-# by default yum tries to install a version that is non-existent on the OEL 7 yum mirrors
 # Use both olcne11 and olcne12 versions since helm-3.1.1 is available only on olcne11 and
 # kubectl 1.18.10-3 only on olcne12
 RUN yum update -y \
