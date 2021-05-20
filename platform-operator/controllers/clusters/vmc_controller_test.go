@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -41,11 +42,26 @@ const kind = "VerrazzanoManagedCluster"
 const testServerData = "https://testurl"
 
 const (
-	token              = "tokenData"
-	testManagedCluster = "test"
+	token                = "tokenData"
+	testManagedCluster   = "test"
+	rancherAgentRegistry = "ghcr.io"
+	rancherAgentImage    = rancherAgentRegistry + "/verrazzano/rancher-agent:v1.0.0"
 )
 
-const rancherManifestYAML = `---\napiVersion: v1\nkind: ServiceAccount\nmetadata:\n  name: cattle\n  namespace: cattle-system\n`
+const rancherManifestYAML = `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cattle-cluster-agent
+  namespace: cattle-system
+spec:
+  template:
+    spec:
+	  containers:
+	    - name: cluster-register
+		  image: ` + rancherAgentImage + `
+		  imagePullPolicy: IfNotPresent
+`
 
 type AssertFn func(configMap *corev1.ConfigMap) error
 
@@ -82,7 +98,7 @@ func TestCreateVMC(t *testing.T) {
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
-	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false)
+	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", promData, func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -146,7 +162,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
-	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false)
+	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", promData, func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.Empty(configMap.Data["ca-test"], "Cert entry found")
@@ -221,7 +237,7 @@ scrape_configs:
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
-	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false)
+	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, promData, func(configMap *corev1.ConfigMap) error {
 
 		// check for the modified entry
@@ -299,7 +315,7 @@ scrape_configs:
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
-	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false)
+	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, promData, func(configMap *corev1.ConfigMap) error {
 
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -369,7 +385,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
-	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, true)
+	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", promData, func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -964,6 +980,89 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 	asserts.Error(err)
 }
 
+// TestRegisterClusterWithRancherOverrideRegistry tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an VerrazzanoManagedCluster resource
+// WHEN a VerrazzanoManagedCluster resource has been applied
+// AND the Verrazzano installation overrides the image registry and repository (i.e. the private registry scenario)
+// THEN ensure that the Rancher registration manifest YAML contains a Rancher agent image with the overridden registry and repo
+func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
+	namespace := constants.VerrazzanoMultiClusterNamespace
+	promData := "prometheus:\n" +
+		"  host: prometheus.vmi.system.default.152.67.141.181.nip.io\n" +
+		"  cacrt: |\n" +
+		"    -----BEGIN CERTIFICATE-----\n" +
+		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
+		"    -----END CERTIFICATE-----"
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	mockRequestSender := mocks.NewMockRequestSender(mocker)
+	savedRancherHTTPClient := rancherHTTPClient
+	defer func() {
+		rancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherHTTPClient = mockRequestSender
+
+	// override the image registry and repo
+	const registry = "unit-test-registry.io"
+	const imageRepo = "unit-test-repo"
+	oldRegistryEnv := os.Getenv(constants.RegistryOverrideEnvVar)
+	oldImageRepoEnv := os.Getenv(constants.ImageRepoOverrideEnvVar)
+	defer func() {
+		os.Setenv(constants.RegistryOverrideEnvVar, oldRegistryEnv)
+		os.Setenv(constants.ImageRepoOverrideEnvVar, oldImageRepoEnv)
+	}()
+	os.Setenv(constants.RegistryOverrideEnvVar, registry)
+	os.Setenv(constants.ImageRepoOverrideEnvVar, imageRepo)
+
+	// replace the image registry in the Rancher agent image with the overridden registry and repo
+	expectedRancherYAML := strings.Replace(rancherManifestYAML, "image: "+rancherAgentRegistry, "image: "+registry+"/"+imageRepo, 1)
+
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
+
+	expectVmcGetAndUpdate(t, mock, testManagedCluster)
+	expectSyncServiceAccount(t, mock, testManagedCluster, true)
+	expectSyncRoleBinding(t, mock, testManagedCluster, true)
+	expectSyncAgent(t, mock, testManagedCluster)
+	expectSyncRegistration(t, mock, testManagedCluster)
+	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, expectedRancherYAML)
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", promData, func(configMap *corev1.ConfigMap) error {
+		asserts.Len(configMap.Data, 2, "no data found")
+		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
+		prometheusYaml := configMap.Data["prometheus.yml"]
+
+		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
+		asserts.Equal("prometheus.vmi.system.default.152.67.141.181.nip.io",
+			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
+		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.Equal(prometheusConfigBasePath+"ca-test",
+			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
+		return nil
+	})
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+
+	// Create and make the request
+	request := newRequest(namespace, testManagedCluster)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
@@ -1188,7 +1287,9 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 }
 
 // Expect syncManifest related calls
-func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockRequestSender *mocks.MockRequestSender, name string, clusterAlreadyRegistered bool) {
+func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockRequestSender *mocks.MockRequestSender,
+	name string, clusterAlreadyRegistered bool, expectedRancherYAML string) {
+
 	asserts := assert.New(t)
 	clusterName := "cluster1"
 	caData := "ca"
@@ -1238,7 +1339,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockRequestSender 
 
 			// YAML should contain the Rancher manifest things
 			yamlString := string(data)
-			asserts.True(strings.Contains(yamlString, rancherManifestYAML))
+			asserts.True(strings.Contains(yamlString, expectedRancherYAML), "Manifest YAML does not contain the correct Rancher resources")
 
 			return nil
 		})

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,8 +34,8 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
 
-	registry := os.Getenv("REGISTRY")
-	imageRepo := os.Getenv("IMAGE_REPO")
+	registry := os.Getenv(constants.RegistryOverrideEnvVar)
+	imageRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -72,11 +73,11 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								Value: "/home/verrazzano/kubeconfig",
 							},
 							{
-								Name:  "REGISTRY",
+								Name:  constants.RegistryOverrideEnvVar,
 								Value: registry,
 							},
 							{
-								Name:  "IMAGE_REPO",
+								Name:  constants.ImageRepoOverrideEnvVar,
 								Value: imageRepo,
 							},
 							{

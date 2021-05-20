@@ -150,6 +150,10 @@
               "tag": "v2.5.7-20210407205410-1c7b39d0c",
               "helmPath": "rancherImage",
               "helmTagPath": "rancherImageTag"
+            },
+            {
+              "image": "rancher-agent",
+              "tag": "v2.5.7-20210407205410-1c7b39d0c"
             }
           ]
         },
