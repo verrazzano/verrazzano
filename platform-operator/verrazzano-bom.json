@@ -214,7 +214,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "0.15.0-20210512224353-617a0c0",
+              "tag": "0.15.0-20210521020822-9b87485",
               "helmPath": "monitoringOperator.imageName",
               "helmTagPath": "monitoringOperator.imageVersion"
             },
@@ -240,7 +240,7 @@
             },
             {
               "image": "verrazzano-monitoring-instance-eswait",
-              "tag": "0.15.0-20210510204900-4a0dd4f",
+              "tag": "0.15.0-20210521020822-9b87485",
               "helmPath": "monitoringOperator.esWaitImage"
             },
             {
