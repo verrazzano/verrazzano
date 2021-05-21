@@ -6,7 +6,7 @@
 set -o pipefail
 
 if [ -z "$BRANCH_NAME" ] || [ -z "$SHORT_TIME_STAMP" ] || [ -z "$BUILD_NUMBER" ] ; then
-  echo "This script must only be called from Jenkins and requires environment variables BRANCH_NAME, SHORT_TIME_STAMP and BUILD_NUMBER are set"
+  echo "This script must only be called from Jenkins and requires environment variables BRANCH_NAME, SHORT_TIME_STAMP and BUILD_NUMBER are set."
   exit 1
 fi
 
@@ -21,7 +21,6 @@ NEW_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]//g')
 NEW_BRANCH=${NEW_BRANCH:0:8}
 
 CLUSTER_PREFIX="$NEW_BRANCH$BUILD_NUMBER"
-
 if (( ${#CLUSTER_PREFIX} > 13 )); then
   CLUSTER_PREFIX=${CLUSTER_PREFIX:0:13}
 fi
