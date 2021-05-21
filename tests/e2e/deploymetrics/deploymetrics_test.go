@@ -40,7 +40,7 @@ var _ = ginkgo.AfterSuite(func() {
 })
 
 func deployMetricsApplication() {
-	pkg.Log(pkg.Info, "Deploy Spring Boot Application")
+	pkg.Log(pkg.Info, "Deploy DeployMetrics Application")
 
 	pkg.Log(pkg.Info, "Create namespace")
 	nsLabels := map[string]string{
@@ -61,7 +61,7 @@ func deployMetricsApplication() {
 }
 
 func undeployMetricsApplication() {
-	pkg.Log(pkg.Info, "Undeploy Spring Boot Application")
+	pkg.Log(pkg.Info, "Undeploy DeployMetrics Application")
 	pkg.Log(pkg.Info, "Delete application")
 	if err := pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the application: %v", err))
@@ -81,8 +81,8 @@ func undeployMetricsApplication() {
 }
 
 var _ = ginkgo.Describe("Verify DeployMetrics Application", func() {
-	// Verify springboot-workload pod is running
-	// GIVEN springboot app is deployed
+	// Verify deploymetrics-workload pod is running
+	// GIVEN deploymetrics app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
 	ginkgo.Context("Deployment.", func() {
