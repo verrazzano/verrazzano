@@ -90,3 +90,8 @@ func init() {
 func (in *VerrazzanoProject) GetStatus() MultiClusterResourceStatus {
 	return in.Status
 }
+
+// GetPlacement returns the Placement of this resource
+func (in *VerrazzanoProject) GetPlacement() Placement {
+	return in.Spec.Placement
+}

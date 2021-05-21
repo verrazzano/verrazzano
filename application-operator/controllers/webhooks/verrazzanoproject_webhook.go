@@ -63,10 +63,6 @@ func validateVerrazzanoProject(c client.Client, vp *v1alpha1.VerrazzanoProject) 
 		return fmt.Errorf("One or more namespaces must be provided")
 	}
 
-	if len(vp.Spec.Placement.Clusters) == 0 {
-		return fmt.Errorf("One or more target clusters must be provided")
-	}
-
 	if err := validateNetworkPolicies(vp); err != nil {
 		return err
 	}
@@ -75,10 +71,8 @@ func validateVerrazzanoProject(c client.Client, vp *v1alpha1.VerrazzanoProject) 
 		return err
 	}
 
-	if !isLocalClusterManagedCluster(c) {
-		if err := validateTargetClustersExist(c, vp.Spec.Placement); err != nil {
-			return err
-		}
+	if err := validateMultiClusterResource(c, vp); err != nil {
+		return err
 	}
 
 	return nil

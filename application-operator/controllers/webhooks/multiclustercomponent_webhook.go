@@ -5,7 +5,6 @@ package webhooks
 
 import (
 	"context"
-	"fmt"
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"net/http"
 
@@ -42,21 +41,8 @@ func (v *MultiClusterComponentValidator) Handle(ctx context.Context, req admissi
 
 	switch req.Operation {
 	case k8sadmission.Create, k8sadmission.Update:
-		return translateErrorToResponse(validateMultiClusterComponent(v.client, mcc))
+		return translateErrorToResponse(validateMultiClusterResource(v.client, mcc))
 	default:
 		return admission.Allowed("")
 	}
-}
-
-// validateMultiClusterComponent performs validation checks on the resource
-func validateMultiClusterComponent(c client.Client, mcc *v1alpha1.MultiClusterComponent) error {
-	if len(mcc.Spec.Placement.Clusters) == 0 {
-		return fmt.Errorf("One or more target clusters must be provided")
-	}
-	if !isLocalClusterManagedCluster(c) {
-		if err := validateTargetClustersExist(c, mcc.Spec.Placement); err != nil {
-			return err
-		}
-	}
-	return nil
 }

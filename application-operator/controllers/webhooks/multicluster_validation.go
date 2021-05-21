@@ -11,20 +11,31 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	clusterutil "github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	core "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
+
+func validateMultiClusterResource(c client.Client, r clusterutil.MultiClusterResource) error {
+	p := r.GetPlacement()
+	if len(p.Clusters) == 0 {
+		return fmt.Errorf("One or more target clusters must be provided")
+	}
+	if !isLocalClusterManagedCluster(c) {
+		if err := validateTargetClustersExist(c, p); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // isLocalClusterManagedCluster determines if the local cluster is a registered managed cluster.
 func isLocalClusterManagedCluster(c client.Client) bool {
 	s := core.Secret{}
 	k := client.ObjectKey{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}
 	err := c.Get(context.TODO(), k, &s)
-	if err == nil {
-		return true
-	}
-	return false
+	return err == nil
 }
 
 // validateTargetClustersExist determines if all of the target clusters of the project have
