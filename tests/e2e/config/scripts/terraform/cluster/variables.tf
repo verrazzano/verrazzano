@@ -12,7 +12,9 @@ variable "label_prefix" {
 variable "username" {
   default = ""
 }
-variable "tenancy_name" {}
+variable "tenancy_name" {
+  default = "stevengreenberginc"
+}
 
 variable "operating_system_version" {
   default     = "8"
