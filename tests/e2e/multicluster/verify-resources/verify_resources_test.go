@@ -41,7 +41,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected VerrazzanoProject validation error")
 		})
 
-		ginkgo.It("Create MultiClusterSecret with invalid content", func () {
+		ginkgo.It("Create MultiClusterSecret with invalid content", func() {
 			gomega.Eventually(func() bool {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_placement_clusters_invalid.yaml")
 				if err == nil {
@@ -56,7 +56,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected a resource validation error")
 		})
 
-		ginkgo.It("Create MultiClusterConfigmap with invalid content", func () {
+		ginkgo.It("Create MultiClusterConfigmap with invalid content", func() {
 			gomega.Eventually(func() bool {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_placement_clusters_invalid.yaml")
 				if err == nil {
@@ -71,7 +71,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected a resource validation error")
 		})
 
-		ginkgo.It("Create MultiClusterComponent with invalid content", func () {
+		ginkgo.It("Create MultiClusterComponent with invalid content", func() {
 			gomega.Eventually(func() bool {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_component_placement_clusters_invalid.yaml")
 				if err == nil {
@@ -86,7 +86,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected a resource validation error")
 		})
 
-		ginkgo.It("Create MultiClusterApplicationConfiguration with invalid content", func () {
+		ginkgo.It("Create MultiClusterApplicationConfiguration with invalid content", func() {
 			gomega.Eventually(func() bool {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_appconf_placement_clusters_invalid.yaml")
 				if err == nil {
