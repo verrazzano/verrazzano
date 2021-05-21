@@ -28,6 +28,11 @@ const (
 scrape_interval: 20s
 scrape_timeout: 15s
 scheme: https
+honor_labels: true
+metrics_path: '/federate'
+params:
+  'match[]':
+   - '{__name__=~"..*"}'
 static_configs:
 - targets:
   - ##HOST##

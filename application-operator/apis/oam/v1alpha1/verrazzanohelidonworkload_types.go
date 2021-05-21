@@ -44,6 +44,7 @@ type VerrazzanoHelidonWorkloadStatus struct {
 // VerrazzanoHelidonWorkload is the Schema for verrazzanohelidonworkloads API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +genclient
 type VerrazzanoHelidonWorkload struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

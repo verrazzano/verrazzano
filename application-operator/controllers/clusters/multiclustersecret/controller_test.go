@@ -331,7 +331,7 @@ func TestReconcileResourceNotFound(t *testing.T) {
 	// and return a not found error
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.GroupVersion.Group, Resource: clustersv1alpha1.MultiClusterSecretResource}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.SchemeGroupVersion.Group, Resource: clustersv1alpha1.MultiClusterSecretResource}, crName))
 
 	// expect no further action to be taken
 
@@ -423,7 +423,7 @@ func getSampleMCSecret(ns string, name string, secretData map[string][]byte) clu
 	mcSecret.Spec.Template = clustersv1alpha1.SecretTemplate{Type: v1.SecretTypeOpaque, Data: secretData}
 	mcSecret.ObjectMeta.Namespace = namespace
 	mcSecret.ObjectMeta.Name = crName
-	mcSecret.APIVersion = clustersv1alpha1.GroupVersion.String()
+	mcSecret.APIVersion = clustersv1alpha1.SchemeGroupVersion.String()
 	mcSecret.Kind = "MultiClusterSecret"
 	mcSecret.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: clusterstest.UnitTestClusterName}}
 	return mcSecret

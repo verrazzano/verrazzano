@@ -64,6 +64,11 @@ func GetWebPageWithBasicAuth(url string, hostHeader string, username string, pas
 	return doGetWebPage(url, hostHeader, GetVerrazzanoHTTPClient(), username, password)
 }
 
+// GetWebPageWithBasicAuthForCluster gets a web page using basic auth, using a given kubeconfig
+func GetWebPageWithBasicAuthForCluster(url string, hostHeader string, username string, password string, kubeconfig string) (int, string) {
+	return doGetWebPage(url, hostHeader, GetVerrazzanoHTTPClientForCluster(kubeconfig), username, password)
+}
+
 // RetryGetWithBasicAuth retries getting a web page using basic auth
 func RetryGetWithBasicAuth(url string, hostHeader string, username string, password string, kubeconfigPath string) (int, string) {
 	client := GetVerrazzanoHTTPClientForCluster(kubeconfigPath)

@@ -103,6 +103,10 @@ if [ ${status_code:-1} -eq 0 ]; then
 
       if [ $INSTALL_CALICO == true ] ; then
         ${SCRIPT_DIR}/install_calico_oke.sh
+        if [ $? -ne 0 ]; then
+            echo "Install Calico failed!"
+            exit 1
+        fi
       fi
     done
 else
