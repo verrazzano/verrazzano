@@ -1,7 +1,8 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-image: ghcr.io/oracle/weblogic-kubernetes-operator:3.2.2
+# NOTE: This image now comes from the bill of materials file (verrazzano-bom.json)
+# image: ghcr.io/oracle/weblogic-kubernetes-operator:3.2.2
 
 podAnnotations:
     traffic.sidecar.istio.io/excludeOutboundPorts: "443"
