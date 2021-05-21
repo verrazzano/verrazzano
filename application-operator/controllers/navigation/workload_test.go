@@ -289,7 +289,7 @@ func TestAPIVersionAndKindToContainedGVK(t *testing.T) {
 	// GIVEN a known Verrazzano API version and workload kind
 	// WHEN a call is made to look up the contained GroupVersionKind
 	// THEN verify that the API version and kind are the expected values
-	gvk := APIVersionAndKindToContainedGVK(vzapi.GroupVersion.String(), "VerrazzanoCoherenceWorkload")
+	gvk := APIVersionAndKindToContainedGVK(vzapi.SchemeGroupVersion.String(), "VerrazzanoCoherenceWorkload")
 
 	assert.NotNil(gvk)
 	apiVersion, kind := gvk.ToAPIVersionAndKind()
@@ -299,7 +299,7 @@ func TestAPIVersionAndKindToContainedGVK(t *testing.T) {
 	// GIVEN an unknown Verrazzano API version and workload kind
 	// WHEN a call is made to look up the contained GroupVersionKind
 	// THEN verify that nil is returned
-	gvk = APIVersionAndKindToContainedGVK(vzapi.GroupVersion.String(), "BogusWorkload")
+	gvk = APIVersionAndKindToContainedGVK(vzapi.SchemeGroupVersion.String(), "BogusWorkload")
 
 	assert.Nil(gvk)
 }
@@ -312,7 +312,7 @@ func TestWorkloadToContainedGVK(t *testing.T) {
 	// WHEN a call is made to look up the contained GroupVersionKind
 	// THEN verify that the API version and kind are the expected values
 	u := &unstructured.Unstructured{}
-	u.SetAPIVersion(vzapi.GroupVersion.String())
+	u.SetAPIVersion(vzapi.SchemeGroupVersion.String())
 	u.SetKind("VerrazzanoCoherenceWorkload")
 
 	gvk := WorkloadToContainedGVK(u)
