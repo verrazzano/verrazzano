@@ -419,7 +419,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	existingFluentdImage := "unit-test-image:existing"
 	existingUpgradeVersion := "existing-upgrade-version"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: existingUpgradeVersion}
-	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdStdoutSidecarName, Image: existingFluentdImage}}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -512,7 +512,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 	componentName := "unit-test-component"
 	existingFluentdImage := "unit-test-image:existing"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdStdoutSidecarName, Image: existingFluentdImage}}
 
 	// simulate the "replicas" field changing to 3
 	replicasFromWorkload := int64(3)
