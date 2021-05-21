@@ -11,8 +11,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	k8sadmission "k8s.io/api/admission/v1beta1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -73,7 +71,7 @@ func validateVerrazzanoProject(c client.Client, vp *v1alpha1.VerrazzanoProject) 
 		return err
 	}
 
-	if err := vp.validateNamespaceCanBeUsed(); err != nil {
+	if err := validateNamespaceCanBeUsed(c, vp); err != nil {
 		return err
 	}
 
@@ -103,16 +101,10 @@ func validateNetworkPolicies(vp *v1alpha1.VerrazzanoProject) error {
 	return nil
 }
 
-func (vp *VerrazzanoProject) validateNamespaceCanBeUsed() error {
-
-	c, err := getControllerRuntimeClient()
-	if err != nil {
-		return fmt.Errorf("failed to get a runtime client: %s", err)
-	}
-
-	projectsList := &VerrazzanoProjectList{}
+func validateNamespaceCanBeUsed(c client.Client, vp *v1alpha1.VerrazzanoProject) error {
+	projectsList := &v1alpha1.VerrazzanoProjectList{}
 	listOptions := &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}
-	err = c.List(context.TODO(), projectsList, listOptions)
+	err := c.List(context.TODO(), projectsList, listOptions)
 	if err != nil {
 		return fmt.Errorf("failed to get existing Verrazzano projects: %s", err)
 	}
