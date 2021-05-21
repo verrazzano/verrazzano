@@ -63,7 +63,7 @@ version or implementation.
 For example you may use your own Prometheus and Grafana installs, or you may use a specialized/custom
 certificate provisioning tool, or use components that are centrally managed and running in a different cluster.
 
-This is a work in progress - building on top of the multi-cluster installer.
+This is a work in progress - building on top of the multicluster installer.
 
 As an extreme, the goal is to be possible to run Istio workloads in a cluster without installing any Istio component
 in that cluster. Currently the minimum we require is the security provider (node agent or citadel).
