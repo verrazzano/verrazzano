@@ -701,6 +701,11 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 		return r.NewTraitDefaultsForGenericWorkload()
 	}
 
+	// Match any version of APIVersion=apps and Kind=Deployment
+	if matched, _ := regexp.MatchString("^apps/.*\\.Deployment$", apiVerKind); matched {
+		return r.NewTraitDefaultsForGenericWorkload()
+	}
+
 	// Log the kind/workload is unsupported and return a nil trait.
 	gvk, _ := vznav.GetAPIVersionKindOfUnstructured(workload)
 	r.Log.V(1).Info(fmt.Sprintf("unsupported kind %s of workload %s", gvk, vznav.GetNamespacedNameFromUnstructured(workload)))

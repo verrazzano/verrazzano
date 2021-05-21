@@ -6,7 +6,6 @@ package navigation
 import (
 	"context"
 	"fmt"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -78,6 +77,11 @@ func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli c
 			return nil, err
 		}
 		for i, item := range resources.Items {
+			// The Deployment Case where Workload is the Child
+			if item.GetUID() == parentUID {
+				childResources = append(childResources, &resources.Items[i])
+				break
+			}
 			for _, owner := range item.GetOwnerReferences() {
 				if owner.UID == parentUID {
 					childResources = append(childResources, &resources.Items[i])
