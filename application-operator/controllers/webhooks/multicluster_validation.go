@@ -38,13 +38,15 @@ func validateTargetClustersExist(c client.Client, p clusters.Placement) error {
 		if targetClusterName != "local" {
 			key := client.ObjectKey{Name: targetClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
 			// Need to use unstructured here to avoid a dependency on the platform operator
-			vmc := &unstructured.Unstructured{}
+			vmc := unstructured.Unstructured{}
 			vmc.SetGroupVersionKind(schema.GroupVersionKind{
 				Group:   "clusters.verrazzano.io",
-				Version: "alpha1",
+				Version: "v1alpha1",
 				Kind:    "VerrazzanoManagedCluster",
 			})
-			err := c.Get(context.TODO(), key, vmc)
+			vmc.SetNamespace(constants.VerrazzanoMultiClusterNamespace)
+			vmc.SetName(targetClusterName)
+			err := c.Get(context.TODO(), key, &vmc)
 			if err != nil {
 				return fmt.Errorf("target managed cluster %s is not registered: %v", cluster.Name, err)
 			}
