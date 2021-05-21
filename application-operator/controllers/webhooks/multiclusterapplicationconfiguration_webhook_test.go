@@ -132,7 +132,7 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 	v := newMultiClusterApplicationConfigurationValidator()
 	s := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "verrazzano-cluster-registration",
+			Name:      constants.MCRegistrationSecret,
 			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}

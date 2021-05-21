@@ -499,7 +499,7 @@ func TestRemovePlacementVerrazzanoProject(t *testing.T) {
 	vpNamespace := constants.VerrazzanoMultiClusterNamespace
 	nsList := []clustersv1alpha1.NamespaceTemplate{testNamespace1, testNamespace2}
 	clusters := []clustersv1alpha1.Cluster{{Name: testClusterName}}
-	clustersUpdated := []clustersv1alpha1.Cluster{{Name: "local"}}
+	clustersUpdated := []clustersv1alpha1.Cluster{{Name: constants.DefaultClusterName}}
 
 	// Managed cluster mocks
 	localMocker := gomock.NewController(t)

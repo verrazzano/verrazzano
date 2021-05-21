@@ -472,7 +472,7 @@ func TestValidationSuccessForProjectCreationWithoutTargetClustersOnManagedCluste
 	v := newVerrazzanoProjectValidator()
 	s := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "verrazzano-cluster-registration",
+			Name:      constants.MCRegistrationSecret,
 			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}
@@ -523,7 +523,7 @@ func TestValidationSuccessForProjectCreationTargetingLocalCluster(t *testing.T) 
 		},
 		Spec: v1alpha12.VerrazzanoProjectSpec{
 			Placement: v1alpha12.Placement{
-				Clusters: []v1alpha12.Cluster{{Name: "local"}},
+				Clusters: []v1alpha12.Cluster{{Name: constants.DefaultClusterName}},
 			},
 			Template: v1alpha12.ProjectTemplate{
 				Namespaces: []v1alpha12.NamespaceTemplate{

@@ -20,7 +20,7 @@ import (
 // isLocalClusterAdminCluster determines if the local cluster is the admin cluster.
 func isLocalClusterAdminCluster(c client.Client) bool {
 	s := core.Secret{}
-	k := client.ObjectKey{Name: "verrazzano-cluster-registration", Namespace: constants.VerrazzanoSystemNamespace}
+	k := client.ObjectKey{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}
 	err := c.Get(context.TODO(), k, &s)
 	if err != nil && errors.IsNotFound(err) {
 		return true
@@ -35,7 +35,7 @@ func validateTargetClustersExist(c client.Client, p clusters.Placement) error {
 	for _, cluster := range p.Clusters {
 		targetClusterName := cluster.Name
 		// If the target cluster name is local then assume it is valid.
-		if targetClusterName != "local" {
+		if targetClusterName != constants.DefaultClusterName {
 			key := client.ObjectKey{Name: targetClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
 			// Need to use unstructured here to avoid a dependency on the platform operator
 			vmc := unstructured.Unstructured{}
