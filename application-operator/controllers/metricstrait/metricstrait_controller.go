@@ -45,7 +45,6 @@ const (
 	defaultWLSScrapePath      = "/wls-exporter/metrics"
 
 	// The finalizer name used by this controller
-	// The finalizer name used by this controller
 	finalizerName = "metricstrait.finalizers.verrazzano.io"
 
 	// Markers used during the processing of Prometheus scrape configurations
