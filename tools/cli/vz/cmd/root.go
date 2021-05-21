@@ -4,20 +4,36 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
-	"os"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/app"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/cluster"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/project"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "vz",
-	Short: "Verrazzano CLI",
-	Long:  "Verrazzano CLI",
+type RootOptions struct {
+	configFlags *genericclioptions.ConfigFlags
+	args []string
+	genericclioptions.IOStreams
 }
 
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+func NewRootOptions(streams genericclioptions.IOStreams) *RootOptions {
+	return &RootOptions{
+		configFlags: genericclioptions.NewConfigFlags(true),
+		IOStreams: streams,
 	}
+}
+
+func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRootOptions(streams)
+	cmd := &cobra.Command{
+		Use:   "vz",
+		Short: "Verrazzano CLI",
+		Long:  "Verrazzano CLI",
+	}
+	o.configFlags.AddFlags(cmd.Flags())
+	cmd.AddCommand(project.NewCmdProject(streams))
+	cmd.AddCommand(cluster.NewCmdCluster(streams))
+	cmd.AddCommand(app.NewCmdApp(streams))
+	return cmd
 }

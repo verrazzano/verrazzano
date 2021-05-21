@@ -1,14 +1,15 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package cmd
+package helidon
 
 import (
 	"bytes"
 	"errors"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	pkg2 "github.com/verrazzano/verrazzano/tools/cli/vz/pkg"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"text/template"
 )
 
@@ -89,27 +90,41 @@ type templateData struct {
 	Path        string
 }
 
-func init() {
-	helidonCreateCmd.Flags().StringVarP(&targetNamespace, "namespace", "n", "default", "Namespace to create Helidon application in")
-	helidonCreateCmd.Flags().Int32VarP(&listenPort, "listenport", "l", 8080, "Helidon application's listen port")
-	helidonCreateCmd.Flags().StringVarP(&image, "image", "i", "", "Docker image for the application")
-	helidonCreateCmd.Flags().StringVarP(&version, "version", "v", "v1.0.0", "Version of the application")
-	helidonCreateCmd.Flags().StringVarP(&description, "description", "d", "An Helidon application", "Description of the application")
-	helidonCreateCmd.Flags().StringVarP(&path, "path", "p", "/", "Path to the application endpoint")
-	helidonCmd.AddCommand(helidonCreateCmd)
+type HelidonCreateOptions struct {
+	configFlags *genericclioptions.ConfigFlags
+	args []string
+	genericclioptions.IOStreams
 }
 
-var helidonCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create an Helidon application",
-	Long:  "Create an Helidon application",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := createHelidonApplication(args); err != nil {
-			return err
-		}
-		return nil
-	},
+func NewHelidonCreateOptions(streams genericclioptions.IOStreams) *HelidonCreateOptions {
+	return &HelidonCreateOptions{
+		configFlags: genericclioptions.NewConfigFlags(true),
+		IOStreams: streams,
+	}
+}
+
+func NewCmdAppHelidonCreate(streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewHelidonCreateOptions(streams)
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create an Helidon application",
+		Long:  "Create an Helidon application",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := createHelidonApplication(args); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	o.configFlags.AddFlags(cmd.Flags())
+	cmd.Flags().StringVarP(&targetNamespace, "targetnamespace", "m", "default", "Namespace to create Helidon application in")
+	cmd.Flags().Int32VarP(&listenPort, "listenport", "l", 8080, "Helidon application's listen port")
+	cmd.Flags().StringVarP(&image, "image", "i", "", "Docker image for the application")
+	cmd.Flags().StringVarP(&version, "version", "v", "v1.0.0", "Version of the application")
+	cmd.Flags().StringVarP(&description, "description", "d", "An Helidon application", "Description of the application")
+	cmd.Flags().StringVarP(&path, "path", "p", "/", "Path to the application endpoint")
+	return cmd
 }
 
 func createHelidonApplication(args []string) error {
@@ -147,7 +162,7 @@ func createHelidonApplication(args []string) error {
 	}
 
 	// apply the resulting data (yaml) on the server
-	err = pkg2.ServerSideApply(pkg.GetKubeConfig(), b.String())
+	err = helpers.ServerSideApply(pkg.GetKubeConfig(), b.String())
 	if err != nil {
 		return err
 	}
@@ -164,6 +179,6 @@ func createHelidonApplication(args []string) error {
 		return err
 	}
 
-	err = pkg2.ServerSideApply(pkg.GetKubeConfig(), b2.String())
+	err = helpers.ServerSideApply(pkg.GetKubeConfig(), b2.String())
 	return err
 }

@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package cmd
+package project
 
 import (
 	"context"
@@ -11,28 +11,43 @@ import (
 	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 var projectNamespaces []string
 var projectPlacement []string
 
-func init() {
-	projectAddCmd.Flags().StringSliceVarP(&projectNamespaces, "namespaces", "n", []string{}, "List of namespaces to include in the project")
-	projectAddCmd.Flags().StringSliceVarP(&projectPlacement, "placement", "p", []string{"local"}, "List of clusters this project will be placed in")
-	projectCmd.AddCommand(projectAddCmd)
+type ProjectAddOptions struct {
+	configFlags *genericclioptions.ConfigFlags
+	args []string
+	genericclioptions.IOStreams
 }
 
-var projectAddCmd = &cobra.Command{
-	Use:   "add name",
-	Short: "Add a project",
-	Long:  "Add a project",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := addProject(args); err != nil {
-			return err
-		}
-		return nil
-	},
+func NewProjectAddOptions(streams genericclioptions.IOStreams) *ProjectAddOptions {
+	return &ProjectAddOptions{
+		configFlags: genericclioptions.NewConfigFlags(true),
+		IOStreams: streams,
+	}
+}
+
+func NewCmdProjectAdd(streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewProjectAddOptions(streams)
+	cmd := &cobra.Command{
+		Use:   "add name",
+		Short: "Add a project",
+		Long:  "Add a project",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := addProject(args); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	o.configFlags.AddFlags(cmd.Flags())
+	cmd.Flags().StringSliceVarP(&projectNamespaces, "namespaces", "m", []string{}, "List of namespaces to include in the project")
+	cmd.Flags().StringSliceVarP(&projectPlacement, "placement", "p", []string{"local"}, "List of clusters this project will be placed in")
+	return cmd
 }
 
 func addProject(args []string) error {

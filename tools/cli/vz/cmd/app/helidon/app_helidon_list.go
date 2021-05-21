@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package cmd
+package helidon
 
 import (
 	"context"
@@ -12,27 +12,42 @@ import (
 	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/clients/oam/clientset/versioned/typed/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	pkg2 "github.com/verrazzano/verrazzano/tools/cli/vz/pkg"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 var project string
 
-func init() {
-	helidonListCmd.Flags().StringVarP(&project, "project", "p", "default", "Name of project")
-	helidonCmd.AddCommand(helidonListCmd)
+type HelidonListOptions struct {
+	configFlags *genericclioptions.ConfigFlags
+	args []string
+	genericclioptions.IOStreams
 }
 
-var helidonListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List Helidon applications",
-	Long:  "List Helidon applications",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := listHelidonApplications(args); err != nil {
-			return err
-		}
-		return nil
-	},
+func NewHelidonListOptions(streams genericclioptions.IOStreams) *HelidonListOptions {
+	return &HelidonListOptions{
+		configFlags: genericclioptions.NewConfigFlags(true),
+		IOStreams: streams,
+	}
+}
+
+func NewCmdAppHelidonList(streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewHelidonListOptions(streams)
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List Helidon applications",
+		Long:  "List Helidon applications",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := listHelidonApplications(args); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	o.configFlags.AddFlags(cmd.Flags())
+	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name")
+	return cmd
 }
 
 func listHelidonApplications(args []string) error {
@@ -80,7 +95,7 @@ func listHelidonApplications(args []string) error {
 
 	// check if the list is empty
 	if len(apps) == 0 {
-		fmt.Println(pkg2.NothingFound)
+		fmt.Println(helpers.NothingFound)
 		return nil
 	}
 
@@ -91,13 +106,13 @@ func listHelidonApplications(args []string) error {
 		rowData := []string{
 			app.Namespace,
 			app.Name,
-			pkg2.Age(app.CreationTimestamp),
+			helpers.Age(app.CreationTimestamp),
 			pkg.GetHostnameFromGateway(app.Namespace, app.Name+"-appconf"),
 		}
 		data = append(data, rowData)
 	}
 
 	// print out the data
-	pkg2.PrintTable(headings, data)
+	helpers.PrintTable(headings, data)
 	return nil
 }

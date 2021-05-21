@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package cmd
+package project
 
 import (
 	"context"
@@ -9,24 +9,39 @@ import (
 	"github.com/spf13/cobra"
 	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	pkg2 "github.com/verrazzano/verrazzano/tools/cli/vz/pkg"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
-func init() {
-	projectCmd.AddCommand(projectListCmd)
+type ProjectListOptions struct {
+	configFlags *genericclioptions.ConfigFlags
+	args []string
+	genericclioptions.IOStreams
 }
 
-var projectListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List projects",
-	Long:  "List projects",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := listProjects(args); err != nil {
-			return err
-		}
-		return nil
-	},
+func NewProjectListOptions(streams genericclioptions.IOStreams) *ProjectListOptions {
+	return &ProjectListOptions{
+		configFlags: genericclioptions.NewConfigFlags(true),
+		IOStreams: streams,
+	}
+}
+
+func NewCmdProjectList(streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewProjectListOptions(streams)
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List projects",
+		Long:  "List projects",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := listProjects(args); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	o.configFlags.AddFlags(cmd.Flags())
+	return cmd
 }
 
 func listProjects(args []string) error {
@@ -44,7 +59,7 @@ func listProjects(args []string) error {
 
 	// check if the list is empty
 	if len(projects.Items) == 0 {
-		fmt.Println(pkg2.NothingFound)
+		fmt.Println(helpers.NothingFound)
 		return nil
 	}
 
@@ -54,15 +69,15 @@ func listProjects(args []string) error {
 	for _, project := range projects.Items {
 		rowData := []string{
 			project.Name,
-			pkg2.Age(project.CreationTimestamp),
-			pkg2.FormatStringSlice(func() []string {
+			helpers.Age(project.CreationTimestamp),
+			helpers.FormatStringSlice(func() []string {
 				result := []string{}
 				for _, x := range project.Spec.Placement.Clusters {
 					result = append(result, x.Name)
 				}
 				return result
 			}()),
-			pkg2.FormatStringSlice(func() []string {
+			helpers.FormatStringSlice(func() []string {
 				result := []string{}
 				for _, x := range project.Spec.Template.Namespaces {
 					result = append(result, x.Metadata.Name)
@@ -74,6 +89,6 @@ func listProjects(args []string) error {
 	}
 
 	// print out the data
-	pkg2.PrintTable(headings, data)
+	helpers.PrintTable(headings, data)
 	return nil
 }
