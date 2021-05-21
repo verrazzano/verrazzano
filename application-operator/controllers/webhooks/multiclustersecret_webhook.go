@@ -53,7 +53,7 @@ func validateMultiClusterSecret(c client.Client, mcs *v1alpha1.MultiClusterSecre
 	if len(mcs.Spec.Placement.Clusters) == 0 {
 		return fmt.Errorf("One or more target clusters must be provided")
 	}
-	if isLocalClusterAdminCluster(c) {
+	if !isLocalClusterManagedCluster(c) {
 		if err := validateTargetClustersExist(c, mcs.Spec.Placement); err != nil {
 			return err
 		}

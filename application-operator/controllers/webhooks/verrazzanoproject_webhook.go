@@ -75,7 +75,7 @@ func validateVerrazzanoProject(c client.Client, vp *v1alpha1.VerrazzanoProject) 
 		return err
 	}
 
-	if isLocalClusterAdminCluster(c) {
+	if !isLocalClusterManagedCluster(c) {
 		if err := validateTargetClustersExist(c, vp.Spec.Placement); err != nil {
 			return err
 		}

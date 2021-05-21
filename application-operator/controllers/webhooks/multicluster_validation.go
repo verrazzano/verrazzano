@@ -12,17 +12,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	core "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// isLocalClusterAdminCluster determines if the local cluster is the admin cluster.
-func isLocalClusterAdminCluster(c client.Client) bool {
+// isLocalClusterManagedCluster determines if the local cluster is a registered managed cluster.
+func isLocalClusterManagedCluster(c client.Client) bool {
 	s := core.Secret{}
 	k := client.ObjectKey{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}
 	err := c.Get(context.TODO(), k, &s)
-	if err != nil && errors.IsNotFound(err) {
+	if err == nil {
 		return true
 	}
 	return false

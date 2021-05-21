@@ -53,7 +53,7 @@ func validateMultiClusterConfigmap(c client.Client, mccm *v1alpha1.MultiClusterC
 	if len(mccm.Spec.Placement.Clusters) == 0 {
 		return fmt.Errorf("One or more target clusters must be provided")
 	}
-	if isLocalClusterAdminCluster(c) {
+	if !isLocalClusterManagedCluster(c) {
 		if err := validateTargetClustersExist(c, mccm.Spec.Placement); err != nil {
 			return err
 		}
