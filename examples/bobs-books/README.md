@@ -93,7 +93,7 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
 
       * Robert's Books UI at `https://bobs-books.bobs-books.11.22.33.44.nip.io/`.
 
-      * Bobby's Books UI at `https://bobs-books.bobs-books.11.22.33.44.nip.io/bobbys-front-end`.
+      * Bobby's Books UI at `https://bobs-books.bobs-books.11.22.33.44.nip.io/bobbys-front-end/`.
 
       * Bob's order manager  UI at `https://bobs-books.bobs-books.11.22.33.44.nip.io/bobs-bookstore-order-manager/orders`.
 
@@ -105,7 +105,7 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
 
       * Robert's Books UI at `https://bobs-books.example.com/`.
 
-      * Bobby's Books UI at `https://bobs-books.example.com/bobbys-front-end`.
+      * Bobby's Books UI at `https://bobs-books.example.com/bobbys-front-end/`.
 
       * Bob's order manager  UI at `https://bobs-books.example.com/bobs-bookstore-order-manager/orders`.
 
@@ -114,7 +114,7 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
 
       * Robert's Books UI at `https://<your-roberts-books-host.your.domain>/`.
 
-      * Bobby's Books UI at `https://<your-bobbys-books-host.your.domain>/bobbys-front-end`.
+      * Bobby's Books UI at `https://<your-bobbys-books-host.your.domain>/bobbys-front-end/`.
 
       * Bob's order manager UI at `https://<your-bobs-orders-host.your.domain>/`.
 
