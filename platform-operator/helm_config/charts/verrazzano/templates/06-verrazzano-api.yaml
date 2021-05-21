@@ -50,6 +50,15 @@ data:
       return content
     end
 
+    local h, err = ngx.req.get_headers()["origin"]
+    if err then
+      logJsonMessage(ngx.ERR, "Error while reading origin header from request.", err)
+    end
+
+    if h then
+      ngx.header["Access-Control-Allow-Origin"] = h
+    end
+
     ngx.header["Access-Control-Allow-Headers"] = "authorization"
 
     if ngx.req.get_method() == "OPTIONS" then
