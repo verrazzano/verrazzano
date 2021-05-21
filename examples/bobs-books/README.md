@@ -39,19 +39,22 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
 
 1. Create and label secrets for the WebLogic domains:
     ```
-    $ kubectl create secret generic bobbys-front-end-weblogic-credentials --from-literal=password=<password> --from-literal=username=<username> -n bobs-books
+    # Replace the values of the WLS_USERNAME and WLS_PASSWORD environment variables as appropriate.
+    $ export WLS_USERNAME=<username>
+    $ export WLS_PASSWORD=<password>
+    $ kubectl create secret generic bobbys-front-end-weblogic-credentials --from-literal=password=$WLS_PASSWORD --from-literal=username=$WLS_USERNAME -n bobs-books
 
-    $ kubectl create secret generic bobbys-front-end-runtime-encrypt-secret --from-literal=password=<password> -n bobs-books
+    $ kubectl create secret generic bobbys-front-end-runtime-encrypt-secret --from-literal=password=$WLS_PASSWORD -n bobs-books
     $ kubectl label secret bobbys-front-end-runtime-encrypt-secret weblogic.domainUID=bobbys-front-end -n bobs-books
 
-    $ kubectl create secret generic bobs-bookstore-weblogic-credentials --from-literal=password=<password> --from-literal=username=<username> -n bobs-books
+    $ kubectl create secret generic bobs-bookstore-weblogic-credentials --from-literal=password=$WLS_PASSWORD --from-literal=username=$WLS_USERNAME -n bobs-books
 
-    $ kubectl create secret generic bobs-bookstore-runtime-encrypt-secret --from-literal=password=<password> -n bobs-books
+    $ kubectl create secret generic bobs-bookstore-runtime-encrypt-secret --from-literal=password=$WLS_PASSWORD -n bobs-books
     $ kubectl label secret bobs-bookstore-runtime-encrypt-secret weblogic.domainUID=bobs-bookstore -n bobs-books
 
     $ kubectl create secret generic mysql-credentials \
-        --from-literal=username=<username> \
-        --from-literal=password=<password> \
+        --from-literal=username=$WLS_USERNAME \
+        --from-literal=password=$WLS_PASSWORD \
         --from-literal=url=jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books \
         -n bobs-books
     ```
