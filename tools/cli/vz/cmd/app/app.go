@@ -11,14 +11,14 @@ import (
 
 type AppOptions struct {
 	configFlags *genericclioptions.ConfigFlags
-	args []string
+	args        []string
 	genericclioptions.IOStreams
 }
 
 func NewAppOptions(streams genericclioptions.IOStreams) *AppOptions {
 	return &AppOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams: streams,
+		IOStreams:   streams,
 	}
 }
 

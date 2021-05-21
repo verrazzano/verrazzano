@@ -10,14 +10,14 @@ import (
 
 type AppHelidonOptions struct {
 	configFlags *genericclioptions.ConfigFlags
-	args []string
+	args        []string
 	genericclioptions.IOStreams
 }
 
 func NewAppHelidonOptions(streams genericclioptions.IOStreams) *AppHelidonOptions {
 	return &AppHelidonOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams: streams,
+		IOStreams:   streams,
 	}
 }
 

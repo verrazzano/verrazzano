@@ -10,14 +10,14 @@ import (
 
 type ProjectOptions struct {
 	configFlags *genericclioptions.ConfigFlags
-	args []string
+	args        []string
 	genericclioptions.IOStreams
 }
 
 func NewProjectOptions(streams genericclioptions.IOStreams) *ProjectOptions {
 	return &ProjectOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams: streams,
+		IOStreams:   streams,
 	}
 }
 

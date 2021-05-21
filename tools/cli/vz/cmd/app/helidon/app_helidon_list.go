@@ -21,14 +21,14 @@ var project string
 
 type HelidonListOptions struct {
 	configFlags *genericclioptions.ConfigFlags
-	args []string
+	args        []string
 	genericclioptions.IOStreams
 }
 
 func NewHelidonListOptions(streams genericclioptions.IOStreams) *HelidonListOptions {
 	return &HelidonListOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams: streams,
+		IOStreams:   streams,
 	}
 }
 

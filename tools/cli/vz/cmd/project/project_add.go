@@ -19,14 +19,14 @@ var projectPlacement []string
 
 type ProjectAddOptions struct {
 	configFlags *genericclioptions.ConfigFlags
-	args []string
+	args        []string
 	genericclioptions.IOStreams
 }
 
 func NewProjectAddOptions(streams genericclioptions.IOStreams) *ProjectAddOptions {
 	return &ProjectAddOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams: streams,
+		IOStreams:   streams,
 	}
 }
 

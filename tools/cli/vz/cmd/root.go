@@ -13,14 +13,14 @@ import (
 
 type RootOptions struct {
 	configFlags *genericclioptions.ConfigFlags
-	args []string
+	args        []string
 	genericclioptions.IOStreams
 }
 
 func NewRootOptions(streams genericclioptions.IOStreams) *RootOptions {
 	return &RootOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams: streams,
+		IOStreams:   streams,
 	}
 }
 

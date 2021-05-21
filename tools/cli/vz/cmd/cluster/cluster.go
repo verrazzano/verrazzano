@@ -10,14 +10,14 @@ import (
 
 type ClusterOptions struct {
 	configFlags *genericclioptions.ConfigFlags
-	args []string
+	args        []string
 	genericclioptions.IOStreams
 }
 
 func NewClusterOptions(streams genericclioptions.IOStreams) *ClusterOptions {
 	return &ClusterOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams: streams,
+		IOStreams:   streams,
 	}
 }
 

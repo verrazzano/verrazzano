@@ -92,14 +92,14 @@ type templateData struct {
 
 type HelidonCreateOptions struct {
 	configFlags *genericclioptions.ConfigFlags
-	args []string
+	args        []string
 	genericclioptions.IOStreams
 }
 
 func NewHelidonCreateOptions(streams genericclioptions.IOStreams) *HelidonCreateOptions {
 	return &HelidonCreateOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams: streams,
+		IOStreams:   streams,
 	}
 }
 

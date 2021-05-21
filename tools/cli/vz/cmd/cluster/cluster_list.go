@@ -18,14 +18,14 @@ const vmcNamespace = "verrazzano-mc"
 
 type ClusterListOptions struct {
 	configFlags *genericclioptions.ConfigFlags
-	args []string
+	args        []string
 	genericclioptions.IOStreams
 }
 
 func NewClusterListOptions(streams genericclioptions.IOStreams) *ClusterListOptions {
 	return &ClusterListOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams: streams,
+		IOStreams:   streams,
 	}
 }
 

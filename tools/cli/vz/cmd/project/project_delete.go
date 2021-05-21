@@ -15,14 +15,14 @@ import (
 
 type ProjectDeleteOptions struct {
 	configFlags *genericclioptions.ConfigFlags
-	args []string
+	args        []string
 	genericclioptions.IOStreams
 }
 
 func NewProjectDeleteOptions(streams genericclioptions.IOStreams) *ProjectDeleteOptions {
 	return &ProjectDeleteOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams: streams,
+		IOStreams:   streams,
 	}
 }
 

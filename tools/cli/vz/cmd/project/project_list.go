@@ -16,14 +16,14 @@ import (
 
 type ProjectListOptions struct {
 	configFlags *genericclioptions.ConfigFlags
-	args []string
+	args        []string
 	genericclioptions.IOStreams
 }
 
 func NewProjectListOptions(streams genericclioptions.IOStreams) *ProjectListOptions {
 	return &ProjectListOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams: streams,
+		IOStreams:   streams,
 	}
 }
 
