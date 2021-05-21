@@ -7,13 +7,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/remotecommand"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/remotecommand"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
@@ -290,6 +292,19 @@ func GetVerrazzanoManagedClusterClientset() *vmcClient.Clientset {
 	client, err := vmcClient.NewForConfig(GetKubeConfig())
 	if err != nil {
 		ginkgo.Fail("Could not get Verrazzano Platform Operator clientset")
+	}
+	return client
+}
+
+// GetDynamicClient returns a dynamic client needed to access Unstructured data
+func GetDynamicClient() dynamic.Interface {
+	config := GetKubeConfig()
+	if config == nil {
+		ginkgo.Fail("Could not get an KubeConfig")
+	}
+	client, err := dynamic.NewForConfig(config)
+	if err != nil {
+		ginkgo.Fail("Could not get an Dynamic client")
 	}
 	return client
 }
