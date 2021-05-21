@@ -40,7 +40,11 @@ var _ = ginkgo.AfterSuite(func() {
 })
 
 func deployMetricsApplication() {
+<<<<<<< HEAD
 	pkg.Log(pkg.Info, "Deploy DeployMetrics Application")
+=======
+	pkg.Log(pkg.Info, "Deploy Spring Boot Application")
+>>>>>>> Add Acceptance Tests
 
 	pkg.Log(pkg.Info, "Create namespace")
 	nsLabels := map[string]string{
@@ -61,8 +65,12 @@ func deployMetricsApplication() {
 }
 
 func undeployMetricsApplication() {
+<<<<<<< HEAD
 	pkg.Log(pkg.Info, "Undeploy DeployMetrics Application")
 
+=======
+	pkg.Log(pkg.Info, "Undeploy Spring Boot Application")
+>>>>>>> Add Acceptance Tests
 	pkg.Log(pkg.Info, "Delete application")
 	if err := pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the application: %v", err))
@@ -71,6 +79,7 @@ func undeployMetricsApplication() {
 	if err := pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
 	}
+<<<<<<< HEAD
 
 	gomega.Eventually(func() bool {
 		return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")
@@ -80,6 +89,8 @@ func undeployMetricsApplication() {
 		return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "deploymetrics-deployment")
 	}, longWaitTimeout, longPollingInterval).Should(gomega.BeFalse(), "Prometheus scraped metrics for App Config should have been deleted.")
 
+=======
+>>>>>>> Add Acceptance Tests
 	pkg.Log(pkg.Info, "Delete namespace")
 	if err := pkg.DeleteNamespace(testNamespace); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the namespace: %v", err))
@@ -91,8 +102,13 @@ func undeployMetricsApplication() {
 }
 
 var _ = ginkgo.Describe("Verify DeployMetrics Application", func() {
+<<<<<<< HEAD
 	// Verify deploymetrics-workload pod is running
 	// GIVEN deploymetrics app is deployed
+=======
+	// Verify springboot-workload pod is running
+	// GIVEN springboot app is deployed
+>>>>>>> Add Acceptance Tests
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
 	ginkgo.Context("Deployment.", func() {
