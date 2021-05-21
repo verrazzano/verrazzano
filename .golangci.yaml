@@ -10,3 +10,7 @@ linters:
     - gosimple
   disable-all: true
   fast: true
+
+issues:
+  exclude:
+    - stutter

@@ -4,9 +4,8 @@ The Hello World Helidon example is a Helidon-based service that returns a "Hello
 
 ## Prerequisites
 
-1. Create a [multicluster](../README.md/#multicluster-installation) Verrazzano installation.
-
-2. [Register the managed cluster](../README.md/#register-the-managed-cluster).
+Create a multicluster Verrazzano installation with one admin and one managed cluster, and register the managed cluster.
+Instructions for how to do this are [here](https://verrazzano.io/docs/setup/multicluster/multicluster/).
 
 The Hello World Helidon application deployment artifacts are contained in the Verrazzano project located at
 `<VERRAZZANO_HOME>/examples/multicluster/hello-helidon`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
@@ -52,32 +51,32 @@ Follow the [instructions](../../hello-helidon/README.md/#troubleshooting) for tr
    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterComponent -n hello-helidon
    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterApplicationConfiguration -n hello-helidon
    ```
-## Changing the placement of the application to a different cluster
+## Locating the application on a different cluster
 
-By default, the application will be placed in the managed cluster called `managed1`. You can change the application
-placement to be in a different cluster, which can be the admin cluster or a different managed cluster. In this example,
-we will change the placement of the application to be in the admin cluster, by patching the multicluster resources
-as follows.
+By default, the application is located on the managed cluster called `managed1`. You can change the application's location to be on a different cluster, which can be the admin cluster or a different managed cluster. In this example, you change the placement of the application to the admin cluster, by patching the multicluster resources.
 
-1. Specify the change placement patch file for changing the placement to the admin cluster. We will use this environment
-   variable in subsequent steps:
+1. To change the application's location to the admin cluster, specify the change placement patch file.
+
    ```shell
    # To change the placement to the admin cluster
    $ export CHANGE_PLACEMENT_PATCH_FILE="patch-change-placement-to-admin.yaml"
    ```
+   This environment variable is used in subsequent steps.
 
-1. Patch the `hello-helidon` multicluster resources to change their placement.
+1. To change their placement, patch the `hello-helidon` multicluster resources.
    ```shell
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl patch mcappconf hello-helidon-appconf -n hello-helidon --type merge --patch "$(cat $CHANGE_PLACEMENT_PATCH_FILE)"
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl patch mccomp hello-helidon-component -n hello-helidon --type merge --patch "$(cat $CHANGE_PLACEMENT_PATCH_FILE)"
    ```
-1. View the multicluster resources to see that the placement has changed to be in a different cluster. The cluster
-   name, `local`, indicates placement in the admin cluster.
+1. To verify that the placement has changed, view the multicluster resources.
    ```shell
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get mccomp hello-helidon-component -n hello-helidon -o jsonpath='{.spec.placement}';echo
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get mcappconf hello-helidon-appconf -n hello-helidon -o jsonpath='{.spec.placement}';echo
    ```
-1. Patch the VerrazzanoProject to change its placement.
+   The cluster
+      name, `local`, indicates placement in the admin cluster.
+
+1. To change its placement, patch the VerrazzanoProject.
    ```shell
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl patch vp hello-helidon -n verrazzano-mc --type merge --patch "$(cat $CHANGE_PLACEMENT_PATCH_FILE)"
    ```
@@ -86,16 +85,14 @@ as follows.
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl wait --for=condition=Ready pods --all -n hello-helidon --timeout=300s
    ```
    **Note:** If you are returning the application to the managed cluster, then instead, wait for the application to be
-   ready again on the managed cluster.
+   ready on the managed cluster.
    ```shell
    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl wait --for=condition=Ready pods --all -n hello-helidon --timeout=300s
    ```
 
-Now, you can test the example application running in the cluster where you have now placed it.
+Now, you can test the example application running in its new location.
 
-To return the application to the managed cluster named `managed1`, set the value of the CHANGE_PLACEMENT_PATCH_FILE
-environment variable to the patch file provided for that purpose, then repeat the numbered steps above to complete
-the process.
+To return the application to the managed cluster named `managed1`, set the value of the CHANGE_PLACEMENT_PATCH_FILE environment variable to the patch file provided for that purpose, then repeat the previous numbered steps.
 
 ```shell
    # To change the placement back to the managed cluster named managed1
@@ -104,13 +101,13 @@ the process.
 
 ## Undeploy the Hello World Helidon application
 
-To undeploy the application, irrespective of whether it is placed in the managed cluster or the admin cluster,
+Regardless of its location, to undeploy the application,
 delete the multicluster resources and the project from the admin cluster:
 
 ```shell
 # Delete the multicluster application configuration
 $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete -f mc-hello-helidon-app.yaml
-# Delete the multicluster components for the application 
+# Delete the multicluster components for the application
 $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete -f mc-hello-helidon-comp.yaml
 # Delete the project
 $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete -f verrazzano-project.yaml

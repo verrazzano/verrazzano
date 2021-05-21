@@ -16,7 +16,7 @@ type MetricsTraitDefaulter struct {
 }
 
 var (
-	apiVersion          = v1alpha1.GroupVersion.String()
+	apiVersion          = v1alpha1.SchemeGroupVersion.String()
 	defaultMetricsTrait = []byte(fmt.Sprintf(traitTemp, apiVersion, v1alpha1.MetricsTraitKind))
 )
 

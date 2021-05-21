@@ -99,7 +99,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			weblogicJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"domainUID":"unit-test-domain"}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(weblogicJSON)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
 			return nil
@@ -193,7 +193,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			weblogicJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"domainUID":"unit-test-domain"}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(weblogicJSON)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
 			return nil
@@ -291,7 +291,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			weblogicJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"domainUID":"unit-test-domain"}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(weblogicJSON)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
 			// set the previous upgrade value to be different than what is specified in the associated label
@@ -392,7 +392,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		constants.LabelUpgradeVersion: previousUpgradeVersion, constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 
 	// existing domain containers
-	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdStdoutSidecarName, Image: existingFluentdImage}}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -414,7 +414,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			weblogicJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"domainUID":"unit-test-domain"}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(weblogicJSON)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
 			// set the previous upgrade value to match what is specified in the associated label
@@ -495,7 +495,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			weblogicJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"domainUID":"unit-test-domain"}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(weblogicJSON)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
 			return nil
@@ -621,7 +621,7 @@ func TestCopyLabelsFailure(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
 			json := `{"metadata":{"name":"unit-test-cluster"},"spec":27}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			return nil
 		})

@@ -146,19 +146,16 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		})
 	})
 
-	// NOTE: This test is disabled until this bug is fixed: VZ-2448
-
-	// ginkgo.Context("Metrics", func() {
-
 	// GIVEN an admin cluster and at least one managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
-	// 	ginkgo.It("Verify Prometheus metrics exist on admin cluster", func() {
-	// 		gomega.Eventually(func() bool {
-	//			return appMetricsExists(adminKubeconfig)
-	// 		}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
-	// 	})
-	// })
+	ginkgo.Context("Metrics", func() {
+		ginkgo.It("Verify Prometheus metrics exist on admin cluster", func() {
+			gomega.Eventually(func() bool {
+				return appMetricsExists(adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+		})
+	})
 
 	ginkgo.Context("Change Placement of app to Admin Cluster", func() {
 		ginkgo.It("Apply patch to change placement to admin cluster", func() {

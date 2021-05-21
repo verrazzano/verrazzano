@@ -170,7 +170,7 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			workload.Spec.DeploymentTemplate = *deploymentTemplate
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoHelidonWorkload"
 			workload.Namespace = namespace
 			return nil
@@ -248,7 +248,7 @@ func TestReconcileCreateHelidon(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			workload.Spec.DeploymentTemplate = *deploymentTemplate
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoHelidonWorkload"
 			workload.Namespace = namespace
 			return nil
@@ -369,7 +369,7 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			workload.Spec.DeploymentTemplate = *deploymentTemplate
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoHelidonWorkload"
 			workload.Namespace = namespace
 			return nil
@@ -811,7 +811,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	logging.DefaultFluentdImage = fluentdImage
 	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
-	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdStdoutSidecarName, Image: existingFluentdImage}}
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          appConfigName,

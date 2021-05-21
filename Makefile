@@ -85,3 +85,8 @@ copyright-check-local: copyright-test
 copyright-check-branch: copyright-check
 	go run tools/copyright/copyright.go --verbose --enforce-current $(shell git diff --name-only ${PARENT_BRANCH})
 
+#
+# CLI
+#
+cli:
+	(cd tools/cli/vz; go install)

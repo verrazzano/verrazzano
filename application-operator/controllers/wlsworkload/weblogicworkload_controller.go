@@ -225,7 +225,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 	var existingFluentdImage string
 	if !upgradeApp {
 		for _, container := range existingDomain.Spec.ServerPod.Containers {
-			if container.Name == logging.FluentdContainerName {
+			if container.Name == logging.FluentdStdoutSidecarName {
 				existingFluentdImage = container.Image
 				break
 			}

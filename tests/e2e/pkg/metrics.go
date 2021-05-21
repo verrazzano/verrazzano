@@ -11,10 +11,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// QueryMetric queries a metric from the specified Prometheus host
-func QueryMetric(metricsName string, prometheusHost string) (string, error) {
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", prometheusHost, metricsName)
-	status, content := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", GetVerrazzanoPassword())
+// QueryMetric queries a metric from the Prometheus host, derived from the kubeconfig
+func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(kubeconfigPath), metricsName)
+	status, content := GetWebPageWithBasicAuthForCluster(metricsURL, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	if status != 200 {
 		Log(Error, fmt.Sprintf("Error retrieving metric %s, status %d", metricsName, status))
 		// do not call ginkgo.Fail() here - this method is called in Eventually funcs, so if you call Fail()

@@ -4,12 +4,18 @@
 package todo
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -75,7 +81,8 @@ func deployToDoListExample() {
 	}
 	pkg.Log(pkg.Info, "Create application resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")},
+		return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")
+	},
 		shortWaitTimeout, shortPollingInterval, "Failed to create application resource").Should(gomega.BeNil())
 }
 
@@ -127,6 +134,23 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				return s != nil && err == nil
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
+		// GIVEN the ToDoList app is deployed
+		// WHEN the servers in the WebLogic domain is ready
+		// THEN the domain.servers.status.health.overallHeath fields should be ok
+		ginkgo.It("Verify 'todo-domain' overall health is ok", func() {
+			gomega.Eventually(func() bool {
+				domain, err := weblogic.GetDomain("todo-list", "todo-domain")
+				if err != nil {
+					return false
+				}
+				healths, err := weblogic.GetHealthOfServers(domain)
+				if err != nil || healths[0] != weblogic.Healthy {
+					return false
+				}
+				return true
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+		})
+
 	})
 
 	ginkgo.Context("Ingress.", func() {
@@ -190,21 +214,24 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		})
 	})
 
-	// The ToDoList example application currently does not include a metrics exporter.
-	// This test has been disabled until that issue is resolved.
-	//ginkgo.Context("Metrics.", func() {
-	//	// Verify Prometheus scraped metrics
-	//	// GIVEN a deployed WebLogic application
-	//	// WHEN the application configuration uses a default metrics trait
-	//	// THEN confirm that metrics are being collected
-	//	ginkgo.It("Retrieve Prometheus scraped metrics", func() {
-	//		pkg.Concurrently(
-	//			func() {
-	//				gomega.Eventually(appMetricsExists, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
-	//			},
-	//		)
-	//	})
-	//})
+	ginkgo.Context("Metrics.", func() {
+		// Verify Prometheus scraped metrics
+		// GIVEN a deployed WebLogic application
+		// WHEN the application configuration uses a default metrics trait
+		// THEN confirm that metrics are being collected
+		ginkgo.It("Retrieve Prometheus scraped metrics", func() {
+			// patch pod "tododomain-adminserver" with prometheus annotations
+			// this step is not needed once WLS added prometheus annotations in admin server
+			gomega.Eventually(func() bool {
+				return pkg.PodsRunning("todo-list", []string{"tododomain-adminserver"})
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find running pod tododomain-adminserver")
+			addPrometheusAnnotations()
+
+			gomega.Eventually(func() bool {
+				return pkg.MetricsExist("wls_scrape_mbeans_count_total", "app_oam_dev_name", "todo-appconf")
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find metrics for todo-list")
+		})
+	})
 
 	ginkgo.Context("Logging.", func() {
 		indexName := "verrazzano-namespace-todo-list"
@@ -235,14 +262,67 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				})
 			},
 			func() {
-				ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+				ginkgo.It("Verify recent pattern-matched AdminServer log record exists", func() {
 					gomega.Eventually(func() bool {
-						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.weblogic_domainUID":  "tododomain",
-							"kubernetes.labels.app_oam_dev\\/name":  "todo-appconf",
-							"kubernetes.labels.weblogic_serverName": "AdminServer",
-							"kubernetes.container_name":             "fluentd",
-						})
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"}, //matches BEA-*
+								{Key: "serverName", Value: "tododomain-adminserver"},
+								{Key: "serverName2", Value: "AdminServer"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				ginkgo.It("Verify recent pattern-matched WebLogic Server log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"},          //matches BEA-*
+								{Key: "message", Value: "WebLogic Server"}, //contains WebLogic Server
+								{Key: "subSystem", Value: "WebLogicServer"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				ginkgo.It("Verify recent pattern-matched Security log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"}, //matches BEA-*
+								{Key: "serverName", Value: "tododomain-adminserver"},
+								{Key: "subSystem.keyword", Value: "Security"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				ginkgo.It("Verify recent pattern-matched multi-lines log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"},         //matches BEA-*
+								{Key: "message", Value: "Tunneling Ping"}, //"Tunneling Ping" in last line
+								{Key: "serverName", Value: "tododomain-adminserver"},
+								{Key: "subSystem.keyword", Value: "RJVM"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				ginkgo.It("Verify recent not-matched AdminServer log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "stream", Value: "stdout"}},
+							[]pkg.Match{
+								{Key: "serverName.keyword", Value: "tododomain-adminserver"}})
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
@@ -250,7 +330,36 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 	})
 })
 
-// appMetricsExists confirms that a specific application metrics can be found.
-func appMetricsExists() bool {
-	return pkg.MetricsExist("wls_scrape_mbeans_count_total", "app_oam_dev_name", "todo")
+func addPrometheusAnnotations() error {
+	type patchStringValue struct {
+		Op    string `json:"op"`
+		Path  string `json:"path"`
+		Value string `json:"value"`
+	}
+	payload := []patchStringValue{
+		{
+			Op:    "add",
+			Path:  "/metadata/annotations/prometheus.io~1path",
+			Value: "/wls-exporter/metrics",
+		},
+		{
+			Op:    "add",
+			Path:  "/metadata/annotations/prometheus.io~1port",
+			Value: "7001",
+		},
+		{
+			Op:    "add",
+			Path:  "/metadata/annotations/prometheus.io~1scrape",
+			Value: "true",
+		},
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	pkg.Log(pkg.Info, fmt.Sprintf("Patching pod tododomain-adminserver with %s", string(payloadBytes)))
+	pod, err := pkg.GetKubernetesClientset().CoreV1().Pods("todo-list").Patch(context.TODO(), "tododomain-adminserver", types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to patch pod tododomain-adminserver in namespace todo-list with error: %s", err))
+		return err
+	}
+	pkg.Log(pkg.Info, fmt.Sprintf("Annotations for pod tododomain-adminserver: %v", pod.Annotations))
+	return nil
 }
