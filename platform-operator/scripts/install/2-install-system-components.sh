@@ -314,6 +314,8 @@ function install_rancher()
         if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
            [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
           EXTRA_RANCHER_ARGUMENTS="--set privateCA=true"
+          kubectl -n cattle-system get secret tls-rancher-ingress -o jsonpath='{.data.ca\.crt}' | base64 --decode > ${TMP_DIR}/cacerts.pem
+          kubectl -n cattle-system create secret generic tls-ca --from-file=${TMP_DIR}/cacerts.pem
         fi
         RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/cluster-issuer\":\"verrazzano-cluster-issuer\"}}}"
       else
