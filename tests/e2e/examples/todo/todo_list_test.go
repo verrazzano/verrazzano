@@ -15,6 +15,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -80,7 +81,8 @@ func deployToDoListExample() {
 	}
 	pkg.Log(pkg.Info, "Create application resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")},
+		return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")
+	},
 		shortWaitTimeout, shortPollingInterval, "Failed to create application resource").Should(gomega.BeNil())
 }
 
@@ -132,6 +134,23 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				return s != nil && err == nil
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
+		// GIVEN the ToDoList app is deployed
+		// WHEN the servers in the WebLogic domain is ready
+		// THEN the domain.servers.status.health.overallHeath fields should be ok
+		ginkgo.It("Verify 'todo-domain' overall health is ok", func() {
+			gomega.Eventually(func() bool {
+				domain, err := weblogic.GetDomain("todo-list", "todo-domain")
+				if err != nil {
+					return false
+				}
+				healths, err := weblogic.GetHealthOfServers(domain)
+				if err != nil || healths[0] != weblogic.Healthy {
+					return false
+				}
+				return true
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+		})
+
 	})
 
 	ginkgo.Context("Ingress.", func() {
