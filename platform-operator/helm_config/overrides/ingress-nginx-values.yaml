@@ -3,9 +3,10 @@
 
 controller:
   image:
-    repository: ghcr.io/verrazzano/nginx-ingress-controller
-    tag: 0.46.0-20210510134749-abc2d2088
-    digest: sha256:b26939e1333c4e1fd7a8027a25254d771503a6082ebeafa8c520e58b7e3fbf23
+    # NOTE: This image now comes from the bill of materials file (verrazzano-bom.json)
+    # repository: ghcr.io/verrazzano/nginx-ingress-controller
+    # tag: 0.46.0-20210510134749-abc2d2088
+    digest:
   config:
     client-body-buffer-size: 64k
   metrics:
@@ -24,7 +25,8 @@ controller:
     traffic.sidecar.istio.io/includeInboundPorts: ""
     sidecar.istio.io/rewriteAppHTTPProbers: "true"
 defaultBackend:
-  image:
-    repository: ghcr.io/verrazzano/nginx-ingress-default-backend
-    tag: 0.46.0-20210510134749-abc2d2088
+  # NOTE: This image now comes from the bill of materials file (verrazzano-bom.json)
+  # image:
+  #   repository: ghcr.io/verrazzano/nginx-ingress-default-backend
+  #   tag: 0.46.0-20210510134749-abc2d2088
   enabled: true

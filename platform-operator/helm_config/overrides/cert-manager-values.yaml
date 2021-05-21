@@ -1,9 +1,10 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-image:
-  repository: ghcr.io/verrazzano/cert-manager-controller
-  tag: 0.13.1-20201016205232-4c8f3fe38
+# NOTE: This image now comes from the bill of materials file (verrazzano-bom.json)
+# image:
+#   repository: ghcr.io/verrazzano/cert-manager-controller
+#   tag: 0.13.1-20201016205232-4c8f3fe38
 
 webhook:
   enabled: false
