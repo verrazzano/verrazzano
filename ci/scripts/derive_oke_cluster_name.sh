@@ -17,6 +17,7 @@ fi
 # derived in the script, to allow the script to derive the same CLUSTER_PREFIX on repeated calls.
 #
 
+# Retain only alphanumeric characters from the BRANCH_NAME and truncate
 NEW_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]//g')
 NEW_BRANCH=${NEW_BRANCH:0:8}
 
