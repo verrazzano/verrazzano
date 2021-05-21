@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
