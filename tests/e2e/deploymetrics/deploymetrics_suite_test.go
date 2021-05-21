@@ -15,6 +15,6 @@ import (
 
 func TestDeploymentMetrics(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("examples-springboot-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
+	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("deploymetrics-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
 	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Deployment Metrics Suite", []ginkgo.Reporter{junitReporter})
 }
