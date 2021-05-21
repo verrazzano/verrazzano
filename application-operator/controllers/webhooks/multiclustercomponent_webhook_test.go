@@ -45,10 +45,12 @@ func TestValidationFailureForMultiClusterComponentCreationWithoutTargetClusters(
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
+	asrt.Contains(res.Result.Reason, "target cluster")
 
 	req = newAdmissionRequest(admissionv1beta1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
+	asrt.Contains(res.Result.Reason, "target cluster")
 }
 
 // TestValidationFailureForMultiClusterComponentCreationTargetingMissingManagedCluster tests preventing the creation
@@ -74,10 +76,12 @@ func TestValidationFailureForMultiClusterComponentCreationTargetingMissingManage
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
+	asrt.Contains(res.Result.Reason, "invalid-cluster-name")
 
 	req = newAdmissionRequest(admissionv1beta1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
+	asrt.Contains(res.Result.Reason, "invalid-cluster-name")
 }
 
 // TestValidationSuccessForMultiClusterComponentCreationTargetingExistingManagedCluster tests allowing the creation

@@ -45,10 +45,12 @@ func TestValidationFailureForMultiClusterApplicationConfigurationCreationWithout
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster application configuration validation to fail due to missing placement information.")
+	asrt.Contains(res.Result.Reason, "target cluster")
 
 	req = newAdmissionRequest(admissionv1beta1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster application configuration validation to fail due to missing placement information.")
+	asrt.Contains(res.Result.Reason, "target cluster")
 }
 
 // TestValidationFailureForMultiClusterApplicationConfigurationCreationTargetingMissingManagedCluster tests preventing the creation
@@ -74,10 +76,12 @@ func TestValidationFailureForMultiClusterApplicationConfigurationCreationTargeti
 	req := newAdmissionRequest(admissionv1beta1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster application configuration validation to fail due to missing placement information.")
+	asrt.Contains(res.Result.Reason, "invalid-cluster-name")
 
 	req = newAdmissionRequest(admissionv1beta1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster application configuration validation to fail due to missing placement information.")
+	asrt.Contains(res.Result.Reason, "invalid-cluster-name")
 }
 
 // TestValidationSuccessForMultiClusterApplicationConfigurationCreationTargetingExistingManagedCluster tests allowing the creation
