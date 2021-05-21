@@ -56,11 +56,6 @@ func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string)
 	return createOrUpdateResourceFromBytes(bytes, GetKubeConfigGivenPath(kubeconfigPath))
 }
 
-func CreateOrUpdateResourceFromString(str string) error {
-	bytes := []byte(str)
-	return createOrUpdateResourceFromBytes(bytes, GetKubeConfigGivenPath(GetKubeConfigPathFromEnv()))
-}
-
 // createOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
 // This is intended to be equivalent to `kubectl apply`
 func createOrUpdateResourceFromBytes(data []byte, config *rest.Config) error {
