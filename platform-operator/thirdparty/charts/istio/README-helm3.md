@@ -51,7 +51,6 @@ namespace - nor is it a good practice. Ingress secrets and access should be sepa
 One of the major changes in helm3 is that the 'release namespace' is no longer created.
 That means the first step can't use "-n istio-system" flag, instead we use .global.istioNamespace.
 It is possible - but not supported - to install multiple versions of the global, for example in
-multi-tenant cases. Each namespace will have a separate root CA, if the built-in CA is used.
+multitenant cases. Each namespace will have a separate root CA, if the built-in CA is used.
 
 TODO: apply the same change for discovery and ingress, so passing -n is no longer needed.
-
