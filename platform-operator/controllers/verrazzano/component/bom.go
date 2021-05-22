@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-const BomFilePath = "verrazzano-bom.json"
+const BomFilePath = "/verrazzano-bom.json"
 
 // Bom (bill of materials) contains product metadata for components installed by Verrazzano,
 // Currently, this metadata only describes images and image repositories.
@@ -74,17 +74,26 @@ type BomImage struct {
 }
 
 func getImageOverrides(component string, subComponent string) (string, error) {
+	filepath.Join(config.GetPlatformDir() + BomFilePath)
 
-	path := filepath.Join(config.GetPlatformDir() + BomFilePath)
+	//	bom, err := loadBom()
+	//	if err != nil {
+	//		return "", err
+	//	}
+	//
+	return "", nil
+}
+
+func loadBom(path string) (*Bom, error) {
 	jasonBom, err := ioutil.ReadFile(path)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Convert the json into a to bom
 	bom := Bom{}
 	if err := json.Unmarshal([]byte(jasonBom), &bom); err != nil {
-		return "", err
+		return nil, err
 	}
-	return "", err
+	return &bom, err
 }
