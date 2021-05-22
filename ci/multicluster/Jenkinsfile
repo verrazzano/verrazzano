@@ -255,7 +255,8 @@ pipeline {
                         stage('Create OKE Clusters') {
                             when { expression { return params.TEST_ENV == 'ocidns_oke' || params.TEST_ENV == 'magicdns_oke'} }
                             steps {
-                                createOKEClusters()
+                                echo "OKE Cluster Prefix: ${OKE_CLUSTER_PREFIX}"
+                                createOKEClusters("${OKE_CLUSTER_PREFIX}")
                             }
                         }
                     }
@@ -790,7 +791,7 @@ def createKindClusters() {
 }
 
 // Invoke the OKE cluster creation script for the desired number of clusters
-def createOKEClusters() {
+def createOKEClusters(clusterPrefix) {
     script {
         sh """
             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -800,7 +801,7 @@ def createOKEClusters() {
             mkdir -p ${KUBECONFIG_DIR}
             echo "Create OKE cluster"
             cd ${TEST_SCRIPTS_DIR}
-            TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${CREATE_CLUSTER_USE_CALICO}
+            TF_VAR_label_prefix=${clusterPrefix} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${CREATE_CLUSTER_USE_CALICO}
         """
     }
 }
