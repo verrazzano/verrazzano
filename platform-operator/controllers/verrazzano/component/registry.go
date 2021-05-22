@@ -13,9 +13,9 @@ import (
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 func GetComponents() []Component {
-	overridesDir := filepath.Join(config.Get().HelmConfigDir, "overrides")
-	vzChartsDir := filepath.Join(config.Get().HelmConfigDir, "charts")
-	thirdPartyChartsDir := config.Get().ThirdpartyChartsDir
+	overridesDir := config.GetHelmOverridesDir()
+	vzChartsDir := config.GetHelmVzChartsDir()
+	thirdPartyChartsDir := config.GetThirdPartyDir()
 
 	return []Component{
 		helmComponent{

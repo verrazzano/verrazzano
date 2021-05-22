@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"testing"
 	"time"
@@ -17,7 +18,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
@@ -106,7 +106,7 @@ func TestSuccessfulInstall(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	config.Set(config.OperatorConfig{HelmConfigDir: "../../helm_config"})
+	config.TestHelmConfigDir = "../../helm_config"
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
@@ -1930,4 +1930,8 @@ func expectSyncLocalRegistration(t *testing.T, mock *mocks.MockClient, name stri
 			}
 			return nil
 		})
+}
+
+func fakeGetHelmConfigDir() string {
+	return "../../helm_config"
 }
