@@ -12,11 +12,11 @@ const (
 	thirdPartyDirSuffix    = "/platform-operator/thirdparty/charts"
 	helmConfigDirSuffix    = "/platform-operator/helm_config"
 	helmChartsDirSuffix    = "/platform-operator/helm_config/charts"
-	helmVzChartsDirSuffix    = "/platform-operator/helm_config/charts/verrazzano"
+	helmVzChartsDirSuffix  = "/platform-operator/helm_config/charts/verrazzano"
 	helmOverridesDirSuffix = "/platform-operator/helm_config/overrides"
 )
 
-// Needed for unit tests
+// TestHelmConfigDir is needed for unit tests
 var TestHelmConfigDir string
 
 // OperatorConfig specfies the Verrazzano Platform Operator Config
@@ -85,7 +85,6 @@ func GetHelmChartsDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, helmChartsDirSuffix)
 }
 
-
 // GetHelmVzChartsDir returns the Verrazzano helm charts dir
 func GetHelmVzChartsDir() string {
 	if TestHelmConfigDir != "" {
@@ -112,7 +111,7 @@ func GetPlatformDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, platformDirSuffix)
 }
 
-// GetThirdPartyChartsDir returns the thirdparty dir
+// GetThirdPartyDir returns the thirdparty dir
 func GetThirdPartyDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, thirdPartyDirSuffix)
 }
