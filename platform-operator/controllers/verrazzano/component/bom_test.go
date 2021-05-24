@@ -17,4 +17,7 @@ func TestLoadBom(t *testing.T) {
 	bom, err := loadBom("testdata/test_bom.json")
 	assert.NoError(err, "error calling loadBom")
 	assert.Equal("ghcr.io", bom.Registry, "Wrong registry name")
+
+	// Marshal back to json and compare to the original
+
 }
