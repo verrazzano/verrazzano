@@ -9,6 +9,7 @@ examples/**/build/
 *.iml
 application-operator/build/_output
 application-operator/build/deploy
+application-operator/build/webhook-certs
 vendor
 .idea
 **/*.iml

@@ -110,7 +110,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 						return pkg.FindLog(verrazzanoIndex,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
-								{Key: "cluster_name.keyword", Value: "local"}},
+								{Key: "cluster_name.keyword", Value: constants.DefaultClusterName}},
 							[]pkg.Match{
 								{Key: "cluster_name", Value: "managed1"}})
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
@@ -120,7 +120,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 						return pkg.FindLog(systemdIndex,
 							[]pkg.Match{
 								{Key: "tag", Value: "systemd"},
-								{Key: "cluster_name.keyword", Value: "local"},
+								{Key: "cluster_name.keyword", Value: constants.DefaultClusterName},
 								{Key: "SYSTEMD_UNIT", Value: "kubelet.service"}},
 							[]pkg.Match{
 								{Key: "cluster_name", Value: "managed1"}})
@@ -133,7 +133,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 								{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
 								{Key: "cluster_name.keyword", Value: "managed1"}},
 							[]pkg.Match{
-								{Key: "cluster_name.keyword", Value: "local"}})
+								{Key: "cluster_name.keyword", Value: constants.DefaultClusterName}})
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				},
 				func() {
@@ -144,7 +144,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 								{Key: "cluster_name", Value: "managed1"},
 								{Key: "SYSTEMD_UNIT.keyword", Value: "kubelet.service"}},
 							[]pkg.Match{
-								{Key: "cluster_name", Value: "local"}})
+								{Key: "cluster_name", Value: constants.DefaultClusterName}})
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				},
 			)

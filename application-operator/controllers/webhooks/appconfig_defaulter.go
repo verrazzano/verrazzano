@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-var log = ctrl.Log.WithName("webhooks.appconfig-defaulter")
+var appConfDefLog = ctrl.Log.WithName("webhooks.appconfig-defaulter")
 
 // AppConfigDefaulterPath specifies the path of AppConfigDefaulter
 const AppConfigDefaulterPath = "/appconfig-defaulter"
@@ -58,8 +58,8 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 	dryRun := req.DryRun != nil && *req.DryRun
 	appConfig := &oamv1.ApplicationConfiguration{}
 	//This json can be used to curl -X POST the webhook endpoint
-	log.V(1).Info("admission.Request", "request", req)
-	log.Info("Handling appconfig default",
+	appConfDefLog.V(1).Info("admission.Request", "request", req)
+	appConfDefLog.Info("Handling appconfig default",
 		"request.Operation", req.Operation, "appconfig.Name", req.Name)
 
 	// if the operation is Delete then decode the old object and call the defaulter to cleanup any app conf defaults
@@ -77,7 +77,7 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 		if !dryRun {
 			err = a.cleanupAppConfig(appConfig)
 			if err != nil {
-				log.Error(err, "error cleaning up app config", "appconfig.Name", req.Name)
+				appConfDefLog.Error(err, "error cleaning up app config", "appconfig.Name", req.Name)
 			}
 		}
 		return admission.Allowed("cleaned up appconfig default")
@@ -158,10 +158,10 @@ func fetchCert(ctx context.Context, c client.Reader, name types.NamespacedName) 
 	err := c.Get(ctx, name, &cert)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info("cert does not exist", "cert", name)
+			appConfDefLog.Info("cert does not exist", "cert", name)
 			return nil, nil
 		}
-		log.Info("failed to fetch cert", "cert", name)
+		appConfDefLog.Info("failed to fetch cert", "cert", name)
 		return nil, err
 	}
 	return &cert, err
@@ -173,10 +173,10 @@ func fetchSecret(ctx context.Context, c client.Reader, name types.NamespacedName
 	err := c.Get(ctx, name, &secret)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info("secret does not exist", "secret", name)
+			appConfDefLog.Info("secret does not exist", "secret", name)
 			return nil, nil
 		}
-		log.Info("failed to fetch secret", "secret", name)
+		appConfDefLog.Info("failed to fetch secret", "secret", name)
 		return nil, err
 	}
 	return &secret, err
