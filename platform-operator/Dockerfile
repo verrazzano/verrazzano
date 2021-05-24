@@ -52,8 +52,11 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/helm_config ./platform-operator/helm_config
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/verrazzano-bom.json ./verrazzano-bom.json
 
-# Update the Verrazzano application operator image name in the chart override file
-RUN sed -i"" -e "s|image:|image: ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}|g" /verrazzano/platform-operator/helm_config/overrides/verrazzano-application-operator-values.yaml
+# Update the Verrazzano application operator image and tag in the BOM file
+# The VERRAZZANO_APPLICATION_OPERATOR_IMAGE variable is expected to be of the form "image:tag" and may be
+# prefixed by a registry and repository, which will be ignored (the BOM defines the registry and repository)
+RUN sed -i"" -e "s|VERRAZZANO_APPLICATION_OPERATOR_IMAGE|$(echo ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} | rev | cut -d / -f 1 | rev | cut -d : -f 1)|g" /verrazzano/verrazzano-bom.json \
+    && sed -i"" -e "s|VERRAZZANO_APPLICATION_OPERATOR_TAG|$(echo ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}:UNDEFINED | rev | cut -d / -f 1 | rev | cut -d : -f 2)|g" /verrazzano/verrazzano-bom.json
 
 # Copy source tree to image
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/THIRD_PARTY_LICENSES.txt /licenses

@@ -325,8 +325,8 @@
           "name": "verrazzano-application-operator",
           "images": [
             {
-              "image": "verrazzano-application-operator",
-              "tag": "0.15.0-20210513184258-dd739a17",
+              "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
+              "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
               "helmPath": "image"
             },
             {
