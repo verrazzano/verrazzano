@@ -478,7 +478,6 @@ func TestMetricsTraitCreatedForDeploymentWorkload(t *testing.T) {
 			assert.Equal("Deployment", list.GetKind())
 			return appendAsUnstructured(list, testDeployment)
 		})
-	// Expect a call to get the deployment definition
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-deployment-name"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
