@@ -116,6 +116,7 @@ rules:
       - components
       - containerizedworkloads
       - workloaddefinitions
+      - traitdefinitions
     verbs:
       - '*'
   - apiGroups:
