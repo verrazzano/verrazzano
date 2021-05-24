@@ -107,7 +107,9 @@ func NewBom(bomPath string) (Bom, error) {
 	if err != nil {
 		return Bom{}, err
 	}
-	bom := Bom{}
+	bom := Bom{
+		subComponentMap: make(map[string]*BomSubComponent),
+	}
 	err =  bom.init(string(jsonBom))
 	if err != nil {
 		return Bom{}, err
@@ -119,7 +121,7 @@ func NewBom(bomPath string) (Bom, error) {
 // a map of subcomponents
 func (b *Bom) init(jsonBom string) (error) {
 	// Convert the json into a to bom
-	if err := json.Unmarshal([]byte(jsonBom), b); err != nil {
+	if err := json.Unmarshal([]byte(jsonBom), &b.bomDoc); err != nil {
 		return err
 	}
 
@@ -136,7 +138,7 @@ func (b *Bom) init(jsonBom string) (error) {
 // Helm key and value
 func (b *Bom) buildOverrides(subComponentName string) ([]keyValue, error) {
 	const slash = "/"
-	const dot = "."
+	const tagSep = ":"
 
 	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
@@ -184,7 +186,7 @@ func (b *Bom) buildOverrides(subComponentName string) ([]keyValue, error) {
 		bldr.WriteString(slash)
 		bldr.WriteString(imageBom.ImageName)
 		if appendTag {
-			bldr.WriteString(dot)
+			bldr.WriteString(tagSep)
 			bldr.WriteString(imageBom.ImageTag)
 		}
 		kvs = append(kvs, keyValue{
@@ -193,5 +195,5 @@ func (b *Bom) buildOverrides(subComponentName string) ([]keyValue, error) {
 		})
 	}
 
-	return nil, nil
+	return kvs, nil
 }
