@@ -22,6 +22,7 @@ def availableRegions = [  "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "a
                           "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
 Collections.shuffle(availableRegions)
 def keepOKEClusterOnFailure = "false"
+def OKE_CLUSTER_PREFIX = ""
 
 pipeline {
     options {
@@ -94,6 +95,7 @@ pipeline {
         TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
+        TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
@@ -105,8 +107,6 @@ pipeline {
         CLUSTER_TYPE = getTestClusterType("${TEST_ENV}")
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
-
-        TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
 
         SOCKS_MODEL_FILE = "${WORKSPACE}/examples/sock-shop/sock-shop-model.yaml"
         SOCKS_BINDING_FILE = "${WORKSPACE}/examples/sock-shop/sock-shop-binding.yaml"
@@ -120,6 +120,7 @@ pipeline {
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
 
         IMG_LIST_FILE = "${WORKSPACE}/verrazzano_images.txt"
@@ -184,12 +185,20 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : " + params.OKE_CLUSTER_VERSION
+
+                    if (params.TEST_ENV != "kind") {
+                        // derive the prefix for the OKE cluster
+                        OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
+                    }
                 }
             }
         }
 
         stage("install-oke") {
             when { expression { return params.TEST_ENV != 'kind' } }
+            environment {
+                TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
+            }
             steps {
                 script {
                     withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
@@ -200,7 +209,6 @@ pipeline {
                             ssh-keygen -i -f /tmp/opc_ssh2.pub > /tmp/opc_ssh.pub
                             # set the ssh public key value for terraform
                             export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
-                            export TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP}
                             export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
                             # call create_oke_cluster with cluster access private
                             ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${params.CREATE_CLUSTER_USE_CALICO}
@@ -545,7 +553,7 @@ pipeline {
                 if [ "${TEST_ENV}" == "kind" ]; then
                   ${WORKSPACE}/tests/e2e/config/scripts/delete-kind-cluster.sh
                 elif [ "${keepOKEClusterOnFailure}" == "false" ]; then
-                  TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh
+                  TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh
                 fi
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"

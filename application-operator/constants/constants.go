@@ -87,3 +87,6 @@ const VzConsoleIngress = "verrazzano-ingress"
 
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
+
+// DefaultClusterName - the default cluster name
+const DefaultClusterName = "local"

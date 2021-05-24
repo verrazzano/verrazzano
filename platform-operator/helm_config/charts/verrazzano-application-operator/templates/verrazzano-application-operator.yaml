@@ -438,3 +438,111 @@ webhooks:
           - verrazzanoprojects
     sideEffects: None
     failurePolicy: Fail
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: verrazzano-application-multiclusterapplicationconfiguration
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+webhooks:
+  - name: verrazzano-clusters-multiclusterapplicationconfiguration-validator.verrazzano.io
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: "/validate-clusters-verrazzano-io-v1alpha1-multiclusterapplicationconfiguration"
+    rules:
+      - apiGroups:
+          - clusters.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - multiclusterapplicationconfigurations
+    sideEffects: None
+    failurePolicy: Fail
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: verrazzano-application-multiclustercomponent
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+webhooks:
+  - name: verrazzano-clusters-multiclustercomponent-validator.verrazzano.io
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: "/validate-clusters-verrazzano-io-v1alpha1-multiclustercomponent"
+    rules:
+      - apiGroups:
+          - clusters.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - multiclustercomponents
+    sideEffects: None
+    failurePolicy: Fail
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: verrazzano-application-multiclusterconfigmap
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+webhooks:
+  - name: verrazzano-clusters-multiclusterconfigmap-validator.verrazzano.io
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: "/validate-clusters-verrazzano-io-v1alpha1-multiclusterconfigmap"
+    rules:
+      - apiGroups:
+          - clusters.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - multiclusterconfigmaps
+    sideEffects: None
+    failurePolicy: Fail
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: verrazzano-application-multiclustersecret
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+webhooks:
+  - name: verrazzano-clusters-multiclustersecret-validator.verrazzano.io
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: "/validate-clusters-verrazzano-io-v1alpha1-multiclustersecret"
+    rules:
+      - apiGroups:
+          - clusters.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - multiclustersecrets
+    sideEffects: None
+    failurePolicy: Fail

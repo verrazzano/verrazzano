@@ -10,6 +10,7 @@ def acmeEnvironments = [ "staging", "production" ]
 Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,3).replace('-','')
 def dns_zone_ocid = 'dummy'
+def OKE_CLUSTER_PREFIX = ""
 
 installerFileName = "install-verrazzano.yaml"
 
@@ -132,6 +133,7 @@ pipeline {
         OCI_DNS_ZONE_NAME="z${zoneId}." + "${OCI_DNS_ZONE_SUFFIX}"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
 
@@ -222,6 +224,11 @@ pipeline {
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+
+                    if (params.TEST_ENV != "kind") {
+                        // derive the prefix for the OKE cluster
+                        OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
+                    }
                 }
             }
         }
@@ -248,7 +255,8 @@ pipeline {
                         stage('Create OKE Clusters') {
                             when { expression { return params.TEST_ENV == 'ocidns_oke' || params.TEST_ENV == 'magicdns_oke'} }
                             steps {
-                                createOKEClusters()
+                                echo "OKE Cluster Prefix: ${OKE_CLUSTER_PREFIX}"
+                                createOKEClusters("${OKE_CLUSTER_PREFIX}")
                             }
                         }
                     }
@@ -546,7 +554,7 @@ pipeline {
                           ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
                         fi
                         cd ${TEST_SCRIPTS_DIR}
-                        TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
+                        TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
                     """
                 }
                 sh """
@@ -780,7 +788,7 @@ def createKindClusters() {
 }
 
 // Invoke the OKE cluster creation script for the desired number of clusters
-def createOKEClusters() {
+def createOKEClusters(clusterPrefix) {
     script {
         sh """
             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -790,7 +798,7 @@ def createOKEClusters() {
             mkdir -p ${KUBECONFIG_DIR}
             echo "Create OKE cluster"
             cd ${TEST_SCRIPTS_DIR}
-            TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${CREATE_CLUSTER_USE_CALICO}
+            TF_VAR_label_prefix=${clusterPrefix} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${CREATE_CLUSTER_USE_CALICO}
         """
     }
 }

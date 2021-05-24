@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	cluv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -639,7 +640,7 @@ func TestHandleProject1(t *testing.T) {
 			Placement: cluv1alpha1.Placement{
 				Clusters: []cluv1alpha1.Cluster{
 					{
-						Name: "local",
+						Name: constants.DefaultClusterName,
 					},
 				},
 			},
@@ -739,7 +740,7 @@ func TestHandleProject2(t *testing.T) {
 			Placement: cluv1alpha1.Placement{
 				Clusters: []cluv1alpha1.Cluster{
 					{
-						Name: "local",
+						Name: constants.DefaultClusterName,
 					},
 				},
 			},
@@ -896,7 +897,7 @@ func TestHandleProject3(t *testing.T) {
 			Placement: cluv1alpha1.Placement{
 				Clusters: []cluv1alpha1.Cluster{
 					{
-						Name: "local",
+						Name: constants.DefaultClusterName,
 					},
 				},
 			},

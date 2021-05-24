@@ -6,6 +6,7 @@ def DOCKER_IMAGE_TAG
 def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
+def OKE_CLUSTER_PREFIX = ""
 Collections.shuffle(availableRegions)
 
 pipeline {
@@ -85,6 +86,7 @@ pipeline {
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/oke_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
@@ -185,13 +187,16 @@ pipeline {
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+
+                    // derive the prefix for the OKE cluster
+                    OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
                 }
             }
         }
 
         stage("Create Cluster") {
             steps {
-                sh "TF_VAR_label_prefix=unstll-${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}-${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
+                sh "TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}-${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
             }
         }
 
@@ -446,7 +451,7 @@ pipeline {
             }
         }
         cleanup {
-            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=unstll-${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}-${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}-${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
             deleteDir()
         }
     }

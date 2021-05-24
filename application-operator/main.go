@@ -143,19 +143,19 @@ func main() {
 		}
 
 		setupLog.Info("Updating webhook configurations")
-		err = certificates.UpdateAppConfigMutatingWebhookConfiguration(kubeClient, caCert)
+		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.AppConfigMutatingWebhookName)
 		if err != nil {
 			setupLog.Error(err, "unable to update appconfig mutating webhook configuration")
 			os.Exit(1)
 		}
-		err = certificates.UpdateIstioMutatingWebhookConfiguration(kubeClient, caCert)
+		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.IstioMutatingWebhookName)
 		if err != nil {
 			setupLog.Error(err, "unable to update pod mutating webhook configuration")
 			os.Exit(1)
 		}
 
 		// IngressTrait validating webhook
-		err = certificates.UpdateIngressTraitValidatingWebhookConfiguration(kubeClient, caCert)
+		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.IngressTraitValidatingWebhookName)
 		if err != nil {
 			setupLog.Error(err, "unable to update ingresstrait validation webhook configuration")
 			os.Exit(1)
@@ -166,15 +166,14 @@ func main() {
 		}
 
 		// VerrazzanoProject validating webhook
-		err = certificates.UpdateVerrazzanoProjectValidatingWebhookConfiguration(kubeClient, caCert)
+		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.VerrazzanoProjectValidatingWebhookName)
 		if err != nil {
 			setupLog.Error(err, "unable to update verrazzanoproject validation webhook configuration")
 			os.Exit(1)
 		}
-		if err = (&clustersv1alpha1.VerrazzanoProject{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "VerrazzanoProject")
-			os.Exit(1)
-		}
+		mgr.GetWebhookServer().Register(
+			"/validate-clusters-verrazzano-io-v1alpha1-verrazzanoproject",
+			&webhook.Admission{Handler: &webhooks.VerrazzanoProjectValidator{}})
 
 		// Get a Kubernetes dynamic client.
 		restConfig, err := clientcmd.BuildConfigFromFlags("", "")
@@ -213,7 +212,9 @@ func main() {
 			KubeClient:  kubeClient,
 			IstioClient: istioClientSet,
 			Defaulters: []webhooks.AppConfigDefaulter{
-				&webhooks.MetricsTraitDefaulter{},
+				&webhooks.MetricsTraitDefaulter{
+					Client: mgr.GetClient(),
+				},
 				&webhooks.NetPolicyDefaulter{
 					Client:          mgr.GetClient(),
 					NamespaceClient: kubeClient.CoreV1().Namespaces(),
@@ -221,6 +222,46 @@ func main() {
 			},
 		}
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
+
+		// MultiClusterApplicationConfiguration validating webhook
+		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterApplicationConfigurationName)
+		if err != nil {
+			setupLog.Error(err, "unable to update multiclusterapplicationconfiguration validation webhook configuration")
+			os.Exit(1)
+		}
+		mgr.GetWebhookServer().Register(
+			"/validate-clusters-verrazzano-io-v1alpha1-multiclusterapplicationconfiguration",
+			&webhook.Admission{Handler: &webhooks.MultiClusterApplicationConfigurationValidator{}})
+
+		// MultiClusterComponent validating webhook
+		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterComponentName)
+		if err != nil {
+			setupLog.Error(err, "unable to update multiclusterapplicationconfiguration validation webhook configuration")
+			os.Exit(1)
+		}
+		mgr.GetWebhookServer().Register(
+			"/validate-clusters-verrazzano-io-v1alpha1-multiclustercomponent",
+			&webhook.Admission{Handler: &webhooks.MultiClusterComponentValidator{}})
+
+		// MultiClusterConfigMap validating webhook
+		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterConfigMapName)
+		if err != nil {
+			setupLog.Error(err, "unable to update multiclusterconfigmap validation webhook configuration")
+			os.Exit(1)
+		}
+		mgr.GetWebhookServer().Register(
+			"/validate-clusters-verrazzano-io-v1alpha1-multiclusterconfigmap",
+			&webhook.Admission{Handler: &webhooks.MultiClusterConfigmapValidator{}})
+
+		// MultiClusterSecret validating webhook
+		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterSecretName)
+		if err != nil {
+			setupLog.Error(err, "unable to update multiclustersecret validation webhook configuration")
+			os.Exit(1)
+		}
+		mgr.GetWebhookServer().Register(
+			"/validate-clusters-verrazzano-io-v1alpha1-multiclustersecret",
+			&webhook.Admission{Handler: &webhooks.MultiClusterSecretValidator{}})
 	}
 
 	if err = (&cohworkload.Reconciler{
