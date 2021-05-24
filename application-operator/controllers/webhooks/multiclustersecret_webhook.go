@@ -39,10 +39,11 @@ func (v *MultiClusterSecretValidator) Handle(ctx context.Context, req admission.
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	switch req.Operation {
-	case k8sadmission.Create, k8sadmission.Update:
-		return translateErrorToResponse(validateMultiClusterResource(v.client, mcs))
-	default:
-		return admission.Allowed("")
+	if mcs.ObjectMeta.DeletionTimestamp.IsZero() {
+		switch req.Operation {
+		case k8sadmission.Create, k8sadmission.Update:
+			return translateErrorToResponse(validateMultiClusterResource(v.client, mcs))
+		}
 	}
+	return admission.Allowed("")
 }

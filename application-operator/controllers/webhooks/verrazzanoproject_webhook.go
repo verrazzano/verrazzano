@@ -45,12 +45,13 @@ func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.R
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	switch req.Operation {
-	case k8sadmission.Create, k8sadmission.Update:
-		return translateErrorToResponse(validateVerrazzanoProject(v.client, prj))
-	default:
-		return admission.Allowed("")
+	if prj.ObjectMeta.DeletionTimestamp.IsZero() {
+		switch req.Operation {
+		case k8sadmission.Create, k8sadmission.Update:
+			return translateErrorToResponse(validateVerrazzanoProject(v.client, prj))
+		}
 	}
+	return admission.Allowed("")
 }
 
 // validateVerrazzanoProject performs validation checks on the resource
