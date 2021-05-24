@@ -3,8 +3,9 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
+SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
-CALICO_VERSION=$(grep ‘calico-version=’ ${SCRIPT_DIR}/../../../../.third-party-test-versions | sed ‘s/calico-version=//g’)
+CALICO_VERSION=$(grep 'calico-version=' ${SCRIPT_DIR}/../../../../.third-party-test-versions | sed 's/calico-version=//g')
 
 echo "Install Calico ${CALICO_VERSION}..."
 
@@ -18,3 +19,6 @@ grep -B 1 -A 2 POOL_CIDR ${CALICO_YAML}
 
 echo "Applying Calico YAML: ${CALICO_YAML}"
 kubectl apply -f ${CALICO_YAML}
+if [ $? -ne 0 ]; then
+    exit 1
+fi

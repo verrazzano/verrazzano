@@ -337,7 +337,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			} else { // The VerrazzanoProject is not an existing one i.e. not existingVP
 				mockClient.EXPECT().
 					Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
-					Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.GroupVersion.Group, Resource: clustersv1alpha1.VerrazzanoProjectResource}, tt.fields.vpName))
+					Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.SchemeGroupVersion.Group, Resource: clustersv1alpha1.VerrazzanoProjectResource}, tt.fields.vpName))
 			}
 
 			// Make the request

@@ -97,6 +97,10 @@ if [ ${status_code:-1} -eq 0 ]; then
     if [ $INSTALL_CALICO == true ] ; then
         ${WORKSPACE}/ci/scripts/download_calico.sh
         ${SCRIPT_DIR}/install_calico_oke.sh
+        if [ $? -ne 0 ]; then
+            echo "Install Calico failed!"
+            exit 1
+        fi
     fi
 
     # Right after oke cluster is provisioned, it takes a while before any node is added to the cluster

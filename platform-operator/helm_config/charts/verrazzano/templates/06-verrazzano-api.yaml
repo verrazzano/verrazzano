@@ -151,6 +151,8 @@ data:
     #error_log  logs/error.log  info;
 
     pid        logs/nginx.pid;
+    env KUBERNETES_SERVICE_HOST;
+    env KUBERNETES_SERVICE_PORT;
 
 
     events {
@@ -191,6 +193,9 @@ data:
             server_name  apiserver;
             root     /opt/nginx/html;
             rewrite_by_lua_file /etc/nginx/conf.lua;
+            set_by_lua $kubernetes_server_host 'return os.getenv("KUBERNETES_SERVICE_HOST")';
+            set_by_lua $kubernetes_server_port 'return os.getenv("KUBERNETES_SERVICE_PORT")';
+
             #charset koi8-r;
 
             #access_log  logs/host.access.log  main;
@@ -198,7 +203,7 @@ data:
             add_header        Cache-Control private;
 
             location / {
-              proxy_pass https://kubernetes.default.svc/;
+              proxy_pass https://$kubernetes_server_host:$kubernetes_server_port;
             }
 
             error_page 404 /404.html;
