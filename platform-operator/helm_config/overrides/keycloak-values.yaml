@@ -3,27 +3,30 @@
 keycloak:
   existingSecret: keycloak-http
 
-  extraInitContainers: |
-    - name: theme-provider
-      image: ghcr.io/verrazzano/keycloak-oracle-theme:0.15.0-20210510085250-01638c7
-      imagePullPolicy: IfNotPresent
-      command:
-        - sh
-      args:
-        - -c
-        - |
-          echo "Copying theme..."
-          cp -R /oracle/* /theme
-      volumeMounts:
-        - name: theme
-          mountPath: /theme
-        - name: cacerts
-          mountPath: /cacerts
+  # NOTE: This is now set in the installation script (4-install-keycloak.sh) so that we can specify the
+  # image using data from the bill of materials file (verrazzano-bom.json)
+  # extraInitContainers: |
+  #   - name: theme-provider
+  #     image: ghcr.io/verrazzano/keycloak-oracle-theme:0.15.0-20210510085250-01638c7
+  #     imagePullPolicy: IfNotPresent
+  #     command:
+  #       - sh
+  #     args:
+  #       - -c
+  #       - |
+  #         echo "Copying theme..."
+  #         cp -R /oracle/* /theme
+  #     volumeMounts:
+  #       - name: theme
+  #         mountPath: /theme
+  #       - name: cacerts
+  #         mountPath: /cacerts
 
   replicas: 1
-  image:
-    tag: 10.0.1-20201016212759-30d98b0
-    repository: ghcr.io/verrazzano/keycloak
+  # NOTE: This image now comes from the bill of materials file (verrazzano-bom.json)
+  # image:
+  #   tag: 10.0.1-20201016212759-30d98b0
+  #   repository: ghcr.io/verrazzano/keycloak
 
   containerSecurityContext:
     runAsUser: 0

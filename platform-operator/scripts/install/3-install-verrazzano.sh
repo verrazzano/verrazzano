@@ -204,6 +204,12 @@ function install_application_operator {
     IMAGE_PULL_SECRETS_ARGUMENT=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
 
+  # Used to override the app operator image in development environment
+  APP_OPERATOR_IMAGE_ARG=""
+  if [ -n "${APP_OPERATOR_IMAGE}" ]; then
+    APP_OPERATOR_IMAGE_ARG=" --set image=${APP_OPERATOR_IMAGE}"
+  fi
+
   log "Install Verrazzano Kubernetes application operator"
   local chart_name=verrazzano-application-operator
   build_image_overrides verrazzano-application-operator ${chart_name}
@@ -214,6 +220,7 @@ function install_application_operator {
     -f $VZ_OVERRIDES_DIR/verrazzano-application-operator-values.yaml \
     ${HELM_IMAGE_ARGS} \
     ${IMAGE_PULL_SECRETS_ARGUMENT} \
+    ${APP_OPERATOR_IMAGE_ARG} \
     ${EXTRA_V8O_ARGUMENTS} || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install Verrazzano Kubernetes application operator."
