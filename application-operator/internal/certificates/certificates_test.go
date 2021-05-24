@@ -99,7 +99,7 @@ func TestUpdateValidatingWebhookConfiguration(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateIngressTraitValidatingWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateValidatingWebhookConfiguration(kubeClient, &caCert, IngressTraitValidatingWebhookName)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
 	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), IngressTraitValidatingWebhookName, metav1.GetOptions{})
@@ -142,7 +142,7 @@ func TestUpdateValidatingWebhookConfigurationFail(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateIngressTraitValidatingWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateValidatingWebhookConfiguration(kubeClient, &caCert, IngressTraitValidatingWebhookName)
 	assert.Error(err, "error should be returned updating validation webhook configuration")
 }
 
@@ -182,7 +182,7 @@ func TestUpdateAppConfigMutatingWebhookConfiguration(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateAppConfigMutatingWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, AppConfigMutatingWebhookName)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
 	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), AppConfigMutatingWebhookName, metav1.GetOptions{})
@@ -225,7 +225,7 @@ func TestUpdateAppConfigMutatingWebhookConfigurationFail(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateAppConfigMutatingWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, AppConfigMutatingWebhookName)
 	assert.Error(err, "error should be returned updating validation webhook configuration")
 }
 
@@ -265,7 +265,7 @@ func TestUpdateIstioMutatingWebhookConfiguration(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateIstioMutatingWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, IstioMutatingWebhookName)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
 	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), IstioMutatingWebhookName, metav1.GetOptions{})
@@ -308,6 +308,6 @@ func TestUpdateIstioMutatingWebhookConfigurationFail(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateIstioMutatingWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, IstioMutatingWebhookName)
 	assert.Error(err, "error should be returned updating validation webhook configuration")
 }
