@@ -11,8 +11,8 @@ if [ -z "$BRANCH_NAME" ] || [ -z "$SHORT_TIME_STAMP" ] || [ -z "$BUILD_NUMBER" ]
 fi
 
 # The prefix for the OKE cluster is derived using the BRANCH_NAME, SHORT_TIME_STAMP and BUILD_NUMBER as below
-# <8 or less alpha numeric characters from the branch><digit build number>-<8 digit timestamp>. The script truncates the
-# branch name and the timestamp, if they contain more than 8 characters.
+# <8 or less alpha numeric characters from the branch><digit build number>-<10 digit timestamp>. The script truncates the
+# branch name and the timestamp, if they contain more than the expected characters.
 
 # Retain only alphanumeric characters from the BRANCH_NAME and truncate
 NEW_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]//g')
@@ -24,8 +24,8 @@ if (( ${#CLUSTER_PREFIX} > 13 )); then
 fi
 
 TIMESTAMP=${SHORT_TIME_STAMP}
-if (( ${#TIMESTAMP} > 8 )); then
-  TIMESTAMP=${TIMESTAMP:0:8}
+if (( ${#TIMESTAMP} > 10 )); then
+  TIMESTAMP=${TIMESTAMP:0:10}
 fi
 
 CLUSTER_PREFIX="$CLUSTER_PREFIX-$TIMESTAMP"

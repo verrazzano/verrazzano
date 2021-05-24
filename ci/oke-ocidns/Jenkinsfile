@@ -120,7 +120,7 @@ pipeline {
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-        SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M").trim()
+        SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
 
         IMG_LIST_FILE = "${WORKSPACE}/verrazzano_images.txt"
