@@ -36,6 +36,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	imageRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
+	appOperatorImage := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -79,6 +80,11 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							{
 								Name:  constants.ImageRepoOverrideEnvVar,
 								Value: imageRepo,
+							},
+							{
+								// Allow overriding the application operator image in development environment
+								Name:  constants.VerrazzanoAppOperatorImageEnvVar,
+								Value: appOperatorImage,
 							},
 							{
 								// DEBUG property set to value 1 will direct more detailed output to stdout and

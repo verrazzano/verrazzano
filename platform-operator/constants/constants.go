@@ -56,3 +56,6 @@ const RegistryOverrideEnvVar = "REGISTRY"
 
 // ImageRepoOverrideEnvVar is the environment variable name used to set the image repository
 const ImageRepoOverrideEnvVar = "IMAGE_REPO"
+
+// VerrazzanoAppOperatorImageEnvVar is the environment variable used to override the Verrazzano Application Operator image
+const VerrazzanoAppOperatorImageEnvVar = "APP_OPERATOR_IMAGE"
