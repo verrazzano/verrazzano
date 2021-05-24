@@ -8,8 +8,9 @@ metadata:
 spec:
   appliesToWorkloads:
     - core.oam.dev/v1alpha2.ContainerizedWorkload
-    - weblogic.oracle/v8.Domain
-    - coherence.oracle.com/v1.Coherence
+    - oam.verrazzano.io/v1alpha1.VerrazzanoCoherenceWorkload
+    - oam.verrazzano.io/v1alpha1.VerrazzanoHelidonWorkload
+    - oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload
   definitionRef:
     name: metricstraits.oam.verrazzano.io
   workloadRefPath: spec.workloadRef

@@ -212,7 +212,9 @@ func main() {
 			KubeClient:  kubeClient,
 			IstioClient: istioClientSet,
 			Defaulters: []webhooks.AppConfigDefaulter{
-				&webhooks.MetricsTraitDefaulter{},
+				&webhooks.MetricsTraitDefaulter{
+					Client: mgr.GetClient(),
+				},
 				&webhooks.NetPolicyDefaulter{
 					Client:          mgr.GetClient(),
 					NamespaceClient: kubeClient.CoreV1().Namespaces(),
