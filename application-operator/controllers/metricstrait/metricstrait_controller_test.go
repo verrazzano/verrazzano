@@ -383,6 +383,154 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 	assert.Equal(time.Duration(0), result.RequeueAfter)
 }
 
+// TestMetricsTraitCreatedForDeploymentWorkload tests the creation of a metrics trait related to a native Kubernetes Deployment workload.
+// GIVEN a metrics trait that has been created
+// AND the metrics trait is related to a deployment workload
+// WHEN the metrics trait Reconcile method is invoked
+// THEN verify that metrics trait finalizer is added
+// AND verify that pod annotations are updated
+// AND verify that the scraper configmap is updated
+// AND verify that the scraper pod is restarted
+func TestMetricsTraitCreatedForDeploymentWorkload(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	testDeployment := k8sapps.Deployment{
+		TypeMeta: k8smeta.TypeMeta{
+			APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
+			Kind:       "Deployment",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:              "test-deployment-name",
+			Namespace:         "test-namespace",
+			UID:               "test-workload-uid",
+			CreationTimestamp: k8smeta.Now(),
+			OwnerReferences: []k8smeta.OwnerReference{{
+				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
+				Kind:       oamcore.ApplicationConfigurationKind,
+				Name:       "test-workload-name",
+				UID:        "wrong-workload-uid"}}}}
+	// Expect a call to get the trait resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
+			trait.TypeMeta = k8smeta.TypeMeta{
+				APIVersion: vzapi.GroupVersion.Identifier(),
+				Kind:       vzapi.MetricsTraitKind}
+			trait.ObjectMeta = k8smeta.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			trait.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
+				Kind:       "Deployment",
+				Name:       "test-workload-name"}
+			return nil
+		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+			assert.Equal("test-namespace", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("metricstrait.finalizers.verrazzano.io", trait.Finalizers[0])
+			return nil
+		})
+	// Expect a call to get the containerized workload resource
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
+			workload.SetAPIVersion(k8sapps.SchemeGroupVersion.Identifier())
+			workload.SetKind("Deployment")
+			workload.SetNamespace(name.Namespace)
+			workload.SetName(name.Name)
+			workload.SetUID("test-workload-uid")
+			return nil
+		})
+	// Expect a call to get the prometheus configuration.
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+			assert.Equal("istio-system", name.Namespace)
+			assert.Equal("prometheus", name.Name)
+			deployment.APIVersion = k8sapps.SchemeGroupVersion.Identifier()
+			deployment.Kind = deploymentKind
+			deployment.Namespace = name.Namespace
+			deployment.Name = name.Name
+			return nil
+		})
+	// Expect a call to get the containerized workload resource definition
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "deployments.apps"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *oamcore.WorkloadDefinition) error {
+			workloadDef.Namespace = name.Namespace
+			workloadDef.Name = name.Name
+			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
+				{APIVersion: "apps/v1", Kind: "Deployment", Selector: nil},
+			}
+			return nil
+		})
+	// Expect a call to list the child Deployment resources of the containerized workload definition
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+			assert.Equal("Deployment", list.GetKind())
+			return appendAsUnstructured(list, testDeployment)
+		})
+	// Expect a call to list the child Service resources of the containerized workload definition
+	/*	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+			assert.Equal("Service", list.GetKind())
+			return nil
+		})*/
+	// Expect a call to get the deployment definition
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-deployment-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+			deployment.ObjectMeta = testDeployment.ObjectMeta
+			deployment.Spec = testDeployment.Spec
+			return nil
+		})
+	// Expect a call to update the prometheus config
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, deployment *k8sapps.Deployment, opts ...client.UpdateOption) error {
+			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
+			assert.True(ok)
+			assert.Equal("true", scrape)
+			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath"]
+			assert.True(ok)
+			assert.Equal("/metrics", target)
+			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort"]
+			assert.True(ok)
+			assert.Equal("8080", port)
+			return nil
+		})
+	// Expect a call to get the status writer
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+	// Expect a call to update the status of the trait status
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
+			assert.Len(trait.Status.Conditions, 1)
+			return nil
+		})
+
+	// Create and make the request
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
+
+	reconciler := newMetricsTraitReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue)
+	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
 // TestMetricsTraitDeletedForContainerizedWorkload tests deletion of a metrics trait related to a containerized workload.
 // GIVEN a metrics trait with a non-zero deletion time
 // WHEN the metrics trait Reconcile method is invoked
