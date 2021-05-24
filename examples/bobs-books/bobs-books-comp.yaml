@@ -66,9 +66,8 @@ spec:
         podSpec:
           containers:
             - name: robert-helidon-stock-application
-              image: container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210511205230-d41009d
+              image: ghcr.io/verrazzano/example-roberts-helidon-stock-application:20210524142851-d56c42b
               imagePullPolicy: IfNotPresent
-              imagePullSecret: bobs-books-repo-credentials
               ports:
                 - name: http
                   containerPort: 8080
@@ -79,6 +78,8 @@ spec:
                   value: coherence-cache-config.xml
                 - name: COH_POF_CONFIG
                   value: pof-config.xml
+          imagePullSecrets:
+            - name: bobs-books-repo-credentials2
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -140,24 +141,25 @@ spec:
           name: bobbys-helidon-stock-application
         podSpec:
           containers:
-          - name: bobbys-helidon-stock-application
-            image: container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210511205230-d41009d
-            imagePullPolicy: IfNotPresent
-            imagePullSecret: bobs-books-repo-credentials
-            ports:
-              - containerPort: 8080
-                name: http
-            env:
-              - name: BACKEND_PORT
-                value: "8001"
-              - name: BACKEND_HOSTNAME
-                value: bobs-bookstore-cluster-cluster-1.bobs-books.svc.cluster.local
-              - name: COH_CLUSTER
-                value: bobbys-coherence
-              - name: COH_CACHE_CONFIG
-                value: coherence-cache-config.xml
-              - name: COH_POF_CONFIG
-                value: pof-config.xml
+            - name: bobbys-helidon-stock-application
+              image: container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210511205230-d41009d
+              imagePullPolicy: IfNotPresent
+              ports:
+                - containerPort: 8080
+                  name: http
+              env:
+                - name: BACKEND_PORT
+                  value: "8001"
+                - name: BACKEND_HOSTNAME
+                  value: bobs-bookstore-cluster-cluster-1.bobs-books.svc.cluster.local
+                - name: COH_CLUSTER
+                  value: bobbys-coherence
+                - name: COH_CACHE_CONFIG
+                  value: coherence-cache-config.xml
+                - name: COH_POF_CONFIG
+                  value: pof-config.xml
+          imagePullSecrets:
+            - name: bobs-books-repo-credentials
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
