@@ -260,16 +260,17 @@ function is_chart_deployed(){
   return 1
 }
 
-# Get the repo for Docker images at the component/chart level from the BOM
+# Get the repo for Docker imageNames at the component/chart level from the BOM
 # $1 the component (e.g. "istio")
 # $2 the chart name (e.g. "istiocoredns")
 function get_component_repo_from_bom() {
   local component=$1
   local chartName=$2
-  cat ${BOM_FILE} | jq -r -c --arg C "${component}" --arg CH "${chartName}" '.components[] | select(.name == $C) | .subcomponents[] | select(.name == $CH) | .repository'
+  cat ${BOM_FILE} | jq -r -c --arg C "${component}" --arg CH "${chartName}" \
+    '.components[] | select(.name == $C) | .subcomponents[] | select(.name == $CH) | .repository'
 }
 
-# Get the full-repositoryrepo for Docker images based on BOM and env var settings
+# Get the full-repositoryrepo for Docker imageNames based on BOM and env var settings
 # $1 the component (e.g. "istio")
 # $2 the chart name (e.g. "istiocoredns")
 function build_component_repo_name() {
@@ -284,8 +285,18 @@ function build_component_repo_name() {
   echo ${repository}
 }
 
-# This function builds "--set" helm args to override images using a bill of materials. The resulting
-# HELM_SET_ARGS variable can be passed to helm to override one or more images in a helm chart.
+# Dump the set of image elements from the BOM for a component and chart
+# $1 the component (e.g. "istio")
+# $2 the chart name (e.g. "istiocoredns")
+function get_images_for_chart() {
+  local component=$1
+  local chartName=$2
+  cat ${BOM_FILE} | jq -r -c --arg C "${component}" --arg CH "${chartName}" \
+    '.components[] | select(.name == $C) | .subcomponents[] | select(.name == $CH) | .images[]'
+}
+
+# This function builds "--set" helm args to override imageNames using a bill of materials. The resulting
+# HELM_SET_ARGS variable can be passed to helm to override one or more imageNames in a helm chart.
 # $1 the component (e.g. "istio")
 # $2 the chart name (e.g. "istiocoredns")
 function build_image_overrides(){
@@ -304,10 +315,11 @@ function build_image_overrides(){
 
   HELM_IMAGE_ARGS=""
 
-  local images=$(cat ${bomFile} | jq -r -c --arg C "${component}" --arg CH "${chartName}" '.components[] | select(.name == $C) | .subcomponents[] | select(.name == $CH) | .images[]')
+  local images=($(get_images_for_chart $component $chartName))
 
   # build --set arg for each image in the chart
-  for row in ${images}; do
+  for row in "${images[@]}"; do
+
     local image=$(echo $row | jq -r '.image')
     local tag=$(echo $row | jq -r '.tag')
 
@@ -390,6 +402,6 @@ command -v curl >/dev/null 2>&1 || {
 }
 
 ##################################################
-####Constants for Docker images, versions, tags
+####Constants for Docker imageNames, versions, tags
 ##################################################
 GLOBAL_IMAGE_PULL_SECRET=verrazzano-container-registry
