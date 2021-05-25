@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
@@ -129,6 +130,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
+	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
+	// since it is needed for the subsequent step to syncLocalRegistration secret.
+	err = r.createVerrazzanoSystemNamespace(ctx)
+	if err != nil {
+		log.Errorf("Failed to create or update namespace %v: %v", constants.VerrazzanoSystemNamespace, err)
+		return reconcile.Result{}, err
+	}
+	log.Infof("Namespace %v was successfully created", constants.VerrazzanoSystemNamespace)
 
 	if err := r.createInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
 		return reconcile.Result{}, err
@@ -630,6 +640,20 @@ func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alph
 	installConfig = &corev1.ConfigMap{}
 	err = r.Get(ctx, key, installConfig)
 	return installConfig, err
+}
+
+// createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
+func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context) error {
+	// First check if VZ system namespace exists. If not, create it.
+	var vzSystemNS corev1.Namespace
+	err := r.Get(ctx, types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, &vzSystemNS)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			vzSystemNS.Name = constants.VerrazzanoSystemNamespace
+			err = r.Create(ctx, &vzSystemNS)
+		}
+	}
+	return err
 }
 
 // containsString checks for a string in a slice of strings
