@@ -325,32 +325,6 @@ pipeline {
             }
         }
 
-        stage('Generate Tarball') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf {
-                        branch 'master';
-                        branch 'release-*';
-                        expression {params.GENERATE_TARBALL == true};
-                    }
-                }
-            }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-            }
-            steps {
-                sh """
-                    mkdir ${WORKSPACE}/tar-files
-                    chmod uog+w ${WORKSPACE}/tar-files
-                    tools/scripts/generate_tarball.sh ${GO_REPO_PATH}/verrazzano/platform-operator/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}-${env.BUILD_NUMBER}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
-                """
-            }
-        }
-
         stage('Skip acceptance tests if commit message contains skip-at') {
             steps {
                 script {
@@ -613,7 +587,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/tar-files/verrazzano-bom.json', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
@@ -650,7 +624,9 @@ pipeline {
                 if [ "${params.GENERATE_TARBALL}" == "true" ]; then
                     mkdir ${WORKSPACE}/tar-files
                     chmod uog+w ${WORKSPACE}/tar-files
-                    tools/scripts/generate_tarball.sh ${GO_REPO_PATH}/verrazzano/platform-operator/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
+                    cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
+                    cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
+                    tools/scripts/generate_tarball.sh ${WORKSPACE}/generated-verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}-${env.BUILD_NUMBER}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
                 fi
             """
