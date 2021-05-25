@@ -642,6 +642,7 @@ pipeline {
                     chmod uog+w ${WORKSPACE}/tar-files
                     cp $WORKSPACE/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
                     cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
+                    cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
                     mkdir -p ${WORKSPACE}/tar-files/charts
                     cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
                     tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
