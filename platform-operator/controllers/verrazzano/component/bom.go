@@ -14,8 +14,12 @@ import (
 
 const defaultBomFilename = "verrazzano-bom.json"
 
-// testBomFilePath needed for unit test
-var testBomFilePath string
+// This is the BOM file path needed for unit tests
+var unitTestBomFilePath string
+
+func SetUnitTestBomFilePath(p string) {
+	unitTestBomFilePath = p
+}
 
 // BomFuncs interface is used to process the JSON bom file.
 type BomFuncs interface {
@@ -107,8 +111,8 @@ type keyValue struct {
 
 // DefaultBomFilePath returns the default path of the bom file
 func DefaultBomFilePath() string {
-	if testBomFilePath != "" {
-		return testBomFilePath
+	if unitTestBomFilePath != "" {
+		return unitTestBomFilePath
 	}
 	return filepath.Join(config.GetPlatformDir(), defaultBomFilename)
 }
@@ -144,6 +148,15 @@ func (b *Bom) init(jsonBom string) error {
 		}
 	}
 	return nil
+}
+
+// GetImageCount returns the number of subcomponent images
+func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
+	imageBom, ok := b.subComponentMap[subComponentName]
+	if !ok {
+		return 0
+	}
+	return len(imageBom.Images)
 }
 
 // Build the image overrides array for the component.  Each override has a

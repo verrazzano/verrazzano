@@ -17,7 +17,6 @@ const ns = "my_namespace"
 const chartdir = "my_charts"
 const release = "my_release"
 const missingRelease = "no_release"
-const overrideYaml = "my-override.yaml"
 
 // goodRunner is used to test Helm without actually running an OS exec command
 type goodRunner struct {
@@ -39,6 +38,8 @@ type foundRunner struct {
 //  WHEN I call Upgrade
 //  THEN the Helm upgrade returns success and the cmd object has correct values
 func TestUpgrade(t *testing.T) {
+	overrideYaml := []string{"my-override.yaml"}
+
 	assert := assert.New(t)
 	SetCmdRunner(goodRunner{t: t})
 	defer SetDefaultRunner()
@@ -58,7 +59,7 @@ func TestUpgradeFail(t *testing.T) {
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", "")
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", nil)
 	assert.Error(err, "Upgrade should have returned an error")
 	assert.Len(stdout, 0, "Upgrade stdout should be empty")
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")

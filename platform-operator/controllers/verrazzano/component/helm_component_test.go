@@ -39,8 +39,6 @@ func TestGetName(t *testing.T) {
 func TestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
-	testBomFilePath = TestRealBomFilePath
-
 	comp := helmComponent{
 		releaseName:             "istiod",
 		chartDir:                "chartDir",
@@ -50,6 +48,7 @@ func TestUpgrade(t *testing.T) {
 		preUpgradeFunc:          fakePreUpgrade,
 	}
 
+	SetUnitTestBomFilePath(sampleTestBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)

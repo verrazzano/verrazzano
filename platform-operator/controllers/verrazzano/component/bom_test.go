@@ -159,7 +159,8 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 }
 
 // This is the real BOM file path needed for unit tests
-const TestRealBomFilePath = "../../../verrazzano-bom.json"
+const realTestBomFilePath = "../../../verrazzano-bom.json"
+const sampleTestBomFilePath = "testdata/sample_bom.json"
 
 // TestFakeBom tests loading a fake bom json into a struct
 // GIVEN a json file
@@ -167,7 +168,7 @@ const TestRealBomFilePath = "../../../verrazzano-bom.json"
 // THEN the correct verrazzano bom is returned
 func TestFakeBom(t *testing.T) {
 	assert := assert.New(t)
-	bom, err := NewBom("testdata/sample_bom.json")
+	bom, err := NewBom(sampleTestBomFilePath)
 	assert.NoError(err, "error calling NewBom")
 	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
 	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")
@@ -181,7 +182,7 @@ func TestFakeBom(t *testing.T) {
 // THEN the correct verrazzano bom is returned
 func TestRealBom(t *testing.T) {
 	assert := assert.New(t)
-	bom, err := NewBom(TestRealBomFilePath)
+	bom, err := NewBom(realTestBomFilePath)
 	assert.NoError(err, "error calling NewBom")
 	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
 	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")

@@ -81,47 +81,58 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 		}
 	}
 
-	// Create and populate the image override file.
-	f, err := ioutil.TempFile("", "vz-images")
+	overrideFiles := []string{}
+	if h.valuesFile != "" {
+		overrideFiles = append(overrideFiles, h.valuesFile)
+	}
+
+	// If there are image overrides the get them and write to an override file
+	kvs, err := getImageOverrides(h.releaseName)
 	if err != nil {
 		return err
 	}
-	defer os.Remove(f.Name())
-	err = writeImageOverrides(h.releaseName, f)
-	if err != nil {
-		return err
-	}
-	err = f.Close()
-	if err != nil {
-		return err
+	if len(kvs) > 0 {
+		// Create and populate the image override file.
+		f, err := ioutil.TempFile("", "vz-images")
+		if err != nil {
+			return err
+		}
+		defer os.Remove(f.Name())
+
+		// Write the override entries then close the file
+		for _, kv := range kvs {
+			io.WriteString(f, fmt.Sprintf("%s: %s\n", kv.key, kv.value))
+		}
+		err = f.Close()
+		if err != nil {
+			return err
+		}
+		overrideFiles = append(overrideFiles, f.Name())
 	}
 
 	// Do the upgrade, passing in the override files
-	overrideFiles := []string{
-		h.valuesFile,
-		f.Name(),
-	}
 	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, overrideFiles)
 	return err
 }
 
-// Write the image key:value pairs to the override file
-func writeImageOverrides(subcomponentName string, w io.Writer) error {
+// Get the image overrides from the BOM
+func getImageOverrides(subcomponentName string) ([]keyValue, error) {
 	// Create a Bom and get the key value overrides
 	bom, err := NewBom(DefaultBomFilePath())
 	if err != nil {
-		return err
-	}
-	kvs, err := bom.buildImageOverrides(subcomponentName)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Override entries are in the helm format of key: value
-	for _, kv := range kvs {
-		io.WriteString(w, fmt.Sprintf("%s: %s\n", kv.key, kv.value))
+	numImages := bom.GetSubcomponentImageCount(subcomponentName)
+	if numImages == 0 {
+		return []keyValue{}, nil
 	}
-	return nil
+
+	kvs, err := bom.buildImageOverrides(subcomponentName)
+	if err != nil {
+		return nil, err
+	}
+	return kvs, nil
 }
 
 func setUpgradeFunc(f upgradeFuncSig) {
