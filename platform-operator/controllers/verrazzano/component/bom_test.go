@@ -21,15 +21,16 @@ type testSubComponent struct {
 // This list of subcomponents is in the verrazzano-bom.json file and it must stay in sync with that file
 // Keep this map in the same order as that JSON for review purposes.
 var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
-	"verrazzano-platform-operator": {
-		kvs: map[string]string{
-			"image": "ghcr.io/verrazzano/verrazzano-platform-operator:0.15.0-20210519205437-9cd1da0b",
-		},
-	},
+	//"verrazzano-platform-operator": {
+	//	kvs: map[string]string{
+	//		"image": "ghcr.io/verrazzano/verrazzano-platform-operator:0.15.0-20210519205437-9cd1da0b",
+	//	},
+	//},
 	"cert-manager": {
 		kvs: map[string]string{
 			"image.repository": "ghcr.io/verrazzano/cert-manager-controller",
 			"image.tag":        "0.13.1-20201016205232-4c8f3fe38",
+			"extraArgs[0]=--acme-http01-solver-image": "ghcr.io/verrazzano/cert-manager-acmesolver:0.13.1-20201016205234-4c8f3fe38",
 		},
 	},
 	"ingress-controller": {
@@ -77,7 +78,6 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 		kvs: map[string]string{
 			"rancherImage":    "ghcr.io/verrazzano/rancher",
 			"rancherImageTag": "v2.5.7-20210407205410-1c7b39d0c",
-			"image":           "ghcr.io/verrazzano/rancher-agent:v2.5.7-20210407205410-1c7b39d0c",
 		},
 	},
 	// NOTE additional-rancher images are not used by the local rancher helm chart used by verrazzano
@@ -90,7 +90,7 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 			"verrazzanoOperator.nodeExporterImage":   "ghcr.io/verrazzano/node-exporter:1.0.0-20210513143333-a470f06",
 			"monitoringOperator.imageName":           "ghcr.io/verrazzano/verrazzano-monitoring-operator",
 			"monitoringOperator.imageVersion":        "0.15.0-20210521020822-9b87485",
-			"monitoringOperator.istioProxyImage":     "proxyv2:1.7.3",
+			"monitoringOperator.istioProxyImage":     "ghcr.io/verrazzano/proxyv2:1.7.3",
 			"monitoringOperator.grafanaImage":        "ghcr.io/verrazzano/grafana:v6.4.4",
 			"monitoringOperator.prometheusImage":     "ghcr.io/verrazzano/prometheus:v2.13.1",
 			"monitoringOperator.esImage":             "ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1",
@@ -153,11 +153,11 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 			"keycloak.image.tag":        "10.0.1-20201016212759-30d98b0",
 		},
 	},
-	"keycloak-oracle-theme": {
-		kvs: map[string]string{
-			"image": "ghcr.io/verrazzano/keycloak-oracle-theme:0.15.0-20210510085250-01638c7",
-		},
-	},
+	//"keycloak-oracle-theme": {
+	//	kvs: map[string]string{
+	//		"image": "ghcr.io/verrazzano/keycloak-oracle-theme:0.15.0-20210510085250-01638c7",
+	//	},
+	//},
 }
 // This is the real BOM file path needed for unit tests
 const TestRealBomFilePath = "../../../verrazzano-bom.json"
@@ -203,11 +203,7 @@ func validateImages(assert *assert.Assertions, bom *Bom, checkImageVal bool) {
 				fmt.Println("Skipping subcomponent " + sub.Name)
 				continue
 			}
-			//
-			//if sub.Name == "ingress-controller" {
-			//	fmt.Print("deb")
-			//}
-			//
+
 			// Get the actual key value override list for this subcomponent
 			foundKvs, err := bom.buildImageOverrides(sub.Name)
 			assert.NoError(err, "error calling buildImageOverrides")
