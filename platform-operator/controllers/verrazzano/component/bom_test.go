@@ -21,11 +21,11 @@ type testSubComponent struct {
 // This list of subcomponents is in the verrazzano-bom.json file and it must stay in sync with that file
 // Keep this map in the same order as that JSON for review purposes.
 var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
-	//"verrazzano-platform-operator": {
-	//	kvs: map[string]string{
-	//		"image": "ghcr.io/verrazzano/verrazzano-platform-operator:0.15.0-20210519205437-9cd1da0b",
-	//	},
-	//},
+	"verrazzano-platform-operator": {
+		kvs: map[string]string{
+			"image": "ghcr.io/verrazzano/VERRAZZANO_PLATFORM_OPERATOR_IMAGE:VERRAZZANO_PLATFORM_OPERATOR_TAG",
+		},
+	},
 	"cert-manager": {
 		kvs: map[string]string{
 			"image.repository": "ghcr.io/verrazzano/cert-manager-controller",
@@ -117,14 +117,12 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 			"image.tag":        "v0.3.0-20210222205541-9e8d4fb",
 		},
 	},
-	// todo This is a special case since ENV vars are used - need to fix this
-	//
-	// "verrazzano-application-operator": {
-	//	kvs: map[string]string{
-	//		"image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE:VERRAZZANO_APPLICATION_OPERATOR_TAG",
-	//		"fluentdImage": "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2",
-	//	},
-	//},
+	"verrazzano-application-operator": {
+		kvs: map[string]string{
+			"image":        "ghcr.io/verrazzano/VERRAZZANO_APPLICATION_OPERATOR_IMAGE:VERRAZZANO_APPLICATION_OPERATOR_TAG",
+			"fluentdImage": "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2",
+		},
+	},
 	"weblogic-operator": {
 		kvs: map[string]string{
 			"image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.2.2",
@@ -159,6 +157,7 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 	//	},
 	//},
 }
+
 // This is the real BOM file path needed for unit tests
 const TestRealBomFilePath = "../../../verrazzano-bom.json"
 

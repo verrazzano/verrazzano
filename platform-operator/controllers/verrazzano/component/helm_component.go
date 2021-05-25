@@ -97,7 +97,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 	}
 
 	// Do the upgrade, passing in the override files
-	overrideFiles := []string {
+	overrideFiles := []string{
 		h.valuesFile,
 		f.Name(),
 	}
@@ -107,7 +107,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 
 // Write the image key:value pairs to the override file
 func writeImageOverrides(subcomponentName string, w io.Writer) error {
-	// Get the key value pair
+	// Create a Bom and get the key value overrides
 	bom, err := NewBom(DefaultBomFilePath())
 	if err != nil {
 		return err
@@ -116,13 +116,13 @@ func writeImageOverrides(subcomponentName string, w io.Writer) error {
 	if err != nil {
 		return err
 	}
+
 	// Override entries are in the helm format of key: value
 	for _, kv := range kvs {
-		io.WriteString(w, fmt.Sprintf("%s: %s\n",kv.key, kv.value))
+		io.WriteString(w, fmt.Sprintf("%s: %s\n", kv.key, kv.value))
 	}
 	return nil
 }
-
 
 func setUpgradeFunc(f upgradeFuncSig) {
 	upgradeFunc = f

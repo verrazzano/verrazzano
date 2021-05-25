@@ -42,7 +42,7 @@ func TestUpgrade(t *testing.T) {
 	testBomFilePath = TestRealBomFilePath
 
 	comp := helmComponent{
-		releaseName:             "release1",
+		releaseName:             "istiod",
 		chartDir:                "chartDir",
 		chartNamespace:          "chartNS",
 		ignoreNamespaceOverride: true,
@@ -60,7 +60,7 @@ func TestUpgrade(t *testing.T) {
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
 func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFiles []string) (stdout []byte, stderr []byte, err error) {
-	if releaseName != "release1" {
+	if releaseName != "istiod" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
 	if chartDir != "chartDir" {
@@ -81,7 +81,7 @@ func (r helmFakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err er
 }
 
 func fakePreUpgrade(log *zap.SugaredLogger, client clipkg.Client, release string, namespace string, chartDir string) error {
-	if release != "release1" {
+	if release != "istiod" {
 		return fmt.Errorf("Incorrect release name %s", release)
 	}
 	if chartDir != "chartDir" {

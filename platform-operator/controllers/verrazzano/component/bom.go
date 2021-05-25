@@ -12,17 +12,17 @@ import (
 	"strings"
 )
 
-const helmDefaultImageKey = "image"
 const defaultBomFilename = "verrazzano-bom.json"
 
 // testBomFilePath needed for unit test
 var testBomFilePath string
 
+// BomFuncs interface is used to process the JSON bom file.
 type BomFuncs interface {
 	init(path string) error
 }
 
-// Bom contains information related to bill of materials along with structures to process it.
+// Bom (bill of materials) contains information related to bill of materials along with structures to process it.
 type Bom struct {
 	// The BOM which contains all of the image info
 	bomDoc BomDoc
@@ -31,7 +31,7 @@ type Bom struct {
 	subComponentMap map[string]*BomSubComponent
 }
 
-// BomDoc (bill of materials) contains product metadata for components installed by Verrazzano,
+// BomDoc contains product metadata for components installed by Verrazzano,
 // Currently, this metadata only describes images and image repositories.
 // This information is needed by the helm charts and used during install/upgrade.
 type BomDoc struct {
@@ -79,24 +79,24 @@ type BomImage struct {
 	// ImageName specifies the name of the image tag, such as `0.46.0-20210510134749-abc2d2088`
 	ImageTag string `json:"tag"`
 
-	// HelmRegistryPathKey is the helm template key which identifies the image registry.  This is not
+	// HelmRegistryKey is the helm template key which identifies the image registry.  This is not
 	// normally specified.  An example is `image.registry` in external-dns.  The default is empty string
-	HelmRegistryPathKey string `json:"helmRegPath"`
+	HelmRegistryKey string `json:"helmRegKey"`
 
-	// HelmRepoPathKey is the helm template key which identifies the image repo.
-	HelmRepoPathKey string `json:"helmRepoPath"`
+	// HelmRepoKey is the helm template key which identifies the image repo.
+	HelmRepoKey string `json:"helmRepoKey"`
 
-	// HelmImagePathKey is the helm template key which identifies the image name.  There are a variety
+	// HelmImageKey is the helm template key which identifies the image name.  There are a variety
 	// of keys used by the different helm charts, such as `api.imageName`.  The default is `image`
-	HelmImagePathKey string `json:"helmImagePath"`
+	HelmImageKey string `json:"helmImageKey"`
 
-	// HelmTagPathKey is the helm template key which identifies the image tag.  There are a variety
+	// HelmTagKey is the helm template key which identifies the image tag.  There are a variety
 	// of keys used by the different helm charts, such as `api.imageVersion`.  The default is `tag`
-	HelmTagPathKey string `json:"helmTagPath"`
+	HelmTagKey string `json:"helmTagKey"`
 
-	// HelmPathKey is the helm path key which identifies the image name.  There are a variety
+	// HelmFullImageKey is the helm path key which identifies the image name.  There are a variety
 	// of keys used by the different helm charts, such as `api.imageName`.
-	HelmPathKey string `json:"helmPath"`
+	HelmFullImageKey string `json:"helmFullImageKey"`
 }
 
 // keyVal defines the key, value pair used to override a single helm value
@@ -168,9 +168,9 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 		// Normally, the registry is the first segment of the image name, for example "ghcr.io/"
 		// However, there are exceptions like in external-dns, where the registry is a separate helm field,
 		// in which case the registry is omitted from the image full name.
-		if imageBom.HelmRegistryPathKey != "" {
+		if imageBom.HelmRegistryKey != "" {
 			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmRegistryPathKey,
+				key:   imageBom.HelmRegistryKey,
 				value: b.bomDoc.Registry,
 			})
 		} else {
@@ -179,9 +179,9 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 		}
 
 		// Either write the repo name key value, or append it to the full image path
-		if imageBom.HelmRepoPathKey != "" {
+		if imageBom.HelmRepoKey != "" {
 			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmRepoPathKey,
+				key:   imageBom.HelmRepoKey,
 				value: sc.Repository,
 			})
 		} else {
@@ -190,9 +190,9 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 		}
 
 		// Either write the image name key value, or append it to the full image path
-		if imageBom.HelmImagePathKey != "" {
+		if imageBom.HelmImageKey != "" {
 			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmImagePathKey,
+				key:   imageBom.HelmImageKey,
 				value: imageBom.ImageName,
 			})
 		} else {
@@ -200,9 +200,9 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 		}
 
 		// Either write the tag name key value, or append it to the full image path
-		if imageBom.HelmTagPathKey != "" {
+		if imageBom.HelmTagKey != "" {
 			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmTagPathKey,
+				key:   imageBom.HelmTagKey,
 				value: imageBom.ImageTag,
 			})
 		} else {
@@ -213,9 +213,9 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 		fullImagePath := fullImageBldr.String()
 
 		// If the image path key is present the create the kv with the full image path
-		if imageBom.HelmPathKey != "" {
+		if imageBom.HelmFullImageKey != "" {
 			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmPathKey,
+				key:   imageBom.HelmFullImageKey,
 				value: fullImagePath,
 			})
 		}
