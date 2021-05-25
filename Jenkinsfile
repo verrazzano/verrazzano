@@ -228,6 +228,8 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json
                    """
             }
         }
@@ -636,7 +638,7 @@ pipeline {
                     cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
                     mkdir -p ${WORKSPACE}/tar-files/charts
                     cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
-                    tools/scripts/generate_tarball.sh ${WORKSPACE}/generated-verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
+                    tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}-${env.BUILD_NUMBER}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
                 fi
             """
