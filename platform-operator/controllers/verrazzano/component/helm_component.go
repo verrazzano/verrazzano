@@ -55,14 +55,14 @@ var _ Component = helmComponent{}
 // preUpgradeFuncSig is the signature for the optional preUgrade function
 type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
 
-// upgradeFuncSig is needed for unit test override
-type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile []string) (stdout []byte, stderr []byte, err error)
+// appendOverridesSig is an optional function called to generate additional overrides.
+type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, kvs []keyValue) ([]keyValue, error)
 
-// appendOverrides is needed for some components, like keycloak, which generated special overrides.
-type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, kvs []keyValue, ) ([]keyValue, error)
-
-// resolveNamespaceSig is a function needed for special namespace processing
+// resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
+
+// upgradeFuncSig is a function needed for unit test override
+type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile []string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
@@ -75,9 +75,10 @@ func (h helmComponent) Name() string {
 	return h.releaseName
 }
 
-// Upgrade is done by using the helm chart upgrade command.   This command will apply the latest chart
+// Upgrade is done by using the helm chart upgrade command.  This command will apply the latest chart
 // that is included in the operator image, while retaining any helm value overrides that were applied during
-// install.
+// install. Along with the override files in helm_config, we need to generate image overrides using the
+// BOM json file.  Each component also has the ability to add additional override parameters.
 func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string) error {
 	// Resolve the namespace
 	namespace := ns
@@ -112,9 +113,9 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 	if h.valuesFile != "" {
 		overrideFiles = append(overrideFiles, h.valuesFile)
 	}
+
 	// Optionally create a second override file.  This will contain both image overrides and any additional
 	// overrides required by a component.
-
 	// Get image overrides unless opt out
 	var kvs []keyValue
 	if !h.ignoreImageOverrides {
@@ -123,7 +124,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 			return err
 		}
 	}
-	// Append any additional overrides for the component (see keycloak.go for example)
+	// Append any additional overrides for the component (see Keycloak.go for example)
 	if h.appendOverridesFunc != nil {
 		kvs, err = h.appendOverridesFunc(log, h.releaseName, namespace, h.chartDir, kvs)
 		if err != nil {

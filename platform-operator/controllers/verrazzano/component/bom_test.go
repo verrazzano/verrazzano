@@ -16,7 +16,7 @@ type testSubComponent struct {
 	kvs map[string]string
 }
 
-// testSubcomponetHelmKeyValues are the key/values pairs that will be passed to helm as overrides.
+// testSubcomponetHelmKeyValues are the key:values pairs that will be passed to helm as overrides.
 // The map key is the subcomponent name.
 // This list of subcomponents is in the verrazzano-bom.json file and it must stay in sync with that file
 // Keep this map in the same order as that JSON for review purposes.
@@ -197,7 +197,7 @@ func validateImages(assert *assert.Assertions, bom *Bom, checkImageVal bool) {
 	// Validate each component
 	for _, comp := range bom.bomDoc.Components {
 		for _, sub := range comp.SubComponents {
-			// Get the expected key/value pair overrides for this subcomponent
+			// Get the expected key:value pair overrides for this subcomponent
 			expectedSub := testSubcomponetHelmKeyValues[sub.Name]
 			if expectedSub == nil {
 				fmt.Println("Skipping subcomponent " + sub.Name)

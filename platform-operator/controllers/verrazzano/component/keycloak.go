@@ -3,10 +3,70 @@
 
 package component
 
-import "go.uber.org/zap"
+import (
+	"bytes"
+	"fmt"
+	"go.uber.org/zap"
+	"text/template"
+)
 
-// appendKeycloakOverrides appends the keycloak theme override
-func appendKeycloakOverrides(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, kvs []keyValue, ) ([]keyValue, error) {
+// Define the keylcloak key:value pair for init container.
+// We need to replace image using the real image in the bom
+const kcInitContainerKey = "keycloak.extraInitContainers"
+const kcInitContainerValueTemplate = `
+    - name: theme-provider
+      image: {{.ImageName}}:{{.ImageTag}}
+      imagePullPolicy: IfNotPresent
+      command:
+        - sh
+      args:
+        - -c
+        - |
+          echo \"Copying theme...\"
+          cp -R /oracle/* /theme
+      volumeMounts:
+        - name: theme
+          mountPath: /theme
+        - name: cacerts
+          mountPath: /cacerts"
+`
+
+// appendKeycloakOverrides appends the Keycloak theme for the key keycloak.extraInitContainers.
+// A go template is used to replace the image in the init container spec.
+func appendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []keyValue) ([]keyValue, error) {
+	// Create a Bom and get the key value overrides
+	bom, err := NewBom(DefaultBomFilePath())
+	if err != nil {
+		return nil, err
+	}
+
+	// Get Keycloak theme images
+	images, err := bom.GetSubcomponentImages("keycloak-oracle-theme")
+	if err != nil {
+		return nil, err
+	}
+	if len(images) != 1 {
+		return nil, fmt.Errorf("Expected 1 image for Keycloak theme, found %v", len(images))
+	}
+
+	// use template to get populate template with image:tag
+	var b bytes.Buffer
+	t, err := template.New("image").Parse(kcInitContainerValueTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	// Render the template
+	err = t.Execute(&b, images[0])
+	if err != nil {
+		return nil, err
+	}
+
+	// Return a new key:value pair with the rendered value
+	kvs = append(kvs, keyValue{
+		key:   kcInitContainerKey,
+		value: b.String(),
+	})
 
 	return kvs, nil
 }

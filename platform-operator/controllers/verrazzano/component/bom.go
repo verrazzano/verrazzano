@@ -150,6 +150,15 @@ func (b *Bom) init(jsonBom string) error {
 	return nil
 }
 
+// Get the images for a subcomponent
+func (b *Bom) GetSubcomponentImages(subComponentName string) ([]BomImage, error) {
+	sc, ok := b.subComponentMap[subComponentName]
+	if !ok {
+		return nil, errors.New("unknown subcomponent " + subComponentName)
+	}
+	return sc.Images, nil
+}
+
 // GetImageCount returns the number of subcomponent images
 func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
 	imageBom, ok := b.subComponentMap[subComponentName]
@@ -171,7 +180,7 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 	}
 
 	// Loop through the images used by this subcomponent, building
-	// the list of key/value pairs.  At the very least, this will build
+	// the list of key:value pairs.  At the very least, this will build
 	// a single value for the fully qualified image name in the format of
 	// registry/repository/image.tag
 	var kvs []keyValue
