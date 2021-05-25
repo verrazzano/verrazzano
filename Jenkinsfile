@@ -185,6 +185,15 @@ pipeline {
             }
         }
 
+        stage('Generate verrazzano.bom') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} make generate-bom
+                   """
+            }
+        }
+
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
@@ -634,6 +643,8 @@ pipeline {
                     chmod uog+w ${WORKSPACE}/tar-files
                     cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
                     cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
+                    mkdir -p ${WORKSPACE}/tar-files/charts
+                    cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
                     tools/scripts/generate_tarball.sh ${WORKSPACE}/generated-verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}-${env.BUILD_NUMBER}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
                 fi
