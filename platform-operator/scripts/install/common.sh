@@ -323,43 +323,43 @@ function build_image_overrides(){
     local image=$(echo $row | jq -r '.image')
     local tag=$(echo $row | jq -r '.tag')
 
-    local helmRegPath=$(echo $row | jq -r '.helmRegPath')
-    local helmRepoPath=$(echo $row | jq -r '.helmRepoPath')
-    local helmImagePath=$(echo $row | jq -r '.helmImagePath')
-    local helmTagPath=$(echo $row | jq -r '.helmTagPath')
-    local helmPath=$(echo $row | jq -r '.helmPath')
+    local helmRegKey=$(echo $row | jq -r '.helmRegKey')
+    local helmRepoKey=$(echo $row | jq -r '.helmRepoKey')
+    local helmImageKey=$(echo $row | jq -r '.helmImageKey')
+    local helmTagKey=$(echo $row | jq -r '.helmTagKey')
+    local helmFullImageKey=$(echo $row | jq -r '.helmFullImageKey')
 
-    local fullPath=""
+    local fullImageKey=""
 
-    if [ "${helmRegPath}" != "null" ]; then
-      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmRegPath}=${registry} "
+    if [ "${helmRegKey}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmRegKey}=${registry} "
     else
-      fullPath="${registry}/"
+      fullImageKey="${registry}/"
     fi
 
-    if [ "${helmRepoPath}" != "null" ]; then
-      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmRepoPath}=${repository} "
+    if [ "${helmRepoKey}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmRepoKey}=${repository} "
     else
-      fullPath="${fullPath}${repository}/"
+      fullImageKey="${fullImageKey}${repository}/"
     fi
 
-    if [ "${helmImagePath}" != "null" ]; then
-      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmImagePath}=${image} "
+    if [ "${helmImageKey}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmImageKey}=${image} "
     else
-      fullPath="${fullPath}${image}"
+      fullImageKey="${fullImageKey}${image}"
     fi
 
-    if [ "${helmTagPath}" != "null" ]; then
-      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmTagPath}=${tag} "
+    if [ "${helmTagKey}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmTagKey}=${tag} "
     else
-      fullPath="${fullPath}:${tag}"
+      fullImageKey="${fullImageKey}:${tag}"
     fi
 
-    if [ "${helmPath}" != "null" ]; then
-      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmPath}=${fullPath} "
+    if [ "${helmFullImageKey}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmFullImageKey}=${fullImageKey} "
     fi
 
-    HELM_RAW_IMAGE="${fullPath}"
+    HELM_RAW_IMAGE="${fullImageKey}"
   done
 }
 
