@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package deploymetrics
@@ -62,6 +62,7 @@ func deployMetricsApplication() {
 
 func undeployMetricsApplication() {
 	pkg.Log(pkg.Info, "Undeploy DeployMetrics Application")
+
 	pkg.Log(pkg.Info, "Delete application")
 	if err := pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the application: %v", err))
@@ -70,6 +71,15 @@ func undeployMetricsApplication() {
 	if err := pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
 	}
+
+	gomega.Eventually(func() bool {
+		return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")
+	}, longWaitTimeout, longPollingInterval).Should(gomega.BeFalse(), "Prometheus scraped metrics for App Component should have been deleted.")
+
+	gomega.Eventually(func() bool {
+		return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "deploymetrics-deployment")
+	}, longWaitTimeout, longPollingInterval).Should(gomega.BeFalse(), "Prometheus scraped metrics for App Config should have been deleted.")
+
 	pkg.Log(pkg.Info, "Delete namespace")
 	if err := pkg.DeleteNamespace(testNamespace); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the namespace: %v", err))

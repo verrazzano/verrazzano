@@ -478,13 +478,6 @@ func TestMetricsTraitCreatedForDeploymentWorkload(t *testing.T) {
 			assert.Equal("Deployment", list.GetKind())
 			return appendAsUnstructured(list, testDeployment)
 		})
-	// Expect a call to list the child Service resources of the containerized workload definition
-	/*	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Service", list.GetKind())
-			return nil
-		})*/
 	// Expect a call to get the deployment definition
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-deployment-name"}, gomock.Not(gomock.Nil())).
@@ -699,6 +692,100 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
+	reconciler := newMetricsTraitReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue)
+	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+}
+
+// TestMetricsTraitDeletedForContainerizedWorkload tests deletion of a metrics trait related to a containerized workload.
+// GIVEN a metrics trait with a non-zero deletion time
+// WHEN the metrics trait Reconcile method is invoked
+// THEN verify that metrics trait finalizer is removed
+// AND verify that pod annotations are cleaned up
+// AND verify that the scraper configmap is cleanup up
+// AND verify that the scraper pod is restarted
+func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	//mockStatus := mocks.NewMockStatusWriter(mocker)
+	var err error
+
+	params := map[string]string{
+		"##OAM_APP_NAME##":         "deploymetrics-appconf",
+		"##OAM_COMP_NAME##":        "deploymetrics-deployment",
+		"##TRAIT_NAME##":           "deploymetrics-deployment-trait",
+		"##TRAIT_NAMESPACE##":      "deploymetrics",
+		"##WORKLOAD_APIVER##":      "apps/v1",
+		"##WORKLOAD_KIND##":        "Deployment",
+		"##WORKLOAD_NAME##":        "deploymetrics-workload",
+		"##PROMETHEUS_NAME##":      "vmi-system-prometheus-0",
+		"##PROMETHEUS_NAMESPACE##": "verrazzano-system",
+		"##DEPLOYMENT_NAMESPACE##": "deploymetrics",
+		"##DEPLOYMENT_NAME##":      "deploymetrics-workload",
+	}
+
+	// 1. Expect a call to get the deleted trait resource.
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
+		assert.Equal("deploymetrics", name.Namespace)
+		assert.Equal("deploymetrics-deployment-trait", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(trait, "test/templates/deployment_workload_metrics_trait_deleted.yaml", params))
+		return nil
+	})
+	// 2. Expect a call to get the child resource
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *k8sapps.Deployment) error {
+		assert.Equal("deploymetrics", name.Namespace)
+		assert.Equal("deploymetrics-workload", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(obj, "test/templates/containerized_workload_deployment.yaml", params))
+		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled")
+		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPath")
+		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPort")
+		return nil
+	})
+	// 3. Expect a call to update the child resource to remove the annotations
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8sapps.Deployment) error {
+		assert.Equal("deploymetrics", obj.Namespace)
+		assert.Equal("deploymetrics-workload", obj.Name)
+		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled")
+		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPath")
+		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPort")
+		return nil
+	})
+	// 6. Expect a call to get the prometheus deployment.
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+		assert.Equal("verrazzano-system", name.Namespace)
+		assert.Equal("vmi-system-prometheus-0", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(deployment, "test/templates/prometheus_deployment.yaml", params))
+		return nil
+	})
+	// 7. Expect a call to get the prometheus configmap.
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, configmap *k8score.ConfigMap) error {
+		assert.Equal("verrazzano-system", name.Namespace)
+		assert.Equal("vmi-system-prometheus-0", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(configmap, "test/templates/deployment_prometheus_configmap.yaml", params))
+		return nil
+	})
+	// 8. Expect a call to update the prometheus configmap
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
+		assert.Equal("verrazzano-system", obj.Namespace)
+		assert.Equal("vmi-system-prometheus-0", obj.Name)
+		return nil
+	})
+	// 9. Expect a call to update the metrics trait to remove the finalizer
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
+		assert.Equal("deploymetrics", obj.Namespace)
+		assert.Equal("deploymetrics-deployment-trait", obj.Name)
+		assert.Len(obj.Finalizers, 0)
+		return nil
+	})
+
+	// Create and make the request
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "deploymetrics", Name: "deploymetrics-deployment-trait"}}
 	reconciler := newMetricsTraitReconciler(mock)
 	result, err := reconciler.Reconcile(request)
 
