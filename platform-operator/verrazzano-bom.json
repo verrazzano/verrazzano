@@ -56,7 +56,7 @@
             {
               "image": "cert-manager-acmesolver",
               "tag": "0.13.1-20201016205234-4c8f3fe38",
-              "helmPath": "extraArgs[0]=--acme-http01-solver-image="
+              "helmPath": "extraArgs[0]=--acme-http01-solver-image"
             }
           ]
         }
