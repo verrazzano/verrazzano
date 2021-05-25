@@ -9,8 +9,8 @@
           "name": "verrazzano-platform-operator",
           "images": [
             {
-              "image": "verrazzano-platform-operator",
-              "tag": "0.15.0-20210519205437-9cd1da0b",
+              "image": "VERRAZZANO_PLATFORM_OPERATOR_IMAGE",
+              "tag": "VERRAZZANO_PLATFORM_OPERATOR_TAG",
               "helmPath": "image"
             }
           ]
