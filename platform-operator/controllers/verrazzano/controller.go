@@ -135,7 +135,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
 	err = r.createVerrazzanoSystemNamespace(ctx, log)
 	if err != nil {
-		log.Errorf("Failed to create or update namespace %v: %v", constants.VerrazzanoSystemNamespace, err)
+		log.Errorf("Failed to create namespace %v: %v", constants.VerrazzanoSystemNamespace, err)
 		return reconcile.Result{}, err
 	}
 
