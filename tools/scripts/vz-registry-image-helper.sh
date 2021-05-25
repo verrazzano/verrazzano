@@ -62,6 +62,19 @@ Examples:
 
   # Do a dry-run with the tarball location /path/to/exploded/tarball with registry myreg.io and repo 'myrepo'
   $0 -d -t myreg.io -l /path/to/exploded/tarball -r myrepo
+
+  # List out the Verrazzano components in the default BOM file
+  $0 -d -t myreg.io -o
+
+  # List out the Verrazzano components in the specified BOM file
+  $0 -d -t myreg.io -o -b /path/to/my-bom.json
+
+  # Processes all Verrazzano images *except* verrazzano-platform-operator and verrazzano-application-operator
+  $0 -t myreg.io -r 'myrepo/user1' -b /path/to/my-bom.json -e verrazzano-platform-operator -e verrazzano-application-operator
+
+  # Processes *only* the images for the Verrazzano components cert-manager and istio
+  $0 -t myreg.io -r 'myrepo/user1' -b /path/to/my-bom.json -i cert-manager -i istio
+
 """
   exit ${ec}
 }
