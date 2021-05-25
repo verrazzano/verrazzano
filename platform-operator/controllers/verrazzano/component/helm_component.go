@@ -5,6 +5,7 @@ package component
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"go.uber.org/zap"
 	"io"
@@ -12,6 +13,8 @@ import (
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
 
 // helmComponent struct needed to implement a component
 type helmComponent struct {
@@ -28,11 +31,22 @@ type helmComponent struct {
 	// Upgrade is ignored
 	ignoreNamespaceOverride bool
 
+	// ignoreImageOverrides bool indicates that the image overrides processing should be ignored
+	// This should only be set to true if the component doesn't have images (like istio-base) in
+	// which case it is not in the bom
+	ignoreImageOverrides bool
+
 	// valuesFile is the helm chart values override file
 	valuesFile string
 
 	// preUpgradeFunc is an optional function to run before upgrading
 	preUpgradeFunc preUpgradeFuncSig
+
+	// appendOverridesFunc is an optional function get additional override values
+	appendOverridesFunc appendOverridesSig
+
+	// resolveNamespaceFunc is an optional function to process the namespace name
+	resolveNamespaceFunc resolveNamespaceSig
 }
 
 // Verify that helmComponent implements Component
@@ -44,25 +58,36 @@ type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releas
 // upgradeFuncSig is needed for unit test override
 type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile []string) (stdout []byte, stderr []byte, err error)
 
+// appendOverrides is needed for some components, like keycloak, which generated special overrides.
+type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, kvs []keyValue, ) ([]keyValue, error)
+
+// resolveNamespaceSig is a function needed for special namespace processing
+type resolveNamespaceSig func(ns string) string
+
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
+
+// UpgradePrehooksEnabled is needed so that higher level units tests can disable as needed
+var UpgradePrehooksEnabled = true
 
 // Name returns the component name
 func (h helmComponent) Name() string {
 	return h.releaseName
 }
 
-// UpgradePrehooksEnabled is needed so that higher level units tests can disable as needed
-var UpgradePrehooksEnabled = true
-
 // Upgrade is done by using the helm chart upgrade command.   This command will apply the latest chart
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
 func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string) error {
+	// Resolve the namespace
 	namespace := ns
+	if h.resolveNamespaceFunc != nil {
+		namespace = h.resolveNamespaceFunc(namespace)
+	}
 	if h.ignoreNamespaceOverride {
 		namespace = h.chartNamespace
 	}
+
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(h.releaseName, namespace)
 	if err != nil {
@@ -81,16 +106,33 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 		}
 	}
 
+	// Add the overrides file specified in the helm component.  These are typically the
+	// files in helm_config/overrides
 	overrideFiles := []string{}
 	if h.valuesFile != "" {
 		overrideFiles = append(overrideFiles, h.valuesFile)
 	}
+	// Optionally create a second override file.  This will contain both image overrides and any additional
+	// overrides required by a component.
 
-	// If there are image overrides the get them and write to an override file
-	kvs, err := getImageOverrides(h.releaseName)
-	if err != nil {
-		return err
+	// Get image overrides unless opt out
+	var kvs []keyValue
+	if !h.ignoreImageOverrides {
+		kvs, err = getImageOverrides(h.releaseName)
+		if err != nil {
+			return err
+		}
 	}
+	// Append any additional overrides for the component (see keycloak.go for example)
+	if h.appendOverridesFunc != nil {
+		kvs, err = h.appendOverridesFunc(log, h.releaseName, namespace, h.chartDir, kvs)
+		if err != nil {
+			return err
+		}
+	}
+
+	// If there are overrides the write them to a file and add that file
+	// to the array of override files
 	if len(kvs) > 0 {
 		// Create and populate the image override file.
 		f, err := ioutil.TempFile("", "vz-images")
@@ -110,7 +152,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 		overrideFiles = append(overrideFiles, f.Name())
 	}
 
-	// Do the upgrade, passing in the override files
+	// Do the upgrade
 	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, overrideFiles)
 	return err
 }

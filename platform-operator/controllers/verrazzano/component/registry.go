@@ -23,6 +23,7 @@ func GetComponents() []Component {
 			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
+			ignoreImageOverrides:    true,
 		},
 		helmComponent{
 			releaseName:             "istiod",
@@ -80,7 +81,13 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "rancher-values.yaml"),
 		},
-		Verrazzano{},
+		helmComponent{
+			releaseName:             "verrazzano",
+			chartDir:                filepath.Join(vzChartsDir, "verrazzano"),
+			chartNamespace:          constants.VerrazzanoSystemNamespace,
+			ignoreNamespaceOverride: true,
+			resolveNamespaceFunc:    resolveVerrazzanoNamespace,
+		},
 		helmComponent{
 			releaseName:             "coherence-operator",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
@@ -122,6 +129,7 @@ func GetComponents() []Component {
 			chartNamespace:          "keycloak",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
+			appendOverridesFunc:     appendKeycloakOverrides,
 		},
 	}
 }
