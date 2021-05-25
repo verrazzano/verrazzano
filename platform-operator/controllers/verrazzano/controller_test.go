@@ -1111,7 +1111,6 @@ func TestConfigMapGetError(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-
 	// Expect a call to get the ConfigMap - return a failure error
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
