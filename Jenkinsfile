@@ -189,6 +189,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} make generate-bom
                    """
             }
