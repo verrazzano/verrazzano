@@ -77,9 +77,13 @@ type BomImage struct {
 	// ImageName specifies the name of the image tag, such as `0.46.0-20210510134749-abc2d2088`
 	ImageTag string `json:"tag"`
 
+	// HelmPathKey is the helm path key which identifies the image name.  There are a variety
+	// of keys used by the different helm charts, such as `api.imageName`.
+	HelmPathKey string `json:"helmPath"`
+
 	// HelmImageNameKey is the helm template key which identifies the image name.  There are a variety
 	// of keys used by the different helm charts, such as `api.imageName`.  The default is `image`
-	HelmImageNameKey string `json:"helmPath"`
+	HelmImageNameKey string `json:"helmImagePath"`
 
 	// HelmTagNameKey is the helm template key which identifies the image tag.  There are a variety
 	// of keys used by the different helm charts, such as `api.imageVersion`.  The default is `tag`
@@ -189,8 +193,18 @@ func (b *Bom) buildOverrides(subComponentName string) ([]keyValue, error) {
 			bldr.WriteString(tagSep)
 			bldr.WriteString(imageBom.ImageTag)
 		}
+
+		// Note, either HelmPathKey or HelmImageNameKey is used.  If they
+		// are both missing then default to "image"
+		imageKey := imageBom.HelmImageNameKey
+		if imageKey == "" {
+			imageKey = imageBom.HelmPathKey
+		}
+		if imageKey == "" {
+			imageKey = "image"
+		}
 		kvs = append(kvs, keyValue{
-			key:   imageBom.HelmImageNameKey,
+			key:   imageKey,
 			value: bldr.String(),
 		})
 	}

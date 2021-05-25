@@ -150,6 +150,10 @@
               "tag": "v2.5.7-20210407205410-1c7b39d0c",
               "helmPath": "rancherImage",
               "helmTagPath": "rancherImageTag"
+            },
+            {
+              "image": "rancher-agent",
+              "tag": "v2.5.7-20210407205410-1c7b39d0c"
             }
           ]
         },
@@ -210,7 +214,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "0.15.0-20210512224353-617a0c0",
+              "tag": "0.15.0-20210521020822-9b87485",
               "helmPath": "monitoringOperator.imageName",
               "helmTagPath": "monitoringOperator.imageVersion"
             },
@@ -236,7 +240,7 @@
             },
             {
               "image": "verrazzano-monitoring-instance-eswait",
-              "tag": "0.15.0-20210510204900-4a0dd4f",
+              "tag": "0.15.0-20210521020822-9b87485",
               "helmPath": "monitoringOperator.esWaitImage"
             },
             {
@@ -321,8 +325,8 @@
           "name": "verrazzano-application-operator",
           "images": [
             {
-              "image": "verrazzano-application-operator",
-              "tag": "0.15.0-20210513184258-dd739a17",
+              "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
+              "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
               "helmPath": "image"
             },
             {
