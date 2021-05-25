@@ -97,6 +97,59 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 			"api.imageVersion": "0.46.0-20210510134749-abc2d2088",
 		},
 	},
+	"monitoring-init-images": {
+		kvs: map[string]string{
+			"monitoringOperator.prometheusInitImage": "ghcr.io/oracle/oraclelinux:7-slim",
+			"monitoringOperator.esInitImage": "ghcr.io/oracle/oraclelinux:7.8",
+		},
+	},
+	"oam-kubernetes-runtime": {
+		kvs: map[string]string{
+			"image.repository": "ghcr.io/verrazzano/oam-kubernetes-runtime",
+			"image.tag": "v0.3.0-20210222205541-9e8d4fb",
+		},
+	},
+	// todo This is a special case since ENV vars are used - need to fix this
+	//
+	// "verrazzano-application-operator": {
+	//	kvs: map[string]string{
+	//		"image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE:VERRAZZANO_APPLICATION_OPERATOR_TAG",
+	//		"fluentdImage": "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2",
+	//	},
+	//},
+	"weblogic-operator": {
+		kvs: map[string]string{
+			"image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.2.2",
+		},
+	},
+	"coherence-operator": {
+		kvs: map[string]string{
+			"image": "ghcr.io/oracle/coherence-operator:3.1.3",
+		},
+	},
+	"mysql": {
+		kvs: map[string]string{
+			"image": "ghcr.io/verrazzano/mysql",
+			"imageTag": "8.0.20",
+		},
+	},
+	"oraclelinux": {
+		kvs: map[string]string{
+			"busybox.image": "ghcr.io/oracle/oraclelinux",
+			"busybox.tag": "7-slim",
+		},
+	},
+	"keycloak": {
+		kvs: map[string]string{
+			"keycloak.image.repository": "ghcr.io/verrazzano/keycloak",
+			"keycloak.image.tag": "10.0.1-20201016212759-30d98b0",
+		},
+	},
+	"keycloak-oracle-theme": {
+		kvs: map[string]string{
+			"image": "ghcr.io/verrazzano/keycloak-oracle-theme:0.15.0-20210510085250-01638c7",
+		},
+	},
 }
 
 // TestFakeBom tests loading a fake bom json into a struct
