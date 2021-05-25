@@ -20,6 +20,8 @@ IMAGES_DIR=
 INCREMENTAL_CLEAN=false
 CLEAN_ALL=false
 DRY_RUN=false
+INCLUDE_COMPONENTS=
+EXCLUDE_COMPONENTS=
 
 function usage() {
   ec=${1:-0}
@@ -36,9 +38,12 @@ Options:
  -r <repository-path>   Repository name/prefix for each image, e.g \"path/to/my/image\"; if not specified the default will be used according to the BOM
  -b <path>              Bill of materials (BOM) of Verrazzano components; if not specified, defaults to ./verrazzano-bom.json
  -l <archive-dir>       Use the specified directory to load local Docker image tarballs from instead of pulling from
+ -i <component>         Include the specified component in the operation (can be repeated for multiple components)
+ -e <component>         Exclude the specified component from the operation (can be repeated for multiple components)
  -c                     Clean all local images/tags
  -z                     Incrementally clean each local image after it has been successfully pushed
  -d                     Dry-run only, do not perform Docker operations
+ -o                     List components
 
 Examples:
 
@@ -75,6 +80,7 @@ trap exit_trap EXIT
 function run_docker() {
   if [ "${DRY_RUN}" != "true" ]; then
     docker_out=$(docker $* 2>&1)
+    local result=$?
     denied=$(echo "${docker_out}" | grep "permission_denied")
     if [ -n "$denied" ]; then
        echo """
@@ -87,8 +93,12 @@ Please log into the target registry and try again.
 
       """
       usage 1
+    elif [ "${result}" != "0" ]; then
+      echo ${docker_out}
     fi
+    return ${result}
   fi
+  return 0
 }
 
 # Wrapper for Docker pull
@@ -291,12 +301,38 @@ function process_local_archives() {
   done
 }
 
+# Returns 0 if the specified component is in the excludes list, 1 otherwise
+function is_component_excluded() {
+    local seeking=$1
+    local excludes=(${EXCLUDE_COMPONENTS})
+    local in=1
+    for comp in "${excludes[@]}"; do
+        if [[ "$comp" == "$seeking" ]]; then
+            in=0
+            break
+        fi
+    done
+    return $in
+}
+
 # Main driver for pulling/tagging/pushing images based on the Verrazzano bill of materials (BOM)
 function process_images_from_bom() {
   # Loop through registry components
   echo "Using image registry ${BOM_FILE}"
-  local components=($(list_components))
+
+  local components=(${INCLUDE_COMPONENTS})
+  if [ "${#components[@]}" == "0" ]; then
+    components=($(list_components))
+  fi
+
+  echo "Components: ${components[*]}"
+
+#  local components=($(list_components))
   for component in "${components[@]}"; do
+    if is_component_excluded ${component} ; then
+      echo "Component ${component} excluded"
+      continue
+    fi
     local subcomponents=($(list_subcomponents ${component}))
     for subcomp in "${subcomponents[@]}"; do
       echo "Processing images for Verrazzano subcomponent ${component}/${subcomp}"
@@ -326,6 +362,14 @@ function process_images_from_bom() {
   done
 }
 
+output_bom_components() {
+  echo """
+Verrazzano components in BOM file ${BOM_FILE}:
+
+$(list_components)
+  """
+}
+
 # Main fn
 function main() {
   if [ "$USELOCAL" != "0" ]; then
@@ -340,7 +384,7 @@ function main() {
   fi
 }
 
-while getopts 'hzcdb:t:f:r:l:' opt; do
+while getopts 'hzcdob:t:f:r:l:i:e:' opt; do
   case $opt in
   d)
     DRY_RUN=true
@@ -350,6 +394,14 @@ while getopts 'hzcdb:t:f:r:l:' opt; do
     ;;
   d)
     DB_DUMP=$OPTARG
+    ;;
+  e)
+    echo "Exclude component: ${OPTARG}"
+    EXCLUDE_COMPONENTS="${EXCLUDE_COMPONENTS} ${OPTARG}"
+    ;;
+  i)
+    echo "Include component: ${OPTARG}"
+    INCLUDE_COMPONENTS="${INCLUDE_COMPONENTS} ${OPTARG}"
     ;;
   r)
     TO_REPO=$OPTARG
@@ -365,6 +417,10 @@ while getopts 'hzcdb:t:f:r:l:' opt; do
     ;;
   c)
     CLEAN_ALL=true
+    ;;
+  o)
+    output_bom_components
+    exit 0
     ;;
   l)
     USELOCAL=1
