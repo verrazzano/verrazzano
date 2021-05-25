@@ -4,8 +4,12 @@
 package component
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"go.uber.org/zap"
+	"io"
+	"io/ioutil"
+	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -38,7 +42,7 @@ var _ Component = helmComponent{}
 type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
 
 // upgradeFuncSig is needed for unit test override
-type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile []string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
@@ -77,10 +81,48 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 		}
 	}
 
-	// Do the upgrade
-	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, h.valuesFile)
+	// Create and populate the image override file.
+	f, err := ioutil.TempFile("", "vz-images")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+	err = writeImageOverrides(h.releaseName, f)
+	if err != nil {
+		return err
+	}
+	err = f.Close()
+	if err != nil {
+		return err
+	}
+
+	// Do the upgrade, passing in the override files
+	overrideFiles := []string {
+		h.valuesFile,
+		f.Name(),
+	}
+	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, overrideFiles)
 	return err
 }
+
+// Write the image key:value pairs to the override file
+func writeImageOverrides(subcomponentName string, w io.Writer) error {
+	// Get the key value pair
+	bom, err := NewBom(DefaultBomFilePath())
+	if err != nil {
+		return err
+	}
+	kvs, err := bom.buildImageOverrides(subcomponentName)
+	if err != nil {
+		return err
+	}
+	// Override entries are in the helm format of key: value
+	for _, kv := range kvs {
+		io.WriteString(w, fmt.Sprintf("%s: %s\n",kv.key, kv.value))
+	}
+	return nil
+}
+
 
 func setUpgradeFunc(f upgradeFuncSig) {
 	upgradeFunc = f

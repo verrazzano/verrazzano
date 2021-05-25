@@ -18,8 +18,8 @@ type testSubComponent struct {
 
 // testSubcomponetHelmKeyValues are the key/values pairs that will be passed to helm as overrides.
 // The map key is the subcomponent name.
-// This definitive list of subcomponents is in the verrazzano-bom.json file.  Keep this map in the
-// same order as that JSON for review purposes.
+// This list of subcomponents is in the verrazzano-bom.json file and it must stay in sync with that file
+// Keep this map in the same order as that JSON for review purposes.
 var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 	"verrazzano-platform-operator": {
 		kvs: map[string]string{
@@ -57,19 +57,19 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 	"istiod": {
 		kvs: map[string]string{
 			"pilot.image":        "ghcr.io/verrazzano/pilot:1.7.3",
-			"global.proxy.image": "ghcr.io/verrazzano/proxyv2",
+			"global.proxy.image": "proxyv2",
 			"global.tag":         "1.7.3",
 		},
 	},
 	"istio-ingress": {
 		kvs: map[string]string{
-			"global.proxy.image": "ghcr.io/verrazzano/proxyv2",
+			"global.proxy.image": "proxyv2",
 			"global.tag":         "1.7.3",
 		},
 	},
 	"istio-egress": {
 		kvs: map[string]string{
-			"global.proxy.image": "ghcr.io/verrazzano/proxyv2",
+			"global.proxy.image": "proxyv2",
 			"global.tag":         "1.7.3",
 		},
 	},
@@ -90,7 +90,7 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 			"verrazzanoOperator.nodeExporterImage":   "ghcr.io/verrazzano/node-exporter:1.0.0-20210513143333-a470f06",
 			"monitoringOperator.imageName":           "ghcr.io/verrazzano/verrazzano-monitoring-operator",
 			"monitoringOperator.imageVersion":        "0.15.0-20210521020822-9b87485",
-			"monitoringOperator.istioProxyImage":     "ghcr.io/verrazzano/proxyv2:1.7.3",
+			"monitoringOperator.istioProxyImage":     "proxyv2:1.7.3",
 			"monitoringOperator.grafanaImage":        "ghcr.io/verrazzano/grafana:v6.4.4",
 			"monitoringOperator.prometheusImage":     "ghcr.io/verrazzano/prometheus:v2.13.1",
 			"monitoringOperator.esImage":             "ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1",
@@ -159,6 +159,8 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 		},
 	},
 }
+// This is the real BOM file path needed for unit tests
+const TestRealBomFilePath = "../../../verrazzano-bom.json"
 
 // TestFakeBom tests loading a fake bom json into a struct
 // GIVEN a json file
@@ -166,7 +168,7 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 // THEN the correct verrazzano bom is returned
 func TestFakeBom(t *testing.T) {
 	assert := assert.New(t)
-	bom, err := NewBom("testdata/test_bom.json")
+	bom, err := NewBom("testdata/sample_bom.json")
 	assert.NoError(err, "error calling NewBom")
 	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
 	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")
@@ -174,90 +176,51 @@ func TestFakeBom(t *testing.T) {
 	validateImages(assert, &bom, true)
 }
 
-// TestReadBom tests loading the real bom json into a struct
+// TestRealBom tests loading the real bom json into a struct
 // GIVEN a json file
 // WHEN I call loadBom
 // THEN the correct verrazzano bom is returned
-func TestReadBom(t *testing.T) {
+func TestRealBom(t *testing.T) {
 	assert := assert.New(t)
-	bom, err := NewBom("../../../verrazzano-bom.json")
+	bom, err := NewBom(TestRealBomFilePath)
 	assert.NoError(err, "error calling NewBom")
 	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
 	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")
 
+	// Ignore the values in the real bom file since some will change every build
 	validateImages(assert, &bom, false)
 }
 
-// validateImages validates the images in the subcomponents.  Ignore the image value is need when checking the real bom
-// since the values change.
-func validateImages(assert *assert.Assertions, bom *Bom, ignoreImageVal bool) {
-
+// validateImages validates the images in the subcomponents.
+// Optionall check the image value.
+func validateImages(assert *assert.Assertions, bom *Bom, checkImageVal bool) {
 	// Validate each component
 	for _, comp := range bom.bomDoc.Components {
 		for _, sub := range comp.SubComponents {
-			// Get the expected key/value pair overrides
+			// Get the expected key/value pair overrides for this subcomponent
 			expectedSub := testSubcomponetHelmKeyValues[sub.Name]
 			if expectedSub == nil {
 				fmt.Println("Skipping subcomponent " + sub.Name)
 				continue
 			}
-			if sub.Name == "rancher" {
-				fmt.Println("debug")
-			}
-
-			// Get the key value override list for this subcomponent
-			foundKvs, err := bom.buildOverrides(sub.Name)
-			assert.NoError(err, "error calling buildOverrides")
+			//
+			//if sub.Name == "ingress-controller" {
+			//	fmt.Print("deb")
+			//}
+			//
+			// Get the actual key value override list for this subcomponent
+			foundKvs, err := bom.buildImageOverrides(sub.Name)
+			assert.NoError(err, "error calling buildImageOverrides")
 			assert.Equal(len(expectedSub.kvs), len(foundKvs), "Incorrect override list len for "+sub.Name)
 
-			// Loop through the found kv pairs and make sure they match
+			// Loop through the found kv pairs and make sure the actual kvs match the expected
 			for _, kv := range foundKvs {
 				expectedVal, ok := expectedSub.kvs[kv.key]
 				assert.True(ok, "Found unexpected key in override list for "+sub.Name)
-				if !ignoreImageVal {
+				if checkImageVal {
 					assert.Equal(expectedVal, kv.value, "Found unexpected value in override list for "+sub.Name)
-
 				}
 			}
 		}
 	}
 }
-
-// TestFakeBom tests loading a fake bom json into a struct
-// GIVEN a json file
-// WHEN I call loadBom
-// THEN the correct verrazzano bom is returned
-//func TestFakeBom(t *testing.T) {
-//	assert := assert.New(t)
-//	bom, err := NewBom("testdata/test_bom.json")
-//	assert.NoError(err, "error calling NewBom")
-//	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
-//	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")
-//
-//	// Validate each component
-//	for _, comp := range bom.bomDoc.Components {
-//		for _, sub := range comp.SubComponents {
-//			// Get the expected key/value pair overrides
-//			expectedSub := testSubcomponetHelmKeyValues[sub.Name]
-//			if expectedSub == nil {
-//				fmt.Println("Skipping subcomponent " + sub.Name)
-//				continue
-//			}
-//			if sub.Name == "rancher" {
-//				fmt.Println("debug")
-//			}
-//
-//			// Get the key value override list for this subcomponent
-//			foundKvs, err := bom.buildOverrides(sub.Name)
-//			assert.NoError(err, "error calling buildOverrides")
-//			assert.Equal(len(expectedSub.kvs), len(foundKvs), "Incorrect override list len for "+sub.Name)
-//
-//			// Loop through the found kv pairs and make sure they match
-//			for _, kv := range foundKvs {
-//				expectedVal, ok := expectedSub.kvs[kv.key]
-//				assert.True(ok, "Found unexpected key in override list for "+sub.Name)
-//				assert.Equal(expectedVal, kv.value, "Found unexpected key value in override list for "+sub.Name)
-//			}
-//		}
-//	}
-//}

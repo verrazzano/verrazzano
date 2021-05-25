@@ -12,9 +12,11 @@ import (
 	"strings"
 )
 
-const helmImageKey = "image"
-const helmTagKey = "tag"
+const helmDefaultImageKey = "image"
 const defaultBomFilename = "verrazzano-bom.json"
+
+// testBomFilePath needed for unit test
+var testBomFilePath string
 
 type BomFuncs interface {
 	init(path string) error
@@ -77,31 +79,37 @@ type BomImage struct {
 	// ImageName specifies the name of the image tag, such as `0.46.0-20210510134749-abc2d2088`
 	ImageTag string `json:"tag"`
 
+	// HelmRegistryPathKey is the helm template key which identifies the image registry.  This is not
+	// normally specified.  An example is `image.registry` in external-dns.  The default is empty string
+	HelmRegistryPathKey string `json:"helmRegPath"`
+
+	// HelmRepoPathKey is the helm template key which identifies the image repo.
+	HelmRepoPathKey string `json:"helmRepoPath"`
+
+	// HelmImagePathKey is the helm template key which identifies the image name.  There are a variety
+	// of keys used by the different helm charts, such as `api.imageName`.  The default is `image`
+	HelmImagePathKey string `json:"helmImagePath"`
+
+	// HelmTagPathKey is the helm template key which identifies the image tag.  There are a variety
+	// of keys used by the different helm charts, such as `api.imageVersion`.  The default is `tag`
+	HelmTagPathKey string `json:"helmTagPath"`
+
 	// HelmPathKey is the helm path key which identifies the image name.  There are a variety
 	// of keys used by the different helm charts, such as `api.imageName`.
 	HelmPathKey string `json:"helmPath"`
-
-	// HelmImageNameKey is the helm template key which identifies the image name.  There are a variety
-	// of keys used by the different helm charts, such as `api.imageName`.  The default is `image`
-	HelmImageNameKey string `json:"helmImagePath"`
-
-	// HelmTagNameKey is the helm template key which identifies the image tag.  There are a variety
-	// of keys used by the different helm charts, such as `api.imageVersion`.  The default is `tag`
-	HelmTagNameKey string `json:"helmTagPath"`
-
-	// HelmRegistryNameKey is the helm template key which identifies the image registry.  This is not
-	// normally specified.  An example is `image.registry` in external-dns.  The default is empty string
-	HelmRegistryNameKey string `json:"helmRegPath"`
 }
 
 // keyVal defines the key, value pair used to override a single helm value
 type keyValue struct {
-	key string
+	key   string
 	value string
 }
 
 // DefaultBomFilePath returns the default path of the bom file
 func DefaultBomFilePath() string {
+	if testBomFilePath != "" {
+		return testBomFilePath
+	}
 	return filepath.Join(config.GetPlatformDir(), defaultBomFilename)
 }
 
@@ -114,7 +122,7 @@ func NewBom(bomPath string) (Bom, error) {
 	bom := Bom{
 		subComponentMap: make(map[string]*BomSubComponent),
 	}
-	err =  bom.init(string(jsonBom))
+	err = bom.init(string(jsonBom))
 	if err != nil {
 		return Bom{}, err
 	}
@@ -123,7 +131,7 @@ func NewBom(bomPath string) (Bom, error) {
 
 // Initialize the BomInfo.  Load the Bom from the JSON file and build
 // a map of subcomponents
-func (b *Bom) init(jsonBom string) (error) {
+func (b *Bom) init(jsonBom string) error {
 	// Convert the json into a to bom
 	if err := json.Unmarshal([]byte(jsonBom), &b.bomDoc); err != nil {
 		return err
@@ -140,73 +148,77 @@ func (b *Bom) init(jsonBom string) (error) {
 
 // Build the image overrides array for the component.  Each override has a
 // Helm key and value
-func (b *Bom) buildOverrides(subComponentName string) ([]keyValue, error) {
+func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 	const slash = "/"
 	const tagSep = ":"
 
 	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
-		return nil, errors.New("unknown subcomponent")
+		return nil, errors.New("unknown subcomponent " + subComponentName)
 	}
 
 	// Loop through the images used by this subcomponent, building
 	// the list of key/value pairs.  At the very least, this will build
 	// a single value for the fully qualified image name in the format of
 	// registry/repository/image.tag
-	var kvs  []keyValue
+	var kvs []keyValue
 	for _, imageBom := range sc.Images {
+		fullImageBldr := strings.Builder{}
 
-		// build optional helm tag field
-		appendTag := true
-		if imageBom.HelmTagNameKey != "" {
-			appendTag = false
-			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmTagNameKey,
-				value: imageBom.ImageTag,
-			})
-		}
 		// Normally, the registry is the first segment of the image name, for example "ghcr.io/"
 		// However, there are exceptions like in external-dns, where the registry is a separate helm field,
-		// in which case the registery is omitted from the image full name.
-		// build optional helm registry field
-		prefixRegistry := true
-		if imageBom.HelmRegistryNameKey != "" {
-			prefixRegistry = false
+		// in which case the registry is omitted from the image full name.
+		if imageBom.HelmRegistryPathKey != "" {
 			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmRegistryNameKey,
+				key:   imageBom.HelmRegistryPathKey,
 				value: b.bomDoc.Registry,
 			})
-		}
-		// Build up the image name, which can be in one of the 3 formats:
-		// registry/repository/image.tag
-		// registry/repository/image
-		// /repository/image.tag
-		bldr := strings.Builder{}
-		if prefixRegistry {
-			bldr.WriteString(b.bomDoc.Registry)
-			bldr.WriteString(slash)
-		}
-		bldr.WriteString(sc.Repository)
-		bldr.WriteString(slash)
-		bldr.WriteString(imageBom.ImageName)
-		if appendTag {
-			bldr.WriteString(tagSep)
-			bldr.WriteString(imageBom.ImageTag)
+		} else {
+			fullImageBldr.WriteString(b.bomDoc.Registry)
+			fullImageBldr.WriteString(slash)
 		}
 
-		// Note, either HelmPathKey or HelmImageNameKey is used.  If they
-		// are both missing then default to "image"
-		imageKey := imageBom.HelmImageNameKey
-		if imageKey == "" {
-			imageKey = imageBom.HelmPathKey
+		// Either write the repo name key value, or append it to the full image path
+		if imageBom.HelmRepoPathKey != "" {
+			kvs = append(kvs, keyValue{
+				key:   imageBom.HelmRepoPathKey,
+				value: sc.Repository,
+			})
+		} else {
+			fullImageBldr.WriteString(sc.Repository)
+			fullImageBldr.WriteString(slash)
 		}
-		if imageKey == "" {
-			imageKey = "image"
+
+		// Either write the image name key value, or append it to the full image path
+		if imageBom.HelmImagePathKey != "" {
+			kvs = append(kvs, keyValue{
+				key:   imageBom.HelmImagePathKey,
+				value: imageBom.ImageName,
+			})
+		} else {
+			fullImageBldr.WriteString(imageBom.ImageName)
 		}
-		kvs = append(kvs, keyValue{
-			key:   imageKey,
-			value: bldr.String(),
-		})
+
+		// Either write the tag name key value, or append it to the full image path
+		if imageBom.HelmTagPathKey != "" {
+			kvs = append(kvs, keyValue{
+				key:   imageBom.HelmTagPathKey,
+				value: imageBom.ImageTag,
+			})
+		} else {
+			fullImageBldr.WriteString(tagSep)
+			fullImageBldr.WriteString(imageBom.ImageTag)
+		}
+
+		fullImagePath := fullImageBldr.String()
+
+		// If the image path key is present the create the kv with the full image path
+		if imageBom.HelmPathKey != "" {
+			kvs = append(kvs, keyValue{
+				key:   imageBom.HelmPathKey,
+				value: fullImagePath,
+			})
+		}
 	}
 
 	return kvs, nil

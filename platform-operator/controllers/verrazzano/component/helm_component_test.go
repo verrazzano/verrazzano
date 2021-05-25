@@ -39,6 +39,8 @@ func TestGetName(t *testing.T) {
 func TestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
+	testBomFilePath = TestRealBomFilePath
+
 	comp := helmComponent{
 		releaseName:             "release1",
 		chartDir:                "chartDir",
@@ -57,7 +59,7 @@ func TestUpgrade(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFiles []string) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "release1" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
@@ -67,7 +69,7 @@ func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, c
 	if namespace != "chartNS" {
 		return []byte("error"), []byte(""), errors.New("Invalid chart namespace")
 	}
-	if overwriteYaml != "valuesFile" {
+	if overrideFiles[0] != "valuesFile" {
 		return []byte("error"), []byte(""), errors.New("Invalid values file")
 	}
 	return []byte("success"), []byte(""), nil

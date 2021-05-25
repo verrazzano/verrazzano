@@ -39,7 +39,7 @@ func (v Verrazzano) Name() string {
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
 func (v Verrazzano) Upgrade(log *zap.SugaredLogger, _ clipkg.Client, namespace string) error {
-	_, _, err := helm.Upgrade(log, vzReleaseName, resolveNamespace(namespace), config.GetHelmChartsDir(), "")
+	_, _, err := helm.Upgrade(log, vzReleaseName, resolveNamespace(namespace), config.GetHelmChartsDir(), nil)
 	return err
 }
 
