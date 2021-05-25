@@ -173,6 +173,7 @@ data:
       exclude_path ["/var/log/containers/fluentd*_verrazzano-system_fluentd*.log"]
       tag kubernetes.*
       read_from_head true
+      # @log_level debug
       <parse>
         @type multi_format
         <pattern>
@@ -210,11 +211,31 @@ data:
       </record>
     </filter>
 
-    # parse verrazzano operators' json log
-    <filter kubernetes.**_verrazzano-**_**operator**>
+    # parse sidecar stdout
+    <filter kubernetes.**_fluentd-stdout-sidecar-**>
       @type parser
-      reserve_data true
+      @id stdout_log_text
       key_name log
+      reserve_data true
+      ignore_key_not_exist true
+      emit_invalid_record_to_error true
+      <parse>
+         @type multi_format
+         <pattern>
+           format /^(?<time>[^ ]* [^ ]* [^ ]*) (?<flags>[^\s]+): (?<log>[\s\S]*)$/
+         </pattern>
+         <pattern>
+            format none
+         </pattern>
+      </parse>
+    </filter>
+
+    # parse log record
+    <filter kubernetes.**>
+      @type parser
+      @id parse_log_to_json
+      key_name log
+      reserve_data true
       ignore_key_not_exist true
       emit_invalid_record_to_error true
       <parse>
@@ -223,7 +244,6 @@ data:
             format json
             time_format %Y-%m-%dT%H:%M:%S.%NZ
          </pattern>
-         # verrazzano-application-operator and weblogic-operator have none-format warnings
          <pattern>
             format none
          </pattern>
@@ -284,7 +304,7 @@ data:
 
       template_file /fluentd/etc/elasticsearch-template-verrazzano.json
       template_name elasticsearch-template-verrazzano.json
-      template_overwrite true
+      template_overwrite false
 
       # time_as_integer needs to be set to false in order for Fluentd
       # to convert timestamps to Fluent::EventTime objects instead of
@@ -315,6 +335,7 @@ data:
       user "#{ENV['ELASTICSEARCH_USER']}"
       password "#{ENV['ELASTICSEARCH_PASSWORD']}"
       bulk_message_request_threshold 16M
+      suppress_type_name true
       # 2 ^ 31
       request_timeout 2147483648
       <buffer>

@@ -27,6 +27,7 @@ const installMode = "INSTALL"
 // NewJob returns a job resource for installing Verrazzano
 func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	var annotations map[string]string = nil
+	var backoffLimit int32 = 0
 	mode := installMode
 	if jobConfig.DryRun {
 		mode = k8s.NoOpMode
@@ -37,7 +38,6 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	imageRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
 	appOperatorImage := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
-
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        jobConfig.JobName,
@@ -46,6 +46,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 			Annotations: annotations,
 		},
 		Spec: batchv1.JobSpec{
+			BackoffLimit: &backoffLimit,
 			// For now, jobs will use the default backoffLimit of 6; we will eventually respawn jobs when they fail,
 			// but for now this will allow some limited amount of retries when the pods fail.
 			Template: corev1.PodTemplateSpec{
@@ -100,7 +101,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							},
 						},
 					}},
-					RestartPolicy:      corev1.RestartPolicyOnFailure,
+					RestartPolicy:      corev1.RestartPolicyNever,
 					ServiceAccountName: jobConfig.ServiceAccountName,
 					Volumes: []corev1.Volume{
 						{

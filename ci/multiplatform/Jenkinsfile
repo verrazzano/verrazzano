@@ -9,7 +9,7 @@ def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "
 Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,3).replace('-','')
 def dns_zone_ocid = 'dummy'
-
+def OKE_CLUSTER_PREFIX = ""
 
 pipeline {
     options {
@@ -103,6 +103,7 @@ pipeline {
         OCI_DNS_ZONE_NAME="z${zoneId}." + "${OCI_DNS_ZONE_SUFFIX}"
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
     }
 
     stages {
@@ -162,6 +163,11 @@ pipeline {
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+
+                    if (params.TEST_ENV != "kind") {
+                        // derive the prefix for the OKE cluster
+                        OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
+                    }
                 }
             }
         }
@@ -189,7 +195,7 @@ pipeline {
                                         else
                                             echo "Create OKE cluster"
                                             cd ${GO_REPO_PATH}/verrazzano
-                                            TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} ./tests/e2e/config/scripts/create_oke_cluster.sh
+                                            TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} ./tests/e2e/config/scripts/create_oke_cluster.sh
                                         fi
                                     """
                                     }
@@ -461,7 +467,7 @@ pipeline {
                   make delete-cluster
                 else
                   cd ${GO_REPO_PATH}/verrazzano
-                  TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} ./tests/e2e/config/scripts/delete_oke_cluster.sh
+                  TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} ./tests/e2e/config/scripts/delete_oke_cluster.sh
                 fi
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"

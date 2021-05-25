@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	cluv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	"istio.io/api/type/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -53,7 +54,7 @@ func TestDeleteOnePolicyOneNamespace(t *testing.T) {
 			Placement: cluv1alpha1.Placement{
 				Clusters: []cluv1alpha1.Cluster{
 					{
-						Name: "local",
+						Name: constants.DefaultClusterName,
 					},
 				},
 			},
@@ -127,7 +128,7 @@ func TestDeleteTwoPoliciesOneNamespace(t *testing.T) {
 			Placement: cluv1alpha1.Placement{
 				Clusters: []cluv1alpha1.Cluster{
 					{
-						Name: "local",
+						Name: constants.DefaultClusterName,
 					},
 				},
 			},
@@ -316,7 +317,7 @@ func TestDeleteThreePoliciesTwoNamespace(t *testing.T) {
 			Placement: cluv1alpha1.Placement{
 				Clusters: []cluv1alpha1.Cluster{
 					{
-						Name: "local",
+						Name: constants.DefaultClusterName,
 					},
 				},
 			},

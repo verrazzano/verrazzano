@@ -17,15 +17,18 @@ require (
 	github.com/jetstack/cert-manager v0.13.1
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
+	github.com/spf13/cobra v1.1.1
+	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.25
 	go.uber.org/zap v1.16.0
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	istio.io/api v0.0.0-20200911191701-0dc35ad5c478
 	istio.io/client-go v0.0.0-20200807182027-d287a5abb594
-	k8s.io/api v0.19.0
+	k8s.io/api v0.21.1
 	k8s.io/apiextensions-apiserver v0.19.0
-	k8s.io/apimachinery v0.19.0
+	k8s.io/apimachinery v0.21.1
+	k8s.io/cli-runtime v0.21.1
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/code-generator v0.18.6
 	sigs.k8s.io/controller-runtime v0.6.2
@@ -39,6 +42,7 @@ replace (
 	k8s.io/api => k8s.io/api v0.18.6
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.18.6
 	k8s.io/apimachinery => k8s.io/apimachinery v0.18.6
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.18.6
 	k8s.io/client-go => k8s.io/client-go v0.18.6
 	k8s.io/code-generator => k8s.io/code-generator v0.18.6
 )

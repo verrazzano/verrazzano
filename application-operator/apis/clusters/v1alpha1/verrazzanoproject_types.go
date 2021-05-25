@@ -63,6 +63,7 @@ type VerrazzanoProjectSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=vp;vps
 // +kubebuilder:subresource:status
+// +genclient
 
 // VerrazzanoProject is the Schema for the verrazzanoprojects API
 type VerrazzanoProject struct {
@@ -89,4 +90,9 @@ func init() {
 // GetStatus returns the MultiClusterResourceStatus of this resource
 func (in *VerrazzanoProject) GetStatus() MultiClusterResourceStatus {
 	return in.Status
+}
+
+// GetPlacement returns the Placement of this resource
+func (in *VerrazzanoProject) GetPlacement() Placement {
+	return in.Spec.Placement
 }

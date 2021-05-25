@@ -104,7 +104,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			coherenceJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(coherenceJSON)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
 			return nil
@@ -204,7 +204,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
 			return nil
@@ -315,7 +315,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
@@ -419,7 +419,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	existingFluentdImage := "unit-test-image:existing"
 	existingUpgradeVersion := "existing-upgrade-version"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: existingUpgradeVersion}
-	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdStdoutSidecarName, Image: existingFluentdImage}}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -449,7 +449,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
@@ -512,7 +512,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 	componentName := "unit-test-component"
 	existingFluentdImage := "unit-test-image:existing"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	containers := []corev1.Container{{Name: logging.FluentdContainerName, Image: existingFluentdImage}}
+	containers := []corev1.Container{{Name: logging.FluentdStdoutSidecarName, Image: existingFluentdImage}}
 
 	// simulate the "replicas" field changing to 3
 	replicasFromWorkload := int64(3)
@@ -540,7 +540,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":` + fmt.Sprint(replicasFromWorkload) + `}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
 			return nil
@@ -641,7 +641,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"jvm":{"args": ["` + existingJvmArg + `"]}}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
 			return nil
@@ -739,7 +739,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
-			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
 			return nil

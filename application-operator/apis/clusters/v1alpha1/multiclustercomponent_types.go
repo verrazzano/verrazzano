@@ -58,3 +58,8 @@ func init() {
 func (in *MultiClusterComponent) GetStatus() MultiClusterResourceStatus {
 	return in.Status
 }
+
+// GetPlacement returns the Placement of this resource
+func (in *MultiClusterComponent) GetPlacement() Placement {
+	return in.Spec.Placement
+}

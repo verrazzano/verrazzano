@@ -46,6 +46,7 @@ type MultiClusterResource interface {
 	runtime.Object
 	GetName() string
 	GetNamespace() string
+	GetPlacement() clustersv1alpha1.Placement
 	GetStatus() clustersv1alpha1.MultiClusterResourceStatus
 }
 
@@ -238,7 +239,8 @@ func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Rea
 	return esDetails
 }
 
-// GetClusterName returns the cluster name for a managed cluster, empty string otherwise
+// GetClusterName returns the cluster name for a this cluster, empty string if the cluster
+// name cannot be determined due to an error.
 func GetClusterName(ctx context.Context, rdr client.Reader) string {
 	clusterSecret := corev1.Secret{}
 	err := fetchClusterSecret(ctx, rdr, &clusterSecret)

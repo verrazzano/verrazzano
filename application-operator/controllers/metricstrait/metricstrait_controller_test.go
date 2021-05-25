@@ -98,7 +98,7 @@ func TestMetricsTraitCreatedForContainerizedWorkload(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
 			trait.TypeMeta = k8smeta.TypeMeta{
-				APIVersion: vzapi.GroupVersion.Identifier(),
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
 				Kind:       vzapi.MetricsTraitKind}
 			trait.ObjectMeta = k8smeta.ObjectMeta{
 				Namespace: name.Namespace,
@@ -247,7 +247,7 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
 			trait.TypeMeta = k8smeta.TypeMeta{
-				APIVersion: vzapi.GroupVersion.Identifier(),
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
 				Kind:       vzapi.MetricsTraitKind}
 			trait.ObjectMeta = k8smeta.ObjectMeta{
 				Namespace: name.Namespace,
@@ -603,7 +603,7 @@ func TestWorkloadFetchError(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
 			trait.TypeMeta = k8smeta.TypeMeta{
-				APIVersion: vzapi.GroupVersion.Identifier(),
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
 				Kind:       vzapi.MetricsTraitKind}
 			trait.ObjectMeta = k8smeta.ObjectMeta{
 				Namespace: name.Namespace,
@@ -670,7 +670,7 @@ func TestDeploymentUpdateError(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
 			trait.TypeMeta = k8smeta.TypeMeta{
-				APIVersion: vzapi.GroupVersion.Identifier(),
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
 				Kind:       vzapi.MetricsTraitKind}
 			trait.ObjectMeta = k8smeta.ObjectMeta{
 				Namespace: name.Namespace,
@@ -823,7 +823,7 @@ func TestNoUpdatesRequired(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
 			trait.TypeMeta = k8smeta.TypeMeta{
-				APIVersion: vzapi.GroupVersion.Identifier(),
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
 				Kind:       vzapi.MetricsTraitKind}
 			trait.ObjectMeta = k8smeta.ObjectMeta{
 				Namespace: name.Namespace,
@@ -1020,7 +1020,7 @@ func TestSSLNoUpdatesRequired(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
 			trait.TypeMeta = k8smeta.TypeMeta{
-				APIVersion: vzapi.GroupVersion.Identifier(),
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
 				Kind:       vzapi.MetricsTraitKind}
 			trait.ObjectMeta = k8smeta.ObjectMeta{
 				Namespace: name.Namespace,
@@ -1496,7 +1496,7 @@ func TestMetricsTraitCreatedForCOHWorkload(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
 			trait.TypeMeta = k8smeta.TypeMeta{
-				APIVersion: vzapi.GroupVersion.Identifier(),
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
 				Kind:       vzapi.MetricsTraitKind}
 			trait.ObjectMeta = k8smeta.ObjectMeta{
 				Namespace: name.Namespace,

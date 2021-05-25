@@ -255,7 +255,7 @@ func MetricsExist(metricsName, key, value string) bool {
 
 // MetricsExist validates the availability of a given metric in the given cluster
 func MetricsExistInCluster(metricsName, key, value, kubeconfigPath string) bool {
-	metric, err := QueryMetric(metricsName, getPrometheusIngressHost(kubeconfigPath))
+	metric, err := QueryMetric(metricsName, kubeconfigPath)
 	if err != nil {
 		return false
 	}

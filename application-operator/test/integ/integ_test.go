@@ -238,7 +238,7 @@ func appConfigExists() bool {
 	for _, trait := range appConfig.Spec.Components[0].Traits {
 		var rawTrait map[string]interface{}
 		json.Unmarshal(trait.Trait.Raw, &rawTrait)
-		if rawTrait["apiVersion"] == v1alpha1.GroupVersion.String() &&
+		if rawTrait["apiVersion"] == v1alpha1.SchemeGroupVersion.String() &&
 			rawTrait["kind"] == v1alpha1.MetricsTraitKind {
 			return true
 		}
