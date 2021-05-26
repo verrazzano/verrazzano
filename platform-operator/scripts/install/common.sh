@@ -17,7 +17,7 @@ MANIFESTS_DIR=$(cd $SOURCE_DIR/../../thirdparty/manifests; pwd -P)
 
 . ${SOURCE_DIR}/logging.sh
 
-BOM_FILE=${BOM_FILE:-/verrazzano/verrazzano-bom.json}
+BOM_FILE=${BOM_FILE:-/verrazzano/platform-operator/verrazzano-bom.json}
 
 # DEPRECATED: This function is deprecated and is replaced by the status function in logging.sh
 function consoleout() {
