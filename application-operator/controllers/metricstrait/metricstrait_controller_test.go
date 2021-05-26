@@ -385,7 +385,7 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 
 // TestMetricsTraitCreatedForDeploymentWorkload tests the creation of a metrics trait related to a native Kubernetes Deployment workload.
 // GIVEN a metrics trait that has been created
-// AND the metrics trait is related to a deployment workload
+// AND the metrics trait is related to a k8s deployment workload
 // WHEN the metrics trait Reconcile method is invoked
 // THEN verify that metrics trait finalizer is added
 // AND verify that pod annotations are updated
