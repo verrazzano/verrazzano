@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package mchelidon
+package mcnshelidon
 
 import (
 	"fmt"
@@ -9,7 +9,21 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster/examples"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"os"
+	"time"
 )
+
+const (
+	pollingInterval      = 5 * time.Second
+	waitTimeout          = 5 * time.Minute
+	consistentlyDuration = 1 * time.Minute
+)
+
+var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
+var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
+
+// failed indicates whether any of the tests has failed
+var failed = false
 
 var _ = ginkgo.AfterEach(func() {
 	// set failed to true if any of the tests has failed
