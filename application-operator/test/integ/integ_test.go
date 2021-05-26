@@ -45,13 +45,11 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	It("Namespace with multi-cluster resources can be deleted", func() {
-		_, stderr := util.Kubectl("delete ns multiclustertest")
-		Expect(stderr).To(Equal(""), "kubectl namespace deletion completed")
-		Eventually(func() bool {
-			return ! K8sClient.DoesNamespaceExist("multiclustertest")
-		}, timeout, pollInterval).Should(BeTrue())
-	})
+	_, stderr := util.Kubectl("delete ns multiclustertest")
+	Expect(stderr).To(Equal(""), "kubectl namespace deletion completed")
+	Eventually(func() bool {
+		return ! K8sClient.DoesNamespaceExist("multiclustertest")
+	}, timeout, pollInterval).Should(BeTrue())
 })
 
 var _ = Describe("Custom Resource Definition for OAM controller runtime", func() {
