@@ -7,7 +7,6 @@
 # - Using a local cache of Verrazzano image tarballs, load into the local Docker registry and push to the remote registry/repo
 # - Clean up the local registry
 #
-#set -o nounset
 set -o pipefail
 set -o errtrace
 
@@ -94,11 +93,11 @@ function run_docker() {
   if [ "${DRY_RUN}" != "true" ]; then
     docker_out=$(docker $* 2>&1)
     local result=$?
-    denied=$(echo "${docker_out}" | grep "permission_denied")
+    local denied=$(echo "${docker_out}" | egrep -i "(Anonymous|permission_denied)")
     if [ -n "$denied" ]; then
        echo """
 
-Permission denied error from Docker:
+Permission error from Docker:
 
 ${docker_out}
 
