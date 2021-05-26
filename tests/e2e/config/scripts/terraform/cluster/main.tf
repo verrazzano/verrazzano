@@ -19,10 +19,6 @@ module "oke" {
   cluster_access = var.cluster_access
   ssh_private_key_path = var.ssh_private_key_path
   ssh_public_key_path = var.ssh_public_key_path
-
-  # TEMPORARY HACK TO WORKAROUND OCI OKE TF issues. This forces the image id to only one image in IAD
-  node_pool_image_id="ocid1.image.oc1.iad.aaaaaaaamoajldhwrmbzx7s4xnrajj5b7nfrnutuebgwne4bxc7vpiap3gga"
-
   node_pools =var.node_pools
   allow_node_port_access = var.allow_node_port_access
   operator_enabled = var.operator_enabled
