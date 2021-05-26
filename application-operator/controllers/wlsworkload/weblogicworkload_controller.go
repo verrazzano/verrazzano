@@ -5,6 +5,7 @@ package wlsworkload
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -41,6 +42,42 @@ const (
 	destinationRuleKind       = "DestinationRule"
 )
 
+const monitoringExporterData = `
+  {
+    "configuration": {
+      "domainQualifier": true,
+      "metricsNameSnakeCase": true,
+      "queries": [
+        {
+          "applicationRuntimes": {
+            "componentRuntimes": {
+              "key": "name",
+              "prefix": "webapp_config_",
+              "servlets": {
+                "key": "servletName",
+                "prefix": "weblogic_servlet_",
+                "values": "invocationTotalCount"
+              },
+              "type": "WebAppComponentRuntime",
+              "values": [
+                "deploymentState",
+                "contextRoot",
+                "sourceInfo",
+                "openSessionsHighCount"
+              ]
+            },
+            "key": "name",
+            "keyName": "app"
+          },
+          "key": "name",
+          "keyName": "server"
+        }
+      ]
+    },
+    "imagePullPolicy": "IfNotPresent"
+  }
+`
+
 var specServerPodFields = []string{specField, "serverPod"}
 var specServerPodLabelsFields = append(specServerPodFields, "labels")
 var specServerPodContainersFields = append(specServerPodFields, "containers")
@@ -48,6 +85,7 @@ var specServerPodVolumesFields = append(specServerPodFields, "volumes")
 var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts")
 var specConfigurationIstioEnabledFields = []string{specField, "configuration", "istio", "enabled"}
 var specConfigurationRuntimeEncryptionSecret = []string{specField, "configuration", "model", "runtimeEncryptionSecret"}
+var specMonitoringExporterFields = []string{specField, "monitoringExporter"}
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -130,6 +168,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Add the Fluentd sidecar container required for logging to the Domain
 	if err = r.addLogging(ctx, log, workload, upgradeApp, u, &existingDomain); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Add the monitoringExporter to the spec if not already present
+	if err = addMonitoringExporter(u); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -474,4 +517,30 @@ func genPassword(passSize int) string {
 		b.WriteRune(passwordChars[rand.Intn(len(passwordChars)-1)])
 	}
 	return b.String()
+}
+
+// addMonitoringExporter adds monitoringExporter to the WebLogic spec if there is not one present
+func addMonitoringExporter(weblogic *unstructured.Unstructured) error {
+	if _, found, _ := unstructured.NestedFieldNoCopy(weblogic.Object, specMonitoringExporterFields...); !found {
+		monitoringExporter, err := createMonitoringExporter()
+		if err != nil {
+			return err
+		}
+		err = unstructured.SetNestedField(weblogic.Object, monitoringExporter, specMonitoringExporterFields...)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createMonitoringExporter() (interface{}, error) {
+	bytes := []byte(monitoringExporterData)
+	var monitoringExporter map[string]interface{}
+	json.Unmarshal(bytes, &monitoringExporter)
+	result, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&monitoringExporter)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

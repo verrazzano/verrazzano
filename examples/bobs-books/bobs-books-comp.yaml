@@ -195,6 +195,26 @@ spec:
             introspectorJobActiveDeadlineSeconds: 600
             model:
               runtimeEncryptionSecret: bobbys-front-end-runtime-encrypt-secret
+          monitoringExporter:
+            imagePullPolicy: IfNotPresent
+            configuration:
+              metricsNameSnakeCase: true
+              domainQualifier: true
+              queries:
+                - key: name
+                  keyName: server
+                  applicationRuntimes:
+                    key: name
+                    keyName: app
+                    componentRuntimes:
+                      type: WebAppComponentRuntime
+                      prefix: webapp_config_
+                      key: name
+                      values: [deploymentState, contextRoot, sourceInfo, openSessionsHighCount]
+                      servlets:
+                        prefix: weblogic_servlet_
+                        key: servletName
+                        values: invocationTotalCount
           serverPod:
             env:
               - name: JAVA_OPTIONS
@@ -421,6 +441,26 @@ spec:
               runtimeEncryptionSecret: bobs-bookstore-runtime-encrypt-secret
             secrets:
               - mysql-credentials
+          monitoringExporter:
+            imagePullPolicy: IfNotPresent
+            configuration:
+              metricsNameSnakeCase: true
+              domainQualifier: true
+              queries:
+                - key: name
+                  keyName: server
+                  applicationRuntimes:
+                    key: name
+                    keyName: app
+                    componentRuntimes:
+                      type: WebAppComponentRuntime
+                      prefix: webapp_config_
+                      key: name
+                      values: [deploymentState, contextRoot, sourceInfo, openSessionsHighCount]
+                      servlets:
+                        prefix: weblogic_servlet_
+                        key: servletName
+                        values: invocationTotalCount
           serverPod:
             env:
               - name: JAVA_OPTIONS

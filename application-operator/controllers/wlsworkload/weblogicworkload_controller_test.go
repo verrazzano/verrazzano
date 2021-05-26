@@ -120,7 +120,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
@@ -144,6 +144,10 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			// make sure configuration.istio.enabled is false
 			specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 			assert.Equal(specIstioEnabled, false)
+
+			// make sure monitoringExporter exists
+			validateMonitoringExporter(u, t)
+
 			return nil
 		})
 
@@ -235,10 +239,17 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
 			assert.Equal(labels, specLabels)
 
+			// make sure configuration.istio.enabled is false
+			specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
+			assert.Equal(specIstioEnabled, false)
+
 			// make sure the FLUENTD sidecar was added
 			containers, _, _ := unstructured.NestedSlice(u.Object, specServerPodContainersFields...)
 			assert.Equal(1, len(containers))
 			assert.Equal(fluentdImage, containers[0].(map[string]interface{})["image"])
+
+			// make sure monitoringExporter exists
+			validateMonitoringExporter(u, t)
 			return nil
 		})
 
@@ -919,4 +930,22 @@ func newRequest(namespace string, name string) ctrl.Request {
 			Name:      name,
 		},
 	}
+}
+
+// validateMonitoringExporter validates the monitoringExporter in the Weblogic domain spec
+func validateMonitoringExporter(u *unstructured.Unstructured, t *testing.T) {
+	_, found, err := unstructured.NestedFieldNoCopy(u.Object, specMonitoringExporterFields...)
+	asserts.Nil(t, err, "Expect no error finding monitoringExporter in WebLogic domain CR")
+	asserts.True(t, found, "Found monitoringExporter in WebLogic domain CR")
+	imagePullPolicy, _, _ := unstructured.NestedFieldNoCopy(u.Object, append(specMonitoringExporterFields, "imagePullPolicy")...)
+	asserts.Equal(t, "IfNotPresent", imagePullPolicy, "monitoringExporter.imagePullPolicy should be IfNotPresent in WebLogic domain CR")
+	domainQualifier, _, _ := unstructured.NestedBool(u.Object, append(specMonitoringExporterFields, "configuration", "domainQualifier")...)
+	asserts.True(t, domainQualifier, "monitoringExporter.configuration.domainQualifier should be TRUE")
+	metricsNameSnakeCase, _, _ := unstructured.NestedBool(u.Object, append(specMonitoringExporterFields, "configuration", "metricsNameSnakeCase")...)
+	asserts.True(t, metricsNameSnakeCase, "monitoringExporter.configuration.metricsNameSnakeCase should be TRUE")
+	queries, _, _ := unstructured.NestedSlice(u.Object, append(specMonitoringExporterFields, "configuration", "queries")...)
+	asserts.Equal(t, len(queries), 1, "there should be one query")
+	query, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&queries[0])
+	runtimeType, _, _ := unstructured.NestedString(query, "applicationRuntimes", "componentRuntimes", "type")
+	asserts.Equal(t, "WebAppComponentRuntime", runtimeType, "query runtime type should be WebAppComponentRuntime")
 }
