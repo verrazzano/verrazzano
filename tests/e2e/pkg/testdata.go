@@ -27,6 +27,7 @@ func FindTestDataFile(file string) (string, error) {
 				return find, nil
 			}
 		}
+		return find, fmt.Errorf("failed to find test data file: %s", file)
 	}
-	return file, fmt.Errorf("failed to find test data file: %s", file)
+	return file, nil
 }
