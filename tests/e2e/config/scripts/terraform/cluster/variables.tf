@@ -50,6 +50,4 @@ variable "bastion_enabled" {
 variable "operator_enabled" {
   default = false
 }
-variable "node_pool_image_id" {
-  default = ""
-}
+variable "node_pool_image_id" {}
