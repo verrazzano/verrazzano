@@ -323,6 +323,55 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
+
+			// GIVEN a WebLogic application with logging enabled
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent pattern-matched log record of bobbys-front-end-adminserver stdout is found
+			func() {
+				ginkgo.It("Verify recent pattern-matched AdminServer log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(bobsIndexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "subSystem.keyword", Value: "WorkManager"},
+								{Key: "serverName.keyword", Value: "bobbys-front-end-adminserver"},
+								{Key: "serverName2.keyword", Value: "AdminServer"},
+								{Key: "message", Value: "standby threads"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent pattern-matched log record of bobbys-front-end-adminserver stdout is found
+			func() {
+				ginkgo.It("Verify recent pattern-matched AdminServer log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(bobsIndexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "subSystem", Value: "WorkManager"},
+								{Key: "serverName", Value: "bobbys-front-end-adminserver"},
+								{Key: "serverName2", Value: "AdminServer"},
+								{Key: "message", Value: "Self-tuning"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
+			func() {
+				ginkgo.It("Verify recent 'pattern not matched' log records do not exist", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(bobsIndexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "message", Value: "pattern not matched"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeFalse(), "Expected to find No pattern not matched log records")
+				})
+			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-managed-server log file is found
@@ -338,6 +387,40 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 								{Key: "message", Value: "Tunneling Ping"}, //"Tunneling Ping" in last line
 								{Key: "serverName", Value: "bobbys-front-end-managed-server1"},
 								{Key: "subSystem.keyword", Value: "RJVM"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent pattern-matched log record of bobbys-front-end-managed-server stdout is found
+			func() {
+				ginkgo.It("Verify recent pattern-matched managed-server log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(bobsIndexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "subSystem.keyword", Value: "WorkManager"},
+								{Key: "serverName.keyword", Value: "bobbys-front-end-managed-server1"},
+								{Key: "serverName2.keyword", Value: "managed-server1"},
+								{Key: "message", Value: "standby threads"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent pattern-matched log record of bobbys-front-end-managed-server stdout is found
+			func() {
+				ginkgo.It("Verify recent pattern-matched managed-server log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.FindLog(bobsIndexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "subSystem", Value: "WorkManager"},
+								{Key: "serverName", Value: "bobbys-front-end-managed-server1"},
+								{Key: "serverName2", Value: "managed-server1"},
+								{Key: "message", Value: "Self-tuning"}},
 							[]pkg.Match{})
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
