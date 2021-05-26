@@ -510,7 +510,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('examples/helidon')
-                                runGinkgo('verify-install/prometheus')
                             }
                         }
                         stage('examples helidon-config') {
