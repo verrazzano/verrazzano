@@ -1,0 +1,1 @@
+node_pool_image_id="ocid1.image.oc1.ap-osaka-1.aaaaaaaadrwi7uv4qxcrmr5papwswnr4vtihdgjbw5pfmt5o2ay5kuk37fwq"

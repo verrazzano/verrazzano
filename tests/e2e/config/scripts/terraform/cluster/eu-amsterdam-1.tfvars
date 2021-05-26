@@ -1,0 +1,1 @@
+node_pool_image_id="ocid1.image.oc1.eu-amsterdam-1.aaaaaaaafdopva66rb2tqxz6aonkxcdjcqory7inh7dw6z6iln67cdiqar4a"

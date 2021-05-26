@@ -1,0 +1,1 @@
+node_pool_image_id="ocid1.image.oc1.ap-seoul-1.aaaaaaaaweqeie7ch4a2hfi3ybegu6lf3hgkrqbyymx4nbhojlljqjnmdjsa"

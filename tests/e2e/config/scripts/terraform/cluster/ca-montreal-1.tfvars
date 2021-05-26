@@ -1,0 +1,1 @@
+node_pool_image_id="ocid1.image.oc1.ca-montreal-1.aaaaaaaatyrxx5kfnuzdgdqri5khz7aaoyl6cocpmpyezd6uhdxoj5mp7nwa"

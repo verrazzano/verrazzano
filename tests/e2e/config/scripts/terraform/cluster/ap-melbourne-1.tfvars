@@ -1,0 +1,1 @@
+node_pool_image_id="ocid1.image.oc1.ap-melbourne-1.aaaaaaaavzf7hi4nhrmy2525etoipsnkfy42zojdss7ttxbfgu3j2t2yqgma"

@@ -1,0 +1,1 @@
+node_pool_image_id="ocid1.image.oc1.ap-mumbai-1.aaaaaaaamsqdylsrea2wupqwlze7gruemtqc3cpi3ece2njcp6l625thev4q"

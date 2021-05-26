@@ -1,0 +1,1 @@
+node_pool_image_id="ocid1.image.oc1.eu-zurich-1.aaaaaaaadkuzge4dhktjq5tzfhitzuq5r5gyjjric3b7f5jezx6d4czvbirq"

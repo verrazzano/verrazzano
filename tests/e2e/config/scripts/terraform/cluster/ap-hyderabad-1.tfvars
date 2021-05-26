@@ -1,0 +1,1 @@
+node_pool_image_id="ocid1.image.oc1.ap-hyderabad-1.aaaaaaaazjvsgbie56sqpvt2qmgeyg7azysus34wxkdgq5ihqtqwm7rpxr6q"
