@@ -13,7 +13,7 @@ import (
 )
 
 // The bom is on the root directory in the disk
-const defaultBomFilename = "../verrazzano-bom.json"
+const defaultBomFilename = "verrazzano-bom.json"
 
 // This is the BOM file path needed for unit tests
 var unitTestBomFilePath string
@@ -115,7 +115,7 @@ func DefaultBomFilePath() string {
 	if unitTestBomFilePath != "" {
 		return unitTestBomFilePath
 	}
-	return filepath.Join(config.GetPlatformDir(), defaultBomFilename)
+	return filepath.Join(config.Get().VerrazzanoRootDir, defaultBomFilename)
 }
 
 // Create a new Bom from a JSON file

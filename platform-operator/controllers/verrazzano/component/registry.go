@@ -14,7 +14,7 @@ import (
 // The components will be processed in the order items in the array
 func GetComponents() []Component {
 	overridesDir := config.GetHelmOverridesDir()
-	vzChartsDir := config.GetHelmVzChartsDir()
+	helmChartsDir := config.GetHelmChartsDir()
 	thirdPartyChartsDir := config.GetThirdPartyDir()
 
 	return []Component{
@@ -83,7 +83,7 @@ func GetComponents() []Component {
 		},
 		helmComponent{
 			releaseName:             "verrazzano",
-			chartDir:                filepath.Join(vzChartsDir, "verrazzano"),
+			chartDir:                filepath.Join(helmChartsDir, "verrazzano"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			resolveNamespaceFunc:    resolveVerrazzanoNamespace,
@@ -111,7 +111,7 @@ func GetComponents() []Component {
 		},
 		helmComponent{
 			releaseName:             "verrazzano-application-operator",
-			chartDir:                filepath.Join(vzChartsDir, "verrazzano-application-operator"),
+			chartDir:                filepath.Join(helmChartsDir, "verrazzano-application-operator"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
