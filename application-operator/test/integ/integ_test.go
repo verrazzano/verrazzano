@@ -51,7 +51,7 @@ var _ = AfterSuite(func() {
 	_, stderr := util.Kubectl("delete ns multiclustertest")
 	Expect(stderr).To(Equal(""), "kubectl namespace deletion completed")
 	Eventually(func() bool {
-		return ! K8sClient.DoesNamespaceExist("multiclustertest")
+		return !K8sClient.DoesNamespaceExist("multiclustertest")
 	}, timeout, pollInterval).Should(BeTrue())
 })
 
