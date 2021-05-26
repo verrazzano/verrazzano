@@ -454,7 +454,7 @@ pipeline {
                         }
                     }
                 }
-                stage ('Examples Delete Helidon NS') {
+                stage ('Delete Deployed App NS') {
                     steps {
                         script {
                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
