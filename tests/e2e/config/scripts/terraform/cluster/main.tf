@@ -49,4 +49,6 @@ module "oke" {
 
   use_signed_images = false
   image_signing_keys = []
+
+  node_pool_image_id = var.node_pool_image_id
 }

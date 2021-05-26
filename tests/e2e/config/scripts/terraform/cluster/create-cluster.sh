@@ -12,7 +12,7 @@ MAX_TRIES=3
 while true; do
    tries=$((tries+1))
    echo "terraform apply iteration ${tries}"
-   $SCRIPT_DIR/terraform apply -var-file=$TF_VAR_nodepool_config.tfvars -auto-approve -no-color && break
+   $SCRIPT_DIR/terraform apply -var-file=$TF_VAR_nodepool_config.tfvars -var-file=$TF_VAR_region.tfvars -auto-approve -no-color && break
    if [ "$tries" -ge "$MAX_TRIES" ];
    then
       echo "Terraform apply tries exceeded.  Cluster creation has failed!"
