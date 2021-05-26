@@ -44,7 +44,8 @@ function install_nginx_ingress_controller()
 
       if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
         if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ingress-nginx > /dev/null 2>&1 ; then
-            copy_registry_secret ${ingress_nginx_ns}
+            action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${ingress_nginx_ns} namespace" \
+              copy_registry_secret ${ingress_nginx_ns}
         fi
         EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
       fi
@@ -183,12 +184,14 @@ function install_cert_manager()
       local EXTRA_CERT_MANAGER_ARGUMENTS=""
       if [ "$CERT_ISSUER_TYPE" == "ca" ]; then
         EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
-        if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
-          if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${cert_manager_ns} > /dev/null 2>&1 ; then
+      fi
+
+      if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+        if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${cert_manager_ns} > /dev/null 2>&1 ; then
+            action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${cert_manager_ns} namespace" \
               copy_registry_secret ${cert_manager_ns}
-          fi
-          EXTRA_CERT_MANAGER_ARGUMENTS="${EXTRA_CERT_MANAGER_ARGUMENTS} --set global.imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
         fi
+        EXTRA_CERT_MANAGER_ARGUMENTS="${EXTRA_CERT_MANAGER_ARGUMENTS} --set global.imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
       fi
 
       build_image_overrides cert-manager ${chartName}
@@ -228,7 +231,8 @@ function install_external_dns()
     local extraExternalDNSArgs=""
     if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
       if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${externalDNSNamespace} > /dev/null 2>&1 ; then
-          copy_registry_secret ${externalDNSNamespace}
+          action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${externalDNSNamespace} namespace" \
+            copy_registry_secret ${externalDNSNamespace}
       fi
       extraExternalDNSArgs="${extraExternalDNSArgs} --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
@@ -370,7 +374,13 @@ function install_rancher()
 
       # Settings required to point Rancher at a registry for background helm install
       if [ -n "${REGISTRY}" ]; then
-        EXTRA_RANCHER_ARGUMENTS="${EXTRA_RANCHER_ARGUMENTS} --set systemDefaultRegistry=${REGISTRY}/${IMAGE_REPO} --set useBundledSystemChart=true"
+        local sys_default_reg=${REGISTRY}
+
+        if [ -n "${IMAGE_REPO}" ]; then
+          sys_default_reg=${REGISTRY}/${IMAGE_REPO}
+        fi
+
+        EXTRA_RANCHER_ARGUMENTS="${EXTRA_RANCHER_ARGUMENTS} --set systemDefaultRegistry=${sys_default_reg} --set useBundledSystemChart=true"
       fi
 
       local chart_name=rancher

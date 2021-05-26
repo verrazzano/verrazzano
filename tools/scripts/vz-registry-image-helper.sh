@@ -20,6 +20,64 @@ IMAGES_DIR=
 INCREMENTAL_CLEAN=false
 CLEAN_ALL=false
 DRY_RUN=false
+INCLUDE_COMPONENTS=
+EXCLUDE_COMPONENTS=
+
+function usage() {
+  ec=${1:-0}
+  echo """
+This script is to help pushing Verrazzao container images into a private repository from their default locations
+usage:
+
+  $0 -t <docker-registry> [-l <archive-path> -r <repository-path>]
+  $0 -t <docker-registry> [-b <path> -r <repository-path>]
+  $0 -c [-b <path> | -l <archive-path>]
+
+Options:
+ -t <docker-registry>   Target docker registry to push to, e.g., iad.ocir.io
+ -r <repository-path>   Repository name/prefix for each image, e.g \"path/to/my/image\"; if not specified the default will be used according to the BOM
+ -b <path>              Bill of materials (BOM) of Verrazzano components; if not specified, defaults to ./verrazzano-bom.json
+ -l <archive-dir>       Use the specified directory to load local Docker image tarballs from instead of pulling from
+ -i <component>         Include the specified component in the operation (can be repeated for multiple components)
+ -e <component>         Exclude the specified component from the operation (can be repeated for multiple components)
+ -c                     Clean all local images/tags
+ -z                     Incrementally clean each local image after it has been successfully pushed
+ -d                     Dry-run only, do not perform Docker operations
+ -o                     List components
+
+Examples:
+
+  # Loads all images into myreg.io using the default repository paths for each image in the BOM
+  $0 -t myreg.io
+
+  # Loads all  Verrazzano images into myreg.io with into the repository 'myrepo/user1'
+  $0 -t myreg.io -r 'myrepo/user1'
+
+  # Loads all Verrazzano images into myreg.io with into the repository 'myrepo/user1' using the BOM /path/to/my-bom.json
+  # and removes the locally downloaded image after a successful push
+  $0 -c -t myreg.io -r 'myrepo/user1' -b /path/to/my-bom.json
+
+  # Loads all Docker tarball images in the directory /path/to/exploded/tarball into myreg.io in the repo 'myrepo'
+  $0 -t myreg.io -l /path/to/exploded/tarball -r myrepo
+
+  # Do a dry-run with the tarball location /path/to/exploded/tarball with registry myreg.io and repo 'myrepo'
+  $0 -d -t myreg.io -l /path/to/exploded/tarball -r myrepo
+
+  # List out the Verrazzano components in the default BOM file
+  $0 -d -t myreg.io -o
+
+  # List out the Verrazzano components in the specified BOM file
+  $0 -d -t myreg.io -o -b /path/to/my-bom.json
+
+  # Processes all Verrazzano images *except* verrazzano-platform-operator and verrazzano-application-operator
+  $0 -t myreg.io -r 'myrepo/user1' -b /path/to/my-bom.json -e verrazzano-platform-operator -e verrazzano-application-operator
+
+  # Processes *only* the images for the Verrazzano components cert-manager and istio
+  $0 -t myreg.io -r 'myrepo/user1' -b /path/to/my-bom.json -i cert-manager -i istio
+
+"""
+  exit ${ec}
+}
 
 function exit_trap() {
   local rc=$?
@@ -34,8 +92,26 @@ trap exit_trap EXIT
 
 function run_docker() {
   if [ "${DRY_RUN}" != "true" ]; then
-    docker $*
+    docker_out=$(docker $* 2>&1)
+    local result=$?
+    denied=$(echo "${docker_out}" | grep "permission_denied")
+    if [ -n "$denied" ]; then
+       echo """
+
+Permission denied error from Docker:
+
+${docker_out}
+
+Please log into the target registry and try again.
+
+      """
+      usage 1
+    elif [ "${result}" != "0" ]; then
+      echo ${docker_out}
+    fi
+    return ${result}
   fi
+  return 0
 }
 
 # Wrapper for Docker pull
@@ -110,46 +186,6 @@ function check() {
     usage 1
   fi
 
-}
-
-function usage() {
-  ec=${1:-0}
-  echo """
-This script is to help pushing Verrazzao container images into a private repository from their default locations
-usage:
-
-  $0 -t <docker-registry> [-l <archive-path> -r <repository-path>]
-  $0 -t <docker-registry> [-b <path> -r <repository-path>]
-  $0 -c [-b <path> | -l <archive-path>]
-
-Options:
- -t <docker-registry>   Target docker registry to push to, e.g., iad.ocir.io
- -r <repository-path>   Repository name/prefix for each image, e.g \"path/to/my/image\"; if not specified the default will be used according to the BOM
- -b <path>              Bill of materials (BOM) of Verrazzano components; if not specified, defaults to ./verrazzano-bom.json
- -l <archive-dir>       Use the specified directory to load local Docker image tarballs from instead of pulling from
- -i                     Incrementally clean each local image after it has been successfully pushed
- -c                     Clean all local images/tags
- -d                     Dry-run only, do not perform Docker operations
-
-Examples:
-
-  # Loads all images into lhcr.ocir.io using the default repository paths for each image in the BOM
-  $0 -t lhr.ocir.io
-
-  # Loads all  Verrazzano images into lhcr.ocir.io with into the repository 'myrepo/user1'
-  $0 -t lhcr.ocir.io -r 'myrepo/user1'
-
-  # Loads all Verrazzano images into lhcr.ocir.io with into the repository 'myrepo/user1' using the BOM /path/to/my-bom.json
-  # and removes the locally downloaded image after a successful push
-  $0 -c -t lhcr.ocir.io -r 'myrepo/user1' -b /path/to/my-bom.json
-
-  # Loads all Docker tarball images in the directory /path/to/exploded/tarball into lhr.ocir.io in the repo 'myrepo'
-  $0 -t lhcr.ocir.io -l /path/to/exploded/tarball -r myrepo
-
-  # Do a dry-run with the tarball location /path/to/exploded/tarball with registry lhr.ocir.io and repo 'myrepo'
-  $0 -d -t lhcr.ocir.io -l /path/to/exploded/tarball -r myrepo
-"""
-  exit ${ec}
 }
 
 # Process an image
@@ -278,12 +314,38 @@ function process_local_archives() {
   done
 }
 
+# Returns 0 if the specified component is in the excludes list, 1 otherwise
+function is_component_excluded() {
+    local seeking=$1
+    local excludes=(${EXCLUDE_COMPONENTS})
+    local in=1
+    for comp in "${excludes[@]}"; do
+        if [[ "$comp" == "$seeking" ]]; then
+            in=0
+            break
+        fi
+    done
+    return $in
+}
+
 # Main driver for pulling/tagging/pushing images based on the Verrazzano bill of materials (BOM)
 function process_images_from_bom() {
   # Loop through registry components
   echo "Using image registry ${BOM_FILE}"
-  local components=($(list_components))
+
+  local components=(${INCLUDE_COMPONENTS})
+  if [ "${#components[@]}" == "0" ]; then
+    components=($(list_components))
+  fi
+
+  echo "Components: ${components[*]}"
+
+#  local components=($(list_components))
   for component in "${components[@]}"; do
+    if is_component_excluded ${component} ; then
+      echo "Component ${component} excluded"
+      continue
+    fi
     local subcomponents=($(list_subcomponents ${component}))
     for subcomp in "${subcomponents[@]}"; do
       echo "Processing images for Verrazzano subcomponent ${component}/${subcomp}"
@@ -313,6 +375,14 @@ function process_images_from_bom() {
   done
 }
 
+output_bom_components() {
+  echo """
+Verrazzano components in BOM file ${BOM_FILE}:
+
+$(list_components)
+  """
+}
+
 # Main fn
 function main() {
   if [ "$USELOCAL" != "0" ]; then
@@ -327,7 +397,7 @@ function main() {
   fi
 }
 
-while getopts 'hicdb:t:f:r:l:' opt; do
+while getopts 'hzcdob:t:f:r:l:i:e:' opt; do
   case $opt in
   d)
     DRY_RUN=true
@@ -338,6 +408,14 @@ while getopts 'hicdb:t:f:r:l:' opt; do
   d)
     DB_DUMP=$OPTARG
     ;;
+  e)
+    echo "Exclude component: ${OPTARG}"
+    EXCLUDE_COMPONENTS="${EXCLUDE_COMPONENTS} ${OPTARG}"
+    ;;
+  i)
+    echo "Include component: ${OPTARG}"
+    INCLUDE_COMPONENTS="${INCLUDE_COMPONENTS} ${OPTARG}"
+    ;;
   r)
     TO_REPO=$OPTARG
     ;;
@@ -347,11 +425,15 @@ while getopts 'hicdb:t:f:r:l:' opt; do
   f)
     TARBALL=$OPTARG
     ;;
-  i)
+  z)
     INCREMENTAL_CLEAN=true
     ;;
   c)
     CLEAN_ALL=true
+    ;;
+  o)
+    output_bom_components
+    exit 0
     ;;
   l)
     USELOCAL=1
