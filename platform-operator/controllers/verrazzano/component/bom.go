@@ -115,7 +115,7 @@ func DefaultBomFilePath() string {
 	if unitTestBomFilePath != "" {
 		return unitTestBomFilePath
 	}
-	return filepath.Join(config.Get().VerrazzanoRootDir, defaultBomFilename)
+	return filepath.Join(config.GetPlatformDir(), defaultBomFilename)
 }
 
 // Create a new Bom from a JSON file
