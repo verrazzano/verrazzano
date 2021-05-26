@@ -184,7 +184,6 @@ function install_oam_operator {
   helm upgrade --install --wait ${chart_name} \
     ${CHARTS_DIR}/oam-kubernetes-runtime \
     --namespace "${VERRAZZANO_NS}" \
-    -f $VZ_OVERRIDES_DIR/oam-kubernetes-runtime-values.yaml \
     ${HELM_IMAGE_ARGS} \
     ${IMAGE_PULL_SECRETS_ARGUMENT} \
     || return $?
@@ -217,7 +216,6 @@ function install_application_operator {
   helm upgrade --install --wait ${chart_name} \
     $VZ_CHARTS_DIR/verrazzano-application-operator \
     --namespace "${VERRAZZANO_NS}" \
-    -f $VZ_OVERRIDES_DIR/verrazzano-application-operator-values.yaml \
     ${HELM_IMAGE_ARGS} \
     ${IMAGE_PULL_SECRETS_ARGUMENT} \
     ${APP_OPERATOR_IMAGE_ARG} \

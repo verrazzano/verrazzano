@@ -3,9 +3,8 @@
 
 controller:
   image:
-    # NOTE: This image now comes from the bill of materials file (verrazzano-bom.json)
-    # repository: ghcr.io/verrazzano/nginx-ingress-controller
-    # tag: 0.46.0-20210510134749-abc2d2088
+    # NOTE: The image you're looking for isn't here. The nginx-ingress-controller image now comes from
+    # the bill of materials file (verrazzano-bom.json).
     digest:
   config:
     client-body-buffer-size: 64k
@@ -25,8 +24,6 @@ controller:
     traffic.sidecar.istio.io/includeInboundPorts: ""
     sidecar.istio.io/rewriteAppHTTPProbers: "true"
 defaultBackend:
-  # NOTE: This image now comes from the bill of materials file (verrazzano-bom.json)
-  # image:
-  #   repository: ghcr.io/verrazzano/nginx-ingress-default-backend
-  #   tag: 0.46.0-20210510134749-abc2d2088
+  # NOTE: The image you're looking for isn't here. The nginx-ingress-default-backend image now comes from
+  # the bill of materials file (verrazzano-bom.json).
   enabled: true
