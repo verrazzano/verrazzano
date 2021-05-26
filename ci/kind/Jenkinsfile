@@ -214,6 +214,15 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
+                        stage('metrics') {
+                            steps {
+                                script {
+                                    if (params.CREATE_CLUSTER_USE_CALICO == false) {
+                                        runGinkgo('metrics/nginx')
+                                    }
+                                }
+                            }
+                        }
                         stage('examples todo') {
                             steps {
                                 runGinkgo('examples/todo')
