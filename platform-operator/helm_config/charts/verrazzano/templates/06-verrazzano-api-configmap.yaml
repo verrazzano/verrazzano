@@ -10,141 +10,620 @@ metadata:
   labels:
     app: {{ .Values.api.name }}
 data:
+{{- with .Values.api.proxy }}
   conf.lua: |
-    local function logJsonMessage(logLevel, msg, err)
-      local cjson = require "cjson"
-      local logMsg = ""
-      if error then
-        logMsg = cjson.encode({message = msg, error = err})
-      else
-        logMsg = cjson.encode({message = msg})
-      end
-      ngx.log(logLevel, logMsg)
+    local ingressUri = 'https://'..'{{ .Ingress }}'
+    local oidcProviderHost = "{{ .OIDCProviderHost }}"
+    local oidcProviderHostInCluster = "{{ .OIDCProviderHostInCluster }}"
+    local realm ="{{ .Realm }}"
+    local callbackPath = "{{ .OIDCCallbackPath }}"
+    local logoutCallbackPath = "{{ .OIDCLogoutCallbackPath }}"
+    local oidcClient = "{{ .PKCEClientID }}"
+    local oidcDirectAccessClient = "{{ .PGClientID }}"
+    -- TODO: fix this -- shouldn't have cookie key in configmap
+    local cookieKey = "{{ .RandomString }}"
+    local requiredRole = "{{ .RequiredRealmRole }}"
+    local authStateTtlInSec = {{ .AuthnStateTTL }}
+
+    local oidcProviderInClusterUri = ""
+    if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
+        oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..realm
     end
+    local oidcProviderUri = 'https://'..oidcProviderHost.. '/auth/realms/'..realm
 
-    local function read_file(path)
-      local file = io.open(path)
-      if not file then return nil end
-      local content = file:read "*a"
-      file:close()
-      return content
-    end
-
-    ngx.header["Access-Control-Allow-Headers"] = "authorization"
-
+    local auth = require("auth").config({
+        ingressUri = ingressUri,
+        callbackPath = callbackPath,
+        callbackUri = ingressUri..callbackPath,
+        logoutCallbackUri = ingressUri..logoutCallbackPath,
+        oidcProviderUri = oidcProviderUri,
+        oidcProviderAuthUri = oidcProviderUri..'/protocol/openid-connect/auth',
+        oidcProviderInClusterUri = oidcProviderInClusterUri,
+        oidcClient = oidcClient,
+        oidcDirectAccessClient = oidcDirectAccessClient,
+        authStateTtlInSec = authStateTtlInSec,
+        cookieKey = cookieKey
+    })
+    ngx.header["Access-Control-Allow-Origin"] =  ngx.req.get_headers()["origin"]
+    ngx.header["Access-Control-Allow-Headers"] =  "authorization"
     if ngx.req.get_method() == "OPTIONS" then
-      ngx.status = 200
-      ngx.exit(ngx.HTTP_OK)
+        ngx.status = 200
+        ngx.exit(ngx.HTTP_OK)
     end
 
-    logJsonMessage(ngx.INFO, "Extracting authorization header from request.")
-    local h, err = ngx.req.get_headers()["authorization"]
-    if err then
-      ngx.status = 401
-      logJsonMessage(ngx.ERR, "Error while reading authorization header from request.", err)
-      ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    auth.info("Checking for authorization header")
+    local authHeader = ngx.req.get_headers()["authorization"]
+    local token = nil
+    if authHeader then
+{{- if eq .Mode 'api-proxy' }}
+        -- console sent access token to api proxy with k8s api request (not cached)
+        token = auth.handleBearerToken(authHeader)
+{{- else if eq .Mode 'oauth-proxy' }}
+        -- vz component calling vmi component using basic auth (cached locally)
+        token = handleBasicAuth(authHeader)
+{{- end }}
+        if not token then
+            auth.info("No recognized credentials in authorization header")
+        fi
+    else
+        auth.info("No authorization header found")
+{{- if eq .Mode 'oauth-proxy' }}
+        if string.find(ngx.var.request_uri, callbackPath) then
+            -- we initiated authentication via pkce, and OP is delivering the code
+            -- will redirect to target url, where token will be found in cookie
+            auth.oidcHandleCallback()
+        elseif string.find(ngx.var.request_uri, logoutCallbackPath) then
+            -- logout was triggered, and OP (always?) is calling our logout URL
+            auth.oidcHandleLogoutCallback()
+        end
+        -- still no token, check if caller has a valid token in session (cookie)
+        -- redirect after handling callback should end up here
+        token = auth.getTokenFromSession()
+        if not token then
+            -- no token, redirect to OP to authenticate
+            auth.oidcAuthenticate()
+        end
+{{- end }}
     end
 
-    if not (h) then
-      ngx.status = 401
-      logJsonMessage(ngx.ERR, "Invalid authorization header", err)
-      ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    if not token
+        auth.unauthorized("Not authenticated")
     end
 
-    logJsonMessage(ngx.INFO, "Extract jwt token from authorization header.")
-    local token = string.sub(h, 8)
-    if not (token) then
-      ngx.status = 401
-      logJsonMessage(ngx.ERR, "Invalid bearer token in authorization header")
-      ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    -- token will be an id token except when console calls api proxy, then it's an access token
+    -- TODO: need to fix this so token handling/consumption is aligned across all clients/backends
+    if not auth.isAuthorized(token) then
+        auth.forbidden("Not authorized")
     end
 
-    local keycloakUrl = read_file("/api-config/keycloak-url");
-    if not (keycloakUrl) then
-      keycloakUrl = "http://keycloak-http.keycloak.svc.cluster.local"
-      logJsonMessage(ngx.INFO, "No keycloak-url specified in api-config.Using in-cluster keycloak url.")
-    end
+{{- if eq .Mode 'api-proxy' }}
+    -- impersonate the user
+    impersonateKubernetesUser(token)
+{{- else if .Mode 'oauth-proxy' }}
+    ngx.var.oidc_user = auth.usernameFromIdToken(idToken)
+{{- end }}
 
-    logJsonMessage(ngx.INFO, "Read public key from keycloak.")
-    local http = require "resty.http"
-    local httpc = http.new()
-    local res, err = httpc:request_uri(keycloakUrl .. "/auth/realms/verrazzano-system")
-    if err then
-      ngx.status = 401
-      logJsonMessage(ngx.ERR, "Error accessing keycloak", err)
-      ngx.exit(ngx.HTTP_UNAUTHORIZED)
-    end
-
+  auth.lua: |
+    local me = {}
+    local random = require("resty.random")
+    local base64 = require("ngx.base64")
     local cjson = require "cjson"
-    local data = cjson.decode(res.body)
-    if not (data.public_key) then
-      ngx.status = 401
-      logJsonMessage(ngx.ERR, "No public_key retreived from keycloak")
-      ngx.exit(ngx.HTTP_UNAUTHORIZED)
-    end
-
-    logJsonMessage(ngx.INFO, "Validate JWT token.")
-    local key = "-----BEGIN PUBLIC KEY-----\n" .. data.public_key .. "\n-----END PUBLIC KEY-----"
     local jwt = require "resty.jwt"
-    local jwt_obj = jwt:load_jwt(token)
-    local verified = jwt:verify_jwt_obj(key, jwt_obj)
-    if (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
-      ngx.status = 401
-      logJsonMessage(ngx.ERR, "Invalid JWT token", jwt_obj.reason)
-      ngx.exit(ngx.HTTP_UNAUTHORIZED)
+
+    function me.config(opts)
+        for key, val in pairs(opts) do
+            me[key] = val
+        end
+        local aes = require "resty.aes"
+        me.aes256 = aes:new(me.cookieKey, nil, aes.cipher(256))
+        return me
     end
 
-
-    logJsonMessage(ngx.INFO, "Read service account token.")
-    local serviceAccountToken = read_file("/run/secrets/kubernetes.io/serviceaccount/token");
-    if not (serviceAccountToken) then
-      ngx.status = 401
-      logJsonMessage(ngx.ERR, "No service account token presnet in pod.")
-      ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    function me.log(logLevel, msg, name, value)
+        local logObj = {message = msg}
+        if name then
+            logObj[name] = value
+        end
+        ngx.log(logLevel,  cjson.encode(logObj))
     end
 
-    logJsonMessage(ngx.INFO, "Set headers")
-    ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
-    if ( jwt_obj.payload and jwt_obj.payload.groups) then
-      logJsonMessage(ngx.INFO, ("Adding groups " .. cjson.encode(jwt_obj.payload.groups)))
-      ngx.req.set_header("Impersonate-Group", jwt_obj.payload.groups)
+    function me.logJson(logLevel, msg, err)
+        if err then
+            me.log(logLevel, msg, 'error', err)
+        else
+            me.log(logLevel, msg)
+        end
     end
-    if ( jwt_obj.payload and jwt_obj.payload.sub) then
-      logJsonMessage(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
-      ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
+
+    function me.info(msg, obj)
+        if obj then
+            me.log(ngx.INFO, msg, 'object', obj)
+        else
+            me.log(ngx.INFO, msg)
+        end
     end
+
+    function me.queryParams(req_uri)
+         local i = req_uri:find("?")
+         if not i then
+             i = 0
+         else
+             i = i + 1
+         end
+         return ngx.decode_args(req_uri:sub(i), 0)
+    end
+
+    function me.query(req_uri, name)
+        local i = req_uri:find("&"..name.."=")
+        if not i then
+        i = req_uri:find("?"..name.."=")
+        end
+        if not i then
+            return nil
+        else
+            local begin = i+2+name:len()
+            local endin = req_uri:find("&", begin)
+            if not endin then
+                return req_uri:sub(begin)
+            end
+            return req_uri:sub(begin, endin-1)
+        end
+    end
+
+    function me.unauthorized(msg, err)
+        me.deleteCookie("authn")
+        ngx.status = ngx.HTTP_UNAUTHORIZED
+        me.logJson(ngx.ERR, msg, err)
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    end
+
+    function me.forbidden(msg, err)
+        ngx.status = ngx.HTTP_FORBIDDEN
+        me.logJson(ngx.ERR, msg, err)
+        ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
+    function me.logout()
+        local redirectArgs = ngx.encode_args({
+            redirect_uri = me.logoutCallbackUri
+        })
+        local redirURL = me.oidcProviderUri.."/protocol/openid-connect/logout?"..redirectArgs
+        ngx.redirect(redirURL)
+    end
+
+    function me.randomBase64(size)
+        local randBytes = random.bytes(size)
+        return base64.encode_base64url(randBytes)
+    end
+
+    function me.read_file(path)
+        local file = io.open(path, "rb")
+        if not file then return nil end
+        local content = file:read "*a"
+        file:close()
+        return content
+    end
+
+    -- this should only happen when the console calls the api-proxy
+    -- console sends the access token by itself (originally obtained via pkce client)
+    function me.handleBearerToken(authHeader)
+        me.info("Checking for bearer token")
+        local found, index = authHeader:find('Bearer')
+        if found then
+            local token = string.sub(authHeader, index+2)
+            if token
+                me.info("Found bearer token in authorization header")
+                local err = me.oidcValidateToken(token)
+                if err not nil then
+                    me.unauthorized("Invalid token")
+                end
+                return token
+            else
+                me.unauthorized("Missing token in authorization header)
+            end
+        end
+        me.info "No bearer token found")
+        return nil
+    end
+
+    local basicCache = {}
+
+    -- should only be called if some vz process is trying to access vmi using basic auth
+    -- we use local cache keyed by the auth credentials to avoid calling OP every time
+    -- TODO: this seems bad, it means we keep every caller's creds unencrypted in memory until they're pushed out of the cache)
+    function me.handleBasicAuth(authHeader)
+        me.info("Checking for basic auth credentials")
+        local found, index = authHeader:find('Basic')
+        if not found then
+            me.info("No basic auth credentials found")
+            return nil
+        end
+        local basicCred = string.sub(authHeader, index+2)
+        if not basicCred
+            me.unauthorized("Invalid BasicAuth authorization header")
+        end
+        me.info("Found basic auth credentials in authorization header")
+        local now = ngx.time()
+        local basicAuth = basicCache[basicCred]
+        if basicAuth and (now < basicAuth.expiry) then
+            me.info("Returning cached token")
+            return basicAuth.id_token
+        end
+        local decode = ngx.decode_base64(basicCred)
+        local found = decode:find(':')
+        if not found then
+            me.unauthorized("Invalid BasicAuth authorization header")
+        end
+        local u = decode:sub(1, found-1)
+        local p = decode:sub(found+1)
+        local tokenRes = me.oidcGetTokenWithBasicAuth(u, p)
+        local expires_in = tonumber(tokenRes.expires_in)
+        for key, val in pairs(basicCache) do
+            if val.expiry and now > val.expiry then
+                basicCache[key] = nil
+            end
+        end
+        -- TODO: need to adjust for the amount of time that has passed since token issue + clock skew (or just take false cache hits)
+        basicCache[basicCred] = {
+            -- access_token = tokenRes.access_token,
+            id_token = tokenRes.id_token,
+            expiry = now + expires_in
+        }
+        return tokenRes.id_token
+    end
+
+    function me.oidcAuthenticate()
+        local sha256 = (require 'resty.sha256'):new()
+        local codeVerifier = me.randomBase64(32)
+        sha256:update(codeVerifier)
+        local codeChallenge = base64.encode_base64url(sha256:final())
+        local state = me.randomBase64(32)
+        local nonce = me.randomBase64(32)
+        local stateData = {
+            state = state,
+            request_uri = ngx.var.request_uri,
+            code_verifier = codeVerifier,
+            code_challenge = codeChallenge,
+            nonce = nonce
+        }
+        local redirectArgs = ngx.encode_args({
+            client_id = me.oidcClient,
+            response_type = 'code',
+            scope = 'openid',
+            code_challenge_method = 'S256',
+            code_challenge = codeChallenge,
+            state = state,
+            nonce = nonce,
+            redirect_uri = me.callbackUri
+        })
+        local redirtURL = me.oidcProviderAuthUri..'?'..redirectArgs
+        me.setCookie("state", stateData, me.authStateTtlInSec)
+        ngx.header["Cache-Control"] = "no-cache, no-store, max-age=0"
+        ngx.redirect(redirtURL)
+    end
+
+    -- TODO: clean up cookies
+    function me.oidcHandleCallback()
+        local queryParams = me.queryParams(ngx.var.request_uri)
+        local state = queryParams.state
+        local code = queryParams.code
+        local nonce = queryParams.nonce
+        local cookie = me.readCookie("state")
+        if not cookie then
+            me.log(ngx.ERR, "Missing callback state redirect to authenticate")
+            me.oidcAuthenticate()
+        end
+        me.deleteCookie("state")
+        local stateCk = cookie.state
+        -- local nonceCk = cookie.nonce
+        local request_uri = cookie.request_uri
+
+        if (state == nil) or (stateCk == nil) then
+            me.log(ngx.ERR, "Missing callback state redirect to authenticate")
+            me.oidcAuthenticate()
+        else
+            if state ~= stateCk then
+                me.log(ngx.ERR, "Invalid callback state redirect to authenticate")
+                me.oidcAuthenticate()
+            end
+            if not cookie.code_verifier then
+                me.log(ngx.ERR, "Invalid callback state redirect to authenticate")
+                me.oidcAuthenticate()
+            end
+            local tokenRes = me.oidcGetTokenWithCode(code, cookie.code_verifier, me.callbackUri)
+            if tokenRes then
+                me.tokenToCookie(tokenRes)
+                ngx.redirect(request_uri)
+            end
+            me.unauthorized("Failed to obtain token with code)
+        end
+    end
+
+    function me.oidcHandleLogoutCallback()
+        auth.deleteCookie()
+        auth.unauthorized("User logged out")
+    end
+
+    function me.oidcTokenRequest(formArgs)
+        local tokenUri = me.oidcProviderUri.."/protocol/openid-connect/token"
+        if me.oidcProviderInClusterUri and me.oidcProviderInClusterUri ~= "" then
+            tokenUri = me.oidcProviderInClusterUri.."/protocol/openid-connect/token"
+        end
+        local http = require "resty.http"
+        local httpc = http.new()
+        local res, err = httpc:request_uri(tokenUri, {
+            method = "POST",
+            body = ngx.encode_args(formArgs),
+            headers = {
+                ["Content-Type"] = "application/x-www-form-urlencoded",
+            }
+        })
+        -- ,keepalive_timeout = 60000,
+        -- keepalive_pool = 10
+        local tokenRes = cjson.decode(res.body)
+        if tokenRes.error or tokenRes.error_description then
+            me.unauthorized(tokenRes.error_description)
+        end
+        return tokenRes
+    end
+
+    function me.oidcGetTokenWithBasicAuth(u, p)
+        return me.oidcTokenRequest({
+                        grant_type = 'password',
+                        scope = 'openid',
+                        client_id = me.oidcDirectAccessClient,
+                        password = p,
+                        username = u
+                    })
+    end
+
+    function me.oidcGetTokenWithCode(code, verifier, callbackUri)
+        return me.oidcTokenRequest({
+                        grant_type = 'authorization_code',
+                        client_id = me.oidcClient,
+                        code = code,
+                        code_verifier = cookie.code_verifier,
+                        redirect_uri = me.callbackUri
+                    })
+    end
+
+    function me.oidcRefreshToken(rft, callbackUri)
+        return me.oidcTokenRequest({
+                        grant_type = 'refresh_token',
+                        client_id = me.oidcClient,
+                        refresh_token = rft,
+                        redirect_uri = callbackUri
+                    })
+    end
+
+    -- returns nil if successful, or err otherwise
+    function me.oidcValidateToken(token) {
+        if not (token) then
+            me.unauthorized("Invalid bearer token in authorization header")
+        end
+        me.logJson(ngx.INFO, "Validate JWT token.")
+        local jwt = require "resty.jwt"
+        local jwt_obj = jwt:load_jwt(token)
+        if (not jwt_obj.header) or (not jwt_obj.header.kid) then
+            me.unauthorized("Invalid JWT token", jwt_obj.reason)
+        end
+        local publicKey = me.publicKey(jwt_obj.header.kid)
+        if not publicKey then
+            me.unauthorized("No public_key retrieved from keycloak")
+        end
+        local verified = jwt:verify_jwt_obj(publicKey, jwt_obj)
+        if (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
+            me.unauthorized("Invalid JWT token", jwt_obj.reason)
+        end
+    end
+
+    function me.isAuthorized(idToken)
+        me.info("Checking for required role 'requiredRole'")
+        local id_token = jwt:load_jwt(idToken)
+        if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
+            for _, role in ipairs(id_token.payload.realm_access.roles) do
+                if role == requiredRole then
+                    return true
+                end
+            end
+        end
+        return false
+    end
+
+    function me.usernameFromIdToken(idToken)
+        local id_token = jwt:load_jwt(idToken)
+        if id_token and id_token.payload and id_token.payload.preferred_username then
+            return id_token.payload.preferred_username
+        end
+        return ""
+    end
+
+{{- if eq .Mode 'api-proxy' }}
+    function impersonateKubernetesUser(token) {
+        me.logJson(ngx.INFO, "Read service account token.")
+        local serviceAccountToken = read_file("/run/secrets/kubernetes.io/serviceaccount/token");
+        if not (serviceAccountToken) then
+          ngx.status = 401
+          me.logJson(ngx.ERR, "No service account token present in pod.")
+          ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        end
+        me.logJson(ngx.INFO, "Set headers")
+        ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
+        if ( jwt_obj.payload and jwt_obj.payload.groups) then
+          me.logJson(ngx.INFO, ("Adding groups " .. cjson.encode(jwt_obj.payload.groups)))
+          ngx.req.set_header("Impersonate-Group", jwt_obj.payload.groups)
+        end
+        if ( jwt_obj.payload and jwt_obj.payload.sub) then
+          me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
+          ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
+        end
+    end
+{{- end }}
+
+    -- returns id token, token is refreshed first, if necessary.
+    -- nil token returned if no session or the refresh token has expired
+    function me.getTokenFromSession()
+        local ck = me.readCookie("authn")
+        if ck then
+            local rft = ck.rt
+            local now = ngx.time()
+            local expiry = tonumber(ck.expiry)
+            local refresh_expiry = tonumber(ck.refresh_expiry)
+            if now < expiry then
+                return ck.it
+            else if now < refresh_expiry then
+                local tokenRes = me.oidcRefreshToken(rft, me.callbackUri)
+                if tokenRes then
+                    local err = me.oidcValidateToken(tokenRes.idt)
+                    if err then
+                        me.unauthorized("Invalid token")
+                    end
+                    me.tokenToCookie(tokenRes)
+                    me.info("token refreshed",  tokenRes)
+                    return tokenRes.idt
+                end
+            end
+            -- no valid token found, delete cookie
+            me.deleteCookie("authn")
+        end
+        return nil
+    end
+
+    function me.tokenToCookie(tokenRes)
+        -- Do we need access_token? too big > 4k
+        local cookiePairs = {
+            rt = tokenRes.refresh_token,
+            -- at = tokenRes.access_token,
+            it = tokenRes.id_token
+        }
+        local id_token = jwt:load_jwt(tokenRes.id_token)
+        local expires_in = tonumber(tokenRes.expires_in)
+        local refresh_expires_in = tonumber(tokenRes.refresh_expires_in)
+        local now = ngx.time()
+        local issued_at = now
+        if id_token and id_token.payload then
+            if id_token.payload.iat then
+                issued_at = tonumber(id_token.payload.iat)
+            else
+                if id_token.payload.auth_time then
+                    issued_at = tonumber(id_token.payload.auth_time)
+                end
+            end
+            --if id_token.payload.email then
+            --    cookiePairs.email = id_token.payload.email
+            --end
+        end
+        local skew = now - issued_at
+        -- Expire 30 secs before actual time
+        local expiryBuffer = 30
+        cookiePairs.expiry = now + expires_in - skew - expiryBuffer
+        cookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
+        me.setCookie("authn", cookiePairs, tonumber(tokenRes.refresh_expires_in)-expiryBuffer)
+    end
+
+    function me.setCookie(ckName, cookiePairs, expiresInSec)
+        local expires = ngx.cookie_time(ngx.time() + expiresInSec)
+        local attributes = "; Path=/; Secure; HttpOnly; Expires="..expires
+        local encrypted = me.aes256:encrypt(cjson.encode(cookiePairs))
+        local cookie = base64.encode_base64url(encrypted)
+        ngx.header["Set-Cookie"] = ckName..'='..cookie..attributes
+    end
+
+    function me.deleteCookie(ckName)
+        ngx.header["Set-Cookie"] = ckName..'=; Path=/; Secure; HttpOnly; Expires=Thu, 01 Jan 1970 00:00:00 UTC;'
+    end
+
+    function me.readCookie(ckName)
+        if not ckName then
+            return nil
+        end
+        local cookie, err = require("resty.cookie"):new()
+        local ck = cookie:get(ckName)
+        if not ck then
+            return nil
+        end
+        local decoded = base64.decode_base64url(ck)
+        if not decoded then
+            return nil
+        end
+        local json = me.aes256:decrypt(decoded)
+        if not json then
+            return nil
+        end
+        return cjson.decode(json)
+    end
+
+    -- TODO: shouldn't cache these forever
+    local certs = {}
+    function me.realmCerts(kid)
+        local pk = certs[kid]
+        if pk then
+            return pk
+        end
+        local http = require "resty.http"
+        local httpc = http.new()
+        local providerUri = me.oidcProviderUri
+        if me.oidcProviderInClusterUri and me.oidcProviderInClusterUri ~= "" then
+            providerUri = me.oidcProviderInClusterUri
+        end
+        local certsUri = providerUri..'/protocol/openid-connect/certs'
+        local res, err = httpc:request_uri(certsUri)
+        if err then
+            return nil
+        end
+        local data = cjson.decode(res.body)
+        if not (data.keys) then
+            return nil
+        end
+        for i, key in pairs(data.keys) do
+            if key.kid and key.x5c then
+                certs[key.kid] = key.x5c
+            end
+        end
+        return certs[kid]
+    end
+
+    function me.publicKey(kid)
+        local x5c = me.realmCerts(kid)
+        if (not x5c) or (#x5c == 0) then
+            return nil
+        end
+        return "-----BEGIN CERTIFICATE-----\n"..x5c[1].."\n-----END CERTIFICATE-----"
+    end
+
+    return me
   nginx.conf: |
     #user  nobody;
     worker_processes  1;
-
+    
     #error_log  logs/error.log;
     #error_log  logs/error.log  notice;
     #error_log  logs/error.log  info;
-
+    
     pid        logs/nginx.pid;
-
-
+    
     events {
         worker_connections  1024;
     }
-
-
+    
     http {
         include       mime.types;
         default_type  application/octet-stream;
-
+    
         #log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
         #                  '$status $body_bytes_sent "$http_referer" '
         #                  '"$http_user_agent" "$http_x_forwarded_for"';
-
+    
         error_log  logs/error.log  info;
-
+    
         sendfile        on;
         #tcp_nopush     on;
-
+    
+        # TODO: api proxy doesn't have client_max_body_size - should it?
+        client_max_body_size 65m;
         #keepalive_timeout  0;
         keepalive_timeout  65;
-
+    
         #gzip  on;
         #
         lua_package_path '/usr/local/share/lua/5.1/?.lua;;';
@@ -154,148 +633,68 @@ data:
         lua_shared_dict discovery 1m;
         #  cache for JWKs
         lua_shared_dict jwks 1m;
-        lua_ssl_verify_depth 2;
-        lua_ssl_trusted_certificate /etc/nginx/ca-bundle;
-
+        # TODO: ssl params hard-wired for api proxy
+        {{ .SSLVerifyOptions }}
+        {{ .SSLTrustedCAOptions }}
+    
+        # TODO: upstream http_backend not present in api-proxy
+        upstream http_backend {
+            server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;
+        }
         server {
             listen       8775;
             server_name  apiserver;
             root     /opt/nginx/html;
-            rewrite_by_lua_file /etc/nginx/conf.lua;
             #charset koi8-r;
-
+    
+            set $oidc_user "";
+            rewrite_by_lua_file /etc/nginx/conf.lua;
             #access_log  logs/host.access.log  main;
             expires           0;
             add_header        Cache-Control private;
-
+    
+            # TODO: this is not present in api-proxy
+            proxy_set_header  X-WEBAUTH-USER $oidc_user;
+    
             location / {
-              proxy_pass https://kubernetes.default.svc/;
+                proxy_pass http://http_backend;
             }
-
+    
             error_page 404 /404.html;
-              location = /40x.html {
+                location = /40x.html {
             }
-
+    
             #error_page  404              /404.html;
-
             # redirect server error pages to the static page /50x.html
             #
             error_page   500 502 503 504  /50x.html;
-
             location = /50x.html {
                 root   html;
             }
-
-            # proxy the PHP scripts to Apache listening on 127.0.0.1:80
-            #
-            #location ~ \.php$ {
-            #    proxy_pass   http://127.0.0.1;
-            #}
-
-            # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
-            #
-            #location ~ \.php$ {
-            #    root           html;
-            #    fastcgi_pass   127.0.0.1:9000;
-            #    fastcgi_index  index.php;
-            #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
-            #    include        fastcgi_params;
-            #}
-
-            # deny access to .htaccess files, if Apache's document root
-            # concurs with nginx's one
-            #
-            #location ~ /\.ht {
-            #    deny  all;
-            #}
         }
-
-
-    # another virtual host using mix of IP-, name-, and port-based configuration
-    #
-    #server {
-    #    listen       8000;
-    #    listen       somename:8080;
-    #    server_name  somename  alias  another.alias;
-
-    #    location / {
-    #        root   html;
-    #        index  index.html index.htm;
-    #    }
-    #}
-
-
-    # HTTPS server
-    #
-    #server {
-    #    listen       443 ssl;
-    #    server_name  localhost;
-
-    #    ssl_certificate      cert.pem;
-    #    ssl_certificate_key  cert.key;
-
-    #    ssl_session_cache    shared:SSL:1m;
-    #    ssl_session_timeout  5m;
-
-    #    ssl_ciphers  HIGH:!aNULL:!MD5;
-    #    ssl_prefer_server_ciphers  on;
-
-    #    location / {
-    #        root   html;
-    #        index  index.html index.htm;
-    #    }
     }
   startup.sh: |
     #!/bin/bash
-    cd `dirname $0`
-    cp `dirname $0`/nginx.conf /etc/nginx/nginx.conf
-    cp `dirname $0`/conf.lua /etc/nginx/conf.lua
+    startupDir={{ .StartupDir }}
+    cd $startupDir
+    cp $startupDir/nginx.conf /etc/nginx/nginx.conf
+    cp $startupDir/auth.lua /etc/nginx/auth.lua
+    cp $startupDir/conf.lua /etc/nginx/conf.lua
     nameserver=$(grep -i nameserver /etc/resolv.conf | awk '{split($0,line," "); print line[2]}')
     sed -i -e "s|_NAMESERVER_|${nameserver}|g" /etc/nginx/nginx.conf
-
+    
     mkdir -p /etc/nginx/logs
     touch /etc/nginx/logs/error.log
-
+    
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-    ln -s /etc/ssl/certs/ca-bundle.trust.crt /etc/nginx/ca-bundle
-
-    /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -t -p /etc/nginx
+    
+    /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx -t
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
-
-    sh -c "`dirname $0`/reload.sh &"
-    tail -f /etc/nginx/logs/error.log
-  reload.sh: |
-    #!/bin/bash
-
-    function reload() {
-      nginx -t -p /etc/nginx
-      if [ $? -eq 0 ]
-      then
-        echo "Detected Nginx Configuration Change"
-        echo "Executing: nginx -s reload -p /etc/nginx"
-        nginx -s reload -p /etc/nginx
-      fi
-    }
-
-    while true
-    do
-    if [[ -L /etc/nginx/ca-bundle ]] &&  [[ -f /api-config/admin-ca-bundle ]] &&  [[ -s /api-config/admin-ca-bundle ]] && [[ "`realpath /etc/nginx/ca-bundle`" != "/api-config/admin-ca-bundle" ]]; then
-      rm -rf /etc/nginx/ca-bundle
-      ln -s /api-config/admin-ca-bundle /etc/nginx/ca-bundle
-      reload
-    fi
-    if [[ -L /etc/nginx/ca-bundle ]] &&  [[ ! -f /api-config/admin-ca-bundle ]] && [[ "`realpath /etc/nginx/ca-bundle`" == "/api-config/admin-ca-bundle" ]] && [[ -f /api-config/default-ca-bundle ]]  && [[ -s /api-config/default-ca-bundle ]]; then
-      rm -rf /etc/nginx/ca-bundle
-      ln -s /api-config/default-ca-bundle /etc/nginx/ca-bundle
-      reload
-    fi
-    if [[ ! -L /etc/nginx/ca-bundle ]] &&  [[ -f /api-config/admin-ca-bundle ]]  &&  [[ -s /api-config/admin-ca-bundle ]]; then
-      ln -s /api-config/admin-ca-bundle /etc/nginx/ca-bundle
-      reload
-    fi
-    if [[ ! -L /etc/nginx/ca-bundle ]] &&  [[ -f /api-config/default-ca-bundle ]]  &&  [[ -s /api-config/default-ca-bundle ]]; then
-      ln -s /api-config/default-ca-bundle /etc/nginx/ca-bundle
-      reload
-    fi
-    sleep 5 
+    
+    while [ $? -ne 0 ]; do
+        sleep 20
+        echo "retry nginx startup ..."
+        /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
     done
+    tail -f /etc/nginx/logs/error.log
+{{- end }}

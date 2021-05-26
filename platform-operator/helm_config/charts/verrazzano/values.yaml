@@ -93,6 +93,8 @@ api:
   pullPolicy: IfNotPresent
   port: 8775
   impersonatorRoleName: impersonate-api-user
+  proxy:
+    mode: k8s-api-proxy
 
 # OCI-related values
 oci:

@@ -3,10 +3,10 @@
 
 package proxy
 
-// OidcStartup defines the startup.sh file name in OIDC proxy ConfigMap
+// OidcStartupFilename defines the startup.sh file name in OIDC proxy ConfigMap
 const OidcStartupFilename = "startup.sh"
 
-// OidcStartupTemp is the template of startup.sh file in OIDC proxy ConfigMap
+// OidcStartupFileTemplate is the template of startup.sh file in OIDC proxy ConfigMap
 const OidcStartupFileTemplate = `|
 #!/bin/bash
 startupDir={{ .StartupDir }}

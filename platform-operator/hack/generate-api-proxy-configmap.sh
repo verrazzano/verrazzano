@@ -15,6 +15,7 @@ metadata:
   labels:
     app: {{ .Values.api.name }}
 data:
+{{- with .Values.api.proxy }}
 EOF
 
 for _i in ${_files}
@@ -38,3 +39,5 @@ do
             print
     }' ${_i} | sed -e "${_indent}"
 done
+
+echo '{{- end }}'

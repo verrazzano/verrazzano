@@ -3,29 +3,23 @@
 
 package proxy
 
-// OidcCallbackPath is the callback URL path of OIDC authentication redirect
-const OidcCallbackPath = "/_authentication_callback"
-
-// OidcLogoutCallbackPath is the callback URL path after logout
-const OidcLogoutCallbackPath = "/_logout"
-
-// OidcConfLua defines the conf.lua file name in OIDC proxy ConfigMap
+// OidcConfLuaFilename defines the conf.lua file name in OIDC proxy ConfigMap
 const OidcConfLuaFilename = "conf.lua"
 
-// OidcConfLuaTemp is the template of conf.lua file in OIDC proxy ConfigMap
+// OidcConfLuaFileTemplate is the template of conf.lua file in OIDC proxy ConfigMap
 const OidcConfLuaFileTemplate = `|
     local ingressUri = 'https://'..'{{ .Ingress }}'
-    local oidcProviderHost = "{{ .OIDCProviderHost }}"
-    local oidcProviderHostInCluster = "{{ .OIDCProviderHostInCluster }}"
+    local oidcProviderHost = "{{ .OidcProviderHost }}"
+    local oidcProviderHostInCluster = "{{ .OidcProviderHostInCluster }}"
     local realm ="{{ .Realm }}"
-    local callbackPath = "{{ .OIDCCallbackPath }}"
-    local logoutCallbackPath = "{{ .OIDCLogoutCallbackPath }}"
+    local callbackPath = "{{ .OidcCallbackPath }}"
+    local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
     local oidcClient = "{{ .PKCEClientID }}"
     local oidcDirectAccessClient = "{{ .PGClientID }}"
+    -- TODO: fix this -- shouldn't have cookie key in configmap
     local cookieKey = "{{ .RandomString }}"
     local requiredRole = "{{ .RequiredRealmRole }}"
     local authStateTtlInSec = {{ .AuthnStateTTL }}
-    local bearerServiceAccountToken = false
 
     local oidcProviderInClusterUri = ""
     if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
@@ -44,8 +38,7 @@ const OidcConfLuaFileTemplate = `|
         oidcClient = oidcClient,
         oidcDirectAccessClient = oidcDirectAccessClient,
         authStateTtlInSec = authStateTtlInSec,
-        cookieKey = cookieKey,
-        bearerServiceAccountToken = bearerServiceAccountToken
+        cookieKey = cookieKey
     })
     ngx.header["Access-Control-Allow-Origin"] =  ngx.req.get_headers()["origin"]
     ngx.header["Access-Control-Allow-Headers"] =  "authorization"
@@ -53,33 +46,57 @@ const OidcConfLuaFileTemplate = `|
         ngx.status = 200
         ngx.exit(ngx.HTTP_OK)
     end
-    auth.info("Extracting authorization header from request.")
+
+    auth.info("Checking for authorization header")
     local authHeader = ngx.req.get_headers()["authorization"]
-    if not authHeader then
-        if string.find(ngx.var.request_uri, callbackPath) then
-            auth.handleCallback()
-        elseif string.find(ngx.var.request_uri, logoutCallbackPath) then
-            auth.handleLogoutCallback()
-        end
-        local ck = auth.authenticated()
-        if ck then
-            if auth.hasRequiredRole(ck.it, requiredRole) then
-                ngx.var.oidc_user = auth.usernameFromIdToken(ck.it)
-            else
-                auth.logout()
-                return
-            end
-        else
-            auth.authenticate()
-        end
+    local token = nil
+    if authHeader then
+{{- if eq .Mode "api-proxy" }}
+        -- console sent access token to api proxy with k8s api request (not cached)
+        token = auth.handleBearerToken(authHeader)
+{{- else if eq .Mode "oauth-proxy" }}
+        -- vz component calling vmi component using basic auth (cached locally)
+        token = handleBasicAuth(authHeader)
+{{- end }}
+        if not token then
+            auth.info("No recognized credentials in authorization header")
+        fi
     else
-        local idToken = auth.authHeader(authHeader)
-        if idToken then
-            if auth.hasRequiredRole(idToken, requiredRole) then
-                ngx.var.oidc_user = auth.usernameFromIdToken(idToken)
-            else
-                auth.forbidden("User does not have a required realm role")
-            end
+        auth.info("No authorization header found")
+{{- if eq .Mode "oauth-proxy" }}
+        if string.find(ngx.var.request_uri, callbackPath) then
+            -- we initiated authentication via pkce, and OP is delivering the code
+            -- will redirect to target url, where token will be found in cookie
+            auth.oidcHandleCallback()
+        elseif string.find(ngx.var.request_uri, logoutCallbackPath) then
+            -- logout was triggered, and OP (always?) is calling our logout URL
+            auth.oidcHandleLogoutCallback()
         end
+        -- still no token, check if caller has a valid token in session (cookie)
+        -- redirect after handling callback should end up here
+        token = auth.getTokenFromSession()
+        if not token then
+            -- no token, redirect to OP to authenticate
+            auth.oidcAuthenticate()
+        end
+{{- end }}
     end
+
+    if not token
+        auth.unauthorized("Not authenticated")
+    end
+
+    -- token will be an id token except when console calls api proxy, then it's an access token
+    -- TODO: need to fix this so token handling/consumption is aligned across all clients/backends
+    if not auth.isAuthorized(token) then
+        auth.forbidden("Not authorized")
+    end
+
+{{- if eq .Mode "api-proxy" }}
+    -- impersonate the user
+    impersonateKubernetesUser(token)
+{{- else if eq .Mode "oauth-proxy" }}
+    ngx.var.oidc_user = auth.usernameFromIdToken(idToken)
+{{- end }}
+
 `

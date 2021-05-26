@@ -12,14 +12,14 @@ func getGenericProxyConfig() OidcProxyConfig {
 
 	proxyConfig.StartupDir = "`dirname $0`"
 
-	proxyConfig.SSLVerifyOptions = OidcSslVerifyOptions
-	proxyConfig.SSLTrustedCAOptions = OidcSslTrustedOptions
+	proxyConfig.SSLVerifyOptions = OidcSSLVerifyOptions
+	proxyConfig.SSLTrustedCAOptions = OidcSSLTrustedOptions
 	proxyConfig.Host = "localhost"
 	proxyConfig.Port = 8443
 
 	proxyConfig.Ingress = "foo.bar.com"
-	proxyConfig.OIDCProviderHost = "keycloak.foo.bar.com"
-	proxyConfig.OIDCProviderHostInCluster = "keycloak-http.keycloak.svc.cluster.local"
+	proxyConfig.OidcProviderHost = "keycloak.foo.bar.com"
+	proxyConfig.OidcProviderHostInCluster = "keycloak-http.keycloak.svc.cluster.local"
 
 	return proxyConfig
 }

@@ -8,7 +8,43 @@ import (
 	"text/template"
 )
 
+// ProxyModeAPI mode in which twhere the proxy accepts only bearer tokens (from console) and impersonates the token's subject to Kubenetes
+const ProxyModeAPI = "api-proxy"
+
+// ProxyModeOauth mode in which the proxy supports both Password Grant and PKCE OIDC flows, and provides authentication/sso for VMI components
+const ProxyModeOauth = "oauth-proxy"
+
+// OidcSSLVerifyOptions defines the ssl verify option
+const OidcSSLVerifyOptions = "lua_ssl_verify_depth 2;"
+
+// OidcSSLTrustedOptions defines the ssl trusted certificates option
+const OidcSSLTrustedOptions = "lua_ssl_trusted_certificate /secret/ca-bundle;"
+
+// OidcRealmName is the name of the verrazzano system realm in Keycloak
+const OidcRealmName = "verrazzano-system"
+
+// OidcPkceClientID is the name of the verrazzano PKCE client
+const OidcPkceClientID = "verrazzano-pkce"
+
+// OidcPgClientID is the name of the verrazzano password grant client
+const OidcPgClientID = "verrazzano-pg"
+
+// OidcRequiredRealmRole is the role required to access Verrazzano APIs viea the proxy
+const OidcRequiredRealmRole = "vz-api-access"
+
+// OidcAuthnStateTTL is the TTL for entries in the basic auth creds cache
+const OidcAuthnStateTTL = 300
+
+// OidcCallbackPath is the callback URL path of OIDC authentication redirect
+const OidcCallbackPath = "/_authentication_callback"
+
+// OidcLogoutCallbackPath is the callback URL path after logout
+const OidcLogoutCallbackPath = "/_logout"
+
+// OidcProxyConfig type represents the config settings for a proxy instance
 type OidcProxyConfig struct {
+	// proxy mode: api-proxy or oauth-proxy
+	Mode string
 	// configmap metadata
 	Name      string
 	Namespace string
@@ -22,11 +58,11 @@ type OidcProxyConfig struct {
 	Port                int
 	// for conf.lua
 	Ingress                   string
-	OIDCProviderHost          string
-	OIDCProviderHostInCluster string
+	OidcProviderHost          string
+	OidcProviderHostInCluster string
 	Realm                     string
-	OIDCCallbackPath          string
-	OIDCLogoutCallbackPath    string
+	OidcCallbackPath          string
+	OidcLogoutCallbackPath    string
 	PKCEClientID              string
 	PGClientID                string
 	RandomString              string
@@ -64,14 +100,16 @@ func executeTemplateWithValues(templateName string, templateString string, value
 	return buf.String(), nil
 }
 
+// GetOidcProxyConfigMapData returns a map containing config files for a proxy instance
 func GetOidcProxyConfigMapData(config OidcProxyConfig) (map[string]string, error) {
 	// set default values
+	config.Mode = ProxyModeOauth
 	config.StartupDir = "`dirname $0`"
 	config.Realm = OidcRealmName
 	config.PKCEClientID = OidcPkceClientID
 	config.PGClientID = OidcPgClientID
-	config.OIDCCallbackPath = OidcCallbackPath
-	config.OIDCLogoutCallbackPath = OidcLogoutCallbackPath
+	config.OidcCallbackPath = OidcCallbackPath
+	config.OidcLogoutCallbackPath = OidcLogoutCallbackPath
 	config.RequiredRealmRole = OidcRequiredRealmRole
 	config.AuthnStateTTL = OidcAuthnStateTTL
 	// execute the templates

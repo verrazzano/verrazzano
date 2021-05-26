@@ -3,25 +3,10 @@
 
 package proxy
 
-// OidcRealmName is the name of the verrazzano system realm in Keycloak
-const OidcRealmName = "verrazzano-system"
-
-// OidcPkceClientId is the name of the verrazzano PKCE client
-const OidcPkceClientID = "verrazzano-pkce"
-
-// OidcPgClientId is the name of the verrazzano password grant client
-const OidcPgClientID = "verrazzano-pg"
-
-// OidcRequiredRealmRole is the role required to access Verrazzano APIs viea the proxy
-const OidcRequiredRealmRole = "vz-api-access"
-
-// OidcRequiredRealmRole is the role required to access Verrazzano APIs viea the proxy
-const OidcAuthnStateTTL = 300
-
-// OidcAuthLua defines the auth.lua file name in OIDC proxy ConfigMap
+// OidcAuthLuaFilename defines the auth.lua file name in OIDC proxy ConfigMap
 const OidcAuthLuaFilename = "auth.lua"
 
-// OidcAuthLuaScripts is the content of auth.lua file in OIDC proxy ConfigMap
+// OidcAuthLuaFileTemplate is the content of auth.lua file in OIDC proxy ConfigMap
 const OidcAuthLuaFileTemplate = `|
     local me = {}
     local random = require("resty.random")
@@ -90,6 +75,7 @@ const OidcAuthLuaFileTemplate = `|
     end
 
     function me.unauthorized(msg, err)
+        me.deleteCookie("authn")
         ngx.status = ngx.HTTP_UNAUTHORIZED
         me.logJson(ngx.ERR, msg, err)
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
@@ -97,9 +83,16 @@ const OidcAuthLuaFileTemplate = `|
 
     function me.forbidden(msg, err)
         ngx.status = ngx.HTTP_FORBIDDEN
-        me.deleteCookie("authn")
         me.logJson(ngx.ERR, msg, err)
         ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
+    function me.logout()
+        local redirectArgs = ngx.encode_args({
+            redirect_uri = me.logoutCallbackUri
+        })
+        local redirURL = me.oidcProviderUri.."/protocol/openid-connect/logout?"..redirectArgs
+        ngx.redirect(redirURL)
     end
 
     function me.randomBase64(size)
@@ -115,7 +108,75 @@ const OidcAuthLuaFileTemplate = `|
         return content
     end
 
-    function me.authenticate()
+    -- this should only happen when the console calls the api-proxy
+    -- console sends the access token by itself (originally obtained via pkce client)
+    function me.handleBearerToken(authHeader)
+        me.info("Checking for bearer token")
+        local found, index = authHeader:find('Bearer')
+        if found then
+            local token = string.sub(authHeader, index+2)
+            if token
+                me.info("Found bearer token in authorization header")
+                local err = me.oidcValidateToken(token)
+                if err not nil then
+                    me.unauthorized("Invalid token")
+                end
+                return token
+            else
+                me.unauthorized("Missing token in authorization header)
+            end
+        end
+        me.info "No bearer token found")
+        return nil
+    end
+
+    local basicCache = {}
+
+    -- should only be called if some vz process is trying to access vmi using basic auth
+    -- we use local cache keyed by the auth credentials to avoid calling OP every time
+    -- TODO: this seems bad, it means we keep every caller's creds unencrypted in memory until they're pushed out of the cache)
+    function me.handleBasicAuth(authHeader)
+        me.info("Checking for basic auth credentials")
+        local found, index = authHeader:find('Basic')
+        if not found then
+            me.info("No basic auth credentials found")
+            return nil
+        end
+        local basicCred = string.sub(authHeader, index+2)
+        if not basicCred
+            me.unauthorized("Invalid BasicAuth authorization header")
+        end
+        me.info("Found basic auth credentials in authorization header")
+        local now = ngx.time()
+        local basicAuth = basicCache[basicCred]
+        if basicAuth and (now < basicAuth.expiry) then
+            me.info("Returning cached token")
+            return basicAuth.id_token
+        end
+        local decode = ngx.decode_base64(basicCred)
+        local found = decode:find(':')
+        if not found then
+            me.unauthorized("Invalid BasicAuth authorization header")
+        end
+        local u = decode:sub(1, found-1)
+        local p = decode:sub(found+1)
+        local tokenRes = me.oidcGetTokenWithBasicAuth(u, p)
+        local expires_in = tonumber(tokenRes.expires_in)
+        for key, val in pairs(basicCache) do
+            if val.expiry and now > val.expiry then
+                basicCache[key] = nil
+            end
+        end
+        -- TODO: need to adjust for the amount of time that has passed since token issue + clock skew (or just take false cache hits)
+        basicCache[basicCred] = {
+            -- access_token = tokenRes.access_token,
+            id_token = tokenRes.id_token,
+            expiry = now + expires_in
+        }
+        return tokenRes.id_token
+    end
+
+    function me.oidcAuthenticate()
         local sha256 = (require 'resty.sha256'):new()
         local codeVerifier = me.randomBase64(32)
         sha256:update(codeVerifier)
@@ -145,7 +206,49 @@ const OidcAuthLuaFileTemplate = `|
         ngx.redirect(redirtURL)
     end
 
-    function me.tokenRequest(formArgs)
+    -- TODO: clean up cookies
+    function me.oidcHandleCallback()
+        local queryParams = me.queryParams(ngx.var.request_uri)
+        local state = queryParams.state
+        local code = queryParams.code
+        local nonce = queryParams.nonce
+        local cookie = me.readCookie("state")
+        if not cookie then
+            me.log(ngx.ERR, "Missing callback state redirect to authenticate")
+            me.oidcAuthenticate()
+        end
+        me.deleteCookie("state")
+        local stateCk = cookie.state
+        -- local nonceCk = cookie.nonce
+        local request_uri = cookie.request_uri
+
+        if (state == nil) or (stateCk == nil) then
+            me.log(ngx.ERR, "Missing callback state redirect to authenticate")
+            me.oidcAuthenticate()
+        else
+            if state ~= stateCk then
+                me.log(ngx.ERR, "Invalid callback state redirect to authenticate")
+                me.oidcAuthenticate()
+            end
+            if not cookie.code_verifier then
+                me.log(ngx.ERR, "Invalid callback state redirect to authenticate")
+                me.oidcAuthenticate()
+            end
+            local tokenRes = me.oidcGetTokenWithCode(code, cookie.code_verifier, me.callbackUri)
+            if tokenRes then
+                me.tokenToCookie(tokenRes)
+                ngx.redirect(request_uri)
+            end
+            me.unauthorized("Failed to obtain token with code)
+        end
+    end
+
+    function me.oidcHandleLogoutCallback()
+        auth.deleteCookie()
+        auth.unauthorized("User logged out")
+    end
+
+    function me.oidcTokenRequest(formArgs)
         local tokenUri = me.oidcProviderUri.."/protocol/openid-connect/token"
         if me.oidcProviderInClusterUri and me.oidcProviderInClusterUri ~= "" then
             tokenUri = me.oidcProviderInClusterUri.."/protocol/openid-connect/token"
@@ -161,87 +264,136 @@ const OidcAuthLuaFileTemplate = `|
         })
         -- ,keepalive_timeout = 60000,
         -- keepalive_pool = 10
-        return cjson.decode(res.body)
+        local tokenRes = cjson.decode(res.body)
+        if tokenRes.error or tokenRes.error_description then
+            me.unauthorized(tokenRes.error_description)
+        end
+        return tokenRes
     end
 
-    function me.authenticated()
+    function me.oidcGetTokenWithBasicAuth(u, p)
+        return me.oidcTokenRequest({
+                        grant_type = 'password',
+                        scope = 'openid',
+                        client_id = me.oidcDirectAccessClient,
+                        password = p,
+                        username = u
+                    })
+    end
+
+    function me.oidcGetTokenWithCode(code, verifier, callbackUri)
+        return me.oidcTokenRequest({
+                        grant_type = 'authorization_code',
+                        client_id = me.oidcClient,
+                        code = code,
+                        code_verifier = cookie.code_verifier,
+                        redirect_uri = me.callbackUri
+                    })
+    end
+
+    function me.oidcRefreshToken(rft, callbackUri)
+        return me.oidcTokenRequest({
+                        grant_type = 'refresh_token',
+                        client_id = me.oidcClient,
+                        refresh_token = rft,
+                        redirect_uri = callbackUri
+                    })
+    end
+
+    -- returns nil if successful, or err otherwise
+    function me.oidcValidateToken(token) {
+        if not (token) then
+            me.unauthorized("Invalid bearer token in authorization header")
+        end
+        me.logJson(ngx.INFO, "Validate JWT token.")
+        local jwt = require "resty.jwt"
+        local jwt_obj = jwt:load_jwt(token)
+        if (not jwt_obj.header) or (not jwt_obj.header.kid) then
+            me.unauthorized("Invalid JWT token", jwt_obj.reason)
+        end
+        local publicKey = me.publicKey(jwt_obj.header.kid)
+        if not publicKey then
+            me.unauthorized("No public_key retrieved from keycloak")
+        end
+        local verified = jwt:verify_jwt_obj(publicKey, jwt_obj)
+        if (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
+            me.unauthorized("Invalid JWT token", jwt_obj.reason)
+        end
+    end
+
+    function me.isAuthorized(idToken)
+        me.info("Checking for required role 'requiredRole'")
+        local id_token = jwt:load_jwt(idToken)
+        if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
+            for _, role in ipairs(id_token.payload.realm_access.roles) do
+                if role == requiredRole then
+                    return true
+                end
+            end
+        end
+        return false
+    end
+
+    function me.usernameFromIdToken(idToken)
+        local id_token = jwt:load_jwt(idToken)
+        if id_token and id_token.payload and id_token.payload.preferred_username then
+            return id_token.payload.preferred_username
+        end
+        return ""
+    end
+
+{{- if eq .Mode "api-proxy" }}
+    function impersonateKubernetesUser(token) {
+        me.logJson(ngx.INFO, "Read service account token.")
+        local serviceAccountToken = read_file("/run/secrets/kubernetes.io/serviceaccount/token");
+        if not (serviceAccountToken) then
+          ngx.status = 401
+          me.logJson(ngx.ERR, "No service account token present in pod.")
+          ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        end
+        me.logJson(ngx.INFO, "Set headers")
+        ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
+        if ( jwt_obj.payload and jwt_obj.payload.groups) then
+          me.logJson(ngx.INFO, ("Adding groups " .. cjson.encode(jwt_obj.payload.groups)))
+          ngx.req.set_header("Impersonate-Group", jwt_obj.payload.groups)
+        end
+        if ( jwt_obj.payload and jwt_obj.payload.sub) then
+          me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
+          ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
+        end
+    end
+{{- end }}
+
+    -- returns id token, token is refreshed first, if necessary.
+    -- nil token returned if no session or the refresh token has expired
+    function me.getTokenFromSession()
         local ck = me.readCookie("authn")
         if ck then
             local rft = ck.rt
             local now = ngx.time()
             local expiry = tonumber(ck.expiry)
             local refresh_expiry = tonumber(ck.refresh_expiry)
-            if now > refresh_expiry then
-                -- refresh_token expired, redirect to authenticate
-                me.authenticate()
-            else
-                if now > expiry then
-                    -- token expired refresh
-                    local tokenRef = me.tokenToCookie({
-                        grant_type = 'refresh_token',
-                        client_id = me.oidcClient,
-                        refresh_token = rft,
-                        redirect_uri = me.callbackUri
-                    })
-                    me.info("token refreshed",  tokenRef)
+            if now < expiry then
+                return ck.it
+            else if now < refresh_expiry then
+                local tokenRes = me.oidcRefreshToken(rft, me.callbackUri)
+                if tokenRes then
+                    local err = me.oidcValidateToken(tokenRes.idt)
+                    if err then
+                        me.unauthorized("Invalid token")
+                    end
+                    me.tokenToCookie(tokenRes)
+                    me.info("token refreshed",  tokenRes)
+                    return tokenRes.idt
                 end
             end
+            -- no valid token found, delete cookie
+            me.deleteCookie("authn")
         end
-        return ck
+        return nil
     end
 
-    function me.handleCallback()
-        local queryParams = me.queryParams(ngx.var.request_uri)
-        local state = queryParams.state
-        local code = queryParams.code
-        local nonce = queryParams.nonce
-        local cookie = me.readCookie("state")
-        if not cookie then
-            me.log(ngx.ERR, "Missing callback state redirect to authenticate")
-            me.authenticate()
-        end
-        local stateCk = cookie.state
-        -- local nonceCk = cookie.nonce
-        local request_uri = cookie.request_uri
-
-        if (state == nil) or (stateCk == nil) then
-            me.log(ngx.ERR, "Missing callback state redirect to authenticate")
-            me.authenticate()
-        else
-            if state ~= stateCk then
-                me.log(ngx.ERR, "Invalid callback state redirect to authenticate")
-                me.authenticate()
-            end
-            if not cookie.code_verifier then
-                me.log(ngx.ERR, "Invalid callback state redirect to authenticate")
-                me.authenticate()
-            end
-            local formArgs = {
-                grant_type = 'authorization_code',
-                client_id = me.oidcClient,
-                code = code,
-                code_verifier = cookie.code_verifier,
-                redirect_uri = me.callbackUri
-            }
-            local tokenRes = me.tokenToCookie(formArgs)
-            ngx.redirect(request_uri)
-        end
-    end
-
-    function me.logout()
-        local redirectArgs = ngx.encode_args({
-            redirect_uri = me.logoutCallbackUri
-        })
-        local redirURL = me.oidcProviderUri.."/protocol/openid-connect/logout?"..redirectArgs
-        ngx.redirect(redirURL)
-    end
-
-    function me.handleLogoutCallback()
-        me.forbidden("User does not have a required realm role")
-    end
-
-    function me.tokenToCookie(formArgs)
-        local tokenRes = me.tokenRequest(formArgs)
+    function me.tokenToCookie(tokenRes)
         -- Do we need access_token? too big > 4k
         local cookiePairs = {
             rt = tokenRes.refresh_token,
@@ -271,26 +423,6 @@ const OidcAuthLuaFileTemplate = `|
         cookiePairs.expiry = now + expires_in - skew - expiryBuffer
         cookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
         me.setCookie("authn", cookiePairs, tonumber(tokenRes.refresh_expires_in)-expiryBuffer)
-    end
-
-    function me.hasRequiredRole(idToken, requiredRole)
-        local id_token = jwt:load_jwt(idToken)
-        if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
-            for _, role in ipairs(id_token.payload.realm_access.roles) do
-                if role == requiredRole then
-                    return true
-                end
-            end
-        end
-        return false
-    end
-
-    function me.usernameFromIdToken(idToken)
-        local id_token = jwt:load_jwt(idToken)
-        if id_token and id_token.payload and id_token.payload.preferred_username then
-            return id_token.payload.preferred_username
-        end
-        return ""
     end
 
     function me.setCookie(ckName, cookiePairs, expiresInSec)
@@ -325,25 +457,7 @@ const OidcAuthLuaFileTemplate = `|
         return cjson.decode(json)
     end
 
-    -- handle auth header: Authorization: <type> <credentials>
-    function me.authHeader(authHeader)
-        local found, index = authHeader:find('Bearer')
-        if found then
-            me.info("Extract jwt token from authorization header.")
-            local token = string.sub(authHeader, index+2)
-            me.handleBearer(token)
-        else
-            found, index = authHeader:find('Basic')
-            if found then
-                local basicCred = string.sub(authHeader, index+2)
-                return me.handleBasicAuth(basicCred)
-            else
-                me.unauthorized("Invalid authorization header "..authHeader)
-            end
-        end
-        return nil
-    end
-
+    -- TODO: shouldn't cache these forever
     local certs = {}
     function me.realmCerts(kid)
         local pk = certs[kid]
@@ -379,93 +493,6 @@ const OidcAuthLuaFileTemplate = `|
             return nil
         end
         return "-----BEGIN CERTIFICATE-----\n"..x5c[1].."\n-----END CERTIFICATE-----"
-    end
-
-    function me.handleBearer(token)
-        if not (token) then
-            me.unauthorized("Invalid bearer token in authorization header")
-        end
-        me.logJson(ngx.INFO, "Validate JWT token.")
-        local jwt = require "resty.jwt"
-        local jwt_obj = jwt:load_jwt(token)
-        if (not jwt_obj.header) or (not jwt_obj.header.kid) then
-            me.unauthorized("Invalid JWT token", jwt_obj.reason)
-        end
-        local publicKey = me.publicKey(jwt_obj.header.kid)
-        if not publicKey then
-            me.unauthorized("No public_key retrieved from keycloak")
-        end
-        local verified = jwt:verify_jwt_obj(publicKey, jwt_obj)
-        if (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
-            me.unauthorized("Invalid JWT token", jwt_obj.reason)
-        end
-        me.logJson(ngx.INFO, "Check for groups in jwt token.")
-        if ( not (jwt_obj.payload) or not (jwt_obj.payload.groups)) then
-            me.unauthorized("No groups associated with user.")
-        end
-        ngx.req.clear_header("Authorization")
-        if jwt_obj.payload and jwt_obj.payload.email then
-            ngx.header['x-proxy-user'] = jwt_obj.payload.email
-        end
-        if jwt_obj.payload and jwt_obj.payload.k8s_user then
-            ngx.header['x-k8s-user'] = jwt_obj.payload.k8s_user
-        end
-        for i,group in pairs(jwt_obj.payload.groups) do
-            ngx.req.set_header("Impersonate-Group", group)
-        end
-        if me.bearerServiceAccountToken then
-            me.logJson(ngx.INFO, "Check for k8s_user in jwt token.")
-            if ( not (jwt_obj.payload) or not (jwt_obj.payload.k8s_user)) then
-               me.unauthorized("No k8s_user associated with user.")
-            end
-            me.logJson(ngx.INFO, "Read service account token.")
-            local serviceAccountToken = me.read_file("/run/secrets/kubernetes.io/serviceaccount/token");
-            if not (serviceAccountToken) then
-               me.unauthorized("No service account token presnet in pod.")
-            end
-            ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
-            ngx.req.set_header("Impersonate-User", jwt_obj.payload.k8s_user)
-        end
-    end
-
-    local basicCache = {}
-
-    function me.handleBasicAuth(basicCred)
-        local now = ngx.time()
-        local basicAuth = basicCache[basicCred]
-        if basicAuth and (now < basicAuth.expiry) then
-            return basicAuth.id_token
-        end
-        local decode = ngx.decode_base64(basicCred)
-        local found = decode:find(':')
-        if not found then
-            me.unauthorized("Invalid BasicAuth authorization header")
-        end
-        local u = decode:sub(1, found-1)
-        local p = decode:sub(found+1)
-        local formArgs = {
-            grant_type = 'password',
-            scope = 'openid',
-            client_id = me.oidcDirectAccessClient,
-            password = p,
-            username = u
-        }
-        local tokenRes = me.tokenRequest(formArgs)
-        if tokenRes.error or tokenRes.error_description then
-            me.unauthorized(tokenRes.error_description)
-        end
-        local refresh_expires_in = tonumber(tokenRes.refresh_expires_in)
-        for key, val in pairs(basicCache) do
-            if val.expiry and now > val.expiry then
-                basicCache[key] = nil
-            end
-        end
-        basicCache[basicCred] = {
-            -- access_token = tokenRes.access_token,
-            id_token = tokenRes.id_token,
-            expiry = now + refresh_expires_in
-        }
-        return tokenRes.id_token
     end
 
     return me

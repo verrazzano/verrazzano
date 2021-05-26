@@ -3,16 +3,10 @@
 
 package proxy
 
-// OidcSslVerifyOptions defines the ssl verify option
-const OidcSslVerifyOptions = "lua_ssl_verify_depth 2;"
-
-// OidcSslTrustedOptions defines the ssl trusted certificates option
-const OidcSslTrustedOptions = "lua_ssl_trusted_certificate /secret/ca-bundle;"
-
-// OidcNginxConf defines the nginx.lua file name in OIDC proxy ConfigMap
+// OidcNginxConfFilename defines the nginx.lua file name in OIDC proxy ConfigMap
 const OidcNginxConfFilename = "nginx.conf"
 
-// OidcNginxConfTemp is the template of nginx.conf file in OIDC proxy ConfigMap
+// OidcNginxConfFileTemplate is the template of nginx.conf file in OIDC proxy ConfigMap
 const OidcNginxConfFileTemplate = `|
 #user  nobody;
 worker_processes  1;
