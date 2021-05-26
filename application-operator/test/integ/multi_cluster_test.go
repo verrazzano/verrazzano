@@ -265,16 +265,6 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject rolebinding generation", func
 	})
 })
 
-//var _ = ginkgo.Describe("Testing Deletion of MC resource namespace", func() {
-//	ginkgo.It("Namespace with multi-cluster resources can be deleted", func() {
-//		_, stderr := util.Kubectl("delete ns multiclustertest")
-//		gomega.Expect(stderr).To(gomega.Equal(""), "kubectl namespace deletion completed")
-//		gomega.Eventually(func() bool {
-//			return ! K8sClient.DoesNamespaceExist("multiclustertest")
-//		}, timeout, pollInterval).Should(gomega.BeTrue())
-//	})
-//})
-
 func appConfigExistsWithFields(namespace string, name string, multiClusterAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) bool {
 	fmt.Printf("Looking for OAM app config %v/%v\n", namespace, name)
 	appConfig, err := K8sClient.GetOAMAppConfig(namespace, name)
