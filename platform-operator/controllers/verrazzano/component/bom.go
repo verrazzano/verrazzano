@@ -12,7 +12,8 @@ import (
 	"strings"
 )
 
-const defaultBomFilename = "verrazzano-bom.json"
+// The bom is on the root directory in the disk
+const defaultBomFilename = "../verrazzano-bom.json"
 
 // This is the BOM file path needed for unit tests
 var unitTestBomFilePath string
