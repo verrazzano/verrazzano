@@ -3,9 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
-def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
-                          "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
+def availableRegions = [ "us-ashburn-1" ]
 def acmeEnvironments = [ "staging", "production" ]
 Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,3).replace('-','')
@@ -646,7 +644,7 @@ def installVerrazzano(count, verrazzanoConfig) {
                 echo "Wait for Operator to be ready"
                 cd ${GO_REPO_PATH}/verrazzano
                 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                
+
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
                 echo "Applying \$verrazzanoConfig"
