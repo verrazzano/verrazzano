@@ -374,7 +374,13 @@ function install_rancher()
 
       # Settings required to point Rancher at a registry for background helm install
       if [ -n "${REGISTRY}" ]; then
-        EXTRA_RANCHER_ARGUMENTS="${EXTRA_RANCHER_ARGUMENTS} --set systemDefaultRegistry=${REGISTRY}/${IMAGE_REPO} --set useBundledSystemChart=true"
+        local sys_default_reg=${REGISTRY}
+
+        if [ -n "${IMAGE_REPO}" ]; then
+          sys_default_reg=${REGISTRY}/${IMAGE_REPO}
+        fi
+
+        EXTRA_RANCHER_ARGUMENTS="${EXTRA_RANCHER_ARGUMENTS} --set systemDefaultRegistry=${sys_default_reg} --set useBundledSystemChart=true"
       fi
 
       local chart_name=rancher
