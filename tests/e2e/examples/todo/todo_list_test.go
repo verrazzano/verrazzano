@@ -4,13 +4,8 @@
 package todo
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -20,7 +15,6 @@ import (
 )
 
 const (
-	ISO8601Layout        = "2006-01-02T15:04:05.999999999-07:00"
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 15 * time.Minute
@@ -220,13 +214,6 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that metrics are being collected
 		ginkgo.It("Retrieve Prometheus scraped metrics", func() {
-			// patch pod "tododomain-adminserver" with prometheus annotations
-			// this step is not needed once WLS added prometheus annotations in admin server
-			gomega.Eventually(func() bool {
-				return pkg.PodsRunning("todo-list", []string{"tododomain-adminserver"})
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find running pod tododomain-adminserver")
-			addPrometheusAnnotations()
-
 			gomega.Eventually(func() bool {
 				return pkg.MetricsExist("wls_scrape_mbeans_count_total", "app_oam_dev_name", "todo-appconf")
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find metrics for todo-list")
@@ -377,37 +364,3 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		)
 	})
 })
-
-func addPrometheusAnnotations() error {
-	type patchStringValue struct {
-		Op    string `json:"op"`
-		Path  string `json:"path"`
-		Value string `json:"value"`
-	}
-	payload := []patchStringValue{
-		{
-			Op:    "add",
-			Path:  "/metadata/annotations/prometheus.io~1path",
-			Value: "/wls-exporter/metrics",
-		},
-		{
-			Op:    "add",
-			Path:  "/metadata/annotations/prometheus.io~1port",
-			Value: "7001",
-		},
-		{
-			Op:    "add",
-			Path:  "/metadata/annotations/prometheus.io~1scrape",
-			Value: "true",
-		},
-	}
-	payloadBytes, _ := json.Marshal(payload)
-	pkg.Log(pkg.Info, fmt.Sprintf("Patching pod tododomain-adminserver with %s", string(payloadBytes)))
-	pod, err := pkg.GetKubernetesClientset().CoreV1().Pods("todo-list").Patch(context.TODO(), "tododomain-adminserver", types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to patch pod tododomain-adminserver in namespace todo-list with error: %s", err))
-		return err
-	}
-	pkg.Log(pkg.Info, fmt.Sprintf("Annotations for pod tododomain-adminserver: %v", pod.Annotations))
-	return nil
-}
