@@ -169,7 +169,7 @@ func TestGetUnstructuredChildResourcesByAPIVersionKindsPositive(t *testing.T) {
 	assert.Len(children, 1)
 }
 
-// TestGetUnstructuredChildResourcesByAPIVersionKindsNegative tests the FetchUnstructuredChildResourcesByAPIVersionKinds function.
+// TestGetUnstructuredChildResourcesByAPIVersionKindsPositive tests the FetchUnstructuredChildResourcesByAPIVersionKinds function.
 // GIVEN a request to list child resources
 // WHEN a the underlying kubernetes call fails
 // THEN verify that the error is propigated to the caller
@@ -194,44 +194,6 @@ func TestFetchUnstructuredChildResourcesByAPIVersionKindsNegative(t *testing.T) 
 	assert.Error(err)
 	assert.Equal("test-error", err.Error())
 	assert.Len(children, 0)
-}
-
-// TestGetUnstructuredChildResourcesByDeploymentPositive tests the FetchUnstructuredChildResourcesByAPIVersionKinds function.
-// GIVEN a valid list of child resources and the Workload is a child as is with native Kubernetes Kinds such as Deployment
-// WHEN a request is made to list those child resources
-// THEN verify that the children are returned
-func TestGetUnstructuredChildResourcesByDeploymentPositive(t *testing.T) {
-	assert := asserts.New(t)
-
-	var mocker *gomock.Controller
-	var cli *mocks.MockClient
-	var ctx = context.TODO()
-	var err error
-	var children []*unstructured.Unstructured
-
-	mocker = gomock.NewController(t)
-	cli = mocks.NewMockClient(mocker)
-	cli.EXPECT().
-		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), gomock.Eq(client.InNamespace("test-namespace")), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, namespace client.InNamespace, labels client.MatchingLabels) error {
-			assert.Equal("Deployment", resources.GetKind())
-			return AppendAsUnstructured(resources, k8sapps.Deployment{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: k8sapps.SchemeGroupVersion.String(),
-					Kind:       "test-invalid-kind"},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-deployment-name",
-					UID:  "test-workload-uid",
-					OwnerReferences: []metav1.OwnerReference{{
-						APIVersion: oamcore.ContainerizedWorkloadKindAPIVersion,
-						Kind:       oamcore.ContainerizedWorkloadKind,
-						Name:       "test-workload-name",
-						UID:        "wrong-workload-uid"}}}})
-		})
-	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, ctrl.Log, "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
-	mocker.Finish()
-	assert.NoError(err)
-	assert.Len(children, 1)
 }
 
 // TestFetchUnstructuredByReference tests the FetchUnstructuredByReference function

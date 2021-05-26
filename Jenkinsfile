@@ -455,14 +455,6 @@ pipeline {
                                 }
                             }
                         }
-                        stage('k8s deployment workload metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
-                            }
-                            steps {
-                                runGinkgo('deploymetrics')
-                            }
-                        }
                         stage('examples logging helidon') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"

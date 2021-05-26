@@ -6,6 +6,7 @@ package navigation
 import (
 	"context"
 	"fmt"
+
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -57,11 +58,10 @@ func GetAPIVersionKindOfUnstructured(u *unstructured.Unstructured) (string, erro
 }
 
 // FetchUnstructuredChildResourcesByAPIVersionKinds find all of the child resource of specific kinds
-// having a specific parent (workload) UID.  The child kinds are APIVersion and Kind
+// having a specific parent UID.  The child kinds are APIVersion and Kind
 // (e.g. apps/v1.Deployment or v1.Service).  The objects of these resource kinds are listed
 // and the ones having the correct parent UID are collected and accumulated and returned.
 // This is used to collect a subset children of a particular parent object.
-// There is a case where the parent (workload) UID is equal to the child kind referenced, native Kubernetes types such as Deployment
 // ctx - The calling context
 // namespace - The namespace to search for children objects
 // parentUID - The parent UID a child must have to be included in the result.
@@ -78,11 +78,6 @@ func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli c
 			return nil, err
 		}
 		for i, item := range resources.Items {
-			// The Kubernetes Deployment Case where Workload is the Child
-			if item.GetUID() == parentUID {
-				childResources = append(childResources, &resources.Items[i])
-				break
-			}
 			for _, owner := range item.GetOwnerReferences() {
 				if owner.UID == parentUID {
 					childResources = append(childResources, &resources.Items[i])

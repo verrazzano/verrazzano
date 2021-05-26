@@ -681,28 +681,23 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 	if err != nil {
 		return nil, err
 	}
-	// Match any version of Group=weblogic.oracle and Kind=Domain
+	// Match any version of APIVersion=weblogic.oracle and Kind=Domain
 	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
 		return r.NewTraitDefaultsForWLSDomainWorkload(ctx, workload)
 	}
-	// Match any version of Group=coherence.oracle and Kind=Coherence
+	// Match any version of APIVersion=coherence.oracle and Kind=Coherence
 	if matched, _ := regexp.MatchString("^coherence.oracle.com/.*\\.Coherence$", apiVerKind); matched {
 		return r.NewTraitDefaultsForCOHWorkload(ctx, workload)
 	}
 
-	// Match any version of Group=coherence.oracle and Kind=VerrazzanoHelidonWorkload
+	// Match any version of APIVersion=coherence.oracle and Kind=VerrazzanoHelidonWorkload
 	// In the case of Helidon, the workload isn't currently being unwrapped
 	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoHelidonWorkload$", apiVerKind); matched {
 		return r.NewTraitDefaultsForGenericWorkload()
 	}
 
-	// Match any version of Group=core.oam.dev and Kind=ContainerizedWorkload
+	// Match any version of APIVersion=core.oam.dev and Kind=ContainerizedWorkload
 	if matched, _ := regexp.MatchString("^core.oam.dev/.*\\.ContainerizedWorkload$", apiVerKind); matched {
-		return r.NewTraitDefaultsForGenericWorkload()
-	}
-
-	// Match any version of Group=apps and Kind=Deployment
-	if matched, _ := regexp.MatchString("^apps/.*\\.Deployment$", apiVerKind); matched {
 		return r.NewTraitDefaultsForGenericWorkload()
 	}
 
