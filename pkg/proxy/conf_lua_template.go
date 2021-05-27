@@ -11,7 +11,7 @@ const OidcConfLuaFileTemplate = `|
     local ingressUri = 'https://'..'{{ .Ingress }}'
     local oidcProviderHost = "{{ .OidcProviderHost }}"
     local oidcProviderHostInCluster = "{{ .OidcProviderHostInCluster }}"
-    local realm ="{{ .Realm }}"
+    local realm ="{{ .OidcRealm }}"
     local callbackPath = "{{ .OidcCallbackPath }}"
     local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
     local oidcClient = "{{ .PKCEClientID }}"
@@ -21,11 +21,23 @@ const OidcConfLuaFileTemplate = `|
     local requiredRole = "{{ .RequiredRealmRole }}"
     local authStateTtlInSec = {{ .AuthnStateTTL }}
 
+    local oidcProviderUri = ""
     local oidcProviderInClusterUri = ""
+{{- if eq .Mode "oauth-proxy" }}
+    oidcProviderUri = 'https://'..oidcProviderHost..'/auth/realms/'..realm
     if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
         oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..realm
     end
-    local oidcProviderUri = 'https://'..oidcProviderHost.. '/auth/realms/'..realm
+{{- else if .Mode "api-proxy" }}
+    local oidcProviderUri = read_file("/api-config/keycloak-url");
+    if oidcProviderUri then
+        oidcProviderUri = oidcProviderUri..'/auth/realms/'..realm
+    else
+        oidcProviderUri = ""
+        me.logJson(ngx.INFO, "No keycloak-url specified in api-config. Using in-cluster keycloak url.")
+    end
+    local oidcProviderInClusterUri = 'http://keycloak-http.keycloak.svc.cluster.local'..'/auth/realms/'..realm
+{{- end }}
 
     local auth = require("auth").config({
         ingressUri = ingressUri,

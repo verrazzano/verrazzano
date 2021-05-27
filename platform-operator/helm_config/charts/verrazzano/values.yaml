@@ -94,7 +94,11 @@ api:
   port: 8775
   impersonatorRoleName: impersonate-api-user
   proxy:
-    mode: k8s-api-proxy
+    Mode: api-proxy
+    OidcRealm: verrazzano-system
+    PKCEClientID: verrazzano-pkce
+    PGClientID: verrazzano-pg
+    RequiredRealmRole: vz_api_access
 
 # OCI-related values
 oci:

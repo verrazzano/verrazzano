@@ -39,26 +39,28 @@ const OidcLogoutCallbackPath = "/_logout"
 type OidcProxyConfig struct {
 	// proxy mode: api-proxy or oauth-proxy
 	Mode string
-	// configmap metadata
-	Name      string
-	Namespace string
+	// for startup.sh (none current)
 	// for reload.sh (none current)
-	// for nginx.conf
+	// for nginx.conf (only needed for oauth-proxy)
 	Host string
 	Port int
-	// for conf.lua
-	Ingress                   string
+	// for conf.lua/auth.lua
+	// ingress and callback urls
+	Ingress                string
+	OidcCallbackPath       string
+	OidcLogoutCallbackPath string
+	// oidc provider host(s)
 	OidcProviderHost          string
 	OidcProviderHostInCluster string
-	Realm                     string
-	OidcCallbackPath          string
-	OidcLogoutCallbackPath    string
-	PKCEClientID              string
-	PGClientID                string
-	RandomString              string
-	RequiredRealmRole         string
-	AuthnStateTTL             int
-	// for auth.lua (none current)
+	// oidc realm/client config and required role
+	OidcRealm         string
+	PKCEClientID      string
+	PGClientID        string
+	RequiredRealmRole string
+	// for oauth only, cookie encryption key (TODO: get rid of this)
+	RandomString string
+	// ttl for entries in basic auth cache (TODO: this should be fixed to not store basic auth creds)
+	AuthnStateTTL int
 }
 
 func oidcStartup(values interface{}) (string, error) {
@@ -94,7 +96,7 @@ func executeTemplateWithValues(templateName string, templateString string, value
 func GetOidcProxyConfigMapData(config OidcProxyConfig) (map[string]string, error) {
 	// set default values
 	config.Mode = ProxyModeOauth
-	config.Realm = OidcRealmName
+	config.OidcRealm = OidcRealmName
 	config.PKCEClientID = OidcPkceClientID
 	config.PGClientID = OidcPgClientID
 	config.OidcCallbackPath = OidcCallbackPath
