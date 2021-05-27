@@ -4,13 +4,6 @@
 # NOTE: The image you're looking for isn't here. The cert-manager-controller image now comes from
 # the bill of materials file (verrazzano-bom.json).
 
-webhook:
-  enabled: false
-  injectAPIServerCA: false
-
-cainjector:
-  enabled: false
-
 ingressShim:
   defaultIssuerName: verrazzano-cluster-issuer
   defaultIssuerKind: ClusterIssuer
@@ -18,3 +11,4 @@ ingressShim:
 # NOTE: The acme solver image you're looking for isn't here. The image now comes from the bill of materials
 # file (verrazzano-bom.json), and the override string is built in the install_cert_manager() shell function
 # in the 2-install-system-components.sh install script
+
