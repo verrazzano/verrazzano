@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package nginx_test
+package prometheus_test
 
 import (
 	"fmt"
@@ -15,6 +15,6 @@ import (
 
 func TestPrometheus(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("nginx-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "NGINX Suite", []ginkgo.Reporter{junitReporter})
+	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("prometheus-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
+	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Prometheus Suite", []ginkgo.Reporter{junitReporter})
 }
