@@ -29,7 +29,7 @@ func TestNipIoInstallDefaults(t *testing.T) {
 	assert.Equalf(t, DNSTypeWildcard, config.DNS.Type, "Expected DNS type did not match")
 	assert.Equalf(t, IngressTypeLoadBalancer, config.Ingress.Type, "Expected Ingress type did not match")
 	assert.Equalf(t, CertIssuerTypeCA, config.Certificates.IssuerType, "Expected certification issuer type did not match")
-	assert.Equalf(t, "verrazzano-install", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
+	assert.Equalf(t, "cert-manager", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
 	assert.Equalf(t, "verrazzano-ca-certificate-secret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 	assert.Equalf(t, 0, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
 	assert.Equalf(t, 0, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mySqlInstallArgs length did not match")
@@ -259,7 +259,7 @@ func TestExternalInstall(t *testing.T) {
 	assert.Equalf(t, "valueList5-1", config.Ingress.Application.IstioInstallArgs[1].Value, "Expected istioInstallArg name did not match")
 
 	assert.Equalf(t, CertIssuerTypeCA, config.Certificates.IssuerType, "Expected certification issuer type did not match")
-	assert.Equalf(t, "verrazzano-install", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
+	assert.Equalf(t, "cert-manager", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
 	assert.Equalf(t, "verrazzano-ca-certificate-secret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 }
 
@@ -419,7 +419,7 @@ func TestNodePortInstall(t *testing.T) {
 	assert.Equalf(t, false, config.Ingress.Verrazzano.NginxInstallArgs[4].SetString, "Expected nginxInstallArg SetString did not match")
 
 	assert.Equalf(t, CertIssuerTypeCA, config.Certificates.IssuerType, "Expected certification issuer type did not match")
-	assert.Equalf(t, "verrazzano-install", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
+	assert.Equalf(t, "cert-manager", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
 	assert.Equalf(t, "verrazzano-ca-certificate-secret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 }
 
