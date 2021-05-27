@@ -17,6 +17,7 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/typed/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
 	corev1 "k8s.io/api/core/v1"
@@ -162,7 +163,7 @@ var _ = ginkgo.Describe("VMI", func() {
 							time.Now().Add(-24*time.Hour), map[string]string{
 								"kubernetes.container_name": "verrazzano-monitoring-operator",
 								"caller":                    "controller",
-								"cluster_name":              "local",
+								"cluster_name":              constants.MCLocalCluster,
 							})
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
 				},
@@ -172,7 +173,7 @@ var _ = ginkgo.Describe("VMI", func() {
 							time.Now().Add(-24*time.Hour), map[string]string{
 								"kubernetes.container_name": "verrazzano-application-operator",
 								"caller":                    "mcagent",
-								"cluster_name":              "local",
+								"cluster_name":              constants.MCLocalCluster,
 							})
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a verrazzano-application-operator log record")
 				},
@@ -184,7 +185,7 @@ var _ = ginkgo.Describe("VMI", func() {
 				return pkg.FindLog("verrazzano-systemd-journal",
 					[]pkg.Match{
 						{Key: "tag", Value: "systemd"},
-						{Key: "cluster_name", Value: "local"}},
+						{Key: "cluster_name", Value: constants.MCLocalCluster}},
 					[]pkg.Match{})
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 		})

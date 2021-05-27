@@ -6,4 +6,4 @@
 
 . ./init.sh
 
-$SCRIPT_DIR/terraform destroy -var-file=$TF_VAR_nodepool_config.tfvars -auto-approve -no-color
+$SCRIPT_DIR/terraform destroy -var-file=$TF_VAR_nodepool_config.tfvars -var-file=$TF_VAR_region.tfvars -auto-approve -no-color
