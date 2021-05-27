@@ -40,8 +40,9 @@ const OidcConfLuaFileTemplate = `|
         authStateTtlInSec = authStateTtlInSec,
         cookieKey = cookieKey
     })
-    ngx.header["Access-Control-Allow-Origin"] =  ngx.req.get_headers()["origin"]
-    ngx.header["Access-Control-Allow-Headers"] =  "authorization"
+
+    ngx.header["Access-Control-Allow-Headers"] = "authorization"
+
     if ngx.req.get_method() == "OPTIONS" then
         ngx.status = 200
         ngx.exit(ngx.HTTP_OK)

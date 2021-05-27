@@ -16,6 +16,8 @@ worker_processes  1;
 #error_log  logs/error.log  info;
 
 pid        logs/nginx.pid;
+env KUBERNETES_SERVICE_HOST;
+env KUBERNETES_SERVICE_PORT;
 
 events {
     worker_connections  1024;
@@ -60,10 +62,14 @@ http {
         listen       8775;
         server_name  apiserver;
         root     /opt/nginx/html;
-        #charset koi8-r;
 
         set $oidc_user "";
         rewrite_by_lua_file /etc/nginx/conf.lua;
+        set_by_lua $kubernetes_server_host 'return os.getenv("KUBERNETES_SERVICE_HOST")';
+        set_by_lua $kubernetes_server_port 'return os.getenv("KUBERNETES_SERVICE_PORT")';
+
+        #charset koi8-r;
+
         #access_log  logs/host.access.log  main;
         expires           0;
         add_header        Cache-Control private;
@@ -73,6 +79,7 @@ http {
 
         location / {
             proxy_pass http://http_backend;
+            proxy_pass https://$kubernetes_server_host:$kubernetes_server_port;
         }
 
         error_page 404 /404.html;
