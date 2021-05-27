@@ -744,9 +744,6 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
                 mkdir -p "${KUBECONFIG_DIR}/${count}"
                 export PATH=${HOME}/go/bin:${PATH}
                 cd ${GO_REPO_PATH}/verrazzano
-                echo "Installing yq"
-                GO111MODULE=on go get github.com/mikefarah/yq/v4
-                export PATH=${HOME}/go/bin:${PATH}
 
                 # Copy the template config over for the mgd cluster profile configuration
                 cp $installResourceTemplate $destinationPath

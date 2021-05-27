@@ -17,6 +17,8 @@ MANIFESTS_DIR=$(cd $SOURCE_DIR/../../thirdparty/manifests; pwd -P)
 
 . ${SOURCE_DIR}/logging.sh
 
+BOM_FILE=${BOM_FILE:-/verrazzano/platform-operator/verrazzano-bom.json}
+
 # DEPRECATED: This function is deprecated and is replaced by the status function in logging.sh
 function consoleout() {
   status "$@"
@@ -229,9 +231,9 @@ function reset_chart(){
   local deployment_status=$(get_deployment_status ${chartName} ${ns})
   log "Deployment status for ${ns}/${chartName}: ${deployment_status}"
   if [ "${deployment_status}" != "deployed" ]; then
-      log "Resetting chart state for ${ns}/${chartName} if necessary"
-      helm template ${chartName} -n ${ns} ${chartLocation}  |  kubectl delete -f - 2>&1 > /dev/null || true
-      helm uninstall -n ${ns} ${chartName} 2>&1 > /dev/null
+      log "Resetting chart state for ${ns}/${chartName} at ${chartLocation} if necessary"
+      helm template ${chartName} -n ${ns} ${chartLocation} 2>/dev/null |  kubectl delete -f - 2>/dev/null || true
+      helm uninstall -n ${ns} ${chartName} 2>/dev/null
       return $?
   fi
   log "Chart ${ns}/${chartName} at ${chartLocation} status: ${deployment_status}"
@@ -256,6 +258,109 @@ function is_chart_deployed(){
     return 0
   fi
   return 1
+}
+
+# Get the repo for Docker imageNames at the component/chart level from the BOM
+# $1 the component (e.g. "istio")
+# $2 the chart name (e.g. "istiocoredns")
+function get_component_repo_from_bom() {
+  local component=$1
+  local chartName=$2
+  cat ${BOM_FILE} | jq -r -c --arg C "${component}" --arg CH "${chartName}" \
+    '.components[] | select(.name == $C) | .subcomponents[] | select(.name == $CH) | .repository'
+}
+
+# Get the full-repositoryrepo for Docker imageNames based on BOM and env var settings
+# $1 the component (e.g. "istio")
+# $2 the chart name (e.g. "istiocoredns")
+function build_component_repo_name() {
+  local component=$1
+  local chartName=$2
+  # Get the component-level repository from the BOM
+  local repository=$(get_component_repo_from_bom $component $chartName)
+  if [ -n "${IMAGE_REPO}" ]; then
+    # If there's a user-supplied repo in the env, prepend it to the repo component-level repo we got from the BOM
+    repository=${IMAGE_REPO}/${repository}
+  fi
+  echo ${repository}
+}
+
+# Dump the set of image elements from the BOM for a component and chart
+# $1 the component (e.g. "istio")
+# $2 the chart name (e.g. "istiocoredns")
+function get_images_for_chart() {
+  local component=$1
+  local chartName=$2
+  cat ${BOM_FILE} | jq -r -c --arg C "${component}" --arg CH "${chartName}" \
+    '.components[] | select(.name == $C) | .subcomponents[] | select(.name == $CH) | .images[]'
+}
+
+# This function builds "--set" helm args to override imageNames using a bill of materials. The resulting
+# HELM_SET_ARGS variable can be passed to helm to override one or more imageNames in a helm chart.
+# $1 the component (e.g. "istio")
+# $2 the chart name (e.g. "istiocoredns")
+function build_image_overrides(){
+  local component=$1
+  local chartName=$2
+  local registry=${REGISTRY}
+  local bomFile=${BOM_FILE}
+
+  # if registry is not overridden in environment, pull it from the BOM
+  if [ -z "${registry}" ]; then
+    registry=$(cat ${bomFile} | jq -r '.registry')
+  fi
+
+  # Build the full component-level repository from the BOM and the env
+  local repository=$(build_component_repo_name $component $chartName)
+
+  HELM_IMAGE_ARGS=""
+
+  local images=($(get_images_for_chart $component $chartName))
+
+  # build --set arg for each image in the chart
+  for row in "${images[@]}"; do
+
+    local image=$(echo $row | jq -r '.image')
+    local tag=$(echo $row | jq -r '.tag')
+
+    local helmRegKey=$(echo $row | jq -r '.helmRegKey')
+    local helmRepoKey=$(echo $row | jq -r '.helmRepoKey')
+    local helmImageKey=$(echo $row | jq -r '.helmImageKey')
+    local helmTagKey=$(echo $row | jq -r '.helmTagKey')
+    local helmFullImageKey=$(echo $row | jq -r '.helmFullImageKey')
+
+    local fullImageKey=""
+
+    if [ "${helmRegKey}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmRegKey}=${registry} "
+    else
+      fullImageKey="${registry}/"
+    fi
+
+    if [ "${helmRepoKey}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmRepoKey}=${repository} "
+    else
+      fullImageKey="${fullImageKey}${repository}/"
+    fi
+
+    if [ "${helmImageKey}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmImageKey}=${image} "
+    else
+      fullImageKey="${fullImageKey}${image}"
+    fi
+
+    if [ "${helmTagKey}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmTagKey}=${tag} "
+    else
+      fullImageKey="${fullImageKey}:${tag}"
+    fi
+
+    if [ "${helmFullImageKey}" != "null" ]; then
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set ${helmFullImageKey}=${fullImageKey} "
+    fi
+
+    HELM_RAW_IMAGE="${fullImageKey}"
+  done
 }
 
 function generate_password() {
@@ -297,6 +402,6 @@ command -v curl >/dev/null 2>&1 || {
 }
 
 ##################################################
-####Constants for Docker images, versions, tags
+####Constants for Docker imageNames, versions, tags
 ##################################################
 GLOBAL_IMAGE_PULL_SECRET=verrazzano-container-registry

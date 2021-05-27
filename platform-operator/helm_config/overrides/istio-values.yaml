@@ -28,9 +28,8 @@ gateways:
 
 istiocoredns:
   enabled: true
-  coreDNSImage: ghcr.io/verrazzano/coredns
-  coreDNSTag: 1.6.2
-  coreDNSPluginImage: ghcr.io/verrazzano/istio-coredns-plugin:0.2-20201016204812-23723dcb
+  # NOTE: The image you're looking for isn't here. The istio coredns images now come from
+  # the bill of materials file (verrazzano-bom.json).
 
 meshConfig:
   enablePrometheusMerge: false
