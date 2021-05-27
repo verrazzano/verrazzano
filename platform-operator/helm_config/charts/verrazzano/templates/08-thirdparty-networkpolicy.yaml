@@ -388,7 +388,6 @@ spec:
 ---
 # Network policy for Istio ingress gateway
 # Ingress: allow ingress to port 8443 from anywhere
-#          allow ingress to port 15090 from system-prometheus to scrape metrics
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -405,16 +404,6 @@ spec:
     - ports:
         - port: 8443
           protocol: TCP
-    - ports:
-        - port: 15090
-          protocol: TCP
-      from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-system
-          podSelector:
-            matchLabels:
-              app: system-prometheus
 ---
 # Network policy for Istio egress gateway
 # Ingress: allow ingress to port 8443 from anywhere

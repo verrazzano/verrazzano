@@ -59,11 +59,10 @@ var _ = ginkgo.Describe("Verify default component metrics", func() {
 	})
 
 	ginkgo.Context("Verify metrics from Prometheus", func() {
-		ginkgo.It("Verify sample Prometheus metrics can be queried from Prometheus", func() {
+		ginkgo.It("Verify sample metrics can be queried from Prometheus", func() {
 			gomega.Eventually(func() bool {
 				return pkg.MetricsExist("prometheus_target_interval_length_seconds", "job", "prometheus")
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
 	})
-
 })
