@@ -105,7 +105,7 @@ data:
       return s
     end
 
-    local function getK8SResource(resourcePath, groups, user)
+    local function getK8SResource(resourcePath)
       local http = require "resty.http"
       local httpc = http.new()
       local res, err = httpc:request_uri("https://" .. vzApiHost .. "/" .. vzApiVersion .. resourcePath,{
@@ -128,12 +128,12 @@ data:
       return cjson.decode(res.body)
     end
 
-    local function getVMC(cluster, groups, user)
-      return getK8SResource("/apis/clusters.verrazzano.io/v1alpha1/namespaces/verrazzano-mc/verrazzanomanagedclusters/" .. cluster, groups, user)
+    local function getVMC(cluster)
+      return getK8SResource("/apis/clusters.verrazzano.io/v1alpha1/namespaces/verrazzano-mc/verrazzanomanagedclusters/" .. cluster)
     end
 
-    local function getSecret(secret, groups, user)
-      return getK8SResource("/api/v1/namespaces/verrazzano-mc/secrets/" .. secret, groups, user)
+    local function getSecret(secret)
+      return getK8SResource("/api/v1/namespaces/verrazzano-mc/secrets/" .. secret)
     end
 
     if ngx.req.get_method() == "OPTIONS" then
@@ -212,7 +212,7 @@ data:
     local args = ngx.req.get_uri_args()
     if args.cluster then
       logJsonMessage(ngx.INFO, "Read vmc resource for " .. args.cluster)
-      local vmc = getVMC(args.cluster, jwt_obj.payload.groups, jwt_obj.payload.sub)
+      local vmc = getVMC(args.cluster)
       if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
         ngx.status = 401
         logJsonMessage(ngx.ERR, "Unable to fetch vmc api url for vmc " .. args.cluster)
@@ -226,7 +226,7 @@ data:
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
       end
 
-      local secret = getSecret(vmc.spec.prometheusSecret, jwt_obj.payload.groups, jwt_obj.payload.sub)
+      local secret = getSecret(vmc.spec.prometheusSecret)
       if not(secret) or not(secret.data) or not(secret.data[args.cluster .. ".yaml"]) then
         ngx.status = 401
         logJsonMessage(ngx.ERR, "Unable to fetch prometheus secret for vmc " .. args.cluster)
