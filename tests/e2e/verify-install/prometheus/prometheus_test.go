@@ -22,18 +22,18 @@ var _ = ginkgo.Describe("Verify default component metrics", func() {
 	if !isManagedClusterProfile {
 		ginkgo.Context("Verify metrics from NGINX ingress controller", func() {
 			ginkgo.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
-					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("nginx_ingress_controller_success", "controller_namespace", "ingress-nginx")
-					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+				gomega.Eventually(func() bool {
+					return pkg.MetricsExist("nginx_ingress_controller_success", "controller_namespace", "ingress-nginx")
+				}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 			})
 		})
 	}
 
 	ginkgo.Context("Verify metrics from Container Advisor", func() {
 		ginkgo.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
-				gomega.Eventually(func() bool {
-					return pkg.MetricsExist("container_start_time_seconds", "namespace", "verrazzano-system")
-				}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(func() bool {
+				return pkg.MetricsExist("container_start_time_seconds", "namespace", "verrazzano-system")
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
 	})
 
