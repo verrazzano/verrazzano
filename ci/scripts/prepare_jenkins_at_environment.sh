@@ -77,9 +77,6 @@ fi
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
 # Configure the custom resource to install verrazzano on Kind
-echo "Installing yq"
-GO111MODULE=on go get github.com/mikefarah/yq/v4
-export PATH=${HOME}/go/bin:${PATH}
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
 
 echo "Wait for Operator to be ready"
