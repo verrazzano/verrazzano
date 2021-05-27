@@ -188,11 +188,11 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 		registry = b.bomDoc.Registry
 	}
 
-	// Get the repo ENV override.  This needs to get appended to the bom repo
-	additionalRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
+	// Get the repo ENV override.  This needs to get prepended to the bom repo
+	userRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
 	repo := sc.Repository
-	if additionalRepo != "" {
-		repo = repo + slash + additionalRepo
+	if userRepo != "" {
+		repo = userRepo + slash + repo
 	}
 
 	// Loop through the images used by this subcomponent, building
