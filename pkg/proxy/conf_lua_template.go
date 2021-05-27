@@ -28,7 +28,7 @@ const OidcConfLuaFileTemplate = `|
     if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
         oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..realm
     end
-{{- else if .Mode "api-proxy" }}
+{{- else if eq .Mode "api-proxy" }}
     local oidcProviderUri = read_file("/api-config/keycloak-url");
     if oidcProviderUri then
         oidcProviderUri = oidcProviderUri..'/auth/realms/'..realm
