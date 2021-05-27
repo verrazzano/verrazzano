@@ -62,14 +62,50 @@ function install_mysql {
   echo "FLUSH PRIVILEGES;" >> ${TMP_DIR}/create-db.sql
   EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set-file initializationFiles.create-db\.sql=${TMP_DIR}/create-db.sql"
 
+  IMAGE_PULL_SECRETS_ARGUMENT=""
+  if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+    IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+  fi
+
   log "Install MySQL helm chart"
-  helm upgrade mysql ${MYSQL_CHART_DIR} \
+
+  local chart_name=mysql
+  build_image_overrides mysql ${chart_name}
+  local image_args=${HELM_IMAGE_ARGS}
+  build_image_overrides mysql oraclelinux
+  HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} ${image_args}"
+
+  helm upgrade ${chart_name} ${MYSQL_CHART_DIR} \
       --install \
       --namespace ${KEYCLOAK_NS} \
       --timeout 10m \
       --wait \
       -f $VZ_OVERRIDES_DIR/mysql-values.yaml \
+      ${HELM_IMAGE_ARGS} \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
       ${EXTRA_MYSQL_ARGUMENTS}
+}
+
+# build_extra_init_containers_override overrides the keycloak extraInitContainers helm value with YAML that
+# includes the image path constructed from the bill of materials
+function build_extra_init_containers_override {
+  build_image_overrides keycloak keycloak-oracle-theme
+  EXTRA_INIT_CONTAINERS_OVERRIDE="
+    - name: theme-provider
+      image: ${HELM_RAW_IMAGE}
+      imagePullPolicy: IfNotPresent
+      command:
+        - sh
+      args:
+        - -c
+        - |
+          echo \"Copying theme...\"
+          cp -R /oracle/* /theme
+      volumeMounts:
+        - name: theme
+          mountPath: /theme
+        - name: cacerts
+          mountPath: /cacerts"
 }
 
 function install_keycloak {
@@ -88,10 +124,7 @@ function install_keycloak {
     # Check if using the optional imagePullSecret
     local KEYCLOAK_ARGUMENTS=""
     if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
-      if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${KEYCLOAK_NS} > /dev/null 2>&1 ; then
-          copy_registry_secret "${KEYCLOAK_NS}"
-          KEYCLOAK_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
-      fi
+      KEYCLOAK_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
     if ! kubectl get secret --namespace ${KEYCLOAK_NS} mysql ; then
@@ -112,12 +145,19 @@ function install_keycloak {
     # Handle any additional Keycloak install args
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS $(get_keycloak_helm_args_from_config)"
 
+    local chart_name=keycloak
+    build_image_overrides keycloak ${chart_name}
+    local keycloak_image_args=${HELM_IMAGE_ARGS}
+    build_extra_init_containers_override
+
     # Install keycloak helm chart
-    helm upgrade keycloak ${KEYCLOAK_CHART_DIR} \
+    helm upgrade ${chart_name} ${KEYCLOAK_CHART_DIR} \
         --install \
         --namespace ${KEYCLOAK_NS} \
         -f $VZ_OVERRIDES_DIR/keycloak-values.yaml \
         ${KEYCLOAK_ARGUMENTS} \
+        ${keycloak_image_args} \
+        --set keycloak.extraInitContainers="${EXTRA_INIT_CONTAINERS_OVERRIDE}" \
         --timeout 10m \
         --wait
   fi
@@ -697,6 +737,12 @@ function patch_prometheus {
 
 DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
+
+if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+  if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${KEYCLOAK_NS} > /dev/null 2>&1 ; then
+      copy_registry_secret "${KEYCLOAK_NS}"
+  fi
+fi
 
 if [ $(is_keycloak_enabled) == "true" ]; then
   action "Installing MySQL" install_mysql

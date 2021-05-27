@@ -4,11 +4,14 @@
 package installjob
 
 import (
+	"os"
+	"strconv"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strconv"
 )
 
 // JobConfig Defines the parameters for an install job
@@ -24,12 +27,17 @@ const installMode = "INSTALL"
 // NewJob returns a job resource for installing Verrazzano
 func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	var annotations map[string]string = nil
+	var backoffLimit int32 = 0
 	mode := installMode
 	if jobConfig.DryRun {
 		mode = k8s.NoOpMode
 		annotations = make(map[string]string, 1)
 		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
+
+	registry := os.Getenv(constants.RegistryOverrideEnvVar)
+	imageRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
+	appOperatorImage := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        jobConfig.JobName,
@@ -38,8 +46,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 			Annotations: annotations,
 		},
 		Spec: batchv1.JobSpec{
-			// For now, jobs will use the default backoffLimit of 6; we will eventually respawn jobs when they fail,
-			// but for now this will allow some limited amount of retries when the pods fail.
+			BackoffLimit: &backoffLimit,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        jobConfig.JobName,
@@ -66,6 +73,19 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								Value: "/home/verrazzano/kubeconfig",
 							},
 							{
+								Name:  constants.RegistryOverrideEnvVar,
+								Value: registry,
+							},
+							{
+								Name:  constants.ImageRepoOverrideEnvVar,
+								Value: imageRepo,
+							},
+							{
+								// Allow overriding the application operator image in development environment
+								Name:  constants.VerrazzanoAppOperatorImageEnvVar,
+								Value: appOperatorImage,
+							},
+							{
 								// DEBUG property set to value 1 will direct more detailed output to stdout and
 								// will thus provide more insight when the installer pod logs are retrieved
 								Name:  "DEBUG",
@@ -79,7 +99,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							},
 						},
 					}},
-					RestartPolicy:      corev1.RestartPolicyOnFailure,
+					RestartPolicy:      corev1.RestartPolicyNever,
 					ServiceAccountName: jobConfig.ServiceAccountName,
 					Volumes: []corev1.Volume{
 						{
