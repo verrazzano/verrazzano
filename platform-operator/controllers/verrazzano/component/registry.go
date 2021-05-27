@@ -24,7 +24,6 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			ignoreImageOverrides:    true,
-			appendOverridesFunc:     appendIstioOverrides,
 		},
 		helmComponent{
 			releaseName:             "istiod",
