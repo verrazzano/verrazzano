@@ -14,12 +14,6 @@ const ProxyModeAPI = "api-proxy"
 // ProxyModeOauth mode in which the proxy supports both Password Grant and PKCE OIDC flows, and provides authentication/sso for VMI components
 const ProxyModeOauth = "oauth-proxy"
 
-// OidcSSLVerifyOptions defines the ssl verify option
-const OidcSSLVerifyOptions = "lua_ssl_verify_depth 2;"
-
-// OidcSSLTrustedOptions defines the ssl trusted certificates option
-const OidcSSLTrustedOptions = "lua_ssl_trusted_certificate /secret/ca-bundle;"
-
 // OidcRealmName is the name of the verrazzano system realm in Keycloak
 const OidcRealmName = "verrazzano-system"
 
@@ -48,14 +42,10 @@ type OidcProxyConfig struct {
 	// configmap metadata
 	Name      string
 	Namespace string
-	// for startup.sh
-	StartupDir string
 	// for reload.sh (none current)
 	// for nginx.conf
-	SSLVerifyOptions    string
-	SSLTrustedCAOptions string
-	Host                string
-	Port                int
+	Host string
+	Port int
 	// for conf.lua
 	Ingress                   string
 	OidcProviderHost          string
@@ -104,7 +94,6 @@ func executeTemplateWithValues(templateName string, templateString string, value
 func GetOidcProxyConfigMapData(config OidcProxyConfig) (map[string]string, error) {
 	// set default values
 	config.Mode = ProxyModeOauth
-	config.StartupDir = "`dirname $0`"
 	config.Realm = OidcRealmName
 	config.PKCEClientID = OidcPkceClientID
 	config.PGClientID = OidcPgClientID

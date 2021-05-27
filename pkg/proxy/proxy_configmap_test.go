@@ -10,10 +10,6 @@ import (
 func getGenericProxyConfig() OidcProxyConfig {
 	proxyConfig := OidcProxyConfig{}
 
-	proxyConfig.StartupDir = "`dirname $0`"
-
-	proxyConfig.SSLVerifyOptions = OidcSSLVerifyOptions
-	proxyConfig.SSLTrustedCAOptions = OidcSSLTrustedOptions
 	proxyConfig.Host = "localhost"
 	proxyConfig.Port = 8443
 

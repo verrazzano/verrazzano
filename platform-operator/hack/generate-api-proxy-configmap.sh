@@ -23,8 +23,8 @@ do
     _filename=$(grep "Filename = \"" ${_i} | sed -e 's;.*\"\([^\"]*\)\".*$;\1;')
     echo "  ${_filename}: |"
     case "${_filename}" in
-    startup.sh|nginx.conf)  _indent='s/^/    /' ;;
-    *)                      _indent='' ;;
+    startup.sh|reload.sh|nginx.conf)    _indent='s/^/    /' ;;
+    *)                                  _indent='' ;;
     esac
     awk '{
         idx = index($0, "`")

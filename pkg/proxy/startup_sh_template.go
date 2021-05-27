@@ -9,7 +9,7 @@ const OidcStartupFilename = "startup.sh"
 // OidcStartupFileTemplate is the template of startup.sh file in OIDC proxy ConfigMap
 const OidcStartupFileTemplate = `|
 #!/bin/bash
-startupDir={{ .StartupDir }}
+startupDir=`dirname $0`
 cd $startupDir
 cp $startupDir/nginx.conf /etc/nginx/nginx.conf
 cp $startupDir/auth.lua /etc/nginx/auth.lua
@@ -22,13 +22,21 @@ touch /etc/nginx/logs/error.log
 
 export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
+{{- if eq .Mode "api-proxy" }}
+ln -s /etc/ssl/certs/ca-bundle.trust.crt /etc/nginx/ca-bundle
+{{- end }}
+
 /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx -t
 /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
 
+{{- if eq .Mode "oauth-proxy" }}
 while [ $? -ne 0 ]; do
     sleep 20
     echo "retry nginx startup ..."
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
 done
+{{- else if eq .Mode "api-proxy" }}
+sh -c "$startupDir/reload.sh &"
+{{- end }}
 tail -f /etc/nginx/logs/error.log
 `
