@@ -6,8 +6,10 @@ package component
 import (
 	"encoding/json"
 	"errors"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -151,7 +153,7 @@ func (b *Bom) init(jsonBom string) error {
 	return nil
 }
 
-// Get the images for a subcomponent
+// Get the imageBoms for a subcomponent
 func (b *Bom) GetSubcomponentImages(subComponentName string) ([]BomImage, error) {
 	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
@@ -160,7 +162,7 @@ func (b *Bom) GetSubcomponentImages(subComponentName string) ([]BomImage, error)
 	return sc.Images, nil
 }
 
-// GetImageCount returns the number of subcomponent images
+// GetImageCount returns the number of subcomponent imageBoms
 func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
 	imageBom, ok := b.subComponentMap[subComponentName]
 	if !ok {
@@ -169,7 +171,7 @@ func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
 	return len(imageBom.Images)
 }
 
-// Build the image overrides array for the component.  Each override has a
+// Build the image overrides array for the subComponent.  Each override has a
 // Helm key and value
 func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 	const slash = "/"
@@ -178,6 +180,19 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
 		return nil, errors.New("unknown subcomponent " + subComponentName)
+	}
+
+	// Get the registry ENV override, if it doesn't exist use the default
+	registry := os.Getenv(constants.RegistryOverrideEnvVar)
+	if registry == "" {
+		registry = b.bomDoc.Registry
+	}
+
+	// Get the repo ENV override.  This needs to get appended to the bom repo
+	additionalRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
+	repo := sc.Repository
+	if additionalRepo != "" {
+		repo = repo + slash + additionalRepo
 	}
 
 	// Loop through the images used by this subcomponent, building
@@ -194,10 +209,10 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 		if imageBom.HelmRegistryKey != "" {
 			kvs = append(kvs, keyValue{
 				key:   imageBom.HelmRegistryKey,
-				value: b.bomDoc.Registry,
+				value: registry,
 			})
 		} else {
-			fullImageBldr.WriteString(b.bomDoc.Registry)
+			fullImageBldr.WriteString(registry)
 			fullImageBldr.WriteString(slash)
 		}
 
@@ -205,10 +220,10 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 		if imageBom.HelmRepoKey != "" {
 			kvs = append(kvs, keyValue{
 				key:   imageBom.HelmRepoKey,
-				value: sc.Repository,
+				value: repo,
 			})
 		} else {
-			fullImageBldr.WriteString(sc.Repository)
+			fullImageBldr.WriteString(repo)
 			fullImageBldr.WriteString(slash)
 		}
 
