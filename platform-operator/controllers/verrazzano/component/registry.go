@@ -24,6 +24,7 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			ignoreImageOverrides:    true,
+			appendOverridesFunc:     appendIstioOverrides,
 		},
 		helmComponent{
 			releaseName:             "istiod",
@@ -31,6 +32,7 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+			appendOverridesFunc:     appendIstioOverrides,
 		},
 		helmComponent{
 			releaseName:             "istio-ingress",
@@ -38,6 +40,7 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+			appendOverridesFunc:     appendIstioOverrides,
 		},
 		helmComponent{
 			releaseName:             "istio-egress",
@@ -45,6 +48,7 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+			appendOverridesFunc:     appendIstioOverrides,
 		},
 		helmComponent{
 			releaseName:             "istiocoredns",
@@ -52,6 +56,7 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+			appendOverridesFunc:     appendIstioOverrides,
 		},
 		helmComponent{
 			releaseName:             "ingress-controller",
@@ -59,6 +64,7 @@ func GetComponents() []Component {
 			chartNamespace:          "ingress-nginx",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "ingress-nginx-values.yaml"),
+			appendOverridesFunc:     appendIstioOverrides,
 		},
 		helmComponent{
 			releaseName:             "cert-manager",
