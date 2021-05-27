@@ -1,9 +1,13 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+# The global values are possibly replaced during upgrad using a flat syntax
+# Helm will ignore the override if the structure is different when using -f (verses --set)
+global.hub: ghcr.io/verrazzano
+global.tag: 1.7.3
+
+# Define the other glabal values
 global:
-  hub: ghcr.io/verrazzano
-  tag: 1.7.3
   arch:
     amd64: 2
     s390x: 2
