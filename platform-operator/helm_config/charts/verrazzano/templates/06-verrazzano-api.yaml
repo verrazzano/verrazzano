@@ -50,16 +50,95 @@ data:
       return content
     end
 
-    local h, err = ngx.req.get_headers()["origin"]
-    if err then
-      logJsonMessage(ngx.ERR, "Error while reading origin header from request.", err)
+    local function write_file(path, data)
+      local file = io.open(path, "a+")
+      if not file then return nil end
+      file:write(data)
+      file:close()
     end
 
-    if h then
-      ngx.header["Access-Control-Allow-Origin"] = h
+    local function getServiceAccountToken()
+      logJsonMessage(ngx.INFO, "Read service account token.")
+      local serviceAccountToken = read_file("/run/secrets/kubernetes.io/serviceaccount/token");
+      if not (serviceAccountToken) then
+        ngx.status = 401
+        logJsonMessage(ngx.ERR, "No service account token present in pod.")
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+      end
+      return serviceAccountToken
     end
 
-    ngx.header["Access-Control-Allow-Headers"] = "authorization"
+    local function getLocalServerURL()
+      local host = os.getenv("KUBERNETES_SERVICE_HOST")
+      local port = os.getenv("KUBERNETES_SERVICE_PORT")
+      local serverUrl = "https://" .. host .. ":" .. port
+      return serverUrl  
+    end
+
+    local function split(s, delimiter)
+      local result = {};
+      for match in (s..delimiter):gmatch("(.-)"..delimiter) do
+          table.insert(result, match);
+      end
+      return result;
+    end
+
+    local function contains(table, element)
+      for _, value in pairs(table) do
+        if value == element then
+          return true
+        end
+      end
+      return false
+    end
+
+    local function capture(cmd, raw)
+      local f = assert(io.popen(cmd, 'r'))
+      local s = assert(f:read('*a'))
+      f:close()
+      if raw then return s end
+      s = string.gsub(s, '^%s+', '')
+      s = string.gsub(s, '%s+$', '')
+      s = string.gsub(s, '[\n\r]+', ' ')
+      return s
+    end
+
+    local function getK8SResource(resourcePath, groups, user)
+      local cmd = "curl --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt --header 'Authorization: Bearer " .. getServiceAccountToken() .. "'"
+      if groups then
+        for _, group in pairs(groups) do
+          cmd = cmd .. " --header 'Impersonate-Group: " .. group .. "'"
+        end
+      end
+      if user then
+        cmd = cmd .. " --header 'Impersonate-User: " .. user .. "'"
+      end
+      cmd = cmd .. " -X GET " .. getLocalServerURL() .. resourcePath
+      local result = capture(cmd, true)
+      if not(result) then
+        ngx.status = 401
+        logJsonMessage(ngx.ERR, "Unable to execute curl.")
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+      end
+      local cjson = require "cjson"
+      return cjson.decode(result)
+    end
+
+    local function getVMC(cluster, groups, user)
+      return getK8SResource("/apis/clusters.verrazzano.io/v1alpha1/namespaces/verrazzano-mc/verrazzanomanagedclusters/" .. cluster, groups, user)
+    end
+
+    local function getSecret(secret, groups, user)
+      return getK8SResource("/api/v1/namespaces/verrazzano-mc/secrets/" .. secret, groups, user)
+    end
+
+   
+    if (ngx.header["Access-Control-Allow-Origin"]) then
+      logJsonMessage(ngx.INFO, "Access-Control-Allow-Origin:" .. ngx.header["Access-Control-Allow-Origin"])
+    end
+    if (ngx.header["Access-Control-Allow-Headers"]) then
+      logJsonMessage(ngx.INFO, "Access-Control-Allow-Headers:" .. ngx.header["Access-Control-Allow-Headers"])
+    end
 
     if ngx.req.get_method() == "OPTIONS" then
       ngx.status = 200
@@ -123,17 +202,7 @@ data:
       ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
-
-    logJsonMessage(ngx.INFO, "Read service account token.")
-    local serviceAccountToken = read_file("/run/secrets/kubernetes.io/serviceaccount/token");
-    if not (serviceAccountToken) then
-      ngx.status = 401
-      logJsonMessage(ngx.ERR, "No service account token presnet in pod.")
-      ngx.exit(ngx.HTTP_UNAUTHORIZED)
-    end
-
-    logJsonMessage(ngx.INFO, "Set headers")
-    ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
+    logJsonMessage(ngx.INFO, "Set groups and users")
     if ( jwt_obj.payload and jwt_obj.payload.groups) then
       logJsonMessage(ngx.INFO, ("Adding groups " .. cjson.encode(jwt_obj.payload.groups)))
       ngx.req.set_header("Impersonate-Group", jwt_obj.payload.groups)
@@ -141,6 +210,58 @@ data:
     if ( jwt_obj.payload and jwt_obj.payload.sub) then
       logJsonMessage(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
       ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
+    end
+
+    local serverUrl = getLocalServerURL()
+    local args = ngx.req.get_uri_args()
+    if args.cluster then
+      logJsonMessage(ngx.INFO, "Read vmc resource for " .. args.cluster)
+      local vmc = getVMC(args.cluster, jwt_obj.payload.groups, jwt_obj.payload.sub)
+      if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
+        ngx.status = 401
+        logJsonMessage(ngx.ERR, "Unable to fetch vmc api url for vmc " .. args.cluster)
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+      end
+  
+      serverUrl = vmc.status.apiUrl .. "/20210501"
+      if not(vmc.spec) or not(vmc.spec.prometheusSecret) then
+        ngx.status = 401
+        logJsonMessage(ngx.ERR, "Unable to fetch prometheus secret name for vmc " .. args.cluster)
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+      end
+
+      local secret = getSecret(vmc.spec.prometheusSecret, jwt_obj.payload.groups, jwt_obj.payload.sub)
+      if not(secret) or not(secret.data) or not(secret.data[args.cluster .. ".yaml"]) then
+        ngx.status = 401
+        logJsonMessage(ngx.ERR, "Unable to fetch prometheus secret for vmc " .. args.cluster)
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+      end
+
+      local decodedSecretYaml = ngx.decode_base64(secret.data[args.cluster .. ".yaml"])
+      if not(decodedSecretYaml) then
+        ngx.status = 401
+        logJsonMessage(ngx.ERR, "Unable to decode prometheus secret for vmc " .. args.cluster)
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+      end
+
+      local startIndex, endIndex = string.find(decodedSecretYaml, "cacrt: |")
+      if startIndex >= 1 and endIndex > startIndex then
+        local sub = string.sub(decodedSecretYaml, endIndex+1)
+        local startIndex, _ = string.find(sub, "-----BEGIN CERTIFICATE-----")
+        local _, endIndex = string.find(sub, "-----END CERTIFICATE-----")
+        if startIndex >= 1 and endIndex > startIndex then
+          write_file("/etc/nginx/upstream.pem", string.sub(sub, startIndex, endIndex))
+        end
+      end
+      
+      args.cluster = nil
+      ngx.req.set_uri_args(args)
+      ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
+    else 
+      logJsonMessage(ngx.INFO, "Read service account token and set auth header.")
+      local serviceAccountToken = getServiceAccountToken();
+      ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
+      ngx.var.kubernetes_server_url = serverUrl
     end
   nginx.conf: |
     #user  nobody;
@@ -153,6 +274,7 @@ data:
     pid        logs/nginx.pid;
     env KUBERNETES_SERVICE_HOST;
     env KUBERNETES_SERVICE_PORT;
+    env ALLOWED_ORIGINS;
 
 
     events {
@@ -185,16 +307,11 @@ data:
         lua_shared_dict discovery 1m;
         #  cache for JWKs
         lua_shared_dict jwks 1m;
-        lua_ssl_verify_depth 2;
-        lua_ssl_trusted_certificate /etc/nginx/ca-bundle;
 
         server {
             listen       8775;
             server_name  apiserver;
             root     /opt/nginx/html;
-            rewrite_by_lua_file /etc/nginx/conf.lua;
-            set_by_lua $kubernetes_server_host 'return os.getenv("KUBERNETES_SERVICE_HOST")';
-            set_by_lua $kubernetes_server_port 'return os.getenv("KUBERNETES_SERVICE_PORT")';
 
             #charset koi8-r;
 
@@ -203,7 +320,20 @@ data:
             add_header        Cache-Control private;
 
             location / {
-              proxy_pass https://$kubernetes_server_host:$kubernetes_server_port;
+              lua_ssl_verify_depth 2;
+              lua_ssl_trusted_certificate /etc/nginx/upstream.pem;
+              set $kubernetes_server_url "";
+              rewrite_by_lua_file /etc/nginx/conf.lua;
+              proxy_pass $kubernetes_server_url;
+              proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
+              header_filter_by_lua_block {
+                local h, _ = ngx.req.get_headers()["origin"]
+                if h and h ~= "*" and  h ~= "null" then
+                  ngx.header["Access-Control-Allow-Origin"] = h
+                end
+
+                ngx.header["Access-Control-Allow-Headers"] = "authorization"
+              }
             }
 
             error_page 404 /404.html;
@@ -291,8 +421,7 @@ data:
     touch /etc/nginx/logs/error.log
 
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-    ln -s /etc/ssl/certs/ca-bundle.trust.crt /etc/nginx/ca-bundle
-
+    cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/upstream.pem
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -t -p /etc/nginx
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
 
@@ -311,28 +440,19 @@ data:
       fi
     }
 
+    adminCABundleMD5=""
     while true
     do
-    if [[ -L /etc/nginx/ca-bundle ]] &&  [[ -f /api-config/admin-ca-bundle ]] &&  [[ -s /api-config/admin-ca-bundle ]] && [[ "`realpath /etc/nginx/ca-bundle`" != "/api-config/admin-ca-bundle" ]]; then
-      rm -rf /etc/nginx/ca-bundle
-      ln -s /api-config/admin-ca-bundle /etc/nginx/ca-bundle
-      reload
-    fi
-    if [[ -L /etc/nginx/ca-bundle ]] &&  [[ ! -f /api-config/admin-ca-bundle ]] && [[ "`realpath /etc/nginx/ca-bundle`" == "/api-config/admin-ca-bundle" ]] && [[ -f /api-config/default-ca-bundle ]]  && [[ -s /api-config/default-ca-bundle ]]; then
-      rm -rf /etc/nginx/ca-bundle
-      ln -s /api-config/default-ca-bundle /etc/nginx/ca-bundle
-      reload
-    fi
-    if [[ ! -L /etc/nginx/ca-bundle ]] &&  [[ -f /api-config/admin-ca-bundle ]]  &&  [[ -s /api-config/admin-ca-bundle ]]; then
-      ln -s /api-config/admin-ca-bundle /etc/nginx/ca-bundle
-      reload
-    fi
-    if [[ ! -L /etc/nginx/ca-bundle ]] &&  [[ -f /api-config/default-ca-bundle ]]  &&  [[ -s /api-config/default-ca-bundle ]]; then
-      ln -s /api-config/default-ca-bundle /etc/nginx/ca-bundle
-      reload
+    if [[ -s /api-config/admin-ca-bundle ]]; then
+      md5Hash=$(md5sum "/api-config/admin-ca-bundle")
+      if [ "$adminCABundleMD5" != "$md5Hash" ] ; then
+        cat /api-config/admin-ca-bundle >> /etc/nginx/upstream.pem
+        adminCABundleMD5="$md5Hash"
+        reload
+      fi
     fi
     sleep 5 
-    done
+    done 
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -362,11 +482,6 @@ spec:
        - name: api-config
          projected:
            sources:
-            - secret:
-                name: system-tls
-                items:
-                  - key: ca.crt
-                    path: default-ca-bundle
             - secret:
                 name: verrazzano-cluster-registration
                 optional: true
