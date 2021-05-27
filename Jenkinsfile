@@ -48,7 +48,7 @@ pipeline {
         CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        VERRAZZANO_REPO_PATH = ${GO_REPO_PATH}/verrazzano
+        VERRAZZANO_REPO_PATH = "${GO_REPO_PATH}/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'ghcr.io'
