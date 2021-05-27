@@ -490,11 +490,11 @@ spec:
        - name: api-config
          projected:
            sources:
-           - secret:
-              items:
-              - key: ca.crt
-                path: default-ca-bundle
-              name: system-tls
+            - secret:
+                items:
+                  - key: ca.crt
+                    path: default-ca-bundle
+                name: system-tls
             - secret:
                 name: verrazzano-cluster-registration
                 optional: true
