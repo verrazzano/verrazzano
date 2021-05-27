@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	TestNamespace   = "hello-helidon"
+	TestNamespace   = "hello-helidon" // currently only used for placement tests
 	pollingInterval = 5 * time.Second
 	waitTimeout     = 5 * time.Minute
 
@@ -32,20 +32,20 @@ const (
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 
 // DeployHelloHelidonApp deploys the hello-helidon example's VerrazzanoProject to the cluster with the given kubeConfigPath
-func DeployHelloHelidonProject(kubeconfigPath string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeconfigPath); err != nil {
-		return fmt.Errorf("Failed to create hello-helidon project resource: %v", err)
+func DeployHelloHelidonProject(kubeconfigPath string, sourceDir string) error {
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
+		return fmt.Errorf("Failed to create %s project resource: %v", sourceDir, err)
 	}
 	return nil
 }
 
 // DeployHelloHelidonApp deploys the hello-helidon example application to the cluster with the given kubeConfigPath
-func DeployHelloHelidonApp(kubeConfigPath string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-comp.yaml", kubeConfigPath); err != nil {
-		return fmt.Errorf("Failed to create multi-cluster hello-helidon component resources: %v", err)
+func DeployHelloHelidonApp(kubeConfigPath string, sourceDir string) error {
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/mc-hello-helidon-comp.yaml", sourceDir), kubeConfigPath); err != nil {
+		return fmt.Errorf("Failed to create multi-cluster %s component resources: %v", sourceDir, err)
 	}
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", kubeConfigPath); err != nil {
-		return fmt.Errorf("Failed to create multi-cluster hello-helidon application resource: %v", err)
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/mc-hello-helidon-app.yaml", sourceDir), kubeConfigPath); err != nil {
+		return fmt.Errorf("Failed to create multi-cluster %s application resource: %v", sourceDir, err)
 	}
 	return nil
 }
@@ -83,11 +83,11 @@ func changePlacement(kubeConfigPath string, patchFile string) error {
 
 // VerifyMCResources verifies that the MC resources are present or absent depending on whether this is an admin
 // cluster and whether the resources are placed in the given cluster
-func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool) bool {
+func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, namespace string) bool {
 	// call both mcAppConfExists and mcComponentExists and store the results, to avoid short-circuiting
 	// since we should check both in all cases
-	mcAppConfExists := mcAppConfExists(kubeconfigPath)
-	mcCompExists := mcComponentExists(kubeconfigPath)
+	mcAppConfExists := mcAppConfExists(kubeconfigPath, namespace)
+	mcCompExists := mcComponentExists(kubeconfigPath, namespace)
 
 	if isAdminCluster || placedInThisCluster {
 		// always expect MC resources on admin cluster - otherwise expect them only if placed here
@@ -100,10 +100,10 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 
 // VerifyHelloHelidonInCluster verifies that the hello helidon app resources are either present or absent
 // depending on whether the app is placed in this cluster
-func VerifyHelloHelidonInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool) bool {
-	projectExists := projectExists(kubeConfigPath)
-	workloadExists := componentWorkloadExists(kubeConfigPath)
-	podsRunning := helloHelidonPodsRunning(kubeConfigPath)
+func VerifyHelloHelidonInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
+	projectExists := projectExists(kubeConfigPath, projectName)
+	workloadExists := componentWorkloadExists(kubeConfigPath, namespace)
+	podsRunning := helloHelidonPodsRunning(kubeConfigPath, namespace)
 
 	if placedInThisCluster {
 		return projectExists && workloadExists && podsRunning
@@ -116,46 +116,46 @@ func VerifyHelloHelidonInCluster(kubeConfigPath string, isAdminCluster bool, pla
 	}
 }
 
-func VerifyHelloHelidonDeletedAdminCluster(kubeconfigPath string, placedInCluster bool) bool {
-	mcResDeleted := verifyMCResourcesDeleted(kubeconfigPath)
+func VerifyHelloHelidonDeletedAdminCluster(kubeconfigPath string, placedInCluster bool, namespace string, projectName string) bool {
+	mcResDeleted := verifyMCResourcesDeleted(kubeconfigPath, namespace, projectName)
 	if !placedInCluster {
 		return mcResDeleted
 	}
 
-	appDeleted := VerifyAppDeleted(kubeconfigPath)
+	appDeleted := VerifyAppDeleted(kubeconfigPath, namespace)
 
 	return mcResDeleted && appDeleted
 }
 
-func VerifyHelloHelidonDeletedInManagedCluster(kubeconfigPath string) bool {
-	mcResDeleted := verifyMCResourcesDeleted(kubeconfigPath)
-	appDeleted := VerifyAppDeleted(kubeconfigPath)
+func VerifyHelloHelidonDeletedInManagedCluster(kubeconfigPath string, namespace string, projectName string) bool {
+	mcResDeleted := verifyMCResourcesDeleted(kubeconfigPath, namespace, projectName)
+	appDeleted := VerifyAppDeleted(kubeconfigPath, namespace)
 
 	return mcResDeleted && appDeleted
 
 }
 
 // VerifyAppDeleted - verifies that the workload and pods are deleted on the the specified cluster
-func VerifyAppDeleted(kubeconfigPath string) bool {
-	workloadExists := componentWorkloadExists(kubeconfigPath)
-	podsRunning := helloHelidonPodsRunning(kubeconfigPath)
+func VerifyAppDeleted(kubeconfigPath string, namespace string) bool {
+	workloadExists := componentWorkloadExists(kubeconfigPath, namespace)
+	podsRunning := helloHelidonPodsRunning(kubeconfigPath, namespace)
 	return !workloadExists && !podsRunning
 }
 
-func verifyMCResourcesDeleted(kubeconfigPath string) bool {
-	appConfExists := mcAppConfExists(kubeconfigPath)
-	compExists := mcComponentExists(kubeconfigPath)
-	projExists := projectExists(kubeconfigPath)
+func verifyMCResourcesDeleted(kubeconfigPath string, namespace string, projectName string) bool {
+	appConfExists := mcAppConfExists(kubeconfigPath, namespace)
+	compExists := mcComponentExists(kubeconfigPath, namespace)
+	projExists := projectExists(kubeconfigPath, projectName)
 	return !appConfExists && !compExists && !projExists
 }
 
 // HelidonNamespaceExists - returns true if the hello-helidon namespace exists in the given cluster
-func HelidonNamespaceExists(kubeconfigPath string) bool {
-	_, err := pkg.GetNamespaceInCluster(TestNamespace, kubeconfigPath)
+func HelidonNamespaceExists(kubeconfigPath string, namespace string) bool {
+	_, err := pkg.GetNamespaceInCluster(namespace, kubeconfigPath)
 	return err == nil
 }
 
-func projectExists(kubeconfigPath string) bool {
+func projectExists(kubeconfigPath string, projectName string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
@@ -164,31 +164,31 @@ func projectExists(kubeconfigPath string) bool {
 	return resourceExists(gvr, multiclusterNamespace, projectName, kubeconfigPath)
 }
 
-func mcAppConfExists(kubeconfigPath string) bool {
+func mcAppConfExists(kubeconfigPath string, namespace string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
 		Resource: "multiclusterapplicationconfigurations",
 	}
-	return resourceExists(gvr, TestNamespace, appConfigName, kubeconfigPath)
+	return resourceExists(gvr, namespace, appConfigName, kubeconfigPath)
 }
 
-func mcComponentExists(kubeconfigPath string) bool {
+func mcComponentExists(kubeconfigPath string, namespace string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
 		Resource: "multiclustercomponents",
 	}
-	return resourceExists(gvr, TestNamespace, componentName, kubeconfigPath)
+	return resourceExists(gvr, namespace, componentName, kubeconfigPath)
 }
 
-func componentWorkloadExists(kubeconfigPath string) bool {
+func componentWorkloadExists(kubeconfigPath string, namespace string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    oamv1alpha1.SchemeGroupVersion.Group,
 		Version:  oamv1alpha1.SchemeGroupVersion.Version,
 		Resource: "verrazzanohelidonworkloads",
 	}
-	return resourceExists(gvr, TestNamespace, workloadName, kubeconfigPath)
+	return resourceExists(gvr, namespace, workloadName, kubeconfigPath)
 }
 
 func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
@@ -211,6 +211,6 @@ func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kub
 	return u != nil
 }
 
-func helloHelidonPodsRunning(kubeconfigPath string) bool {
-	return pkg.PodsRunningInCluster(TestNamespace, expectedPodsHelloHelidon, kubeconfigPath)
+func helloHelidonPodsRunning(kubeconfigPath string, namespace string) bool {
+	return pkg.PodsRunningInCluster(namespace, expectedPodsHelloHelidon, kubeconfigPath)
 }
