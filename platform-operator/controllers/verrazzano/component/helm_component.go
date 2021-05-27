@@ -142,10 +142,17 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 		}
 		defer os.Remove(f.Name())
 
+		// DEBUG
+		fmt.Println("\n************* START Key Value overrides for Component: " + h.releaseName)
+
 		// Write the override entries then close the file
 		for _, kv := range kvs {
 			io.WriteString(f, fmt.Sprintf("%s: %s\n", kv.key, kv.value))
+			fmt.Println(fmt.Sprintf("%s: %s", kv.key, kv.value))
+
 		}
+		fmt.Println("\n************* END Key Value overrides for Component: " + h.releaseName)
+
 		err = f.Close()
 		if err != nil {
 			return err

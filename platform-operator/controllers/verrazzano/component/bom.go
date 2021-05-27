@@ -153,11 +153,20 @@ func (b *Bom) init(jsonBom string) error {
 	return nil
 }
 
-// Get the imageBoms for a subcomponent
-func (b *Bom) GetSubcomponentImages(subComponentName string) ([]BomImage, error) {
+// GetSubcomponent gets the Bom subcomponent
+func (b *Bom) GetSubcomponent(subComponentName string) (*BomSubComponent, error) {
 	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
 		return nil, errors.New("unknown subcomponent " + subComponentName)
+	}
+	return sc, nil
+}
+
+// GetSubcomponentImages the imageBoms for a subcomponent
+func (b *Bom) GetSubcomponentImages(subComponentName string) ([]BomImage, error) {
+	sc, err := b.GetSubcomponent(subComponentName)
+	if err != nil {
+		return nil, err
 	}
 	return sc.Images, nil
 }
