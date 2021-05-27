@@ -48,6 +48,7 @@ pipeline {
         CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        VERRAZZANO_REPO_PATH = ${GO_REPO_PATH}/verrazzano
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'ghcr.io'
@@ -69,7 +70,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
-        TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+        TEST_SCRIPTS_DIR = "${VERRAZZANO_REPO_PATH}/tests/e2e/config/scripts"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
@@ -83,7 +84,7 @@ pipeline {
 
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
-        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        DUMP_COMMAND="${VERRAZZANO_REPO_PATH}/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
@@ -139,9 +140,9 @@ pipeline {
                     }
                 }
                 sh """
-                    rm -rf ${GO_REPO_PATH}/verrazzano
-                    mkdir -p ${GO_REPO_PATH}/verrazzano
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+                    rm -rf ${VERRAZZANO_REPO_PATH}
+                    mkdir -p ${VERRAZZANO_REPO_PATH}
+                    tar cf - . | (cd ${VERRAZZANO_REPO_PATH}/ ; tar xf -)
                 """
 
                 script {
@@ -175,7 +176,7 @@ pipeline {
             }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/tools/analysis
+                    cd ${VERRAZZANO_REPO_PATH}/tools/analysis
                     make go-build
                     cd out
                     zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
@@ -194,7 +195,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                    cd ${VERRAZZANO_REPO_PATH}/platform-operator
                     case "${env.BRANCH_NAME}" in
                         master|release-*)
                             ;;
@@ -216,9 +217,9 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${VERRAZZANO_REPO_PATH}
                     make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-                    cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
+                    cp ${VERRAZZANO_REPO_PATH}/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
                    """
             }
             post {
@@ -236,7 +237,7 @@ pipeline {
             }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${VERRAZZANO_REPO_PATH}
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
@@ -250,7 +251,7 @@ pipeline {
             steps {
                 sh """
                     echo "run all linters"
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${VERRAZZANO_REPO_PATH}
                     make check
 
                     echo "copyright scan"
@@ -266,14 +267,14 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${VERRAZZANO_REPO_PATH}
                     make -B coverage
                 """
             }
             post {
                 always {
                     sh """
-                        cd ${GO_REPO_PATH}/verrazzano
+                        cd ${VERRAZZANO_REPO_PATH}
                         cp coverage.html ${WORKSPACE}
                         cp coverage.xml ${WORKSPACE}
                         build/copy-junit-output.sh ${WORKSPACE}
@@ -316,14 +317,14 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                    cd ${VERRAZZANO_REPO_PATH}/platform-operator
 
                     make cleanup-cluster
                     make create-cluster KIND_CONFIG="kind-config-ci.yaml"
                     ../ci/scripts/setup_kind_for_jenkins.sh
                     make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+                    cd ${VERRAZZANO_REPO_PATH}/application-operator
                     make cleanup-cluster
                     make integ-test KIND_CONFIG="kind-config-ci.yaml" CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
@@ -384,7 +385,7 @@ pipeline {
                     }
                     steps {
                         sh """
-                            cd ${GO_REPO_PATH}/verrazzano
+                            cd ${VERRAZZANO_REPO_PATH}
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
                     }
@@ -549,6 +550,23 @@ pipeline {
                                 runGinkgo('ingress/console')
                             }
                         }
+                        stage ('console') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                            }
+                            steps {
+                                sh """
+                                    google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
+\t                                  curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+                                    unzip chromedriver.zip
+                                    sudo cp chromedriver /usr/local/bin/
+                                    cd ${VERRAZZANO_REPO_PATH}/tests/e2e/console/ui
+                                    ./${TEST_SCRIPTS_DIR}/edit_integ_test_config.sh config.uitest.json > tmp.uitestconfig.json
+                                    export VZ_UITEST_CONFIG=tmp.uitestconfig.json
+                                    npm run
+                                """
+                            }
+                        }
                     }
                     post {
                         always {
@@ -617,7 +635,7 @@ pipeline {
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
-                cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                cd ${VERRAZZANO_REPO_PATH}/platform-operator
                 make delete-cluster
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"
@@ -665,7 +683,7 @@ pipeline {
             // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
             sh """
                 if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${VERRAZZANO_REPO_PATH}
                     echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
                 fi
@@ -680,7 +698,7 @@ pipeline {
 def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            cd ${VERRAZZANO_REPO_PATH}/tests/e2e
             ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
         """
     }
@@ -689,7 +707,7 @@ def runGinkgoRandomize(testSuitePath) {
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            cd ${VERRAZZANO_REPO_PATH}/tests/e2e
             ginkgo -v -keepGoing --noColor ${testSuitePath}/...
         """
     }
@@ -697,7 +715,7 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/analysis.report
+        ${VERRAZZANO_REPO_PATH}/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/analysis.report
     """
 }
 
@@ -729,7 +747,7 @@ def dumpNginxIngressControllerLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/nginx-ingress-controller.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+       ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
