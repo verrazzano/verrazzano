@@ -113,7 +113,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 				gomega.Expect(vzComponentPresent(name, "cert-manager")).To(gomega.Equal(expected))
 			},
 			ginkgoExt.Entry("includes cert-manager", "cert-manager", true),
-			ginkgoExt.Entry("does not include cert-manager-cainjector", "cert-manager-cainjector", false),
+			ginkgoExt.Entry("does include cert-manager-cainjector", "cert-manager-cainjector", true),
 		)
 
 		ginkgoExt.DescribeTable("deployed ingress components",
