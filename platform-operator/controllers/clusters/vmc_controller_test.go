@@ -72,7 +72,7 @@ type AssertFn func(configMap *corev1.ConfigMap) error
 func TestCreateVMC(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.152.67.141.181.nip.io\n" +
+		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
 		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
@@ -109,7 +109,7 @@ func TestCreateVMC(t *testing.T) {
 			asserts.Fail("failed due to error %v", err)
 		}
 		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal("prometheus.vmi.system.default.152.67.141.181.nip.io",
+		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
@@ -140,7 +140,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	namespace := "verrazzano-mc"
 	// OCI DNS cluster does not include a CA cert since the CA is public
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.152.67.141.181.nip.io\n"
+		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n"
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -172,7 +172,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 			asserts.Fail("failed due to error %v", err)
 		}
 		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal("prometheus.vmi.system.default.152.67.141.181.nip.io",
+		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Empty(scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
@@ -202,7 +202,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.152.67.141.181.nip.io\n" +
+		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
 		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
@@ -249,7 +249,7 @@ scrape_configs:
 			asserts.Fail("failed due to error %v", err)
 		}
 		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal("prometheus.vmi.system.default.152.67.141.181.nip.io",
+		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
@@ -280,7 +280,7 @@ scrape_configs:
 func TestReplaceExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.152.67.141.181.nip.io\n" +
+		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
 		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
@@ -327,7 +327,7 @@ scrape_configs:
 		}
 		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
 		asserts.Equal("test", scrapeConfig.Path("job_name").Data(), "wrong job testManagedCluster")
-		asserts.Equal("prometheus.vmi.system.default.152.67.141.181.nip.io",
+		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
@@ -359,7 +359,7 @@ scrape_configs:
 func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.152.67.141.181.nip.io\n" +
+		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
 		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
@@ -396,7 +396,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 			asserts.Fail("failed due to error %v", err)
 		}
 		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal("prometheus.vmi.system.default.152.67.141.181.nip.io",
+		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
@@ -988,7 +988,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.152.67.141.181.nip.io\n" +
+		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
 		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
@@ -1040,7 +1040,7 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 			asserts.Fail("failed due to error %v", err)
 		}
 		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal("prometheus.vmi.system.default.152.67.141.181.nip.io",
+		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",

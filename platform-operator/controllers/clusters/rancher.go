@@ -131,8 +131,6 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 // the image registry. The Rancher agent image is baked into the primary Rancher image so in order
 // to load Rancher agent from a different registry we replace it here in the generated
 // registration YAML.
-//
-// Possible future enhancement: Pull the image and tag from the BOM file and ignore what Rancher generates?
 func fixRancherAgentImage(regYAML string, log *zap.SugaredLogger) string {
 	// if the Verrazzano installation is using the default image registry, there's nothing to do
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
@@ -147,12 +145,14 @@ func fixRancherAgentImage(regYAML string, log *zap.SugaredLogger) string {
 		return regYAML
 	}
 
+	// match[1] has the capture group, and looks like: myreg.io/myrepo/ghcr.io/verrazzano/rancher-agent:tag
 	// split the image path and pull out the repo and image:tag
 	imageParts := strings.Split(match[1], "/")
 	if len(imageParts) < 2 {
 		return regYAML
 	}
 
+	// imageParts[len(imageParts)-2] = "verrazzano", imageParts[len(imageParts)-1] = "rancher-agent:tag"
 	image := imageParts[len(imageParts)-2] + "/" + imageParts[len(imageParts)-1]
 
 	// build a new image path using the registry override (and optionally a repo override)
@@ -162,6 +162,7 @@ func fixRancherAgentImage(regYAML string, log *zap.SugaredLogger) string {
 	}
 	imagePath = imagePath + "/" + image
 
+	// imagePath now looks like: myreg.io/myrepo/verrazzano/rancher-agent:tag
 	log.Infof("Replacing Rancher agent image in registration YAML with: %s", imagePath)
 
 	// replace the image in the regYAML with the new image path

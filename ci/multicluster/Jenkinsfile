@@ -40,7 +40,7 @@ pipeline {
             choices: availableRegions )
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
             // 1st choice is the default value
-            choices: [ "VM.Standard.E3.Flex-8-2", "VM.Standard2.4-2" ])
+            choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
@@ -744,9 +744,6 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
                 mkdir -p "${KUBECONFIG_DIR}/${count}"
                 export PATH=${HOME}/go/bin:${PATH}
                 cd ${GO_REPO_PATH}/verrazzano
-                echo "Installing yq"
-                GO111MODULE=on go get github.com/mikefarah/yq/v4
-                export PATH=${HOME}/go/bin:${PATH}
 
                 # Copy the template config over for the mgd cluster profile configuration
                 cp $installResourceTemplate $destinationPath

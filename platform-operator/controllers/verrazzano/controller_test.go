@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"testing"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
@@ -99,58 +99,38 @@ func TestSuccessfulInstall(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
-	var savedVerrazzano *vzapi.Verrazzano
+	var verrazzanoToUse vzapi.Verrazzano
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	config.TestHelmConfigDir = "../../helm_config"
+	config.Set(config.OperatorConfig{HelmConfigDir: "../../helm_config"})
+
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+	verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
 
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name}
-			verrazzano.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
-			savedVerrazzano = verrazzano
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
-	// Expect a call to get the ServiceAccount - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
-			serviceAccount.ObjectMeta = newSA.ObjectMeta
-			return nil
-		})
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, namespace, name, labels)
 
-	// Expect a call to get the ClusterRoleBinding - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding) error {
-			crb := installjob.NewClusterRoleBinding(savedVerrazzano, name.Name, buildServiceAccountName(name.Name))
-			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
-			clusterRoleBinding.RoleRef = crb.RoleRef
-			clusterRoleBinding.Subjects = crb.Subjects
-			return nil
-		})
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	// Expect a call to get the ConfigMap - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
-			cm := installjob.NewConfigMap(name.Namespace, name.Name, labels)
-			configMap.ObjectMeta = cm.ObjectMeta
-			return nil
-		})
+	// Expect a call to get the ConfigMap
+	expectConfigMapExists(mock, namespace, name, labels)
+
+	// Expect a call to get the verrazzano system namespace (return exists)
+	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
 	// Expect a call to get the Job - return that it exists
 	mock.EXPECT().
@@ -226,19 +206,17 @@ func TestCreateVerrazzano(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	var vzToUse vzapi.Verrazzano
+	vzToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	vzToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
 	mock.EXPECT().
@@ -286,6 +264,9 @@ func TestCreateVerrazzano(t *testing.T) {
 			asserts.Equalf(labels, configMap.Labels, "ConfigMap labels did not match")
 			return nil
 		})
+
+	// Expect a call to get the verrazzano system namespace (mock does not exist) and to create it
+	expectVerrazzanoSystemNamespaceDoesNotExist(mock, asserts)
 
 	// Expect a call to get the Job - return that it does not exist
 	mock.EXPECT().
@@ -354,27 +335,25 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	var vzToUse vzapi.Verrazzano
+	vzToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	vzToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+	vzToUse.Spec.Components.DNS = &vzapi.DNSComponent{
+		OCI: &vzapi.OCI{
+			OCIConfigSecret:        "test-oci-config-secret",
+			DNSZoneCompartmentOCID: "test-dns-zone-ocid",
+			DNSZoneOCID:            "test-dns-zone-ocid",
+			DNSZoneName:            "test-dns-zone-name",
+		},
+	}
+
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			verrazzano.Spec.Components.DNS = &vzapi.DNSComponent{
-				OCI: &vzapi.OCI{
-					OCIConfigSecret:        "test-oci-config-secret",
-					DNSZoneCompartmentOCID: "test-dns-zone-ocid",
-					DNSZoneOCID:            "test-dns-zone-ocid",
-					DNSZoneName:            "test-dns-zone-name",
-				},
-			}
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
 	mock.EXPECT().
@@ -442,6 +421,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			asserts.NotNil(configMap.Data[vzapi.OciPrivateKeyFileName], "OCI Config entry not found")
 			return nil
 		})
+
+	// Expect a call to get the verrazzano system namespace (return exists)
+	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
 	// Expect a call to get the Job - return that it does not exist
 	mock.EXPECT().
@@ -921,21 +903,19 @@ func TestServiceAccountGetError(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
+	var verrazzanoToUse vzapi.Verrazzano
 	asserts.NotNil(mockStatus)
 
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return a failure error
 	mock.EXPECT().
@@ -966,21 +946,19 @@ func TestServiceAccountCreateError(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
+	var verrazzanoToUse vzapi.Verrazzano
 	asserts.NotNil(mockStatus)
 
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return not found
 	mock.EXPECT().
@@ -1016,30 +994,22 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
+	var verrazzanoToUse vzapi.Verrazzano
 	asserts.NotNil(mockStatus)
 
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
-			serviceAccount.ObjectMeta = newSA.ObjectMeta
-			return nil
-		})
+	expectGetServiceAccountExists(mock, namespace, name, labels)
 
 	// Expect a call to get the ClusterRoleBinding - return a failure error
 	mock.EXPECT().
@@ -1070,30 +1040,22 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
+	var verrazzanoToUse vzapi.Verrazzano
 	asserts.NotNil(mockStatus)
 
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
-			serviceAccount.ObjectMeta = newSA.ObjectMeta
-			return nil
-		})
+	expectGetServiceAccountExists(mock, namespace, name, labels)
 
 	// Expect a call to get the ClusterRoleBinding - return not found
 	mock.EXPECT().
@@ -1125,47 +1087,29 @@ func TestConfigMapGetError(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
-	var savedVerrazzano *vzapi.Verrazzano
+	var verrazzanoToUse vzapi.Verrazzano
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			savedVerrazzano = verrazzano
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
-	// Expect a call to get the ServiceAccount - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
-			serviceAccount.ObjectMeta = newSA.ObjectMeta
-			return nil
-		})
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, namespace, name, labels)
 
-	// Expect a call to get the ClusterRoleBinding - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding) error {
-			crb := installjob.NewClusterRoleBinding(savedVerrazzano, name.Name, buildServiceAccountName(name.Name))
-			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
-			clusterRoleBinding.RoleRef = crb.RoleRef
-			clusterRoleBinding.Subjects = crb.Subjects
-			return nil
-		})
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Expect a call to get the ConfigMap - return a failure error
 	mock.EXPECT().
@@ -1192,47 +1136,29 @@ func TestConfigMapCreateError(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
-	var savedVerrazzano *vzapi.Verrazzano
+	var verrazzanoToUse vzapi.Verrazzano
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			savedVerrazzano = verrazzano
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
-	// Expect a call to get the ServiceAccount - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
-			serviceAccount.ObjectMeta = newSA.ObjectMeta
-			return nil
-		})
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, namespace, name, labels)
 
-	// Expect a call to get the ClusterRoleBinding - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding) error {
-			crb := installjob.NewClusterRoleBinding(savedVerrazzano, name.Name, buildServiceAccountName(name.Name))
-			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
-			clusterRoleBinding.RoleRef = crb.RoleRef
-			clusterRoleBinding.Subjects = crb.Subjects
-			return nil
-		})
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Expect a call to get the ConfigMap - return not found
 	mock.EXPECT().
@@ -1256,6 +1182,117 @@ func TestConfigMapCreateError(t *testing.T) {
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
+// TestVZSystemNamespaceGetError tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an verrazzano resource
+// WHEN a there is an error getting the verrazzano system namespace
+// THEN return error
+func TestVZSystemNamespaceGetError(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	labels := map[string]string{"label1": "test"}
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	var verrazzanoToUse vzapi.Verrazzano
+	asserts.NotNil(mockStatus)
+
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+
+	// Expect a call to get the verrazzano resource.
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, namespace, name, labels)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect a call to get the ConfigMap
+	expectConfigMapExists(mock, namespace, name, labels)
+
+	errMsg := "get vz system namespace error"
+	// Expect a call to get the verrazzano system namespace - return a failure error
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+		Return(errors.NewBadRequest(errMsg))
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.EqualError(err, errMsg)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestVZSystemNamespaceCreateError tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an verrazzano resource
+// WHEN a there is an error creating the verrazzano system namespace
+// THEN return error
+func TestVZSystemNamespaceCreateError(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	labels := map[string]string{"label1": "test"}
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	var verrazzanoToUse vzapi.Verrazzano
+	asserts.NotNil(mockStatus)
+
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+
+	// Expect a call to get the verrazzano resource.
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, namespace, name, labels)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect a call to get the ConfigMap
+	expectConfigMapExists(mock, namespace, name, labels)
+
+	errMsg := "create vz system namespace error"
+	// Expect a call to get the verrazzano system namespace - return an IsNotFound
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.ParseGroupResource("namespaces"), constants.VerrazzanoSystemNamespace))
+
+	// Expect a call to create the verrazzano system namespace - return a failure error
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).
+		Return(errors.NewBadRequest(errMsg))
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.EqualError(err, errMsg)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
 // TestJobGetError tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an verrazzano resource
 // WHEN a there is an error getting the Job
@@ -1264,56 +1301,35 @@ func TestJobGetError(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
-	var savedVerrazzano *vzapi.Verrazzano
+	var verrazzanoToUse vzapi.Verrazzano
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			savedVerrazzano = verrazzano
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
-	// Expect a call to get the ServiceAccount - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
-			serviceAccount.ObjectMeta = newSA.ObjectMeta
-			return nil
-		})
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, namespace, name, labels)
 
-	// Expect a call to get the ClusterRoleBinding - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding) error {
-			crb := installjob.NewClusterRoleBinding(savedVerrazzano, name.Name, buildServiceAccountName(name.Name))
-			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
-			clusterRoleBinding.RoleRef = crb.RoleRef
-			clusterRoleBinding.Subjects = crb.Subjects
-			return nil
-		})
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	// Expect a call to get the ConfigMap - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
-			cm := installjob.NewConfigMap(name.Namespace, name.Name, labels)
-			configMap.ObjectMeta = cm.ObjectMeta
-			return nil
-		})
+	// Expect a call to get the ConfigMap
+	expectConfigMapExists(mock, namespace, name, labels)
+
+	// Expect a call to get the verrazzano system namespace (return exists)
+	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
 	// Expect a call to get the Job - return a failure error
 	mock.EXPECT().
@@ -1340,55 +1356,37 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
-	var savedVerrazzano *vzapi.Verrazzano
+	var verrazzanoToUse vzapi.Verrazzano
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+	verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{
+		OCI: &vzapi.OCI{
+			OCIConfigSecret:        "test-oci-config-secret",
+			DNSZoneCompartmentOCID: "test-dns-zone-ocid",
+			DNSZoneOCID:            "test-dns-zone-ocid",
+			DNSZoneName:            "test-dns-zone-name",
+		},
+	}
+
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			verrazzano.Spec.Components.DNS = &vzapi.DNSComponent{
-				OCI: &vzapi.OCI{
-					OCIConfigSecret:        "test-oci-config-secret",
-					DNSZoneCompartmentOCID: "test-dns-zone-ocid",
-					DNSZoneOCID:            "test-dns-zone-ocid",
-					DNSZoneName:            "test-dns-zone-name",
-				},
-			}
-			savedVerrazzano = verrazzano
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
-	// Expect a call to get the ServiceAccount - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
-			serviceAccount.ObjectMeta = newSA.ObjectMeta
-			return nil
-		})
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, namespace, name, labels)
 
-	// Expect a call to get the ClusterRoleBinding - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding) error {
-			crb := installjob.NewClusterRoleBinding(savedVerrazzano, name.Name, buildServiceAccountName(name.Name))
-			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
-			clusterRoleBinding.RoleRef = crb.RoleRef
-			clusterRoleBinding.Subjects = crb.Subjects
-			return nil
-		})
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Expect a call to get the DNS config secret but return a not found error
 	mock.EXPECT().
@@ -1415,56 +1413,35 @@ func TestJobCreateError(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
-	var savedVerrazzano *vzapi.Verrazzano
+	var verrazzanoToUse vzapi.Verrazzano
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+
 	// Expect a call to get the verrazzano resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			savedVerrazzano = verrazzano
-			return nil
-		})
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
-	// Expect a call to get the ServiceAccount - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
-			serviceAccount.ObjectMeta = newSA.ObjectMeta
-			return nil
-		})
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, namespace, name, labels)
 
-	// Expect a call to get the ClusterRoleBinding - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding) error {
-			crb := installjob.NewClusterRoleBinding(savedVerrazzano, name.Name, buildServiceAccountName(name.Name))
-			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
-			clusterRoleBinding.RoleRef = crb.RoleRef
-			clusterRoleBinding.Subjects = crb.Subjects
-			return nil
-		})
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	// Expect a call to get the ConfigMap - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
-			cm := installjob.NewConfigMap(name.Namespace, name.Name, labels)
-			configMap.ObjectMeta = cm.ObjectMeta
-			return nil
-		})
+	// Expect a call to get the ConfigMap
+	expectConfigMapExists(mock, namespace, name, labels)
+
+	// Expect a call to get the verrazzano system namespace (return exists)
+	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
 	// Expect a call to get the Job - return not found
 	mock.EXPECT().
@@ -1932,6 +1909,83 @@ func expectSyncLocalRegistration(t *testing.T, mock *mocks.MockClient, name stri
 		})
 }
 
-func fakeGetHelmConfigDir() string {
-	return "../../helm_config"
+// expectGetVerrazzanoSystemNamespaceExists expects a call to get the verrazzano system namespace and returns
+// that it exists
+func expectGetVerrazzanoSystemNamespaceExists(mock *mocks.MockClient, asserts *assert.Assertions) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+			ns.Name = constants.VerrazzanoSystemNamespace
+			return nil
+		})
+}
+
+// expectVerrazzanoSystemNamespaceDoesNotExist expects a call to get the verrazzano system namespace and returns
+// that it does not exist, then expects a call to create it
+func expectVerrazzanoSystemNamespaceDoesNotExist(mock *mocks.MockClient, asserts *assert.Assertions) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.ParseGroupResource("namespaces"), constants.VerrazzanoSystemNamespace))
+
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
+			asserts.Equalf(constants.VerrazzanoSystemNamespace, ns.Name, "Verrazzano system namespace did not match")
+			return nil
+		})
+}
+
+// expectConfigMapExists expects a call to get the config map for the Verrazzano with the given namespace and name,
+// and returns that it exists
+func expectConfigMapExists(mock *mocks.MockClient, namespace string, name string, labels map[string]string) {
+	// Expect a call to get the ConfigMap - return that it exists
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+			cm := installjob.NewConfigMap(name.Namespace, name.Name, labels)
+			configMap.ObjectMeta = cm.ObjectMeta
+			return nil
+		})
+}
+
+// expectClusterRoleBindingExists expects a call to get the cluster role binding for the Verrazzano with the given
+// namespace and name, and returns that it exists
+func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Verrazzano, namespace string, name string) {
+	// Expect a call to get the ClusterRoleBinding - return that it exists
+	clusterRoleBindingName := buildClusterRoleBindingName(namespace, name)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: clusterRoleBindingName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding) error {
+			crb := installjob.NewClusterRoleBinding(&verrazzanoToUse, nsName.Name, buildServiceAccountName(nsName.Name))
+			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
+			clusterRoleBinding.RoleRef = crb.RoleRef
+			clusterRoleBinding.Subjects = crb.Subjects
+			return nil
+		})
+}
+
+// expectGetServiceAccountExists expects a call to get the service account for the Verrazzano with the given
+// namespace and name, and returns that it exists
+func expectGetServiceAccountExists(mock *mocks.MockClient, namespace string, name string, labels map[string]string) {
+	// Expect a call to get the ServiceAccount - return that it exists
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
+			serviceAccount.ObjectMeta = newSA.ObjectMeta
+			return nil
+		})
+}
+
+// expectGetVerrazzanoExists expects a call to get a Verrazzano with the given namespace and name, and returns
+// one that has the same content as the verrazzanoToUse argument
+func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Verrazzano, namespace string, name string, labels map[string]string) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+			verrazzano.TypeMeta = verrazzanoToUse.TypeMeta
+			verrazzano.ObjectMeta = verrazzanoToUse.ObjectMeta
+			verrazzano.Spec.Components.DNS = verrazzanoToUse.Spec.Components.DNS
+			return nil
+		})
 }

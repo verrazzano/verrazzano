@@ -47,8 +47,6 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit: &backoffLimit,
-			// For now, jobs will use the default backoffLimit of 6; we will eventually respawn jobs when they fail,
-			// but for now this will allow some limited amount of retries when the pods fail.
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        jobConfig.JobName,
