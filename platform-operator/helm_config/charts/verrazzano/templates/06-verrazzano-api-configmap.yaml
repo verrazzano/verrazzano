@@ -13,11 +13,11 @@ data:
 {{- with .Values.api.proxy }}
   conf.lua: |
     local ingressUri = 'https://'..'{{ .Ingress }}'
-    local oidcProviderHost = "{{ .OIDCProviderHost }}"
-    local oidcProviderHostInCluster = "{{ .OIDCProviderHostInCluster }}"
+    local oidcProviderHost = "{{ .OidcProviderHost }}"
+    local oidcProviderHostInCluster = "{{ .OidcProviderHostInCluster }}"
     local realm ="{{ .Realm }}"
-    local callbackPath = "{{ .OIDCCallbackPath }}"
-    local logoutCallbackPath = "{{ .OIDCLogoutCallbackPath }}"
+    local callbackPath = "{{ .OidcCallbackPath }}"
+    local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
     local oidcClient = "{{ .PKCEClientID }}"
     local oidcDirectAccessClient = "{{ .PGClientID }}"
     -- TODO: fix this -- shouldn't have cookie key in configmap
@@ -44,8 +44,9 @@ data:
         authStateTtlInSec = authStateTtlInSec,
         cookieKey = cookieKey
     })
-    ngx.header["Access-Control-Allow-Origin"] =  ngx.req.get_headers()["origin"]
-    ngx.header["Access-Control-Allow-Headers"] =  "authorization"
+
+    ngx.header["Access-Control-Allow-Headers"] = "authorization"
+
     if ngx.req.get_method() == "OPTIONS" then
         ngx.status = 200
         ngx.exit(ngx.HTTP_OK)
@@ -55,10 +56,10 @@ data:
     local authHeader = ngx.req.get_headers()["authorization"]
     local token = nil
     if authHeader then
-{{- if eq .Mode 'api-proxy' }}
+{{- if eq .Mode "api-proxy" }}
         -- console sent access token to api proxy with k8s api request (not cached)
         token = auth.handleBearerToken(authHeader)
-{{- else if eq .Mode 'oauth-proxy' }}
+{{- else if eq .Mode "oauth-proxy" }}
         -- vz component calling vmi component using basic auth (cached locally)
         token = handleBasicAuth(authHeader)
 {{- end }}
@@ -67,7 +68,7 @@ data:
         fi
     else
         auth.info("No authorization header found")
-{{- if eq .Mode 'oauth-proxy' }}
+{{- if eq .Mode "oauth-proxy" }}
         if string.find(ngx.var.request_uri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
@@ -96,10 +97,10 @@ data:
         auth.forbidden("Not authorized")
     end
 
-{{- if eq .Mode 'api-proxy' }}
+{{- if eq .Mode "api-proxy" }}
     -- impersonate the user
     impersonateKubernetesUser(token)
-{{- else if .Mode 'oauth-proxy' }}
+{{- else if eq .Mode "oauth-proxy" }}
     ngx.var.oidc_user = auth.usernameFromIdToken(idToken)
 {{- end }}
 
@@ -438,7 +439,7 @@ data:
         return ""
     end
 
-{{- if eq .Mode 'api-proxy' }}
+{{- if eq .Mode "api-proxy" }}
     function impersonateKubernetesUser(token) {
         me.logJson(ngx.INFO, "Read service account token.")
         local serviceAccountToken = read_file("/run/secrets/kubernetes.io/serviceaccount/token");
@@ -601,6 +602,10 @@ data:
     #error_log  logs/error.log  info;
     
     pid        logs/nginx.pid;
+    {{- if eq .Mode "api-proxy" }}
+    env KUBERNETES_SERVICE_HOST;
+    env KUBERNETES_SERVICE_PORT;
+    {{- end }}
     
     events {
         worker_connections  1024;
@@ -619,13 +624,15 @@ data:
         sendfile        on;
         #tcp_nopush     on;
     
+    {{- if eq .Mode "oauth-proxy" }}
         # TODO: api proxy doesn't have client_max_body_size - should it?
         client_max_body_size 65m;
+    {{- end }}
         #keepalive_timeout  0;
         keepalive_timeout  65;
     
         #gzip  on;
-        #
+    
         lua_package_path '/usr/local/share/lua/5.1/?.lua;;';
         lua_package_cpath '/usr/local/lib/lua/5.1/?.so;;';
         resolver _NAMESERVER_;
@@ -633,31 +640,46 @@ data:
         lua_shared_dict discovery 1m;
         #  cache for JWKs
         lua_shared_dict jwks 1m;
-        # TODO: ssl params hard-wired for api proxy
-        {{ .SSLVerifyOptions }}
-        {{ .SSLTrustedCAOptions }}
+        lua_ssl_verify_depth 2;
+    {{- if eq .Mode "api-proxy" }}
+        lua_ssl_trusted_certificate /etc/nginx/ca-bundle;
+    {{- else if eq .Mode "oauth-proxy" }}
+        lua_ssl_trusted_certificate /secret/ca-bundle;
     
-        # TODO: upstream http_backend not present in api-proxy
         upstream http_backend {
             server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;
         }
+    {{- end }}
+    
         server {
             listen       8775;
             server_name  apiserver;
             root     /opt/nginx/html;
             #charset koi8-r;
     
+    {{- if eq .Mode "oauth-proxy" }}
             set $oidc_user "";
+    {{- end }}
             rewrite_by_lua_file /etc/nginx/conf.lua;
+    {{- if eq .Mode "api-proxy" }}
+            set_by_lua $kubernetes_server_host 'return os.getenv("KUBERNETES_SERVICE_HOST")';
+            set_by_lua $kubernetes_server_port 'return os.getenv("KUBERNETES_SERVICE_PORT")';
+    {{- end }}
+    
             #access_log  logs/host.access.log  main;
             expires           0;
             add_header        Cache-Control private;
     
-            # TODO: this is not present in api-proxy
+    {{- if eq .Mode "oauth-proxy" }}
             proxy_set_header  X-WEBAUTH-USER $oidc_user;
+    {{- end }}
     
             location / {
+    {{- if eq .Mode "oauth-proxy" }}
                 proxy_pass http://http_backend;
+    {{- else if eq .Mode "api-proxy" }}
+                proxy_pass https://$kubernetes_server_host:$kubernetes_server_port;
+    {{- end }}
             }
     
             error_page 404 /404.html;
@@ -675,7 +697,6 @@ data:
     }
   startup.sh: |
     #!/bin/bash
-    startupDir={{ .StartupDir }}
     cd $startupDir
     cp $startupDir/nginx.conf /etc/nginx/nginx.conf
     cp $startupDir/auth.lua /etc/nginx/auth.lua
@@ -688,13 +709,54 @@ data:
     
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     
+    {{- if eq .Mode "api-proxy" }}
+    ln -s /etc/ssl/certs/ca-bundle.trust.crt /etc/nginx/ca-bundle
+    {{- end }}
+    
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx -t
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
     
+    {{- if eq .Mode "oauth-proxy" }}
     while [ $? -ne 0 ]; do
         sleep 20
         echo "retry nginx startup ..."
         /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
     done
+    {{- else if eq .Mode "api-proxy" }}
+    sh -c "$startupDir/reload.sh &"
+    {{- end }}
     tail -f /etc/nginx/logs/error.log
+  reload.sh: |
+    #!/bin/bash
+    
+    function reload() {
+      nginx -t -p /etc/nginx
+      if [ $? -eq 0 ]
+      then
+        echo "Detected Nginx Configuration Change"
+        echo "Executing: nginx -s reload -p /etc/nginx"
+        nginx -s reload -p /etc/nginx
+      fi
+    }
+    
+    while true
+    do
+      rm -rf /etc/nginx/ca-bundle
+      ln -s /api-config/admin-ca-bundle /etc/nginx/ca-bundle
+      reload
+    fi
+      rm -rf /etc/nginx/ca-bundle
+      ln -s /api-config/default-ca-bundle /etc/nginx/ca-bundle
+      reload
+    fi
+    if [[ ! -L /etc/nginx/ca-bundle ]] &&  [[ -f /api-config/admin-ca-bundle ]]  &&  [[ -s /api-config/admin-ca-bundle ]]; then
+      ln -s /api-config/admin-ca-bundle /etc/nginx/ca-bundle
+      reload
+    fi
+    if [[ ! -L /etc/nginx/ca-bundle ]] &&  [[ -f /api-config/default-ca-bundle ]]  &&  [[ -s /api-config/default-ca-bundle ]]; then
+      ln -s /api-config/default-ca-bundle /etc/nginx/ca-bundle
+      reload
+    fi
+    sleep 5 
+    done
 {{- end }}
