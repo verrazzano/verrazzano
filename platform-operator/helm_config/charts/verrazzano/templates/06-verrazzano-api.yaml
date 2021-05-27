@@ -31,6 +31,8 @@ metadata:
     app: {{ .Values.api.name }}
 data:
   conf.lua: |
+    vzApiHost = os.getenv("VZ_API_HOST")
+    vzApiVersion = os.getenv("VZ_API_VERSION")
     local function logJsonMessage(logLevel, msg, err)
       local cjson = require "cjson"
       local logMsg = ""
@@ -104,24 +106,26 @@ data:
     end
 
     local function getK8SResource(resourcePath, groups, user)
-      local cmd = "curl --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt --header 'Authorization: Bearer " .. getServiceAccountToken() .. "'"
-      if groups then
-        for _, group in pairs(groups) do
-          cmd = cmd .. " --header 'Impersonate-Group: " .. group .. "'"
-        end
-      end
-      if user then
-        cmd = cmd .. " --header 'Impersonate-User: " .. user .. "'"
-      end
-      cmd = cmd .. " -X GET " .. getLocalServerURL() .. resourcePath
-      local result = capture(cmd, true)
-      if not(result) then
+      local http = require "resty.http"
+      local httpc = http.new()
+      local res, err = httpc:request_uri("https://" .. vzApiHost .. "/" .. vzApiVersion .. resourcePath,{
+          headers = {
+              ["Authorization"] = ngx.req.get_headers()["authorization"],
+          },
+      })
+      if err then
         ngx.status = 401
-        logJsonMessage(ngx.ERR, "Unable to execute curl.")
+        logJsonMessage(ngx.ERR, "Error accessing vz api", err)
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+      end
+
+      if not(res) or not (res.body) then
+        ngx.status = 401
+        logJsonMessage(ngx.ERR, "Unable to get k8s resource.")
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
       end
       local cjson = require "cjson"
-      return cjson.decode(result)
+      return cjson.decode(res.body)
     end
 
     local function getVMC(cluster, groups, user)
@@ -132,19 +136,11 @@ data:
       return getK8SResource("/api/v1/namespaces/verrazzano-mc/secrets/" .. secret, groups, user)
     end
 
-   
-    if (ngx.header["Access-Control-Allow-Origin"]) then
-      logJsonMessage(ngx.INFO, "Access-Control-Allow-Origin:" .. ngx.header["Access-Control-Allow-Origin"])
-    end
-    if (ngx.header["Access-Control-Allow-Headers"]) then
-      logJsonMessage(ngx.INFO, "Access-Control-Allow-Headers:" .. ngx.header["Access-Control-Allow-Headers"])
-    end
-
     if ngx.req.get_method() == "OPTIONS" then
       ngx.status = 200
       ngx.exit(ngx.HTTP_OK)
     end
-
+ 
     logJsonMessage(ngx.INFO, "Extracting authorization header from request.")
     local h, err = ngx.req.get_headers()["authorization"]
     if err then
@@ -222,8 +218,8 @@ data:
         logJsonMessage(ngx.ERR, "Unable to fetch vmc api url for vmc " .. args.cluster)
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
       end
-  
-      serverUrl = vmc.status.apiUrl .. "/20210501"
+
+      serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
       if not(vmc.spec) or not(vmc.spec.prometheusSecret) then
         ngx.status = 401
         logJsonMessage(ngx.ERR, "Unable to fetch prometheus secret name for vmc " .. args.cluster)
@@ -274,7 +270,8 @@ data:
     pid        logs/nginx.pid;
     env KUBERNETES_SERVICE_HOST;
     env KUBERNETES_SERVICE_PORT;
-    env ALLOWED_ORIGINS;
+    env VZ_API_HOST;
+    env VZ_API_VERSION;
 
 
     events {
@@ -441,6 +438,7 @@ data:
     }
 
     adminCABundleMD5=""
+    defaultCABundleMD5=""
     while true
     do
     if [[ -s /api-config/admin-ca-bundle ]]; then
@@ -451,6 +449,16 @@ data:
         reload
       fi
     fi
+
+    if [[ -s /api-config/default-ca-bundle ]]; then
+      md5Hash=$(md5sum "/api-config/default-ca-bundle")
+      if [ "$defaultCABundleMD5" != "$md5Hash" ] ; then
+        cat /api-config/default-ca-bundle >> /etc/nginx/upstream.pem
+        defaultCABundleMD5="$md5Hash"
+        reload
+      fi
+    fi
+
     sleep 5 
     done 
 ---
@@ -482,6 +490,11 @@ spec:
        - name: api-config
          projected:
            sources:
+           - secret:
+              items:
+              - key: ca.crt
+                path: default-ca-bundle
+              name: system-tls
             - secret:
                 name: verrazzano-cluster-registration
                 optional: true
@@ -510,6 +523,11 @@ spec:
         imagePullPolicy: {{ .Values.api.pullPolicy }}
         name: {{ .Values.api.name }}
         command: ["/api-config/startup.sh"]
+        env:
+        - name: VZ_API_HOST
+          value: "verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
+        - name: VZ_API_VERSION
+          value: "20210501"
         ports:
             - containerPort: {{ .Values.api.port }}
         volumeMounts:
