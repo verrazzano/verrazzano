@@ -438,19 +438,43 @@ pipeline {
                         }
                     }
                 }
-                stage ('Examples Helidon') {
-                    steps {
-                        script {
-                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            sh """
-                                export MANAGED_CLUSTER_NAME="managed1"
-                                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                export CLUSTER_COUNT=$clusterCount
-                                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-                                ginkgo -v -keepGoing --noColor multicluster/examples/helidon/...
-                            """
+                stage ('Example apps') {
+                    parallel {
+                        stage ('Examples Helidon') {
+                            steps {
+                                script {
+                                    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                                    sh """
+                                        export MANAGED_CLUSTER_NAME="managed1"
+                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+                                        export CLUSTER_COUNT=$clusterCount
+                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                        export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+                                        export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                                        ginkgo -v -keepGoing --noColor multicluster/examples/helidon/...
+                                    """
+                                }
+                            }
+                        }
+                        stage ('Delete Deployed App NS') {
+                            steps {
+                                script {
+                                    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                                    sh """
+                                        # create modified versions of the hello helidon MC example
+                                        export NS_SOURCE_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-ns
+                                        export HH_SOURCE_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon
+                                        ${GO_REPO_PATH}/verrazzano/tests/e2e/multicluster/examples/helidon-ns-ops/generate_deployment_files.sh
+                                        export MANAGED_CLUSTER_NAME="managed1"
+                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+                                        export CLUSTER_COUNT=$clusterCount
+                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                        export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+                                        export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-ns-ops"
+                                        ginkgo -v -keepGoing --noColor multicluster/examples/helidon-ns-ops/...
+                                    """
+                                }
+                            }
                         }
                     }
                 }

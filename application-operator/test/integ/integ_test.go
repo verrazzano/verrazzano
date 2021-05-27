@@ -45,6 +45,14 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	// ensuring that this code runs after the other tests.  Multiple MC resources exist in the namespace
+	// as well as their associated wrapped resources.  This is the only location where this cleanup is guaranteed to
+	// be executed post all the resource deployments.
+	_, stderr := util.Kubectl("delete ns multiclustertest")
+	Expect(stderr).To(Equal(""), "kubectl namespace deletion completed")
+	Eventually(func() bool {
+		return !K8sClient.DoesNamespaceExist("multiclustertest")
+	}, timeout, pollInterval).Should(BeTrue())
 })
 
 var _ = Describe("Custom Resource Definition for OAM controller runtime", func() {
