@@ -12,7 +12,7 @@ You must have the following software installed:
 
 ## Load the Images
 
-Before running the script that pushes images to your private registry, execute `docker login [SERVER]` with your credentials.
+Before running the `vz-registry-image-helper.sh` script that pushes images to your private registry, execute `docker login [SERVER]` with your credentials.
 
 For use with the examples in this document, define the following variables with respect to your target registry and repository:
 
@@ -20,8 +20,7 @@ For use with the examples in this document, define the following variables with 
 * `MYREPO`
 * `VPO_IMAGE`
 
-These identify the target Docker registry and repository, and the Verrazzano Platform Operator image as defined in the
-BOM file.
+These identify the target Docker registry and repository, and the Verrazzano Platform Operator image as defined in the BOM file.
 
 For example, using a target registry of `myreg.io` and a target repository of `myrepo/v8o`:
 
@@ -39,19 +38,16 @@ $ sh vz-registry-image-helper.sh -t $MYREG -r $MYREPO -l .
 
 Although most images can be protected using credentials stored in an image pull secret, the following images **must** be public:
 
-1. All of the Rancher images in the `rancher/additional-rancher` subcomponent
-```
-$ cat verrazzano-bom.json | jq -r '.components[].subcomponents[] | select(.name == "additional-rancher") | .images[] | "\(.image):\(.tag)"'
-```
-1. The Verrazzano Platform Operator image identified by `$VPO_IMAGE` as defined above
-
-The Verrazzano Platform Operator image. See the next section for details on how to determine the image name and tag.
+1. All of the Rancher images in the `rancher/additional-rancher`
+    subcomponent.
+    ```
+    $ cat verrazzano-bom.json | jq -r '.components[].subcomponents[] | select(.name == "additional-rancher") | .images[] | "\(.image):\(.tag)"'
+    ```
+1. The Verrazzano Platform Operator image identified by `$VPO_IMAGE` as defined above.
 
 ## Install Verrazzano
 
-For all other Verrazzano Docker images in the private registry that are not explicitly marked public as noted in the
-previous step, you will need to create the secret `verrazzano-container-registry` the in the `default` namespace with 
-the appropriate credentials for the registry identified by `$MYREG`.
+For all other Verrazzano Docker images in the private registry that are not explicitly marked public as noted in the previous step, you will need to create the secret `verrazzano-container-registry` in the `default` namespace with the appropriate credentials for the registry identified by `$MYREG`.
 
 For example,
 
