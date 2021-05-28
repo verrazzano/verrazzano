@@ -145,7 +145,7 @@ spec:
 {{- end }}
 ---
 # Network policy for Node Exporter
-# Ingress: allow connect from Prometheus to scrap metrics
+# Ingress: allow connect from Prometheus to scrape metrics
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -328,13 +328,24 @@ spec:
         - port: 443
           protocol: TCP
     # Allow ingress to port 80 from verrazzano-system
-    - from:
+    - ports:
+        - port: 80
+          protocol: TCP
+      from:
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: verrazzano-system
-      ports:
-        - port: 80
+    # Allow ingress to port 10254 from system-prometheus to scrape metrics
+    - ports:
+        - port: 10254
           protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
 ---
 # Network policy for NGINX Ingress default-backend
 # Egress: allow all
@@ -444,6 +455,7 @@ spec:
 # Network policy for Istiod
 # Ingress: allow ingress to port 15012 from verrazzano-system prometheus and keycloak (for Istio proxy sidecar)
 #          allow port 443 for webhooks
+#          allow port 15014 from system-prometheus to scrape metrics
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -488,3 +500,13 @@ spec:
     - ports:
         - port: 443
           protocol: TCP
+    - ports:
+        - port: 15014
+          protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus

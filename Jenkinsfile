@@ -223,7 +223,7 @@ pipeline {
             }
         }
 
-        stage('Update operator.yaml') {
+        stage('Save Generated Files') {
             when {
                 allOf {
                     not { buildingTag() }
