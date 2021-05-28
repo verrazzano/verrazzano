@@ -202,6 +202,14 @@ function install_cert_manager()
     fi
 
     build_image_overrides cert-manager ${chartName}
+    if [ -n "${REGISTRY}" ]; then
+      # If a private registry is set, then add in the additional cert-manager image overrides (webhook, cainjector)
+      # from the private repo
+      # save the image overides above
+      local image_args=${HELM_IMAGE_ARGS}
+      build_image_overrides cert-manager additional-cert-manager
+      HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} ${image_args}"
+    fi
 
     helm upgrade ${chartName} ${CERT_MANAGER_CHART_DIR} \
         --install \

@@ -59,6 +59,25 @@
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             }
           ]
+        },
+        {
+          "registry": "quay.io",
+          "repository": "jetstack",
+          "name": "additional-cert-manager",
+          "images": [
+            {
+              "image": "cert-manager-cainjector",
+              "tag": "v1.2.0",
+              "helmFullImageKey": "cainjector.image.repository",
+              "helmTagKey": "cainjector.image.tag"
+            },
+            {
+              "image": "cert-manager-webhook",
+              "tag": "v1.2.0",
+              "helmFullImageKey": "webhook.image.repository",
+              "helmTagKey": "webhook.image.tag"
+            }
+          ]
         }
       ]
     },
