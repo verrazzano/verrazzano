@@ -189,14 +189,6 @@ func TestUpgradeStarted(t *testing.T) {
 			return nil
 		})
 
-	// Expect a 2nd call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			return nil
-		})
-
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -205,8 +197,8 @@ func TestUpgradeStarted(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(1), result.RequeueAfter)
 }
 
 // TestUpgradeTooManyFailures tests the reconcileUpgrade method for the following use case
@@ -352,14 +344,6 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			return nil
 		})
 
-	// Expect a 2nd call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 9, "Incorrect number of conditions")
-			return nil
-		})
-
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -368,8 +352,8 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(1), result.RequeueAfter)
 }
 
 // TestUpgradeNotStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
