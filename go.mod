@@ -10,12 +10,11 @@ require (
 	github.com/crossplane/crossplane-runtime v0.10.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.2
 	github.com/gertd/go-pluralize v0.1.7
-	github.com/go-logr/logr v0.4.0
-	github.com/go-logr/zapr v0.4.0 // indirect
+	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.4.4
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/hashicorp/go-retryablehttp v0.6.8
-	github.com/jetstack/cert-manager v1.2.0
+	github.com/jetstack/cert-manager v0.13.1
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/spf13/cobra v1.1.1
@@ -31,18 +30,19 @@ require (
 	k8s.io/apimachinery v0.21.1
 	k8s.io/cli-runtime v0.21.1
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/code-generator v0.19.0
+	k8s.io/code-generator v0.18.6
 	sigs.k8s.io/controller-runtime v0.6.2
 	sigs.k8s.io/controller-tools v0.4.1
 	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (
+	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.3.1
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
-	k8s.io/api => k8s.io/api v0.19.0
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.0
-	k8s.io/apimachinery => k8s.io/apimachinery v0.19.0
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.19.0
-	k8s.io/client-go => k8s.io/client-go v0.19.0
-	k8s.io/code-generator => k8s.io/code-generator v0.19.0
+	k8s.io/api => k8s.io/api v0.18.6
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.18.6
+	k8s.io/apimachinery => k8s.io/apimachinery v0.18.6
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.18.6
+	k8s.io/client-go => k8s.io/client-go v0.18.6
+	k8s.io/code-generator => k8s.io/code-generator v0.18.6
 )
