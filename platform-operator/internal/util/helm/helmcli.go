@@ -41,7 +41,8 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		args = append(args, overrides)
 	}
 	cmd := exec.Command("helm", args...)
-	log.Info(fmt.Printf("Running command: %s",cmd.String()))stdout, stderr, err = runner.Run(cmd)
+	log.Info(fmt.Printf("Running command: %s",cmd.String()))
+	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
 		log.Errorf("helm upgrade for %s failed with stderr: %s", releaseName, string(stderr))
 		return stdout, stderr, err
