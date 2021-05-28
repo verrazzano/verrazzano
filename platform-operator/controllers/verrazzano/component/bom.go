@@ -14,7 +14,6 @@ import (
 	"strings"
 )
 
-// The bom is on the root directory in the disk
 const defaultBomFilename = "verrazzano-bom.json"
 const defaultImageKey = "image"
 const slash = "/"
@@ -23,25 +22,22 @@ const tagSep = ":"
 // This is the BOM file path needed for unit tests
 var unitTestBomFilePath string
 
+// SetUnitTestBomFilePath is used for unit tests
 func SetUnitTestBomFilePath(p string) {
 	unitTestBomFilePath = p
 }
 
-// BomFuncs interface is used to process the JSON bom file.
-type BomFuncs interface {
-	init(path string) error
-}
-
-// Bom (bill of materials) contains information related to bill of materials along with structures to process it.
+// Bom contains information related to the bill of materials along with structures to process it.
+// The bom file is verrazzano-bom.json and it mainly has image information.
 type Bom struct {
-	// The BOM which contains all of the image info
+	// bomDoc contains the contents of the JSON bom, in go structure format.
 	bomDoc BomDoc
 
 	// subComponentMap is a map of subcomponents keyed by subcomponent name.
 	subComponentMap map[string]*BomSubComponent
 }
 
-// BomDoc contains product metadata for components installed by Verrazzano,
+// BomDoc contains product metadata for components installed by Verrazzano.
 // Currently, this metadata only describes images and image repositories.
 // This information is needed by the helm charts and used during install/upgrade.
 type BomDoc struct {
@@ -49,7 +45,7 @@ type BomDoc struct {
 	// An example is ghcr.io
 	Registry string `json:"registry"`
 
-	// Components is the array of component boms in the bom
+	// Components is the array of component boms
 	Components []BomComponent `json:"components"`
 }
 
@@ -64,12 +60,12 @@ type BomComponent struct {
 }
 
 // BomSubComponent contains the bom information for a single helm chart.
-// Istio is an example of a component with several subcomponent.
+// Istio is an example of a component with several subcomponents.
 type BomSubComponent struct {
 	Name string `json:"name"`
 
 	// Repository is the name of the repository within a registry.  This is combined
-	// with the registry value to form the image URI prefix, for example: ghcr.io/verrazzano,
+	// with the registry value to form the image URL prefix, for example: ghcr.io/verrazzano,
 	// where ghci.io is the registry and verrazzano is the repository name.
 	Repository string `json:"repository"`
 
@@ -79,9 +75,9 @@ type BomSubComponent struct {
 
 // BomImage describes a single image used by one of the helm charts.  This structure
 // is needed to render the helm chart manifest, so the image fields are correctly populated
-// in the resulting YAML.  There is no helm standard which specifies the image information
-// used by a template, each product usually has a custom way to do this. The helm keys fields
-// in this structure specify those custom keys.
+// in the resulting YAML.  There is no helm standard which specifies the keys for
+// image information used by a template, each product usually has a custom way to do this.
+// The helm keys fields in this structure specify those custom keys.
 type BomImage struct {
 	// ImageName specifies the name of the image tag, such as `nginx-ingress-controller`
 	ImageName string `json:"image"`
@@ -93,7 +89,7 @@ type BomImage struct {
 	// normally specified.  An example is `image.registry` in external-dns.  The default is empty string
 	HelmRegistryKey string `json:"helmRegKey"`
 
-	// HelmRepoKey is the helm template key which identifies the image repo.
+	// HelmRepoKey is the helm template key which identifies the image repository.
 	HelmRepoKey string `json:"helmRepoKey"`
 
 	// HelmImageKey is the helm template key which identifies the image name.  There are a variety
@@ -101,7 +97,7 @@ type BomImage struct {
 	HelmImageKey string `json:"helmImageKey"`
 
 	// HelmTagKey is the helm template key which identifies the image tag.  There are a variety
-	// of keys used by the different helm charts, such as `api.imageVersion`.  The default is `tag`
+	// of keys used by the different helm charts, such as `api.imageVersion`.
 	HelmTagKey string `json:"helmTagKey"`
 
 	// HelmFullImageKey is the helm path key which identifies the image name.  There are a variety
@@ -123,7 +119,7 @@ func DefaultBomFilePath() string {
 	return filepath.Join(config.GetPlatformDir(), defaultBomFilename)
 }
 
-// Create a new Bom from a JSON file
+// Create a new bom from a JSON file
 func NewBom(bomPath string) (Bom, error) {
 	jsonBom, err := ioutil.ReadFile(bomPath)
 	if err != nil {
@@ -156,7 +152,7 @@ func (b *Bom) init(jsonBom string) error {
 	return nil
 }
 
-// GetSubcomponent gets the Bom subcomponent
+// GetSubcomponent gets the bom subcomponent
 func (b *Bom) GetSubcomponent(subComponentName string) (*BomSubComponent, error) {
 	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
@@ -174,7 +170,7 @@ func (b *Bom) GetSubcomponentImages(subComponentName string) ([]BomImage, error)
 	return sc.Images, nil
 }
 
-// GetImageCount returns the number of subcomponent imageBoms
+// GetSubcomponentImageCount returns the number of subcomponent images
 func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
 	imageBom, ok := b.subComponentMap[subComponentName]
 	if !ok {
@@ -183,18 +179,16 @@ func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
 	return len(imageBom.Images)
 }
 
-// Build the image overrides array for the subComponent.  Each override has a
-// Helm key and value
+// buildImageOverrides builds the image overrides array for the subComponent.
+// Each override has an array of 1-n Helm key:value pairs
 func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
 		return nil, errors.New("unknown subcomponent " + subComponentName)
 	}
 
-	registry := b.ResolveRegistry(sc)
-	repo := b.ResolveRepo(sc)
-
-	// If this is istio then add the equiv of
+	registry := b.resolveRegistry(sc)
+	repo := b.resolveRepo(sc)
 
 	// Loop through the images used by this subcomponent, building
 	// the list of key:value pairs.  At the very least, this will build
@@ -269,8 +263,8 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 	return kvs, nil
 }
 
-// ResolveRegistry resolves the registry name using the ENV var
-func (b *Bom) ResolveRegistry(sc *BomSubComponent) string {
+// resolveRegistry resolves the registry name using the ENV var if it exists.
+func (b *Bom) resolveRegistry(sc *BomSubComponent) string {
 	// Get the registry ENV override, if it doesn't exist use the default
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	if registry == "" {
@@ -279,8 +273,8 @@ func (b *Bom) ResolveRegistry(sc *BomSubComponent) string {
 	return registry
 }
 
-// ResolveRepo resolves the repository name checking the ENV var
-func (b *Bom) ResolveRepo(sc *BomSubComponent) string {
+// resolveRepo resolves the repository name using the ENV var if it exists.
+func (b *Bom) resolveRepo(sc *BomSubComponent) string {
 	// Get the repo ENV override.  This needs to get prepended to the bom repo
 	userRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
 	repo := sc.Repository

@@ -24,8 +24,8 @@ func appendIstioOverrides(_ *zap.SugaredLogger, releaseName string, _ string, _ 
 		return nil, err
 	}
 
-	registry := bom.ResolveRegistry(sc)
-	repo := bom.ResolveRepo(sc)
+	registry := bom.resolveRegistry(sc)
+	repo := bom.resolveRepo(sc)
 
 	// Override the global.hub if either of the 2 env vars were defined
 	if registry != bom.bomDoc.Registry || repo != sc.Repository {
