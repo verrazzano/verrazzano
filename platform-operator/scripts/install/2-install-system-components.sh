@@ -12,7 +12,7 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 set -eu
 
-VERRAZZANO_DEFAULT_SECRET_NAMESPACE="cert-manager"
+VERRAZZANO_DEFAULT_SECRET_NAMESPACE="verrazzano-install"
 VERRAZZANO_DEFAULT_SECRET_NAME="verrazzano-ca-certificate-secret"
 
 function install_nginx_ingress_controller()
@@ -76,18 +76,16 @@ function install_nginx_ingress_controller()
 
 function setup_cert_manager_crd() {
   local CERT_MANAGER_MANIFEST_DIR=${MANIFESTS_DIR}/cert-manager
-  cp "$CERT_MANAGER_MANIFEST_DIR/cert-manager.crds.yaml" "$TMP_DIR/cert-manager.crds.yaml"
+  cp "$CERT_MANAGER_MANIFEST_DIR/00-crds.yaml" "$TMP_DIR/00-crds.yaml"
   if [ "$DNS_TYPE" == "oci" ]; then
     command -v patch >/dev/null 2>&1 || {
       fail "patch is required but cannot be found on the path. Aborting.";
     }
-    log "Patching cert-manager.crds.yaml to add OCI DNS"
-    patch "$TMP_DIR/cert-manager.crds.yaml" "$SCRIPT_DIR/config/cert-manager.crds.patch"
+    patch "$TMP_DIR/00-crds.yaml" "$SCRIPT_DIR/config/00-crds.patch"
   fi
 }
 
 function setup_cluster_issuer() {
-  log "In setup_cluster_issuer. Cert Issuer Type = ${CERT_ISSUER_TYPE}"
   if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
     local OCI_DNS_CONFIG_SECRET=$(get_config_value ".dns.oci.ociConfigSecret")
     local EMAIL_ADDRESS=$(get_config_value ".certificates.acme.emailAddress")
@@ -104,7 +102,8 @@ function setup_cluster_issuer() {
       acmeURL="https://acme-staging-v02.api.letsencrypt.org/directory"
     fi
 
-    kubectl apply -f <(echo "
+    # attempt first kubectl command with retry to ensure that cert-manager webhook is fully initialized
+    kubectl_apply_with_retry "
 apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
 metadata:
@@ -123,13 +122,14 @@ spec:
               name: $OCI_DNS_CONFIG_SECRET
               key: "oci.yaml"
             ocizonename: $DNS_SUFFIX
-")
+"
   elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
     if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
        [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
     log "Certificate not specified. Creating default Verrazzano Issuer and Certificate in verrazzano-install namespace"
 
-    kubectl apply -f <(echo "
+    # attempt first kubectl command with retry to ensure that cert-manager webhook is fully initialized
+    kubectl_apply_with_retry "
 apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
@@ -137,7 +137,7 @@ metadata:
   namespace: $(get_config_value ".certificates.ca.clusterResourceNamespace")
 spec:
   selfSigned: {}
-")
+"
 
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
@@ -180,39 +180,33 @@ function install_cert_manager()
     fi
 
     setup_cert_manager_crd
-    kubectl apply -f "$TMP_DIR/cert-manager.crds.yaml" --validate=false
+    kubectl apply -f "$TMP_DIR/00-crds.yaml" --validate=false
 
     if ! is_chart_deployed ${chartName} ${cert_manager_ns} ${CERT_MANAGER_CHART_DIR} ; then
-      log "cert-manager hasn't been previously installed"
-    else
-      log "cert-manager has been previously installed"
-    fi
-
-    local EXTRA_CERT_MANAGER_ARGUMENTS=""
-    if [ "$CERT_ISSUER_TYPE" == "ca" ]; then
-      EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
-    fi
-
-    if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
-      if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${cert_manager_ns} > /dev/null 2>&1 ; then
-          action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${cert_manager_ns} namespace" \
-            copy_registry_secret ${cert_manager_ns}
+      local EXTRA_CERT_MANAGER_ARGUMENTS=""
+      if [ "$CERT_ISSUER_TYPE" == "ca" ]; then
+        EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
       fi
-      EXTRA_CERT_MANAGER_ARGUMENTS="${EXTRA_CERT_MANAGER_ARGUMENTS} --set global.imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+
+      if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+        if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${cert_manager_ns} > /dev/null 2>&1 ; then
+            action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${cert_manager_ns} namespace" \
+              copy_registry_secret ${cert_manager_ns}
+        fi
+        EXTRA_CERT_MANAGER_ARGUMENTS="${EXTRA_CERT_MANAGER_ARGUMENTS} --set global.imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+      fi
+
+      build_image_overrides cert-manager ${chartName}
+
+      helm upgrade ${chartName} ${CERT_MANAGER_CHART_DIR} \
+          --install \
+          --namespace ${cert_manager_ns} \
+          -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
+          ${HELM_IMAGE_ARGS} \
+          ${EXTRA_CERT_MANAGER_ARGUMENTS} \
+          --wait \
+          || return $?
     fi
-
-    build_image_overrides cert-manager ${chartName}
-
-    helm upgrade ${chartName} ${CERT_MANAGER_CHART_DIR} \
-        --install \
-        --namespace ${cert_manager_ns} \
-        --version v1.2.0 \
-        -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
-        ${HELM_IMAGE_ARGS} \
-        ${EXTRA_CERT_MANAGER_ARGUMENTS} \
-        --wait \
-        || return $?
-
     setup_cluster_issuer
 
     kubectl -n cert-manager rollout status -w deploy/cert-manager
@@ -524,6 +518,30 @@ function patch_rancher_agents() {
     else
         echo "Rancher host is the same from inside and outside the cluster.  No need to patch agents."
     fi
+}
+
+function kubectl_apply_with_retry() {
+  echo "Invoking: kubectl apply for $1"
+  local count=0
+  local ret=0
+  until kubectl apply -f <(echo "$1"); do
+    ret=$?
+    count=$((count+1))
+    if [[ "$count" -lt 60 ]]; then
+      echo "kubectl apply failed, waiting for 5 seconds and trying again"
+      sleep 5
+    else
+      break
+    fi
+  done
+
+  if [ $ret -ne 0 ]; then
+    echo "kubectl apply attempt timed out"
+  else
+    echo "kubectl apply succeeded"
+  fi
+
+  return $ret
 }
 
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
