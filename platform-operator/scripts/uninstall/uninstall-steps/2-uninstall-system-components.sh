@@ -58,7 +58,7 @@ function delete_cert_manager() {
 
   # delete the custom resource definition for cert manager
   log "Deleting the custom resource definition for cert manager"
-  kubectl delete -f "${MANIFESTS_DIR}/cert-manager/cert-manager.crds.yaml" --ignore-not-found=true \
+  kubectl delete -f "${MANIFESTS_DIR}/cert-manager/00-crds.yaml" --ignore-not-found=true \
     || err_return $? "Could not delete CustomResourceDefinition from cert-manager" || return $?
 
   # delete cert manager config map

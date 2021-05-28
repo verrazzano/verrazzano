@@ -49,13 +49,13 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "1.2.0-20210510184928-aac6bdf62",
+              "tag": "0.13.1-20201016205232-4c8f3fe38",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "1.2.0-20210510185040-aac6bdf62",
+              "tag": "0.13.1-20201016205234-4c8f3fe38",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             }
           ]
@@ -215,7 +215,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "0.15.0-20210521020822-9b87485",
+              "tag": "0.15.0-20210527135645-9046e4b",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -241,7 +241,7 @@
             },
             {
               "image": "verrazzano-monitoring-instance-eswait",
-              "tag": "0.15.0-20210521020822-9b87485",
+              "tag": "0.15.0-20210527135645-9046e4b",
               "helmFullImageKey": "monitoringOperator.esWaitImage"
             },
             {
