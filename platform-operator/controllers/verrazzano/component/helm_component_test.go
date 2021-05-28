@@ -54,7 +54,7 @@ func TestUpgrade(t *testing.T) {
 	}
 
 	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = "`pilot.image`=`ghcr.io/verrazzano/pilot:1.7.3`,`global.proxy.image`=`proxyv2`,`global.tag`=`1.7.3`"
+	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3"
 
 	SetUnitTestBomFilePath(sampleTestBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -89,7 +89,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	defer os.Unsetenv(constants.ImageRepoOverrideEnvVar)
 
 	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = "`pilot.image`=`myreg.io/myrepo/verrazzano/pilot:1.7.3`,`global.proxy.image`=`proxyv2`,`global.tag`=`1.7.3`,`global.hub`=`myreg.io/myrepo/verrazzano`"
+	fakeOverrides = "pilot.image=myreg.io/myrepo/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3,global.hub=myreg.io/myrepo/verrazzano"
 
 	SetUnitTestBomFilePath(sampleTestBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
