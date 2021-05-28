@@ -553,8 +553,8 @@ pipeline {
                         stage ('console') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                                GOOGLE_CHROME_VERSION="85.0.4183.83-1"
-                                CHROMEDRIVER_VERSION="85.0.4183.87"
+                                GOOGLE_CHROME_VERSION="90.0.4430.93"
+                                CHROMEDRIVER_VERSION="90.0.4430.24"
                             }
                             steps {
                                 sh """
