@@ -15,7 +15,7 @@ import (
 const kcInitContainerKey = "keycloak.extraInitContainers"
 const kcInitContainerValueTemplate = `
     - name: theme-provider
-      image: {{.ImageName}}:{{.ImageTag}}
+      image: {{.Image}}
       imagePullPolicy: IfNotPresent
       command:
         - sh
@@ -30,6 +30,11 @@ const kcInitContainerValueTemplate = `
         - name: cacerts
           mountPath: /cacerts"
 `
+
+// imageData needed for template rendering
+type imageData struct {
+	Image string
+}
 
 // appendKeycloakOverrides appends the Keycloak theme for the key keycloak.extraInitContainers.
 // A go template is used to replace the image in the init container spec.
@@ -57,7 +62,8 @@ func appendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string,
 	}
 
 	// Render the template
-	err = t.Execute(&b, images[0])
+	data := imageData{Image: images[0].value}
+	err = t.Execute(&b, data)
 	if err != nil {
 		return nil, err
 	}

@@ -16,6 +16,9 @@ import (
 
 // The bom is on the root directory in the disk
 const defaultBomFilename = "verrazzano-bom.json"
+const defaultImageKey = "image"
+const slash = "/"
+const tagSep = ":"
 
 // This is the BOM file path needed for unit tests
 var unitTestBomFilePath string
@@ -183,26 +186,13 @@ func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
 // Build the image overrides array for the subComponent.  Each override has a
 // Helm key and value
 func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
-	const slash = "/"
-	const tagSep = ":"
-
 	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
 		return nil, errors.New("unknown subcomponent " + subComponentName)
 	}
 
-	// Get the registry ENV override, if it doesn't exist use the default
-	registry := os.Getenv(constants.RegistryOverrideEnvVar)
-	if registry == "" {
-		registry = b.bomDoc.Registry
-	}
-
-	// Get the repo ENV override.  This needs to get prepended to the bom repo
-	userRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
-	repo := sc.Repository
-	if userRepo != "" {
-		repo = userRepo + slash + repo
-	}
+	registry := b.ResolveRegistry(sc)
+	repo := b.ResolveRepo(sc)
 
 	// If this is istio then add the equiv of
 
@@ -268,7 +258,34 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 				value: fullImagePath,
 			})
 		}
+		// Default the image key if there are no specified tags.  Keycloak theme needs this
+		if len(kvs) == 0 {
+			kvs = append(kvs, keyValue{
+				key:   defaultImageKey,
+				value: fullImagePath,
+			})
+		}
 	}
-
 	return kvs, nil
+}
+
+// ResolveRegistry resolves the registry name using the ENV var
+func (b *Bom) ResolveRegistry(sc *BomSubComponent) string {
+	// Get the registry ENV override, if it doesn't exist use the default
+	registry := os.Getenv(constants.RegistryOverrideEnvVar)
+	if registry == "" {
+		registry = b.bomDoc.Registry
+	}
+	return registry
+}
+
+// ResolveRepo resolves the repository name checking the ENV var
+func (b *Bom) ResolveRepo(sc *BomSubComponent) string {
+	// Get the repo ENV override.  This needs to get prepended to the bom repo
+	userRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
+	repo := sc.Repository
+	if userRepo != "" {
+		repo = userRepo + slash + repo
+	}
+	return repo
 }

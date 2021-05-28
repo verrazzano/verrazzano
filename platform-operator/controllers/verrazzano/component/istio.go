@@ -4,9 +4,7 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
-	"os"
 )
 
 const istioGlobalHubKey = "global.hub"
@@ -26,18 +24,8 @@ func appendIstioOverrides(_ *zap.SugaredLogger, releaseName string, _ string, _ 
 		return nil, err
 	}
 
-	// Get the registry ENV override, if it doesn't exist use the default
-	registry := os.Getenv(constants.RegistryOverrideEnvVar)
-	if registry == "" {
-		registry = bom.bomDoc.Registry
-	}
-
-	// Get the repo ENV override.  This needs to get prepended to the bom repo
-	userRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
-	repo := sc.Repository
-	if userRepo != "" {
-		repo = userRepo + "/" + repo
-	}
+	registry := bom.ResolveRegistry(sc)
+	repo := bom.ResolveRepo(sc)
 
 	// Override the global.hub if either of the 2 env vars were defined
 	if registry != bom.bomDoc.Registry || repo != sc.Repository {
