@@ -121,17 +121,17 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 		return "", err
 	}
 
-	regYAML = fixRancherAgentImage(regYAML, log)
+	regYAML = overrideRancherImageLocation(regYAML, log)
 
 	log.Infof("Successfully registered managed cluster in Rancher with name: %s", clusterName)
 	return regYAML, nil
 }
 
-// fixRancherAgentImage patches the Rancher agent image when the Verrazzano installation overrides
+// overrideRancherImageLocation patches the Rancher agent image when the Verrazzano installation overrides
 // the image registry. The Rancher agent image is baked into the primary Rancher image so in order
 // to load Rancher agent from a different registry we replace it here in the generated
 // registration YAML.
-func fixRancherAgentImage(regYAML string, log *zap.SugaredLogger) string {
+func overrideRancherImageLocation(regYAML string, log *zap.SugaredLogger) string {
 	// if the Verrazzano installation is using the default image registry, there's nothing to do
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	if registry == "" {
@@ -145,7 +145,10 @@ func fixRancherAgentImage(regYAML string, log *zap.SugaredLogger) string {
 		return regYAML
 	}
 
-	// match[1] has the capture group, and looks like: myreg.io/myrepo/ghcr.io/verrazzano/rancher-agent:tag
+	// match[1] has the regex capture group, and looks like: myreg.io/myrepo/ghcr.io/verrazzano/rancher-agent:tag
+	// note there are two registries in the image string due to the way Rancher
+	// concatenates the override repo and registry with the image, so we need to fix that
+
 	// split the image path and pull out the repo and image:tag
 	imageParts := strings.Split(match[1], "/")
 	if len(imageParts) < 2 {
