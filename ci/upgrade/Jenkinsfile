@@ -212,13 +212,13 @@ pipeline {
                     steps {
                         sh """
                         echo "Upgrading the Verrazzano platform operator"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}-${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                         cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                         kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
-    
+
                         # need to sleep since the old operator needs to transition to terminating state
                         sleep 15
-    
+
                         # ensure operator pod is up
                         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
                     """
@@ -243,7 +243,7 @@ pipeline {
                             kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                             # wait for the upgrade to complete
                             kubectl wait --timeout=5m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-        
+
                             # ideally we don't need to wait here
                             sleep 15
                             echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
