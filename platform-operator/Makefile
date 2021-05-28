@@ -119,7 +119,7 @@ docker-build: generate-bom go-build-linux
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
 .PHONY: docker-push
-docker-push: generate-bom docker-build
+docker-push: docker-build
 	docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 	docker push ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
