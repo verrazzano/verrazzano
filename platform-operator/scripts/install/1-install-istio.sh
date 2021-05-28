@@ -71,26 +71,40 @@ function install_istio()
 {
     ISTIO_CHART_DIR=${CHARTS_DIR}/istio
 
+    IMAGE_PULL_SECRETS_ARGUMENT=""
+    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+      IMAGE_PULL_SECRETS_ARGUMENT=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+    fi
+
+    # We just need to build the ISTIO_HUB_OVERRIDE once, using any chart that will reveal it
+    ISTIO_HUB_OVERRIDE=""
+    if [ -n "${REGISTRY}" ]; then
+      local repository=$(build_component_repo_name istio istiod)
+      ISTIO_HUB_OVERRIDE="--set global.hub=${REGISTRY}/${repository} "
+    fi
+
     if ! is_chart_deployed istio-base istio-system ${ISTIO_CHART_DIR}/base ; then
       log "Installing Istio base"
       helm upgrade istio-base ${ISTIO_CHART_DIR}/base \
         --install \
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
         --wait \
         || return $?
-    fi
-    IMAGE_PULL_SECRETS_ARGUMENT=""
-    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-      IMAGE_PULL_SECRETS_ARGUMENT=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
     if ! is_chart_deployed istiod istio-system ${ISTIO_CHART_DIR}/istio-control/istio-discovery ; then
       log "Installing Istio discovery"
-      helm upgrade istiod ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
+      local chart_name=istiod
+      build_image_overrides istio ${chart_name}
+
+      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
         --install \
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${HELM_IMAGE_ARGS} \
+        ${ISTIO_HUB_OVERRIDE} \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
         || return $?
     fi
@@ -102,10 +116,15 @@ function install_istio()
 
     if ! is_chart_deployed istio-ingress istio-system ${ISTIO_CHART_DIR}/gateways/istio-ingress ; then
       log "Installing Istio ingress"
-      helm upgrade istio-ingress ${ISTIO_CHART_DIR}/gateways/istio-ingress \
+      local chart_name=istio-ingress
+      build_image_overrides istio ${chart_name}
+
+      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-ingress \
         --install \
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${HELM_IMAGE_ARGS} \
+        ${ISTIO_HUB_OVERRIDE} \
         ${EXTRA_INGRESS_ARGUMENTS} \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
         || return $?
@@ -113,20 +132,29 @@ function install_istio()
 
     if ! is_chart_deployed istio-egress istio-system ${ISTIO_CHART_DIR}/gateways/istio-egress ; then
       log "Installing Istio egress"
-      helm upgrade istio-egress ${ISTIO_CHART_DIR}/gateways/istio-egress \
+      local chart_name=istio-egress
+      build_image_overrides istio ${chart_name}
+
+      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-egress \
         --install \
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${HELM_IMAGE_ARGS} \
+        ${ISTIO_HUB_OVERRIDE} \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
         || return $?
     fi
 
     if ! is_chart_deployed istiocoredns istio-system ${ISTIO_CHART_DIR}/istiocoredns ; then
       log "Installing istiocoredns"
-      helm upgrade istiocoredns ${ISTIO_CHART_DIR}/istiocoredns \
+      local chart_name=istiocoredns
+      build_image_overrides istio ${chart_name}
+
+      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istiocoredns \
         --install \
         --namespace istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${HELM_IMAGE_ARGS} \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
         || return $?
     fi

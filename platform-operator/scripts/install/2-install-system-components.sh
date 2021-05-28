@@ -12,18 +12,22 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 set -eu
 
-VERRAZZANO_DEFAULT_SECRET_NAMESPACE="verrazzano-install"
+VERRAZZANO_DEFAULT_SECRET_NAMESPACE="cert-manager"
 VERRAZZANO_DEFAULT_SECRET_NAME="verrazzano-ca-certificate-secret"
 
 function install_nginx_ingress_controller()
 {
+
+    local ingress_nginx_ns=ingress-nginx
+    local chartName=ingress-controller
     local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/ingress-nginx
-    if ! is_chart_deployed ingress-controller ingress-nginx ${NGINX_INGRESS_CHART_DIR} ; then
+
+    if ! is_chart_deployed ${chartName} ${ingress_nginx_ns} ${NGINX_INGRESS_CHART_DIR} ; then
       # Create the namespace for nginx
-      if ! kubectl get namespace ingress-nginx ; then
-          kubectl create namespace ingress-nginx
-          kubectl label namespace ingress-nginx istio-injection=enabled
-    fi
+      if ! kubectl get namespace ${ingress_nginx_ns} ; then
+          kubectl create namespace ${ingress_nginx_ns}
+          kubectl label namespace ${ingress_nginx_ns} istio-injection=enabled
+      fi
 
       # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
       # these should be in .ingress.verrazzano.nginxInstallArgs[]
@@ -38,10 +42,21 @@ function install_nginx_ingress_controller()
       local ingress_type=$(get_config_value ".ingress.type")
       EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.type=${ingress_type}"
 
-      helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
-        --namespace ingress-nginx \
+      if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+        if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ingress-nginx > /dev/null 2>&1 ; then
+            action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${ingress_nginx_ns} namespace" \
+              copy_registry_secret ${ingress_nginx_ns}
+        fi
+        EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+      fi
+
+      build_image_overrides ingress-nginx ${chartName}
+
+      helm upgrade ${chartName} ${NGINX_INGRESS_CHART_DIR} --install \
+        --namespace ${ingress_nginx_ns} \
         -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
         ${EXTRA_NGINX_ARGUMENTS} \
+        ${HELM_IMAGE_ARGS} \
         --timeout 15m0s \
         --wait \
         || return $?
@@ -61,16 +76,18 @@ function install_nginx_ingress_controller()
 
 function setup_cert_manager_crd() {
   local CERT_MANAGER_MANIFEST_DIR=${MANIFESTS_DIR}/cert-manager
-  cp "$CERT_MANAGER_MANIFEST_DIR/00-crds.yaml" "$TMP_DIR/00-crds.yaml"
+  cp "$CERT_MANAGER_MANIFEST_DIR/cert-manager.crds.yaml" "$TMP_DIR/cert-manager.crds.yaml"
   if [ "$DNS_TYPE" == "oci" ]; then
     command -v patch >/dev/null 2>&1 || {
       fail "patch is required but cannot be found on the path. Aborting.";
     }
-    patch "$TMP_DIR/00-crds.yaml" "$SCRIPT_DIR/config/00-crds.patch"
+    log "Patching cert-manager.crds.yaml to add OCI DNS"
+    patch "$TMP_DIR/cert-manager.crds.yaml" "$SCRIPT_DIR/config/cert-manager.crds.patch"
   fi
 }
 
 function setup_cluster_issuer() {
+  log "In setup_cluster_issuer. Cert Issuer Type = ${CERT_ISSUER_TYPE}"
   if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
     local OCI_DNS_CONFIG_SECRET=$(get_config_value ".dns.oci.ociConfigSecret")
     local EMAIL_ADDRESS=$(get_config_value ".certificates.acme.emailAddress")
@@ -154,29 +171,48 @@ spec:
 function install_cert_manager()
 {
     local CERT_MANAGER_CHART_DIR=${CHARTS_DIR}/cert-manager
+    local chartName=cert-manager
+    local cert_manager_ns=cert-manager
 
     # Create the namespace for cert-manager
-    if ! kubectl get namespace cert-manager ; then
-        kubectl create namespace cert-manager
+    if ! kubectl get namespace ${cert_manager_ns} ; then
+        kubectl create namespace ${cert_manager_ns}
     fi
 
     setup_cert_manager_crd
-    kubectl apply -f "$TMP_DIR/00-crds.yaml" --validate=false
+    kubectl apply -f "$TMP_DIR/cert-manager.crds.yaml" --validate=false
 
-    if ! is_chart_deployed cert-manager cert-manager ${CERT_MANAGER_CHART_DIR} ; then
-      local EXTRA_CERT_MANAGER_ARGUMENTS=""
-      if [ "$CERT_ISSUER_TYPE" == "ca" ]; then
-        EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
-      fi
-
-      helm upgrade cert-manager ${CERT_MANAGER_CHART_DIR} \
-          --install \
-          --namespace cert-manager \
-          -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
-          ${EXTRA_CERT_MANAGER_ARGUMENTS} \
-          --wait \
-          || return $?
+    if ! is_chart_deployed ${chartName} ${cert_manager_ns} ${CERT_MANAGER_CHART_DIR} ; then
+      log "cert-manager hasn't been previously installed"
+    else
+      log "cert-manager has been previously installed"
     fi
+
+    local EXTRA_CERT_MANAGER_ARGUMENTS=""
+    if [ "$CERT_ISSUER_TYPE" == "ca" ]; then
+      EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
+    fi
+
+    if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+      if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${cert_manager_ns} > /dev/null 2>&1 ; then
+          action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${cert_manager_ns} namespace" \
+            copy_registry_secret ${cert_manager_ns}
+      fi
+      EXTRA_CERT_MANAGER_ARGUMENTS="${EXTRA_CERT_MANAGER_ARGUMENTS} --set global.imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+    fi
+
+    build_image_overrides cert-manager ${chartName}
+
+    helm upgrade ${chartName} ${CERT_MANAGER_CHART_DIR} \
+        --install \
+        --namespace ${cert_manager_ns} \
+        --version v1.2.0 \
+        -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
+        ${HELM_IMAGE_ARGS} \
+        ${EXTRA_CERT_MANAGER_ARGUMENTS} \
+        --wait \
+        || return $?
+
     setup_cluster_issuer
 
     kubectl -n cert-manager rollout status -w deploy/cert-manager
@@ -185,8 +221,10 @@ function install_cert_manager()
 function install_external_dns()
 {
   local EXTERNAL_DNS_CHART_DIR=${CHARTS_DIR}/external-dns
+  local chartName=external-dns
+  local externalDNSNamespace=cert-manager
 
-  if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n cert-manager ; then
+  if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n ${externalDNSNamespace} ; then
     # secret does not exist, so copy the configured oci config secret from default namespace.
     # Operator has already checked for existence of secret in default namespace
     # The DNS zone compartment will get appended to secret generated for cert external dns
@@ -194,14 +232,26 @@ function install_external_dns()
     kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
         | sed '/^$/d' > $TMP_DIR/oci.yaml
     echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
-    kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n cert-manager
+    kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n ${externalDNSNamespace}
   fi
 
-  if ! is_chart_deployed external-dns cert-manager ${EXTERNAL_DNS_CHART_DIR} ; then
-    helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
+  if ! is_chart_deployed ${chartName} ${externalDNSNamespace} ${EXTERNAL_DNS_CHART_DIR} ; then
+    local extraExternalDNSArgs=""
+    if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+      if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${externalDNSNamespace} > /dev/null 2>&1 ; then
+          action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${externalDNSNamespace} namespace" \
+            copy_registry_secret ${externalDNSNamespace}
+      fi
+      extraExternalDNSArgs="${extraExternalDNSArgs} --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+    fi
+
+    build_image_overrides external-dns ${chartName}
+
+    helm upgrade ${chartName} ${EXTERNAL_DNS_CHART_DIR} \
         --install \
-        --namespace cert-manager \
+        --namespace ${externalDNSNamespace} \
         -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
+        ${HELM_IMAGE_ARGS} \
         --set domainFilters[0]=${DNS_SUFFIX} \
         --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
         --set txtOwnerId=v8o-local-${NAME} \
@@ -210,6 +260,7 @@ function install_external_dns()
         --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
         --set extraVolumeMounts[0].name=config \
         --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
+        ${extraExternalDNSArgs} \
         --wait \
         || return $?
     fi
@@ -323,12 +374,33 @@ function install_rancher()
       fi
 
       log "Install Rancher"
+
+      IMAGE_PULL_SECRETS_ARGUMENT=""
+      if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+        IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+      fi
+
+      # Settings required to point Rancher at a registry for background helm install
+      if [ -n "${REGISTRY}" ]; then
+        local sys_default_reg=${REGISTRY}
+
+        if [ -n "${IMAGE_REPO}" ]; then
+          sys_default_reg=${REGISTRY}/${IMAGE_REPO}
+        fi
+
+        EXTRA_RANCHER_ARGUMENTS="${EXTRA_RANCHER_ARGUMENTS} --set systemDefaultRegistry=${sys_default_reg} --set useBundledSystemChart=true"
+      fi
+
+      local chart_name=rancher
+      build_image_overrides rancher ${chart_name}
+
       # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-      helm upgrade rancher ${RANCHER_CHART_DIR} \
+      helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
         --install --namespace cattle-system \
-        -f $VZ_OVERRIDES_DIR/rancher-values.yaml \
         --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
         --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+        ${HELM_IMAGE_ARGS} \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
         ${EXTRA_RANCHER_ARGUMENTS}
     fi
 
@@ -454,6 +526,8 @@ function patch_rancher_agents() {
     fi
 }
 
+REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
+
 OCI_DNS_CONFIG_SECRET=$(get_config_value ".dns.oci.ociConfigSecret")
 NAME=$(get_config_value ".environmentName")
 DNS_TYPE=$(get_config_value ".dns.type")
@@ -469,13 +543,21 @@ DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
+# Always create the cattle-system namespace so we can create network policies
+action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1
+
+# Copy the optional global registry secret to the cattle-system namespace for pulling images from a private registry
+if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+  if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n cattle-system > /dev/null 2>&1 ; then
+    action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to cattle-system namespace" \
+    copy_registry_secret "cattle-system"
+  fi
+fi
+
 action "Installing cert manager" install_cert_manager || exit 1
 if [ "$DNS_TYPE" == "oci" ]; then
   action "Installing external DNS" install_external_dns || exit 1
 fi
-
-# Always create the cattle-system namespace so we can create network policies
-action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1
 
 if [ $(is_rancher_enabled) == "true" ]; then
   action "Installing Rancher" install_rancher || exit 1
