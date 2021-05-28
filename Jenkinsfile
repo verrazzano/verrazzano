@@ -375,7 +375,7 @@ pipeline {
                     environment {
                         VERRAZZANO_OPERATOR_IMAGE="NONE"
                         KIND_KUBERNETES_CLUSTER_VERSION="1.18"
-                        OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
+                        OCI_OS_LOCATION="${env.BRANCH_NAME}-${SHORT_COMMIT_HASH}"
                     }
                     steps {
                         sh """
