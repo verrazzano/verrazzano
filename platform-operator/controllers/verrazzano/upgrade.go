@@ -32,9 +32,8 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 	if !isLastCondition(cr.Status, installv1alpha1.UpgradeStarted) {
 		err := r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
 			installv1alpha1.UpgradeStarted)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+		// Always requeue to get a fresh copy of status and avoid potential conflict
+		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially

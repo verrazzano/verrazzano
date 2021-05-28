@@ -483,7 +483,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
-	if err != nil && !errors.IsConflict(err) {
+	if err != nil  {
 		log.Errorf("Failed to update verrazzano resource status: %v", err)
 		return err
 	}
