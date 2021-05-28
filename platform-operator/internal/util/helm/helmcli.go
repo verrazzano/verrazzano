@@ -4,6 +4,7 @@
 package helm
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 
@@ -39,16 +40,15 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		args = append(args, "--set")
 		args = append(args, overrides)
 	}
-
 	cmd := exec.Command("helm", args...)
-	stdout, stderr, err = runner.Run(cmd)
+	log.Info(fmt.Printf("Running command: %s",cmd.String()))stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
-		log.Errorf("helm upgrade for release %s failed with stderr: %s\n", releaseName, string(stderr))
+		log.Errorf("helm upgrade for %s failed with stderr: %s", releaseName, string(stderr))
 		return stdout, stderr, err
 	}
 
 	//  Log upgrade output
-	log.Infof("helm upgrade for release %s succeeded with stdout: %s\n", releaseName, string(stdout))
+	log.Infof("helm upgrade succeeded for %s", releaseName)
 	return stdout, stderr, nil
 }
 

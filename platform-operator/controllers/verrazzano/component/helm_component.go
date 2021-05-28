@@ -131,7 +131,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 			if i > 0 {
 				bldr.WriteString(",")
 			}
-			bldr.WriteString(fmt.Sprintf("%s=%s", kv.key, kv.value))
+			bldr.WriteString(fmt.Sprintf("`%s`=`%s`", kv.key, kv.value))
 		}
 		overrides = bldr.String()
 	}
