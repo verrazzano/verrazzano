@@ -7,9 +7,9 @@ The external Kubernetes manifests used by Verrazzano.
 The `cert-manager` folder content was created by running the following commands:
 
 ```
-export CERT_MANAGER_RELEASE=1.2.0
-curl -L -o "cert-manager.crds.yaml" \
-    "https://github.com/jetstack/cert-manager/releases/download/v${CERT_MANAGER_RELEASE}/cert-manager.crds.yaml"
+export CERT_MANAGER_RELEASE=0.13
+curl -L -o "00-crds.yaml" \
+    "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml"
 ```
 
 
