@@ -41,7 +41,7 @@ func appendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string,
 	}
 
 	// Get Keycloak theme images
-	images, err := bom.GetSubcomponentImages("keycloak-oracle-theme")
+	images, err := bom.buildImageOverrides("keycloak-oracle-theme")
 	if err != nil {
 		return nil, err
 	}
