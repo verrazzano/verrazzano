@@ -204,6 +204,8 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 		repo = userRepo + slash + repo
 	}
 
+	// If this is istio then add the equiv of
+
 	// Loop through the images used by this subcomponent, building
 	// the list of key:value pairs.  At the very least, this will build
 	// a single value for the fully qualified image name in the format of

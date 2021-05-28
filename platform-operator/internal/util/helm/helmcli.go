@@ -16,7 +16,7 @@ var runner vz_os.CmdRunner = vz_os.DefaultRunner{}
 
 // Upgrade will upgrade a Helm release with the specified charts.  The overrideFiles array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFiles []string) (stdout []byte, stderr []byte, err error) {
+func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
 	args := []string{"upgrade", releaseName, chartDir}
@@ -25,13 +25,19 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		args = append(args, namespace)
 	}
 
-	// Add the override files
-	if len(overrideFiles) > 0 {
+	// If overrides are provided the specify --reuse-values
+	if len(overrideFile) > 0 || len(overrides) > 0 {
 		args = append(args, "--reuse-values")
 	}
-	for _, fname := range overrideFiles {
+	// Add the override files
+	if len(overrideFile) > 0 {
 		args = append(args, "-f")
-		args = append(args, fname)
+		args = append(args, overrideFile)
+	}
+	// Add the override strings
+	if len(overrides) > 0 {
+		args = append(args, "--set")
+		args = append(args, overrides)
 	}
 
 	cmd := exec.Command("helm", args...)

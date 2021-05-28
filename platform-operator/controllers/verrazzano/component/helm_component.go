@@ -8,10 +8,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"go.uber.org/zap"
-	"io"
-	"io/ioutil"
-	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
@@ -62,7 +60,7 @@ type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespa
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile []string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
@@ -107,13 +105,6 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 		}
 	}
 
-	// Add the overrides file specified in the helm component.  These are typically the
-	// files in helm_config/overrides
-	overrideFiles := []string{}
-	if h.valuesFile != "" {
-		overrideFiles = append(overrideFiles, h.valuesFile)
-	}
-
 	// Optionally create a second override file.  This will contain both image overrides and any additional
 	// overrides required by a component.
 	// Get image overrides unless opt out
@@ -132,29 +123,21 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 		}
 	}
 
-	// If there are overrides the write them to a file and add that file
-	// to the array of override files
+	// If there are overrides the create a comma separated string
+	var overrides string
 	if len(kvs) > 0 {
-		// Create and populate the image override file.
-		f, err := ioutil.TempFile("", "vz-images")
-		if err != nil {
-			return err
+		bldr := strings.Builder{}
+		for i, kv := range kvs {
+			if i > 0 {
+				bldr.WriteString(",")
+			}
+			bldr.WriteString(fmt.Sprintf("%s=%s", kv.key, kv.value))
 		}
-		defer os.Remove(f.Name())
-
-		// Write the override entries then close the file
-		for _, kv := range kvs {
-			io.WriteString(f, fmt.Sprintf("%s: %s\n", kv.key, kv.value))
-		}
-		err = f.Close()
-		if err != nil {
-			return err
-		}
-		overrideFiles = append(overrideFiles, f.Name())
+		overrides = bldr.String()
 	}
 
 	// Do the upgrade
-	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, overrideFiles)
+	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, h.valuesFile, overrides)
 	return err
 }
 
