@@ -563,7 +563,7 @@ pipeline {
                                     unzip chromedriver.zip
                                     sudo cp chromedriver /usr/local/bin/
                                     cd ${VERRAZZANO_REPO_PATH}/tests/e2e/console/ui
-                                    ./${TEST_SCRIPTS_DIR}/edit_integ_test_config.sh config.uitest.json > tmp.uitestconfig.json
+                                    ${TEST_SCRIPTS_DIR}/edit_integ_test_config.sh config.uitest.json > tmp.uitestconfig.json
                                     export VZ_UITEST_CONFIG=tmp.uitestconfig.json
                                     npm run
                                 """
