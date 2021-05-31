@@ -24,7 +24,7 @@ const OidcPkceClientID = "verrazzano-pkce"
 const OidcPgClientID = "verrazzano-pg"
 
 // OidcRequiredRealmRole is the role required to access Verrazzano APIs viea the proxy
-const OidcRequiredRealmRole = "vz-api-access"
+const OidcRequiredRealmRole = "vz_api_access"
 
 // OidcAuthnStateTTL is the TTL for entries in the basic auth creds cache
 const OidcAuthnStateTTL = 300
@@ -41,7 +41,7 @@ type OidcProxyConfig struct {
 	Mode string
 	// for startup.sh (none current)
 	// for reload.sh (none current)
-	// for nginx.conf (only needed for oauth-proxy)
+	// for nginx.conf (only needed for oauth-proxy backend)
 	Host string
 	Port int
 	// for conf.lua/auth.lua
@@ -57,14 +57,16 @@ type OidcProxyConfig struct {
 	PKCEClientID      string
 	PGClientID        string
 	RequiredRealmRole string
-	// for oauth only, cookie encryption key (TODO: get rid of this)
-	RandomString string
 	// ttl for entries in basic auth cache (TODO: this should be fixed to not store basic auth creds)
 	AuthnStateTTL int
 }
 
 func oidcStartup(values interface{}) (string, error) {
 	return executeTemplateWithValues("proxy_startup", OidcStartupFileTemplate, values)
+}
+
+func oidcReload(values interface{}) (string, error) {
+	return executeTemplateWithValues("proxy_reload", OidcReloadFileTemplate, values)
 }
 
 func oidcNginxConf(values interface{}) (string, error) {
@@ -95,7 +97,6 @@ func executeTemplateWithValues(templateName string, templateString string, value
 // GetOidcProxyConfigMapData returns a map containing config files for a proxy instance
 func GetOidcProxyConfigMapData(config OidcProxyConfig) (map[string]string, error) {
 	// set default values
-	config.Mode = ProxyModeOauth
 	config.OidcRealm = OidcRealmName
 	config.PKCEClientID = OidcPkceClientID
 	config.PGClientID = OidcPgClientID
@@ -104,11 +105,11 @@ func GetOidcProxyConfigMapData(config OidcProxyConfig) (map[string]string, error
 	config.RequiredRealmRole = OidcRequiredRealmRole
 	config.AuthnStateTTL = OidcAuthnStateTTL
 	// execute the templates
-	authLua, err := oidcAuthLua(config)
+	confLua, err := oidcConfLua(config)
 	if err != nil {
 		return nil, err
 	}
-	confLua, err := oidcConfLua(config)
+	authLua, err := oidcAuthLua(config)
 	if err != nil {
 		return nil, err
 	}
@@ -120,11 +121,24 @@ func GetOidcProxyConfigMapData(config OidcProxyConfig) (map[string]string, error
 	if err != nil {
 		return nil, err
 	}
-	// return resulting map
-	return map[string]string{
-		OidcAuthLuaFilename:   authLua,
-		OidcConfLuaFilename:   confLua,
-		OidcStartupFilename:   startup,
-		OidcNginxConfFilename: nginxConf,
-	}, nil
+	if config.Mode == "api-proxy" {
+		reload, err := oidcReload(config)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{
+			OidcConfLuaFilename:   confLua,
+			OidcAuthLuaFilename:   authLua,
+			OidcNginxConfFilename: nginxConf,
+			OidcStartupFilename:   startup,
+			OidcReloadFilename:    reload,
+		}, nil
+	} else {
+		return map[string]string{
+			OidcConfLuaFilename:   confLua,
+			OidcAuthLuaFilename:   authLua,
+			OidcNginxConfFilename: nginxConf,
+			OidcStartupFilename:   startup,
+		}, nil
+	}
 }

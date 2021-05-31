@@ -14,13 +14,57 @@ const OidcAuthLuaFileTemplate = `|
     local cjson = require "cjson"
     local jwt = require "resty.jwt"
 
+    local oidcRealm = "{{ .OidcRealm }}"
+    local oidcClient = "{{ .PKCEClientID }}"
+    local oidcDirectAccessClient = "{{ .PGClientID }}"
+    local requiredRole = "{{ .RequiredRealmRole }}"
+
+    local authStateTtlInSec = {{ .AuthnStateTTL }}
+
+    local oidcProviderHost = "{{ .OidcProviderHost }}"
+    local oidcProviderHostInCluster = "{{ .OidcProviderHostInCluster }}"
+
+    local oidcProviderUri = nil
+    local oidcProviderInClusterUri = nil
+
+    local logoutCallbackUri = nil
+
     function me.config(opts)
         for key, val in pairs(opts) do
             me[key] = val
         end
+        local cookiekey = me.randomBase64(32)
         local aes = require "resty.aes"
-        me.aes256 = aes:new(me.cookieKey, nil, aes.cipher(256))
+        me.aes256 = aes:new(cookiekey, nil, aes.cipher(256))
+        me.initOidcProviderUris()
         return me
+    end
+
+    function me.initOidcProviderUris()
+{{ if eq .Mode "oauth-proxy" }}
+        oidcProviderUri = 'https://'..oidcProviderHost..'/auth/realms/'..oidcRealm
+        if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
+            oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..oidcRealm
+        else
+            oidcProviderInClusterUri = nil
+        end
+        logoutCallbackUri = ingressUri..logoutCallbackPath
+{{ else if eq .Mode "api-proxy" }}
+        oidcProviderUri = me.read_file("/api-config/keycloak-url")
+        if oidcProviderUri and oidcProviderUri ~= "" then
+            oidcProviderUri = oidcProviderUri..'/auth/realms/'..oidcRealm
+        else
+            oidcProviderUri = nil
+            me.logJson(ngx.INFO, "No keycloak-url specified in api-config. Using in-cluster keycloak url.")
+        end
+        oidcProviderInClusterUri = 'http://keycloak-http.keycloak.svc.cluster.local'..'/auth/realms/'..oidcRealm
+{{ end }}
+        if oidcProviderUri then
+            me.info("set oidcProviderUri to "..oidcProviderUri)
+        end
+        if oidcProviderInClusterUri then
+            me.info("set oidcProviderInClusterUri to "..oidcProviderInClusterUri)
+        end
     end
 
     function me.log(logLevel, msg, name, value)
@@ -91,13 +135,14 @@ const OidcAuthLuaFileTemplate = `|
         local redirectArgs = ngx.encode_args({
             redirect_uri = me.logoutCallbackUri
         })
-        local redirURL = me.oidcProviderUri.."/protocol/openid-connect/logout?"..redirectArgs
-        ngx.redirect(redirURL)
+        local redirectURL = me.oidcProviderUri.."/protocol/openid-connect/logout?"..redirectArgs
+        ngx.redirect(redirectURL)
     end
 
     function me.randomBase64(size)
         local randBytes = random.bytes(size)
-        return base64.encode_base64url(randBytes)
+        local encoded = base64.encode_base64url(randBytes)
+        return string.sub(encoded, 1, size)
     end
 
     function me.read_file(path)
@@ -108,25 +153,19 @@ const OidcAuthLuaFileTemplate = `|
         return content
     end
 
-    -- this should only happen when the console calls the api-proxy
-    -- console sends the access token by itself (originally obtained via pkce client)
+    -- console sends access token by itself (originally obtained via pkce client)
     function me.handleBearerToken(authHeader)
-        me.info("Checking for bearer token")
         local found, index = authHeader:find('Bearer')
         if found then
             local token = string.sub(authHeader, index+2)
-            if token
+            if token then
                 me.info("Found bearer token in authorization header")
-                local err = me.oidcValidateToken(token)
-                if err not nil then
-                    me.unauthorized("Invalid token")
-                end
+                me.oidcValidateToken(token)
                 return token
             else
-                me.unauthorized("Missing token in authorization header)
+                me.unauthorized("Missing token in authorization header")
             end
         end
-        me.info "No bearer token found")
         return nil
     end
 
@@ -143,7 +182,7 @@ const OidcAuthLuaFileTemplate = `|
             return nil
         end
         local basicCred = string.sub(authHeader, index+2)
-        if not basicCred
+        if not basicCred then
             me.unauthorized("Invalid BasicAuth authorization header")
         end
         me.info("Found basic auth credentials in authorization header")
@@ -176,6 +215,34 @@ const OidcAuthLuaFileTemplate = `|
         return tokenRes.id_token
     end
 
+    function me.getOidcProviderUri()
+        if oidcProviderUri and oidcProviderUri ~= "" then
+            return oidcProviderUri
+        else
+            return oidcProviderInClusterUri
+        end
+    end
+
+    function me.getLocalOidcProviderUri()
+        if oidcProviderInClusterUri and oidcProviderInClusterUri ~= "" then
+            return oidcProviderInClusterUri
+        else
+            return oidcProviderUri
+        end
+    end
+
+    function me.getOidcTokenUri()
+        return me.getLocalOidcProviderUri().."/protocol/openid-connect/token"
+    end
+
+    function me.getOidcCertsUri()
+        return me.getLocalOidcProviderUri()..'/protocol/openid-connect/certs'
+    end
+
+    function me.getOidcAuthUri()
+        return me.getOidcProviderUri()..'/protocol/openid-connect/auth'
+    end
+
     function me.oidcAuthenticate()
         local sha256 = (require 'resty.sha256'):new()
         local codeVerifier = me.randomBase64(32)
@@ -200,10 +267,10 @@ const OidcAuthLuaFileTemplate = `|
             nonce = nonce,
             redirect_uri = me.callbackUri
         })
-        local redirtURL = me.oidcProviderAuthUri..'?'..redirectArgs
+        local redirectURL = me.getOidcAuthUri()..'?'..redirectArgs
         me.setCookie("state", stateData, me.authStateTtlInSec)
         ngx.header["Cache-Control"] = "no-cache, no-store, max-age=0"
-        ngx.redirect(redirtURL)
+        ngx.redirect(redirectURL)
     end
 
     -- TODO: clean up cookies
@@ -239,7 +306,7 @@ const OidcAuthLuaFileTemplate = `|
                 me.tokenToCookie(tokenRes)
                 ngx.redirect(request_uri)
             end
-            me.unauthorized("Failed to obtain token with code)
+            me.unauthorized("Failed to obtain token with code")
         end
     end
 
@@ -249,10 +316,7 @@ const OidcAuthLuaFileTemplate = `|
     end
 
     function me.oidcTokenRequest(formArgs)
-        local tokenUri = me.oidcProviderUri.."/protocol/openid-connect/token"
-        if me.oidcProviderInClusterUri and me.oidcProviderInClusterUri ~= "" then
-            tokenUri = me.oidcProviderInClusterUri.."/protocol/openid-connect/token"
-        end
+        local tokenUri = me.getOidcTokenUri()
         local http = require "resty.http"
         local httpc = http.new()
         local res, err = httpc:request_uri(tokenUri, {
@@ -286,8 +350,8 @@ const OidcAuthLuaFileTemplate = `|
                         grant_type = 'authorization_code',
                         client_id = me.oidcClient,
                         code = code,
-                        code_verifier = cookie.code_verifier,
-                        redirect_uri = me.callbackUri
+                        code_verifier = verifier,
+                        redirect_uri = callbackUri
                     })
     end
 
@@ -301,11 +365,11 @@ const OidcAuthLuaFileTemplate = `|
     end
 
     -- returns nil if successful, or err otherwise
-    function me.oidcValidateToken(token) {
+    function me.oidcValidateToken(token)
         if not (token) then
-            me.unauthorized("Invalid bearer token in authorization header")
+            me.unauthorized("Invalid token")
         end
-        me.logJson(ngx.INFO, "Validate JWT token.")
+        me.logJson(ngx.INFO, "Validating JWT token")
         local jwt = require "resty.jwt"
         local jwt_obj = jwt:load_jwt(token)
         if (not jwt_obj.header) or (not jwt_obj.header.kid) then
@@ -313,7 +377,7 @@ const OidcAuthLuaFileTemplate = `|
         end
         local publicKey = me.publicKey(jwt_obj.header.kid)
         if not publicKey then
-            me.unauthorized("No public_key retrieved from keycloak")
+            me.unauthorized("No public key found")
         end
         local verified = jwt:verify_jwt_obj(publicKey, jwt_obj)
         if (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
@@ -342,24 +406,25 @@ const OidcAuthLuaFileTemplate = `|
         return ""
     end
 
-{{- if eq .Mode "api-proxy" }}
-    function impersonateKubernetesUser(token) {
+{{ if eq .Mode "api-proxy" }}
+    function me.impersonateKubernetesUser(token)
         me.logJson(ngx.INFO, "Read service account token.")
-        local serviceAccountToken = read_file("/run/secrets/kubernetes.io/serviceaccount/token");
+        local serviceAccountToken = me.read_file("/run/secrets/kubernetes.io/serviceaccount/token")
         if not (serviceAccountToken) then
-          ngx.status = 401
-          me.logJson(ngx.ERR, "No service account token present in pod.")
-          ngx.exit(ngx.HTTP_UNAUTHORIZED)
+            ngx.status = 401
+            me.logJson(ngx.ERR, "No service account token present in pod.")
+            ngx.exit(ngx.HTTP_UNAUTHORIZED)
         end
         me.logJson(ngx.INFO, "Set headers")
         ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
+        local jwt_obj = jwt:load_jwt(token)
         if ( jwt_obj.payload and jwt_obj.payload.groups) then
-          me.logJson(ngx.INFO, ("Adding groups " .. cjson.encode(jwt_obj.payload.groups)))
-          ngx.req.set_header("Impersonate-Group", jwt_obj.payload.groups)
+            me.logJson(ngx.INFO, ("Adding groups " .. cjson.encode(jwt_obj.payload.groups)))
+            ngx.req.set_header("Impersonate-Group", jwt_obj.payload.groups)
         end
         if ( jwt_obj.payload and jwt_obj.payload.sub) then
-          me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
-          ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
+            me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
+            ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
         end
     end
 {{- end }}
@@ -375,16 +440,15 @@ const OidcAuthLuaFileTemplate = `|
             local refresh_expiry = tonumber(ck.refresh_expiry)
             if now < expiry then
                 return ck.it
-            else if now < refresh_expiry then
-                local tokenRes = me.oidcRefreshToken(rft, me.callbackUri)
-                if tokenRes then
-                    local err = me.oidcValidateToken(tokenRes.idt)
-                    if err then
-                        me.unauthorized("Invalid token")
+            else
+                if now < refresh_expiry then
+                    local tokenRes = me.oidcRefreshToken(rft, me.callbackUri)
+                    if tokenRes then
+                        me.oidcValidateToken(tokenRes.idt)
+                        me.tokenToCookie(tokenRes)
+                        me.info("token refreshed",  tokenRes)
+                        return tokenRes.idt
                     end
-                    me.tokenToCookie(tokenRes)
-                    me.info("token refreshed",  tokenRes)
-                    return tokenRes.idt
                 end
             end
             -- no valid token found, delete cookie
@@ -413,9 +477,9 @@ const OidcAuthLuaFileTemplate = `|
                     issued_at = tonumber(id_token.payload.auth_time)
                 end
             end
-            --if id_token.payload.email then
-            --    cookiePairs.email = id_token.payload.email
-            --end
+            -- if id_token.payload.email then
+            --     cookiePairs.email = id_token.payload.email
+            -- end
         end
         local skew = now - issued_at
         -- Expire 30 secs before actual time
@@ -466,11 +530,7 @@ const OidcAuthLuaFileTemplate = `|
         end
         local http = require "resty.http"
         local httpc = http.new()
-        local providerUri = me.oidcProviderUri
-        if me.oidcProviderInClusterUri and me.oidcProviderInClusterUri ~= "" then
-            providerUri = me.oidcProviderInClusterUri
-        end
-        local certsUri = providerUri..'/protocol/openid-connect/certs'
+        local certsUri = me.getOidcCertsUri()
         local res, err = httpc:request_uri(certsUri)
         if err then
             return nil

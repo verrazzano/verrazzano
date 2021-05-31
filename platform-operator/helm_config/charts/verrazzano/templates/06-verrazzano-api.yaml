@@ -75,6 +75,9 @@ spec:
                   - key: conf.lua
                     path: conf.lua
                     mode: 0755
+                  - key: auth.lua
+                    path: auth.lua
+                    mode: 0755
                   - key: reload.sh
                     path: reload.sh
                     mode: 0755
