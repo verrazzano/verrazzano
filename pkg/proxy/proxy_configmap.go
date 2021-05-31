@@ -121,24 +121,29 @@ func GetOidcProxyConfigMapData(config OidcProxyConfig) (map[string]string, error
 	if err != nil {
 		return nil, err
 	}
+
+	var cm map[string]string
+
 	if config.Mode == "api-proxy" {
 		reload, err := oidcReload(config)
 		if err != nil {
 			return nil, err
 		}
-		return map[string]string{
+		cm = map[string]string{
 			OidcConfLuaFilename:   confLua,
 			OidcAuthLuaFilename:   authLua,
 			OidcNginxConfFilename: nginxConf,
 			OidcStartupFilename:   startup,
 			OidcReloadFilename:    reload,
-		}, nil
+		}
 	} else {
-		return map[string]string{
+		cm = map[string]string{
 			OidcConfLuaFilename:   confLua,
 			OidcAuthLuaFilename:   authLua,
 			OidcNginxConfFilename: nginxConf,
 			OidcStartupFilename:   startup,
-		}, nil
+		}
 	}
+
+	return cm, nil
 }

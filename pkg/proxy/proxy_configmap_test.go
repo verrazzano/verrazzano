@@ -24,7 +24,7 @@ func getGenericProxyConfig() OidcProxyConfig {
 	return proxyConfig
 }
 
-func getApiProxyConfig() OidcProxyConfig {
+func getAPIProxyConfig() OidcProxyConfig {
 	proxyConfig := OidcProxyConfig{}
 
 	proxyConfig.Mode = "api-proxy"
@@ -69,13 +69,13 @@ func NotesCreateConfigmap(t *testing.T) {
 	t.Logf("\n%s", configMap)
 }
 
-func TestCreateApiProxyConfigMap(t *testing.T) {
-	data, err := GetOidcProxyConfigMapData(getApiProxyConfig())
+func TestCreateAPIProxyConfigMap(t *testing.T) {
+	data, err := GetOidcProxyConfigMapData(getAPIProxyConfig())
 	if err != nil {
 		t.Fatalf("Error getting config map data: %v", err)
 	}
 
-	config := fmt.Sprintf("---")
+	config := "---"
 	config = fmt.Sprintf("%s\napiVersion: v1", config)
 	config = fmt.Sprintf("%s\nkind: ConfigMap", config)
 	config = fmt.Sprintf("%s\nmetadata:", config)
