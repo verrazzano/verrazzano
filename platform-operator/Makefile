@@ -109,7 +109,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: go-build-linux
+docker-build: generate-bom go-build-linux
 	@echo Building verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	@echo using verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
 	# the TPL file needs to be copied into this dir so it is in the docker build context
@@ -162,7 +162,7 @@ integ-test: create-cluster generate-operator-yaml
 generate-operator-yaml:
 	OPERATOR_DIR=$$(dirname ${OPERATOR_YAML}) ; \
 	mkdir -p $${OPERATOR_DIR} ; \
-	env DOCKER_IMAGE=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRETS} ../tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML}
+	env DOCKER_IMAGE=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRETS} APP_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ../tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML}
 
 .PHONY: cleanup-cluster
 cleanup-cluster:
@@ -202,3 +202,10 @@ create-test-deploy:
 	else \
 		echo "VZ_DEV_IMAGE not defined, please set it to a valid image name/tag"; \
 	fi
+
+.PHONY: generate-bom
+generate-bom:
+	@echo Generating BOM verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+	@echo                verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
+	mkdir out || true
+	../tools/scripts/generate_bom.sh verrazzano-bom.json ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG} out/generated-verrazzano-bom.json

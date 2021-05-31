@@ -342,11 +342,11 @@ func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource r
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
-		return nil
-	}
-	err = c.Delete(ctx, resourceToDelete)
-	if err != nil {
-		return err
+	} else {
+		err = c.Delete(ctx, resourceToDelete)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Deletion succeeded, now we can remove the finalizer
