@@ -437,23 +437,35 @@ data:
 
     -- returns nil if successful, or err otherwise
     function me.oidcValidateToken(token)
-        if not (token) then
-            me.unauthorized("Invalid token")
+        if not token or token == "" then
+            me.unauthorized("Nil or empty token")
         end
-        me.logJson(ngx.INFO, "Validating JWT token")
         local jwt = require "resty.jwt"
+        local validators = require "resty.jwt-validators"
 
+        me.logJson(ngx.INFO, "Validating JWT token")
+        local claim_spec = {
+            typ = validators.equals( "Bearer" ),
+            iss = validators.equals( "https://keycloak.will.193.122.59.255.nip.io/auth/realms/verrazzano-system" ),
+            iat = validators.is_not_before(),
+            exp = validators.is_not_expired(),
+            azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient, "webui", "verrazzano-oauth-client" }),
+            aud = validators.required()
+        }
+
+        -- passing verify a function to retrieve key didn't seem to work, so doing load then verify
         local jwt_obj = jwt:load_jwt(token)
-        if (not jwt_obj.header) or (not jwt_obj.header.kid) then
-            me.unauthorized("Invalid JWT token", jwt_obj.reason)
+        if (not jwt_obj) or (not jwt_obj.header) or (not jwt_obj.header.kid) then
+            me.unauthorized("Failed to load token or no kid")
         end
         local publicKey = me.publicKey(jwt_obj.header.kid)
         if not publicKey then
             me.unauthorized("No public key found")
         end
-        local verified = jwt:verify_jwt_obj(publicKey, jwt_obj)
-        if (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
-            me.unauthorized("Invalid JWT token", jwt_obj.reason)
+        -- verify returns a table when successful
+        local verified = jwt:verify_jwt_obj(publicKey, jwt_obj, claim_spec)
+        if not verified or (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
+            me.unauthorized("Failed to validate token", jwt_obj.reason)
         end
     end
 
@@ -499,7 +511,7 @@ data:
             ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
         end
     end
-{{- end }}
+{{ end }}
 
     -- returns id token, token is refreshed first, if necessary.
     -- nil token returned if no session or the refresh token has expired
@@ -605,10 +617,12 @@ data:
         local certsUri = me.getOidcCertsUri()
         local res, err = httpc:request_uri(certsUri)
         if err then
+            me.logJson(ngx.WARN, "Could not retrieve certs", err)
             return nil
         end
         local data = cjson.decode(res.body)
         if not (data.keys) then
+            me.info("No keys found")
             return nil
         end
         for i, key in pairs(data.keys) do
