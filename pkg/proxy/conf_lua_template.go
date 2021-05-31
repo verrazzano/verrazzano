@@ -39,8 +39,10 @@ const OidcConfLuaFileTemplate = `|
         if not token then
             auth.info("No recognized credentials in authorization header")
         end
-{{ if eq .Mode "oauth-proxy" }}
     else
+{{ if eq .Mode "api-proxy" }}
+        auth.info("No authorization header")
+{{ else if eq .Mode "oauth-proxy" }}
         if string.find(ngx.var.request_uri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
@@ -64,7 +66,6 @@ const OidcConfLuaFileTemplate = `|
     end
 
     -- token will be an id token except when console calls api proxy, then it's an access token
-    -- TODO: need to fix this so token handling/consumption is aligned across all clients/backends
     if not auth.isAuthorized(token) then
         auth.forbidden("Not authorized")
     end

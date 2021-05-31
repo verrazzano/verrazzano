@@ -38,10 +38,10 @@ const OidcNginxConfFileTemplate = `|
         sendfile        on;
         #tcp_nopush     on;
 
-    {{- if eq .Mode "oauth-proxy" }}
-        # TODO: api proxy doesn't have client_max_body_size - should it?
+{{- if eq .Mode "oauth-proxy" }}
         client_max_body_size 65m;
-    {{- end }}
+{{- end }}
+
         #keepalive_timeout  0;
         keepalive_timeout  65;
 
@@ -55,15 +55,15 @@ const OidcNginxConfFileTemplate = `|
         #  cache for JWKs
         lua_shared_dict jwks 1m;
         lua_ssl_verify_depth 2;
-    {{- if eq .Mode "api-proxy" }}
+{{- if eq .Mode "api-proxy" }}
         lua_ssl_trusted_certificate /etc/nginx/ca-bundle;
-    {{- else if eq .Mode "oauth-proxy" }}
+{{- else if eq .Mode "oauth-proxy" }}
         lua_ssl_trusted_certificate /secret/ca-bundle;
 
         upstream http_backend {
             server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;
         }
-    {{- end }}
+{{- end }}
 
         server {
             listen       8775;
@@ -71,29 +71,29 @@ const OidcNginxConfFileTemplate = `|
             root     /opt/nginx/html;
             #charset koi8-r;
 
-    {{- if eq .Mode "oauth-proxy" }}
+{{- if eq .Mode "oauth-proxy" }}
             set $oidc_user "";
-    {{- end }}
+{{- end }}
             rewrite_by_lua_file /etc/nginx/conf.lua;
-    {{- if eq .Mode "api-proxy" }}
+{{- if eq .Mode "api-proxy" }}
             set_by_lua $kubernetes_server_host 'return os.getenv("KUBERNETES_SERVICE_HOST")';
             set_by_lua $kubernetes_server_port 'return os.getenv("KUBERNETES_SERVICE_PORT")';
-    {{- end }}
+{{- end }}
 
             #access_log  logs/host.access.log  main;
             expires           0;
             add_header        Cache-Control private;
 
-    {{- if eq .Mode "oauth-proxy" }}
+{{- if eq .Mode "oauth-proxy" }}
             proxy_set_header  X-WEBAUTH-USER $oidc_user;
-    {{- end }}
+{{- end }}
 
             location / {
-    {{- if eq .Mode "oauth-proxy" }}
+{{- if eq .Mode "oauth-proxy" }}
                 proxy_pass http://http_backend;
-    {{- else if eq .Mode "api-proxy" }}
+{{- else if eq .Mode "api-proxy" }}
                 proxy_pass https://$kubernetes_server_host:$kubernetes_server_port;
-    {{- end }}
+{{- end }}
             }
 
             error_page 404 /404.html;

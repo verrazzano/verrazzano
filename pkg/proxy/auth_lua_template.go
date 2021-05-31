@@ -172,8 +172,7 @@ const OidcAuthLuaFileTemplate = `|
     local basicCache = {}
 
     -- should only be called if some vz process is trying to access vmi using basic auth
-    -- we use local cache keyed by the auth credentials to avoid calling OP every time
-    -- TODO: this seems bad, it means we keep every caller's creds unencrypted in memory until they're pushed out of the cache)
+    -- tokens are cached locally
     function me.handleBasicAuth(authHeader)
         me.info("Checking for basic auth credentials")
         local found, index = authHeader:find('Basic')
@@ -206,7 +205,6 @@ const OidcAuthLuaFileTemplate = `|
                 basicCache[key] = nil
             end
         end
-        -- TODO: need to adjust for the amount of time that has passed since token issue + clock skew (or just take false cache hits)
         basicCache[basicCred] = {
             -- access_token = tokenRes.access_token,
             id_token = tokenRes.id_token,
@@ -273,7 +271,6 @@ const OidcAuthLuaFileTemplate = `|
         ngx.redirect(redirectURL)
     end
 
-    -- TODO: clean up cookies
     function me.oidcHandleCallback()
         local queryParams = me.queryParams(ngx.var.request_uri)
         local state = queryParams.state
@@ -371,6 +368,7 @@ const OidcAuthLuaFileTemplate = `|
         end
         me.logJson(ngx.INFO, "Validating JWT token")
         local jwt = require "resty.jwt"
+
         local jwt_obj = jwt:load_jwt(token)
         if (not jwt_obj.header) or (not jwt_obj.header.kid) then
             me.unauthorized("Invalid JWT token", jwt_obj.reason)
@@ -521,8 +519,8 @@ const OidcAuthLuaFileTemplate = `|
         return cjson.decode(json)
     end
 
-    -- TODO: shouldn't cache these forever
     local certs = {}
+
     function me.realmCerts(kid)
         local pk = certs[kid]
         if pk then

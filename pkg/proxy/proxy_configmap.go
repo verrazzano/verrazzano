@@ -57,7 +57,7 @@ type OidcProxyConfig struct {
 	PKCEClientID      string
 	PGClientID        string
 	RequiredRealmRole string
-	// ttl for entries in basic auth cache (TODO: this should be fixed to not store basic auth creds)
+	// ttl for entries in basic auth cache
 	AuthnStateTTL int
 }
 

@@ -43,8 +43,10 @@ data:
         if not token then
             auth.info("No recognized credentials in authorization header")
         end
-{{ if eq .Mode "oauth-proxy" }}
     else
+{{ if eq .Mode "api-proxy" }}
+        auth.info("No authorization header")
+{{ else if eq .Mode "oauth-proxy" }}
         if string.find(ngx.var.request_uri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
@@ -68,7 +70,6 @@ data:
     end
 
     -- token will be an id token except when console calls api proxy, then it's an access token
-    -- TODO: need to fix this so token handling/consumption is aligned across all clients/backends
     if not auth.isAuthorized(token) then
         auth.forbidden("Not authorized")
     end
@@ -245,8 +246,7 @@ data:
     local basicCache = {}
 
     -- should only be called if some vz process is trying to access vmi using basic auth
-    -- we use local cache keyed by the auth credentials to avoid calling OP every time
-    -- TODO: this seems bad, it means we keep every caller's creds unencrypted in memory until they're pushed out of the cache)
+    -- tokens are cached locally
     function me.handleBasicAuth(authHeader)
         me.info("Checking for basic auth credentials")
         local found, index = authHeader:find('Basic')
@@ -279,7 +279,6 @@ data:
                 basicCache[key] = nil
             end
         end
-        -- TODO: need to adjust for the amount of time that has passed since token issue + clock skew (or just take false cache hits)
         basicCache[basicCred] = {
             -- access_token = tokenRes.access_token,
             id_token = tokenRes.id_token,
@@ -346,7 +345,6 @@ data:
         ngx.redirect(redirectURL)
     end
 
-    -- TODO: clean up cookies
     function me.oidcHandleCallback()
         local queryParams = me.queryParams(ngx.var.request_uri)
         local state = queryParams.state
@@ -444,6 +442,7 @@ data:
         end
         me.logJson(ngx.INFO, "Validating JWT token")
         local jwt = require "resty.jwt"
+
         local jwt_obj = jwt:load_jwt(token)
         if (not jwt_obj.header) or (not jwt_obj.header.kid) then
             me.unauthorized("Invalid JWT token", jwt_obj.reason)
@@ -594,8 +593,8 @@ data:
         return cjson.decode(json)
     end
 
-    -- TODO: shouldn't cache these forever
     local certs = {}
+
     function me.realmCerts(kid)
         local pk = certs[kid]
         if pk then
@@ -660,10 +659,10 @@ data:
         sendfile        on;
         #tcp_nopush     on;
 
-    {{- if eq .Mode "oauth-proxy" }}
-        # TODO: api proxy doesn't have client_max_body_size - should it?
+{{- if eq .Mode "oauth-proxy" }}
         client_max_body_size 65m;
-    {{- end }}
+{{- end }}
+
         #keepalive_timeout  0;
         keepalive_timeout  65;
 
@@ -677,15 +676,15 @@ data:
         #  cache for JWKs
         lua_shared_dict jwks 1m;
         lua_ssl_verify_depth 2;
-    {{- if eq .Mode "api-proxy" }}
+{{- if eq .Mode "api-proxy" }}
         lua_ssl_trusted_certificate /etc/nginx/ca-bundle;
-    {{- else if eq .Mode "oauth-proxy" }}
+{{- else if eq .Mode "oauth-proxy" }}
         lua_ssl_trusted_certificate /secret/ca-bundle;
 
         upstream http_backend {
             server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;
         }
-    {{- end }}
+{{- end }}
 
         server {
             listen       8775;
@@ -693,29 +692,29 @@ data:
             root     /opt/nginx/html;
             #charset koi8-r;
 
-    {{- if eq .Mode "oauth-proxy" }}
+{{- if eq .Mode "oauth-proxy" }}
             set $oidc_user "";
-    {{- end }}
+{{- end }}
             rewrite_by_lua_file /etc/nginx/conf.lua;
-    {{- if eq .Mode "api-proxy" }}
+{{- if eq .Mode "api-proxy" }}
             set_by_lua $kubernetes_server_host 'return os.getenv("KUBERNETES_SERVICE_HOST")';
             set_by_lua $kubernetes_server_port 'return os.getenv("KUBERNETES_SERVICE_PORT")';
-    {{- end }}
+{{- end }}
 
             #access_log  logs/host.access.log  main;
             expires           0;
             add_header        Cache-Control private;
 
-    {{- if eq .Mode "oauth-proxy" }}
+{{- if eq .Mode "oauth-proxy" }}
             proxy_set_header  X-WEBAUTH-USER $oidc_user;
-    {{- end }}
+{{- end }}
 
             location / {
-    {{- if eq .Mode "oauth-proxy" }}
+{{- if eq .Mode "oauth-proxy" }}
                 proxy_pass http://http_backend;
-    {{- else if eq .Mode "api-proxy" }}
+{{- else if eq .Mode "api-proxy" }}
                 proxy_pass https://$kubernetes_server_host:$kubernetes_server_port;
-    {{- end }}
+{{- end }}
             }
 
             error_page 404 /404.html;
@@ -801,4 +800,4 @@ data:
     fi
     sleep 5
     done
-{{- end }}
+{{ end }}
