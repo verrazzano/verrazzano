@@ -46,20 +46,20 @@ Options:
 
 Examples:
 
-  # Loads all images into myreg.io using the default repository paths for each image in the BOM
+  # Loads all images into registry 'myreg.io' using the default repository paths for each image in the BOM
   $0 -t myreg.io
 
-  # Loads all  Verrazzano images into myreg.io with into the repository 'myrepo/user1'
+  # Loads all Verrazzano images into registry 'myreg.io' in repository 'myrepo/user1'
   $0 -t myreg.io -r 'myrepo/user1'
 
-  # Loads all Verrazzano images into myreg.io with into the repository 'myrepo/user1' using the BOM /path/to/my-bom.json
+  # Loads all Verrazzano images into registry 'myreg.io' in repository 'myrepo/user1' using the BOM /path/to/my-bom.json
   # and removes the locally downloaded image after a successful push
   $0 -c -t myreg.io -r 'myrepo/user1' -b /path/to/my-bom.json
 
-  # Loads all Docker tarball images in the directory /path/to/exploded/tarball into myreg.io in the repo 'myrepo'
+  # Loads all Docker tarball images in the directory /path/to/exploded/tarball into registry 'myreg.io' in repository 'myrepo'
   $0 -t myreg.io -l /path/to/exploded/tarball -r myrepo
 
-  # Do a dry-run with the tarball location /path/to/exploded/tarball with registry myreg.io and repo 'myrepo'
+  # Do a dry-run with the tarball location /path/to/exploded/tarball with registry 'myreg.io' in repository 'myrepo'
   $0 -d -t myreg.io -l /path/to/exploded/tarball -r myrepo
 
   # List out the Verrazzano components in the default BOM file
