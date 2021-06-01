@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	defaultCAClusterResourceName string = "verrazzano-install"
+	defaultCAClusterResourceName string = "cert-manager"
 	defaultCASecretName          string = "verrazzano-ca-certificate-secret"
 
 	// Verrazzano Helm chart value names
