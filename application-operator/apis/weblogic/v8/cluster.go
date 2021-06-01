@@ -16,7 +16,12 @@ type Cluster struct {
 	ClusterName string `json:"clusterName"`
 
 	// Customization affecting ClusterIP Kubernetes services for the WebLogic cluster.
-	ClusterService KubernetesResource `json:"clusterService,omitempty"`
+	ClusterService ClusterService `json:"clusterService,omitempty"`
+
+	// The maximum number of WebLogic Server instances that will shut down in parallel for this cluster when it is being
+	// partially shut down by lowering its replica count. A value of 0 means there is no limit. Defaults to
+	// spec.maxClusterConcurrentShutdown, which defaults to 1
+	MaxConcurrentShutdown int32 `json:"maxConcurrentShutdown,omitempty"`
 
 	// The maximum number of Managed Servers instances that the operator will start in parallel for this cluster in
 	// response to a change in the replicas count. If more Managed Server instances must be started, the operator
