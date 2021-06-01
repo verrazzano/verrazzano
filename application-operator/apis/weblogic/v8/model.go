@@ -12,6 +12,15 @@ type Model struct {
 	// WebLogic Deploy Tooling domain type. Legal values: WLS, RestrictedJRF, JRF. Defaults to WLS.
 	DomainType string `json:"domainType,omitempty"`
 
+	// Location of the WebLogic Deploy Tooling model home. Defaults to /u01/wdt/models.
+	ModelHome string `json:"modelHome,omitempty"`
+
+	// Online update option for Model In Image dynamic update.
+	OnlineUpdate OnlineUpdate `json:"onlineUpdate,omitempty"`
+
 	// Runtime encryption secret. Required when domainHomeSourceType is set to FromModel.
 	RuntimeEncryptionSecret string `json:"runtimeEncryptionSecret,omitempty"`
+
+	// Location of the WebLogic Deploy Tooling installation. Defaults to /u01/wdt/weblogic-deploy.
+	WDTInstallHome string `json:"wdtInstallHome,omitempty"`
 }
