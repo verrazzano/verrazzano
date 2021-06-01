@@ -5,11 +5,11 @@ package network_policy_test
 
 import (
 	"fmt"
+	"github.com/onsi/gomega"
 	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -123,6 +123,10 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test ingress-nginx-controller ingress failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"}}, "ingress-nginx", 80, true)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test ingress-nginx-controller ingress failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"}}, "ingress-nginx", 10254, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test ingress-nginx-controller ingress failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"}}, "ingress-nginx", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test ingress-nginx-controller ingress failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test ingress-nginx-controller egress rules")
@@ -143,16 +147,27 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				pkg.Log(pkg.Info, "Test ingress-nginx-default-backend ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "default-backend"}}, "ingress-nginx", 8080, true)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test ingress-nginx-default-backend ingress failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/component": "default-backend"}}, "ingress-nginx", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test ingress-nginx-default-backend ingress failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test istiod-verrazzano-system ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, "istio-system", 15012, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test istiod-verrazzano-system ingress failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, "istio-system", 15014, true)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test istiod-verrazzano-system ingress failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test keycloak ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "keycloak"}}, "keycloak", 8080, true)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test keycloak ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "keycloak"}}, "keycloak", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test keycloak ingress rules failed: reason = %s", err))
+			},
+			func() {
+				pkg.Log(pkg.Info, "Test mysql ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "mysql"}}, "keycloak", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test mysql ingress rules failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test keycloak egress rules")
@@ -189,6 +204,8 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				pkg.Log(pkg.Info, "Test verrazzano-api ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-api"}}, "verrazzano-system", 8775, true)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test verrazzano-api ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-api"}}, "verrazzano-system", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test verrazzano-api ingress rules failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test verrazzano-application-operator ingress rules")
@@ -206,6 +223,25 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				pkg.Log(pkg.Info, "Test verrazzano-console ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-console"}}, "verrazzano-system", 8000, true)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test verrazzano-console ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-console"}}, "verrazzano-system", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test verrazzano-console ingress rules failed: reason = %s", err))
+			},
+			func() {
+				pkg.Log(pkg.Info, "Test node-exporter ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"verrazzano.io/namespace": "monitoring"}}, "monitoring", 9100, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test node-exporter ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"verrazzano.io/namespace": "monitoring"}}, "monitoring", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test node-exporter ingress rules failed: reason = %s", err))
+			},
+			func() {
+				pkg.Log(pkg.Info, "Test istio-ingressgateway ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "istio-ingressgateway"}}, "istio-system", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test istio-ingressgateway ingress rules failed: reason = %s", err))
+			},
+			func() {
+				pkg.Log(pkg.Info, "Test istio-egressgateway ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "istio-egressgateway"}}, "istio-system", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test istio-egressgateway ingress rules failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test verrazzano-monitoring-operator egress rules")
@@ -227,11 +263,16 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test vmi-system-es-master ingress rules failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"verrazzano.binding": "system"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 9200, true)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test vmi-system-es-master ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test vmi-system-es-master ingress rules failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test vmi-system-grafana ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-grafana"}}, "verrazzano-system", 8775, true)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test vmi-system-grafana ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-grafana"}}, "verrazzano-system", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test vmi-system-grafana ingress rules failed: reason = %s", err))
+
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test vmi-system-grafana egress rules")
@@ -246,6 +287,8 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				pkg.Log(pkg.Info, "Test vmi-system-kibana ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-kibana"}}, "verrazzano-system", 8775, true)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test vmi-system-kibana ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-kibana"}}, "verrazzano-system", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test vmi-system-kibana ingress rules failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test vmi-system-prometheus rules")
@@ -253,9 +296,14 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test vmi-system-prometheus ingress rules failed: reason = %s", err))
 			},
 			func() {
-				pkg.Log(pkg.Info, "Test vweblogic-operator egress rules")
+				pkg.Log(pkg.Info, "Test weblogic-operator egress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "node-exporter"}}, "monitoring", 6443, true)
 				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator egress rules failed: reason = %s", err))
+			},
+			func() {
+				pkg.Log(pkg.Info, "Test weblogic-operator ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", 15090, true)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
 			},
 		)
 	})

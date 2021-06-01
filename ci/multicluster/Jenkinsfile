@@ -137,8 +137,9 @@ pipeline {
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
 
-        ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-
+        ADMIN_KUBECONFIG = "${KUBECONFIG_DIR}/1/kube_config"
+        TOTAL_CLUSTERS = "${params.TOTAL_CLUSTERS}"
+        MANAGED_CLUSTER_PREFIX = "managed"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
     }
