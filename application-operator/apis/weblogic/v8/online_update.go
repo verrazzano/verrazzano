@@ -15,5 +15,5 @@ type OnlineUpdate struct {
 	OnNonDynamicChanges string `json:"onNonDynamicChanges,omitempty"`
 
 	// Timeouts for WebLogic Deploy Tool.
-	wdtTimeouts WDTTimeouts `json:"wdtTimeouts,omitempty"`
+	WDTTimeouts WDTTimeouts `json:"wdtTimeouts,omitempty"`
 }
