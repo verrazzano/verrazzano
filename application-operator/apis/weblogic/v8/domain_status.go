@@ -18,7 +18,7 @@ type DomainStatus struct {
 	// that log script failures using the Operator tuning parameter 'domainPresenceFailureRetryMaxCount' (default 5).
 	// You cannot configure a limit for other types of failures, such as a Domain resource reference to an unknown
 	// secret name; in which case, the retries are unlimited.
-	IntrospectJobFailureCount uint `json:"introspectJobFailureCount,omitempty"`
+	IntrospectJobFailureCount int `json:"introspectJobFailureCount,omitempty"`
 
 	// A human readable message indicating details about why the domain is in this condition
 	Message string `json:"message,omitempty"`
