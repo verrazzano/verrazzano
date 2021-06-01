@@ -104,7 +104,8 @@ function setup_cluster_issuer() {
       acmeURL="https://acme-staging-v02.api.letsencrypt.org/directory"
     fi
 
-    kubectl apply -f <(echo "
+    # attempt first kubectl command with retry to ensure that cert-manager webhook is fully initialized
+    kubectl_apply_with_retry "
 apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
 metadata:
@@ -123,13 +124,14 @@ spec:
               name: $OCI_DNS_CONFIG_SECRET
               key: "oci.yaml"
             ocizonename: $DNS_SUFFIX
-")
+"
   elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
     if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
        [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
     log "Certificate not specified. Creating default Verrazzano Issuer and Certificate in verrazzano-install namespace"
 
-    kubectl apply -f <(echo "
+    # attempt first kubectl command with retry to ensure that cert-manager webhook is fully initialized
+    kubectl_apply_with_retry "
 apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
@@ -137,7 +139,7 @@ metadata:
   namespace: $(get_config_value ".certificates.ca.clusterResourceNamespace")
 spec:
   selfSigned: {}
-")
+"
 
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
@@ -532,6 +534,30 @@ function patch_rancher_agents() {
     else
         echo "Rancher host is the same from inside and outside the cluster.  No need to patch agents."
     fi
+}
+
+function kubectl_apply_with_retry() {
+  echo "Invoking: kubectl apply for $1"
+  local count=0
+  local ret=0
+  until kubectl apply -f <(echo "$1"); do
+    ret=$?
+    count=$((count+1))
+    if [[ "$count" -lt 60 ]]; then
+      echo "kubectl apply failed, waiting for 5 seconds and trying again"
+      sleep 5
+    else
+      break
+    fi
+  done
+
+  if [ $ret -ne 0 ]; then
+    echo "kubectl apply attempt timed out"
+  else
+    echo "kubectl apply succeeded"
+  fi
+
+  return $ret
 }
 
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
