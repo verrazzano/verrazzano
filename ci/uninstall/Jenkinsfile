@@ -360,6 +360,16 @@ pipeline {
                     """
                 }
             }
+            success {
+                script {
+                    if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                        dumpK8sCluster('verify-uninstall-cluster-dump')
+                    }
+                }
+            }
+            failure {
+                dumpK8sCluster('verify-uninstall-cluster-dump')
+            }
         }
 
         stage("Reinstall Verrazzano") {
