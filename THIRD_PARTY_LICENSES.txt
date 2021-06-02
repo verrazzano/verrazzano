@@ -2237,6 +2237,11 @@ github.com/beorn7/perks
 Copyright (C) 2013 Blake Mizerany
 
 -------- Dependency
+github.com/cespare/xxhash/v2
+-------- Copyrights
+Copyright (c) 2016 Caleb Spare
+
+-------- Dependency
 github.com/emicklei/go-restful
 -------- Copyrights
 Copyright (c) 2012,2013 Ernest Micklei
@@ -2342,6 +2347,7 @@ limitations under the License.
 -------- Dependencies Summary
 github.com/Jeffail/gabs/v2
 github.com/beorn7/perks
+github.com/cespare/xxhash/v2
 github.com/emicklei/go-restful
 github.com/gertd/go-pluralize
 github.com/json-iterator/go
@@ -2490,4 +2496,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 75db8ea0558974459f3381f948442417
+License file based on go.mod with md5 sum: a91634d9e30946768f6696a3b14d23ed
