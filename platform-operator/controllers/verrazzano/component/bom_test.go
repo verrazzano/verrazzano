@@ -31,6 +31,10 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 			"image.repository": "ghcr.io/verrazzano/cert-manager-controller",
 			"image.tag":        "0.13.1-20201016205232-4c8f3fe38",
 			"extraArgs[0]=--acme-http01-solver-image": "ghcr.io/verrazzano/cert-manager-acmesolver:0.13.1-20201016205234-4c8f3fe38",
+			"webhook.image.repository":                "ghcr.io/verrazzano/cert-manager-webhook",
+			"webhook.image.tag":                       "1.2.0-20210602163405-aac6bdf62",
+			"cainjector.image.repository":             "ghcr.io/verrazzano/cert-manager-cainjector",
+			"cainjector.image.tag":                    "1.2.0-20210602163405-aac6bdf62",
 		},
 	},
 	"ingress-controller": {
