@@ -70,7 +70,7 @@ func GetComponents() []Component {
 			chartNamespace:          "cert-manager",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "cert-manager-values.yaml"),
-			appendOverridesFunc:     appendCertManagerOverrides,
+			//appendOverridesFunc:     appendCertManagerOverrides,
 		},
 		helmComponent{
 			releaseName:             "external-dns",
