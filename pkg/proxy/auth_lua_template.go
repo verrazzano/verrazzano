@@ -6,6 +6,7 @@ package proxy
 // OidcAuthLuaFilename defines the auth.lua file name in OIDC proxy ConfigMap
 const OidcAuthLuaFilename = "auth.lua"
 
+
 // OidcAuthLuaFileTemplate is the content of auth.lua file in OIDC proxy ConfigMap
 const OidcAuthLuaFileTemplate = `|
     local me = {}

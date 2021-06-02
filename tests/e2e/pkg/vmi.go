@@ -11,11 +11,6 @@ import (
 
 // GetSystemVMICredentials - Obtain VMI system credentials
 func GetSystemVMICredentials() (*UsernamePassword, error) {
-	//	vmi, err := GetVerrazzanoMonitoringInstance("verrazzano-system", "system")
-	//	if err != nil {
-	//		return nil, fmt.Errorf("error getting system VMI: %w", err)
-	//	}
-
 	secret, err := GetSecret("verrazzano-system", "verrazzano")
 	if err != nil {
 		return nil, err
