@@ -6,7 +6,6 @@ package prometheus_test
 import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"os"
 	"strings"
 	"time"
 
@@ -18,12 +17,33 @@ const (
 	longWaitTimeout     = 10 * time.Minute
 )
 
-var adminKubeconfig = strings.Trim(os.Getenv("ADMIN_KUBECONFIG"), " ")
+var envoyStatsNamespaces = []string{
+	"ingress-nginx",
+	"istio-system",
+	"keycloak",
+	"verrazzano-system",
+}
+
+var excludePodsVS = []string{
+	"coherence-operator",
+	"oam-kubernetes-runtime",
+	"verrazzano-application-operator",
+	"verrazzano-monitoring-operator",
+	"verrazzano-operator",
+	"istiocoredns",
+	"istiod",
+}
+
+var excludePodsIstio = []string{
+	"istiocoredns",
+	"istiod",
+}
 
 var _ = ginkgo.Describe("Prometheus", func() {
+	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	// Query Prometheus for the sample metrics from the default scraping jobs
 	var _ = ginkgo.Describe("Verify default component metrics", func() {
-		if adminKubeconfig == "" {
+		if !isManagedClusterProfile {
 			ginkgo.Context("Verify metrics from NGINX ingress controller", func() {
 				ginkgo.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
 					gomega.Eventually(func() bool {
@@ -70,10 +90,10 @@ var _ = ginkgo.Describe("Prometheus", func() {
 		}
 	})
 
-	// Query Prometheus for the envoys server statistics
+	// Query Prometheus for the envoy server statistics
 	var _ = ginkgo.Describe("Verify Envoy stats", func() {
-		metricName := "envoy_server_stats_recent_lookups"
-		if adminKubeconfig == "" {
+		if !isManagedClusterProfile {
+			metricName := "envoy_server_stats_recent_lookups"
 			ginkgo.It("Verify sample metrics from job envoy-stats", func() {
 				gomega.Eventually(func() bool {
 					return pkg.MetricsExist(metricName, "job", "envoy-stats")
@@ -93,46 +113,52 @@ func verifyEnvoyStats(metricName string) bool {
 	if err != nil {
 		return false
 	}
-
-	var countVzSystem int = 0
-	var countKyycloak int = 0
-	var countIstioSystem int = 0
-	var countIngressNginx int = 0
-	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
-	if metrics != nil {
-		for _, metric := range metrics {
-			switch ns := pkg.Jq(metric, "metric", "namespace"); ns {
-			case "verrazzano-system":
-				countVzSystem++
-			case "keycloak":
-				countKyycloak++
+	clientset := pkg.GetKubernetesClientset()
+	for _, ns := range envoyStatsNamespaces {
+		pods := pkg.ListPodsInCluster(ns, clientset)
+		for _, pod := range pods.Items {
+			var retValue bool
+			switch ns {
 			case "istio-system":
-				countIstioSystem++
-			case "ingress-nginx":
-				countIngressNginx++
+				if excludePods(pod.Name, excludePodsIstio) {
+					retValue = true
+					break
+				} else {
+					retValue = verifyEnvoyStatsExist(envoyStatsMetric, ns, pod.Name)
+				}
+			case "verrazzano-system":
+				if excludePods(pod.Name, excludePodsVS) {
+					retValue = true
+					break
+				} else {
+					retValue = verifyEnvoyStatsExist(envoyStatsMetric, ns, pod.Name)
+				}
+			default:
+				retValue = verifyEnvoyStatsExist(envoyStatsMetric, ns, pod.Name)
+			}
+			if !retValue {
+				return false
 			}
 		}
 	}
-
-	// keycloak and mysql pods
-	gomega.Expect(countKyycloak == 2).To(gomega.BeTrue())
-
-	// istio-ingressgateway and istio-egressgateway
-	gomega.Expect(countIstioSystem == 2).To(gomega.BeTrue())
-
-	// ingress-controller-ingress-nginx-controller and ingress-controller-ingress-nginx-defaultbackend
-	gomega.Expect(countIngressNginx == 2).To(gomega.BeTrue())
-
-	// Pods in verrazzano-system with envoy proxy - verrazzano-console, weblogic-operator, vmi-system-kibana,
-	// vmi-system-prometheus, verrazzano-api, vmi-system-grafana, vmi-system-es-master-0, fluentd
-	//
-	// With the default replica count, prod profile contains additional ES pods vmi-system-es-data-0, vmi-system-es-data-1,
-	//vmi-system-es-master-1, and vmi-system-es-master-2 and vmi-system-es-ingest, when compared to dev profile.
-	if pkg.IsProdProfile() {
-		gomega.Expect(countVzSystem == 13).To(gomega.BeTrue())
-	} else if pkg.IsDevProfile() {
-		// The dev profile contains 2 additional fluentd pods, when compared to prod profile.
-		gomega.Expect(countVzSystem == 10).To(gomega.BeTrue())
-	}
 	return true
+}
+
+func excludePods(podName string, excludeList []string) bool {
+	for _, excludes := range excludeList {
+		if strings.HasPrefix(podName, excludes) {
+			return true
+		}
+	}
+	return false
+}
+
+func verifyEnvoyStatsExist(envoyStatsMetric string, namespace string, podName string) bool {
+	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
+	for _, metric := range metrics {
+		if pkg.Jq(metric, "metric", "namespace") == namespace && pkg.Jq(metric, "metric", "pod_name") == podName {
+			return true
+		}
+	}
+	return false
 }
