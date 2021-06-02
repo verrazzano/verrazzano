@@ -22,7 +22,7 @@ For example, to check all files in the Verrazzano repo, you can run it as follow
 ```shell
 $ cd ${VERRAZZANO_ROOT}
 $ go run copyright.go .
-Files to ignore: [platform-operator/scripts/install/config/00-crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
+Files to ignore: [platform-operator/scripts/install/config/cert-manager.crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
 Directories to ignore: [platform-operator/thirdparty .idea]
 
 Copyright scanning target .
@@ -38,7 +38,7 @@ Adding `--verbose` will spit out more details.  For example:
 
 ```shell
 $ go run tools/copyright/copyright.go --verbose platform-operator/scripts 
-Files to ignore: [platform-operator/scripts/install/config/00-crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt]
+Files to ignore: [platform-operator/scripts/install/config/cert-manager.crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt]
 Directories to ignore: [platform-operator/thirdparty]
 
 Copyright scanning target platform-operator/scripts
@@ -47,7 +47,7 @@ Scanning platform-operator/scripts/install/2-install-system-components.sh
 Scanning platform-operator/scripts/install/3-install-verrazzano.sh
 Scanning platform-operator/scripts/install/4-install-keycloak.sh
 Scanning platform-operator/scripts/install/common.sh
-Skipping file platform-operator/scripts/install/config/00-crds.patch
+Skipping file platform-operator/scripts/install/config/cert-manager.crds.patch
 Skipping file platform-operator/scripts/install/config/config_defaults.json
 Skipping file platform-operator/scripts/install/config/config_kind.json
 Skipping file platform-operator/scripts/install/config/config_oci.json
@@ -97,7 +97,7 @@ copyright/licsense information:
 ```shell
 $ go run tools/copyright/copyright.go --verbose --enforce-current  $(git status --short | cut -c 4-)
 Enforcing current year in copyright string
-Files to ignore: [platform-operator/scripts/install/config/00-crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
+Files to ignore: [platform-operator/scripts/install/config/cert-manager.crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
 Directories to ignore: [platform-operator/thirdparty .idea]
 
 Copyright scanning target ignore_copyright_check.txt
@@ -122,7 +122,7 @@ to the scanner, and also checks for the current year in the copyright:
 ```shell
 $ go run tools/copyright/copyright.go --enforce-current $(git diff --name-only origin/master) 
 Enforcing current year in copyright string
-Files to ignore: [platform-operator/scripts/install/config/00-crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
+Files to ignore: [platform-operator/scripts/install/config/cert-manager.crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
 Directories to ignore: [platform-operator/thirdparty .idea]
 
 Copyright scanning target Jenkinsfile

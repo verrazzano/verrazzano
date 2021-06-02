@@ -79,6 +79,14 @@ type DomainSpec struct {
 	// IntrospectVersion Changes to this field cause the operator to repeat its introspection of the WebLogic domain configuration.
 	IntrospectVersion string `json:"introspectVersion,omitempty"`
 
+	// LivenessProbeCustomScript Full path of an optional liveness probe custom script for WebLogic Server instance
+	// pods. The existing liveness probe script livenessProbe.sh will invoke this custom script after the existing
+	// script performs its own checks. This element is optional and is for advanced usage only. Its value is not set by
+	// default. If the custom script fails with non-zero exit status, then pod will fail the liveness probe and
+	// Kubernetes will restart the container. If the script specified by this element value is not found, then it
+	// is ignored.
+	LivenessProbeCustomScript string `json:"livenessProbeCustomScript,omitempty"`
+
 	// LogHome The in-pod name of the directory in which to store the domain, node manager, server logs, and server *.out files
 	LogHome string `json:"logHome"`
 
@@ -89,10 +97,24 @@ type DomainSpec struct {
 	// +x-kubernetes-list-type=set
 	ManagedServers []ManagedServer `json:"managedServers,omitempty"`
 
+	// MaxClusterConcurrentShutdown The default maximum number of WebLogic Server instances that a cluster will shut
+	// down in parallel when it is being partially shut down by lowering its replica count. You can override this
+	// default on a per cluster basis by setting the cluster's maxConcurrentShutdown field. A value of 0 means there is
+	// no limit. Defaults to 1.
+	MaxClusterConcurrentShutdown int32 `json:"maxClusterConcurrentShutdown,omitempty"`
+
 	// MaxClusterConcurrentStartup The maximum number of cluster member Managed Server instances that the operator will start in parallel
 	// for a given cluster, if maxConcurrentStartup is not specified for a specific cluster under the clusters field.
 	// A value of 0 means there is no configured limit. Defaults to 0.
 	MaxClusterConcurrentStartup int32 `json:"maxClusterConcurrentStartup,omitempty"`
+
+	// MonitoringExporter Automatic deployment and configuration of the WebLogic Monitoring Exporter. If specified, the
+	// operator will deploy a sidecar container alongside each WebLogic Server instance that runs the exporter. WebLogic
+	// Server instances that are already running when the monitoringExporter field is created or deleted, will not be
+	// affected until they are restarted. When any given server is restarted for another reason, such as a change to the
+	// restartVersion, then the newly created pod will have the exporter sidecar or not, as appropriate.
+	// See https://github.com/oracle/weblogic-monitoring-exporter.
+	MonitoringExporter MonitoringExporterSpec `json:"monitoringExporter,omitempty"`
 
 	// Replicas The number of managed servers to run in any cluster that does not specify a replica count.
 	// This is a pointer to distinguish between explicit zero and not specified.

@@ -3,6 +3,7 @@
 ---
 # Network policy for WebLogic operator
 # Ingress: allow from istio-system
+#          allow connect from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -20,6 +21,16 @@ spec:
       - namespaceSelector:
           matchLabels:
             verrazzano.io/namespace: istio-system
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 15090
+          protocol: TCP
 ---
 # Network policy for Coherence Operator
 # Ingress: allow connect from Kubernetes API server to validating webhook port 9443
@@ -42,6 +53,7 @@ spec:
 ---
 # Network policy for VMI System Grafana
 # Ingress: allow connect from the ingress controller to oidc port 8775
+#          allow connect from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -64,6 +76,16 @@ spec:
               app.kubernetes.io/instance: ingress-controller
       ports:
         - port: 8775
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 15090
           protocol: TCP
 ---
 # Network policy for VMI System Prometheus
@@ -169,10 +191,13 @@ spec:
       ports:
         - port: 9100
           protocol: TCP
+        - port: 15090
+          protocol: TCP
 {{- if .Values.keycloak.enabled }}
 ---
 # Network policy for Keycloak
 # Ingress: allow nginx ingress and ingress from pods in the verrazzano-system namespace
+#          allow connect from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -203,9 +228,20 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: verrazzano-system
+        podSelector:
+          matchLabels:
+            app: system-prometheus
+      ports:
+        - port: 15090
+          protocol: TCP
 ---
 # Network policy for Keycloak MySQL
 # Ingress: allow port 3306 from Keycloak pods
+#          allow connect from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -226,6 +262,16 @@ spec:
       ports:
         - protocol: TCP
           port: 3306
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: verrazzano-system
+        podSelector:
+          matchLabels:
+            app: system-prometheus
+      ports:
+        - port: 15090
+          protocol: TCP
 {{- end }}
 ---
 # Network policy for Rancher cluster agent
@@ -336,8 +382,11 @@ spec:
             matchLabels:
               verrazzano.io/namespace: verrazzano-system
     # Allow ingress to port 10254 from system-prometheus to scrape metrics
+    # Allow ingress to port 15090 from system-prometheus to scrape Envoy stats
     - ports:
         - port: 10254
+          protocol: TCP
+        - port: 15090
           protocol: TCP
       from:
         - namespaceSelector:
@@ -369,6 +418,16 @@ spec:
       ports:
         - port: 8080
           protocol: TCP
+    - ports:
+        - port: 15090
+          protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
 ---
 # Network policy for istio-system pod communication
 # Ingress: allow all pod-to-pod communication within the namespace
@@ -388,6 +447,7 @@ spec:
 ---
 # Network policy for Istio ingress gateway
 # Ingress: allow ingress to port 8443 from anywhere
+#          allow ingress to port 15090 from Prometheus to scrape Envoy stats
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -404,6 +464,16 @@ spec:
     - ports:
         - port: 8443
           protocol: TCP
+    - ports:
+        - port: 15090
+          protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
 ---
 # Network policy for Istio egress gateway
 # Ingress: allow ingress to port 8443 from anywhere
@@ -423,6 +493,16 @@ spec:
     - ports:
         - port: 8443
           protocol: TCP
+    - ports:
+        - port: 15090
+          protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
 ---
 # Network policy for Istio coredns
 # Ingress: allow ingress to port 53 from kube-system DNS
