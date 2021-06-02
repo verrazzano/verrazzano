@@ -67,7 +67,7 @@ create_kind_cluster() {
   fi
   # List the permissions of /dev/null.  We have seen a failure where `docker ps` gets an operation not permitted error.
   # Listing the permissions will help to analyze what is wrong, if we see the failure again.
-  echo "Listing permissons for /dev/null"
+  echo "Listing permissions for /dev/null"
   ls -l /dev/null
   echo "Using ${KIND_CONFIG_FILE}"
   sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
