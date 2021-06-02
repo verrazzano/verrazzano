@@ -13,6 +13,8 @@ metadata:
   labels:
     name: coherence-operator
     control-plane: coherence
+    app: coherence-operator
+    version: v3.1.5
   name: coherence-operator-webhook-service
   namespace: {{ .Release.Namespace }}
 spec:
@@ -22,12 +24,31 @@ spec:
   selector:
     control-plane: coherence
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: coherence-operator-rest
+  namespace: {{ .Release.Namespace }}
+  labels:
+    control-plane: coherence
+    app: coherence-operator
+    version: v3.1.5
+spec:
+  ports:
+    - name: http-rest
+      port: 8000
+      targetPort: 8000
+  selector:
+    control-plane: coherence
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     control-plane: coherence
-  name: coherence-operator-controller-manager
+    app: coherence-operator
+    version: v3.1.5
+  name: coherence-operator
   namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1
@@ -38,11 +59,18 @@ spec:
     metadata:
       labels:
         control-plane: coherence
+        app: coherence-operator
+        version: v3.1.5
     spec:
+      serviceAccountName: {{ default "coherence-operator" .Values.serviceAccountName }}
       containers:
       - name: manager
         args:
         - --enable-leader-election
+{{- if (eq .Values.clusterRoles false) }}
+        - --enable-webhook=false
+        - --install-crd=false
+{{- end }}
         command:
         - /manager
         env:
@@ -58,6 +86,8 @@ spec:
           value: coherence-operator-webhook-service
         - name: WEBHOOK_SECRET
           value: {{ default "coherence-webhook-server-cert" .Values.webhookCertSecret }}
+        - name: SERVICE_NAME
+          value: coherence-operator-rest
         - name: CERT_TYPE
           value: {{ default "self-signed" .Values.webhookCertType | quote }}
         - name: COHERENCE_IMAGE
@@ -69,16 +99,35 @@ spec:
         - name: UTILS_IMAGE
           value: {{ .Values.defaultCoherenceUtilsImage | quote }}
         - name: WATCH_NAMESPACE
+{{- if .Values.clusterRoles }}
           value: {{ .Values.watchNamespaces | quote }}
+{{- else }}
+          value: {{ .Release.Namespace | quote }}
+{{- end }}
         image: {{ .Values.image }}
         ports:
+        - containerPort: 8000
+          name: operator
+          protocol: TCP
         - name: webhook-server
           containerPort: 9443
+          protocol: TCP
+        - containerPort: 8080
+          name: metrics-server
+          protocol: TCP
+        - containerPort: 8088
+          name: health-server
           protocol: TCP
         volumeMounts:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: cert
           readOnly: true
+        readinessProbe:
+          tcpSocket:
+            port: metrics-server
+          initialDelaySeconds: {{ default 10 .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ default 10 .Values.readinessProbe.periodSeconds }}
+          failureThreshold: {{ default 3 .Values.readinessProbe.failureThreshold }}
 {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}

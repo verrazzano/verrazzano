@@ -43,6 +43,5 @@ func loadStagingCA(httpClient *http.Client, resURL string, caCertName string) []
 		fmt.Printf("Unable to load ACME %s staging CA, status: %v\n", caCertName, status)
 		return nil
 	}
-	fmt.Printf("Loaded ACME %s staging CA, status == %v\n", caCertName, status)
 	return []byte(pemData)
 }

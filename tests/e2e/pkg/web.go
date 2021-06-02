@@ -361,15 +361,19 @@ func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
 
 // rootCertPool returns the root cert pool
 func rootCertPool(caData []byte) *x509.CertPool {
+	if len(caData) == 0 {
+		return nil
+	}
 	// if we have caData, use it
 	certPool := x509.NewCertPool()
-	for _, stagingCA := range getACMEStagingCAs() {
-		if len(stagingCA) > 0 {
-			certPool.AppendCertsFromPEM(stagingCA)
+	certPool.AppendCertsFromPEM(caData)
+
+	if IsACMEStagingEnabled() {
+		for _, stagingCA := range getACMEStagingCAs() {
+			if len(stagingCA) > 0 {
+				certPool.AppendCertsFromPEM(stagingCA)
+			}
 		}
-	}
-	if len(caData) != 0 {
-		certPool.AppendCertsFromPEM(caData)
 	}
 	return certPool
 }

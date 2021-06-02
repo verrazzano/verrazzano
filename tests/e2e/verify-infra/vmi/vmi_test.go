@@ -185,6 +185,7 @@ var _ = ginkgo.Describe("VMI", func() {
 				return pkg.FindLog("verrazzano-systemd-journal",
 					[]pkg.Match{
 						{Key: "tag", Value: "systemd"},
+						{Key: "TRANSPORT", Value: "journal"},
 						{Key: "cluster_name", Value: constants.MCLocalCluster}},
 					[]pkg.Match{})
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
