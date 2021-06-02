@@ -16,7 +16,6 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/typed/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
@@ -76,11 +75,9 @@ func verrazzanoInstallerCRD() (*apiextensionsv1beta1.CustomResourceDefinition, e
 }
 
 var (
-	creds  *pkg.UsernamePassword
-	vmiCRD *apiextensionsv1beta1.CustomResourceDefinition
-	vzCRD  *apiextensionsv1beta1.CustomResourceDefinition
-	//installCR              *v1alpha1.Verrazzano
-	vzClient               installv1alpha1.VerrazzanoInterface
+	creds                  *pkg.UsernamePassword
+	vmiCRD                 *apiextensionsv1beta1.CustomResourceDefinition
+	vzCRD                  *apiextensionsv1beta1.CustomResourceDefinition
 	ingressURLs            map[string]string
 	volumeClaims           map[string]*corev1.PersistentVolumeClaim
 	elastic                *vmi.Elastic
@@ -269,31 +266,6 @@ func assertPersistentVolume(key string, size string) {
 	gomega.Expect(pvc.Spec.Resources.Requests.Storage().String()).To(gomega.Equal(size))
 }
 
-func jq(node interface{}, path ...string) interface{} {
-	for _, p := range path {
-		node = node.(map[string]interface{})[p]
-	}
-	return node
-}
-
-func assertURLByIngressName(key string) {
-	gomega.Expect(ingressURLs).To(gomega.HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
-	assertIngressURL(ingressURLs[key])
-}
-
-func assertIngressURL(url string) {
-	assertUnAuthorized := assertURLAccessibleAndUnauthorized
-	assertAuthorized := assertURLAccessibleAndAuthorized
-	pkg.Concurrently(
-		func() {
-			gomega.Eventually(func() bool { return assertUnAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
-		},
-		func() {
-			gomega.Eventually(func() bool { return assertAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
-		},
-	)
-}
-
 func assertURLAccessibleAndAuthorized(url string) bool {
 	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
 	return pkg.AssertURLAccessibleAndAuthorized(vmiHTTPClient, url, creds)
@@ -314,16 +286,6 @@ func assertBearerAuthorized(url string) bool {
 	resp.Body.Close()
 	pkg.Log(pkg.Info, fmt.Sprintf("assertBearerAuthorized %v Response:%v Error:%v", url, resp.StatusCode, err))
 	return resp.StatusCode == http.StatusOK
-}
-
-func assertURLAccessibleAndUnauthorized(url string) bool {
-	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
-	resp, err := vmiHTTPClient.Get(url)
-	if err != nil {
-		return false
-	}
-	pkg.Log(pkg.Info, fmt.Sprintf("assertURLAccessibleAndUnauthorized %v Response:%v Error:%v", url, resp.StatusCode, err))
-	return resp.StatusCode == http.StatusUnauthorized
 }
 
 func assertOauthURLAccessibleAndUnauthorized(url string) bool {

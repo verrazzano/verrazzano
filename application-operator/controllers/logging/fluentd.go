@@ -12,7 +12,6 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -404,31 +403,4 @@ func resourceExists(ctx context.Context, r k8sclient.Reader, apiVersion, kind, n
 	resources.SetKind(kind)
 	err := r.List(ctx, &resources, k8sclient.InNamespace(namespace), k8sclient.MatchingFields{"metadata.name": name})
 	return len(resources.Items) != 0, err
-}
-
-// copies the logging related data from one secret to another
-func copyLoggingData(original *corev1.Secret, namespace, name string) *corev1.Secret {
-	data := map[string][]byte{}
-	if original.Data[constants.ClusterNameData] != nil {
-		data[constants.ClusterNameData] = original.Data[constants.ClusterNameData]
-	}
-	if original.Data[constants.ElasticsearchURLData] != nil {
-		data[constants.ElasticsearchURLData] = original.Data[constants.ElasticsearchURLData]
-	}
-	if original.Data[constants.ElasticsearchUsernameData] != nil {
-		data[constants.ElasticsearchUsernameData] = original.Data[constants.ElasticsearchUsernameData]
-	}
-	if original.Data[constants.ElasticsearchPasswordData] != nil {
-		data[constants.ElasticsearchPasswordData] = original.Data[constants.ElasticsearchPasswordData]
-	}
-	if original.Data[constants.ElasticsearchCABundleData] != nil {
-		data[constants.ElasticsearchCABundleData] = original.Data[constants.ElasticsearchCABundleData]
-	}
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-		Data: data,
-	}
 }
