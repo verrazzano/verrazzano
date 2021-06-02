@@ -202,7 +202,8 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	req, err := retryablehttp.NewRequest(method, url, body)
 	if err != nil {
 		Log(Error, err.Error())
-		ginkgo.Fail("Could not create request")
+		// See comment below about not calling Fail() here - there are cases where this should be retried
+		return teapot, ""
 	}
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
