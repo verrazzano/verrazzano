@@ -49,7 +49,7 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "1.2.0-20210602152031-aac6bdf62",
+              "tag": "1.2.0-20210602163405-aac6bdf62",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
@@ -60,13 +60,13 @@
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "1.2.0-20210602152031-aac6bdf62",
+              "tag": "1.2.0-20210602163405-aac6bdf62",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "1.2.0-20210602152031-aac6bdf62",
+              "tag": "1.2.0-20210602163405-aac6bdf62",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
