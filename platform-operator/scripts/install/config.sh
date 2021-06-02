@@ -14,6 +14,8 @@ EFFECTIVE_CONFIG_VALUES="${INSTALL_OVERRIDES_DIR}/effective.config.json"
 # The max length of the environment name passed in by the user.
 ENV_NAME_LENGTH_LIMIT=10
 
+MANAGED_CLUSTER_PROFILE="managed-cluster"
+
 # Read a JSON installation config file and output the JSON to stdout
 function read_config() {
   local config_file=$1
@@ -395,6 +397,68 @@ function is_rancher_enabled() {
 function is_keycloak_enabled() {
   local keycloak_enabled=$(get_config_value '.keycloak.enabled')
   echo ${keycloak_enabled}
+}
+
+# Return the value for the key elasticSearch.enabled
+function is_elasticsearch_enabled() {
+  local es_enabled=$(get_config_value '.elasticSearch.enabled')
+  echo ${es_enabled}
+}
+
+# Return the value for the key grafana.enabled
+function is_grafana_enabled() {
+  local grafana_enabled=$(get_config_value '.grafana.enabled')
+  echo ${grafana_enabled}
+}
+
+# Return the value for the key kibana.enabled
+function is_kibana_enabled() {
+  local kibana_enabled=$(get_config_value '.kibana.enabled')
+  echo ${kibana_enabled}
+}
+
+# Return the value for the key console.enabled
+function is_vz_console_enabled() {
+  local console_enabled=$(get_config_value '.console.enabled')
+  echo ${console_enabled}
+}
+
+# Return the value for the key prometheus_enabled.enabled
+function is_prometheus_enabled() {
+  # Return false always from managed profile, as the admin cluster scrapes the metrics from managed clusters
+  if [ $(get_install_profile) == ${MANAGED_CLUSTER_PROFILE} ]; then
+    echo "false"
+  else
+    local prometheus_enabled=$(get_config_value '.prometheus.enabled')
+    echo ${prometheus_enabled}
+  fi
+}
+
+# Return the total number of user interfaces available
+function get_console_count() {
+  console_count=0
+
+  if [ "$(is_grafana_enabled)" == "true" ]; then
+    console_count=$((console_count + 1))
+  fi
+
+  if [ "$(is_kibana_enabled)" == "true" ]; then
+    console_count=$((console_count + 1))
+  fi
+
+  if [ "$(is_vz_console_enabled)" == "true" ]; then
+    console_count=$((console_count + 1))
+  fi
+
+  if [ "$(is_elasticsearch_enabled)" == "true" ]; then
+    console_count=$((console_count + 1))
+  fi
+
+  if [ "$(is_prometheus_enabled)" == "true" ]; then
+    console_count=$((console_count + 1))
+  fi
+  echo "${console_count}"
+
 }
 
 # Return a flag indicating whether this is an installation leveraging OCI DNS
