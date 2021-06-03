@@ -32,7 +32,6 @@ func getAPIProxyConfig() OidcProxyConfig {
 	proxyConfig.PKCEClientID = "verrazzano-pkce"
 	proxyConfig.PGClientID = "verrazzano-pg"
 	proxyConfig.RequiredRealmRole = "vz_api_access"
-	proxyConfig.AuthnStateTTL = 300
 
 	return proxyConfig
 }

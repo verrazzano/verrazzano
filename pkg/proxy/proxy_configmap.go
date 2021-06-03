@@ -96,14 +96,6 @@ func executeTemplateWithValues(templateName string, templateString string, value
 
 // GetOidcProxyConfigMapData returns a map containing config files for a proxy instance
 func GetOidcProxyConfigMapData(config OidcProxyConfig) (map[string]string, error) {
-	// set default values
-	config.OidcRealm = OidcRealmName
-	config.PKCEClientID = OidcPkceClientID
-	config.PGClientID = OidcPgClientID
-	config.OidcCallbackPath = OidcCallbackPath
-	config.OidcLogoutCallbackPath = OidcLogoutCallbackPath
-	config.RequiredRealmRole = OidcRequiredRealmRole
-	config.AuthnStateTTL = OidcAuthnStateTTL
 	// execute the templates
 	confLua, err := oidcConfLua(config)
 	if err != nil {

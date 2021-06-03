@@ -26,6 +26,7 @@ const OidcAuthLuaFileTemplate = `|
 
     local oidcProviderUri = nil
     local oidcProviderInClusterUri = nil
+    local oidcIssuerUri = nil
 
     local logoutCallbackUri = nil
 
@@ -41,29 +42,28 @@ const OidcAuthLuaFileTemplate = `|
     end
 
     function me.initOidcProviderUris()
-{{ if eq .Mode "oauth-proxy" }}
         oidcProviderUri = 'https://'..oidcProviderHost..'/auth/realms/'..oidcRealm
         if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
             oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..oidcRealm
-        else
-            oidcProviderInClusterUri = nil
         end
+        oidcIssuerUri = oidcProviderUri
+{{ if eq .Mode "oauth-proxy" }}
         logoutCallbackUri = ingressUri..logoutCallbackPath
 {{ else if eq .Mode "api-proxy" }}
-        oidcProviderUri = me.read_file("/api-config/keycloak-url")
-        if oidcProviderUri and oidcProviderUri ~= "" then
-            oidcProviderUri = oidcProviderUri..'/auth/realms/'..oidcRealm
-        else
-            oidcProviderUri = nil
-            me.logJson(ngx.INFO, "No keycloak-url specified in api-config. Using in-cluster keycloak url.")
+        local keycloakURL = me.read_file("/api-config/keycloak-url")
+        if keycloakURL and keycloakURL ~= "" then
+            me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.)
+            oidcProviderInClusterUri = nil
         end
-        oidcProviderInClusterUri = 'http://keycloak-http.keycloak.svc.cluster.local'..'/auth/realms/'..oidcRealm
 {{ end }}
         if oidcProviderUri then
             me.info("set oidcProviderUri to "..oidcProviderUri)
         end
         if oidcProviderInClusterUri then
             me.info("set oidcProviderInClusterUri to "..oidcProviderInClusterUri)
+        end
+        if oidcIssuerUri then
+            me.info("set oidcIssuerUri to "..oidcIssuerUri)
         end
     end
 
@@ -199,6 +199,10 @@ const OidcAuthLuaFileTemplate = `|
         local u = decode:sub(1, found-1)
         local p = decode:sub(found+1)
         local tokenRes = me.oidcGetTokenWithBasicAuth(u, p)
+        if not tokenRes then
+            me.unauthorized("Could not get token")
+        end
+        me.oidcValidateToken(tokenRes.idt)
         local expires_in = tonumber(tokenRes.expires_in)
         for key, val in pairs(basicCache) do
             if val.expiry and now > val.expiry then
@@ -300,6 +304,7 @@ const OidcAuthLuaFileTemplate = `|
             end
             local tokenRes = me.oidcGetTokenWithCode(code, cookie.code_verifier, me.callbackUri)
             if tokenRes then
+                me.oidcValidateToken(tokenRes.idt)
                 me.tokenToCookie(tokenRes)
                 ngx.redirect(request_uri)
             end
@@ -372,7 +377,7 @@ const OidcAuthLuaFileTemplate = `|
         me.logJson(ngx.INFO, "Validating JWT token")
         local claim_spec = {
             typ = validators.equals( "Bearer" ),
-            iss = validators.equals( "https://keycloak.will.193.122.59.255.nip.io/auth/realms/verrazzano-system" ),
+            iss = validators.equals( oidcIssuerUri ),
             iat = validators.is_not_before(),
             exp = validators.is_not_expired(),
             azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient, "webui", "verrazzano-oauth-client" }),

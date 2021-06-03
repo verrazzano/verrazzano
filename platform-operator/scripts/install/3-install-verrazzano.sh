@@ -145,6 +145,8 @@ function install_verrazzano()
         --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
         --set keycloak.enabled=$(is_keycloak_enabled) \
         --set rancher.enabled=$(is_rancher_enabled) \
+        --set api.proxy.OidcProviderHost="keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+        --set api.proxy.OidcProviderInClusterHost="keycloak-http.keycloak.svc.cluster.local"
         ${HELM_IMAGE_ARGS} \
         ${PROFILE_VALUES_OVERRIDE} \
         ${EXTRA_V8O_ARGUMENTS} || return $?
