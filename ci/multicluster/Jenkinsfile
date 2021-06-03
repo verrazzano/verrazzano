@@ -301,7 +301,7 @@ pipeline {
                                     }
                                     steps {
                                         script {
-                                            configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", $ACME_ENVIRONMENT)
+                                            configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", params.ACME_ENVIRONMENT)
                                         }
                                     }
                                 }
