@@ -1888,6 +1888,7 @@ Copyright (c) 2017 The Go Authors. All rights reserved.
 Copyright 2017, The Go Authors. All rights reserved.
 Copyright 2018, The Go Authors. All rights reserved.
 Copyright 2019, The Go Authors. All rights reserved.
+Copyright 2020, The Go Authors. All rights reserved.
 
 -------- Dependency
 github.com/google/uuid
@@ -2548,4 +2549,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: e53d05350d16104c7f83f3398e89d4b3
+License file based on go.mod with md5 sum: 131d6990a153f70a6e98f4c121f28a5b
