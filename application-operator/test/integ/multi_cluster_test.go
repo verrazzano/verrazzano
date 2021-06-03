@@ -54,7 +54,7 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		mcsecret, err := K8sClient.GetMultiClusterSecret(multiclusterTestNamespace, "mymcsecret")
 		gomega.Expect(err).To(gomega.BeNil())
 		gomega.Eventually(func() bool {
-			return secretExistsWithData(multiclusterTestNamespace, "mymcsecret", mcsecret.Spec.Template.Data)
+			return secretExistsWithFields(multiclusterTestNamespace, "mymcsecret", mcsecret)
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply MultiClusterSecret with 2 placements remains pending", func() {
@@ -63,7 +63,7 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		mcsecret, err := K8sClient.GetMultiClusterSecret(multiclusterTestNamespace, "mymcsecret2")
 		gomega.Expect(err).To(gomega.BeNil())
 		gomega.Eventually(func() bool {
-			return secretExistsWithData(multiclusterTestNamespace, "mymcsecret2", mcsecret.Spec.Template.Data)
+			return secretExistsWithFields(multiclusterTestNamespace, "mymcsecret2", mcsecret)
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 		gomega.Eventually(func() bool {
 			// Verify we have the expected status update
@@ -277,7 +277,17 @@ func appConfigExistsWithFields(namespace string, name string, multiClusterAppCon
 			appConfig.Spec.Components[i].ComponentName == expectedComp.ComponentName
 	}
 	if !areEqual {
-		fmt.Println("Retrieved app config spec doesn't match multi cluster app config spec")
+		fmt.Println("Retrieved app config spec doesn't match multi cluster app config spec: components mismatch")
+		return false
+	}
+	// check annotations
+	areEqual = true
+	for i, expectedAnnotation := range multiClusterAppConfig.Spec.Template.Metadata.Annotations {
+		areEqual = areEqual &&
+			appConfig.Annotations[i] == expectedAnnotation
+	}
+	if !areEqual {
+		fmt.Println("Retrieved app config spec doesn't match multi cluster app config spec:  annotations mismatch")
 		return false
 	}
 	return true
@@ -311,10 +321,12 @@ func componentExistsWithFields(namespace string, name string, multiClusterComp *
 	return false
 }
 
-func secretExistsWithData(namespace, name string, secretData map[string][]byte) bool {
+func secretExistsWithFields(namespace, name string, mcsecret *clustersv1alpha1.MultiClusterSecret) bool {
 	fmt.Printf("Looking for Kubernetes secret %v/%v\n", namespace, name)
 	secret, err := K8sClient.GetSecret(namespace, name)
-	return err == nil && reflect.DeepEqual(secret.Data, secretData)
+	return err == nil && reflect.DeepEqual(secret.Data, mcsecret.Spec.Template.Data) &&
+		mcsecret.Spec.Template.Metadata.Namespace == secret.Namespace &&
+		mcsecret.Spec.Template.Metadata.Name == secret.Name
 }
 
 func configMapExistsMatchingMCConfigMap(namespace, name string, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) bool {
@@ -322,7 +334,8 @@ func configMapExistsMatchingMCConfigMap(namespace, name string, mcConfigMap *clu
 	configMap, err := K8sClient.GetConfigMap(namespace, name)
 	return err == nil &&
 		reflect.DeepEqual(configMap.Data, mcConfigMap.Spec.Template.Data) &&
-		reflect.DeepEqual(configMap.BinaryData, mcConfigMap.Spec.Template.BinaryData)
+		reflect.DeepEqual(configMap.BinaryData, mcConfigMap.Spec.Template.BinaryData) &&
+		reflect.DeepEqual(configMap.Labels, mcConfigMap.Spec.Template.Metadata.Labels)
 }
 
 func createRegistrationSecret() {
