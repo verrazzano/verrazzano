@@ -96,20 +96,6 @@ data:
   systemd-input.conf: |
     <source>
       @type systemd
-      @id in_systemd
-      read_from_head true
-      tag systemd
-      <storage>
-        @type local
-        persistent true
-        path /tmp/journald_pos.json
-      </storage>
-      <entry>
-        fields_strip_underscores true
-      </entry>
-    </source>
-    <source>
-      @type systemd
       @id in_systemd_run
       read_from_head true
       tag systemd
