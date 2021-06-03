@@ -172,7 +172,7 @@ var _ = ginkgo.Describe("VMI", func() {
 						return pkg.LogRecordFound(indexName,
 							time.Now().Add(-24*time.Hour), map[string]string{
 								"kubernetes.container_name": "verrazzano-application-operator",
-								"caller":                    "mcagent",
+								"caller":                    "controller",
 								"cluster_name":              constants.MCLocalCluster,
 							})
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a verrazzano-application-operator log record")
