@@ -234,7 +234,7 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 
 // getHTTPClientWithCABundle returns an HTTP client configured with the provided CA cert
 func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Client {
-	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCertPool(caData)}}
+	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCertPoolInCluster(caData, kubeconfigPath)}}
 
 	proxyURL := getProxyURL()
 	if proxyURL != "" {
@@ -311,8 +311,8 @@ func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
 	return retryableClient
 }
 
-// rootCertPool returns the root cert pool
-func rootCertPool(caData []byte) *x509.CertPool {
+// rootCertPoolInCluster returns the root cert pool
+func rootCertPoolInCluster(caData []byte, kubeconfigPath string) *x509.CertPool {
 	var certPool *x509.CertPool = nil
 
 	if len(caData) != 0 {
@@ -321,7 +321,7 @@ func rootCertPool(caData []byte) *x509.CertPool {
 		certPool.AppendCertsFromPEM(caData)
 	}
 
-	if IsACMEStagingEnabled() {
+	if IsACMEStagingEnabledInCluster(kubeconfigPath) {
 		// Add the ACME staging CAs if necessary
 		if certPool == nil {
 			certPool = x509.NewCertPool()
