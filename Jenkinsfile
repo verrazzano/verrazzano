@@ -5,6 +5,8 @@ def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def SUSPECT_LIST = ""
 
+def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+
 pipeline {
     options {
         skipDefaultCheckout true
