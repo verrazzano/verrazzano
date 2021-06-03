@@ -152,6 +152,7 @@ func metricsContainLabels(metricName string, key1, value1, key2, value2 string) 
 	return true
 }
 
+// Validate the Istio envoy stats
 func verifyEnvoyStats(metricName string) bool {
 	envoyStatsMetric, err := pkg.QueryMetric(metricName, adminKubeconfig)
 	if err != nil {
@@ -194,20 +195,22 @@ func verifyEnvoyStats(metricName string) bool {
 	return true
 }
 
-func excludePods(podName string, excludeList []string) bool {
-	for _, excludes := range excludeList {
-		if strings.HasPrefix(podName, excludes) {
+// Assert the existence of labels for namespace and pod in the envoyStatsMetric
+func verifyEnvoyStatsExist(envoyStatsMetric string, namespace string, podName string, managedCluster string) bool {
+	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
+	for _, metric := range metrics {
+		if pkg.Jq(metric, "metric", "namespace") == namespace && pkg.Jq(metric, "metric", "pod_name") == podName &&
+			pkg.Jq(metric, "metric", "managed_cluster") == managedCluster {
 			return true
 		}
 	}
 	return false
 }
 
-func verifyEnvoyStatsExist(envoyStatsMetric string, namespace string, podName string, managedCluster string) bool {
-	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
-	for _, metric := range metrics {
-		if pkg.Jq(metric, "metric", "namespace") == namespace && pkg.Jq(metric, "metric", "pod_name") == podName &&
-			pkg.Jq(metric, "metric", "managed_cluster") == managedCluster {
+// Exclude the pods where envoy stats are not available
+func excludePods(podName string, excludeList []string) bool {
+	for _, excludes := range excludeList {
+		if strings.HasPrefix(podName, excludes) {
 			return true
 		}
 	}
