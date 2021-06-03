@@ -10,12 +10,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
@@ -250,38 +248,6 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 	return &http.Client{Transport: tr}
 }
 
-func setupCustomDNSResolver(tr *http.Transport, kubeconfigPath string) {
-	ipResolve := getNginxNodeIP(kubeconfigPath)
-	if ipResolve != "" {
-		dialer := &net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}
-		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			Log(Debug, fmt.Sprintf("original address %s", addr))
-			wildcardSuffix := GetWildcardDNS(addr)
-			if strings.Contains(addr, "127.0.0.1") && strings.Contains(addr, ":443") {
-				// resolve to the nginx node ip if address contains 127.0.0.1, for node port installation
-				addr = ipResolve + ":443"
-				Log(Debug, fmt.Sprintf("modified address %s", addr))
-			} else if wildcardSuffix != "" && strings.Contains(addr, ":443") {
-				// resolve DNS wildcard ourselves
-				resolving := strings.TrimSuffix(strings.TrimSuffix(addr, ":443"), "."+wildcardSuffix)
-				four := resolving[strings.LastIndex(resolving, "."):]
-				resolving = strings.TrimSuffix(resolving, four)
-				three := resolving[strings.LastIndex(resolving, "."):]
-				resolving = strings.TrimSuffix(resolving, three)
-				two := resolving[strings.LastIndex(resolving, "."):]
-				resolving = strings.TrimSuffix(resolving, two)
-				one := resolving[strings.LastIndex(resolving, ".")+1:]
-				addr = one + two + three + four + ":443"
-				Log(Debug, fmt.Sprintf("modified address %s", addr))
-			}
-			return dialer.DialContext(ctx, network, addr)
-		}
-	}
-}
-
 func getEnvName(kubeconfigPath string) string {
 	installedEnvName := GetVerrazzanoInstallResourceInCluster(kubeconfigPath).Spec.EnvironmentName
 	if len(installedEnvName) == 0 {
@@ -332,21 +298,6 @@ func doGetCACertFromSecret(secretName string, namespace string, kubeconfigPath s
 	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
 	certSecret, _ := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	return certSecret.Data["ca.crt"]
-}
-
-// Returns the nginx controller node ip
-func getNginxNodeIP(kubeconfigPath string) string {
-	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
-	pods, err := clientset.CoreV1().Pods("ingress-nginx").List(context.TODO(), metav1.ListOptions{})
-	if err == nil {
-		for i := range pods.Items {
-			pod := pods.Items[i]
-			if strings.HasPrefix(pod.Name, "ingress-controller-ingress-nginx-controller-") {
-				return pod.Status.HostIP
-			}
-		}
-	}
-	return ""
 }
 
 // newRetryableHTTPClient returns a new instance of a retryable HTTP client
