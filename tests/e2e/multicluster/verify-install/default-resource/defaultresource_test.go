@@ -18,6 +18,8 @@ import (
 var waitTimeout = 30 * time.Minute
 var pollingInterval = 30 * time.Second
 
+var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
+
 var expectedPodsKubeSystem = []string{
 	"coredns",
 	"kube-proxy"}
@@ -29,9 +31,7 @@ var _ = ginkgo.AfterSuite(func() {
 var _ = ginkgo.Describe("Multi Cluster Install Validation",
 	func() {
 		ginkgo.It("has the expected namespaces", func() {
-			kubeConfig := os.Getenv("KUBECONFIG")
-			fmt.Println("Kube config ", kubeConfig)
-			namespaces, err := pkg.ListNamespaces(metav1.ListOptions{})
+			namespaces, err := pkg.ListNamespacesInCluster(metav1.ListOptions{}, adminKubeconfig)
 			if err != nil {
 				ginkgo.Fail(fmt.Sprintf("Failed to get namespaces with error: %v", err))
 			}
@@ -50,7 +50,7 @@ var _ = ginkgo.Describe("Multi Cluster Install Validation",
 		ginkgo.Context("Expected pods are running.", func() {
 			ginkgo.It("and waiting for expected pods must be running", func() {
 				gomega.Eventually(func() bool {
-					return pkg.PodsRunning("kube-system", expectedPodsKubeSystem)
+					return pkg.PodsRunningInCluster("kube-system", expectedPodsKubeSystem, adminKubeconfig)
 				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 			})
 		})
@@ -67,7 +67,7 @@ func nsListContains(list []v1.Namespace, target string) bool {
 
 func listPodsInKubeSystem() {
 	// Get the Kubernetes clientset and list pods in cluster
-	clientset := pkg.GetKubernetesClientset()
+	clientset := pkg.GetKubernetesClientsetForCluster(adminKubeconfig)
 	pods := pkg.ListPodsInCluster("kube-system", clientset)
 	for _, podInfo := range (*pods).Items {
 		fmt.Printf("pods-name=%v\n", podInfo.Name)

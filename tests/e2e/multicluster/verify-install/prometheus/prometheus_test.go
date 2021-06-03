@@ -51,8 +51,8 @@ var _ = ginkgo.Describe("Prometheus", func() {
 		ginkgo.Context("Verify metrics from NGINX ingress controller", func() {
 			ginkgo.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
 				gomega.Eventually(func() bool {
-					return metricsContainLabels("nginx_ingress_controller_success", "controller_namespace", "ingress-nginx",
-						"app_kubernetes_io_instance", "ingress-controller")
+					return metricsContainLabels("nginx_ingress_controller_success", "controller_namespace",
+						"ingress-nginx", "app_kubernetes_io_instance", "ingress-controller")
 				}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 			})
 		})
@@ -60,7 +60,7 @@ var _ = ginkgo.Describe("Prometheus", func() {
 		ginkgo.Context("Verify metrics from Container Advisor", func() {
 			ginkgo.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 				gomega.Eventually(func() bool {
-					return compMetricsExistInCluster("container_start_time_seconds")
+					return metricsExistInCluster("container_start_time_seconds")
 				}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 			})
 		})
@@ -68,8 +68,7 @@ var _ = ginkgo.Describe("Prometheus", func() {
 		ginkgo.Context("Verify metrics from Node Exporter", func() {
 			ginkgo.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
 				gomega.Eventually(func() bool {
-					return metricsContainLabels("go_gc_duration_seconds", "job", "node-exporter",
-						"quantile", "0")
+					return metricsContainLabels("go_gc_duration_seconds", "job", "node-exporter", "quantile", "0")
 				}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 			})
 		})
@@ -77,13 +76,12 @@ var _ = ginkgo.Describe("Prometheus", func() {
 		ginkgo.Context("Verify metrics from Istio mesh and istiod", func() {
 			ginkgo.It("Verify sample mesh metrics can be queried from Prometheus", func() {
 				gomega.Eventually(func() bool {
-					return compMetricsExistInCluster("istio_tcp_connections_opened_total")
+					return metricsExistInCluster("istio_tcp_connections_opened_total")
 				}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 			})
 			ginkgo.It("Verify sample istiod metrics can be queried from Prometheus", func() {
 				gomega.Eventually(func() bool {
-					return metricsContainLabels("sidecar_injection_requests_total", "app", "istiod",
-						"app", "istiod")
+					return metricsContainLabels("sidecar_injection_requests_total", "app", "istiod", "job", "pilot")
 				}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 			})
 		})
@@ -91,8 +89,7 @@ var _ = ginkgo.Describe("Prometheus", func() {
 		ginkgo.Context("Verify metrics from Prometheus", func() {
 			ginkgo.It("Verify sample metrics can be queried from Prometheus", func() {
 				gomega.Eventually(func() bool {
-					return metricsContainLabels("prometheus_target_interval_length_seconds", "job", "prometheus",
-						"quantile", "0.99")
+					return metricsContainLabels("prometheus_target_interval_length_seconds", "job", "prometheus", "quantile", "0.99")
 				}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 			})
 		})
@@ -103,7 +100,7 @@ var _ = ginkgo.Describe("Prometheus", func() {
 		metricName := "envoy_server_stats_recent_lookups"
 		ginkgo.It("Verify sample metrics from job envoy-stats", func() {
 			gomega.Eventually(func() bool {
-				return compMetricsExistInCluster(metricName)
+				return metricsExistInCluster(metricName)
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
 		ginkgo.It("Verify count of metrics for job envoy-stats", func() {
@@ -114,7 +111,8 @@ var _ = ginkgo.Describe("Prometheus", func() {
 	})
 })
 
-func compMetricsExistInCluster(metricName string) bool {
+// Validate the given metric exists in all the managed clusters
+func metricsExistInCluster(metricName string) bool {
 	clusterCount, _ := strconv.Atoi(totalClusters)
 	for i := 1; i < clusterCount; i++ {
 		managedCluster := managedPrefix + strconv.Itoa(i)
@@ -123,6 +121,7 @@ func compMetricsExistInCluster(metricName string) bool {
 	return true
 }
 
+// Validate the metrics contain labels
 func metricsContainLabels(metricName string, key1, value1, key2, value2 string) bool {
 	compMetrics, err := pkg.QueryMetric(metricName, adminKubeconfig)
 	if err != nil {
@@ -174,17 +173,17 @@ func verifyEnvoyStats(metricName string) bool {
 						retValue = true
 						break
 					} else {
-						retValue = verifyEnvoyStatsExist(envoyStatsMetric, ns, pod.Name, managedCluster)
+						retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name, managedCluster)
 					}
 				case "verrazzano-system":
 					if excludePods(pod.Name, excludePodsVS) {
 						retValue = true
 						break
 					} else {
-						retValue = verifyEnvoyStatsExist(envoyStatsMetric, ns, pod.Name, managedCluster)
+						retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name, managedCluster)
 					}
 				case "ingress-nginx":
-					retValue = verifyEnvoyStatsExist(envoyStatsMetric, ns, pod.Name, managedCluster)
+					retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name, managedCluster)
 				}
 				if !retValue {
 					return false
@@ -196,7 +195,7 @@ func verifyEnvoyStats(metricName string) bool {
 }
 
 // Assert the existence of labels for namespace and pod in the envoyStatsMetric
-func verifyEnvoyStatsExist(envoyStatsMetric string, namespace string, podName string, managedCluster string) bool {
+func verifyLabelsEnvoyStats(envoyStatsMetric string, namespace string, podName string, managedCluster string) bool {
 	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
 	for _, metric := range metrics {
 		if pkg.Jq(metric, "metric", "namespace") == namespace && pkg.Jq(metric, "metric", "pod_name") == podName &&

@@ -366,11 +366,6 @@ pipeline {
                     // NOTE: The stages are executed in parallel, however the tests themselves are executed against
                     //       each cluster in sequence.  But we should parallizing those also, if we can.
                     parallel {
-                        stage ('multicluster/verify-install') {
-                            steps {
-                                runGinkgoRandomize('multicluster/verify-install')
-                            }
-                        }
                         stage('verify-install') {
                             steps {
                                 runGinkgoRandomize('verify-install')
@@ -436,6 +431,19 @@ pipeline {
                                     """
                                 }
                             }
+                        }
+                    }
+                }
+                stage ('Verify Multicluster Install') {
+                    stage('verify-multicluster-install') {
+                        steps {
+                            runGinkgoRandomize('multicluster/verify-install')
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
                 }

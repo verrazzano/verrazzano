@@ -129,17 +129,17 @@ func verifyEnvoyStats(metricName string) bool {
 					retValue = true
 					break
 				} else {
-					retValue = verifyEnvoyStatsExist(envoyStatsMetric, ns, pod.Name)
+					retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
 				}
 			case "verrazzano-system":
 				if excludePods(pod.Name, excludePodsVS) {
 					retValue = true
 					break
 				} else {
-					retValue = verifyEnvoyStatsExist(envoyStatsMetric, ns, pod.Name)
+					retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
 				}
 			default:
-				retValue = verifyEnvoyStatsExist(envoyStatsMetric, ns, pod.Name)
+				retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
 			}
 			if !retValue {
 				return false
@@ -150,7 +150,7 @@ func verifyEnvoyStats(metricName string) bool {
 }
 
 // Assert the existence of labels for namespace and pod in the envoyStatsMetric
-func verifyEnvoyStatsExist(envoyStatsMetric string, namespace string, podName string) bool {
+func verifyLabelsEnvoyStats(envoyStatsMetric string, namespace string, podName string) bool {
 	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
 	for _, metric := range metrics {
 		if pkg.Jq(metric, "metric", "namespace") == namespace && pkg.Jq(metric, "metric", "pod_name") == podName {
