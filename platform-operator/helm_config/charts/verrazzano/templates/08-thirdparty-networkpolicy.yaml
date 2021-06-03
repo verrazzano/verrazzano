@@ -50,6 +50,8 @@ spec:
     - ports:
         - port: 9443
           protocol: TCP
+        - port: 8000
+          protocol: TCP
 ---
 # Network policy for VMI System Grafana
 # Ingress: allow connect from the ingress controller to oidc port 8775

@@ -1,0 +1,422 @@
+--- cert-manager.crds.original.yaml	2021-06-01 13:31:57.000000000 -0400
++++ cert-manager.crds.yaml	2021-06-01 13:58:28.000000000 -0400
+@@ -2870,6 +2870,34 @@
+                         required:
+                         - tokenSecretRef
+                         type: object
++                      ocidns:
++                        description:
++                          ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                          the DNS configuration for OCIDNS DNS—Zone Record
++                          Management API
++                        properties:
++                          compartmentid:
++                            type: string
++                          ocizonename:
++                            type: string
++                          serviceAccountSecretRef:
++                            properties:
++                              key:
++                                description:
++                                  The key of the secret to select from. Must be a
++                                  valid secret key.
++                                type: string
++                              name:
++                                description: Name of the referent.
++                                type: string
++                            required:
++                              - name
++                            type: object
++                          useInstancePrincipals:
++                            type: boolean
++                        required:
++                          - ocizonename
++                        type: object
+                       rfc2136:
+                         description: Use RFC2136 ("Dynamic Updates in the Domain Name
+                           System") (https://datatracker.ietf.org/doc/rfc2136/) to
+@@ -4367,6 +4395,34 @@
+                         required:
+                         - tokenSecretRef
+                         type: object
++                      ocidns:
++                        description:
++                          ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                          the DNS configuration for OCIDNS DNS—Zone Record
++                          Management API
++                        properties:
++                          compartmentid:
++                            type: string
++                          ocizonename:
++                            type: string
++                          serviceAccountSecretRef:
++                            properties:
++                              key:
++                                description:
++                                  The key of the secret to select from. Must be a
++                                  valid secret key.
++                                type: string
++                              name:
++                                description: Name of the referent.
++                                type: string
++                            required:
++                              - name
++                            type: object
++                          useInstancePrincipals:
++                            type: boolean
++                        required:
++                          - ocizonename
++                        type: object
+                       rfc2136:
+                         description: Use RFC2136 ("Dynamic Updates in the Domain Name
+                           System") (https://datatracker.ietf.org/doc/rfc2136/) to
+@@ -5864,6 +5920,34 @@
+                         required:
+                         - tokenSecretRef
+                         type: object
++                      ocidns:
++                        description:
++                          ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                          the DNS configuration for OCIDNS DNS—Zone Record
++                          Management API
++                        properties:
++                          compartmentid:
++                            type: string
++                          ocizonename:
++                            type: string
++                          serviceAccountSecretRef:
++                            properties:
++                              key:
++                                description:
++                                  The key of the secret to select from. Must be a
++                                  valid secret key.
++                                type: string
++                              name:
++                                description: Name of the referent.
++                                type: string
++                            required:
++                              - name
++                            type: object
++                          useInstancePrincipals:
++                            type: boolean
++                        required:
++                          - ocizonename
++                        type: object
+                       rfc2136:
+                         description: Use RFC2136 ("Dynamic Updates in the Domain Name
+                           System") (https://datatracker.ietf.org/doc/rfc2136/) to
+@@ -7361,6 +7445,34 @@
+                         required:
+                         - tokenSecretRef
+                         type: object
++                      ocidns:
++                        description:
++                          ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                          the DNS configuration for OCIDNS DNS—Zone Record
++                          Management API
++                        properties:
++                          compartmentid:
++                            type: string
++                          ocizonename:
++                            type: string
++                          serviceAccountSecretRef:
++                            properties:
++                              key:
++                                description:
++                                  The key of the secret to select from. Must be a
++                                  valid secret key.
++                                type: string
++                              name:
++                                description: Name of the referent.
++                                type: string
++                            required:
++                              - name
++                            type: object
++                          useInstancePrincipals:
++                            type: boolean
++                        required:
++                          - ocizonename
++                        type: object
+                       rfc2136:
+                         description: Use RFC2136 ("Dynamic Updates in the Domain Name
+                           System") (https://datatracker.ietf.org/doc/rfc2136/) to
+@@ -8993,6 +9105,34 @@
+                               required:
+                               - tokenSecretRef
+                               type: object
++                            ocidns:
++                              description:
++                                ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                                the DNS configuration for OCIDNS DNS—Zone Record
++                                Management API
++                              properties:
++                                compartmentid:
++                                  type: string
++                                ocizonename:
++                                  type: string
++                                serviceAccountSecretRef:
++                                  properties:
++                                    key:
++                                      description:
++                                        The key of the secret to select from. Must be a
++                                        valid secret key.
++                                      type: string
++                                    name:
++                                      description: Name of the referent.
++                                      type: string
++                                  required:
++                                    - name
++                                  type: object
++                                useInstancePrincipals:
++                                  type: boolean
++                              required:
++                                - ocizonename
++                              type: object
+                             rfc2136:
+                               description: Use RFC2136 ("Dynamic Updates in the Domain
+                                 Name System") (https://datatracker.ietf.org/doc/rfc2136/)
+@@ -10981,6 +11121,34 @@
+                               required:
+                               - tokenSecretRef
+                               type: object
++                            ocidns:
++                              description:
++                                ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                                the DNS configuration for OCIDNS DNS—Zone Record
++                                Management API
++                              properties:
++                                compartmentid:
++                                  type: string
++                                ocizonename:
++                                  type: string
++                                serviceAccountSecretRef:
++                                  properties:
++                                    key:
++                                      description:
++                                        The key of the secret to select from. Must be a
++                                        valid secret key.
++                                      type: string
++                                    name:
++                                      description: Name of the referent.
++                                      type: string
++                                  required:
++                                    - name
++                                  type: object
++                                useInstancePrincipals:
++                                  type: boolean
++                              required:
++                                - ocizonename
++                              type: object
+                             rfc2136:
+                               description: Use RFC2136 ("Dynamic Updates in the Domain
+                                 Name System") (https://datatracker.ietf.org/doc/rfc2136/)
+@@ -12969,6 +13137,34 @@
+                               required:
+                               - tokenSecretRef
+                               type: object
++                            ocidns:
++                              description:
++                                ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                                the DNS configuration for OCIDNS DNS—Zone Record
++                                Management API
++                              properties:
++                                compartmentid:
++                                  type: string
++                                ocizonename:
++                                  type: string
++                                serviceAccountSecretRef:
++                                  properties:
++                                    key:
++                                      description:
++                                        The key of the secret to select from. Must be a
++                                        valid secret key.
++                                      type: string
++                                    name:
++                                      description: Name of the referent.
++                                      type: string
++                                  required:
++                                    - name
++                                  type: object
++                                useInstancePrincipals:
++                                  type: boolean
++                              required:
++                                - ocizonename
++                              type: object
+                             rfc2136:
+                               description: Use RFC2136 ("Dynamic Updates in the Domain
+                                 Name System") (https://datatracker.ietf.org/doc/rfc2136/)
+@@ -14959,6 +15155,34 @@
+                               required:
+                               - tokenSecretRef
+                               type: object
++                            ocidns:
++                              description:
++                                ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                                the DNS configuration for OCIDNS DNS—Zone Record
++                                Management API
++                              properties:
++                                compartmentid:
++                                  type: string
++                                ocizonename:
++                                  type: string
++                                serviceAccountSecretRef:
++                                  properties:
++                                    key:
++                                      description:
++                                        The key of the secret to select from. Must be a
++                                        valid secret key.
++                                      type: string
++                                    name:
++                                      description: Name of the referent.
++                                      type: string
++                                  required:
++                                    - name
++                                  type: object
++                                useInstancePrincipals:
++                                  type: boolean
++                              required:
++                                - ocizonename
++                              type: object
+                             rfc2136:
+                               description: Use RFC2136 ("Dynamic Updates in the Domain
+                                 Name System") (https://datatracker.ietf.org/doc/rfc2136/)
+@@ -16987,6 +17211,34 @@
+                               required:
+                               - tokenSecretRef
+                               type: object
++                            ocidns:
++                              description:
++                                ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                                the DNS configuration for OCIDNS DNS—Zone Record
++                                Management API
++                              properties:
++                                compartmentid:
++                                  type: string
++                                ocizonename:
++                                  type: string
++                                serviceAccountSecretRef:
++                                  properties:
++                                    key:
++                                      description:
++                                        The key of the secret to select from. Must be a
++                                        valid secret key.
++                                      type: string
++                                    name:
++                                      description: Name of the referent.
++                                      type: string
++                                  required:
++                                    - name
++                                  type: object
++                                useInstancePrincipals:
++                                  type: boolean
++                              required:
++                                - ocizonename
++                              type: object
+                             rfc2136:
+                               description: Use RFC2136 ("Dynamic Updates in the Domain
+                                 Name System") (https://datatracker.ietf.org/doc/rfc2136/)
+@@ -18974,6 +19226,34 @@
+                               required:
+                               - tokenSecretRef
+                               type: object
++                            ocidns:
++                              description:
++                                ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                                the DNS configuration for OCIDNS DNS—Zone Record
++                                Management API
++                              properties:
++                                compartmentid:
++                                  type: string
++                                ocizonename:
++                                  type: string
++                                serviceAccountSecretRef:
++                                  properties:
++                                    key:
++                                      description:
++                                        The key of the secret to select from. Must be a
++                                        valid secret key.
++                                      type: string
++                                    name:
++                                      description: Name of the referent.
++                                      type: string
++                                  required:
++                                    - name
++                                  type: object
++                                useInstancePrincipals:
++                                  type: boolean
++                              required:
++                                - ocizonename
++                              type: object
+                             rfc2136:
+                               description: Use RFC2136 ("Dynamic Updates in the Domain
+                                 Name System") (https://datatracker.ietf.org/doc/rfc2136/)
+@@ -20961,6 +21241,34 @@
+                               required:
+                               - tokenSecretRef
+                               type: object
++                            ocidns:
++                              description:
++                                ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                                the DNS configuration for OCIDNS DNS—Zone Record
++                                Management API
++                              properties:
++                                compartmentid:
++                                  type: string
++                                ocizonename:
++                                  type: string
++                                serviceAccountSecretRef:
++                                  properties:
++                                    key:
++                                      description:
++                                        The key of the secret to select from. Must be a
++                                        valid secret key.
++                                      type: string
++                                    name:
++                                      description: Name of the referent.
++                                      type: string
++                                  required:
++                                    - name
++                                  type: object
++                                useInstancePrincipals:
++                                  type: boolean
++                              required:
++                                - ocizonename
++                              type: object
+                             rfc2136:
+                               description: Use RFC2136 ("Dynamic Updates in the Domain
+                                 Name System") (https://datatracker.ietf.org/doc/rfc2136/)
+@@ -22950,6 +23258,34 @@
+                               required:
+                               - tokenSecretRef
+                               type: object
++                            ocidns:
++                              description:
++                                ACMEIssuerDNS01ProviderOCIDNS is a structure containing
++                                the DNS configuration for OCIDNS DNS—Zone Record
++                                Management API
++                              properties:
++                                compartmentid:
++                                  type: string
++                                ocizonename:
++                                  type: string
++                                serviceAccountSecretRef:
++                                  properties:
++                                    key:
++                                      description:
++                                        The key of the secret to select from. Must be a
++                                        valid secret key.
++                                      type: string
++                                    name:
++                                      description: Name of the referent.
++                                      type: string
++                                  required:
++                                    - name
++                                  type: object
++                                useInstancePrincipals:
++                                  type: boolean
++                              required:
++                                - ocizonename
++                              type: object
+                             rfc2136:
+                               description: Use RFC2136 ("Dynamic Updates in the Domain
+                                 Name System") (https://datatracker.ietf.org/doc/rfc2136/)
