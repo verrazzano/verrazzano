@@ -15,9 +15,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var waitTimeout = 15 * time.Minute
-var pollingInterval = 30 * time.Second
-var timeout_5M = 5 * time.Minute
+const waitTimeout = 15 * time.Minute
+const pollingInterval = 30 * time.Second
+const timeout5Min = 5 * time.Minute
 
 var expectedPodsCattleSystem = []string{
 	"rancher"}
@@ -75,11 +75,11 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 					gomega.Expect(nsListContains(namespaces.Items, "local")).To(gomega.BeFalse())
 				} else {
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-system")).To(gomega.BeTrue())
-					gomega.Eventually(func() bool { return nsListContains(namespaces.Items, "cattle-global-data") }, timeout_5M, pollingInterval).
+					gomega.Eventually(func() bool { return nsListContains(namespaces.Items, "cattle-global-data") }, timeout5Min, pollingInterval).
 						Should(gomega.BeTrue())
-					gomega.Eventually(func() bool { return nsListContains(namespaces.Items, "cattle-global-nt") }, timeout_5M, pollingInterval).
+					gomega.Eventually(func() bool { return nsListContains(namespaces.Items, "cattle-global-nt") }, timeout5Min, pollingInterval).
 						Should(gomega.BeTrue())
-					gomega.Eventually(func() bool { return nsListContains(namespaces.Items, "local") }, timeout_5M, pollingInterval).
+					gomega.Eventually(func() bool { return nsListContains(namespaces.Items, "local") }, timeout5Min, pollingInterval).
 						Should(gomega.BeTrue())
 				}
 				gomega.Expect(nsListContains(namespaces.Items, "istio-system")).To(gomega.Equal(true))
