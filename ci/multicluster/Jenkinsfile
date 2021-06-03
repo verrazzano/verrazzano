@@ -11,6 +11,7 @@ Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,3).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
+env.BRANCH_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
 installerFileName = "install-verrazzano.yaml"
 
@@ -25,7 +26,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "VM.Standard2.8"
+            label "${agentLabel}"
         }
     }
 
@@ -670,7 +671,7 @@ def installVerrazzano(count, verrazzanoConfig) {
                 echo "Wait for Operator to be ready"
                 cd ${GO_REPO_PATH}/verrazzano
                 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                
+
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
                 echo "Applying \$verrazzanoConfig"

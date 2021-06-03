@@ -3,6 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
+def agentLabel = env.BRANCH_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
 pipeline {
     options {
@@ -15,7 +16,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "VM.Standard2.8"
+            label "${agentLabel}"
         }
     }
 
