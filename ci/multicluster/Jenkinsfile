@@ -434,17 +434,9 @@ pipeline {
                         }
                     }
                 }
-                stage ('Verify Multicluster Install') {
-                    stage('verify-multicluster-install') {
-                        steps {
-                            runGinkgoRandomize('multicluster/verify-install')
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
+                stage ('multicluster/verify-install') {
+                    steps {
+                        runGinkgoRandomize('multicluster/verify-install')
                     }
                 }
                 stage ('Example apps') {
