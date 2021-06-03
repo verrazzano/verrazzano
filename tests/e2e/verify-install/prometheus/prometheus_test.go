@@ -17,6 +17,7 @@ const (
 	longWaitTimeout     = 10 * time.Minute
 )
 
+// List of namespaces considered for validating the envoy-stats
 var envoyStatsNamespaces = []string{
 	"ingress-nginx",
 	"istio-system",
@@ -24,6 +25,7 @@ var envoyStatsNamespaces = []string{
 	"verrazzano-system",
 }
 
+// List of pods to be excluded for envoy-stats in verrazzano-system namespace
 var excludePodsVS = []string{
 	"coherence-operator",
 	"oam-kubernetes-runtime",
@@ -34,6 +36,7 @@ var excludePodsVS = []string{
 	"istiod",
 }
 
+// List of pods to be excluded for envoy-stats in istio-system namespace
 var excludePodsIstio = []string{
 	"istiocoredns",
 	"istiod",
@@ -51,6 +54,7 @@ var _ = ginkgo.Describe("Prometheus", func() {
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				})
 			})
+
 			ginkgo.Context("Verify metrics from Container Advisor", func() {
 				ginkgo.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 					gomega.Eventually(func() bool {
@@ -108,6 +112,7 @@ var _ = ginkgo.Describe("Prometheus", func() {
 	})
 })
 
+// Validate the Istio envoy stats
 func verifyEnvoyStats(metricName string) bool {
 	envoyStatsMetric, err := pkg.QueryMetric(metricName, pkg.GetKubeConfigPathFromEnv())
 	if err != nil {
@@ -144,19 +149,21 @@ func verifyEnvoyStats(metricName string) bool {
 	return true
 }
 
-func excludePods(podName string, excludeList []string) bool {
-	for _, excludes := range excludeList {
-		if strings.HasPrefix(podName, excludes) {
+// Assert the existence of labels for namespace and pod in the envoyStatsMetric
+func verifyEnvoyStatsExist(envoyStatsMetric string, namespace string, podName string) bool {
+	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
+	for _, metric := range metrics {
+		if pkg.Jq(metric, "metric", "namespace") == namespace && pkg.Jq(metric, "metric", "pod_name") == podName {
 			return true
 		}
 	}
 	return false
 }
 
-func verifyEnvoyStatsExist(envoyStatsMetric string, namespace string, podName string) bool {
-	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
-	for _, metric := range metrics {
-		if pkg.Jq(metric, "metric", "namespace") == namespace && pkg.Jq(metric, "metric", "pod_name") == podName {
+// Exclude the pods where envoy stats are not available
+func excludePods(podName string, excludeList []string) bool {
+	for _, excludes := range excludeList {
+		if strings.HasPrefix(podName, excludes) {
 			return true
 		}
 	}
