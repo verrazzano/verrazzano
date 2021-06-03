@@ -5,8 +5,9 @@ package component
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // testSubComponent contains the override key values for a subcomponent.

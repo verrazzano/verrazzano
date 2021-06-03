@@ -6,12 +6,13 @@ package component
 import (
 	"encoding/json"
 	"errors"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -82,7 +83,7 @@ type BomImage struct {
 	// ImageName specifies the name of the image tag, such as `nginx-ingress-controller`
 	ImageName string `json:"image"`
 
-	// ImageName specifies the name of the image tag, such as `0.46.0-20210510134749-abc2d2088`
+	// ImageTag specifies the name of the image tag, such as `0.46.0-20210510134749-abc2d2088`
 	ImageTag string `json:"tag"`
 
 	// HelmRegistryKey is the helm template key which identifies the image registry.  This is not
