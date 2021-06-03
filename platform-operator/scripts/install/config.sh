@@ -426,7 +426,7 @@ function is_vz_console_enabled() {
 # Return the value for the key prometheus_enabled.enabled
 function is_prometheus_enabled() {
   # Return false always from managed profile, as the admin cluster scrapes the metrics from managed clusters
-  if [ $(get_install_profile) == ${MANAGED_CLUSTER_PROFILE} ]; then
+  if [ "$(get_install_profile)" == "${MANAGED_CLUSTER_PROFILE}" ]; then
     echo "false"
   else
     local prometheus_enabled=$(get_config_value '.prometheus.enabled')
@@ -438,27 +438,26 @@ function is_prometheus_enabled() {
 function get_console_count() {
   console_count=0
 
-  if [ "$(is_grafana_enabled)" == "true" ]; then
+  if [[ $(is_grafana_enabled) == "true" ]]; then
     console_count=$((console_count + 1))
   fi
 
-  if [ "$(is_kibana_enabled)" == "true" ]; then
+  if [[ $(is_kibana_enabled) == "true" ]]; then
     console_count=$((console_count + 1))
   fi
 
-  if [ "$(is_vz_console_enabled)" == "true" ]; then
+  if [[ $(is_vz_console_enabled) == "true" ]]; then
     console_count=$((console_count + 1))
   fi
 
-  if [ "$(is_elasticsearch_enabled)" == "true" ]; then
+  if [[ $(is_elasticsearch_enabled) == "true" ]]; then
     console_count=$((console_count + 1))
   fi
 
-  if [ "$(is_prometheus_enabled)" == "true" ]; then
+  if [[ $(is_prometheus_enabled) == "true" ]]; then
     console_count=$((console_count + 1))
   fi
   echo "${console_count}"
-
 }
 
 # Return a flag indicating whether this is an installation leveraging OCI DNS

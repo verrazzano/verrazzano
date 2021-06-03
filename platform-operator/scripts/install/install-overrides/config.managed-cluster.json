@@ -4,5 +4,17 @@
   },
   "keycloak": {
     "enabled": false
+  },
+  "elasticSearch": {
+    "enabled": false
+  },
+  "grafana": {
+    "enabled": false
+  },
+  "kibana": {
+    "enabled": false
+  },
+  "console": {
+    "enabled": false
   }
 }

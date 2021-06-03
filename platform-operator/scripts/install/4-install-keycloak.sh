@@ -768,7 +768,6 @@ console_count=$(get_console_count)
 consoleout
 consoleout "Installation Complete."
 consoleout
-consoleout "Console count ${console_count}"
 if [ $console_count -gt 0 ];then
   if [ $console_count -eq 1 ];then
     consoleout "Verrazzano provides the following user interface."
