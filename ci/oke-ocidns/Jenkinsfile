@@ -6,7 +6,7 @@
 // This will eventually be replaced by the new multi-cluster job!
 
 def DEFAULT_REPO_URL
-def zoneId = UUID.randomUUID().toString().substring(0,3).replace('-','')
+def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 // for different Jenkins jobs sharing this Jenkins file, the default TEST_ENV (the first in testEnvironments) is different.
 def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
