@@ -212,6 +212,9 @@ function configure_keycloak_realms() {
 
   local PW=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.password}" | base64 -d)
 
+  # Disable network logs on Kubernetes when running kubectl exec
+  local PRESERVE_DEBUG=${DEBUG}
+  unset DEBUG
   kubectl exec --stdin keycloak-0 -n keycloak -c keycloak -- bash -s <<EOF
     export PATH="/opt/jboss/keycloak/bin:\$PATH"
     unset JAVA_TOOL_OPTIONS
@@ -720,7 +723,7 @@ END
     rm \$HOME/.keycloak/kcadm.config || fail "Failed to remove login config file"
 
 EOF
-
+  export DEBUG=${PRESERVE_DEBUG}
 }
 
 # configure the prometheus deployment to limit istio proxy based communication to the keycloak service only.  Other
