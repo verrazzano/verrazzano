@@ -21,13 +21,8 @@ const OidcAuthLuaFileTemplate = `|
 
     local authStateTtlInSec = {{ .AuthnStateTTL }}
 
-{{ if eq .Mode "oauth-proxy" }}
     local oidcProviderHost = "{{ .OidcProviderHost }}"
     local oidcProviderHostInCluster = "{{ .OidcProviderHostInCluster }}"
-{{ else if eq .Mode "api-proxy" }}
-    local oidcProviderHost = "keycloak.{{ .config.envName }}.{{ config.dnsSuffix }}"
-    local oidcProviderHostInCluster = "keycloak-http.keycloak.svc.cluster.local"
-{{ end }}
 
     local oidcProviderUri = nil
     local oidcProviderInClusterUri = nil
