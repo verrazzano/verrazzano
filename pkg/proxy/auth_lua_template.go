@@ -19,7 +19,7 @@ const OidcAuthLuaFileTemplate = `|
     local oidcDirectAccessClient = "{{ .PGClientID }}"
     local requiredRole = "{{ .RequiredRealmRole }}"
 
-    local authStateTtlInSec = {{ .AuthnStateTTL }}
+    local authStateTtlInSec = tonumber("{{ .AuthnStateTTL }}")
 
     local oidcProviderHost = "{{ .OidcProviderHost }}"
     local oidcProviderHostInCluster = "{{ .OidcProviderHostInCluster }}"
