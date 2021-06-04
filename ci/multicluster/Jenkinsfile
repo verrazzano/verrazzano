@@ -11,6 +11,7 @@ Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,3).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
+def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
 installerFileName = "install-verrazzano.yaml"
 
@@ -25,7 +26,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "VM.Standard2.8"
+            label "${agentLabel}"
         }
     }
 
@@ -360,6 +361,11 @@ pipeline {
                             parallel verrazzanoInstallStages
                         }
                     }
+                    post {
+                        always {
+                            dumpInstallLogs()
+                        }
+                    }
                 }
                 stage ('Verify Install') {
                     // NOTE: The stages are executed in parallel, however the tests themselves are executed against
@@ -545,7 +551,6 @@ pipeline {
         }
         always {
             script {
-                dumpInstallLogs()
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                     dumpVerrazzanoSystemPods()
                     dumpCattleSystemPods()
@@ -670,7 +675,7 @@ def installVerrazzano(count, verrazzanoConfig) {
                 echo "Wait for Operator to be ready"
                 cd ${GO_REPO_PATH}/verrazzano
                 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                
+
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
                 echo "Applying \$verrazzanoConfig"
@@ -987,7 +992,7 @@ def dumpUninstallLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/uninstall/build/logs/cluster-$count"
             sh """
                 ## dump verrazzano uninstall logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config

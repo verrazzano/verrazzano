@@ -254,12 +254,6 @@ func findNamespace(namespace string) bool {
 	return true
 }
 
-func findLogs(index, fieldName, fieldValue string) bool {
-	return pkg.LogRecordFound(index,
-		time.Now().Add(-24*time.Hour),
-		map[string]string{fieldName: fieldValue})
-}
-
 func findVerrazzanoProject(projectName string) bool {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
 	if err != nil {

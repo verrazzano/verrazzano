@@ -180,10 +180,6 @@ var _ = Describe("Testing hello app lifecycle", func() {
 })
 
 //// Helper functions
-func appNsExists() bool {
-	return K8sClient.DoesNamespaceExist(appNamespace)
-}
-
 func isOperatorRunning() bool {
 	return K8sClient.IsPodRunning(verrazzanoOperator, verrazzanoSystem)
 }
@@ -208,10 +204,6 @@ func appDeploymentExists() bool {
 
 func appDeploymentUpdated() bool {
 	return K8sClient.IsDeploymentUpdated(appDeployment, appNamespace)
-}
-
-func fluentdSidecarExists() bool {
-	return K8sClient.DoesContainerExist(appNamespace, appPodPrefix, "fluentd")
 }
 
 func appPodExists() bool {

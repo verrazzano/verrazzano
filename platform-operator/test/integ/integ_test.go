@@ -4,28 +4,18 @@
 package integ_test
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	vzclusters "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/util"
-	k8net "k8s.io/api/networking/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const managedClusterName = "cluster1"
 const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
-const managedGeneratedName1 = "verrazzano-cluster-cluster1"
 const installNamespace = "verrazzano-install"
-const prometheusSecret = "prometheus-cluster1"
-const vmiESIngest = "vmi-system-es-ingest"
-const hostdata = "testhost"
-const adminClusterConfigMap = "verrazzano-admin-cluster"
 
 var K8sClient k8s.Client
 
@@ -107,72 +97,3 @@ var _ = ginkgo.Describe("Custom Resource Definition for verrazzano install", fun
 			"The verrazzanomanagedclusters.clusters.verrazzano.io CRD should exist")
 	})
 })
-
-// Verify the agent secret
-func verifyAgentSecret() {
-	// Get the agent secret
-	secret, err := K8sClient.GetSecret(vzclusters.GetAgentSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Unable to get registration secret %s: %v", vzclusters.GetAgentSecretName(managedClusterName), err))
-	}
-
-	// Get the kubeconfig from the secret
-	kubconfigBytes := secret.Data["admin-kubeconfig"]
-	if len(kubconfigBytes) == 0 {
-		ginkgo.Fail(fmt.Sprintf("Cluster secret %s does not contain kubeconfig", err))
-	}
-
-	// check the cluster name
-	clusterName := secret.Data["managed-cluster-name"]
-	if string(clusterName) != managedClusterName {
-		ginkgo.Fail(fmt.Sprintf("The managed cluster name %s in the kubeconfig is incorrect", clusterName))
-	}
-}
-
-// Verify the registration secret
-func verifyRegistrationSecret() {
-	// Get the registration secret
-	secret, err := K8sClient.GetSecret(vzclusters.GetRegistrationSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Unable to get registration secret %s: %v", vzclusters.GetRegistrationSecretName(managedClusterName), err))
-	}
-
-	// check the cluster name
-	clusterName := secret.Data["managed-cluster-name"]
-	if string(clusterName) != managedClusterName {
-		ginkgo.Fail(fmt.Sprintf("The managed cluster name %s in the kubeconfig is incorrect", clusterName))
-	}
-}
-
-// Verify the manifest secrets
-func verifyManifestSecret() {
-	secret, err := K8sClient.GetSecret(vzclusters.GetManifestSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Unable to get cluster secret %s that contains kubeconfig: %v", vzclusters.GetManifestSecretName(managedClusterName), err))
-	}
-
-	// Get the yaml from the secret
-	kubconfigBytes := secret.Data["yaml"]
-	if len(kubconfigBytes) == 0 {
-		ginkgo.Fail(fmt.Sprintf("Manifest secret %s does not contain yaml", err))
-	}
-}
-
-// Create a fake ES ingress in Verrazzano system so that we can build the ES secret
-func createFakeElasticsearchIngress() {
-	// Create the ingress
-	ing := k8net.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: vmiESIngest,
-		},
-		Spec: k8net.IngressSpec{
-			Rules: []k8net.IngressRule{{
-				Host: hostdata,
-			}},
-		},
-	}
-	_, err := K8sClient.Clientset.NetworkingV1beta1().Ingresses(constants.VerrazzanoSystemNamespace).Create(context.TODO(), &ing, metav1.CreateOptions{})
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Unable to create fake Elasticsearch ingress: %v", err))
-	}
-}

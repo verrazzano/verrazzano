@@ -17,9 +17,6 @@ import (
 const shortWaitTimeout = 3 * time.Minute
 const shortPollInterval = 5 * time.Second
 
-const multiclusterNamespace = "verrazzano-mc"
-const verrazzanoSystemNamespace = "verrazzano-system"
-
 var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 	ginkgo.Context("Admin Cluster", func() {
 		ginkgo.BeforeEach(func() {

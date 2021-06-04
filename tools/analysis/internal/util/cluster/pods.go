@@ -26,7 +26,6 @@ var dockerPullRateLimitRe = regexp.MustCompile(`.*You have reached your pull rat
 var dockerNameUnknownRe = regexp.MustCompile(`.*name unknown.*`)
 var dockerNotFoundRe = regexp.MustCompile(`.*not found.*`)
 var dockerServiceUnavailableRe = regexp.MustCompile(`.*Service Unavailable.*`)
-var podPhaseRe = regexp.MustCompile(`.*"phase".*`)
 
 // TODO: "Verrazzano Uninstall Pod Issue":    AnalyzeVerrazzanoUninstallIssue,
 var podAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error){
@@ -111,22 +110,6 @@ func IsContainerNotReady(conditions []corev1.PodCondition) bool {
 		}
 	}
 	return false
-}
-
-// One of the more reliable ways that we can identify install related issues is by
-func verrazzanoInstallIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
-	return nil // AnalyzeVerrazzanoInstallIssue()
-}
-
-func verrazzanoUninstallIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
-	// Skip if it is not the verrazzano uninstall job pod
-	if !IsVerrazzanoUninstallJobPod(pod) {
-		return nil
-	}
-	log.Debugf("verrazzanoUninstallIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
-
-	// TODO: Implement, this will likely be similar pattern as the install issue dispacthing once that is handled
-	return nil
 }
 
 // This is evolving as we add more cases in podContainerIssues

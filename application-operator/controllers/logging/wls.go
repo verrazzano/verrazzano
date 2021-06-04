@@ -19,7 +19,6 @@ import (
 
 const (
 	wlsDomainKind          = "Domain"
-	wlsWorkloadKey         = "weblogic.oracle/v8/Domain"
 	storageVolumeName      = "weblogic-domain-storage-volume"
 	storageVolumeMountPath = scratchVolMountPath
 	workloadType           = "weblogic"
