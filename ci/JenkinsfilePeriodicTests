@@ -98,7 +98,7 @@ pipeline {
                         }
                     }
                 }
-                stage('OCI DNS tests') {
+                stage('OCI DNS/ACME-Staging Tests') {
                     steps {
                         script {
                             build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
@@ -106,6 +106,20 @@ pipeline {
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'CERT_ISSUER', value: "acme"),
                                     string(name: 'ACME_ENVIRONMENT', value: "staging")
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Multi Cluster with OCI DNS/ACME-Staging Tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TEST_ENV', value: 'ocidns_oke'),
+                                    string(name: 'ACME_ENVIRONMENT', value: "staging"),
+                                    // Disable Calico with these runs temporarily
+                                    string(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
                                 ], wait: true
                         }
                     }
