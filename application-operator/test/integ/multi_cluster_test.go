@@ -325,8 +325,7 @@ func secretExistsWithFields(namespace, name string, mcsecret *clustersv1alpha1.M
 	fmt.Printf("Looking for Kubernetes secret %v/%v\n", namespace, name)
 	secret, err := K8sClient.GetSecret(namespace, name)
 	return err == nil && reflect.DeepEqual(secret.Data, mcsecret.Spec.Template.Data) &&
-		mcsecret.Spec.Template.Metadata.Namespace == secret.Namespace &&
-		mcsecret.Spec.Template.Metadata.Name == secret.Name
+		reflect.DeepEqual(secret.Labels, mcsecret.Spec.Template.Metadata.Labels)
 }
 
 func configMapExistsMatchingMCConfigMap(namespace, name string, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) bool {
