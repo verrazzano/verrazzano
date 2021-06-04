@@ -33,8 +33,9 @@ var _ = ginkgo.BeforeSuite(func() {
 		ginkgo.Fail(fmt.Sprintf("Failed to create helidon-config component resources: %v", err))
 	}
 	gomega.Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-app.yaml")},
-			shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").Should(gomega.BeNil())
+		return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
+	},
+		shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").Should(gomega.BeNil())
 })
 
 var _ = ginkgo.AfterSuite(func() {

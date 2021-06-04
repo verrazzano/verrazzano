@@ -358,9 +358,9 @@ func IsManagedClusterProfile() bool {
 	return GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv()).Spec.Profile == v1alpha1.ManagedCluster
 }
 
-// IsACMEStagingEnabled returns true if the ACME staging environment is configured
-func IsACMEStagingEnabled() bool {
-	vz := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
+// IsACMEStagingEnabledInCluster returns true if the ACME staging environment is configured
+func IsACMEStagingEnabledInCluster(kubeconfigPath string) bool {
+	vz := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if vz.Spec.Components.CertManager == nil {
 		return false
 	}
