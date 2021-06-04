@@ -2567,23 +2567,6 @@ func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template
 	return nil
 }
 
-// updateObjectFromYAMLTemplate updates an object from a populated YAML template file.
-// uns - The unstructured to update
-// template - The template file
-// params - The param maps to merge into the template
-func updateObjectFromYAMLTemplate(obj interface{}, template string, data interface{}) error {
-	uns := unstructured.Unstructured{}
-	err := updateUnstructuredFromYAMLTemplate(&uns, template, data)
-	if err != nil {
-		return err
-	}
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(uns.Object, obj)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // createResourceFromTemplate builds a resource by merging the data with the template file and then
 // creates the resource using the client.
 func createResourceFromTemplate(cli client.Client, template string, data interface{}) error {
@@ -2595,14 +2578,4 @@ func createResourceFromTemplate(cli client.Client, template string, data interfa
 		return err
 	}
 	return nil
-}
-
-// marshalObjectToYAMLString marshals the project object to a YAML formatted string.
-func marshalObjectToYAMLString(obj interface{}) (string, error) {
-	var bytes []byte
-	bytes, err := yaml.Marshal(obj)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
 }

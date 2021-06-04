@@ -53,24 +53,11 @@ var ns1 = clustersv1alpha1.NamespaceTemplate{
 		Name: "ns1",
 	},
 }
-var ns2 = clustersv1alpha1.NamespaceTemplate{
-	Metadata: metav1.ObjectMeta{
-		Name: "ns2",
-	},
-}
 
 var ns1Netpol = clustersv1alpha1.NetworkPolicyTemplate{
 	Metadata: metav1.ObjectMeta{
 		Name:      "ns1Netpol",
 		Namespace: "ns1",
-	},
-	Spec: netv1.NetworkPolicySpec{},
-}
-
-var ns2Netpol = clustersv1alpha1.NetworkPolicyTemplate{
-	Metadata: metav1.ObjectMeta{
-		Name:      "ns2Netpol",
-		Namespace: "ns2",
 	},
 	Spec: netv1.NetworkPolicySpec{},
 }
@@ -617,24 +604,6 @@ func mockUpdatedRoleBindingExpectations(assert *asserts.Assertions, mockClient *
 		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding) error {
 			assert.Equal(k8sRole, rb.RoleRef.Name)
 			assert.Equal(subjects, rb.Subjects)
-			return nil
-		})
-}
-
-// doExpectStatusUpdateFailed expects a call to update status of
-// VerrazzanoProject to failure
-func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.MockStatusWriter, assert *asserts.Assertions) {
-	// expect a call to fetch the MCRegistration secret to get the cluster name for status update
-	clusterstest.DoExpectGetMCRegistrationSecret(cli)
-
-	// expect a call to update the status of the VerrazzanoProject
-	cli.EXPECT().Status().Return(mockStatusWriter)
-
-	// the status update should be to failure status/conditions on the VerrazzanoProject
-	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.VerrazzanoProject{})).
-		DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject) error {
-			clusterstest.AssertMultiClusterResourceStatus(assert, vp.Status, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, corev1.ConditionTrue)
 			return nil
 		})
 }

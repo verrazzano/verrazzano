@@ -4,7 +4,6 @@
 package helidonworkload
 
 import (
-	"bufio"
 	"context"
 	"io/ioutil"
 	"strconv"
@@ -962,21 +961,6 @@ func readTemplate(template string, params ...map[string]string) (string, error) 
 	return content, nil
 }
 
-// removeHeaderLines removes the top N lines from the text.
-func removeHeaderLines(text string, lines int) string {
-	line := 0
-	output := ""
-	scanner := bufio.NewScanner(strings.NewReader(text))
-	for scanner.Scan() {
-		if line >= lines {
-			output += scanner.Text()
-			output += "\n"
-		}
-		line++
-	}
-	return output
-}
-
 // updateUnstructuredFromYAMLTemplate updates an unstructured from a populated YAML template file.
 // uns - The unstructured to update
 // template - The template file
@@ -1022,49 +1006,4 @@ func findContainer(containers []v1.Container, name string) (*v1.Container, bool)
 		}
 	}
 	return nil, false
-}
-
-// assertEnvVar asserts the existence and correct value of an env var in a slice.
-func assertEnvVar(t *testing.T, vars []v1.EnvVar, name string, value string) {
-	for _, v := range vars {
-		if v.Name == name {
-			asserts.Equal(t, value, v.Value, "Expect var %s to have required value", name)
-			return
-		}
-	}
-	asserts.Fail(t, "Expect var to exist", "name: %s", name)
-}
-
-// assertVolumeMount asserts the existance and correct content of a volume mount in a slice.
-func assertVolumeMount(t *testing.T, mounts []v1.VolumeMount, name string, path string, subPath string, readOnly bool) {
-	for _, m := range mounts {
-		if m.Name == name {
-			asserts.Equal(t, path, m.MountPath, "Expect mountPath to be correct")
-			asserts.Equal(t, subPath, m.SubPath, "Expect subPath to be correct")
-			asserts.Equal(t, readOnly, m.ReadOnly, "Expect readOnly to be correct")
-			return
-		}
-	}
-	asserts.Fail(t, "Expect volume mount to exist", "name: %s", name)
-}
-
-func assertEnvVarFromField(t *testing.T, vars []v1.EnvVar, name string, fieldPath string) {
-	for _, v := range vars {
-		if v.Name == name {
-			asserts.Equal(t, fieldPath, v.ValueFrom.FieldRef.FieldPath, "Expect var field path")
-			return
-		}
-	}
-	asserts.Fail(t, "Expect var to exist", "name: %s", name)
-}
-
-func assertEnvVarFromSecret(t *testing.T, vars []v1.EnvVar, name string, secretName string, secretKey string) {
-	for _, v := range vars {
-		if v.Name == name {
-			asserts.Equal(t, secretName, v.ValueFrom.SecretKeyRef.LocalObjectReference.Name, "Expect var secret ref to have correct name")
-			asserts.Equal(t, secretKey, v.ValueFrom.SecretKeyRef.Key, "Expect var secret ref to have correct key")
-			return
-		}
-	}
-	asserts.Fail(t, "Expect var to exist", "name: %s", name)
 }
