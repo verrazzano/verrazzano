@@ -116,7 +116,7 @@ func GetOidcProxyConfigMapData(config OidcProxyConfig) (map[string]string, error
 
 	var cm map[string]string
 
-	if config.Mode == "api-proxy" {
+	if config.Mode == ProxyModeAPI {
 		reload, err := oidcReload(config)
 		if err != nil {
 			return nil, err

@@ -146,7 +146,7 @@ function install_verrazzano()
         --set keycloak.enabled=$(is_keycloak_enabled) \
         --set rancher.enabled=$(is_rancher_enabled) \
         --set api.proxy.OidcProviderHost=keycloak.${ENV_NAME}.${DNS_SUFFIX} \
-        --set api.proxy.OidcProviderInClusterHost=keycloak-http.keycloak.svc.cluster.local \
+        --set api.proxy.OidcProviderHostInCluster=keycloak-http.keycloak.svc.cluster.local \
         ${HELM_IMAGE_ARGS} \
         ${PROFILE_VALUES_OVERRIDE} \
         ${EXTRA_V8O_ARGUMENTS} || return $?

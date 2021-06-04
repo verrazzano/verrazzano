@@ -52,7 +52,7 @@ const OidcAuthLuaFileTemplate = `|
 {{ else if eq .Mode "api-proxy" }}
         local keycloakURL = me.read_file("/api-config/keycloak-url")
         if keycloakURL and keycloakURL ~= "" then
-            me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.)
+            me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
             oidcProviderInClusterUri = nil
         end
 {{ end }}

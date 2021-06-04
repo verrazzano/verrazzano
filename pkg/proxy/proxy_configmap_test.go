@@ -33,6 +33,9 @@ func getAPIProxyConfig() OidcProxyConfig {
 	proxyConfig.PGClientID = "verrazzano-pg"
 	proxyConfig.RequiredRealmRole = "vz_api_access"
 
+	proxyConfig.OidcProviderHost = "keycloak.will.129.159.243.176.nip.io"
+	proxyConfig.OidcProviderHostInCluster = "keycloak-http.keycloak.svc.cluster.local"
+
 	return proxyConfig
 }
 
