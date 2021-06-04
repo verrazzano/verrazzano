@@ -78,8 +78,6 @@ const (
 	workloadType              = "coherence"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
-	coherenceControlPaneLabel = "control-plane"
-	coherenceComponentLabel   = "coherenceComponent"
 	coherenceExtendPort       = 9000
 )
 

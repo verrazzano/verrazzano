@@ -10,12 +10,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
@@ -202,7 +200,8 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	req, err := retryablehttp.NewRequest(method, url, body)
 	if err != nil {
 		Log(Error, err.Error())
-		ginkgo.Fail("Could not create request")
+		// See comment below about not calling Fail() here - there are cases where this should be retried
+		return teapot, ""
 	}
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
@@ -235,7 +234,7 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 
 // getHTTPClientWithCABundle returns an HTTP client configured with the provided CA cert
 func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Client {
-	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCertPool(caData)}}
+	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCertPoolInCluster(caData, kubeconfigPath)}}
 
 	proxyURL := getProxyURL()
 	if proxyURL != "" {
@@ -248,38 +247,6 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 	// setupCustomDNSResolver(tr, kubeconfigPath)
 
 	return &http.Client{Transport: tr}
-}
-
-func setupCustomDNSResolver(tr *http.Transport, kubeconfigPath string) {
-	ipResolve := getNginxNodeIP(kubeconfigPath)
-	if ipResolve != "" {
-		dialer := &net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}
-		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			Log(Debug, fmt.Sprintf("original address %s", addr))
-			wildcardSuffix := GetWildcardDNS(addr)
-			if strings.Contains(addr, "127.0.0.1") && strings.Contains(addr, ":443") {
-				// resolve to the nginx node ip if address contains 127.0.0.1, for node port installation
-				addr = ipResolve + ":443"
-				Log(Debug, fmt.Sprintf("modified address %s", addr))
-			} else if wildcardSuffix != "" && strings.Contains(addr, ":443") {
-				// resolve DNS wildcard ourselves
-				resolving := strings.TrimSuffix(strings.TrimSuffix(addr, ":443"), "."+wildcardSuffix)
-				four := resolving[strings.LastIndex(resolving, "."):]
-				resolving = strings.TrimSuffix(resolving, four)
-				three := resolving[strings.LastIndex(resolving, "."):]
-				resolving = strings.TrimSuffix(resolving, three)
-				two := resolving[strings.LastIndex(resolving, "."):]
-				resolving = strings.TrimSuffix(resolving, two)
-				one := resolving[strings.LastIndex(resolving, ".")+1:]
-				addr = one + two + three + four + ":443"
-				Log(Debug, fmt.Sprintf("modified address %s", addr))
-			}
-			return dialer.DialContext(ctx, network, addr)
-		}
-	}
 }
 
 func getEnvName(kubeconfigPath string) string {
@@ -334,21 +301,6 @@ func doGetCACertFromSecret(secretName string, namespace string, kubeconfigPath s
 	return certSecret.Data["ca.crt"]
 }
 
-// Returns the nginx controller node ip
-func getNginxNodeIP(kubeconfigPath string) string {
-	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
-	pods, err := clientset.CoreV1().Pods("ingress-nginx").List(context.TODO(), metav1.ListOptions{})
-	if err == nil {
-		for i := range pods.Items {
-			pod := pods.Items[i]
-			if strings.HasPrefix(pod.Name, "ingress-controller-ingress-nginx-controller-") {
-				return pod.Status.HostIP
-			}
-		}
-	}
-	return ""
-}
-
 // newRetryableHTTPClient returns a new instance of a retryable HTTP client
 func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
 	retryableClient := retryablehttp.NewClient() //default of 4 retries is sufficient for us
@@ -359,17 +311,26 @@ func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
 	return retryableClient
 }
 
-// rootCertPool returns the root cert pool
-func rootCertPool(caData []byte) *x509.CertPool {
-	// if we have caData, use it
-	certPool := x509.NewCertPool()
-	for _, stagingCA := range getACMEStagingCAs() {
-		if len(stagingCA) > 0 {
-			certPool.AppendCertsFromPEM(stagingCA)
-		}
-	}
+// rootCertPoolInCluster returns the root cert pool
+func rootCertPoolInCluster(caData []byte, kubeconfigPath string) *x509.CertPool {
+	var certPool *x509.CertPool = nil
+
 	if len(caData) != 0 {
+		// if we have caData, use it
+		certPool = x509.NewCertPool()
 		certPool.AppendCertsFromPEM(caData)
+	}
+
+	if IsACMEStagingEnabledInCluster(kubeconfigPath) {
+		// Add the ACME staging CAs if necessary
+		if certPool == nil {
+			certPool = x509.NewCertPool()
+		}
+		for _, stagingCA := range getACMEStagingCAs() {
+			if len(stagingCA) > 0 {
+				certPool.AppendCertsFromPEM(stagingCA)
+			}
+		}
 	}
 	return certPool
 }
