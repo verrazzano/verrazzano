@@ -72,11 +72,9 @@ type AssertFn func(configMap *corev1.ConfigMap) error
 func TestCreateVMC(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n" +
+		"  host: " + getPrometheusHost() + "\n" +
 		"  cacrt: |\n" +
-		"    -----BEGIN CERTIFICATE-----\n" +
-		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
-		"    -----END CERTIFICATE-----"
+		getCaCrt()
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -109,7 +107,7 @@ func TestCreateVMC(t *testing.T) {
 			asserts.Fail("failed due to error %v", err)
 		}
 		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
+		asserts.Equal(getPrometheusHost(),
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
@@ -140,7 +138,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	namespace := "verrazzano-mc"
 	// OCI DNS cluster does not include a CA cert since the CA is public
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n"
+		getPrometheusHost()
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -172,7 +170,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 			asserts.Fail("failed due to error %v", err)
 		}
 		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
+		asserts.Equal(getPrometheusHost(),
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Empty(scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
@@ -202,11 +200,9 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n" +
+		getPrometheusHost() + "\n" +
 		"  cacrt: |\n" +
-		"    -----BEGIN CERTIFICATE-----\n" +
-		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
-		"    -----END CERTIFICATE-----"
+		getCaCrt()
 	prometheusYaml := `global:
   scrape_interval: 20s
   scrape_timeout: 10s
@@ -249,7 +245,7 @@ scrape_configs:
 			asserts.Fail("failed due to error %v", err)
 		}
 		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
+		asserts.Equal(getPrometheusHost(),
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
@@ -280,11 +276,9 @@ scrape_configs:
 func TestReplaceExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n" +
+		"  host: " + getPrometheusHost() + "\n" +
 		"  cacrt: |\n" +
-		"    -----BEGIN CERTIFICATE-----\n" +
-		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
-		"    -----END CERTIFICATE-----"
+		getCaCrt()
 	prometheusYaml := `global:
   scrape_interval: 20s
   scrape_timeout: 10s
@@ -327,7 +321,7 @@ scrape_configs:
 		}
 		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
 		asserts.Equal("test", scrapeConfig.Path("job_name").Data(), "wrong job testManagedCluster")
-		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
+		asserts.Equal(getPrometheusHost(),
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
@@ -359,11 +353,9 @@ scrape_configs:
 func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n" +
+		"  host: " + getPrometheusHost() + "\n" +
 		"  cacrt: |\n" +
-		"    -----BEGIN CERTIFICATE-----\n" +
-		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
-		"    -----END CERTIFICATE-----"
+		getCaCrt()
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -396,7 +388,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 			asserts.Fail("failed due to error %v", err)
 		}
 		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
+		asserts.Equal(getPrometheusHost(),
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
@@ -545,9 +537,7 @@ scrape_configs:
   scrape_interval: 20s
   scrape_timeout: 15s
   scheme: http`,
-				"ca-test": "-----BEGIN CERTIFICATE-----\n" +
-					"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
-					"    -----END CERTIFICATE-----",
+				"ca-test": getCaCrt(),
 			}
 
 			return nil
@@ -988,11 +978,9 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	promData := "prometheus:\n" +
-		"  host: prometheus.vmi.system.default.1.2.3.4.nip.io\n" +
+		"  host: " + getPrometheusHost() + "\n" +
 		"  cacrt: |\n" +
-		"    -----BEGIN CERTIFICATE-----\n" +
-		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
-		"    -----END CERTIFICATE-----"
+		getCaCrt()
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1369,7 +1357,7 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string) {
 				Name:      name.Name,
 				Labels:    labels}
 			vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
-				PrometheusSecret: getPrometheusSecretName(),
+				CASecret: getCASecretName(name.Name),
 			}
 			return nil
 		})
@@ -1388,10 +1376,10 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string) {
 func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometheusYaml string, prometheusSecretData string, f AssertFn) {
 	// Expect a call to get the prometheus secret - return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getCASecretName(vmcName)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				getClusterYamlKey(vmcName): []byte(prometheusSecretData),
+				"cacrt": []byte(getCaCrt()),
 			}
 			return nil
 		})
@@ -1591,9 +1579,21 @@ func getScrapeConfig(prometheusYaml string, name string) (*gabs.Container, error
 	return scrapeConfig, nil
 }
 
-// getPrometheusSecretName returns the prometheus secret testManagedCluster
-func getPrometheusSecretName() string {
-	return "test-secret"
+// getCASecretName returns the ca secret for testManagedCluster
+func getCASecretName(name string) string {
+	return fmt.Sprintf("%s-ca-secret", name)
+}
+
+// getPrometheusHost returns the prometheus host for testManagedCluster
+func getPrometheusHost() string {
+	return "prometheus.vmi.system.default.1.2.3.4.nip.io"
+}
+
+// getPrometheusHost returns the prometheus host for testManagedCluster
+func getCaCrt() string {
+	return "    -----BEGIN CERTIFICATE-----\n" +
+		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
+		"    -----END CERTIFICATE-----"
 }
 
 func expectStatusUpdateReadyCondition(asserts *assert.Assertions, mock *mocks.MockClient, mockStatus *mocks.MockStatusWriter, expectReady corev1.ConditionStatus, msg string) {

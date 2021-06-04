@@ -71,7 +71,7 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: VerrazzanoManagedClusterSpec{
-			PrometheusSecret: secretName,
+			CASecret: secretName,
 		},
 	}
 	err := vz.ValidateCreate()
@@ -107,7 +107,7 @@ func TestCreateNoConfigMap(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: VerrazzanoManagedClusterSpec{
-			PrometheusSecret: secretName,
+			CASecret: secretName,
 		},
 	}
 	err := vz.ValidateCreate()
@@ -149,7 +149,7 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: VerrazzanoManagedClusterSpec{
-			PrometheusSecret: secretName,
+			CASecret: secretName,
 		},
 	}
 	err := vz.ValidateCreate()
@@ -196,7 +196,7 @@ func TestCreateMissingSecret(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: VerrazzanoManagedClusterSpec{
-			PrometheusSecret: secretName,
+			CASecret: secretName,
 		},
 	}
 	err := vz.ValidateCreate()
@@ -245,7 +245,7 @@ func TestCreateVerrazzanoNotInstalled(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: VerrazzanoManagedClusterSpec{
-			PrometheusSecret: secretName,
+			CASecret: secretName,
 		},
 	}
 	err := vz.ValidateCreate()

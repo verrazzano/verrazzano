@@ -59,29 +59,28 @@ type prometheusInfo struct {
 // entry for the cluster's CA cert added to the prometheus config map to allow for lookup of the CA cert by the scraper's HTTP client.
 func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	// read the configuration secret specified
-	if len(vmc.Spec.PrometheusSecret) == 0 {
+	if len(vmc.Spec.CASecret) == 0 {
 		return nil
 	}
 
 	var secret corev1.Secret
 	secretNsn := types.NamespacedName{
 		Namespace: vmc.Namespace,
-		Name:      vmc.Spec.PrometheusSecret,
+		Name:      vmc.Spec.CASecret,
 	}
 	if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
-		return fmt.Errorf("Failed to fetch the managed cluster prometheus secret %s/%s, %v", vmc.Namespace, vmc.Spec.PrometheusSecret, err)
+		return fmt.Errorf("Failed to fetch the managed cluster CA secret %s/%s, %v", vmc.Namespace, vmc.Spec.CASecret, err)
 	}
 
-	// obtain the configuration data from the prometheus secret
-	config, ok := secret.Data[getClusterYamlKey(vmc.Name)]
-	if !ok {
-		return fmt.Errorf("Managed cluster yaml configuration not found")
+	if vmc.Status.PrometheusHost == "" {
+		return fmt.Errorf("Managed cluster Prometheus Host not found in VMC Status.")
 	}
 	// marshal the data into the prometheus info struct
-	prometheusConfig := prometheusInfo{}
-	err := yaml.Unmarshal(config, &prometheusConfig)
-	if err != nil {
-		return fmt.Errorf("Unable to umarshal the configuration data")
+	prometheusConfiguration := prometheusInfo{
+		Prometheus: prometheusConfig{
+			Host:  vmc.Status.PrometheusHost,
+			CaCrt: string(secret.Data["cacrt"]),
+		},
 	}
 
 	// Get the Prometheus configuration.  The ConfigMap may not exist if this delete is being called during an uninstall of Verrazzano.
@@ -92,7 +91,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 	}
 
 	// Update Prometheus configuration to stop scraping for this VMC
-	err = r.mutatePrometheusConfigMap(vmc, promConfigMap, &prometheusConfig)
+	err = r.mutatePrometheusConfigMap(vmc, promConfigMap, &prometheusConfiguration)
 	if err != nil {
 		return err
 	}
@@ -244,9 +243,4 @@ func parsePrometheusConfig(promConfigStr string) (*gabs.Container, error) {
 // getCAKey returns the key by which the CA cert will be retrieved by the scaper HTTP client
 func getCAKey(vmc *clustersv1alpha1.VerrazzanoManagedCluster) string {
 	return "ca-" + vmc.Name
-}
-
-// getClusterYamlKey returns the key to the cluster information yaml from the configured prometheus secret
-func getClusterYamlKey(name string) string {
-	return fmt.Sprintf("%s.yaml", name)
 }
