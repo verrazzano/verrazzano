@@ -14,8 +14,6 @@ EFFECTIVE_CONFIG_VALUES="${INSTALL_OVERRIDES_DIR}/effective.config.json"
 # The max length of the environment name passed in by the user.
 ENV_NAME_LENGTH_LIMIT=10
 
-MANAGED_CLUSTER_PROFILE="managed-cluster"
-
 # Read a JSON installation config file and output the JSON to stdout
 function read_config() {
   local config_file=$1
@@ -399,42 +397,81 @@ function is_keycloak_enabled() {
   echo ${keycloak_enabled}
 }
 
+# Parse the verrazzanoInstallArgs from the config.json and return the value of the configuration value
+function parse_vz_install_args() {
+  local install_args=$1
+  local config_value=$2
+  local vz_install_args=($(get_config_array $install_args)) || return 1
+  if [ ${#vz_install_args[@]} -ne 0 ]; then
+    for arg in "${vz_install_args[@]}"; do
+      param_name=$(echo "$arg" | jq -r '.name')
+      param_value=$(echo "$arg" | jq -r '.value')
+      if [ ! -z "$param_name" ] && [ ! -z "$param_value" ] && [ "$param_name" == "$config_value" ]; then
+        echo "$param_value"
+        return 0
+      fi
+    done
+  fi
+  return 0
+}
+
+# The function is_vz_component_enabled outputs to stdout a configuration value, without the surrounding quotes
+# The configuration value is read in the following order.
+# - verrazzanoInstallArgs from the config.json, which is based on the configuration specified in the custom resource.
+# - install-overrides/config.${profile}.json
+# - install-overrides/config.json
+function is_vz_component_enabled() {
+  local jq_expr="$1"
+  local config_value=""
+  if [ ! -z "$(get_config_value '.verrazzanoInstallArgs')" ]; then
+    config_value="$(parse_vz_install_args '.verrazzanoInstallArgs[]' $jq_expr)"
+    if [ -z "$config_value" ] || [ "$config_value" == "null" ] || [ "$config_value" == "" ]; then
+      config_value=""
+    else
+      echo "${config_value}"
+      return 0
+    fi
+  fi
+  if [ "$config_value" == "" ] ; then
+    config_value=$(get_config_value ".${jq_expr}")
+  fi
+  echo "${config_value}"
+}
+
 # Return the value for the key elasticSearch.enabled
 function is_elasticsearch_enabled() {
-  local es_enabled=$(get_config_value '.elasticSearch.enabled')
+  local es_enabled=$(is_vz_component_enabled 'elasticSearch.enabled')
   echo ${es_enabled}
 }
 
 # Return the value for the key grafana.enabled
 function is_grafana_enabled() {
-  local grafana_enabled=$(get_config_value '.grafana.enabled')
+  local grafana_enabled=$(is_vz_component_enabled 'grafana.enabled')
   echo ${grafana_enabled}
 }
 
 # Return the value for the key kibana.enabled
 function is_kibana_enabled() {
-  local kibana_enabled=$(get_config_value '.kibana.enabled')
+  local kibana_enabled=$(is_vz_component_enabled 'kibana.enabled')
   echo ${kibana_enabled}
 }
 
 # Return the value for the key console.enabled
 function is_vz_console_enabled() {
-  local console_enabled=$(get_config_value '.console.enabled')
+  local console_enabled=$(is_vz_component_enabled 'console.enabled')
   echo ${console_enabled}
 }
 
-# Return the value for the key prometheus_enabled.enabled
+# Return the value for the key prometheus_enabled.enabled. For a managed-cluster profile, the value is set to false in
+# in the overrides. Use this function only to determine whether to log the Prometheus URL in the install log.
+# Although Prometheus is installed in the managed-cluster profile, which is not expected to be accessed.
+# In a multi cluster environment, Prometheus Console on the admin cluster should be used to query the metrics from the managed clusters.
 function is_prometheus_enabled() {
-  # Return false always from managed profile, as the admin cluster scrapes the metrics from managed clusters
-  if [ "$(get_install_profile)" == "${MANAGED_CLUSTER_PROFILE}" ]; then
-    echo "false"
-  else
-    local prometheus_enabled=$(get_config_value '.prometheus.enabled')
-    echo ${prometheus_enabled}
-  fi
+  local prometheus_enabled=$(is_vz_component_enabled 'prometheus.enabled')
+  echo ${prometheus_enabled}
 }
 
-# Return the total number of user interfaces available
+# Return the total number of user interfaces available in the installation
 function get_console_count() {
   console_count=0
 
