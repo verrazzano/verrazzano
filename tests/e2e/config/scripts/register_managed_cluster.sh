@@ -62,9 +62,10 @@ spec:
 EOF
 
 # wait for VMC to be ready - that means the manifest has been created
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=15s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
+echo "Creating VMC for ${MANAGED_CLUSTER_NAME}"
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=60s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
 if [ $? -ne 0 ]; then
-  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 15 seconds. Registration failed."
+  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 60 seconds. Registration failed."
   exit 1
 fi
 
