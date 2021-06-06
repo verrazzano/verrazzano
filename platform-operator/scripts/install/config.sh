@@ -415,16 +415,19 @@ function parse_vz_install_args() {
   return 0
 }
 
-# The function is_vz_component_enabled outputs to stdout a configuration value, without the surrounding quotes
-# The configuration value is read in the following order.
-# - verrazzanoInstallArgs from the config.json, which is based on the configuration specified in the custom resource.
-# - install-overrides/config.${profile}.json
-# - install-overrides/config.json
-function is_vz_component_enabled() {
+# The function get_console_enabled outputs to stdout a configuration value, without the surrounding quotes, in the
+# following order.
+# - check whether "<config value>.enabled is there under verrazzanoInstallArgs in config.json, which is based on the
+#   configuration specified by the custom resource
+# - check whether "consolesEnabled.<config value> is set to true in install-overrides/config.${profile}.json
+# - check whether "consolesEnabled.<config value> is set to true in install-overrides/config.json
+# The configuration value in the
+function get_console_enabled() {
   local jq_expr="$1"
   local config_value=""
   if [ ! -z "$(get_config_value '.verrazzanoInstallArgs')" ]; then
-    config_value="$(parse_vz_install_args '.verrazzanoInstallArgs[]' $jq_expr)"
+    # Read the value from the config.json
+    config_value="$(parse_vz_install_args '.verrazzanoInstallArgs[]' "$jq_expr.enabled")"
     if [ -z "$config_value" ] || [ "$config_value" == "null" ] || [ "$config_value" == "" ]; then
       config_value=""
     else
@@ -433,68 +436,41 @@ function is_vz_component_enabled() {
     fi
   fi
   if [ "$config_value" == "" ] ; then
-    config_value=$(get_config_value ".${jq_expr}")
+    # Read the value from the config overrides
+    config_value=$(get_config_value ".consolesEnabled.${jq_expr}")
   fi
   echo "${config_value}"
 }
 
-# Return the value for the key elasticSearch.enabled
-function is_elasticsearch_enabled() {
-  local es_enabled=$(is_vz_component_enabled 'elasticSearch.enabled')
+# Return whether Elasticsearch console is enabled
+function is_elasticsearch_console_enabled() {
+  local es_enabled=$(get_console_enabled 'elasticSearch')
   echo ${es_enabled}
 }
 
-# Return the value for the key grafana.enabled
-function is_grafana_enabled() {
-  local grafana_enabled=$(is_vz_component_enabled 'grafana.enabled')
+# Return whether Grafana console is enabled
+function is_grafana_console_enabled() {
+  local grafana_enabled=$(get_console_enabled 'grafana')
   echo ${grafana_enabled}
 }
 
-# Return the value for the key kibana.enabled
-function is_kibana_enabled() {
-  local kibana_enabled=$(is_vz_component_enabled 'kibana.enabled')
+# Return whether Kibana console is enabled
+function is_kibana_console_enabled() {
+  local kibana_enabled=$(get_console_enabled 'kibana')
   echo ${kibana_enabled}
 }
 
-# Return the value for the key console.enabled
+# Return whether Verrazzano console is enabled
 function is_vz_console_enabled() {
-  local console_enabled=$(is_vz_component_enabled 'console.enabled')
+  local console_enabled=$(get_console_enabled 'console')
   echo ${console_enabled}
 }
 
-# Return the value for the key prometheus_enabled.enabled. For a managed-cluster profile, the value is set to false in
-# in the overrides. Use this function only to determine whether to log the Prometheus URL in the install log.
-# Although Prometheus is installed in the managed-cluster profile, which is not expected to be accessed.
-# In a multi cluster environment, Prometheus Console on the admin cluster should be used to query the metrics from the managed clusters.
-function is_prometheus_enabled() {
-  local prometheus_enabled=$(is_vz_component_enabled 'prometheus.enabled')
+# Return whether Prometheus console is enabled. For a managed-cluster profile, the console enabled flag is set to false
+# in the overrides, as the admin cluster should be used to query the metrics from the managed clusters.
+function is_prometheus_console_enabled() {
+  local prometheus_enabled=$(get_console_enabled 'prometheus')
   echo ${prometheus_enabled}
-}
-
-# Return the total number of user interfaces available in the installation
-function get_console_count() {
-  console_count=0
-
-  if [[ $(is_grafana_enabled) == "true" ]]; then
-    console_count=$((console_count + 1))
-  fi
-
-  if [[ $(is_kibana_enabled) == "true" ]]; then
-    console_count=$((console_count + 1))
-  fi
-
-  if [[ $(is_vz_console_enabled) == "true" ]]; then
-    console_count=$((console_count + 1))
-  fi
-
-  if [[ $(is_elasticsearch_enabled) == "true" ]]; then
-    console_count=$((console_count + 1))
-  fi
-
-  if [[ $(is_prometheus_enabled) == "true" ]]; then
-    console_count=$((console_count + 1))
-  fi
-  echo "${console_count}"
 }
 
 # Return a flag indicating whether this is an installation leveraging OCI DNS

@@ -5,19 +5,11 @@
   "keycloak": {
     "enabled": true
   },
-  "elasticSearch": {
-    "enabled": true
-  },
-  "grafana": {
-    "enabled": true
-  },
-  "kibana": {
-    "enabled": true
-  },
-  "console": {
-    "enabled": true
-  },
-  "prometheus": {
-    "enabled": true
+  "consolesEnabled": {
+    "grafana": true,
+    "kibana": true,
+    "elasticSearch": true,
+    "prometheus": true,
+    "console": true
   }
 }
