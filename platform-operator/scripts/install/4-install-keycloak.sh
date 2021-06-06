@@ -766,7 +766,6 @@ rm -rf $TMP_DIR
 
 consoleout
 consoleout "Installation Complete."
-consoleout
 
 # Determine the consoles enabled for the profile and display the URLs accordingly
 consoleArr=()
@@ -792,6 +791,7 @@ fi
 
 console_count=${#consoleArr[@]}
 if [ $console_count -gt 0 ];then
+  consoleout
   if [ $console_count -eq 1 ];then
     consoleout "Verrazzano provides the following user interface."
   else
