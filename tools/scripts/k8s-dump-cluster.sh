@@ -231,8 +231,8 @@ function full_k8s_cluster_dump() {
     kubectl --insecure-skip-tls-verify get netpol -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/network-policies.json || true
     kubectl --insecure-skip-tls-verify describe netpol -A 2>/dev/null > $CAPTURE_DIR/cluster-dump/network-policies.txt || true
     kubectl --insecure-skip-tls-verify describe ClusterIssuer -A 2>/dev/null > $CAPTURE_DIR/cluster-dump/cluster-issuers.txt || true
-    kubectl --insecure-skip-tls-verify describe MutatingWebhookConfigurations -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/mutating-webhook-configs.txt || true
-    kubectl --insecure-skip-tls-verify describe ValidatingWebhookConfigurations -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/validating-webhook-configs.txt || true
+    kubectl --insecure-skip-tls-verify get MutatingWebhookConfigurations -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/mutating-webhook-configs.txt || true
+    kubectl --insecure-skip-tls-verify get ValidatingWebhookConfigurations -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/validating-webhook-configs.txt || true
     # squelch the "too many clients" warnings from newer kubectl versions
     dump_extra_details_per_namespace
     dump_configmaps
