@@ -8,6 +8,7 @@ linters:
     - gofmt
     - golint
     - gosimple
+    - deadcode
   disable-all: true
   fast: true
 
