@@ -38,6 +38,7 @@ if [ -n "${IMAGE_PULL_SECRETS}" ] ; then
     IMAGE_PULL_SECRET_ARG="--set global.imagePullSecrets={${IMAGE_PULL_SECRETS}}"
 fi
 
+APP_OPERATOR_IMAGE=${APP_OPERATOR_IMAGE:-}
 APP_OPERATOR_IMAGE_ARG=
 if [ -n "${APP_OPERATOR_IMAGE}" ] && [[ "${APP_OPERATOR_IMAGE}" == *:* ]] ; then
     APP_OPERATOR_IMAGE_ARG="--set global.appOperatorImage=${APP_OPERATOR_IMAGE}"

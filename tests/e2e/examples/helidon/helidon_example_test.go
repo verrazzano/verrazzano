@@ -187,7 +187,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 	}
 	// HTTP Server headers should never be returned.
 	for headerName, headerValues := range resp.Header {
-		if strings.EqualFold(headerName, "Server" ) {
+		if strings.EqualFold(headerName, "Server") {
 			pkg.Log(pkg.Error, fmt.Sprintf("Unexpected Server header=%v", headerValues))
 			return false
 		}

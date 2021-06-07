@@ -82,6 +82,10 @@ fi
 echo "Wait for Operator to be ready"
 cd ${GO_REPO_PATH}/verrazzano
 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+if [ $? -ne 0 ]; then
+  echo "Operator is not ready"
+  exit 1
+fi
 
 echo "Installing Verrazzano on Kind"
 install_retries=0

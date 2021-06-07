@@ -39,40 +39,6 @@ func Ingress() string {
 	}
 }
 
-// nodePortIngress returns the ingress node port address
-func nodePortIngress() string {
-	fmt.Println("Obtaining node address info ...")
-	addrHost := ""
-	var addrPort int32
-
-	pods, _ := GetKubernetesClientset().CoreV1().Pods(istioSystemNamespace).List(context.TODO(), metav1.ListOptions{})
-	for i := range pods.Items {
-		if strings.HasPrefix(pods.Items[i].Name, "istio-ingressgateway-") {
-			addrHost = pods.Items[i].Status.HostIP
-		}
-	}
-
-	ingressgateway := findIstioIngressGatewaySvc(false)
-	fmt.Println("ingressgateway for cluster is ", ingressgateway)
-	for _, eachPort := range ingressgateway.Spec.Ports {
-		if eachPort.Port == 80 {
-			fmt.Printf("cluster - found ingressgateway port %d with nodeport %d, name %s\n", eachPort.Port, eachPort.NodePort, eachPort.Name)
-			fmt.Printf("cluster - found ingressgateway port %d with nodeport %d, name %s\n", eachPort.Port, eachPort.NodePort, eachPort.Name)
-			addrPort = eachPort.NodePort
-		}
-	}
-
-	if addrHost == "" {
-		fmt.Println("node address is empty")
-		return ""
-	}
-
-	ingressAddr := fmt.Sprintf("%s:%d", addrHost, addrPort)
-	fmt.Printf("ingress address is %s\n", ingressAddr)
-	return ingressAddr
-
-}
-
 // loadBalancerIngress returns the ingress load balancer address
 func loadBalancerIngress() string {
 	fmt.Println("Obtaining ingressgateway info ...")

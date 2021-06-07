@@ -21,7 +21,6 @@ var installFailedRe = regexp.MustCompile(`Install.*\[FAILED\]`)
 // and the advice can be to refer to the supporting details on the limit that was exceeded. We can change it up
 // if we need a more precise match
 var ephemeralIPLimitReachedRe = regexp.MustCompile(`.*Limit for non-ephemeral regional public IP per tenant of .* has been already reached`)
-var limitReachedRe = regexp.MustCompile(`.*Limit .* has been already reached`)
 
 const (
 	// Service name

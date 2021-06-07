@@ -1,51 +1,136 @@
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+# -------------------------------------------------------------
+# This is the service account used by the Coherence Operator.
+# -------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
 metadata:
+  name: {{ default "coherence-operator" .Values.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
   labels:
     control-plane: coherence
-  name: coherence-operator-leader-election-role
+---
+{{- if .Values.clusterRoles }}
+# -------------------------------------------------------------
+# This is the Cluster Roles required by the Coherence Operator
+# to self-manage its CRDs and Web-Hooks.
+# -------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: coherence-operator-crd-webhook-install
   namespace: {{ .Release.Namespace }}
+  labels:
+    control-plane: coherence
+rules:
+  - apiGroups:
+    - apiextensions.k8s.io
+    resources:
+    - customresourcedefinitions
+    verbs:
+    - create
+    - delete
+    - get
+    - update
+  - apiGroups:
+    - admissionregistration.k8s.io
+    resources:
+    - mutatingwebhookconfigurations
+    - validatingwebhookconfigurations
+    verbs:
+    - create
+    - delete
+    - get
+    - update
+    - watch
+---
+# --------------------------------------------------------------------
+# This is the Cluster Role binding required by the Coherence Operator
+# to self-manage its CRDs and Web-Hooks.
+# --------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: coherence-operator-crd-webhook-install
+  namespace: {{ .Release.Namespace }}
+  labels:
+    control-plane: coherence
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: coherence-operator-crd-webhook-install
+subjects:
+- kind: ServiceAccount
+  name: {{ default "coherence-operator" .Values.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+---
+{{- end }}
+{{- if or (eq .Values.clusterRoles true) (eq .Values.nodeRoles true) }}
+# -------------------------------------------------------------
+# This is the Cluster Roles required by the Coherence Operator
+# to obtain Node information.
+# Specifically the operator looks up Node labels to work out
+# the topology information used by Coherence for site safety.
+# -------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: coherence-operator-node-viewer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    control-plane: coherence
 rules:
 - apiGroups:
   - ""
   resources:
-  - configmaps
+  - nodes
   verbs:
   - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - configmaps/status
-  verbs:
-  - get
-  - update
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
 ---
+# ---------------------------------------------------------------------
+# This is the Cluster Roles binding required by the Coherence Operator
+# to obtain Node information.
+# Specifically the operator looks up Node labels to work out
+# the topology information used by Coherence for site safety.
+# ---------------------------------------------------------------------
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: ClusterRoleBinding
 metadata:
-  creationTimestamp: null
-  name: coherence-operator-manager-role
+  name: coherence-operator-node-viewer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    control-plane: coherence
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: coherence-operator-node-viewer
+subjects:
+- kind: ServiceAccount
+  name: {{ default "coherence-operator" .Values.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+---
+{{- end }}
+# ---------------------------------------------------------------------
+# This is the Cluster Roles required by the Coherence Operator during
+# normal operation to manage Coherence clusters.
+# ---------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+{{- if .Values.clusterRoles }}
+kind: ClusterRole
+{{- else }}
+kind: Role
+{{- end }}
+metadata:
+  name: coherence-operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    control-plane: coherence
 rules:
 - apiGroups:
   - ""
   resources:
   - configmaps
   - endpoints
-  - persistentvolumeclaims
+  - events
   - pods
   - pods/exec
   - secrets
@@ -58,26 +143,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - get
-  - list
-- apiGroups:
-  - admissionregistration.k8s.io
-  resources:
-  - mutatingwebhookconfigurations
-  - validatingwebhookconfigurations
-  verbs:
-  - '*'
-- apiGroups:
-  - apiextensions.k8s.io
-  resources:
-  - customresourcedefinitions
-  verbs:
-  - '*'
 - apiGroups:
   - apps
   resources:
@@ -123,33 +188,30 @@ rules:
   - update
   - watch
 ---
+# ---------------------------------------------------------------------
+# This is the Cluster Role binding required by the Coherence Operator
+# during normal operation to manage Coherence clusters.
+# ---------------------------------------------------------------------
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  labels:
-    control-plane: coherence
-  name: coherence-operator-leader-election-rolebinding
-  namespace: {{ .Release.Namespace }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: coherence-operator-leader-election-role
-subjects:
-- kind: ServiceAccount
-  name: default
-  namespace: {{ .Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
+{{- if .Values.clusterRoles }}
 kind: ClusterRoleBinding
+{{- else }}
+kind: RoleBinding
+{{- end }}
 metadata:
+  name: coherence-operator
+  namespace: {{ .Release.Namespace }}
   labels:
     control-plane: coherence
-  name: coherence-operator-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
+{{- if .Values.clusterRoles }}
   kind: ClusterRole
-  name: coherence-operator-manager-role
+{{- else }}
+  kind: Role
+{{- end }}
+  name: coherence-operator
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: {{ default "coherence-operator" .Values.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
