@@ -325,6 +325,15 @@ func IsManagedClusterProfile() bool {
 	return GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv()).Spec.Profile == v1alpha1.ManagedCluster
 }
 
+// IsACMEStagingEnabledInCluster returns true if the ACME staging environment is configured
+func IsACMEStagingEnabledInCluster(kubeconfigPath string) bool {
+	vz := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if vz.Spec.Components.CertManager == nil {
+		return false
+	}
+	return vz.Spec.Components.CertManager.Certificate.Acme.Environment == "staging"
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
 	config := GetKubeConfig()

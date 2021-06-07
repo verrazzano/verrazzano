@@ -46,7 +46,7 @@ docker-push:
 
 .PHONY: create-test-deploy
 create-test-deploy: docker-push
-	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE})
+	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE} VZ_APP_OP_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE})
 
 .PHONY: test-platform-operator-install
 test-platform-operator-install:

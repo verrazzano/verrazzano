@@ -5,8 +5,8 @@
 name: coherence-operator
 description: A Kubernetes Operator for Coherence
 apiVersion: v1
-version: 3.1.3
-appVersion: 3.1.3
+version: 3.1.5
+appVersion: 3.1.5
 home: https://github.com/oracle/coherence-operator
 sources:
 - https://github.com/oracle/coherence-operator

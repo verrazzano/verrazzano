@@ -51,10 +51,10 @@ spec:
          projected:
            sources:
             - secret:
-                name: system-tls
                 items:
                   - key: ca.crt
                     path: default-ca-bundle
+                name: system-tls
             - secret:
                 name: verrazzano-cluster-registration
                 optional: true
@@ -86,6 +86,11 @@ spec:
         imagePullPolicy: {{ .Values.api.pullPolicy }}
         name: {{ .Values.api.name }}
         command: ["/api-config/startup.sh"]
+        env:
+        - name: VZ_API_HOST
+          value: "verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
+        - name: VZ_API_VERSION
+          value: "20210501"
         ports:
             - containerPort: {{ .Values.api.port }}
         volumeMounts:
