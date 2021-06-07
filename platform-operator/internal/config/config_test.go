@@ -24,9 +24,14 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.True(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
 	asserts.True(conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
-	asserts.Equal("/verrazzano/platform-operator/scripts/install", conf.VerrazzanoInstallDir, "VerrazzanoInstallDir is incorrect")
-	asserts.Equal("/verrazzano/platform-operator/thirdparty/charts", conf.ThirdpartyChartsDir, "ThirdpartyChartsDir is incorrect")
-	asserts.Equal("/verrazzano/platform-operator/helm_config", conf.HelmConfigDir, "HelmConfigdir is incorrect")
+	asserts.Equal(conf.VerrazzanoRootDir, "/verrazzano", "VerrazzanoRootDir is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/helm_config", GetHelmConfigDir(), "GetHelmConfigDir() is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/helm_config/charts", GetHelmChartsDir(), "GetHelmChartsDir() is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/helm_config/charts/verrazzano", GetHelmVzChartsDir(), "GetHelmVzChartsDir() is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/helm_config/overrides", GetHelmOverridesDir(), "GetHelmOverridesDir() is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/scripts/install", GetInstallDir(), "GetInstallDir() is incorrect")
+	asserts.Equal("/verrazzano/platform-operator", GetPlatformDir(), "GetPlatformDir() is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/thirdparty/charts", GetThirdPartyDir(), "GetThirdPartyDir() is incorrect")
 }
 
 // TestSetConfig tests setting config values
@@ -44,9 +49,7 @@ func TestSetConfig(t *testing.T) {
 		VersionCheckEnabled:      false,
 		WebhooksEnabled:          false,
 		WebhookValidationEnabled: false,
-		VerrazzanoInstallDir:     "/test/vz",
-		ThirdpartyChartsDir:      "/test/thirdparty",
-		HelmConfigDir:            "/test/helm_config",
+		VerrazzanoRootDir:        "/root",
 	})
 
 	conf := Get()
@@ -58,7 +61,12 @@ func TestSetConfig(t *testing.T) {
 	asserts.False(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
 	asserts.False(conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
 	asserts.False(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
-	asserts.Equal("/test/vz", conf.VerrazzanoInstallDir, "VerrazzanoInstallDir is incorrect")
-	asserts.Equal("/test/thirdparty", conf.ThirdpartyChartsDir, "ThirdpartyChartsDir is incorrect")
-	asserts.Equal("/test/helm_config", conf.HelmConfigDir, "HelmConfigDir is incorrect")
+	asserts.Equal("/root", conf.VerrazzanoRootDir, "VerrazzanoRootDir is incorrect")
+	asserts.Equal("/root/platform-operator/helm_config", GetHelmConfigDir(), "GetHelmConfigDir() is incorrect")
+	asserts.Equal("/root/platform-operator/helm_config/charts", GetHelmChartsDir(), "GetHelmChartsDir() is incorrect")
+	asserts.Equal("/root/platform-operator/helm_config/charts/verrazzano", GetHelmVzChartsDir(), "GetHelmVzChartsDir() is incorrect")
+	asserts.Equal("/root/platform-operator/helm_config/overrides", GetHelmOverridesDir(), "GetHelmOverridesDir() is incorrect")
+	asserts.Equal("/root/platform-operator/scripts/install", GetInstallDir(), "GetInstallDir() is incorrect")
+	asserts.Equal("/root/platform-operator", GetPlatformDir(), "GetPlatformDir() is incorrect")
+	asserts.Equal("/root/platform-operator/thirdparty/charts", GetThirdPartyDir(), "GetThirdPartyDir() is incorrect")
 }
