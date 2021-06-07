@@ -27,8 +27,11 @@ do
     awk '{
         idx = index($0, "`")
 
-        if (idx > 1)
+        if (idx > 1) {
             doprint = 1
+            split($0, items, "`")
+            print items[2]
+        }
 
         if (idx == 1)
             doprint = 0
