@@ -153,6 +153,13 @@ const OidcAuthLuaFileTemplate = `|
         return content
     end
 
+    local function write_file(path, data)
+      local file = io.open(path, "a+")
+      if not file then return nil end
+      file:write(data)
+      file:close()
+    end
+
     -- console sends access token by itself (originally obtained via pkce client)
     function me.handleBearerToken(authHeader)
         local found, index = authHeader:find('Bearer')
@@ -421,29 +428,6 @@ const OidcAuthLuaFileTemplate = `|
         return ""
     end
 
-{{ if eq .Mode "api-proxy" }}
-    function me.impersonateKubernetesUser(token)
-        me.logJson(ngx.INFO, "Read service account token.")
-        local serviceAccountToken = me.read_file("/run/secrets/kubernetes.io/serviceaccount/token")
-        if not (serviceAccountToken) then
-            ngx.status = 401
-            me.logJson(ngx.ERR, "No service account token present in pod.")
-            ngx.exit(ngx.HTTP_UNAUTHORIZED)
-        end
-        me.logJson(ngx.INFO, "Set headers")
-        ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
-        local jwt_obj = jwt:load_jwt(token)
-        if ( jwt_obj.payload and jwt_obj.payload.groups) then
-            me.logJson(ngx.INFO, ("Adding groups " .. cjson.encode(jwt_obj.payload.groups)))
-            ngx.req.set_header("Impersonate-Group", jwt_obj.payload.groups)
-        end
-        if ( jwt_obj.payload and jwt_obj.payload.sub) then
-            me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
-            ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
-        end
-    end
-{{ end }}
-
     -- returns id token, token is refreshed first, if necessary.
     -- nil token returned if no session or the refresh token has expired
     function me.getTokenFromSession()
@@ -571,6 +555,160 @@ const OidcAuthLuaFileTemplate = `|
         end
         return "-----BEGIN CERTIFICATE-----\n"..x5c[1].."\n-----END CERTIFICATE-----"
     end
+
+{{ if eq .Mode "api-proxy" }}
+    local vzApiHost = os.getenv("VZ_API_HOST")
+    local vzApiVersion = os.getenv("VZ_API_VERSION")
+
+    local function getServiceAccountToken()
+      me.logJson(ngx.INFO, "Read service account token.")
+      local serviceAccountToken = read_file("/run/secrets/kubernetes.io/serviceaccount/token");
+      if not (serviceAccountToken) then
+        ngx.status = 401
+        me.logJson(ngx.ERR, "No service account token present in pod.")
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+      end
+      return serviceAccountToken
+    end
+
+    local function getLocalServerURL()
+      local host = os.getenv("KUBERNETES_SERVICE_HOST")
+      local port = os.getenv("KUBERNETES_SERVICE_PORT")
+      local serverUrl = "https://" .. host .. ":" .. port
+      return serverUrl
+    end
+
+    --[[
+
+    -- the next three functions appear to be unused, commenting out
+
+    local function split(s, delimiter)
+      local result = {};
+      for match in (s..delimiter):gmatch("(.-)"..delimiter) do
+          table.insert(result, match);
+      end
+      return result;
+    end
+
+    local function contains(table, element)
+      for _, value in pairs(table) do
+        if value == element then
+          return true
+        end
+      end
+      return false
+    end
+
+    local function capture(cmd, raw)
+      local f = assert(io.popen(cmd, 'r'))
+      local s = assert(f:read('*a'))
+      f:close()
+      if raw then return s end
+      s = string.gsub(s, '^%s+', '')
+      s = string.gsub(s, '%s+$', '')
+      s = string.gsub(s, '[\n\r]+', ' ')
+      return s
+    end
+
+    --]]
+
+    local function getK8SResource(resourcePath)
+      local http = require "resty.http"
+      local httpc = http.new()
+      local res, err = httpc:request_uri("https://" .. vzApiHost .. "/" .. vzApiVersion .. resourcePath,{
+          headers = {
+              ["Authorization"] = ngx.req.get_headers()["authorization"],
+          },
+      })
+      if err then
+        ngx.status = 401
+        me.logJson(ngx.ERR, "Error accessing vz api", err)
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+      end
+      if not(res) or not (res.body) then
+        ngx.status = 401
+        me.logJson(ngx.ERR, "Unable to get k8s resource.")
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+      end
+      local cjson = require "cjson"
+      return cjson.decode(res.body)
+    end
+
+    local function getVMC(cluster)
+      return me.getK8SResource("/apis/clusters.verrazzano.io/v1alpha1/namespaces/verrazzano-mc/verrazzanomanagedclusters/" .. cluster)
+    end
+
+    local function getSecret(secret)
+      return me.getK8SResource("/api/v1/namespaces/verrazzano-mc/secrets/" .. secret)
+    end
+
+    function me.handleLocalAPICall(token)
+        me.logJson(ngx.INFO, "Read service account token and set auth header.")
+        local serviceAccountToken = me.getServiceAccountToken()
+        ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
+        me.logJson(ngx.INFO, "Set groups and users")
+        local jwt_obj = jwt:load_jwt(token)
+        if ( jwt_obj.payload and jwt_obj.payload.groups) then
+            me.logJson(ngx.INFO, ("Adding groups " .. cjson.encode(jwt_obj.payload.groups)))
+            ngx.req.set_header("Impersonate-Group", jwt_obj.payload.groups)
+        end
+        if ( jwt_obj.payload and jwt_obj.payload.sub) then
+            me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
+            ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
+        end
+        ngx.var.kubernetes_server_url = getLocalServerURL()
+    end
+
+    function handleExternalAPICall(token)
+        me.logJson(ngx.INFO, "Read vmc resource for " .. args.cluster)
+        local vmc = me.getVMC(args.cluster)
+        if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
+            ngx.status = 401
+            me.logJson(ngx.ERR, "Unable to fetch vmc api url for vmc " .. args.cluster)
+            ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        end
+
+        -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
+        -- A secret is created in admin cluster during mutli cluster setup that contains the prometheus host and this ca certificate.
+        -- Here we read the name of that secret from vmc spec and retrieve the secret from cluster and read the cacrt field.
+        -- The value of cacrt field is decoded to get the ca certificate and is appended to file being pointed to by the proxy_ssl_trusted_certificate variable.
+        local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
+        if not(vmc.spec) or not(vmc.spec.prometheusSecret) then
+            ngx.status = 401
+            me.logJson(ngx.ERR, "Unable to fetch prometheus secret name for vmc to access cart for managed cluster " .. args.cluster)
+            ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        end
+
+        local secret = me.getSecret(vmc.spec.prometheusSecret)
+        if not(secret) or not(secret.data) or not(secret.data[args.cluster .. ".yaml"]) then
+            ngx.status = 401
+            me.logJson(ngx.ERR, "Unable to fetch prometheus secret for vmc to access cart for managed cluster " .. args.cluster)
+            ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        end
+
+        local decodedSecretYaml = ngx.decode_base64(secret.data[args.cluster .. ".yaml"])
+        if not(decodedSecretYaml) then
+            ngx.status = 401
+            me.logJson(ngx.ERR, "Unable to decode prometheus secret for vmc to access cart for managed cluster " .. args.cluster)
+            ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        end
+
+        local startIndex, endIndex = string.find(decodedSecretYaml, "cacrt: |")
+        if startIndex >= 1 and endIndex > startIndex then
+            local sub = string.sub(decodedSecretYaml, endIndex+1)
+            local startIndex, _ = string.find(sub, "-----BEGIN CERTIFICATE-----")
+            local _, endIndex = string.find(sub, "-----END CERTIFICATE-----")
+            if startIndex >= 1 and endIndex > startIndex then
+                write_file("/etc/nginx/upstream.pem", string.sub(sub, startIndex, endIndex))
+            end
+        end
+
+        local args = ngx.req.get_uri_args()
+        args.cluster = nil
+        ngx.req.set_uri_args(args)
+        ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
+    end
+{{ end }}
 
     return me
 `

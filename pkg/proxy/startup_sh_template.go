@@ -22,21 +22,21 @@ const OidcStartupFileTemplate = `|
 
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
-    {{- if eq .Mode "api-proxy" }}
-    ln -s /etc/ssl/certs/ca-bundle.trust.crt /etc/nginx/ca-bundle
-    {{- end }}
+{{- if eq .Mode "api-proxy" }}
+    cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/upstream.pem
+{{- end }}
 
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx -t
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
 
-    {{- if eq .Mode "oauth-proxy" }}
+{{- if eq .Mode "oauth-proxy" }}
     while [ $? -ne 0 ]; do
         sleep 20
         echo "retry nginx startup ..."
         /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
     done
-    {{- else if eq .Mode "api-proxy" }}
+{{- else if eq .Mode "api-proxy" }}
     sh -c "$startupDir/reload.sh &"
-    {{- end }}
+{{- end }}
     tail -f /etc/nginx/logs/error.log
 `

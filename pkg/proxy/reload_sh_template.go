@@ -24,29 +24,40 @@ const OidcReloadFileTemplate = `|
       fi
     }
 
+    adminCABundleMD5=""
+    defaultCABundleMD5=""
+    maxSizeTrustedCertsFileDefault=$(echo $((10*1024*1024)))
+    if [[ ! -z "${MAX_SIZE_TRUSTED_CERTS_FILE}" ]]; then
+        maxSizeTrustedCertsFileDefault=${MAX_SIZE_TRUSTED_CERTS_FILE}
+    fi
+
     while true
     do
-    if [[ -L /etc/nginx/ca-bundle && -f /api-config/admin-ca-bundle && -s /api-config/admin-ca-bundle && \
-          "$(realpath /etc/nginx/ca-bundle)" != "/api-config/admin-ca-bundle" ]]; then
-      rm -rf /etc/nginx/ca-bundle
-      ln -s /api-config/admin-ca-bundle /etc/nginx/ca-bundle
-      reload
-    fi
-    if [[ -L /etc/nginx/ca-bundle && ! -f /api-config/admin-ca-bundle && \
-          "$(realpath /etc/nginx/ca-bundle)" == "/api-config/admin-ca-bundle" && \
-          -f /api-config/default-ca-bundle && -s /api-config/default-ca-bundle ]]; then
-      rm -rf /etc/nginx/ca-bundle
-      ln -s /api-config/default-ca-bundle /etc/nginx/ca-bundle
-      reload
-    fi
-    if [[ ! -L /etc/nginx/ca-bundle && -f /api-config/admin-ca-bundle && -s /api-config/admin-ca-bundle ]]; then
-      ln -s /api-config/admin-ca-bundle /etc/nginx/ca-bundle
-      reload
-    fi
-    if [[ ! -L /etc/nginx/ca-bundle && -f /api-config/default-ca-bundle && -s /api-config/default-ca-bundle ]]; then
-      ln -s /api-config/default-ca-bundle /etc/nginx/ca-bundle
-      reload
-    fi
-    sleep 5
+        trustedCertsFileSize=$(wc -c < /etc/nginx/upstream.pem)
+        if [ $trustedCertsFileSize -ge $maxSizeTrustedCertsFileDefault ] ; then
+            cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/upstream.pem
+            adminCABundleMD5=""
+            defaultCABundleMD5=""
+        fi
+
+        if [[ -s /api-config/admin-ca-bundle ]]; then
+            md5Hash=$(md5sum "/api-config/admin-ca-bundle")
+            if [ "$adminCABundleMD5" != "$md5Hash" ] ; then
+                cat /api-config/admin-ca-bundle >> /etc/nginx/upstream.pem
+                adminCABundleMD5="$md5Hash"
+                reload
+            fi
+        fi
+
+        if [[ -s /api-config/default-ca-bundle ]]; then
+            md5Hash=$(md5sum "/api-config/default-ca-bundle")
+            if [ "$defaultCABundleMD5" != "$md5Hash" ] ; then
+                cat /api-config/default-ca-bundle >> /etc/nginx/upstream.pem
+                defaultCABundleMD5="$md5Hash"
+                reload
+            fi
+        fi
+
+        sleep 5
     done
 `

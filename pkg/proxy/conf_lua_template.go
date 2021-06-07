@@ -71,8 +71,12 @@ const OidcConfLuaFileTemplate = `|
     end
 
 {{ if eq .Mode "api-proxy" }}
-    -- impersonate the user
-    auth.impersonateKubernetesUser(token)
+    local args = ngx.req.get_uri_args()
+    if args.cluster then
+        auth.handleExternalAPICall(token)
+    else
+        auth.handleLocalAPICall(token)
+    end
 {{ else if eq .Mode "oauth-proxy" }}
     -- set the oidc_user
     ngx.var.oidc_user = auth.usernameFromIdToken(idToken)

@@ -19,6 +19,8 @@ const OidcNginxConfFileTemplate = `|
     {{- if eq .Mode "api-proxy" }}
     env KUBERNETES_SERVICE_HOST;
     env KUBERNETES_SERVICE_PORT;
+    env VZ_API_HOST;
+    env VZ_API_VERSION;
     {{- end }}
 
     events {
@@ -54,10 +56,8 @@ const OidcNginxConfFileTemplate = `|
         lua_shared_dict discovery 1m;
         #  cache for JWKs
         lua_shared_dict jwks 1m;
+{{- if eq .Mode "oauth-proxy" }}
         lua_ssl_verify_depth 2;
-{{- if eq .Mode "api-proxy" }}
-        lua_ssl_trusted_certificate /etc/nginx/ca-bundle;
-{{- else if eq .Mode "oauth-proxy" }}
         lua_ssl_trusted_certificate /secret/ca-bundle;
 
         upstream http_backend {
@@ -73,11 +73,7 @@ const OidcNginxConfFileTemplate = `|
 
 {{- if eq .Mode "oauth-proxy" }}
             set $oidc_user "";
-{{- end }}
             rewrite_by_lua_file /etc/nginx/conf.lua;
-{{- if eq .Mode "api-proxy" }}
-            set_by_lua $kubernetes_server_host 'return os.getenv("KUBERNETES_SERVICE_HOST")';
-            set_by_lua $kubernetes_server_port 'return os.getenv("KUBERNETES_SERVICE_PORT")';
 {{- end }}
 
             #access_log  logs/host.access.log  main;
@@ -92,7 +88,19 @@ const OidcNginxConfFileTemplate = `|
 {{- if eq .Mode "oauth-proxy" }}
                 proxy_pass http://http_backend;
 {{- else if eq .Mode "api-proxy" }}
-                proxy_pass https://$kubernetes_server_host:$kubernetes_server_port;
+                lua_ssl_verify_depth 2;
+                lua_ssl_trusted_certificate /etc/nginx/upstream.pem;
+                set $kubernetes_server_url "";
+                rewrite_by_lua_file /etc/nginx/conf.lua;
+                proxy_pass $kubernetes_server_url;
+                proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
+                header_filter_by_lua_block {
+                    local h, _ = ngx.req.get_headers()["origin"]
+                    if h and h ~= "*" and  h ~= "null" then
+                        ngx.header["Access-Control-Allow-Origin"] = h
+                    end
+                    ngx.header["Access-Control-Allow-Headers"] = "authorization"
+                }
 {{- end }}
             }
 
