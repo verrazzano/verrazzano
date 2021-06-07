@@ -154,7 +154,7 @@ const OidcAuthLuaFileTemplate = `|
         return content
     end
 
-    local function write_file(path, data)
+    function me.write_file(path, data)
       local file = io.open(path, "a+")
       if not file then return nil end
       file:write(data)
@@ -401,6 +401,8 @@ const OidcAuthLuaFileTemplate = `|
         if not publicKey then
             me.unauthorized("No public key found")
         end
+        me.info("TOKEN: iss is "..jwt_obj.payload.iss)
+        me.info("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
         -- verify returns a table when successful
         local verified = jwt:verify_jwt_obj(publicKey, jwt_obj, claim_spec)
         if not verified or (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
@@ -561,9 +563,9 @@ const OidcAuthLuaFileTemplate = `|
     local vzApiHost = os.getenv("VZ_API_HOST")
     local vzApiVersion = os.getenv("VZ_API_VERSION")
 
-    local function getServiceAccountToken()
+    function me.getServiceAccountToken()
       me.logJson(ngx.INFO, "Read service account token.")
-      local serviceAccountToken = read_file("/run/secrets/kubernetes.io/serviceaccount/token");
+      local serviceAccountToken = me.read_file("/run/secrets/kubernetes.io/serviceaccount/token")
       if not (serviceAccountToken) then
         ngx.status = 401
         me.logJson(ngx.ERR, "No service account token present in pod.")
@@ -572,7 +574,7 @@ const OidcAuthLuaFileTemplate = `|
       return serviceAccountToken
     end
 
-    local function getLocalServerURL()
+    function me.getLocalServerURL()
       local host = os.getenv("KUBERNETES_SERVICE_HOST")
       local port = os.getenv("KUBERNETES_SERVICE_PORT")
       local serverUrl = "https://" .. host .. ":" .. port
@@ -583,15 +585,15 @@ const OidcAuthLuaFileTemplate = `|
 
     -- the next three functions appear to be unused, commenting out
 
-    local function split(s, delimiter)
-      local result = {};
+    function me.split(s, delimiter)
+      local result = {}
       for match in (s..delimiter):gmatch("(.-)"..delimiter) do
-          table.insert(result, match);
+          table.insert(result, match)
       end
-      return result;
+      return result
     end
 
-    local function contains(table, element)
+    function me.contains(table, element)
       for _, value in pairs(table) do
         if value == element then
           return true
@@ -600,7 +602,7 @@ const OidcAuthLuaFileTemplate = `|
       return false
     end
 
-    local function capture(cmd, raw)
+    function me.capture(cmd, raw)
       local f = assert(io.popen(cmd, 'r'))
       local s = assert(f:read('*a'))
       f:close()
@@ -613,7 +615,7 @@ const OidcAuthLuaFileTemplate = `|
 
     --]]
 
-    local function getK8SResource(resourcePath)
+    function me.getK8SResource(resourcePath)
       local http = require "resty.http"
       local httpc = http.new()
       local res, err = httpc:request_uri("https://" .. vzApiHost .. "/" .. vzApiVersion .. resourcePath,{
@@ -635,11 +637,11 @@ const OidcAuthLuaFileTemplate = `|
       return cjson.decode(res.body)
     end
 
-    local function getVMC(cluster)
+    function me.getVMC(cluster)
       return me.getK8SResource("/apis/clusters.verrazzano.io/v1alpha1/namespaces/verrazzano-mc/verrazzanomanagedclusters/" .. cluster)
     end
 
-    local function getSecret(secret)
+    function me.getSecret(secret)
       return me.getK8SResource("/api/v1/namespaces/verrazzano-mc/secrets/" .. secret)
     end
 
@@ -657,10 +659,10 @@ const OidcAuthLuaFileTemplate = `|
             me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
             ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
         end
-        ngx.var.kubernetes_server_url = getLocalServerURL()
+        ngx.var.kubernetes_server_url = me.getLocalServerURL()
     end
 
-    function handleExternalAPICall(token)
+    function me.handleExternalAPICall(token)
         me.logJson(ngx.INFO, "Read vmc resource for " .. args.cluster)
         local vmc = me.getVMC(args.cluster)
         if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
@@ -700,7 +702,7 @@ const OidcAuthLuaFileTemplate = `|
             local startIndex, _ = string.find(sub, "-----BEGIN CERTIFICATE-----")
             local _, endIndex = string.find(sub, "-----END CERTIFICATE-----")
             if startIndex >= 1 and endIndex > startIndex then
-                write_file("/etc/nginx/upstream.pem", string.sub(sub, startIndex, endIndex))
+                me.write_file("/etc/nginx/upstream.pem", string.sub(sub, startIndex, endIndex))
             end
         end
 

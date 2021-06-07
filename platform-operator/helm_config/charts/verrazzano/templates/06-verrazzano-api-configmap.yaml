@@ -737,7 +737,7 @@ data:
             me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
             ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
         end
-        ngx.var.kubernetes_server_url = getLocalServerURL()
+        ngx.var.kubernetes_server_url = me.getLocalServerURL()
     end
 
     function handleExternalAPICall(token)
