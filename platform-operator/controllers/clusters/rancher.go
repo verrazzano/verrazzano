@@ -367,7 +367,13 @@ func getRancherTLSRootCA(rdr client.Reader) ([]byte, error) {
 	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
 		return nil, client.IgnoreNotFound(err)
 	}
-	return secret.Data["ca.crt"], nil
+
+	caCrt, ok := secret.Data["ca.crt"]
+	if !ok {
+		// ca.crt is not present, so we should be using certs signed by a public provider
+		return nil, nil
+	}
+	return caCrt, nil
 }
 
 // sendRequest builds an HTTP request, sends it, and returns the response
