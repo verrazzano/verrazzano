@@ -8,7 +8,7 @@
   "consolesEnabled": {
     "grafana": false,
     "kibana": false,
-    "elasticSearch": false,
+    "elasticsearch": false,
     "prometheus": false,
     "console": false
   }
