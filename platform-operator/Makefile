@@ -211,7 +211,7 @@ generate-api-proxy-configmap:
         ../pkg/proxy/nginx_conf_template.go \
         ../pkg/proxy/startup_sh_template.go \
         ../pkg/proxy/reload_sh_template.go \
-        > helm_config/charts/verrazzano/templates/06-verrazzano-api-configmap.yaml
+        > helm_config/charts/verrazzano/templates/verrazzano-api-configmap.yaml
 
 .PHONY: generate-bom
 generate-bom:

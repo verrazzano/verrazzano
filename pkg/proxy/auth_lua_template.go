@@ -401,8 +401,8 @@ const OidcAuthLuaFileTemplate = `|
         if not publicKey then
             me.unauthorized("No public key found")
         end
-        me.info("TOKEN: iss is "..jwt_obj.payload.iss)
-        me.info("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
+        -- me.info("TOKEN: iss is "..jwt_obj.payload.iss)
+        -- me.info("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
         -- verify returns a table when successful
         local verified = jwt:verify_jwt_obj(publicKey, jwt_obj, claim_spec)
         if not verified or (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
