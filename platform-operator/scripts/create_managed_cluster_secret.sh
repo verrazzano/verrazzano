@@ -48,7 +48,7 @@ HOST=$(kubectl get ing vmi-system-prometheus -n verrazzano-system -o jsonpath='{
 
 #create the yaml file
 if [ ! -z "${CA_CERT}" ] ; then
-   kubectl create secret generic "$CLUSTER_NAME-ca-secret" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> $OUTPUT_FILE
+   kubectl create secret generic "ca-secret-$CLUSTER_NAME" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> $OUTPUT_FILE
 fi
 
 exit 0

@@ -58,7 +58,7 @@ metadata:
   namespace: verrazzano-mc
 spec:
   description: "VerrazzanoManagedCluster object for prometheus-${MANAGED_CLUSTER_NAME}"
-  prometheusSecret: prometheus-${MANAGED_CLUSTER_NAME}
+  caSecret: ca-secret-${MANAGED_CLUSTER_NAME}
 EOF
 
 # wait for VMC to be ready - that means the manifest has been created

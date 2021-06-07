@@ -1566,7 +1566,7 @@ func getScrapeConfig(prometheusYaml string, name string) (*gabs.Container, error
 
 // getCASecretName returns the ca secret for testManagedCluster
 func getCASecretName(name string) string {
-	return fmt.Sprintf("%s-ca-secret", name)
+	return fmt.Sprintf("ca-secret-%s", name)
 }
 
 // getPrometheusHost returns the prometheus host for testManagedCluster
