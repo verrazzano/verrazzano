@@ -19,7 +19,9 @@ const OidcConfLuaFileTemplate = `|
         callbackUri = ingressUri..callbackPath
     })
 
+{{ if eq .Mode "oauth-proxy" }}
     ngx.header["Access-Control-Allow-Headers"] = "authorization"
+{{ end }}
 
     if ngx.req.get_method() == "OPTIONS" then
         ngx.status = 200

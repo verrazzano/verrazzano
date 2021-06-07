@@ -46,16 +46,17 @@ const OidcAuthLuaFileTemplate = `|
         if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
             oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..oidcRealm
         end
-        oidcIssuerUri = oidcProviderUri
 {{ if eq .Mode "oauth-proxy" }}
         logoutCallbackUri = ingressUri..logoutCallbackPath
 {{ else if eq .Mode "api-proxy" }}
         local keycloakURL = me.read_file("/api-config/keycloak-url")
         if keycloakURL and keycloakURL ~= "" then
             me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
+            oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
             oidcProviderInClusterUri = nil
         end
 {{ end }}
+        oidcIssuerUri = oidcProviderUri
         if oidcProviderUri then
             me.info("set oidcProviderUri to "..oidcProviderUri)
         end
