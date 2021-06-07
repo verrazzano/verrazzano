@@ -23,7 +23,7 @@ type MultiClusterComponentSpec struct {
 // ComponentTemplate has the metadata and spec of the underlying OAM component
 type ComponentTemplate struct {
 	// +optional
-	Metadata metav1.ObjectMeta      `json:"metadata,omitempty"`
+	Metadata EmbeddedObjectMeta     `json:"metadata,omitempty"`
 	Spec     v1alpha2.ComponentSpec `json:"spec,omitempty"`
 }
 

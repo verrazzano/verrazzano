@@ -14,8 +14,9 @@ import (
 // cmdRunner needed for unit tests
 var runner vz_os.CmdRunner = vz_os.DefaultRunner{}
 
-// Upgrade will upgrade a Helm release with the specified charts.
-func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error) {
+// Upgrade will upgrade a Helm release with the specified charts.  The overrideFiles array
+// are in order with the first files in the array have lower precedence than latter files.
+func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
 	args := []string{"upgrade", releaseName, chartDir}
@@ -24,21 +25,30 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		args = append(args, namespace)
 	}
 
-	if overwriteYaml != "" {
+	// If overrides are provided the specify --reuse-values
+	if len(overrideFile) > 0 || len(overrides) > 0 {
 		args = append(args, "--reuse-values")
-		args = append(args, "-f")
-		args = append(args, overwriteYaml)
 	}
-
+	// Add the override files
+	if len(overrideFile) > 0 {
+		args = append(args, "-f")
+		args = append(args, overrideFile)
+	}
+	// Add the override strings
+	if len(overrides) > 0 {
+		args = append(args, "--set")
+		args = append(args, overrides)
+	}
 	cmd := exec.Command("helm", args...)
+	log.Infof("Running command: %s", cmd.String())
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
-		log.Errorf("helm upgrade for release %s failed with stderr: %s\n", releaseName, string(stderr))
+		log.Errorf("helm upgrade for %s failed with stderr: %s", releaseName, string(stderr))
 		return stdout, stderr, err
 	}
 
 	//  Log upgrade output
-	log.Infof("helm upgrade for release %s succeeded with stdout: %s\n", releaseName, string(stdout))
+	log.Infof("helm upgrade succeeded for %s", releaseName)
 	return stdout, stderr, nil
 }
 

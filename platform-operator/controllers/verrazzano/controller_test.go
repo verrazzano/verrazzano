@@ -106,7 +106,7 @@ func TestSuccessfulInstall(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	config.Set(config.OperatorConfig{HelmConfigDir: "../../helm_config"})
+	config.TestHelmConfigDir = "../../helm_config"
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",

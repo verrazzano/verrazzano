@@ -24,7 +24,7 @@ type MultiClusterApplicationConfigurationSpec struct {
 // OAM ApplicationConfiguration
 type ApplicationConfigurationTemplate struct {
 	// +optional
-	Metadata metav1.ObjectMeta                     `json:"metadata,omitempty"`
+	Metadata EmbeddedObjectMeta                    `json:"metadata,omitempty"`
 	Spec     v1alpha2.ApplicationConfigurationSpec `json:"spec,omitempty"`
 }
 

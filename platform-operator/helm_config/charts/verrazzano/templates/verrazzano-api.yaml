@@ -55,6 +55,7 @@ spec:
                   - key: ca.crt
                     path: default-ca-bundle
                 name: system-tls
+                optional: true
             - secret:
                 name: verrazzano-cluster-registration
                 optional: true

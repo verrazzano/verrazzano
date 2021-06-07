@@ -6,6 +6,8 @@ package component
 import (
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -14,6 +16,9 @@ import (
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// Needed for unit tests
+var fakeOverrides string
 
 // helmFakeRunner is used to test helm without actually running an OS exec command
 type helmFakeRunner struct {
@@ -40,7 +45,7 @@ func TestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
 	comp := helmComponent{
-		releaseName:             "release1",
+		releaseName:             "istiod",
 		chartDir:                "chartDir",
 		chartNamespace:          "chartNS",
 		ignoreNamespaceOverride: true,
@@ -48,6 +53,45 @@ func TestUpgrade(t *testing.T) {
 		preUpgradeFunc:          fakePreUpgrade,
 	}
 
+	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
+	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3"
+
+	SetUnitTestBomFilePath(sampleTestBomFilePath)
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+	setUpgradeFunc(fakeUpgrade)
+	defer setDefaultUpgradeFunc()
+	err := comp.Upgrade(zap.S(), nil, "")
+	assert.NoError(err, "Upgrade returned an error")
+}
+
+// TestUpgradeWithEnvOverrides tests the component upgrade
+// GIVEN a component
+//  WHEN I call Upgrade when the registry and repo overrides are set
+//  THEN the upgrade returns success and passes the correct values to the upgrade function
+func TestUpgradeWithEnvOverrides(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := helmComponent{
+		releaseName:             "istiod",
+		chartDir:                "chartDir",
+		chartNamespace:          "chartNS",
+		ignoreNamespaceOverride: true,
+		valuesFile:              "valuesFile",
+		preUpgradeFunc:          fakePreUpgrade,
+		appendOverridesFunc:     appendIstioOverrides,
+	}
+
+	os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
+	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
+
+	os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
+	defer os.Unsetenv(constants.ImageRepoOverrideEnvVar)
+
+	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
+	fakeOverrides = "pilot.image=myreg.io/myrepo/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3,global.hub=myreg.io/myrepo/verrazzano"
+
+	SetUnitTestBomFilePath(sampleTestBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
@@ -57,8 +101,8 @@ func TestUpgrade(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error) {
-	if releaseName != "release1" {
+func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string) (stdout []byte, stderr []byte, err error) {
+	if releaseName != "istiod" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
 	if chartDir != "chartDir" {
@@ -67,8 +111,12 @@ func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, c
 	if namespace != "chartNS" {
 		return []byte("error"), []byte(""), errors.New("Invalid chart namespace")
 	}
-	if overwriteYaml != "valuesFile" {
+	if overrideFile != "valuesFile" {
 		return []byte("error"), []byte(""), errors.New("Invalid values file")
+	}
+	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
+	if overrides != fakeOverrides {
+		return []byte("error"), []byte(""), errors.New("Invalid overrides")
 	}
 	return []byte("success"), []byte(""), nil
 }
@@ -79,7 +127,7 @@ func (r helmFakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err er
 }
 
 func fakePreUpgrade(log *zap.SugaredLogger, client clipkg.Client, release string, namespace string, chartDir string) error {
-	if release != "release1" {
+	if release != "istiod" {
 		return fmt.Errorf("Incorrect release name %s", release)
 	}
 	if chartDir != "chartDir" {

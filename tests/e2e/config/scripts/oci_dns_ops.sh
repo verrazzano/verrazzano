@@ -40,24 +40,30 @@ set -o pipefail
 ZONE_NAME="${SUBDOMAIN_NAME}.v8o.io"
 
 zone_ocid=""
+status_code=1
 if [ $OPERATION == "create" ]; then
   # the installation will require the "patch" command, so will install it now.  If it's already installed yum should
   # exit
   sudo yum -y install patch >/dev/null 2>&1
   zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY | jq -r ".data | .[\"id\"]")
+  status_code=$?
+  if [ $? -ne 0 ]; then
+    echo "Failed creating zone, attempting to fetch zone to see if it already exists"
+    oci dns zone get --zone-name-or-id ${ZONE_NAME}
+  fi
 elif [ $OPERATION == "delete" ]; then
   oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
   if [ $? -ne 0 ]; then
     echo "DNS zone deletion failed on first try. Retrying once."
     oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
   fi
+  status_code=$?
 else
   echo "Unknown operation: ${OPERATION}"
   usage
 fi
 
-status_code=$?
-if [ ${status_code:-1} -eq 0 ]; then
+if [ ${status_code} -eq 0 ]; then
   # OCI CLI query succeeded
   if [ $OPERATION == "create" ]; then
     echo $zone_ocid
