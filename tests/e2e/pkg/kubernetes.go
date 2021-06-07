@@ -349,14 +349,14 @@ func APIExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
 
 // CertManagerClient returns a CertmanagerV1alpha2Client for this cluster
 //func CertManagerClient() *certclientv1alpha2.CertmanagerV1alpha2Client {
-//     config := GetKubeConfig()
+//	config := GetKubeConfig()
 //
-//     client, err := certclientv1alpha2.NewForConfig(config)
-//     if err != nil {
-//             ginkgo.Fail(fmt.Sprintf("Failed to create cert-manager client: %v", err))
-//     }
+//	client, err := certclientv1alpha2.NewForConfig(config)
+//	if err != nil {
+//		ginkgo.Fail(fmt.Sprintf("Failed to create cert-manager client: %v", err))
+//	}
 //
-//     return client
+//	return client
 //}
 
 // ListServices returns the list of services in a given namespace for the cluster
