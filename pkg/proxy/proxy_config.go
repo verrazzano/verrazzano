@@ -8,6 +8,9 @@ import (
 	"text/template"
 )
 
+// NOTE: This code (constants and methods) are primarily used by the VMO code in the verrazzano-monitoring-operator repo,
+// to configure OIDC proxy sidecar instances for deployed VMI components.
+
 // ProxyModeAPI mode in which twhere the proxy accepts only bearer tokens (from console) and impersonates the token's subject to Kubenetes
 const ProxyModeAPI = "api-proxy"
 
@@ -37,15 +40,12 @@ const OidcLogoutCallbackPath = "/_logout"
 
 // OidcProxyConfig type represents the config settings for a proxy instance
 type OidcProxyConfig struct {
-	// proxy mode: api-proxy or oauth-proxy
+	// proxy mode: ProxyModeAPI or ProxyModeOauth
 	Mode string
-	// for startup.sh (none current)
-	// for reload.sh (none current)
 	// for nginx.conf (only needed for oauth-proxy backend)
 	Host string
 	Port int
-	// for conf.lua/auth.lua
-	// ingress and callback urls
+	// ingress and callback urls (oauth-proxy only)
 	Ingress                string
 	OidcCallbackPath       string
 	OidcLogoutCallbackPath string
@@ -57,7 +57,7 @@ type OidcProxyConfig struct {
 	PKCEClientID      string
 	PGClientID        string
 	RequiredRealmRole string
-	// ttl for entries in basic auth cache
+	// ttl for entries in basic auth cache (oauth-proxy only)
 	AuthnStateTTL int
 }
 

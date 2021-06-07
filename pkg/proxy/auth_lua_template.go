@@ -199,7 +199,10 @@ const OidcAuthLuaFileTemplate = `|
             me.info("Returning cached token")
             return basicAuth.id_token
         end
-        local decode = ngx.decode_base64(basicCred)
+        local decode, err = ngx.decode_base64(basicCred)
+        if err then
+            me.unauthorized("Unable to decode BasicAuth authorization header")
+        end
         local found = decode:find(':')
         if not found then
             me.unauthorized("Invalid BasicAuth authorization header")
