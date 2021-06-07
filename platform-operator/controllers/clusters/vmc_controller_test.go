@@ -71,10 +71,6 @@ type AssertFn func(configMap *corev1.ConfigMap) error
 // THEN ensure all the objects are created
 func TestCreateVMC(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
-	promData := "prometheus:\n" +
-		"  host: " + getPrometheusHost() + "\n" +
-		"  cacrt: |\n" +
-		getCaCrt()
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -97,7 +93,7 @@ func TestCreateVMC(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", promData, func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -136,9 +132,6 @@ func TestCreateVMC(t *testing.T) {
 // THEN ensure all the objects are created
 func TestCreateVMCOCIDNS(t *testing.T) {
 	namespace := "verrazzano-mc"
-	// OCI DNS cluster does not include a CA cert since the CA is public
-	promData := "prometheus:\n" +
-		getPrometheusHost()
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -161,7 +154,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", promData, func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.Empty(configMap.Data["ca-test"], "Cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -199,10 +192,6 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 // THEN ensure all the objects are created
 func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
-	promData := "prometheus:\n" +
-		getPrometheusHost() + "\n" +
-		"  cacrt: |\n" +
-		getCaCrt()
 	prometheusYaml := `global:
   scrape_interval: 20s
   scrape_timeout: 10s
@@ -234,7 +223,7 @@ scrape_configs:
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, promData, func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		// check for the modified entry
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -275,10 +264,6 @@ scrape_configs:
 // THEN ensure all the objects are created (existing configuration is replaced)
 func TestReplaceExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
-	promData := "prometheus:\n" +
-		"  host: " + getPrometheusHost() + "\n" +
-		"  cacrt: |\n" +
-		getCaCrt()
 	prometheusYaml := `global:
   scrape_interval: 20s
   scrape_timeout: 10s
@@ -310,7 +295,7 @@ scrape_configs:
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, promData, func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotNil(configMap.Data["ca-test"], "No cert entry found")
@@ -352,10 +337,6 @@ scrape_configs:
 // THEN ensure all the objects are created
 func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
-	promData := "prometheus:\n" +
-		"  host: " + getPrometheusHost() + "\n" +
-		"  cacrt: |\n" +
-		getCaCrt()
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -378,7 +359,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", promData, func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -508,6 +489,10 @@ func TestDeleteVMC(t *testing.T) {
 				DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				Labels:            labels,
 				Finalizers:        []string{finalizerName}}
+			vmc.Status = clustersapi.VerrazzanoManagedClusterStatus{
+				PrometheusHost: getPrometheusHost(),
+			}
+
 			return nil
 		})
 
@@ -977,10 +962,6 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 // THEN ensure that the Rancher registration manifest YAML contains a Rancher agent image with the overridden registry and repo
 func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
-	promData := "prometheus:\n" +
-		"  host: " + getPrometheusHost() + "\n" +
-		"  cacrt: |\n" +
-		getCaCrt()
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1018,7 +999,7 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, expectedRancherYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", promData, func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -1359,6 +1340,9 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string) {
 			vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
 				CASecret: getCASecretName(name.Name),
 			}
+			vmc.Status = clustersapi.VerrazzanoManagedClusterStatus{
+				PrometheusHost: getPrometheusHost(),
+			}
 			return nil
 		})
 
@@ -1373,13 +1357,14 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string) {
 
 }
 
-func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometheusYaml string, prometheusSecretData string, f AssertFn) {
+func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometheusYaml string, cacrtSecretData string, f AssertFn) {
 	// Expect a call to get the prometheus secret - return it
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getCASecretName(vmcName)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+
 			secret.Data = map[string][]byte{
-				"cacrt": []byte(getCaCrt()),
+				"cacrt": []byte(cacrtSecretData),
 			}
 			return nil
 		})
