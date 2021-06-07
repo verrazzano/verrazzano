@@ -74,7 +74,7 @@ data:
       local host = os.getenv("KUBERNETES_SERVICE_HOST")
       local port = os.getenv("KUBERNETES_SERVICE_PORT")
       local serverUrl = "https://" .. host .. ":" .. port
-      return serverUrl  
+      return serverUrl
     end
 
     local function split(s, delimiter)
@@ -140,7 +140,7 @@ data:
       ngx.status = 200
       ngx.exit(ngx.HTTP_OK)
     end
- 
+
     logJsonMessage(ngx.INFO, "Extracting authorization header from request.")
     local h, err = ngx.req.get_headers()["authorization"]
     if err then
@@ -253,11 +253,11 @@ data:
           write_file("/etc/nginx/upstream.pem", string.sub(sub, startIndex, endIndex))
         end
       end
-      
+
       args.cluster = nil
       ngx.req.set_uri_args(args)
       ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
-    else 
+    else
       logJsonMessage(ngx.INFO, "Read service account token and set auth header.")
       local serviceAccountToken = getServiceAccountToken();
       ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
@@ -475,8 +475,8 @@ data:
             fi
         fi
 
-        sleep 5 
-    done 
+        sleep 5
+    done
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -511,6 +511,7 @@ spec:
                   - key: ca.crt
                     path: default-ca-bundle
                 name: system-tls
+                optional: true
             - secret:
                 name: verrazzano-cluster-registration
                 optional: true
