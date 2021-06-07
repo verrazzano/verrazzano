@@ -132,7 +132,6 @@ pipeline {
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
-        ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
