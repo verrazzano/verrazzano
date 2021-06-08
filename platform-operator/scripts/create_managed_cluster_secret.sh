@@ -40,7 +40,7 @@ fi
 
 OUTPUT_FILE=$OUTPUT_DIR/$CLUSTER_NAME.yaml
 TLS_SECRET=$(kubectl -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"')
-if [ ! -z "${TLS_SECRET%%*( )}" ] ; then
+if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
   CA_CERT=$(kubectl -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 -d)
 fi
 HOST=$(kubectl get ing vmi-system-prometheus -n verrazzano-system -o jsonpath='{.spec.tls[0].hosts[0]}')
