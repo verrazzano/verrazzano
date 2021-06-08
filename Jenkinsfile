@@ -177,10 +177,6 @@ pipeline {
             }
             steps {
                 sh """
-                    # Temporarily clone the console repo until it is moved to the verrazzano repo
-                    cd ${GO_REPO_PATH}
-                    git clone ${GITHUB_PKGS_CREDS_USR}@https://github.com/verrazzano/console.git
-
                     cd ${VERRAZZANO_REPO_PATH}/tools/analysis
                     make go-build
                     cd out
@@ -200,6 +196,10 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
+                    # Temporarily clone the console repo until it is moved to the verrazzano repo
+                    cd ${GO_REPO_PATH}
+                    git clone ${GITHUB_PKGS_CREDS_USR}@https://github.com/verrazzano/console.git
+
                     cd ${VERRAZZANO_REPO_PATH}/platform-operator
                     case "${env.BRANCH_NAME}" in
                         master|release-*)
