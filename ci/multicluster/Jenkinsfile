@@ -377,6 +377,11 @@ pipeline {
                                 runGinkgoRandomize('multicluster/verify-install')
                             }
                         }
+                        stage ('multicluster/verify-api') {
+                            steps {
+                                runGinkgoRandomize('multicluster/verify-api')
+                            }
+                        }
                         stage('verify-install') {
                             steps {
                                 runGinkgoRandomize('verify-install')
