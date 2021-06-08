@@ -197,7 +197,7 @@ pipeline {
                 sh """
                     # Temporarily clone the console repo until it is moved to the verrazzano repo
                     cd ${GO_REPO_PATH}
-                    git clone https://github.com/verrazzano/console.git
+                    git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
 
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     case "${env.BRANCH_NAME}" in
