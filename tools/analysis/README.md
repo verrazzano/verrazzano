@@ -12,24 +12,51 @@ Initially, only cluster analysis is supported. Cluster analysis examines all clu
 
 ### Expected directory structures
 
-Using the `k8s-dump-cluster` tool, the directory structure for a specific cluster dump appears as follows:
+Using the `k8s-dump-cluster.sh` tool, the directory structure for a specific cluster dump appears as follows:
 
     $ CAPTURE_DIR
       cluster-dump
         directory per namespace (a directory at this level is assumed to represent a namespace)
+          acme-orders.json
+          application-configurations.json
+          certificate-requests.json
+          cluster-role-bindings.json
+          cluster-roles.json
+          cluster-roles.json
+          coherence.json
+          components.json
+          {CONFIGNAME}.configmap (a file at this level for each configmap in the namespace)
           daemonsets.json
           deployments.json
           events.json
+          gateways.json
+          ingress-traits.json
+          jobs.json
+          multicluster-application-configurations.json
+          multicluster-components.json
+          multicluster-config-maps.json
+          multicluster-logging-scopes.json
+          multicluster-secrets.json
+          namespace.json
+          persistent-volume-claims.json
+          persistent-volumes.json
           pods.json
           replicasets.json
           replication-controllers.json
+          role-bindings.json
           services.json
+          verrazzano-managed-clusters.json
+          verrazzano-projects.json
+          verrazzano_resources.json
+          virtualservices.json
+          weblogic-domains.json
           directory per pod (a directory at this level is assumed to represent a specific pod)
             logs.txt (includes logs for all containers and initContainers)
         api-resources.out
         application-configurations.json
+        cluster-issuers.txt
         coherence.json
-        configmaps.out
+        configmap_list.out
         crd.json
         es_indexes.out
         gateways.json
@@ -39,6 +66,9 @@ Using the `k8s-dump-cluster` tool, the directory structure for a specific cluste
         ingress.json
         ingress-traits.json
         kubectl-version.json
+        namespace_list.out
+        network-policies.json
+        network-policies.txt
         nodes.json
         pv.json
         verrazzano_resources.out
@@ -133,3 +163,11 @@ The analysis tool can be built and run from a Docker container. For example, if 
    Make note of the `verrazzano-analysis-dev` image which was built and run it. You need to map your local host's directory into the container and supply the mounted location to the analysis command line.
 
   `$ docker run verrazzano-analysis-dev:local-0d987e15 -v /Users/myuser/triage:/triage /triage`
+
+## Release artifact
+The release asset named 'analysis-tool.zip' provides the tool in binary form for linux_amd64, darwin_amd64, and the `k8s-dump-cluster.sh` script.
+You can download the 'analysis-tool.zip', unzip it to a location of your choosing, and execute these without a build environment.
+
+For example, on a linux machine:
+  `$ k8s-dump-cluster.sh`
+  `$ linux_amd64/verrazzano-analysis`
