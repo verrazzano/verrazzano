@@ -571,7 +571,7 @@ pipeline {
                                     sudo cp chromedriver /usr/local/bin/
                                     
                                     # Setup test configuration
-                                    ./integtest/scripts/edit_integ_test_config.sh config.uitest.json > tmp.uitestconfig.json
+                                    ./integtest/scripts/edit_integ_test_config.sh integtest/config.uitest.json > tmp.uitestconfig.json
                                     export VZ_UITEST_CONFIG=tmp.uitestconfig.json
                                     
                                     # Run the tests
