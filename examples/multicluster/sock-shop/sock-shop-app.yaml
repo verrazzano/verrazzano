@@ -1,0 +1,141 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: MultiClusterApplicationConfiguration
+metadata:
+  name: sockshop-appconf
+  namespace: mc-sockshop
+spec:
+  template:
+    metadata:
+      annotations:
+        version: v1.0.0
+        description: "OAM Sock Shop Application"
+    spec:
+      components:
+        - componentName: carts-component
+          traits:
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: IngressTrait
+                metadata:
+                  name: carts-ingress
+                spec:
+                  rules:
+                    - paths:
+                        - path: "/carts"
+                          pathType: Prefix
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                metadata:
+                  name: carts-metrics
+                spec:
+                  port: 7001
+        - componentName: catalog-component
+          traits:
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: IngressTrait
+                metadata:
+                  name: catalog-ingress
+                spec:
+                  rules:
+                    - paths:
+                        - path: "/catalogue"
+                          pathType: Prefix
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                metadata:
+                  name: catalog-metrics
+                spec:
+                  port: 7001
+        - componentName: orders-component
+          traits:
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: IngressTrait
+                metadata:
+                  name: orders-ingress
+                spec:
+                  rules:
+                    - paths:
+                        - path: "/orders"
+                          pathType: Prefix
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                metadata:
+                  name: orders-metrics
+                spec:
+                  port: 7001
+        - componentName: payment-component
+          traits:
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: IngressTrait
+                metadata:
+                  name: payment-ingress
+                spec:
+                  rules:
+                    - paths:
+                        - path: "/payment"
+                          pathType: Prefix
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                metadata:
+                  name: payment-metrics
+                spec:
+                  port: 7001
+        - componentName: shipping-component
+          traits:
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: IngressTrait
+                metadata:
+                  name: shipping-ingress
+                spec:
+                  rules:
+                    - paths:
+                        - path: "/shipping"
+                          pathType: Prefix
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                metadata:
+                  name: shipping-metrics
+                spec:
+                  port: 7001
+        - componentName: users-component
+          traits:
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: IngressTrait
+                metadata:
+                  name: users-ingress
+                spec:
+                  rules:
+                    - paths:
+                        - path: "/register"
+                          pathType: Prefix
+                        - path: "/login"
+                          pathType: Prefix
+                        - path: "/addresses"
+                          pathType: Prefix
+                        - path: "/customers"
+                          pathType: Prefix
+                        - path: "/cards"
+                          pathType: Prefix
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                metadata:
+                  name: users-metrics
+                spec:
+                  port: 7001
+  placement:
+    clusters:
+      - name: managed1
+
