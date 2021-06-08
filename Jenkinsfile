@@ -561,7 +561,7 @@ pipeline {
                                     # Temporarily clone the console repo until it is moved to the verrazzano repo
                                     cd ${GO_REPO_PATH}
                                     git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
-                                    cd console/integtest
+                                    cd console
                                     git checkout mgianata/vz-2038
 
                                     # Configure headless browser
@@ -571,7 +571,7 @@ pipeline {
                                     sudo cp chromedriver /usr/local/bin/
                                     
                                     # Setup test configuration
-                                    ./scripts/edit_integ_test_config.sh config.uitest.json > tmp.uitestconfig.json
+                                    ./integtest/scripts/edit_integ_test_config.sh config.uitest.json > tmp.uitestconfig.json
                                     export VZ_UITEST_CONFIG=tmp.uitestconfig.json
                                     
                                     # Run the tests
