@@ -54,6 +54,7 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
+        GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
@@ -176,6 +177,10 @@ pipeline {
             }
             steps {
                 sh """
+                    # Temporarily clone the console repo until it is moved to the verrazzano repo
+                    cd ${GO_REPO_PATH}
+                    git clone ${GITHUB_PKGS_CREDS_USR}@https://github.com/verrazzano/console.git
+
                     cd ${VERRAZZANO_REPO_PATH}/tools/analysis
                     make go-build
                     cd out
@@ -560,7 +565,7 @@ pipeline {
                                 sh """
                                     # Temporarily clone the console repo until it is moved to the verrazzano repo
                                     cd ${GO_REPO_PATH}
-                                    git clone https://github.com/verrazzano/console
+                                    git clone ${GITHUB_PKGS_CREDS_USR}@https://github.com/verrazzano/console.git
                                     cd console/integtest
                                     git checkout mgianata/vz-2038
 
