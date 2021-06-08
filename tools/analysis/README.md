@@ -164,10 +164,11 @@ The analysis tool can be built and run from a Docker container. For example, if 
 
   `$ docker run verrazzano-analysis-dev:local-0d987e15 -v /Users/myuser/triage:/triage /triage`
 
-## Release artifact
-The release asset named 'analysis-tool.zip' provides the tool in binary form for linux_amd64, darwin_amd64, and the `k8s-dump-cluster.sh` script.
-You can download the 'analysis-tool.zip', unzip it to a location of your choosing, and execute these without a build environment.
+## Get the analysis tool
+The 'analysis-tool.zip' file provides the tool in binary form for linux_amd64, darwin_amd64, and the `k8s-dump-cluster.sh` script.
+Download the 'analysis-tool.zip' file and unzip it in a location that you choose. You can run the tool analysis commands without a build environment.
 
 For example, on a linux machine:
-  `$ k8s-dump-cluster.sh`
-  `$ linux_amd64/verrazzano-analysis`
+  `$ unzip anaylsis-tools.zip`
+  `$ k8s-dump-cluster.sh -d my-dump-directory`
+  `$ linux_amd64/verrazzano-analysis my-dump-directory`
