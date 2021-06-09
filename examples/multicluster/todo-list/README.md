@@ -26,8 +26,8 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f verrazzano-project.yaml
    ```
 
-1. Login to the `container-registry.oracle.com` docker registry in which the todo list application image is deployed.  You
-will require the updated docker config.json, containing you authentication token, for the next step.
+1. Log in to the `container-registry.oracle.com` Docker registry in which the todo list application image is deployed.  You
+will need the updated Docker config.json, containing you authentication token, for the next step.
    ```
    $ docker login container-registry.oracle.com 
    ```
@@ -42,7 +42,7 @@ namespace.
    ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-docker-registry-secret.yaml
    ```
-1. Create the secrets for the WebLogic domain by applying the mc-weblogic-domain-secret.yaml and mc-runtime-encrypt-secret.yaml files:
+1. Create the secrets for the WebLogic domain by applying the `mc-weblogic-domain-secret.yaml` and `mc-runtime-encrypt-secret.yaml` files:
    ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-weblogic-domain-secret.yaml
 
