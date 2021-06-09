@@ -26,8 +26,8 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f verrazzano-project.yaml
    ```
 
-1. Log in to the `container-registry.oracle.com` Docker registry in which the todo list application image is deployed.  You
-will need the updated Docker config.json, containing you authentication token, for the next step.
+1. Log in to the `container-registry.oracle.com` Docker registry in which the Todo List application image is deployed.  You
+will need the updated Docker `config.json`, containing your authentication token, for the next step.
    ```
    $ docker login container-registry.oracle.com 
    ```
