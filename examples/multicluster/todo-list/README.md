@@ -23,7 +23,7 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
 
 1. Create a namespace for the multicluster ToDo List example by applying the Verrazzano project file.
    ```
-   $ kubectl apply -f verrazzano-project.yaml
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f verrazzano-project.yaml
    ```
 
 1. Login to the `container-registry.oracle.com` docker registry in which the todo list application image is deployed.  You
@@ -40,13 +40,13 @@ will require the updated docker config.json, containing you authentication token
 mc-docker-registry-secret.yaml file.  The multicluster secret resource will generate the required secret in the todo list 
 namespace.
    ```
-   $ kubectl apply -f mc-docker-registry-secret.yaml
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-docker-registry-secret.yaml
    ```
 1. Create the secrets for the weblogic domain by applying the mc-weblogic-domain-secret.yaml and mc-runtime-encrypt-secret.yaml files:
    ```
-   $ kubectl apply -f mc-weblogic-domain-secret.yaml
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-weblogic-domain-secret.yaml
 
-   $ kubectl apply -f mc-runtime-encrypt-secret.yaml
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-runtime-encrypt-secret.yaml
    ```
 
    Note that the ToDo List example application is preconfigured to use these credentials.
@@ -56,29 +56,27 @@ namespace.
 
 1. Apply the ToDo List example multicluster application resources to deploy the application.
    ```
-   $ kubectl apply -f todo-list-components.yaml
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f todo-list-components.yaml
 
-   $ kubectl apply -f todo-list-application.yaml
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f todo-list-application.yaml
    ```
 
 1. Wait for the ToDo List example application to be ready.
    You may need to repeat this command several times before it is successful.
    The `tododomain-adminserver` pod may take a while to be created and `Ready`.
    ```
-   $ kubectl wait pod --for=condition=Ready tododomain-adminserver -n mc-todo-list
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl wait pod --for=condition=Ready tododomain-adminserver -n mc-todo-list
    ```
-   Make sure you have set the `KUBECONFIG` environment variable to point to the managed cluster's kubernetes configuration file. 
-
 1. Get the generated host name for the application.
    ```
-   $ HOST=$(kubectl get gateway -n mc-todo-list -o jsonpath={.items[0].spec.servers[0].hosts[0]})
+   $ HOST=$(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get gateway -n mc-todo-list -o jsonpath={.items[0].spec.servers[0].hosts[0]})
    $ echo $HOST
    todo-appconf.mc-todo-list.11.22.33.44.nip.io
    ```
 
 1. Get the `EXTERNAL_IP` address of the `istio-ingressgateway` service.
    ```
-   $ ADDRESS=$(kubectl get service -n istio-system istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+   $ ADDRESS=$(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get service -n istio-system istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
    $ echo $ADDRESS
    11.22.33.44
    ```   
@@ -114,11 +112,9 @@ namespace.
    the deployed ToDo List application.
    Accessing them may require the following:
    
-   * Set the `KUBECONFIG` environment variable to point to the admin cluster's kubernetes configuration file.
-
    * Run this command to get the password that was generated for the telemetry components:
      ```
-     $ kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
+     $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
      ```
      The associated user name is `verrazzano`.
 
@@ -127,7 +123,7 @@ namespace.
    You can retrieve the list of available ingresses with following command:
 
    ```
-   $ kubectl get ingress -n verrazzano-system
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get ingress -n verrazzano-system
    NAME                         CLASS    HOSTS                                                     ADDRESS           PORTS     AGE
    verrazzano-ingress           <none>   verrazzano.default.140.141.142.143.nip.io                 140.141.142.143   80, 443   7d2h
    vmi-system-es-ingest         <none>   elasticsearch.vmi.system.default.140.141.142.143.nip.io   140.141.142.143   80, 443   7d2h
@@ -146,19 +142,17 @@ namespace.
 
 ## Troubleshooting
 
-1. For the following commands make sure the `KUBECONFIG` environment variable is set to the path of the managed cluster's kubernetes configuration file.
-
 1. Verify that the application configuration, domain, and ingress trait all exist.
    ```
-   $ kubectl get ApplicationConfiguration -n mc-todo-list
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get ApplicationConfiguration -n mc-todo-list
    NAME           AGE
    todo-appconf   19h
 
-   $ kubectl get Domain -n mc-todo-list
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get Domain -n mc-todo-list
    NAME          AGE
    todo-domain   19h
 
-   $ kubectl get IngressTrait -n mc-todo-list
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get IngressTrait -n mc-todo-list
    NAME                           AGE
    todo-domain-trait-7cbd798c96   19h
    ```
@@ -166,7 +160,7 @@ namespace.
 1. Verify that the WebLogic Administration Server and MySQL pods have been created and are running.
    Note that this will take several minutes.
    ```
-   $ kubectl get pods -n mc-todo-list
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get pods -n mc-todo-list
 
    NAME                     READY   STATUS    RESTARTS   AGE
    mysql-5c75c8b7f-vlhck    1/1     Running   0          19h
