@@ -37,12 +37,12 @@ will require the updated docker config.json, containing you authentication token
    $ cat ~/.docker/config.json | base64
    ```
 1. Create a `docker-registry` secret to enable pulling the ToDo List example image from the registry by applying the
-mc-docker-registry-secret.yaml file.  The multicluster secret resource will generate the required secret in the todo list 
+`mc-docker-registry-secret.yaml` file.  The multicluster secret resource will generate the required secret in the `mc-todo-list` 
 namespace.
    ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-docker-registry-secret.yaml
    ```
-1. Create the secrets for the weblogic domain by applying the mc-weblogic-domain-secret.yaml and mc-runtime-encrypt-secret.yaml files:
+1. Create the secrets for the Weblogic domain by applying the mc-weblogic-domain-secret.yaml and mc-runtime-encrypt-secret.yaml files:
    ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-weblogic-domain-secret.yaml
 

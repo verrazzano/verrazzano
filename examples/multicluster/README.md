@@ -6,7 +6,7 @@ This repository contains an example of using Verrazzano multiclusters.
 |-------------|-------------|
 | [hello-helidon](hello-helidon/) | Hello World Helidon example deployed to a multicluster environment. The example also demonstrates how to change the placement of the application to a different cluster. |
 | [sock-shop](sock-shop/) | Implementation of the [Sock Shop Microservices Demo Application](https://microservices-demo.github.io/) deployed to a multicluster environment.|
-| [todo-list](todo-list/) | Todo List is an example application containing a WebLogic component deployed to a multicluster environment. |
+| [todo-list](todo-list/) | ToDo List is an example application containing a WebLogic component deployed to a multicluster environment. |
 
 
 **NOTE:** All files and paths in this document are relative to
