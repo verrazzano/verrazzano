@@ -31,7 +31,7 @@ will require the updated docker config.json, containing you authentication token
    ```
    $ docker login container-registry.oracle.com 
    ```
-1. Update the mc-docker-registry-secret.yaml file with the your registry authentication info.  Edit the file and replace the 
+1. Update the `mc-docker-registry-secret.yaml` file with the your registry authentication info.  Edit the file and replace the 
 `<BASE 64 ENCODED DOCKER CONFIG JSON>` with the value generated from the following command.
    ```
    $ cat ~/.docker/config.json | base64
@@ -42,7 +42,7 @@ namespace.
    ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-docker-registry-secret.yaml
    ```
-1. Create the secrets for the Weblogic domain by applying the mc-weblogic-domain-secret.yaml and mc-runtime-encrypt-secret.yaml files:
+1. Create the secrets for the WebLogic domain by applying the mc-weblogic-domain-secret.yaml and mc-runtime-encrypt-secret.yaml files:
    ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-weblogic-domain-secret.yaml
 
