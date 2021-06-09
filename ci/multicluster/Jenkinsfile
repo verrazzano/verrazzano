@@ -485,7 +485,7 @@ pipeline {
                         }
                     }
                 }
-                stage ('Verify Api') {
+                stage ('Multi-cluster Verify Api') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
