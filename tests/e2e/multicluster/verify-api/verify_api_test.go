@@ -16,19 +16,20 @@ import (
 )
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 
 var _ = ginkgo.Describe("Multi Cluster Verify API", func() {
 	ginkgo.Context("Admin Cluster", func() {
 		ginkgo.It("Get and Validate Verrazzano resource for admin cluster", func() {
 			// create a project
-			api := pkg.GetAPIEndpoint(os.Getenv("KUBECONFIG"))
+			api := pkg.GetAPIEndpoint(adminKubeconfig)
 			response, err := api.Get("apis/install.verrazzano.io/v1alpha1/verrazzanos")
 			validateVerrazzanosResponse(response, err)
 		})
 
 		ginkgo.It("Get and Validate Verrazzano resource for managed cluster", func() {
 			// create a project
-			api := pkg.GetAPIEndpoint(os.Getenv("KUBECONFIG"))
+			api := pkg.GetAPIEndpoint(adminKubeconfig)
 			response, err := api.Get("apis/install.verrazzano.io/v1alpha1/verrazzanos?cluster=" + managedClusterName)
 			validateVerrazzanosResponse(response, err)
 		})

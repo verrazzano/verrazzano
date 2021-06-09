@@ -495,7 +495,7 @@ pipeline {
                                         export MANAGED_CLUSTER_NAME="managed${count-1}"
                                         export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-api/...
+                                        ginkgo -v -keepGoing --noColor multicluster/verify-api/...
                                     """
                                 }
                             }
