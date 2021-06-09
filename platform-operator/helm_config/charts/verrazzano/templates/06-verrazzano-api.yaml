@@ -433,6 +433,11 @@ data:
 
     adminCABundleMD5=""
     defaultCABundleMD5=""
+    upstreamCACertFile="/etc/nginx/upstream.pem"
+    localClusterCACertFile="/api-config/default-ca-bundle"
+    adminClusterCACertFile="/api-config/admin-ca-bundle"
+    defaultCACertFile="/etc/ssl/certs/ca-bundle.crt"
+    tmpUpstreamCACertFile="/tmp/upstream.pem"
     maxSizeTrustedCertsFileDefault=$(echo $((10*1024*1024)))
     if [[ ! -z "${MAX_SIZE_TRUSTED_CERTS_FILE}" ]]; then
         maxSizeTrustedCertsFileDefault=${MAX_SIZE_TRUSTED_CERTS_FILE}
@@ -448,43 +453,62 @@ data:
       fi
     }
 
-    function default_config() {
-      if [[ -s /api-config/default-ca-bundle ]]; then
-            md5Hash=$(md5sum "/api-config/default-ca-bundle")
-            if [ "$defaultCABundleMD5" != "$md5Hash" ] ; then
-                cat /api-config/default-ca-bundle > /etc/nginx/upstream.pem
-                defaultCABundleMD5="$md5Hash"
-                reload
-            fi
+    function reset_md5() {
+      adminCABundleMD5=""
+      defaultCABundleMD5=""
+    }
+
+    function local_cert_config() {
+      if [[ -s $localClusterCACertFile ]]; then
+        md5Hash=$(md5sum "$localClusterCACertFile")
+        if [ "$defaultCABundleMD5" != "$md5Hash" ] ; then
+            echo "Adding local CA cert to upstream.pem"
+            cat $upstreamCACertFile > $tmpUpstreamCACertFile
+            cat $localClusterCACertFile > $upstreamCACertFile
+            cat $tmpUpstreamCACertFile >> $upstreamCACertFile
+            rm -rf $tmpUpstreamCACertFile
+            defaultCABundleMD5="$md5Hash"
+            reload
         fi
+      fi
+    }
+
+    function admin_cluster_cert_config() {
+      if [[ -s $adminClusterCACertFile ]]; then
+        md5Hash=$(md5sum "$adminClusterCACertFile")
+        if [ "$adminCABundleMD5" != "$md5Hash" ] ; then
+          echo "Adding admin cluster CA cert to upstream.pem"
+          cat $upstreamCACertFile > $tmpUpstreamCACertFile
+          cat $adminClusterCACertFile > $upstreamCACertFile
+          cat $tmpUpstreamCACertFile >> $upstreamCACertFile
+          rm -rf $tmpUpstreamCACertFile
+          adminCABundleMD5="$md5Hash"
+          reload
+        fi
+      else 
+        if [ "$adminCABundleMD5" != "" ] ; then
+            reset_md5
+            local_cert_config
+        fi 
+      fi
+    }
+
+    function default_cert_config() {
+      cat $defaultCACertFile > $upstreamCACertFile
     }
 
     while true
     do
-        trustedCertsFileSize=$(wc -c < /etc/nginx/upstream.pem)
-        if [ $trustedCertsFileSize -ge $maxSizeTrustedCertsFileDefault ] ; then
-            adminCABundleMD5=""
-            defaultCABundleMD5=""
-        fi
+      trustedCertsFileSize=$(wc -c < $upstreamCACertFile)
+      if [ $trustedCertsFileSize -ge $maxSizeTrustedCertsFileDefault ] ; then
+          echo "$upstreamCACertFile file size greater than  $maxSizeTrustedCertsFileDefault, resetting.."
+          reset_md5
+          default_cert_config
+      fi
 
-        default_config
-
-        if [[ -s /api-config/admin-ca-bundle ]]; then
-            md5Hash=$(md5sum "/api-config/admin-ca-bundle")
-            if [ "$adminCABundleMD5" != "$md5Hash" ] ; then
-                cat /api-config/admin-ca-bundle > /etc/nginx/upstream.pem
-                adminCABundleMD5="$md5Hash"
-                reload
-            fi
-        else 
-           if [ "$adminCABundleMD5" != "" ] ; then
-                adminCABundleMD5=""
-                defaultCABundleMD5=""
-                default_config
-            fi 
-        fi
-
-        sleep 5
+      local_cert_config
+      admin_cluster_cert_config
+      sleep .1
     done
 ---
 apiVersion: apps/v1
