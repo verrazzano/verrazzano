@@ -462,7 +462,7 @@ data:
       if [[ -s $localClusterCACertFile ]]; then
         md5Hash=$(md5sum "$localClusterCACertFile")
         if [ "$defaultCABundleMD5" != "$md5Hash" ] ; then
-            echo "Adding local CA cert to upstream.pem"
+            echo "Adding local CA cert to $upstreamCACertFile"
             cat $upstreamCACertFile > $tmpUpstreamCACertFile
             cat $localClusterCACertFile > $upstreamCACertFile
             cat $tmpUpstreamCACertFile >> $upstreamCACertFile
@@ -477,7 +477,7 @@ data:
       if [[ -s $adminClusterCACertFile ]]; then
         md5Hash=$(md5sum "$adminClusterCACertFile")
         if [ "$adminCABundleMD5" != "$md5Hash" ] ; then
-          echo "Adding admin cluster CA cert to upstream.pem"
+          echo "Adding admin cluster CA cert to $upstreamCACertFile"
           cat $upstreamCACertFile > $tmpUpstreamCACertFile
           cat $adminClusterCACertFile > $upstreamCACertFile
           cat $tmpUpstreamCACertFile >> $upstreamCACertFile
