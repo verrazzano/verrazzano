@@ -377,11 +377,6 @@ pipeline {
                                 runGinkgoRandomize('multicluster/verify-install')
                             }
                         }
-                        stage ('multicluster/verify-api') {
-                            steps {
-                                runGinkgoRandomize('multicluster/verify-api')
-                            }
-                        }
                         stage('verify-install') {
                             steps {
                                 runGinkgoRandomize('verify-install')
@@ -484,6 +479,23 @@ pipeline {
                                         export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                                         export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-ns-ops"
                                         ginkgo -v -keepGoing --noColor multicluster/examples/helidon-ns-ops/...
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+                stage ('Verify Api') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            script {
+                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                                for(int count=2; count<=clusterCount; count++) {
+                                    sh """
+                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
+                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                        ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-api/...
                                     """
                                 }
                             }
