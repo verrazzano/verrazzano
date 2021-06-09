@@ -6,9 +6,11 @@ package proxy
 // NOTE: Do not add any constants or other variables to this file. It is used as text input
 // to a shell script that generates the verrazzano-api-proxy-configmap.yaml file. That script
 // depends on there being exactly two constants defined, each of which has a canonical name format,
-// and also depends on the quote characters used (" and `) and their placement.
+// and also depends on the quote characters used and their placement. Do not add backtick characters
+// anywhere here, including in comments. Add new constants, variables, and functions to proxy_config.go.
 
-// Add constants, variables, and functions to proxy_config.go instead.
+// NOTE: If you change this file, you must regenerate the verrazzano-api-proxy-configmap.yaml file,
+// by running "make generate-api-proxy-configmap", and check in the regenerated file if it's different.
 
 // OidcConfLuaFilename defines the conf.lua file name in OIDC proxy ConfigMap
 const OidcConfLuaFilename = "conf.lua"
