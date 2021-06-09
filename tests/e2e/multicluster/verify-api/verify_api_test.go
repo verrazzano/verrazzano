@@ -20,6 +20,10 @@ var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 
 var _ = ginkgo.Describe("Multi Cluster Verify API", func() {
 	ginkgo.Context("Admin Cluster", func() {
+		ginkgo.BeforeEach(func() {
+			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+		})
+
 		ginkgo.It("Get and Validate Verrazzano resource for admin cluster", func() {
 			// create a project
 			api := pkg.GetAPIEndpoint(adminKubeconfig)
