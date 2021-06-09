@@ -175,14 +175,23 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano/tools/analysis
                     make go-build
                     cd out
-                    zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
+                    tar -czf ${WORKSPACE}/verrazzano-analysis-linux-amd64.tar.gz -C linux_amd64 .
+                    sha256sum ${WORKSPACE}/verrazzano-analysis-linux-amd64.tar.gz > ${WORKSPACE}/verrazzano-analysis-linux-amd64.tar.gz.sha256
+                    tar -czf ${WORKSPACE}/verrazzano-analysis-darwin-amd64.tar.gz -C darwin_amd64 .
+                    sha256sum ${WORKSPACE}/verrazzano-analysis-darwin-amd64.tar.gz > ${WORKSPACE}/verrazzano-analysis-darwin-amd64.tar.gz.sha256
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-analysis-linux-amd64.tar.gz --file ${WORKSPACE}/verrazzano-analysis-linux-amd64.tar.gz
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-analysis-linux-amd64.tar.gz.sha256 --file ${WORKSPACE}/verrazzano-analysis-linux-amd64.tar.gz.sha256
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-analysis-darwin-amd64.tar.gz --file ${WORKSPACE}/verrazzano-analysis-darwin-amd64.tar.gz
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-analysis-darwin-amd64.tar.gz.sha256 --file ${WORKSPACE}/verrazzano-analysis-darwin-amd64.tar.gz.sha256
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/verrazzano-analysis-linux-amd64.tar.gz --file ${WORKSPACE}/verrazzano-analysis-linux-amd64.tar.gz
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/verrazzano-analysis-linux-amd64.tar.gz.sha256 --file ${WORKSPACE}/verrazzano-analysis-linux-amd64.tar.gz.sha256
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/verrazzano-analysis-darwin-amd64.tar.gz --file ${WORKSPACE}/verrazzano-analysis-darwin-amd64.tar.gz
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/verrazzano-analysis-darwin-amd64.tar.gz.sha256 --file ${WORKSPACE}/verrazzano-analysis-darwin-amd64.tar.gz.sha256
                 """
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/analysis-tool.zip', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
                 }
             }
         }
@@ -648,9 +657,11 @@ pipeline {
                     mkdir -p ${WORKSPACE}/tar-files/charts
                     cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
                     tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
+                    sha256sum ${WORKSPACE}/tarball.tar.gz > ${WORKSPACE}/tarball.tar.gz.sha256
                     echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/tarball-commit.txt
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball-commit.txt --file $WORKSPACE/tarball-commit.txt
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz.sha256 --file ${WORKSPACE}/tarball.tar.gz.sha256
                 fi
             """
 
