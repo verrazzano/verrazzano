@@ -1,0 +1,126 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.api.impersonatorRoleName }}
+rules:
+- apiGroups: [""]
+  resources: ["users", "groups"]
+  verbs: ["impersonate"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.api.impersonatorRoleName }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.api.impersonatorRoleName }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.api.name }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.api.name }}
+  name: {{ .Values.api.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.api.name }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: {{ .Values.api.name }}
+    spec:
+      volumes:
+       - name: api-config
+         projected:
+           sources:
+            - secret:
+                items:
+                  - key: ca.crt
+                    path: default-ca-bundle
+                name: system-tls
+                optional: true
+            - secret:
+                name: verrazzano-cluster-registration
+                optional: true
+                items:
+                  - key: ca-bundle
+                    path: admin-ca-bundle
+                  - key: keycloak-url
+                    path: keycloak-url
+            - configMap:
+                name: api-nginx-conf
+                items:
+                  - key: startup.sh
+                    path: startup.sh
+                    mode: 0755
+                  - key: nginx.conf
+                    path: nginx.conf
+                    mode: 0744 
+                  - key: conf.lua
+                    path: conf.lua
+                    mode: 0755
+                  - key: auth.lua
+                    path: auth.lua
+                    mode: 0755
+                  - key: reload.sh
+                    path: reload.sh
+                    mode: 0755
+      containers:
+      - image: {{ .Values.api.imageName }}:{{ .Values.api.imageVersion }}
+        imagePullPolicy: {{ .Values.api.pullPolicy }}
+        name: {{ .Values.api.name }}
+        command: ["/api-config/startup.sh"]
+        env:
+        - name: VZ_API_HOST
+          value: "verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
+        - name: VZ_API_VERSION
+          value: "20210501"
+        ports:
+            - containerPort: {{ .Values.api.port }}
+        volumeMounts:
+        - mountPath: /api-config
+          name: api-config
+      serviceAccount: {{ .Values.api.name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.api.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: api
+    port: {{ .Values.api.port }}
+    protocol: TCP
+    targetPort: {{ .Values.api.port }}
+  selector:
+    app: {{ .Values.api.name }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.api.name }}
+  namespace: {{ .Release.Namespace }}
+{{- if .Values.global.imagePullSecrets }}
+imagePullSecrets:
+{{- range .Values.global.imagePullSecrets }}
+- name: {{ . }}
+{{- end }}
+{{- end }}
