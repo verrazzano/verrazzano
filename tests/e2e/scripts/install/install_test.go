@@ -47,10 +47,10 @@ var _ = ginkgo.BeforeSuite(func() {
 
 var _ = ginkgo.Describe("Verify Verrazzano install scripts", func() {
 
-	ginkgo.Context("Verify Console URLs", func() {
+	ginkgo.Context("Verify Console URLs in the install log", func() {
 		clusterCount, _ := strconv.Atoi(totalClusters)
 		if present && clusterCount > 0 {
-			ginkgo.It("Verify the expected console URLs are there in the mc log ", func() {
+			ginkgo.It("Verify the expected console URLs are there in the install logs for the managed cluster(s)", func() {
 				// Validation for admin cluster
 				gomega.Expect(validateConsoleUrlsCluster(kubeConfigFromEnv, "cluster-1")).To(gomega.BeTrue())
 
