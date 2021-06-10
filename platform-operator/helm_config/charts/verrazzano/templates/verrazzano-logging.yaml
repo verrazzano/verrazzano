@@ -487,14 +487,8 @@ spec:
             - mountPath: /var/lib/docker/containers
               name: varlibdockercontainers
               readOnly: true
-            - mountPath: /u01/data/docker/containers
-              name: datadockercontainers
-              readOnly: true
             - mountPath: /run/log/journal
               name: run-log-journal
-              readOnly: true
-            - mountPath: /var/lib/dbus
-              name: var-lib-dbus
               readOnly: true
       serviceAccount: fluentd
       serviceAccountName: fluentd
@@ -515,17 +509,9 @@ spec:
             type: ""
           name: varlibdockercontainers
         - hostPath:
-            path: /u01/data/docker/containers
-            type: ""
-          name: datadockercontainers
-        - hostPath:
             path: /run/log/journal
             type: ""
           name: run-log-journal
-        - hostPath:
-            path: /var/lib/dbus
-            type: ""
-          name: var-lib-dbus
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1

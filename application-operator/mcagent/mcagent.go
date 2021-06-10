@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -272,25 +273,112 @@ func (s *Syncer) configureLogging() {
 		s.Log.Info(fmt.Sprintf("Failed to find the logging DaemonSet %s, %s", loggingName, err.Error()))
 		return
 	}
+	dataVolumeNeeded := false
+	if s.isOKE() {
+		dataVolumeNeeded = !findDataVolume(&daemonSet)
+	}
 	secretVersion := ""
+	secretVersionEnv := ""
 	regSecret := corev1.Secret{}
 	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
-	if regErr != nil {
-		if clusters.IgnoreNotFoundWithLog("secret", regErr, s.Log) != nil {
-			return
-		}
-	} else {
+	if regErr == nil {
 		secretVersion = regSecret.ResourceVersion
+		secretVersionEnv = getEnvValue(&daemonSet.Spec.Template.Spec.Containers, registrationSecretVersion)
 	}
-	secretVersionEnv := getEnvValue(&daemonSet.Spec.Template.Spec.Containers, registrationSecretVersion)
 	// CreateOrUpdate updates the deployment if cluster name or es secret version changed
-	if secretVersionEnv != secretVersion {
+	if secretVersionEnv != secretVersion || dataVolumeNeeded {
 		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
-			s.Log.Info(fmt.Sprintf("Update the DaemonSet %s, registration secret version from %q to %q", loggingName, secretVersionEnv, secretVersion))
-			daemonSet = *updateLoggingDaemonSet(constants.MCRegistrationSecret, secretVersion, &daemonSet)
+			if dataVolumeNeeded {
+				s.Log.Info(fmt.Sprintf("Update the DaemonSet %s to mount data volume", loggingName))
+				daemonSet = *mountDataVolume(&daemonSet)
+			}
+			if secretVersionEnv != secretVersion {
+				s.Log.Info(fmt.Sprintf("Update the DaemonSet %s, registration secret version from %q to %q", loggingName, secretVersionEnv, secretVersion))
+				daemonSet = *updateLoggingDaemonSet(constants.MCRegistrationSecret, secretVersion, &daemonSet)
+			}
 			return nil
 		})
 	}
+}
+
+const okeLabelPrefix = "oke.oraclecloud.com"
+
+var isOKE *bool
+
+func (s *Syncer) isOKE() bool {
+	if isOKE != nil {
+		return *isOKE
+	}
+	nodeList := corev1.NodeList{}
+	err := s.LocalClient.List(context.TODO(), &nodeList)
+	if err != nil || len(nodeList.Items) == 0 {
+		return false
+	}
+	oke := false
+	for _, node := range nodeList.Items {
+		for label := range node.Labels {
+			if strings.HasPrefix(label, okeLabelPrefix) {
+				oke := true
+				isOKE = &oke
+				return *isOKE
+			}
+		}
+	}
+	isOKE = &oke
+	return *isOKE
+}
+
+const (
+	dataVolumeName = "datadockercontainers"
+	dataVolumePath = "/u01/data/docker/containers"
+)
+
+func mountDataVolume(ds *appsv1.DaemonSet) *appsv1.DaemonSet {
+	if !findDataVolume(ds) {
+		ds.Spec.Template.Spec.Volumes = append(ds.Spec.Template.Spec.Volumes, corev1.Volume{
+			Name: dataVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: dataVolumePath},
+			},
+		})
+	}
+	fluentd := -1
+	for i, container := range ds.Spec.Template.Spec.Containers {
+		if container.Name == "fluentd" {
+			fluentd = i
+		}
+	}
+	if fluentd != -1 {
+		if !findDataVolumeMount(&ds.Spec.Template.Spec.Containers[fluentd]) {
+			ds.Spec.Template.Spec.Containers[fluentd].VolumeMounts = append(
+				ds.Spec.Template.Spec.Containers[fluentd].VolumeMounts,
+				corev1.VolumeMount{
+					Name:      dataVolumeName,
+					MountPath: dataVolumePath,
+					ReadOnly:  true,
+				})
+		}
+	}
+	return ds
+}
+
+func findDataVolumeMount(c *corev1.Container) bool {
+	for _, vm := range c.VolumeMounts {
+		if vm.Name == dataVolumeName {
+			return true
+		}
+	}
+	return false
+}
+
+func findDataVolume(ds *appsv1.DaemonSet) bool {
+	for _, vol := range ds.Spec.Template.Spec.Volumes {
+		if vol.Name == dataVolumeName {
+			return true
+		}
+	}
+	return false
 }
 
 func getEnvValue(containers *[]corev1.Container, envName string) string {

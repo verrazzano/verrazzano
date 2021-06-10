@@ -28,6 +28,7 @@ rules:
       - rolebindings
       - serviceaccounts
       - services
+      - nodes
     verbs:
       - create
       - delete
