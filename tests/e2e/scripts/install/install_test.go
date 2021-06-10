@@ -15,21 +15,19 @@ import (
 	"strings"
 )
 
-
 const (
-	installComplete = "Installation Complete."
-	DefaultEnvName = "default"
- 	VerrazzanoSystemNamespace = "verrazzano-system"
- 	RancherNamespace = "cattle-system"
- 	KeycloakNamespace = "keycloak"
- 	GrafanaIngress = "vmi-system-grafana"
- 	PrometheusIngress = "vmi-system-prometheus"
- 	ElasticsearchIngress = "vmi-system-es-ingest"
- 	KibanaIngress = "vmi-system-kibana"
- 	VerrazzanoIngress = "verrazzano-ingress"
- 	KeycloakIngress = "keycloak"
- 	RancherIngress = "rancher"
- 	noOfLinesToRead = 20
+	installComplete           = "Installation Complete."
+	verrazzanoSystemNamespace = "verrazzano-system"
+	rancherNamespace          = "cattle-system"
+	keycloakNamespace         = "keycloak"
+	grafanaIngress            = "vmi-system-grafana"
+	prometheusIngress         = "vmi-system-prometheus"
+	elasticsearchIngress      = "vmi-system-es-ingest"
+	kibanaIngress             = "vmi-system-kibana"
+	verrazzanoIngress         = "verrazzano-ingress"
+	keycloakIngress           = "keycloak"
+	rancherIngress            = "rancher"
+	noOfLinesToRead           = 20
 )
 
 var installLogDir = os.Getenv("VERRAZZANO_INSTALL_LOGS_DIR")
@@ -40,47 +38,43 @@ var totalClusters, present = os.LookupEnv("CLUSTER_COUNT")
 
 var _ = ginkgo.BeforeSuite(func() {
 	if len(installLogDir) < 1 {
-		ginkgo.Fail(fmt.Sprintf("Specify the directory containing the install logs using environment variable VERRAZZANO_INSTALL_LOGS_DIR"))
+		ginkgo.Fail("Specify the directory containing the install logs using environment variable VERRAZZANO_INSTALL_LOGS_DIR")
 	}
 	if len(installLog) < 1 {
-		ginkgo.Fail(fmt.Sprintf("Specify the install log file using environment variable VERRAZZANO_INSTALL_LOG"))
+		ginkgo.Fail("Specify the install log file using environment variable VERRAZZANO_INSTALL_LOG")
 	}
 })
 
 var _ = ginkgo.Describe("Verify Verrazzano install scripts", func() {
 
-		ginkgo.Context("Verify Console URLs", func() {
-			clusterCount, _ := strconv.Atoi(totalClusters)
-			if present && clusterCount > 0 {
-				ginkgo.It("Verify the expected console URLs are there in the mc log ", func() {
-					// Validation for admin cluster
-					gomega.Expect(validateConsoleUrlsCluster(kubeConfigFromEnv, "1")).To(gomega.BeTrue())
+	ginkgo.Context("Verify Console URLs", func() {
+		clusterCount, _ := strconv.Atoi(totalClusters)
+		if present && clusterCount > 0 {
+			ginkgo.It("Verify the expected console URLs are there in the mc log ", func() {
+				// Validation for admin cluster
+				gomega.Expect(validateConsoleUrlsCluster(kubeConfigFromEnv, "1")).To(gomega.BeTrue())
 
-					// Validation for managed clusters
-					for i := 2; i <= clusterCount; i++ {
-						installLogForCluster := filepath.FromSlash(installLogDir + "/" + strconv.Itoa(i) + "/" + installLog)
-						consoleUrls, err := getConsoleURLsFromLog(installLogForCluster)
-						if err != nil {
-							gomega.Expect(false).To(gomega.BeTrue(), "There is an error getting console URLs from the log file ", err)
-						}
-						// By default, install logs of the managed clusters do not contain the console URLs
-						gomega.Expect(len(consoleUrls) == 0).To(gomega.BeTrue())
+				// Validation for managed clusters
+				for i := 2; i <= clusterCount; i++ {
+					installLogForCluster := filepath.FromSlash(installLogDir + "/" + strconv.Itoa(i) + "/" + installLog)
+					consoleUrls, err := getConsoleURLsFromLog(installLogForCluster)
+					if err != nil {
+						gomega.Expect(false).To(gomega.BeTrue(), "There is an error getting console URLs from the log file ", err)
 					}
-				})
-			} else {
-				ginkgo.It("Verify the expected console URLs are there in the install log", func() {
-					gomega.Expect(validateConsoleUrlsCluster(kubeConfigFromEnv, "")).To(gomega.BeTrue())
-				})
-			}
-		})
+					// By default, install logs of the managed clusters do not contain the console URLs
+					gomega.Expect(len(consoleUrls) == 0).To(gomega.BeTrue())
+				}
+			})
+		} else {
+			ginkgo.It("Verify the expected console URLs are there in the install log", func() {
+				gomega.Expect(validateConsoleUrlsCluster(kubeConfigFromEnv, "")).To(gomega.BeTrue())
+			})
+		}
+	})
 })
 
 // Validate the console URLs for the admin cluster and single cluster installation
 func validateConsoleUrlsCluster(kubeconfig string, clusterCount string) bool {
-	installedEnvName := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig).Spec.EnvironmentName
-	if len(installedEnvName) == 0 {
-		installedEnvName = pkg.DefaultEnvName
-	}
 	consoleUrls, err := getConsoleURLsFromLog(filepath.FromSlash(installLogDir + "/" + clusterCount + "/" + installLog))
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("There is an error getting console URLs from the log file - %v", err))
@@ -90,10 +84,9 @@ func validateConsoleUrlsCluster(kubeconfig string, clusterCount string) bool {
 }
 
 // Get the list of console URLs from the install log, after the line containing "Installation Complete."
-func getConsoleURLsFromLog (installLog string) ([]string, error) {
+func getConsoleURLsFromLog(installLog string) ([]string, error) {
 	var consoleUrls []string
-	if _, err := os.Stat(installLog);
-	err != nil {
+	if _, err := os.Stat(installLog); err != nil {
 		if os.IsNotExist(err) {
 			fmt.Println("The value set for installLog doesn't exist.")
 			return consoleUrls, err
@@ -135,15 +128,15 @@ func getConsoleURLsFromLog (installLog string) ([]string, error) {
 // Get the expected console URLs in the install log for the given cluster
 func getExpectedConsoleURLs(kubeConfig string) []string {
 	api := pkg.GetAPIEndpoint(kubeConfig)
-	ingress := api.GetIngress(KeycloakNamespace, KeycloakIngress)
+	ingress := api.GetIngress(keycloakNamespace, keycloakIngress)
 	keycloakURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	ingress = api.GetIngress(RancherNamespace, RancherIngress)
+	ingress = api.GetIngress(rancherNamespace, rancherIngress)
 	rancherURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	grafanaURL := getComponentURL(api, GrafanaIngress)
-	prometheusURL := getComponentURL(api, PrometheusIngress)
-	kibanaURL := getComponentURL(api, KibanaIngress)
-	elasticsearchURL := getComponentURL(api, ElasticsearchIngress)
-	consoleURL := getComponentURL(api, VerrazzanoIngress)
+	grafanaURL := getComponentURL(api, grafanaIngress)
+	prometheusURL := getComponentURL(api, prometheusIngress)
+	kibanaURL := getComponentURL(api, kibanaIngress)
+	elasticsearchURL := getComponentURL(api, elasticsearchIngress)
+	consoleURL := getComponentURL(api, verrazzanoIngress)
 
 	// Expected console URLs in the order in which they appear in the install log
 	var expectedUrls = []string{
@@ -158,7 +151,7 @@ func getExpectedConsoleURLs(kubeConfig string) []string {
 }
 
 func getComponentURL(api *pkg.APIEndpoint, ingressName string) string {
-	ingress := api.GetIngress(VerrazzanoSystemNamespace, ingressName)
+	ingress := api.GetIngress(verrazzanoSystemNamespace, ingressName)
 	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
 	return vmiComponentURL
 }
