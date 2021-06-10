@@ -674,6 +674,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     end
 
     function me.handleExternalAPICall(token)
+        local args = ngx.req.get_uri_args()
         me.logJson(ngx.INFO, "Read vmc resource for " .. args.cluster)
         local vmc = me.getVMC(args.cluster)
         if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
@@ -717,7 +718,6 @@ const OidcAuthLuaFileTemplate = `    local me = {}
             end
         end
 
-        local args = ngx.req.get_uri_args()
         args.cluster = nil
         ngx.req.set_uri_args(args)
         ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
