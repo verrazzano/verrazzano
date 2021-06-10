@@ -140,7 +140,6 @@ pipeline {
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
 
         ADMIN_KUBECONFIG = "${KUBECONFIG_DIR}/1/kube_config"
-        TOTAL_CLUSTERS = "${params.TOTAL_CLUSTERS}"
         MANAGED_CLUSTER_PREFIX = "managed"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
@@ -371,8 +370,13 @@ pipeline {
                 }
                 stage ('Verify Install') {
                     // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-                    //       each cluster in sequence.  But we should parallizing those also, if we can.
+                    //       each cluster in sequence.  But we should parallelizing those also, if we can.
                     parallel {
+                        stage ('multicluster/verify-default-resource') {
+                            steps {
+                                runGinkgoRandomize('multicluster/verify-install/default-resource')
+                            }
+                        }
                         stage('verify-install') {
                             steps {
                                 runGinkgoRandomize('verify-install')
@@ -441,9 +445,9 @@ pipeline {
                         }
                     }
                 }
-                stage ('multicluster/verify-install') {
+                stage ('multicluster/verify-component-metrics') {
                     steps {
-                        runGinkgoRandomize('multicluster/verify-install')
+                        runGinkgo('multicluster/verify-install/prometheus', "${ADMIN_KUBECONFIG}", "${params.TOTAL_CLUSTERS}")
                     }
                 }
                 stage ('Example apps') {
@@ -752,6 +756,18 @@ def runGinkgoRandomize(testSuitePath) {
                 """
             }
         }
+    }
+}
+
+// Run a test suite using a given kube configuration against all clusters
+def runGinkgo(testSuitePath, kubeConfig, clusterCount) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            export KUBECONFIG="${kubeConfig}"
+            export CLUSTER_COUNT="${clusterCount}"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+        """
     }
 }
 

@@ -15,14 +15,37 @@ import (
 const (
 	longPollingInterval = 20 * time.Second
 	longWaitTimeout     = 10 * time.Minute
+
+	// Constants for sample metrics from system components
+	ingressControllerSuccess       = "nginx_ingress_controller_success"
+	containerStartTimeSeconds      = "container_start_time_seconds"
+	gcDurationSeconds              = "go_gc_duration_seconds"
+	totolTCPConnectionsOpened      = "istio_tcp_connections_opened_total"
+	sidecarInjectionRequests       = "sidecar_injection_requests_total"
+	prometheusTargetIntervalLength = "prometheus_target_interval_length_seconds"
+	envoyStatsRecentLookups        = "envoy_server_stats_recent_lookups"
+
+	// Namespaces used for validating envoy stats
+	verrazzanoSystemNamespace = "verrazzano-system"
+	istioSystemNamespace      = "istio-system"
+	ingressNginxNamespace     = "ingress-nginx"
+	keycloakNamespace         = "keycloak"
+
+	// Constants for various metric labels
+	nodeExporter        = "node-exporter"
+	istiod              = "istiod"
+	prometheus          = "prometheus"
+	controllerNamespace = "controller_namespace"
+	job                 = "job"
+	envoyStats          = "envoy-stats"
 )
 
 // List of namespaces considered for validating the envoy-stats
 var envoyStatsNamespaces = []string{
-	"ingress-nginx",
-	"istio-system",
-	"keycloak",
-	"verrazzano-system",
+	ingressNginxNamespace,
+	istioSystemNamespace,
+	keycloakNamespace,
+	verrazzanoSystemNamespace,
 }
 
 // List of pods to be excluded for envoy-stats in verrazzano-system namespace
@@ -32,8 +55,6 @@ var excludePodsVS = []string{
 	"verrazzano-application-operator",
 	"verrazzano-monitoring-operator",
 	"verrazzano-operator",
-	"istiocoredns",
-	"istiod",
 }
 
 // List of pods to be excluded for envoy-stats in istio-system namespace
@@ -50,7 +71,7 @@ var _ = ginkgo.Describe("Prometheus", func() {
 			ginkgo.Context("Verify metrics from NGINX ingress controller", func() {
 				ginkgo.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("nginx_ingress_controller_success", "controller_namespace", "ingress-nginx")
+						return pkg.MetricsExist(ingressControllerSuccess, controllerNamespace, ingressNginxNamespace)
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				})
 			})
@@ -58,7 +79,7 @@ var _ = ginkgo.Describe("Prometheus", func() {
 			ginkgo.Context("Verify metrics from Container Advisor", func() {
 				ginkgo.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("container_start_time_seconds", "namespace", "verrazzano-system")
+						return pkg.MetricsExist(containerStartTimeSeconds, "namespace", verrazzanoSystemNamespace)
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				})
 			})
@@ -66,7 +87,7 @@ var _ = ginkgo.Describe("Prometheus", func() {
 			ginkgo.Context("Verify metrics from Node Exporter", func() {
 				ginkgo.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("go_gc_duration_seconds", "job", "node-exporter")
+						return pkg.MetricsExist(gcDurationSeconds, job, nodeExporter)
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				})
 			})
@@ -74,12 +95,12 @@ var _ = ginkgo.Describe("Prometheus", func() {
 			ginkgo.Context("Verify metrics from Istio mesh and istiod", func() {
 				ginkgo.It("Verify sample mesh metrics can be queried from Prometheus", func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_connections_opened_total", "namespace", "verrazzano-system")
+						return pkg.MetricsExist(totolTCPConnectionsOpened, "namespace", verrazzanoSystemNamespace)
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				})
 				ginkgo.It("Verify sample istiod metrics can be queried from Prometheus", func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("sidecar_injection_requests_total", "app", "istiod")
+						return pkg.MetricsExist(sidecarInjectionRequests, "app", istiod)
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				})
 			})
@@ -87,7 +108,7 @@ var _ = ginkgo.Describe("Prometheus", func() {
 			ginkgo.Context("Verify metrics from Prometheus", func() {
 				ginkgo.It("Verify sample metrics can be queried from Prometheus", func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("prometheus_target_interval_length_seconds", "job", "prometheus")
+						return pkg.MetricsExist(prometheusTargetIntervalLength, job, prometheus)
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				})
 			})
@@ -97,15 +118,14 @@ var _ = ginkgo.Describe("Prometheus", func() {
 	// Query Prometheus for the envoy server statistics
 	var _ = ginkgo.Describe("Verify Envoy stats", func() {
 		if !isManagedClusterProfile {
-			metricName := "envoy_server_stats_recent_lookups"
 			ginkgo.It("Verify sample metrics from job envoy-stats", func() {
 				gomega.Eventually(func() bool {
-					return pkg.MetricsExist(metricName, "job", "envoy-stats")
+					return pkg.MetricsExist(envoyStatsRecentLookups, job, envoyStats)
 				}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 			})
 			ginkgo.It("Verify count of metrics for job envoy-stats", func() {
 				gomega.Eventually(func() bool {
-					return verifyEnvoyStats(metricName)
+					return verifyEnvoyStats(envoyStatsRecentLookups)
 				}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 			})
 		}
@@ -124,14 +144,14 @@ func verifyEnvoyStats(metricName string) bool {
 		for _, pod := range pods.Items {
 			var retValue bool
 			switch ns {
-			case "istio-system":
+			case istioSystemNamespace:
 				if excludePods(pod.Name, excludePodsIstio) {
 					retValue = true
 					break
 				} else {
 					retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
 				}
-			case "verrazzano-system":
+			case verrazzanoSystemNamespace:
 				if excludePods(pod.Name, excludePodsVS) {
 					retValue = true
 					break
