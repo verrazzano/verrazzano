@@ -1298,6 +1298,16 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockRequestSender 
 	kubeconfigData := "fakekubeconfig"
 	urlData := "https://testhost:443"
 
+	// Expect a call to get the secret with the Rancher additional CA certs
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherAdditionalCAsSecret}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				"ca-additional.pem": {},
+			}
+			return nil
+		})
+
 	// Expect a call to get the Agent secret
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(name)}, gomock.Not(gomock.Nil())).
@@ -1453,6 +1463,16 @@ func expectRegisterClusterWithRancherK8sCalls(t *testing.T, k8sMock *mocks.MockC
 		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				"ca.crt": {},
+			}
+			return nil
+		})
+
+	// Expect a call to get the secret with the Rancher additional CA certs
+	k8sMock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherAdditionalCAsSecret}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				"ca-additional.pem": {},
 			}
 			return nil
 		})

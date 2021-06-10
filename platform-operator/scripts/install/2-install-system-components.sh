@@ -340,111 +340,118 @@ function create_cattle_system_namespace()
     kubectl label namespace cattle-system "verrazzano.io/namespace=cattle-system" --overwrite
 }
 
+function create_rancher_acme_staging_secrets() {
+  if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 >/dev/null; then
+    log "Using ACME staging, create staging certs secret for Rancher"
+    local acme_staging_certs=${TMP_DIR}/ca-additional.pem
+    echo -n "" >${acme_staging_certs}
+    curl_args=(--output ${TMP_DIR}/int-r3.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem")
+    call_curl 200 http_response http_status curl_args || true
+    if [ ${http_status:--1} -ne 200 ]; then
+      log "Error downloading LetsEncrypt Staging intermediate R3 cert"
+    else
+      cat ${TMP_DIR}/int-r3.pem >>${acme_staging_certs}
+    fi
+    curl_args=(--output ${TMP_DIR}/int-e1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem")
+    call_curl 200 http_response http_status curl_args || true
+    if [ ${http_status:--1} -ne 200 ]; then
+      log "Error downloading LetsEncrypt Staging intermediate E1 cert"
+    else
+      cat ${TMP_DIR}/int-e1.pem >>${acme_staging_certs}
+    fi
+    curl_args=(--output ${TMP_DIR}/root-x1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem")
+    call_curl 200 http_response http_status curl_args || true
+    if [ ${http_status:--1} -ne 200 ]; then
+      log "Error downloading LetsEncrypt Staging X1 Root cert"
+    else
+      cat ${TMP_DIR}/root-x1.pem >>${acme_staging_certs}
+    fi
+    kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
+    kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem=${acme_staging_certs}
+    kubectl -n cattle-system create secret generic verrazzano-ca-additional \
+      --from-file=acme-int-r3.pem=${TMP_DIR}/int-r3.pem \
+      --from-file=acme-int-e1.pem=${TMP_DIR}/int-e1.pem \
+      --from-file=acme-root-x1.pem=${TMP_DIR}/root-x1.pem
+  fi
+}
+
 function install_rancher()
 {
-    local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
+  local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
 
-    # Create the rancher-operator-system namespace so we can create network policies
-    if ! kubectl get namespace rancher-operator-system > /dev/null 2>&1; then
-        kubectl create namespace rancher-operator-system
+  # Create the rancher-operator-system namespace so we can create network policies
+  if ! kubectl get namespace rancher-operator-system > /dev/null 2>&1; then
+      kubectl create namespace rancher-operator-system
+  fi
+
+  local INGRESS_TLS_SOURCE=""
+  local EXTRA_RANCHER_ARGUMENTS=""
+  local RANCHER_PATCH_DATA=""
+  local useAdditionalCAs=false
+  if ! is_chart_deployed rancher cattle-system ${RANCHER_CHART_DIR}; then
+    if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
+      INGRESS_TLS_SOURCE="letsEncrypt"
+      if [ "$(get_acme_environment)" != "production" ]; then
+        log "Using ACME staging, enable use of additional trusted CAs for Rancher"
+        useAdditionalCAs=true
+        create_rancher_acme_staging_secrets
+      fi
+      EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment) --set privateCA=${useAdditionalCAs} --set additionalTrustedCAs=${useAdditionalCAs}"
+      RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"cert-manager.io/issuer-kind\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
+    elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
+      INGRESS_TLS_SOURCE="secret"
+      if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
+        [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
+        EXTRA_RANCHER_ARGUMENTS="--set privateCA=true"
+        kubectl -n $VERRAZZANO_DEFAULT_SECRET_NAMESPACE get secret $VERRAZZANO_DEFAULT_SECRET_NAME -o jsonpath='{.data.ca\.crt}' | base64 --decode >${TMP_DIR}/cacerts.pem
+      fi
+      RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/cluster-issuer\":\"verrazzano-cluster-issuer\"}}}"
+    else
+      fail "certificates issuerType $CERT_ISSUER_TYPE is not supported."
     fi
 
-    local INGRESS_TLS_SOURCE=""
-    local EXTRA_RANCHER_ARGUMENTS=""
-    local RANCHER_PATCH_DATA=""
-    local useAdditionalCAs=false
-    if ! is_chart_deployed rancher cattle-system ${RANCHER_CHART_DIR} ; then
-      if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
-        INGRESS_TLS_SOURCE="letsEncrypt"
-        if [ "$(get_acme_environment)" != "production" ]; then
-          log "Using ACME staging, enable use of additional trusted CAs for Rancher"
-          useAdditionalCAs=true
-        fi
-        EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment) --set additionalTrustedCAs=${useAdditionalCAs}"
-        RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"cert-manager.io/issuer-kind\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
-      elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
-        INGRESS_TLS_SOURCE="secret"
-        if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
-           [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
-          EXTRA_RANCHER_ARGUMENTS="--set privateCA=true"
-          kubectl -n $VERRAZZANO_DEFAULT_SECRET_NAMESPACE get secret $VERRAZZANO_DEFAULT_SECRET_NAME -o jsonpath='{.data.ca\.crt}' | base64 --decode > ${TMP_DIR}/cacerts.pem
-          kubectl -n cattle-system create secret generic tls-ca --from-file=${TMP_DIR}/cacerts.pem
-        fi
-        RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/cluster-issuer\":\"verrazzano-cluster-issuer\"}}}"
-      else
-        fail "certificates issuerType $CERT_ISSUER_TYPE is not supported.";
-      fi
+    log "Install Rancher"
 
-      log "Install Rancher"
-
-      IMAGE_PULL_SECRETS_ARGUMENT=""
-      if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-        IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
-      fi
-
-      # Settings required to point Rancher at a registry for background helm install
-      if [ -n "${REGISTRY}" ]; then
-        local sys_default_reg=${REGISTRY}
-
-        if [ -n "${IMAGE_REPO}" ]; then
-          sys_default_reg=${REGISTRY}/${IMAGE_REPO}
-        fi
-
-        EXTRA_RANCHER_ARGUMENTS="${EXTRA_RANCHER_ARGUMENTS} --set systemDefaultRegistry=${sys_default_reg} --set useBundledSystemChart=true"
-      fi
-
-      local chart_name=rancher
-      build_image_overrides rancher ${chart_name}
-
-      # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-      helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
-        --install --namespace cattle-system \
-        --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
-        --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
-        ${HELM_IMAGE_ARGS} \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        ${EXTRA_RANCHER_ARGUMENTS}
+    IMAGE_PULL_SECRETS_ARGUMENT=""
+    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+      IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
-    if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 > /dev/null ; then
-      log "Using ACME staging, create staging certs secret for Rancher"
-      local acme_staging_certs=${TMP_DIR}/ca-additional.pem
-      echo -n "" > ${acme_staging_certs}
-      curl_args=(--output ${TMP_DIR}/int-r3.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem")
-      call_curl 200 http_response http_status curl_args || true
-      if [ ${http_status:--1} -ne 200 ]; then
-        log "Error downloading LetsEncrypt Staging intermediate R3 cert"
-      else
-        cat ${TMP_DIR}/int-r3.pem >> ${acme_staging_certs}
+    # Settings required to point Rancher at a registry for background helm install
+    if [ -n "${REGISTRY}" ]; then
+      local sys_default_reg=${REGISTRY}
+
+      if [ -n "${IMAGE_REPO}" ]; then
+        sys_default_reg=${REGISTRY}/${IMAGE_REPO}
       fi
-      curl_args=(--output ${TMP_DIR}/int-e1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem")
-      call_curl 200 http_response http_status curl_args || true
-      if [ ${http_status:--1} -ne 200 ]; then
-        log "Error downloading LetsEncrypt Staging intermediate E1 cert"
-      else
-        cat ${TMP_DIR}/int-e1.pem >> ${acme_staging_certs}
-      fi
-      curl_args=(--output ${TMP_DIR}/root-x1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem")
-      call_curl 200 http_response http_status curl_args || true
-      if [ ${http_status:--1} -ne 200 ]; then
-        log "Error downloading LetsEncrypt Staging X1 Root cert"
-      else
-        cat ${TMP_DIR}/root-x1.pem >> ${acme_staging_certs}
-      fi
-      kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
+
+      EXTRA_RANCHER_ARGUMENTS="${EXTRA_RANCHER_ARGUMENTS} --set systemDefaultRegistry=${sys_default_reg} --set useBundledSystemChart=true"
     fi
 
-    # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
-    # OLCNE uses CRI-O and needs this change, and it doesn't hurt other cases
-    kubectl patch deployments -n cattle-system rancher -p '{"spec":{"template":{"spec":{"containers":[{"name":"rancher","securityContext":{"capabilities":{"add":["MKNOD"]}}}]}}}}'
+    local chart_name=rancher
+    build_image_overrides rancher ${chart_name}
 
-    log "Patch Rancher ingress"
-    kubectl patch ingress rancher -n cattle-system -p "$RANCHER_PATCH_DATA" --type=merge
+    # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
+    helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
+      --install --namespace cattle-system \
+      --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
+      --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+      ${HELM_IMAGE_ARGS} \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      ${EXTRA_RANCHER_ARGUMENTS}
+  fi
 
-    log "Rollout Rancher"
-    kubectl -n cattle-system rollout status -w deploy/rancher || return $?
+  # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
+  # OLCNE uses CRI-O and needs this change, and it doesn't hurt other cases
+  kubectl patch deployments -n cattle-system rancher -p '{"spec":{"template":{"spec":{"containers":[{"name":"rancher","securityContext":{"capabilities":{"add":["MKNOD"]}}}]}}}}'
 
-    reset_rancher_admin_password || return $?
+  log "Patch Rancher ingress"
+  kubectl patch ingress rancher -n cattle-system -p "$RANCHER_PATCH_DATA" --type=merge
+
+  log "Rollout Rancher"
+  kubectl -n cattle-system rollout status -w deploy/rancher || return $?
+
+  reset_rancher_admin_password || return $?
 }
 
 function set_rancher_server_url
