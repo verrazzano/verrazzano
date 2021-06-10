@@ -143,6 +143,9 @@ pipeline {
         MANAGED_CLUSTER_PREFIX = "managed"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+
+        VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
+        VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
     }
 
     stages {
@@ -380,6 +383,11 @@ pipeline {
                         stage('verify-install') {
                             steps {
                                 runGinkgoRandomize('verify-install')
+                            }
+                        }
+                        stage('verify-scripts') {
+                            steps {
+                                runGinkgo('scripts', "${ADMIN_KUBECONFIG}", "${params.TOTAL_CLUSTERS}")
                             }
                         }
                         stage('verify-infra restapi') {
@@ -872,7 +880,7 @@ def dumpVerrazzanoSystemPods() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -893,7 +901,7 @@ def dumpCattleSystemPods() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -910,7 +918,7 @@ def dumpNginxIngressControllerLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -982,7 +990,7 @@ def dumpVerrazzanoApiLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -997,12 +1005,12 @@ def dumpInstallLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 ## dump verrazzano install logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
-                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install.log --tail -1
+                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
                 kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
                 echo "------------------------------------------"
             """
