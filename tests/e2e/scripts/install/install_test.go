@@ -52,11 +52,11 @@ var _ = ginkgo.Describe("Verify Verrazzano install scripts", func() {
 		if present && clusterCount > 0 {
 			ginkgo.It("Verify the expected console URLs are there in the mc log ", func() {
 				// Validation for admin cluster
-				gomega.Expect(validateConsoleUrlsCluster(kubeConfigFromEnv, "1")).To(gomega.BeTrue())
+				gomega.Expect(validateConsoleUrlsCluster(kubeConfigFromEnv, "cluster-1")).To(gomega.BeTrue())
 
 				// Validation for managed clusters
 				for i := 2; i <= clusterCount; i++ {
-					installLogForCluster := filepath.FromSlash(installLogDir + "/" + strconv.Itoa(i) + "/" + installLog)
+					installLogForCluster := filepath.FromSlash(installLogDir + "/cluster-" + strconv.Itoa(i) + "/" + installLog)
 					consoleUrls, err := getConsoleURLsFromLog(installLogForCluster)
 					if err != nil {
 						gomega.Expect(false).To(gomega.BeTrue(), "There is an error getting console URLs from the log file ", err)
@@ -74,8 +74,8 @@ var _ = ginkgo.Describe("Verify Verrazzano install scripts", func() {
 })
 
 // Validate the console URLs for the admin cluster and single cluster installation
-func validateConsoleUrlsCluster(kubeconfig string, clusterCount string) bool {
-	consoleUrls, err := getConsoleURLsFromLog(filepath.FromSlash(installLogDir + "/" + clusterCount + "/" + installLog))
+func validateConsoleUrlsCluster(kubeconfig string, clusterPrefix string) bool {
+	consoleUrls, err := getConsoleURLsFromLog(filepath.FromSlash(installLogDir + "/" + clusterPrefix + "/" + installLog))
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("There is an error getting console URLs from the log file - %v", err))
 	}
