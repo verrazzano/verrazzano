@@ -90,15 +90,15 @@ const OidcReloadFileTemplate = `    #!/bin/bash
 
     while true
     do
-    trustedCertsFileSize=$(wc -c < $upstreamCACertFile)
-    if [ $trustedCertsFileSize -ge $maxSizeTrustedCertsFileDefault ] ; then
-        echo "$upstreamCACertFile file size greater than  $maxSizeTrustedCertsFileDefault, resetting.."
-        reset_md5
-        default_cert_config
-    fi
+        trustedCertsFileSize=$(wc -c < $upstreamCACertFile)
+        if [ $trustedCertsFileSize -ge $maxSizeTrustedCertsFileDefault ] ; then
+            echo "$upstreamCACertFile file size greater than  $maxSizeTrustedCertsFileDefault, resetting.."
+            reset_md5
+            default_cert_config
+        fi
 
-    local_cert_config
-    admin_cluster_cert_config
-    sleep .1
+        local_cert_config
+        admin_cluster_cert_config
+        sleep .1
     done
 `
