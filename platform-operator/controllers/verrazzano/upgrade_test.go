@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -21,6 +22,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// unitTestBomFIle is used for unit test
+const unitTestBomFile = "../../verrazzano-bom.json"
 
 // goodRunner is used to test helm success without actually running an OS exec command
 type goodRunner struct {
@@ -41,6 +45,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -88,6 +93,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -138,6 +144,7 @@ func TestUpgradeStarted(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -182,14 +189,6 @@ func TestUpgradeStarted(t *testing.T) {
 			return nil
 		})
 
-	// Expect a 2nd call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			return nil
-		})
-
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -198,8 +197,8 @@ func TestUpgradeStarted(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(1), result.RequeueAfter)
 }
 
 // TestUpgradeTooManyFailures tests the reconcileUpgrade method for the following use case
@@ -210,6 +209,7 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -275,6 +275,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -343,14 +344,6 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			return nil
 		})
 
-	// Expect a 2nd call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 9, "Incorrect number of conditions")
-			return nil
-		})
-
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -359,8 +352,8 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(1), result.RequeueAfter)
 }
 
 // TestUpgradeNotStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
@@ -371,6 +364,7 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -447,6 +441,8 @@ func TestUpgradeCompleted(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 
+	fname, _ := filepath.Abs(unitTestBomFile)
+	component.SetUnitTestBomFilePath(fname)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -518,6 +514,7 @@ func TestUpgradeHelmError(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)

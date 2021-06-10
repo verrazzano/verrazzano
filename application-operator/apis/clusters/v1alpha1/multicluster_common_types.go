@@ -83,3 +83,23 @@ type MultiClusterResourceStatus struct {
 
 	Clusters []ClusterLevelStatus `json:"clusters,omitempty"`
 }
+
+type EmbeddedObjectMeta struct {
+	// Name must be unique within a namespace.
+	// +optional
+	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
+
+	// Namespace defines the space within each name must be unique.
+	// +optional
+	Namespace string `json:"namespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
+
+	// Map of string keys and values that can be used to organize and categorize
+	// (scope and select) objects.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
+
+	// Annotations is an unstructured key value map stored with a resource that may be
+	// set by external tools to store and retrieve arbitrary metadata.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
+}

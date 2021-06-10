@@ -99,7 +99,7 @@ go-install:
 	$(GO) install ./...
 
 .PHONY: manifests
-manifests: platform-manifests
+manifests: platform-manifests generate-api-proxy-configmap
 
 #
 # Docker-related tasks
@@ -198,10 +198,20 @@ create-test-deploy:
 	if [ -n "${VZ_DEV_IMAGE}" ]; then \
 		IMAGE=$$(echo $${VZ_DEV_IMAGE} | cut -f 1 -d :) ; \
 		IMAGE_TAG=$$(echo $${VZ_DEV_IMAGE} | cut -f 2 -d :) ; \
-		DOCKER_IMAGE_FULLNAME=$${IMAGE} DOCKER_IMAGE_TAG=$${IMAGE_TAG} $(MAKE) generate-operator-yaml ; \
+		DOCKER_IMAGE_FULLNAME=$${IMAGE} DOCKER_IMAGE_TAG=$${IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=$${VZ_APP_OP_IMAGE} $(MAKE) generate-operator-yaml ; \
 	else \
 		echo "VZ_DEV_IMAGE not defined, please set it to a valid image name/tag"; \
 	fi
+
+.PHONY: generate-api-proxy-configmap
+generate-api-proxy-configmap:
+	hack/generate-api-proxy-configmap.sh \
+        ../pkg/proxy/conf_lua_template.go \
+        ../pkg/proxy/auth_lua_template.go \
+        ../pkg/proxy/nginx_conf_template.go \
+        ../pkg/proxy/startup_sh_template.go \
+        ../pkg/proxy/reload_sh_template.go \
+        > helm_config/charts/verrazzano/templates/verrazzano-api-configmap.yaml
 
 .PHONY: generate-bom
 generate-bom:
@@ -209,3 +219,4 @@ generate-bom:
 	@echo                verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
 	mkdir out || true
 	../tools/scripts/generate_bom.sh verrazzano-bom.json ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG} out/generated-verrazzano-bom.json
+

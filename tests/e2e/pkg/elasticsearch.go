@@ -116,14 +116,14 @@ func LogRecordFoundInCluster(indexName string, after time.Time, fields map[strin
 		Log(Info, fmt.Sprintf("Expected to find log record matching fields %v", fields))
 		return false
 	}
-	found := findHits(searchResult, after)
+	found := findHits(searchResult, &after)
 	if !found {
 		Log(Error, fmt.Sprintf("Failed to find recent log record for index %s", indexName))
 	}
 	return found
 }
 
-func findHits(searchResult map[string]interface{}, after time.Time) bool {
+func findHits(searchResult map[string]interface{}, after *time.Time) bool {
 	hits := Jq(searchResult, "hits", "hits")
 	if hits == nil {
 		Log(Info, "Expected to find hits in log record query results")
@@ -133,6 +133,9 @@ func findHits(searchResult map[string]interface{}, after time.Time) bool {
 	if len(hits.([]interface{})) == 0 {
 		Log(Info, "Expected log record query results to contain at least one hit")
 		return false
+	}
+	if after == nil {
+		return true
 	}
 	for _, hit := range hits.([]interface{}) {
 		timestamp := Jq(hit, "_source", "@timestamp")
@@ -144,7 +147,7 @@ func findHits(searchResult map[string]interface{}, after time.Time) bool {
 				return false
 			}
 		}
-		if t.After(after) {
+		if t.After(*after) {
 			Log(Info, fmt.Sprintf("Found recent record: %s", timestamp))
 			return true
 		}
@@ -161,11 +164,48 @@ func FindLog(index string, match []Match, mustNot []Match) bool {
 		MustNot: mustNot,
 	}
 	result := SearchLog(index, query)
-	found := findHits(result, after)
+	found := findHits(result, &after)
 	if !found {
 		Log(Error, fmt.Sprintf("Failed to find recent log record for index %s", index))
 	}
 	return found
+}
+
+// FindAnyLog returns true if a log record of any time can be found in the index with matching filters.
+func FindAnyLog(index string, match []Match, mustNot []Match) bool {
+	query := ElasticQuery{
+		Filters: match,
+		MustNot: mustNot,
+	}
+	result := SearchLog(index, query)
+	found := findHits(result, nil)
+	if !found {
+		Log(Error, fmt.Sprintf("Failed to find recent log record for index %s", index))
+	}
+	return found
+}
+
+// NoLog returns true if no matched log record can be found in the index.
+func NoLog(index string, match []Match, mustNot []Match) bool {
+	query := ElasticQuery{
+		Filters: match,
+		MustNot: mustNot,
+	}
+	result := SearchLog(index, query)
+	if len(result) == 0 {
+		return true
+	}
+	hits := Jq(result, "hits", "hits")
+	if hits == nil || len(hits.([]interface{})) == 0 {
+		return true
+	}
+	Log(Error, fmt.Sprintf("Found unexpected %d records", len(hits.([]interface{}))))
+	for i, hit := range hits.([]interface{}) {
+		if i < 10 {
+			Log(Error, fmt.Sprintf("Found unexpected log record: %v", hit))
+		}
+	}
+	return false
 }
 
 var systemElasticHost string

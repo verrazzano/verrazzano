@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"reflect"
 
-	vzcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
@@ -27,7 +26,7 @@ var readFileFunction = ioutil.ReadFile
 
 // GetCurrentChartVersion Load the current Chart.yaml into a chartVersion struct
 func GetCurrentChartVersion() (*semver.SemVersion, error) {
-	chartDir := vzcomp.VzChartDir()
+	chartDir := config.GetHelmVzChartsDir()
 	chartBytes, err := readFileFunction(chartDir + "/Chart.yaml")
 	if err != nil {
 		return nil, err
