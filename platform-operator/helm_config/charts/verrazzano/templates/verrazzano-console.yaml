@@ -42,7 +42,7 @@ spec:
           - name: VZ_KEYCLOAK_URL
             value: "https://keycloak.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
           - name: VZ_CLIENT_ID
-            value: webui
+            value: verrazzano-pkce
       serviceAccount: {{ .Values.console.name }}
 ---
 apiVersion: v1
