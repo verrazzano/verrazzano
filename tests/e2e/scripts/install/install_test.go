@@ -32,18 +32,18 @@ const (
  	noOfLinesToRead = 20
 )
 
-var installLogDir = os.Getenv("INSTALL_LOG_DIR")
-var installLog = os.Getenv("INSTALL_LOG")
+var installLogDir = os.Getenv("VERRAZZANO_INSTALL_LOGS_DIR")
+var installLog = os.Getenv("VERRAZZANO_INSTALL_LOG")
 
 var kubeConfigFromEnv = os.Getenv("KUBECONFIG")
-var totalClusters, present = os.LookupEnv("TOTAL_CLUSTERS")
+var totalClusters, present = os.LookupEnv("CLUSTER_COUNT")
 
 var _ = ginkgo.BeforeSuite(func() {
 	if len(installLogDir) < 1 {
-		ginkgo.Fail(fmt.Sprintf("Specify the directory containing the install logs using environment variable INSTALL_LOG_DIR"))
+		ginkgo.Fail(fmt.Sprintf("Specify the directory containing the install logs using environment variable VERRAZZANO_INSTALL_LOGS_DIR"))
 	}
 	if len(installLog) < 1 {
-		ginkgo.Fail(fmt.Sprintf("Specify the install log file using environment variable INSTALL_LOG"))
+		ginkgo.Fail(fmt.Sprintf("Specify the install log file using environment variable VERRAZZANO_INSTALL_LOG"))
 	}
 })
 
