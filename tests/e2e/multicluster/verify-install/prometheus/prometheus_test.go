@@ -7,7 +7,6 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 const (
 	longPollingInterval = 20 * time.Second
 	longWaitTimeout     = 10 * time.Minute
+
 	labelManagedCluster = "managed_cluster"
 
 	// Constants for sample metrics from system components
@@ -48,10 +48,8 @@ const (
 	quantilePointNineNine = "0.99"
 )
 
-var managedPrefix = os.Getenv("MANAGED_CLUSTER_PREFIX")
+var managedCluster = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
-var totalClusters = os.Getenv("CLUSTER_COUNT")
-var kubeConfigDir = os.Getenv("KUBECONFIG_DIR")
 
 // Namespaces used for validating envoy stats
 var envoyStatsNamespaces = []string{
@@ -142,49 +140,26 @@ var _ = ginkgo.Describe("Prometheus", func() {
 	})
 })
 
-// Validate the given metric exists in all the managed clusters
+// Validate the given metric exists in the managed cluster
 func metricsExistInCluster(metricName string) bool {
-	clusterCount, _ := strconv.Atoi(totalClusters)
-	// Loop starts with 1 to exclude admin cluster from the validation
-	for i := 1; i < clusterCount; i++ {
-		managedCluster := managedPrefix + strconv.Itoa(i)
-		gomega.Expect(pkg.MetricsExistInCluster(metricName, labelManagedCluster, managedCluster, adminKubeconfig)).To(gomega.BeTrue())
-	}
-	return true
+	return gomega.Expect(pkg.MetricsExistInCluster(metricName, labelManagedCluster, managedCluster, adminKubeconfig)).To(gomega.BeTrue())
 }
 
-// Validate the metrics contain the given labels
+// Validate the metrics contain the given labels in the managed cluster
 func metricsContainLabels(metricName string, key1, value1, key2, value2 string) bool {
 	compMetrics, err := pkg.QueryMetric(metricName, adminKubeconfig)
 	if err != nil {
 		return false
 	}
-	totalMetrics := 0
-	metricsCount := 0
-	clusterCount, _ := strconv.Atoi(totalClusters)
 	metrics := pkg.JTq(compMetrics, "data", "result").([]interface{})
 	for _, metric := range metrics {
-		if pkg.Jq(metric, "metric", key1) == value1 && pkg.Jq(metric, "metric", key2) == value2 {
-			for i := 1; i < clusterCount; i++ {
-				managedCluster := managedPrefix + strconv.Itoa(i)
-				// The metrics scraped from the managed cluster contains a special label managed_cluster
-				if pkg.Jq(metric, "metric", labelManagedCluster) == managedCluster {
-					metricsCount++
-				}
-			}
-			totalMetrics++
+		// The metrics scraped from the managed cluster contains a special label managed_cluster
+		if pkg.Jq(metric, "metric", key1) == value1 && pkg.Jq(metric, "metric", key2) == value2 &&
+			pkg.Jq(metric, "metric", labelManagedCluster) == managedCluster {
+			return true
 		}
 	}
-
-	// When scraped from admin cluster, a given metrics of the system component is expected 3 times - one for admin
-	// cluster and one for each of managed clusters
-	if totalMetrics != clusterCount {
-		return false
-	}
-	if metricsCount != clusterCount-1 {
-		return false
-	}
-	return true
+	return false
 }
 
 // Validate the Istio envoy stats
@@ -193,42 +168,31 @@ func verifyEnvoyStats(metricName string) bool {
 	if err != nil {
 		return false
 	}
-
-	// CI pipeline creates the clusters like below, for a given value n for parameter TOTAL_CLUSTERS
-	// admin cluster is always the first cluster, with kube configuration under <config directory>/1/kube_config
-	// managed cluster with the name managed1, with kube configuration under <config directory>/2/kube_config
-	// ....
-	// managed cluster with the name managed<n>, with kube configuration under <config directory>/<n>/kube_config
-	clusterCount, _ := strconv.Atoi(totalClusters)
-	for i := 1; i < clusterCount; i++ {
-		managedCluster := managedPrefix + strconv.Itoa(i)
-		managedKubeConfig := kubeConfigDir + "/" + strconv.Itoa(i+1) + "/kube_config"
-		clientset := pkg.GetKubernetesClientsetForCluster(managedKubeConfig)
-		for _, ns := range envoyStatsNamespaces {
-			pods := pkg.ListPodsInCluster(ns, clientset)
-			for _, pod := range pods.Items {
-				var retValue bool
-				switch ns {
+	clientset := pkg.GetKubernetesClientset()
+	for _, ns := range envoyStatsNamespaces {
+		pods := pkg.ListPodsInCluster(ns, clientset)
+		for _, pod := range pods.Items {
+			var retValue bool
+			switch ns {
 				case istioSystemNamespace:
 					if excludePods(pod.Name, excludePodsIstio) {
 						retValue = true
 						break
 					} else {
-						retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name, managedCluster)
+						retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
 					}
 				case verrazzanoSystemNamespace:
 					if excludePods(pod.Name, excludePodsVS) {
 						retValue = true
 						break
 					} else {
-						retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name, managedCluster)
+						retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
 					}
 				case ingressNginxNamespace:
-					retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name, managedCluster)
-				}
-				if !retValue {
-					return false
-				}
+					retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
+			}
+			if !retValue {
+				return false
 			}
 		}
 	}
@@ -236,7 +200,7 @@ func verifyEnvoyStats(metricName string) bool {
 }
 
 // Assert the existence of labels for namespace and pod in the envoyStatsMetric
-func verifyLabelsEnvoyStats(envoyStatsMetric string, namespace string, podName string, managedCluster string) bool {
+func verifyLabelsEnvoyStats(envoyStatsMetric string, namespace string, podName string) bool {
 	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
 	for _, metric := range metrics {
 		if pkg.Jq(metric, "metric", "namespace") == namespace && pkg.Jq(metric, "metric", "pod_name") == podName &&

@@ -140,7 +140,6 @@ pipeline {
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
 
         ADMIN_KUBECONFIG = "${KUBECONFIG_DIR}/1/kube_config"
-        MANAGED_CLUSTER_PREFIX = "managed"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
@@ -455,7 +454,7 @@ pipeline {
                 }
                 stage ('multicluster/verify-component-metrics') {
                     steps {
-                        runGinkgo('multicluster/verify-install/prometheus', "${ADMIN_KUBECONFIG}", "${params.TOTAL_CLUSTERS}")
+                        runGinkgoManagedClusters('multicluster/verify-install/prometheus')
                     }
                 }
                 stage ('Example apps') {
@@ -767,15 +766,20 @@ def runGinkgoRandomize(testSuitePath) {
     }
 }
 
-// Run a test suite using a given kube configuration against all clusters
-def runGinkgo(testSuitePath, kubeConfig, clusterCount) {
+// Run a test suite against all the managed clusters
+def runGinkgoManagedClusters(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            export KUBECONFIG="${kubeConfig}"
-            export CLUSTER_COUNT="${clusterCount}"
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
-        """
+        script {
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            for(int count=2; count<=clusterCount; count++) {
+                sh """
+                    export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                    export MANAGED_CLUSTER_NAME="managed${count-1}"
+                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                    ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+                """
+            }
+        }
     }
 }
 
