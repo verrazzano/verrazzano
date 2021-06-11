@@ -174,22 +174,22 @@ func verifyEnvoyStats(metricName string) bool {
 		for _, pod := range pods.Items {
 			var retValue bool
 			switch ns {
-				case istioSystemNamespace:
-					if excludePods(pod.Name, excludePodsIstio) {
-						retValue = true
-						break
-					} else {
-						retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
-					}
-				case verrazzanoSystemNamespace:
-					if excludePods(pod.Name, excludePodsVS) {
-						retValue = true
-						break
-					} else {
-						retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
-					}
-				case ingressNginxNamespace:
+			case istioSystemNamespace:
+				if excludePods(pod.Name, excludePodsIstio) {
+					retValue = true
+					break
+				} else {
 					retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
+				}
+			case verrazzanoSystemNamespace:
+				if excludePods(pod.Name, excludePodsVS) {
+					retValue = true
+					break
+				} else {
+					retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
+				}
+			case ingressNginxNamespace:
+				retValue = verifyLabelsEnvoyStats(envoyStatsMetric, ns, pod.Name)
 			}
 			if !retValue {
 				return false
