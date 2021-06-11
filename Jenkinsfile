@@ -33,6 +33,10 @@ pipeline {
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: 'master',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
     }
 
     environment {
@@ -562,7 +566,7 @@ pipeline {
                                     cd ${GO_REPO_PATH}
                                     git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
                                     cd console
-                                    git checkout mgianata/vz-2038
+                                    git checkout params.CONSOLE_REPO_BRANCH
 
                                     # Configure headless browser
                                     google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
