@@ -581,6 +581,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    not { currentBuild.currentResult == "SUCCESS" }
                     anyOf {
                         branch 'master';
                         branch 'release-*';
