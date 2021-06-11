@@ -1,0 +1,7 @@
+domain: verrazzano.io
+repo: github.com/verrazzano/verrazzano/image-patch-operator
+resources:
+- group: images
+  kind: ImageBuildRequest
+  version: v1alpha1
+version: "2"
