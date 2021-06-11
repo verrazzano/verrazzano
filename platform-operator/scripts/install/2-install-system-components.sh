@@ -340,8 +340,18 @@ function create_cattle_system_namespace()
     kubectl label namespace cattle-system "verrazzano.io/namespace=cattle-system" --overwrite
 }
 
+# create_rancher_acme_staging_secrets - Creates 2 secrets with the ACME staging CAs to allow Rancher to work with ACME Staging
+# 
+# - tls-ca-additional which is expected by Rancher when you tell it to use additional CAs for certificate verification
+# - tls-ca, which is mimics the self-signed case to Rancher when we register a managed cluster, except loading the Staging authorities
+#
+# tls-ca with the "privateCA=true" helm arg on install is required as a workaround for managed cluster registration
+# YAML generation, so that the remote cluster agent can communicate with the admin cluster.  Rancher itself doesn't
+# seem to fully support ACME Staging yet.  This generally implements a workaround that can be found
+# here https://github.com/rancher/rancher/issues/19832.
+#
 function create_rancher_acme_staging_secrets() {
-  if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 >/dev/null; then
+  if ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 >/dev/null; then
     log "Using ACME staging, create staging certs secret for Rancher"
     local acme_staging_certs=${TMP_DIR}/ca-additional.pem
     echo -n "" >${acme_staging_certs}
@@ -368,10 +378,6 @@ function create_rancher_acme_staging_secrets() {
     fi
     kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
     kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem=${acme_staging_certs}
-    kubectl -n cattle-system create secret generic verrazzano-ca-additional \
-      --from-file=acme-int-r3.pem=${TMP_DIR}/int-r3.pem \
-      --from-file=acme-int-e1.pem=${TMP_DIR}/int-e1.pem \
-      --from-file=acme-root-x1.pem=${TMP_DIR}/root-x1.pem
   fi
 }
 
