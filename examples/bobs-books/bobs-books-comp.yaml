@@ -405,7 +405,7 @@ spec:
           domainUID: bobs-bookstore
           domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
           domainHomeSourceType: FromModel
-          image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210511205230-d41009d
+          image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210607165639-4755b1f
           includeServerOutInPodLog: true
           replicas: 1
           webLogicCredentialsSecret:
