@@ -766,6 +766,18 @@ def runGinkgoRandomize(testSuitePath) {
     }
 }
 
+// Run a test suite using a given kube configuration against all clusters
+def runGinkgo(testSuitePath, kubeConfig, clusterCount) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            export KUBECONFIG="${kubeConfig}"
+            export CLUSTER_COUNT="${clusterCount}"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+        """
+    }
+}
+
 // Run a test suite against all the managed clusters
 def runGinkgoManagedClusters(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
