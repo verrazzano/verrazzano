@@ -59,16 +59,11 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	if err != nil {
 		return err
 	}
-	tlsSecret, err := r.getTLSSecret()
+	caBundle, err := getRancherTLSRootCA(r)
 	if err != nil {
 		return err
 	}
 
-	caBundle := tlsSecret.Data[CaCrtKey]
-	additionalCAs, _ := getRancherAdditionalCAs(r)
-	for _, ca := range additionalCAs {
-		caBundle = append(caBundle, ca...)
-	}
 	// Write the keycloak URL to secret
 	keycloakURL, err := r.getKeycloakURL()
 	if err != nil {

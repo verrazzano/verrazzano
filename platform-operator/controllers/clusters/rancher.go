@@ -30,11 +30,10 @@ import (
 )
 
 const (
-	rancherNamespace           = "cattle-system"
-	rancherIngressName         = "rancher"
-	rancherAdminSecret         = "rancher-admin-secret"
-	rancherTLSSecret           = "tls-rancher-ingress"
-	rancherAdditionalCAsSecret = "verrazzano-ca-additional"
+	rancherNamespace   = "cattle-system"
+	rancherIngressName = "rancher"
+	rancherAdminSecret = "rancher-admin-secret"
+	rancherTLSSecret   = "tls-ca"
 
 	clusterPath         = "/v3/cluster"
 	clustersByNamePath  = "/v3/clusters?name="
@@ -51,7 +50,6 @@ type rancherConfig struct {
 	baseURL                  string
 	apiAccessToken           string
 	certificateAuthorityData []byte
-	additionalCAs            [][]byte
 }
 
 var defaultRetry = wait.Backoff{
@@ -94,22 +92,12 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	rc.host = hostname
 
 	log.Debug("Getting Rancher TLS root CA")
-	caCerts, err := getRancherTLSRootCA(rdr)
+	caCert, err := getRancherTLSRootCA(rdr)
 	if err != nil {
 		log.Errorf("Unable to get rancher TLS root CA: %v", err)
 		return "", err
 	}
-	if len(caCerts) > 0 {
-		rc.certificateAuthorityData = caCerts[0]
-	}
-
-	log.Debug("Getting Rancher Additional CAs")
-	additinalCaCerts, err := getRancherAdditionalCAs(rdr)
-	if err != nil {
-		log.Errorf("Unable to get rancher additional CAs: %v", err)
-		return "", err
-	}
-	rc.additionalCAs = additinalCaCerts
+	rc.certificateAuthorityData = caCert
 
 	log.Debug("Getting admin token from Rancher")
 	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
@@ -370,36 +358,16 @@ func getRancherIngressHostname(rdr client.Reader) (string, error) {
 
 // getRancherTLSRootCA gets the root CA certificate from the Rancher TLS secret. If the secret does not exist, we
 // return a nil slice.
-func getRancherTLSRootCA(rdr client.Reader) ([][]byte, error) {
-	return getCAsFromSecret(rdr, rancherNamespace, rancherTLSSecret, []string{"ca.crt"})
-}
-
-// getRancherAdditionalCAs gets the root CA certificate from the Rancher TLS secret. If the secret does not exist, we
-// return a nil slice.
-func getRancherAdditionalCAs(rdr client.Reader) ([][]byte, error) {
-	return getCAsFromSecret(rdr, rancherNamespace, rancherAdditionalCAsSecret, []string{"acme-int-e1.pem", "acme-int-r3.pem", "acme-root-x1.pem"})
-}
-
-// getCAsFromSecret Shared function to load CA data from a secret
-func getCAsFromSecret(rdr client.Reader, ns string, secretName string, fieldNames []string) ([][]byte, error) {
+func getRancherTLSRootCA(rdr client.Reader) ([]byte, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
-		Namespace: ns,
-		Name:      secretName}
+		Namespace: rancherNamespace,
+		Name:      rancherTLSSecret}
 
 	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
 		return nil, client.IgnoreNotFound(err)
 	}
-
-	var caBytes [][]byte
-	for _, key := range fieldNames {
-		caCrt, ok := secret.Data[key]
-		if ok {
-			// append cert data if present
-			caBytes = append(caBytes, caCrt)
-		}
-	}
-	return caBytes, nil
+	return secret.Data["cacerts.pem"], nil
 }
 
 // sendRequest builds an HTTP request, sends it, and returns the response
@@ -423,20 +391,13 @@ func sendRequest(action string, reqURL string, headers map[string]string, payloa
 }
 
 // newCertPool creates a CertPool given certificate bytes
-func newCertPool(config *rancherConfig) *x509.CertPool {
-	var certPool *x509.CertPool
-	if len(config.certificateAuthorityData) > 0 {
-		certPool = x509.NewCertPool()
-		certPool.AppendCertsFromPEM(config.certificateAuthorityData)
+func newCertPool(certData []byte) *x509.CertPool {
+	if len(certData) == 0 {
+		return nil
 	}
-	if len(config.additionalCAs) > 0 {
-		if certPool == nil {
-			certPool = x509.NewCertPool()
-		}
-		for _, ca := range config.additionalCAs {
-			certPool.AppendCertsFromPEM(ca)
-		}
-	}
+
+	certPool := x509.NewCertPool()
+	certPool.AppendCertsFromPEM(certData)
 	return certPool
 }
 
@@ -447,7 +408,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log *zap.SugaredLogger) (*h
 	proxyURL := getProxyURL()
 
 	tlsConfig := &tls.Config{
-		RootCAs:    newCertPool(rc),
+		RootCAs:    newCertPool(rc.certificateAuthorityData),
 		ServerName: rc.host,
 	}
 	tr := &http.Transport{
