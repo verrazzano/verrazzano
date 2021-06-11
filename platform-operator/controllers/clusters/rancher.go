@@ -33,7 +33,7 @@ const (
 	rancherNamespace   = "cattle-system"
 	rancherIngressName = "rancher"
 	rancherAdminSecret = "rancher-admin-secret"
-	rancherTLSSecret   = "tls-ca"
+	rancherTLSCaSecret = "tls-ca"
 
 	clusterPath         = "/v3/cluster"
 	clustersByNamePath  = "/v3/clusters?name="
@@ -362,7 +362,7 @@ func getRancherTLSRootCA(rdr client.Reader) ([]byte, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: rancherNamespace,
-		Name:      rancherTLSSecret}
+		Name:      rancherTLSCaSecret}
 
 	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
 		return nil, client.IgnoreNotFound(err)

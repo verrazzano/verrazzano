@@ -148,7 +148,7 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESSecret() (corev1.Secret, err
 }
 
 // Get the system-tls secret
-func (r *VerrazzanoManagedClusterReconciler) getTLSSecret() (corev1.Secret, error) {
+func (r *VerrazzanoManagedClusterReconciler) getSystemTLSSecret() (corev1.Secret, error) {
 	var secret corev1.Secret
 	nsn := types.NamespacedName{
 		Namespace: constants.VerrazzanoSystemNamespace,
