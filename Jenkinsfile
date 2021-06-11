@@ -3,6 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
+def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
@@ -29,6 +30,7 @@ pipeline {
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
+        booleanParam (description: 'Whether to generate a tarball', name: 'SIMULATE_FAILURE', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
@@ -184,6 +186,11 @@ pipeline {
                 """
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 always {
                     archiveArtifacts artifacts: '**/analysis-tool.zip', allowEmptyArchive: true
                 }
@@ -206,6 +213,11 @@ pipeline {
                    """
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 success {
                     archiveArtifacts artifacts: "generated-operator.yaml", allowEmptyArchive: true
                 }
@@ -222,6 +234,11 @@ pipeline {
                    """
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 success {
                     archiveArtifacts artifacts: "generated-verrazzano-bom.json", allowEmptyArchive: true
                 }
@@ -243,6 +260,13 @@ pipeline {
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
                    """
             }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+            }
         }
 
         stage('Quality and Compliance Checks') {
@@ -260,6 +284,13 @@ pipeline {
                 """
                 thirdpartyCheck()
             }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+            }
         }
 
         stage('Unit Tests') {
@@ -271,6 +302,11 @@ pipeline {
                 """
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 always {
                     sh """
                         cd ${GO_REPO_PATH}/verrazzano
@@ -306,6 +342,11 @@ pipeline {
                 }
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 always {
                     archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
                 }
@@ -316,6 +357,10 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
+                    if [ "${params.SIMULATE_FAILURE} == "true" ]; then
+                        echo "Simulate failure from a stage"
+                        exit 1
+                    fi
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
 
                     make cleanup-cluster
@@ -331,6 +376,11 @@ pipeline {
                 """
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -562,6 +612,7 @@ pipeline {
             post {
                 failure {
                     script {
+                        SKIP_TRIGGERED_TESTS = true
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-acceptance-tests-cluster-dump')
                         }
@@ -581,7 +632,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
-                    not { currentBuild.currentResult == "SUCCESS" }
+                    expression {SKIP_TRIGGERED_TESTS == false}
                     anyOf {
                         branch 'master';
                         branch 'release-*';
