@@ -708,10 +708,10 @@ const OidcAuthLuaFileTemplate = `    local me = {}
             ngx.exit(ngx.HTTP_UNAUTHORIZED)
         end
 
-        local startIndex, _ = string.find(sub, "-----BEGIN CERTIFICATE-----")
-        local _, endIndex = string.find(sub, "-----END CERTIFICATE-----")
+        local startIndex, _ = string.find(decodedSecret, "-----BEGIN CERTIFICATE-----")
+        local _, endIndex = string.find(decodedSecret, "-----END CERTIFICATE-----")
         if startIndex >= 1 and endIndex > startIndex then
-            me.write_file("/etc/nginx/upstream.pem", string.sub(sub, startIndex, endIndex))
+            me.write_file("/etc/nginx/upstream.pem", string.sub(decodedSecret, startIndex, endIndex))
         end
         
         args.cluster = nil
