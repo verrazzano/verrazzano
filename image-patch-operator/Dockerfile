@@ -26,7 +26,7 @@ RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 ver
 COPY --from=builder --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-image-patch-operator /usr/local/bin/verrazzano-image-patch-operator
 
 # Copy source tree to image
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/image-patch-operator/THIRD_PARTY_LICENSES.txt /licenses
+COPY --from=builder /root/go/src/github.com/verrazzano/verrazzano/image-patch-operator/THIRD_PARTY_LICENSES.txt /licenses
 
 USER 1000
 
