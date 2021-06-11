@@ -32,22 +32,18 @@ if ! kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get configmap ver
   kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc create configmap verrazzano-admin-cluster --from-literal=server=${ADMIN_K8S_SERVER_ADDRESS}
 fi
 
-# create managed cluster prometheus secret yaml on managed
-PROMETHEUS_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
+# create managed cluster ca secret yaml on managed
+CA_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
 TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"')
 if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
   CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
 fi
-HOST=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-prometheus -o jsonpath='{.spec.tls[0].hosts[0]}')
-echo "prometheus:" > ${PROMETHEUS_SECRET_FILE}
-echo "  host: $HOST" >> ${PROMETHEUS_SECRET_FILE}
 if [ ! -z "${CA_CERT}" ] ; then
-   echo "  cacrt: |" >> ${PROMETHEUS_SECRET_FILE}
-   echo -e "$CA_CERT" | sed 's/^/    /' >> ${PROMETHEUS_SECRET_FILE}
+   kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
 fi
 
-# create managed cluster prometheus secret on admin
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc create secret generic prometheus-${MANAGED_CLUSTER_NAME} --from-file=${PROMETHEUS_SECRET_FILE}
+# create managed cluster ca secret on admin
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f ${CA_SECRET_FILE}
 
 # create VerrazzanoManagedCluster on admin
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f <<EOF -
@@ -57,7 +53,7 @@ metadata:
   name: ${MANAGED_CLUSTER_NAME}
   namespace: verrazzano-mc
 spec:
-  description: "VerrazzanoManagedCluster object for prometheus-${MANAGED_CLUSTER_NAME}"
+  description: "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}"
   caSecret: ca-secret-${MANAGED_CLUSTER_NAME}
 EOF
 
