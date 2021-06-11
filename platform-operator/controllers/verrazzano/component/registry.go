@@ -13,9 +13,9 @@ import (
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 func GetComponents() []Component {
-	overridesDir := filepath.Join(config.Get().HelmConfigDir, "overrides")
-	vzChartsDir := filepath.Join(config.Get().HelmConfigDir, "charts")
-	thirdPartyChartsDir := config.Get().ThirdpartyChartsDir
+	overridesDir := config.GetHelmOverridesDir()
+	helmChartsDir := config.GetHelmChartsDir()
+	thirdPartyChartsDir := config.GetThirdPartyDir()
 
 	return []Component{
 		helmComponent{
@@ -23,6 +23,7 @@ func GetComponents() []Component {
 			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
+			ignoreImageOverrides:    true,
 		},
 		helmComponent{
 			releaseName:             "istiod",
@@ -30,6 +31,7 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+			appendOverridesFunc:     appendIstioOverrides,
 		},
 		helmComponent{
 			releaseName:             "istio-ingress",
@@ -37,6 +39,7 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+			appendOverridesFunc:     appendIstioOverrides,
 		},
 		helmComponent{
 			releaseName:             "istio-egress",
@@ -44,6 +47,7 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+			appendOverridesFunc:     appendIstioOverrides,
 		},
 		helmComponent{
 			releaseName:             "istiocoredns",
@@ -51,6 +55,7 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+			appendOverridesFunc:     appendIstioOverrides,
 		},
 		helmComponent{
 			releaseName:             "ingress-controller",
@@ -80,7 +85,13 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "rancher-values.yaml"),
 		},
-		Verrazzano{},
+		helmComponent{
+			releaseName:             "verrazzano",
+			chartDir:                filepath.Join(helmChartsDir, "verrazzano"),
+			chartNamespace:          constants.VerrazzanoSystemNamespace,
+			ignoreNamespaceOverride: true,
+			resolveNamespaceFunc:    resolveVerrazzanoNamespace,
+		},
 		helmComponent{
 			releaseName:             "coherence-operator",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
@@ -104,7 +115,7 @@ func GetComponents() []Component {
 		},
 		helmComponent{
 			releaseName:             "verrazzano-application-operator",
-			chartDir:                filepath.Join(vzChartsDir, "verrazzano-application-operator"),
+			chartDir:                filepath.Join(helmChartsDir, "verrazzano-application-operator"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
@@ -122,6 +133,7 @@ func GetComponents() []Component {
 			chartNamespace:          "keycloak",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
+			appendOverridesFunc:     appendKeycloakOverrides,
 		},
 	}
 }

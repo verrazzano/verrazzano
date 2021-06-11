@@ -85,6 +85,9 @@ pipeline {
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+
+        VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
+        VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
     }
 
     stages {
@@ -286,7 +289,7 @@ pipeline {
                       failNoReports: true,
                       onlyStable: false,
                       fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '70, 70, 70',
+                      lineCoverageTargets: '75, 75, 75',
                       packageCoverageTargets: '100, 0, 0',
                     )
                 }
@@ -390,9 +393,9 @@ pipeline {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                             sh """
                                 ## dump out install logs
-                                mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
-                                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                                kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                                mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
+                                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
+                                kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
                                 echo "Verrazzano Installation logs dumped to verrazzano-install.log"
                                 echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                                 echo "------------------------------------------"
@@ -412,6 +415,11 @@ pipeline {
                             }
                             steps {
                                 runGinkgoRandomize('verify-install')
+                            }
+                        }
+                        stage('verify-scripts') {
+                            steps {
+                                runGinkgo('scripts')
                             }
                         }
                         stage('verify-infra restapi') {
@@ -696,13 +704,13 @@ def dumpK8sCluster(dumpDirectory) {
 def dumpVerrazzanoSystemPods() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-pods.log"
+        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-pods.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
+        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-certs.log"
         ./scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
+        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-kibana.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
+        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-es-master.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
@@ -710,9 +718,9 @@ def dumpVerrazzanoSystemPods() {
 def dumpCattleSystemPods() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
+        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/cattle-system-pods.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/rancher.log"
+        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/rancher.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
@@ -720,7 +728,7 @@ def dumpCattleSystemPods() {
 def dumpNginxIngressControllerLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
+        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/nginx-ingress-controller.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
@@ -764,7 +772,7 @@ def dumpOamKubernetesRuntimeLogs() {
 def dumpVerrazzanoApiLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-api.log"
+        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-api.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }

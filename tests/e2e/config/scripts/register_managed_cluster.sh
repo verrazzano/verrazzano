@@ -35,7 +35,7 @@ fi
 # create managed cluster prometheus secret yaml on managed
 PROMETHEUS_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
 TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"')
-if [ ! -z "${TLS_SECRET%%*( )}" ] ; then
+if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
   CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
 fi
 HOST=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-prometheus -o jsonpath='{.spec.tls[0].hosts[0]}')
@@ -62,9 +62,10 @@ spec:
 EOF
 
 # wait for VMC to be ready - that means the manifest has been created
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=15s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
+echo "Creating VMC for ${MANAGED_CLUSTER_NAME}"
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=60s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
 if [ $? -ne 0 ]; then
-  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 15 seconds. Registration failed."
+  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 60 seconds. Registration failed."
   exit 1
 fi
 
