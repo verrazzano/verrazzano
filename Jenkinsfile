@@ -48,6 +48,9 @@ pipeline {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
+        DOCKER_IMAGE_PATCH_CI_IMAGE_NAME = 'verrazzano-image-patch-operator-jenkins'
+        DOCKER_IMAGE_PATCH_PUBLISH_IMAGE_NAME = 'verrazzano-image-patch-operator'
+        DOCKER_IMAGE_PATCH_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_IMAGE_PATCH_PUBLISH_IMAGE_NAME : env.DOCKER_IMAGE_PATCH_CI_IMAGE_NAME}"
         DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
         DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
         DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
