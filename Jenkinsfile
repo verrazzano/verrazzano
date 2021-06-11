@@ -357,7 +357,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    if [ "${params.SIMULATE_FAILURE} == "true" ]; then
+                    if [ "${params.SIMULATE_FAILURE}" == "true" ]; then
                         echo "Simulate failure from a stage"
                         exit 1
                     fi
