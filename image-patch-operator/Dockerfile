@@ -1,30 +1,33 @@
 # Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-# Build the manager binary
-FROM golang:1.13 as builder
+FROM ghcr.io/oracle/oraclelinux:7-slim as builder
 
-WORKDIR /workspace
-# Copy the Go Modules manifests
-COPY go.mod go.mod
-COPY go.sum go.sum
-# cache deps before building and copying source so that we don't need to re-download as much
-# and so that source changes don't invalidate our downloaded layer
-RUN go mod download
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/image-patch-operator
+COPY . .
 
-# Copy the go source
-COPY main.go main.go
-COPY api/ api/
-COPY controllers/ controllers/
+COPY out/linux_amd64/verrazzano-image-patch-operator /usr/local/bin/verrazzano-image-patch-operator
 
-# Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
+RUN chmod 500 /usr/local/bin/verrazzano-image-patch-operator
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+# Create the verrazzano-image-patch-operator image
+FROM ghcr.io/oracle/oraclelinux:7-slim
+
+RUN yum update -y \
+    && yum clean all \
+    && rm -rf /var/cache/yum
+
 WORKDIR /
-COPY --from=builder /workspace/manager .
-USER nonroot:nonroot
 
-ENTRYPOINT ["/manager"]
+RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
+    && mkdir /home/verrazzano \
+    && chown -R 1000:verrazzano /home/verrazzano
+
+COPY --from=builder --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-image-patch-operator /usr/local/bin/verrazzano-image-patch-operator
+
+# Copy source tree to image
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/image-patch-operator/THIRD_PARTY_LICENSES.txt /licenses
+
+USER 1000
+
+ENTRYPOINT ["/usr/local/bin/verrazzano-image-patch-operator"]
