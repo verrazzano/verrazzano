@@ -574,14 +574,8 @@ pipeline {
                                     unzip chromedriver.zip
                                     sudo cp chromedriver /usr/local/bin/
                                     
-                                    # Setup test configuration
-                                    ./integtest/scripts/edit_integ_test_config.sh integtest/config.uitest.json > tmp.uitestconfig.json
-                                    export VZ_UITEST_CONFIG=tmp.uitestconfig.json
-                                    
                                     # Run the tests
-                                    echo NodeJS version is \$(shell node --version)
-                                    npm install
-                                    npm run integtest
+                                    run-ui-tests
                                 """
                             }
                         }
