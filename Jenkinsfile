@@ -566,7 +566,6 @@ pipeline {
                                     cd ${GO_REPO_PATH}
                                     git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
                                     cd console
-                                    ls
                                     git checkout ${params.CONSOLE_REPO_BRANCH}
 
                                     # Configure headless browser
