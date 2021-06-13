@@ -575,7 +575,7 @@ pipeline {
                                     sudo cp chromedriver /usr/local/bin/
                                     
                                     # Run the tests
-                                    run-ui-tests
+                                    make run-ui-tests
                                 """
                             }
                         }
