@@ -384,7 +384,7 @@ pipeline {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
                         cd ${WORKSPACE}/tests/e2e
-                        ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor test-dns/...
+                        ginkgo -v --noColor test-dns/...
                     """
                 }
             }

@@ -115,26 +115,20 @@ func undeployTestResources() {
 }
 
 var _ = ginkgo.Describe("Verify the things", func() {
-	var hostname string
-	ginkgo.It("Make YAML.", func() {
-		var err error
-		hostname, err = makeYaml(1)
-		if err != nil {
-			ginkgo.Fail(fmt.Sprintf("Failed to make YAML file: %v", err))
+	ginkgo.It("Do all the things", func() {
+		for i := 1; i < 500; i++ {
+			hostname, err := makeYaml(i)
+			if err != nil {
+				ginkgo.Fail(fmt.Sprintf("Failed to make YAML file: %v", err))
+			}
+
+			deployTestResources()
+
+			gomega.Eventually(func() bool {
+				return isHostnameResolvable(hostname)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+
+			undeployTestResources()
 		}
-	})
-
-	ginkgo.It("Deploy resources.", func() {
-		deployTestResources()
-	})
-
-	ginkgo.It("Waiting for DNS to resolve", func() {
-		gomega.Eventually(func() bool {
-			return isHostnameResolvable(hostname)
-		}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
-	})
-
-	ginkgo.It("Undeploy resources.", func() {
-		undeployTestResources()
 	})
 })
