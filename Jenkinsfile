@@ -182,7 +182,7 @@ pipeline {
                     cd out
                     zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
                 """
             }
             post {
@@ -255,9 +255,9 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
                    """
             }
             post {
@@ -430,7 +430,7 @@ pipeline {
                     environment {
                         VERRAZZANO_OPERATOR_IMAGE="NONE"
                         KIND_KUBERNETES_CLUSTER_VERSION="1.18"
-                        OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
+                        OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                     }
                     steps {
                         sh """
@@ -684,7 +684,7 @@ pipeline {
             archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.BRANCH_NAME}-${env.BUILD_NUMBER}/archive.zip --file archive.zip
+                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
                 rm archive.zip
             """
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
