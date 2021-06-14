@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.5.0
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   name: multiclusterapplicationconfigurations.clusters.verrazzano.io
 spec:
@@ -64,6 +64,27 @@ spec:
                 description: The embedded OAM ApplicationConfiguration
                 properties:
                   metadata:
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: Annotations is an unstructured key value map
+                          stored with a resource that may be set by external tools
+                          to store and retrieve arbitrary metadata.
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: Map of string keys and values that can be used
+                          to organize and categorize (scope and select) objects.
+                        type: object
+                      name:
+                        description: Name must be unique within a namespace.
+                        type: string
+                      namespace:
+                        description: Namespace defines the space within each name
+                          must be unique.
+                        type: string
                     type: object
                   spec:
                     description: An ApplicationConfigurationSpec defines the desired

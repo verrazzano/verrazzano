@@ -8,7 +8,7 @@ def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "
                           "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
 def acmeEnvironments = [ "staging", "production" ]
 Collections.shuffle(availableRegions)
-def zoneId = UUID.randomUUID().toString().substring(0,3).replace('-','')
+def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
@@ -128,11 +128,12 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
+
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
-        OCI_DNS_ZONE_SUFFIX=credentials('oci-dns-zone')
-        OCI_DNS_ZONE_NAME="z${zoneId}." + "${OCI_DNS_ZONE_SUFFIX}"
+        OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
+
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -142,6 +143,9 @@ pipeline {
 
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+
+        VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
+        VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
     }
 
     stages {
@@ -301,7 +305,7 @@ pipeline {
                                     }
                                     steps {
                                         script {
-                                            configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", $ACME_ENVIRONMENT)
+                                            configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", "acme", params.ACME_ENVIRONMENT)
                                         }
                                     }
                                 }
@@ -379,6 +383,11 @@ pipeline {
                         stage('verify-install') {
                             steps {
                                 runGinkgoRandomize('verify-install')
+                            }
+                        }
+                        stage('verify-scripts') {
+                            steps {
+                                runGinkgo('scripts', "${ADMIN_KUBECONFIG}", "${params.TOTAL_CLUSTERS}")
                             }
                         }
                         stage('verify-infra restapi') {
@@ -753,9 +762,25 @@ def runGinkgoRandomize(testSuitePath) {
     }
 }
 
+// Run a test suite using a given kube configuration against all clusters
+def runGinkgo(testSuitePath, kubeConfig, clusterCount) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            export KUBECONFIG="${kubeConfig}"
+            export CLUSTER_COUNT="${clusterCount}"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+        """
+    }
+}
+
 // Configure the Admin and Managed cluster installer custom resources
-def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript, String extraArgs) {
+def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript, String... extraArgs) {
     script {
+        // Concatenate the variable args into a single string
+        String allArgs = ""
+        extraArgs.each { allArgs += it + " " }
+
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
             def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${installerFileName}"
@@ -776,7 +801,7 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
 
                 # Copy the template config over for the mgd cluster profile configuration
                 cp $installResourceTemplate $destinationPath
-                VZ_ENVIRONMENT_NAME="${envName}" INSTALL_PROFILE=$installProfile $configProcessorScript $destinationPath $extraArgs
+                VZ_ENVIRONMENT_NAME="${envName}" INSTALL_PROFILE=$installProfile $configProcessorScript $destinationPath $allArgs
             """
         }
     }
@@ -850,7 +875,7 @@ def dumpVerrazzanoSystemPods() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -871,7 +896,7 @@ def dumpCattleSystemPods() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -888,7 +913,7 @@ def dumpNginxIngressControllerLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -960,7 +985,7 @@ def dumpVerrazzanoApiLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -975,12 +1000,12 @@ def dumpInstallLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 ## dump verrazzano install logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
-                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install.log --tail -1
+                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
                 kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
                 echo "------------------------------------------"
             """
