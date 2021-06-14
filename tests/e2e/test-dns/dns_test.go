@@ -18,44 +18,17 @@ import (
 const testNamespace string = "dnstest"
 
 const resourceYaml string = `
-apiVersion: v1
-kind: Service
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
 metadata:
-  name: nginx
+  name: test-ingress
   namespace: dnstest
   annotations:
     external-dns.alpha.kubernetes.io/hostname: {{ .hostname }}
+    external-dns.alpha.kubernetes.io/target: 192.168.0.1
 spec:
-  type: NodePort
-  ports:
-  - port: 80
-    name: http
-    nodePort: 30080
-  selector:
-    app: nginx
-  externalIPs:
-  - 192.168.0.1
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx
-  namespace: dnstest
-spec:
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - image: nginx
-        name: nginx
-        ports:
-        - containerPort: 80
-          name: http
+  rules:
+  - host: {{ .hostname }}
 `
 
 var waitTimeout = 30 * time.Minute
