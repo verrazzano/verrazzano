@@ -734,6 +734,7 @@ def runGinkgoRandomize(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+            ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
 }
@@ -743,6 +744,7 @@ def runGinkgo(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
 }
