@@ -34,6 +34,7 @@ const (
 	rancherIngressName = "rancher"
 	rancherAdminSecret = "rancher-admin-secret"
 	rancherTLSCaSecret = "tls-ca"
+	tlsCaSecretKey     = "cacerts.pem"
 
 	clusterPath         = "/v3/cluster"
 	clustersByNamePath  = "/v3/clusters?name="
@@ -367,7 +368,7 @@ func getRancherTLSRootCA(rdr client.Reader) ([]byte, error) {
 	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
 		return nil, client.IgnoreNotFound(err)
 	}
-	return secret.Data["cacerts.pem"], nil
+	return secret.Data[tlsCaSecretKey], nil
 }
 
 // sendRequest builds an HTTP request, sends it, and returns the response

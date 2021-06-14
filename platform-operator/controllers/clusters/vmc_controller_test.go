@@ -1247,7 +1247,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSCaSecret}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				"cacerts.pem": []byte(caData),
+				tlsCaSecretKey: []byte(caData),
 			}
 			return nil
 		})

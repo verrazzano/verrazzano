@@ -341,16 +341,17 @@ function create_cattle_system_namespace()
 }
 
 # create_rancher_acme_staging_secrets - Creates 2 secrets with the ACME staging CAs to allow Rancher to work with ACME Staging
-# 
+#
 # - tls-ca-additional which is expected by Rancher when you tell it to use additional CAs for certificate verification
-# - tls-ca, which is mimics the self-signed case to Rancher when we register a managed cluster, except loading the Staging authorities
+# - tls-ca, which mimics the self-signed case to Rancher when we register a managed cluster, except loading the Staging authorities
 #
 # tls-ca with the "privateCA=true" helm arg on install is required as a workaround for managed cluster registration
 # YAML generation, so that the remote cluster agent can communicate with the admin cluster.  Rancher itself doesn't
 # seem to fully support ACME Staging yet.  This generally implements a workaround that can be found
 # here https://github.com/rancher/rancher/issues/19832.
 #
-function create_rancher_acme_staging_secrets() {
+function create_rancher_acme_staging_secrets()
+{
   if ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 >/dev/null; then
     log "Using ACME staging, create staging certs secret for Rancher"
     local acme_staging_certs=${TMP_DIR}/ca-additional.pem
@@ -359,6 +360,7 @@ function create_rancher_acme_staging_secrets() {
     call_curl 200 http_response http_status curl_args || true
     if [ ${http_status:--1} -ne 200 ]; then
       log "Error downloading LetsEncrypt Staging intermediate R3 cert"
+      return 1
     else
       cat ${TMP_DIR}/int-r3.pem >>${acme_staging_certs}
     fi
@@ -366,6 +368,7 @@ function create_rancher_acme_staging_secrets() {
     call_curl 200 http_response http_status curl_args || true
     if [ ${http_status:--1} -ne 200 ]; then
       log "Error downloading LetsEncrypt Staging intermediate E1 cert"
+      return 1
     else
       cat ${TMP_DIR}/int-e1.pem >>${acme_staging_certs}
     fi
@@ -373,12 +376,14 @@ function create_rancher_acme_staging_secrets() {
     call_curl 200 http_response http_status curl_args || true
     if [ ${http_status:--1} -ne 200 ]; then
       log "Error downloading LetsEncrypt Staging X1 Root cert"
+      return 1
     else
       cat ${TMP_DIR}/root-x1.pem >>${acme_staging_certs}
     fi
-    kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
-    kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem=${acme_staging_certs}
+    kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs} || return $?
+    kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem=${acme_staging_certs} || return $?
   fi
+  return 0
 }
 
 function install_rancher()
@@ -400,7 +405,7 @@ function install_rancher()
       if [ "$(get_acme_environment)" != "production" ]; then
         log "Using ACME staging, enable use of additional trusted CAs for Rancher"
         useAdditionalCAs=true
-        create_rancher_acme_staging_secrets
+        create_rancher_acme_staging_secrets || return $?
       fi
       EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment) --set privateCA=${useAdditionalCAs} --set additionalTrustedCAs=${useAdditionalCAs}"
       RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"cert-manager.io/issuer-kind\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
