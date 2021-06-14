@@ -14,7 +14,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/v1alpha1"
+	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
 	"github.com/verrazzano/verrazzano/image-patch-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )

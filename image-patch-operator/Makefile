@@ -9,6 +9,9 @@ SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 NAME:=verrazzano-image-patch-operator
 REPO_NAME:=verrazzano-image-patch-operator
 
+CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
+CREATE_LATEST_TAG=0
+
 ifndef DOCKER_IMAGE_FULLNAME
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
 DOCKER_IMAGE_FULLNAME=${DOCKER_IMAGE_NAME}
@@ -102,6 +105,7 @@ endif
 unit-test: go-install
 	$(GO) test -v ./api/... ./controllers/...
 
+.PHONY: manifests
 manifests: image-patch-manifests
 
 #

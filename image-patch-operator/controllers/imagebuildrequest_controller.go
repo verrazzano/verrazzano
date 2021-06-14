@@ -11,7 +11,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/v1alpha1"
+	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
 )
 
 // ImageBuildRequestReconciler reconciles a ImageBuildRequest object
@@ -20,9 +20,6 @@ type ImageBuildRequestReconciler struct {
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
-
-//+kubebuilder:rbac:groups=images.verrazzano.io,resources=imagebuildrequests,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=images.verrazzano.io,resources=imagebuildrequests/status,verbs=get;update;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
