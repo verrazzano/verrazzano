@@ -33,6 +33,8 @@ spec:
     nodePort: 30080
   selector:
     app: nginx
+  externalIPs:
+  - 192.168.0.1
 ---
 apiVersion: apps/v1
 kind: Deployment
