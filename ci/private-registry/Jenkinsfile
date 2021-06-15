@@ -210,10 +210,10 @@ pipeline {
                 sh """
                     echo "Download OCIR region: $ocirRegion"
                     echo "Download OCIR Repository: ${ocirRegistry}"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/tarball.tar.gz --file ${WORKSPACE}/vz-latest-tarball.tar.gz
+                    #oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/tarball.tar.gz --file ${WORKSPACE}/vz-latest-tarball.tar.gz
                     mkdir ${WORKSPACE}/vz-tarball || true
-                    cd ${WORKSPACE}/vz-tarball
-                    tar xvf ${WORKSPACE}/vz-latest-tarball.tar.gz
+                    #cd ${WORKSPACE}/vz-tarball
+                    #tar xvf ${WORKSPACE}/vz-latest-tarball.tar.gz
                 """
             }
         }
@@ -221,15 +221,16 @@ pipeline {
             steps {
                 sh """
                     # Create OCIR repos for the images in the tarballs in the test compartment
-                    echo ${IMAGE_REPO_SUBPATH}
-                    echo ${WORKSPACE}
+                    echo "Image repo subpath: ${imageRepoSubPath}"
+                    echo "Base image repo: ${baseImageRepo}"
+                    echo "${WORKSPACE}"
                     echo ${DEV_COMPARTMENT_OCID}
-                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${WORKSPACE}/vz-tarball -c ${DEV_COMPARTMENT_OCID}
+                    #sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${WORKSPACE}/vz-tarball -c ${DEV_COMPARTMENT_OCID}
                     echo "Upload OCIR region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
                     # Run the image-helper to load the images into the OCIR registry in the runner's region
                     cd ${WORKSPACE}/vz-tarball
-                    ./vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
+                    #./vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
                 """
             }
         }
@@ -355,7 +356,7 @@ pipeline {
                 #  exit 1
                 #fi
 
-                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${DEV_COMPARTMENT_OCID} -f -w
+                #sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${DEV_COMPARTMENT_OCID} -f -w
             """
         }
         /*failure {
