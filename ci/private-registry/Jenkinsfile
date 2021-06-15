@@ -3,7 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
-def ocirRegion = "phx"
+def ocirRegion = ""
 def ocirRegistry = ""
 
 pipeline {
@@ -92,6 +92,11 @@ pipeline {
                     //    script: "echo ${env.NODE_LABELS} | awk '{print \$5}'",
                     //    returnStdout: true
                     //).trim()
+                    if (agentLabel == "phxlarge") {
+                        ocirRegion = "phx"
+                    } else {
+                        ocirRegion = "lhr"
+                    }
                     ocirRegistry = "${ocirRegion}.ocir.io"
                     echo "Current execution region: $ocirRegion"
                     echo "OCIR Repository: ${ocirRegistry}"
@@ -198,11 +203,12 @@ pipeline {
         stage('Download and extract Tarball') {
             steps {
                 sh """
-                    echo "Download execution region: $ocirRegion"
+                    echo "Download OCIR region: $ocirRegion"
                     echo "Download OCIR Repository: ${ocirRegistry}"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/tarball.tar.gz --file ${WORKSPACE}/vz-latest-tarball.tar.gz
                     mkdir ${WORKSPACE}/vz-tarball || true
-                    tar -C ${WORKSPACE}/vz-tarball xvf ${WORKSPACE}/vz-latest-tarball.tar.gz
+                    cd ${WORKSPACE}/vz-tarball
+                    tar xvf ${WORKSPACE}/vz-latest-tarball.tar.gz
                 """
             }
         }
@@ -210,9 +216,13 @@ pipeline {
             steps {
                 sh """
                     # Create OCIR repos for the images in the tarballs in the test compartment
+                    echo ${IMAGE_REPO_SUBPATH}
+                    echo ${WORKSPACE}
+                    echo ${DEV_COMPARTMENT_OCID}
                     sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${IMAGE_REPO_SUBPATH} -d ${WORKSPACE}/vz-tarball -c ${DEV_COMPARTMENT_OCID}
-                    echo "Upload execution region: $ocirRegion"
+                    echo "Upload OCIR region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
+                    # Run the image-helper to load the images into the OCIR registry in the runner's region
                     cd ${WORKSPACE}/vz-tarball
                     ./vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${BASE_IMAGE_REPO}
                 """
@@ -332,18 +342,18 @@ pipeline {
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
-                cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                make delete-cluster
-                cd ${WORKSPACE}/verrazzano
-                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                  echo "Failures seen during dumping of artifacts, treat post as failed"
-                  exit 1
-                fi
+                #cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                #make delete-cluster
+                #cd ${WORKSPACE}/verrazzano
+                #if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                #  echo "Failures seen during dumping of artifacts, treat post as failed"
+                #  exit 1
+                #fi
 
                 sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${IMAGE_REPO_SUBPATH}  -s $ocirRegion -c ${DEV_COMPARTMENT_OCID} -f -w
             """
         }
-        failure {
+        /*failure {
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
             subject: "Verrazzano: ${env.JOB_NAME} - Failed",
             body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
@@ -352,7 +362,7 @@ pipeline {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
             }
-        }
+        }*/
         cleanup {
             deleteDir()
         }
