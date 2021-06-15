@@ -19,13 +19,14 @@ RUN wget https://github.com/oracle/weblogic-image-tool/releases/download/release
 # Build stage for JDK installation
 FROM ghcr.io/oracle/oraclelinux:7-slim AS build_jdk
 
+ARG JDK_BINARY
+
 RUN yum update -y \
     && yum-config-manager --save --setopt=ol7_ociyum_config.skip_if_unavailable=true \
     && yum -y install tar gzip \
     && yum clean all \
     && rm -rf /var/cache/yum
 
-ARG JDK_BINARY
 ENV JAVA_HOME=/usr/java
 COPY ${JDK_BINARY} /
 ENV JDK_DOWNLOAD_SHA256=85e8c7da7248c7450fb105567a78841d0973597850776c24a527feb02ef3e586
@@ -55,6 +56,7 @@ COPY --from=build_wit --chown=verrazzano:verrazzano imagetool imagetool
 
 # copy over installers
 COPY --from=build_jdk --chown=verrazzano:verrazzano ${JDK_BINARY} /imagetool/installers/
+COPY --chown=verrazzano:verrazzano fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip /imagetool/installers/
 
 USER 1000
 
