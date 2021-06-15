@@ -77,6 +77,7 @@ pipeline {
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
+        OCI_CLI_AUTH="instance_principal"
 
         IMAGE_REPO_SUBPATH="${JOB_NAME}/${env.BRANCH}/b${BUILD_NUMBER}"
         BASE_IMAGE_REPO="${OCI_OS_NAMESPACE}/${IMAGE_REPO_SUBPATH}"
@@ -222,7 +223,6 @@ pipeline {
                 stage('Prepare AT environment') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                        OCI_CLI_AUTH="instance_principal"
                     }
                     steps {
                         script {
