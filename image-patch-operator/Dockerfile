@@ -1,7 +1,8 @@
 # Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
+# Build stage for WebLogic Image Tool installation
+FROM ghcr.io/oracle/oraclelinux:7-slim AS build_wit
 
 RUN yum update -y \
     && yum install -y unzip wget \
@@ -14,8 +15,8 @@ RUN yum update -y \
 RUN wget https://github.com/oracle/weblogic-image-tool/releases/download/release-1.9.12/imagetool.zip \
     && unzip ./imagetool.zip
 
-# Create new image for deploying WIT
-FROM ghcr.io/oracle/oraclelinux:7-slim
+# Build stage for JDK installation
+FROM ghcr.io/oracle/oraclelinux:7-slim AS build_jdk
 
 RUN yum update -y \
     && yum-config-manager --save --setopt=ol7_ociyum_config.skip_if_unavailable=true \
@@ -31,16 +32,24 @@ COPY ${JDK_BINARY} jdk.tar.gz
 RUN set -eux \
     echo "Installing JDK"; \
     mkdir -p "$JAVA_HOME"; \
-    tar xzf jdk.tar.gz --directory "${JAVA_HOME}" --strip-components=1;
+    tar xzf jdk.tar.gz --directory "${JAVA_HOME}" --strip-components=1; \
+    rm -f jdk.tar.gz;
 
+# Final image for deploying WebLogic Image Tool
+FROM ghcr.io/oracle/oraclelinux:7-slim
+
+# copy over JDK installation
+ENV JAVA_HOME=/usr/java
+ENV PATH $JAVA_HOME/bin:$PATH
+COPY --from=build_jdk --chown=verrazzano:verrazzano ${JAVA_HOME} ${JAVA_HOME}
+
+# copy over WebLogic Image Tool installation
 RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
     && chown -R 1000:verrazzano /home/verrazzano
-
-COPY --from=build_base --chown=verrazzano:verrazzano imagetool imagetool
+COPY --from=build_wit --chown=verrazzano:verrazzano imagetool imagetool
 
 USER 1000
-
 
 ENTRYPOINT ["imagetool/bin/imagetool.sh"]
 
