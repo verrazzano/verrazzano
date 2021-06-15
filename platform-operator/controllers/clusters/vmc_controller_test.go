@@ -1576,6 +1576,7 @@ func getPrometheusHost() string {
 
 // getPrometheusHost returns the prometheus host for testManagedCluster
 func getCaCrt() string {
+	// this is fake data
 	return "    -----BEGIN CERTIFICATE-----\n" +
 		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
 		"    -----END CERTIFICATE-----"
