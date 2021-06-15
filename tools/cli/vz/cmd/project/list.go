@@ -34,7 +34,7 @@ func NewCmdProjectList(streams genericclioptions.IOStreams) *cobra.Command {
 		Short: "List projects",
 		Long:  "List projects",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := listProjects(args); err != nil {
+			if err := listProjects(cmd, args); err != nil {
 				return err
 			}
 			return nil
@@ -44,7 +44,7 @@ func NewCmdProjectList(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func listProjects(args []string) error {
+func listProjects(cmd *cobra.Command, args []string) error {
 	config := pkg.GetKubeConfig()
 	clientset, err := clustersclient.NewForConfig(config)
 	if err != nil {
@@ -89,6 +89,6 @@ func listProjects(args []string) error {
 	}
 
 	// print out the data
-	helpers.PrintTable(headings, data)
+	helpers.PrintTable(headings, data, cmd)
 	return nil
 }
