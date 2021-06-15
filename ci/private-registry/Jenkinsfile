@@ -3,9 +3,8 @@
 
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
-def ocirRegion = ""
+def ocirRegion = "phx"
 def ocirRegistry = ""
-def regionName = ""
 
 pipeline {
     options {
@@ -85,13 +84,13 @@ pipeline {
     }
 
     stages {
-        stage('Clean workspace and checkout') {
+        stage('Initialize workspace and checkout') {
             steps {
                 script {
-                    ocirRegion = sh (
-                        script: "echo ${env.NODE_LABELS} | awk '{print \$5}'",
-                        returnStdout: true
-                    ).trim()
+                    //ocirRegion = sh (
+                    //    script: "echo ${env.NODE_LABELS} | awk '{print \$5}'",
+                    //    returnStdout: true
+                    //).trim()
                     ocirRegistry = "${ocirRegion}.ocir.io"
                     echo "Current execution region: $ocirRegion"
                     echo "OCIR Repository: ${ocirRegistry}"
@@ -126,6 +125,10 @@ pipeline {
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
+                """
+                println("agentlabel: ${agentLabel}")
+                sh """
+                    echo "${NODE_LABELS}"
                 """
 
                 script {
