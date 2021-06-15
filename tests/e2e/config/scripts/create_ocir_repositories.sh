@@ -1,17 +1,31 @@
 #!/bin/bash
-
+# Create a Docker repository in a specific compartment using an exploded tarball of Verrazzano images; useful for
+# scoping a repo someplace other than the root compartent.
+#
 set -u
 
 usage() {
   echo """
-usage:
+Create OCIR repos for a set of exported Docker images tarballs located in a local directory in a specific
+tenancy compartment.  This script reads the image repo information out of each tar file and uses that to create
+a corresponding Docker repo in the target tenancy compartment, under that tenancy's namespace.
+
+See https://docs.oracle.com/en-us/iaas/Content/Registry/Tasks/registrycreatingarepository.htm for details on
+repository creation in an OCI tenancy.
+
+Usage:
 
 $0  -p <parent-repo> -c <compartment-id> [ -r <region> -d <path> ]
 
 -r Region name
--p Parent repo
+-p Parent repo, without the tenancy namespace
 -c Compartment ID
 -d Images directory
+
+Example, to create a repo in compartment ocid.compartment.oc1..blah, where the desired docker path with tenancy namespace
+to the image is "stevengreenberginc/testuser/myrepo/v8o", and the extracted tarball location is /tmp/exploded:
+
+$0 -p testuser/myrepo/v8o -r uk-london-1 -c ocid.compartment.oc1..blah -d /tmp/exploded
   """
 }
 
