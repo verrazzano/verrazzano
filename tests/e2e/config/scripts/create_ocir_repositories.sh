@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
 # Create a Docker repository in a specific compartment using an exploded tarball of Verrazzano images; useful for
 # scoping a repo someplace other than the root compartent.
 #
@@ -8,7 +11,8 @@ usage() {
   echo """
 Create OCIR repos for a set of exported Docker images tarballs located in a local directory in a specific
 tenancy compartment.  This script reads the image repo information out of each tar file and uses that to create
-a corresponding Docker repo in the target tenancy compartment, under that tenancy's namespace.
+a corresponding Docker repo in the target tenancy compartment, under that tenancy's namespace.  You can provide either
+the full region name (e.g., "us-phoenix-1", or the region short name (e.g., "phx").
 
 See https://docs.oracle.com/en-us/iaas/Content/Registry/Tasks/registrycreatingarepository.htm for details on
 repository creation in an OCI tenancy.
@@ -17,7 +21,8 @@ Usage:
 
 $0  -p <parent-repo> -c <compartment-id> [ -r <region> -d <path> ]
 
--r Region name
+-r Region name (e.g., "us-phoenix-1")
+-s Region short name (e.g., "phx", "lhr")
 -p Parent repo, without the tenancy namespace
 -c Compartment ID
 -d Images directory
@@ -55,9 +60,10 @@ function create_image_repos_from_archives() {
 }
 
 IMAGES_DIR=.
-REGION=us-phoenix-1
+REGION=""
+REGION_SHORT_NAME=""
 
-while getopts ":c:r:p:d:" opt; do
+while getopts ":s:c:r:p:d:" opt; do
   case ${opt} in
   c) # compartment ID
     COMPARTMENT_ID=${OPTARG}
@@ -71,6 +77,9 @@ while getopts ":c:r:p:d:" opt; do
   d) # images dir
     IMAGES_DIR="${OPTARG}"
     ;;
+  s )
+    REGION_SHORT_NAME="${OPTARG}"
+    ;;
   \?)
     usage
     ;;
@@ -78,11 +87,30 @@ while getopts ":c:r:p:d:" opt; do
 done
 shift $((OPTIND - 1))
 
+if [ -z "${REGION}" ]; then
+  if [ -z "${REGION_SHORT_NAME}" ]; then
+    echo "Must provide either the full or the short region name"
+    usage
+    exit 1
+  fi
+  echo "REGION_SHORT_NAME=$REGION_SHORT_NAME"
+  REGION=$(oci iam region list | jq -r  --arg regionAbbr ${REGION_SHORT_NAME} '.data[] | select(.key|test($regionAbbr;"i")) | .name')
+  if [ -z "${REGION}" ] || [ "null" == "${REGION}" ]; then
+    echo "Invalid short region name ${REGION_SHORT_NAME}"
+    usage
+    exit 1
+  fi
+fi
+
 if [ -z "${PARENT_REPO}" ]; then
   echo "Repository pattern not provided"
+  usage
+  exit 1
 fi
 if [ -z "${COMPARTMENT_ID}" ]; then
   echo "Compartment ID not provided"
+  usage
+  exit 1
 fi
 
 create_image_repos_from_archives

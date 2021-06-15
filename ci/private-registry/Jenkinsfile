@@ -5,6 +5,7 @@ def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def ocirRegion = ""
 def ocirRegistry = ""
+def regionName = ""
 
 pipeline {
     options {
@@ -80,6 +81,7 @@ pipeline {
 
         IMAGE_REPO_SUBPATH="${JOB_NAME}/${env.BRANCH}/b${BUILD_NUMBER}"
         BASE_IMAGE_REPO="${OCI_OS_NAMESPACE}/${IMAGE_REPO_SUBPATH}"
+        DEV_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
     }
 
     stages {
@@ -203,6 +205,8 @@ pipeline {
         stage('Upload Verrazzano Images') {
             steps {
                 sh """
+                    # Create OCIR repos for the images in the tarballs in the test compartment
+                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${IMAGE_REPO_SUBPATH} -d ${WORKSPACE}/vz-tarball -c ${DEV_COMPARTMENT_OCID}
                     echo "Upload execution region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
                     cd ${WORKSPACE}/vz-tarball
@@ -332,6 +336,8 @@ pipeline {
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
                 fi
+
+                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${IMAGE_REPO_SUBPATH}  -s $ocirRegion -c ${DEV_COMPARTMENT_OCID} -f -w
             """
         }
         failure {
