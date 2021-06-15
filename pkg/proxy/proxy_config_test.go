@@ -34,7 +34,7 @@ func getProxyConfigAPIProxy() OidcProxyConfig {
 }
 
 // getProxyConfigOidcProxy returns an OidcProxyConfig struct
-func getProxyConfigOidcProxyWithParams(ingressHost, verrazzanoURI, keycloakURL string, backendPort int) OidcProxyConfig {
+func getProxyConfigOidcProxyWithParams(ingressHost, verrazzanoURI, keycloakURL string, backendPort int, SSLEnabled bool) OidcProxyConfig {
 	proxyConfig := OidcProxyConfig{}
 
 	proxyConfig.Mode = ProxyModeOauth
@@ -49,6 +49,7 @@ func getProxyConfigOidcProxyWithParams(ingressHost, verrazzanoURI, keycloakURL s
 
 	proxyConfig.Host = "localhost"
 	proxyConfig.Port = backendPort
+	proxyConfig.SSLEnabled = SSLEnabled
 
 	proxyConfig.Ingress = ingressHost
 
@@ -69,10 +70,11 @@ func getProxyConfigOidcProxyWithParams(ingressHost, verrazzanoURI, keycloakURL s
 
 func getProxyConfigOidcProxy() OidcProxyConfig {
 	return getProxyConfigOidcProxyWithParams(
-		"grafana.vmi.system.will.129.159.240.145.nip.io",
-		"will.129.159.240.145.nip.io",
+		"grafana.vmi.system.default.111.222.333.444.nip.io",
+		"default.111.222.333.444.nip.io",
 		"",
-		8888,
+		9000,
+		false,
 	)
 }
 

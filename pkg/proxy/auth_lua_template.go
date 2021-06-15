@@ -21,6 +21,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     local base64 = require("ngx.base64")
     local cjson = require "cjson"
     local jwt = require "resty.jwt"
+    local validators = require "resty.jwt-validators"
 
     local oidcRealm = "{{ .OidcRealm }}"
     local oidcClient = "{{ .PKCEClientID }}"
@@ -42,7 +43,10 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         for key, val in pairs(opts) do
             me[key] = val
         end
-        local cookiekey = me.randomBase64(32)
+        if not cookiekey then
+            -- this is a global variable, initialize it exactly once
+            cookiekey = me.randomBase64(32)
+        end
         local aes = require "resty.aes"
         me.aes256 = aes:new(cookiekey, nil, aes.cipher(256))
         me.initOidcProviderUris()
@@ -55,7 +59,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
             oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..oidcRealm
         end
 {{ if eq .Mode "oauth-proxy" }}
-        logoutCallbackUri = ingressUri..logoutCallbackPath
+        logoutCallbackUri = me.ingressUri..me.logoutCallbackPath
 {{ else if eq .Mode "api-proxy" }}
         local keycloakURL = me.read_file("/api-config/keycloak-url")
         if keycloakURL and keycloakURL ~= "" then
@@ -176,7 +180,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
             local token = string.sub(authHeader, index+2)
             if token then
                 me.info("Found bearer token in authorization header")
-                me.oidcValidateToken(token)
+                me.oidcValidateBearerToken(token)
                 return token
             else
                 me.unauthorized("Missing token in authorization header")
@@ -221,7 +225,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         if not tokenRes then
             me.unauthorized("Could not get token")
         end
-        me.oidcValidateToken(tokenRes.idt)
+        me.oidcValidateIDToken(tokenRes.id_token)
         local expires_in = tonumber(tokenRes.expires_in)
         for key, val in pairs(basicCache) do
             if val.expiry and now > val.expiry then
@@ -266,7 +270,8 @@ const OidcAuthLuaFileTemplate = `    local me = {}
 
     function me.oidcAuthenticate()
         local sha256 = (require 'resty.sha256'):new()
-        local codeVerifier = me.randomBase64(32)
+        -- code verifier must be between 43 and 128 characters
+        local codeVerifier = me.randomBase64(56)
         sha256:update(codeVerifier)
         local codeChallenge = base64.encode_base64url(sha256:final())
         local state = me.randomBase64(32)
@@ -279,7 +284,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
             nonce = nonce
         }
         local redirectArgs = ngx.encode_args({
-            client_id = me.oidcClient,
+            client_id = oidcClient,
             response_type = 'code',
             scope = 'openid',
             code_challenge_method = 'S256',
@@ -289,7 +294,15 @@ const OidcAuthLuaFileTemplate = `    local me = {}
             redirect_uri = me.callbackUri
         })
         local redirectURL = me.getOidcAuthUri()..'?'..redirectArgs
-        me.setCookie("state", stateData, me.authStateTtlInSec)
+        if me.readCookie("authn") then
+            me.info("Deleting authn cookie")
+            me.deleteCookie("authn")
+        end
+        if me.readCookie("state") then
+            me.info("Deleting state cookie")
+            me.deleteCookie("state")
+        end
+        me.setCookie("state", stateData, authStateTtlInSec)
         ngx.header["Cache-Control"] = "no-cache, no-store, max-age=0"
         ngx.redirect(redirectURL)
     end
@@ -301,7 +314,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         local nonce = queryParams.nonce
         local cookie = me.readCookie("state")
         if not cookie then
-            me.log(ngx.ERR, "Missing callback state redirect to authenticate")
+            me.log(ngx.ERR, "Missing state cookie, reauthenticating")
             me.oidcAuthenticate()
         end
         me.deleteCookie("state")
@@ -310,20 +323,20 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         local request_uri = cookie.request_uri
 
         if (state == nil) or (stateCk == nil) then
-            me.log(ngx.ERR, "Missing callback state redirect to authenticate")
+            me.log(ngx.ERR, "Missing callback state, reauthenticating")
             me.oidcAuthenticate()
         else
             if state ~= stateCk then
-                me.log(ngx.ERR, "Invalid callback state redirect to authenticate")
+                me.log(ngx.ERR, "Invalid callback state, reauthenticating")
                 me.oidcAuthenticate()
             end
             if not cookie.code_verifier then
-                me.log(ngx.ERR, "Invalid callback state redirect to authenticate")
+                me.log(ngx.ERR, "Invalid code_verifier, reauthenticating")
                 me.oidcAuthenticate()
             end
             local tokenRes = me.oidcGetTokenWithCode(code, cookie.code_verifier, me.callbackUri)
             if tokenRes then
-                me.oidcValidateToken(tokenRes.idt)
+                me.oidcValidateIDToken(tokenRes.id_token)
                 me.tokenToCookie(tokenRes)
                 ngx.redirect(request_uri)
             end
@@ -332,7 +345,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     end
 
     function me.oidcHandleLogoutCallback()
-        auth.deleteCookie()
+        auth.deleteCookie("authn")
         auth.unauthorized("User logged out")
     end
 
@@ -351,6 +364,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         -- keepalive_pool = 10
         local tokenRes = cjson.decode(res.body)
         if tokenRes.error or tokenRes.error_description then
+            me.info("Error requesting token")
             me.unauthorized(tokenRes.error_description)
         end
         return tokenRes
@@ -360,7 +374,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         return me.oidcTokenRequest({
                         grant_type = 'password',
                         scope = 'openid',
-                        client_id = me.oidcDirectAccessClient,
+                        client_id = oidcDirectAccessClient,
                         password = p,
                         username = u
                     })
@@ -369,7 +383,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     function me.oidcGetTokenWithCode(code, verifier, callbackUri)
         return me.oidcTokenRequest({
                         grant_type = 'authorization_code',
-                        client_id = me.oidcClient,
+                        client_id = oidcClient,
                         code = code,
                         code_verifier = verifier,
                         redirect_uri = callbackUri
@@ -379,21 +393,13 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     function me.oidcRefreshToken(rft, callbackUri)
         return me.oidcTokenRequest({
                         grant_type = 'refresh_token',
-                        client_id = me.oidcClient,
+                        client_id = oidcClient,
                         refresh_token = rft,
                         redirect_uri = callbackUri
                     })
     end
 
-    -- returns nil if successful, or err otherwise
-    function me.oidcValidateToken(token)
-        if not token or token == "" then
-            me.unauthorized("Nil or empty token")
-        end
-        local jwt = require "resty.jwt"
-        local validators = require "resty.jwt-validators"
-
-        me.logJson(ngx.INFO, "Validating JWT token")
+    function me.oidcValidateBearerToken(token)
         local claim_spec = {
             typ = validators.equals( "Bearer" ),
             iss = validators.equals( oidcIssuerUri ),
@@ -402,6 +408,31 @@ const OidcAuthLuaFileTemplate = `    local me = {}
             azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient, "webui", "verrazzano-oauth-client" }),
             aud = validators.required()
         }
+        return me.oidcValidateToken(token, claim_spec)
+    end
+
+    function me.oidcValidateIDToken(token)
+        local claim_spec = {
+            typ = validators.equals( "ID" ),
+            iss = validators.equals( oidcIssuerUri ),
+            iat = validators.is_not_before(),
+            exp = validators.is_not_expired(),
+            azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient, "webui", "verrazzano-oauth-client" }),
+            aud = validators.required()
+        }
+        return me.oidcValidateToken(token, claim_spec)
+    end
+
+    -- returns nil if successful, or err otherwise
+    function me.oidcValidateToken(token, claim_spec)
+        if not token or token == "" then
+            me.unauthorized("Nil or empty token")
+        end
+        if not claim_spec then
+            me.unauthorized("Nil or empty claim_spec")
+        end
+
+        me.logJson(ngx.INFO, "Validating JWT token")
 
         -- passing verify a function to retrieve key didn't seem to work, so doing load then verify
         local jwt_obj = jwt:load_jwt(token)
@@ -457,16 +488,16 @@ const OidcAuthLuaFileTemplate = `    local me = {}
                 if now < refresh_expiry then
                     local tokenRes = me.oidcRefreshToken(rft, me.callbackUri)
                     if tokenRes then
-                        me.oidcValidateToken(tokenRes.idt)
+                        me.oidcValidateIDToken(tokenRes.id_token)
                         me.tokenToCookie(tokenRes)
                         me.info("token refreshed",  tokenRes)
                         return tokenRes.idt
                     end
                 end
             end
-            -- no valid token found, delete cookie
-            me.deleteCookie("authn")
         end
+        -- no valid token found, delete cookie
+        me.deleteCookie("authn")
         return nil
     end
 
@@ -521,14 +552,17 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         local cookie, err = require("resty.cookie"):new()
         local ck = cookie:get(ckName)
         if not ck then
+            me.info("Cookie not found")
             return nil
         end
         local decoded = base64.decode_base64url(ck)
         if not decoded then
+            me.info("Cookie not decoded")
             return nil
         end
         local json = me.aes256:decrypt(decoded)
         if not json then
+            me.info("Cookie not decrypted")
             return nil
         end
         return cjson.decode(json)
