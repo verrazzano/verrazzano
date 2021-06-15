@@ -13,7 +13,6 @@ RUN yum update -y \
     && yum clean all \
     && rm -rf /var/cache/yum
 
-# Download WebLogic Image Tool and unzip
 RUN wget https://github.com/oracle/weblogic-image-tool/releases/download/release-1.9.12/imagetool.zip \
     && unzip ./imagetool.zip
 
@@ -29,8 +28,11 @@ RUN yum update -y \
 ARG JDK_BINARY
 ENV JAVA_HOME=/usr/java
 COPY ${JDK_BINARY} /
+ENV JDK_DOWNLOAD_SHA256=85e8c7da7248c7450fb105567a78841d0973597850776c24a527feb02ef3e586
 
 RUN set -eux \
+    echo "Checking JDK hash"; \
+    echo "${JDK_DOWNLOAD_SHA256} ${JDK_BINARY}" | sha256sum --check -; \
     echo "Installing JDK"; \
     mkdir -p "$JAVA_HOME"; \
     tar xzf ${JDK_BINARY} --directory "${JAVA_HOME}" --strip-components=1;
