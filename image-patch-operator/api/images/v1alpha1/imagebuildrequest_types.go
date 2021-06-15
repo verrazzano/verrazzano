@@ -26,7 +26,9 @@ type ImageBuildRequestStatus struct {
 }
 
 //+kubebuilder:object:root=true
+// +kubebuilder:resource:shortName=ibr;ibrs
 //+kubebuilder:subresource:status
+// +genclient
 
 // ImageBuildRequest is the Schema for the imagebuildrequests API
 type ImageBuildRequest struct {

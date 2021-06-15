@@ -15,6 +15,9 @@ spec:
     kind: ImageBuildRequest
     listKind: ImageBuildRequestList
     plural: imagebuildrequests
+    shortNames:
+    - ibr
+    - ibrs
     singular: imagebuildrequest
   scope: Namespaced
   versions:
