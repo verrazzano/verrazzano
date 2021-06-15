@@ -1,6 +1,8 @@
 # Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+ARG JDK_BINARY="${JDK_BINARY:-jdk-8u281-linux-x64.tar.gz}"
+
 # Build stage for WebLogic Image Tool installation
 FROM ghcr.io/oracle/oraclelinux:7-slim AS build_wit
 
@@ -24,19 +26,19 @@ RUN yum update -y \
     && yum clean all \
     && rm -rf /var/cache/yum
 
-ARG JDK_BINARY="${JDK_BINARY:-jdk-8u281-linux-x64.tar.gz}"
+ARG JDK_BINARY
 ENV JAVA_HOME=/usr/java
-ENV PATH $JAVA_HOME/bin:$PATH
-COPY ${JDK_BINARY} jdk.tar.gz
+COPY ${JDK_BINARY} /
 
 RUN set -eux \
     echo "Installing JDK"; \
     mkdir -p "$JAVA_HOME"; \
-    tar xzf jdk.tar.gz --directory "${JAVA_HOME}" --strip-components=1; \
-    rm -f jdk.tar.gz;
+    tar xzf ${JDK_BINARY} --directory "${JAVA_HOME}" --strip-components=1;
 
 # Final image for deploying WebLogic Image Tool
 FROM ghcr.io/oracle/oraclelinux:7-slim
+
+ARG JDK_BINARY
 
 # copy over JDK installation
 ENV JAVA_HOME=/usr/java
@@ -48,6 +50,9 @@ RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 ver
     && mkdir /home/verrazzano \
     && chown -R 1000:verrazzano /home/verrazzano
 COPY --from=build_wit --chown=verrazzano:verrazzano imagetool imagetool
+
+# copy over installers
+COPY --from=build_jdk --chown=verrazzano:verrazzano ${JDK_BINARY} /imagetool/installers/
 
 USER 1000
 
