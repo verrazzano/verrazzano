@@ -283,7 +283,7 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 				allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
 				pkg.Log(pkg.Info, fmt.Sprintf("FAIL: Did Not Pass Authorization on user list ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
 				return allowed
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user list ApplicationConfiguration.  Timeout Expired"))
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "FAIL: Did Not Pass Authorization on user list ApplicationConfiguration.  Timeout Expired")
 		})
 
 		ginkgo.It("Fail create OAM Components in namespace rbactest", func() {
@@ -292,7 +292,7 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 				allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "components", "core.oam.dev")
 				pkg.Log(pkg.Info, fmt.Sprintf("FAIL: Passed Authorization on user create OAM Components: Allowed = %t, reason = %s", allowed, reason))
 				return allowed
-			}, waitTimeout, pollingInterval).Should(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user create OAM Components.  Timeout Expired"))
+			}, waitTimeout, pollingInterval).Should(gomega.BeFalse(), "FAIL: Passed Authorization on user create OAM Components.  Timeout Expired")
 		})
 
 		ginkgo.It("Succeed list OAM Components in namespace rbactest", func() {
@@ -301,7 +301,7 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 				allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "components", "core.oam.dev")
 				pkg.Log(pkg.Info, fmt.Sprintf("FAIL: Did Not Pass Authorization on user list OAM Components: Allowed = %t, reason = %s", allowed, reason))
 				return allowed
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user list OAM Components.  Timeout Expired"))
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "FAIL: Did Not Pass Authorization on user list OAM Components.  Timeout Expired")
 		})
 
 	})
