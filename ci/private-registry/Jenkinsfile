@@ -5,6 +5,8 @@ def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def ocirRegion = ""
 def ocirRegistry = ""
+def imageRepoSubPath=""
+def baseImageRepo=""
 
 pipeline {
     options {
@@ -79,8 +81,6 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_CLI_AUTH="instance_principal"
 
-        IMAGE_REPO_SUBPATH="${JOB_NAME}/${env.BRANCH}/b${BUILD_NUMBER}"
-        BASE_IMAGE_REPO="${OCI_OS_NAMESPACE}/${IMAGE_REPO_SUBPATH}"
         DEV_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
     }
 
@@ -92,7 +92,7 @@ pipeline {
                     //    script: "echo ${env.NODE_LABELS} | awk '{print \$5}'",
                     //    returnStdout: true
                     //).trim()
-                    if (agentLabel == "phxlarge") {
+                    if (env.NODE_LABELS.contains("phxlarge")) {
                         ocirRegion = "phx"
                     } else {
                         ocirRegion = "lhr"
@@ -100,6 +100,7 @@ pipeline {
                     ocirRegistry = "${ocirRegion}.ocir.io"
                     echo "Current execution region: $ocirRegion"
                     echo "OCIR Repository: ${ocirRegistry}"
+                    echo "Branch: ${env.GIT_BRANCH}"
                 }
 
                 script {
@@ -126,6 +127,10 @@ pipeline {
                         }
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                    imageRepoSubPath="verrazzano-private-registry/${env.GIT_BRANCH}/b${env.BUILD_NUMBER}"
+                    baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}"
+                    echo "Image Repo Subpath: ${imageRepoSubPath}"
+                    echo "Base Image Repo: ${baseImageRepo}"
                 }
 
                 sh """
@@ -219,12 +224,12 @@ pipeline {
                     echo ${IMAGE_REPO_SUBPATH}
                     echo ${WORKSPACE}
                     echo ${DEV_COMPARTMENT_OCID}
-                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${IMAGE_REPO_SUBPATH} -d ${WORKSPACE}/vz-tarball -c ${DEV_COMPARTMENT_OCID}
+                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${WORKSPACE}/vz-tarball -c ${DEV_COMPARTMENT_OCID}
                     echo "Upload OCIR region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
                     # Run the image-helper to load the images into the OCIR registry in the runner's region
                     cd ${WORKSPACE}/vz-tarball
-                    ./vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${BASE_IMAGE_REPO}
+                    ./vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
                 """
             }
         }
@@ -350,7 +355,7 @@ pipeline {
                 #  exit 1
                 #fi
 
-                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${IMAGE_REPO_SUBPATH}  -s $ocirRegion -c ${DEV_COMPARTMENT_OCID} -f -w
+                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${DEV_COMPARTMENT_OCID} -f -w
             """
         }
         /*failure {
