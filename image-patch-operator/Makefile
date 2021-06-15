@@ -1,4 +1,4 @@
-# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 include ../make/quality.mk
@@ -41,8 +41,6 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
-# Image URL to use all building/pushing image targets
-IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
