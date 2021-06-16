@@ -82,7 +82,8 @@ pipeline {
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
-        OCI_CLI_AUTH="api_key"
+
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
@@ -152,6 +153,8 @@ pipeline {
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
+
+                    #rm -f $HOME/.oci/config
                 """
                 println("agentlabel: ${agentLabel}")
                 sh """
