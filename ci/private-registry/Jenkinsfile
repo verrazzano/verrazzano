@@ -3,8 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 // Pin to PHX for now for testing
-//def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
-def agentLabel = "phxlarge"
+def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def ocirRegion = ""
 def ocirRegistry = ""
 def imageRepoSubPath=""
@@ -83,6 +82,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
 
+        // Variables to set the OCI CLI user context to the CI user
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
@@ -106,11 +106,7 @@ pipeline {
         stage('Initialize workspace and checkout') {
             steps {
                 script {
-                    //ocirRegion = sh (
-                    //    script: "echo ${env.NODE_LABELS} | awk '{print \$5}'",
-                    //    returnStdout: true
-                    //).trim()
-                    if (env.NODE_LABELS.contains("phxlarge")) {
+                    if (env.NODE_LABELS.contains("phx")) {
                         ocirRegion = "phx"
                     } else {
                         ocirRegion = "lhr"
@@ -153,8 +149,6 @@ pipeline {
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
-
-                    #rm -f $HOME/.oci/config
                 """
                 println("agentlabel: ${agentLabel}")
                 sh """
