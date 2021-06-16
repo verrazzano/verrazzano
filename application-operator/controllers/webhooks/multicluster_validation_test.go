@@ -5,6 +5,7 @@ package webhooks
 
 import (
 	"encoding/json"
+
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -23,7 +24,7 @@ var testManagedCluster = v1alpha1.VerrazzanoManagedCluster{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 	},
 	Spec: v1alpha1.VerrazzanoManagedClusterSpec{
-		PrometheusSecret:             "test-prometheus-secret",
+		CASecret:                     "test-secret",
 		ManagedClusterManifestSecret: "test-cluster-manifest-secret",
 		ServiceAccount:               "test-service-account",
 	},

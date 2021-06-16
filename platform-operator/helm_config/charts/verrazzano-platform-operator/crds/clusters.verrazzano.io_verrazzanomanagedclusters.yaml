@@ -43,6 +43,10 @@ spec:
             description: VerrazzanoManagedClusterSpec defines the desired state of
               VerrazzanoManagedCluster
             properties:
+              caSecret:
+                description: The name of a secret that contains the ca certificate
+                  for accessing console and api endpoints on the managed cluster.
+                type: string
               description:
                 description: The description of the managed cluster.
                 type: string
@@ -51,18 +55,13 @@ spec:
                   to be applied by the user to the managed cluster. This field is
                   managed by a Verrazzano Kubernetes operator.
                 type: string
-              prometheusSecret:
-                description: The name of a secret that contains the credentials for
-                  scraping from the prometheus endpoint on the managed cluster.  The
-                  secret contains the endpoint, username and password.
-                type: string
               serviceAccount:
                 description: The name of the ServiceAccount that was generated for
                   the managed cluster. This field is managed by a Verrazzano Kubernetes
                   operator.
                 type: string
             required:
-            - prometheusSecret
+            - caSecret
             type: object
           status:
             description: VerrazzanoManagedClusterStatus defines the observed state
@@ -102,6 +101,9 @@ spec:
                 description: Last time the agent from this managed cluster connected
                   to the admin cluster.
                 format: date-time
+                type: string
+              prometheusHost:
+                description: Prometheus Host for the managed cluster.
                 type: string
             type: object
         type: object

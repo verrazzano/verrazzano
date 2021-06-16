@@ -134,6 +134,12 @@ func (s *Syncer) updateVMCStatus() error {
 	}
 
 	vmc.Status.APIUrl = apiURL
+	prometheusHost, err := s.GetPrometheusHost()
+	if err != nil {
+		return fmt.Errorf("Failed to get api prometheus host for vmc %s with error %v", vmcName, err)
+	}
+
+	vmc.Status.PrometheusHost = prometheusHost
 
 	// update status of VMC
 	return s.AdminClient.Status().Update(s.Context, &vmc)
@@ -454,4 +460,14 @@ func (s *Syncer) GetAPIServerURL() (string, error) {
 		return "", fmt.Errorf("Unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzConsoleIngress, err)
 	}
 	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0]), nil
+}
+
+// GetPrometheusHost returns the prometheus host for Verrazzano instance.
+func (s *Syncer) GetPrometheusHost() (string, error) {
+	ingress := &extv1beta1.Ingress{}
+	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.VzPrometheusIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
+	if err != nil {
+		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)
+	}
+	return ingress.Spec.TLS[0].Hosts[0], nil
 }

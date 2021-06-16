@@ -71,7 +71,7 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: VerrazzanoManagedClusterSpec{
-			PrometheusSecret: secretName,
+			CASecret: secretName,
 		},
 	}
 	err := vz.ValidateCreate()
@@ -107,7 +107,7 @@ func TestCreateNoConfigMap(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: VerrazzanoManagedClusterSpec{
-			PrometheusSecret: secretName,
+			CASecret: secretName,
 		},
 	}
 	err := vz.ValidateCreate()
@@ -149,7 +149,7 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: VerrazzanoManagedClusterSpec{
-			PrometheusSecret: secretName,
+			CASecret: secretName,
 		},
 	}
 	err := vz.ValidateCreate()
@@ -174,7 +174,7 @@ func TestCreateMissingSecretName(t *testing.T) {
 		},
 	}
 	err := vz.ValidateCreate()
-	assert.EqualError(t, err, "The name of the Prometheus secret in namespace verrazzano-mc must be specified",
+	assert.EqualError(t, err, "The name of the CA secret in namespace verrazzano-mc must be specified",
 		"Expected correct error message for missing secret")
 }
 
@@ -196,11 +196,11 @@ func TestCreateMissingSecret(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: VerrazzanoManagedClusterSpec{
-			PrometheusSecret: secretName,
+			CASecret: secretName,
 		},
 	}
 	err := vz.ValidateCreate()
-	assert.EqualError(t, err, "The Prometheus secret mySecret does not exist in namespace verrazzano-mc",
+	assert.EqualError(t, err, "The CA secret mySecret does not exist in namespace verrazzano-mc",
 		"Expected correct error message for missing secret")
 }
 
@@ -245,7 +245,7 @@ func TestCreateVerrazzanoNotInstalled(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: VerrazzanoManagedClusterSpec{
-			PrometheusSecret: secretName,
+			CASecret: secretName,
 		},
 	}
 	err := vz.ValidateCreate()
