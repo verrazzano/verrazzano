@@ -6,6 +6,8 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -15,7 +17,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	"testing"
 )
 
 // newVerrazzanoProjectValidator creates a new VerrazzanoProjectValidator
@@ -429,7 +430,7 @@ func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *t
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: v1alpha1.VerrazzanoManagedClusterSpec{
-			PrometheusSecret:             "test-prometheus-secret",
+			CASecret:                     "test-secret",
 			ManagedClusterManifestSecret: "test-cluster-manifest-secret",
 			ServiceAccount:               "test-service-account",
 		},

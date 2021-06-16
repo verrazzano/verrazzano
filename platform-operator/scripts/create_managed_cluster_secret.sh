@@ -42,15 +42,16 @@ OUTPUT_FILE=$OUTPUT_DIR/$CLUSTER_NAME.yaml
 TLS_SECRET=$(kubectl -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"')
 if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
   CA_CERT=$(kubectl -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 -d)
+else
+  ACME_SECRET=$(kubectl -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"')
+  if [ ! -z "${ACME_SECRET%%*( )}" ] && [ "null" != "${ACME_SECRET}" ] ; then
+    CA_CERT=$(kubectl -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"' | base64 -d)
+  fi
 fi
-HOST=$(kubectl get ing vmi-system-prometheus -n verrazzano-system -o jsonpath='{.spec.tls[0].hosts[0]}')
 
 #create the yaml file
-echo "prometheus:" > $OUTPUT_FILE
-echo "  host: $HOST" >> $OUTPUT_FILE
 if [ ! -z "${CA_CERT}" ] ; then
-   echo "  cacrt: |" >> $OUTPUT_FILE
-   echo -e "$CA_CERT" | sed 's/^/    /' >> $OUTPUT_FILE
+   kubectl create secret generic "ca-secret-$CLUSTER_NAME" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> $OUTPUT_FILE
 fi
 
 exit 0

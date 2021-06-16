@@ -33,7 +33,8 @@ const (
 	rancherNamespace   = "cattle-system"
 	rancherIngressName = "rancher"
 	rancherAdminSecret = "rancher-admin-secret"
-	rancherTLSSecret   = "tls-rancher-ingress"
+	rancherTLSCaSecret = "tls-ca"
+	tlsCaSecretKey     = "cacerts.pem"
 
 	clusterPath         = "/v3/cluster"
 	clustersByNamePath  = "/v3/clusters?name="
@@ -362,12 +363,12 @@ func getRancherTLSRootCA(rdr client.Reader) ([]byte, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: rancherNamespace,
-		Name:      rancherTLSSecret}
+		Name:      rancherTLSCaSecret}
 
 	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
 		return nil, client.IgnoreNotFound(err)
 	}
-	return secret.Data["ca.crt"], nil
+	return secret.Data[tlsCaSecretKey], nil
 }
 
 // sendRequest builds an HTTP request, sends it, and returns the response
