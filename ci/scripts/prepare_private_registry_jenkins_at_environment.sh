@@ -10,8 +10,9 @@ set -o pipefail
 
 set -xv
 
-if [ -z "$GO_REPO_PATH" ] || [ -z "$WORKSPACE" ] || [ -z "$TARBALL_DIR" ] ||
-  [ -z "$PRIVATE_REPO" ] || [ -z "$REGISTRY" ] || [ -z "$PRIVATE_REGISTRY_USR" ] || [ -z "$PRIVATE_REGISTRY_PSW" ] ||
+if [ -z "$GO_REPO_PATH" ] || [ -z "$WORKSPACE" ] || [ -z "$TARBALL_DIR" ] || [ -z "$CLUSTER_NAME" ] || -z [ "$KIND_KUBERNETES_CLUSTER_VERSION" ] || -z [ "$KUBECONFIG" ] ||
+  [ -z "$IMAGE_PULL_SECRET" ] || [ -z "$PRIVATE_REPO" ] || [ -z "$REGISTRY" ] || [ -z "$PRIVATE_REGISTRY_USR" ] || [ -z "$PRIVATE_REGISTRY_PSW" ] ||
+  [ -z "$VZ_ENVIRONMENT_NAME" ] || [ -z "$INSTALL_PROFILE" ] || 
   [ -z "$INSTALL_CONFIG_FILE_KIND" ] || [ -z "$TEST_SCRIPTS_DIR" ]; then
   #[ -z "$TESTS_EXECUTED_FILE" ] || [ -z "$JENKINS_URL" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
@@ -57,19 +58,16 @@ cd ${GO_REPO_PATH}/verrazzano
 echo "Install Platform Operator"
 VPO_IMAGE=$(cat ${BOM_FILE} | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-operator") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
 
-helm upgrade --install myv8o ${CHART_LOCATION}/charts/verrazzano-platform-operator \
+helm upgrade --install myv8o ${CHART_LOCATION}/verrazzano-platform-operator \
     --set global.imagePullSecrets[0]=${IMAGE_PULL_SECRET} \
     --set image=${REGISTRY}/${PRIVATE_REPO}/${VPO_IMAGE} --set global.registry=${REGISTRY} \
-    --set global.repository=${MYREPO}
+    --set global.repository=${PRIVATE_REPO}
 
 # make sure ns exists
 ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
 
 # Create docker secret for platform operator image
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
-
-# create secret in verrazzano-install ns
-./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
 # Configure the custom resource to install verrazzano on Kind
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
