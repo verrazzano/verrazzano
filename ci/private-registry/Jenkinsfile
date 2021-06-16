@@ -89,6 +89,7 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
+        OCI_CLI_REGION = "us-phoenix-1"
 
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -110,6 +111,7 @@ pipeline {
                         ocirRegion = "phx"
                     } else {
                         ocirRegion = "lhr"
+                        env.OCI_CLI_REGION = "uk-london-1"
                     }
                     ocirRegistry = "${ocirRegion}.ocir.io"
                     echo "Current execution region: $ocirRegion"
@@ -221,6 +223,7 @@ pipeline {
         stage('Download and extract Tarball') {
             steps {
                 sh """
+                    echo "OCI_CLI_REGION=${OCI_CLI_REGION}"
                     echo "Download OCIR region: $ocirRegion"
                     echo "Download OCIR Repository: ${ocirRegistry}"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/tarball.tar.gz --file ${WORKSPACE}/vz-latest-tarball.tar.gz
@@ -234,6 +237,7 @@ pipeline {
             steps {
                 sh """
                     # Create OCIR repos for the images in the tarballs in the test compartment
+                    echo "OCI_CLI_REGION=${OCI_CLI_REGION}"
                     echo "Image repo subpath: ${imageRepoSubPath}"
                     echo "Base image repo: ${baseImageRepo}"
                     echo "${WORKSPACE}"

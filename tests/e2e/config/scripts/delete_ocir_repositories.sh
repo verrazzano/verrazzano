@@ -63,7 +63,7 @@ if [ -z "${REGION}" ]; then
     usage
     exit 1
   fi
-  REGION=$(oci iam region list | jq -r  --arg regionAbbr ${REGION_SHORT_NAME} '.data[] | select(.key|test($regionAbbr;"i")) | .name')
+  REGION=$(oci --region us-phoenix-1 iam region list | jq -r  --arg regionAbbr ${REGION_SHORT_NAME} '.data[] | select(.key|test($regionAbbr;"i")) | .name')
   if [ -z "${REGION}" ] || [ "null" == "${REGION}" ]; then
     echo "Invalid short region name ${REGION_SHORT_NAME}"
     usage
