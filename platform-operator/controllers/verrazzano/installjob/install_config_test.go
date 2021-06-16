@@ -315,6 +315,9 @@ func TestOCIDNSInstall(t *testing.T) {
 						},
 					},
 				},
+				Fluentd: &installv1alpha1.FluentdComponent{
+					ExtraVolumeMounts: []installv1alpha1.VolumeMount{{Source: "/u01/data"}},
+				},
 			},
 		},
 	}
@@ -346,6 +349,9 @@ func TestOCIDNSInstall(t *testing.T) {
 	assert.Equalf(t, CertIssuerTypeAcme, config.Certificates.IssuerType, "Expected certification issuer type did not match")
 	assert.Equalf(t, "LetsEncrypt", config.Certificates.ACME.Provider, "Expected cert provider did not match")
 	assert.Equalf(t, "someguy@foo.com", config.Certificates.ACME.EmailAddress, "Expected email address did not match")
+	assert.Equalf(t, "/u01/data", config.Fluentd.FluentdInstallArgs[0].Value, "Expected hostPathMount did not match")
+	assert.Equalf(t, "/u01/data", config.Fluentd.FluentdInstallArgs[1].Value, "Expected hostPathMount did not match")
+	assert.Equalf(t, "true", config.Fluentd.FluentdInstallArgs[2].Value, "Expected hostPathMount did not match")
 }
 
 // TestNodePortInstall tests the creation of a kind install configuration
@@ -1354,4 +1360,59 @@ func TestNewOCIDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
+}
+
+// TestOKEInstallWithFluentdExtraVolumeMounts tests the creation of an Verrazzano with FluentdExtraVolumeMounts
+// GIVEN a verrazzano.install.verrazzano.io custom resource
+//  WHEN I call GetInstallConfig
+//  THEN the Verrazzano install configuration is created and verified
+func TestOKEInstallWithFluentdExtraVolumeMounts(t *testing.T) {
+	boolTrue := true
+	boolFalse := false
+	vz := installv1alpha1.Verrazzano{
+		Spec: installv1alpha1.VerrazzanoSpec{
+			Profile:         "prod",
+			EnvironmentName: "oke",
+			Components: installv1alpha1.ComponentSpec{
+				Fluentd: &installv1alpha1.FluentdComponent{
+					ExtraVolumeMounts: []installv1alpha1.VolumeMount{
+						{Source: "/u01/data"},
+						{Source: "/var/lib", Destination: "/var-lib", ReadOnly: &boolTrue},
+						{Source: "/test/data/foo", ReadOnly: &boolFalse},
+					},
+				},
+			},
+		},
+	}
+	config, err := GetInstallConfig(&vz)
+	assert.NoError(t, err)
+	assert.Equalf(t, "logging.extraVolumeMounts[0].source",
+		config.Fluentd.FluentdInstallArgs[0].Name, "Expected name did not match")
+	assert.Equalf(t, "/u01/data", config.Fluentd.FluentdInstallArgs[0].Value, "Expected Source did not match")
+	assert.Equalf(t, "logging.extraVolumeMounts[0].destination",
+		config.Fluentd.FluentdInstallArgs[1].Name, "Expected name did not match")
+	assert.Equalf(t, "/u01/data", config.Fluentd.FluentdInstallArgs[1].Value, "Expected Destination did not match")
+	assert.Equalf(t, "logging.extraVolumeMounts[0].readOnly",
+		config.Fluentd.FluentdInstallArgs[2].Name, "Expected name did not match")
+	assert.Equalf(t, "true", config.Fluentd.FluentdInstallArgs[2].Value, "Expected ReadOnly did not match")
+
+	assert.Equalf(t, "logging.extraVolumeMounts[1].source",
+		config.Fluentd.FluentdInstallArgs[3].Name, "Expected name did not match")
+	assert.Equalf(t, "/var/lib", config.Fluentd.FluentdInstallArgs[3].Value, "Expected Source did not match")
+	assert.Equalf(t, "logging.extraVolumeMounts[1].destination",
+		config.Fluentd.FluentdInstallArgs[4].Name, "Expected name did not match")
+	assert.Equalf(t, "/var-lib", config.Fluentd.FluentdInstallArgs[4].Value, "Expected Destination did not match")
+	assert.Equalf(t, "logging.extraVolumeMounts[1].readOnly",
+		config.Fluentd.FluentdInstallArgs[5].Name, "Expected name did not match")
+	assert.Equalf(t, "true", config.Fluentd.FluentdInstallArgs[5].Value, "Expected ReadOnly did not match")
+
+	assert.Equalf(t, "logging.extraVolumeMounts[2].source",
+		config.Fluentd.FluentdInstallArgs[6].Name, "Expected name did not match")
+	assert.Equalf(t, "/test/data/foo", config.Fluentd.FluentdInstallArgs[6].Value, "Expected Source did not match")
+	assert.Equalf(t, "logging.extraVolumeMounts[2].destination",
+		config.Fluentd.FluentdInstallArgs[7].Name, "Expected name did not match")
+	assert.Equalf(t, "/test/data/foo", config.Fluentd.FluentdInstallArgs[7].Value, "Expected Destination did not match")
+	assert.Equalf(t, "logging.extraVolumeMounts[2].readOnly",
+		config.Fluentd.FluentdInstallArgs[8].Name, "Expected name did not match")
+	assert.Equalf(t, "false", config.Fluentd.FluentdInstallArgs[8].Value, "Expected ReadOnly did not match")
 }

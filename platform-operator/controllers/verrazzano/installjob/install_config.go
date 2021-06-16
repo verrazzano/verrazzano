@@ -176,6 +176,11 @@ type Rancher struct {
 	Enabled string `json:"enabled,omitempty"`
 }
 
+// Fluentd DaemonSet configuration
+type Fluentd struct {
+	FluentdInstallArgs []InstallArg `json:"fluentdInstallArgs,omitempty"`
+}
+
 // InstallConfiguration - Verrazzano installation configuration options
 type InstallConfiguration struct {
 	EnvironmentName string                      `json:"environmentName"`
@@ -185,6 +190,7 @@ type InstallConfiguration struct {
 	Certificates    Certificate                 `json:"certificates"`
 	Keycloak        Keycloak                    `json:"keycloak"`
 	Rancher         Rancher                     `json:"rancher"`
+	Fluentd         Fluentd                     `json:"fluentd"`
 	VzInstallArgs   []InstallArg                `json:"verrazzanoInstallArgs,omitempty"`
 }
 
@@ -208,6 +214,7 @@ func GetInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, er
 		Certificates:    getCertificateConfig(vz),
 		Keycloak:        keycloak,
 		Rancher:         getRancher(vz.Spec.Components.Rancher),
+		Fluentd:         getFluentd(vz.Spec.Components.Fluentd),
 	}, nil
 }
 
@@ -675,4 +682,35 @@ func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeC
 		}
 	}
 	return nil, false
+}
+
+func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {
+	fluentd := Fluentd{}
+	if comp == nil {
+		return fluentd
+	}
+	fluentd.FluentdInstallArgs = []InstallArg{}
+	for i, vm := range comp.ExtraVolumeMounts {
+		fluentd.FluentdInstallArgs = append(fluentd.FluentdInstallArgs, InstallArg{
+			Name:  fmt.Sprintf("logging.extraVolumeMounts[%d].source", i),
+			Value: vm.Source,
+		})
+		dest := vm.Source
+		if vm.Destination != "" {
+			dest = vm.Destination
+		}
+		fluentd.FluentdInstallArgs = append(fluentd.FluentdInstallArgs, InstallArg{
+			Name:  fmt.Sprintf("logging.extraVolumeMounts[%d].destination", i),
+			Value: dest,
+		})
+		readOnly := true
+		if vm.ReadOnly != nil {
+			readOnly = *vm.ReadOnly
+		}
+		fluentd.FluentdInstallArgs = append(fluentd.FluentdInstallArgs, InstallArg{
+			Name:  fmt.Sprintf("logging.extraVolumeMounts[%d].readOnly", i),
+			Value: strconv.FormatBool(readOnly),
+		})
+	}
+	return fluentd
 }

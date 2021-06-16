@@ -66,6 +66,10 @@ monitoringOperator:
 
 logging:
   name: fluentd
+  # extraVolumeMounts: [ "/u01/data", "/var/lib" ]
+    #- /u01/data #OKE
+    #- /var/lib  #Docker if remove /var/lib/docker from default
+
   # NOTE: The fluentd-kubernetes-daemonset image now comes from the bill of materials file (verrazzano-bom.json).
 
 console:

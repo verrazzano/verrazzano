@@ -397,6 +397,12 @@ function is_keycloak_enabled() {
   echo ${keycloak_enabled}
 }
 
+function get_fluentd_extra_volume_mounts {
+  if [ ! -z "$(get_config_value ".fluentd")" ] && [ ! -z "$(get_config_value '.fluentd.fluentdInstallArgs')" ]; then
+    config_array_to_helm_args ".fluentd.fluentdInstallArgs[]" || return 1
+  fi
+}
+
 # Parse the verrazzanoInstallArgs from the config.json and return the value of the configuration value
 function parse_vz_install_args() {
   local install_args=$1
