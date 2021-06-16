@@ -83,7 +83,9 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_CLI_AUTH="instance_principal"
 
-        DEV_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
+        // Ideally use the TIBURON-DEV compartment, but we need permissions
+        //REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
+        REPOSITORY_COMPARTMENT_OCID = credentials('oci-tenancy')
     }
 
     stages {
@@ -225,8 +227,7 @@ pipeline {
                     echo "Image repo subpath: ${imageRepoSubPath}"
                     echo "Base image repo: ${baseImageRepo}"
                     echo "${WORKSPACE}"
-                    echo ${DEV_COMPARTMENT_OCID}
-                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${WORKSPACE}/vz-tarball -c ${DEV_COMPARTMENT_OCID}
+                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${WORKSPACE}/vz-tarball -c ${REPOSITORY_COMPARTMENT_OCID}
                     echo "Upload OCIR region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
                     # Run the image-helper to load the images into the OCIR registry in the runner's region
@@ -361,7 +362,7 @@ pipeline {
                 echo "OCIR Repository: ${ocirRegistry}"
                 echo "Image repo subpath: ${imageRepoSubPath}"
                 echo "Base image repo: ${baseImageRepo}"
-                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${DEV_COMPARTMENT_OCID} -f -w
+                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
             """
         }
         /*failure {

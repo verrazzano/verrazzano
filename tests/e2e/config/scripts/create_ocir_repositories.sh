@@ -49,12 +49,20 @@ function create_image_repos_from_archives() {
     local from_image_name=$(basename $from_image | cut -d \: -f 1)
     local from_repository=$(dirname $from_image | cut -d \/ -f 2-)
 
+    local is_public="false"
+    if [ "$from_repository" == "rancher" ]; then
+      # Rancher repos must be public
+      is_public="true"
+    fi
+
     local repo_path=${from_repository}/${from_image_name}
     if [ -n "${PARENT_REPO}" ]; then
       repo_path=${PARENT_REPO}/${repo_path}
     fi
+
     set -x
-    oci --region ${REGION} artifacts container repository create --display-name ${repo_path} --compartment-id ${COMPARTMENT_ID}
+    oci --region ${REGION} artifacts container repository create --display-name ${repo_path} \
+      --is-public ${is_public} --compartment-id ${COMPARTMENT_ID}
     set +x
   done
 }
