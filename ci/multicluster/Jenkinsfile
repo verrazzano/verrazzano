@@ -12,7 +12,6 @@ def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
-boolean skip_ats = false
 
 installerFileName = "install-verrazzano.yaml"
 
@@ -133,6 +132,7 @@ pipeline {
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
+        ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
@@ -417,18 +417,8 @@ pipeline {
                     steps {
                         registerManagedClusters()
                     }
-                    post {
-                        failure {
-                            script {
-                                skip_ats = true
-                            }
-                        }
-                    }
                 }
                 stage ('Verify Register') {
-                    when {
-                        expression { skip_ats == false }
-                    }
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
@@ -446,9 +436,6 @@ pipeline {
                     }
                 }
                 stage ('Verify Managed Cluster Permissions') {
-                    when {
-                        expression { skip_ats == false }
-                    }
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
@@ -467,9 +454,6 @@ pipeline {
                     }
                 }
                 stage ('Example apps') {
-                    when {
-                        expression { skip_ats == false }
-                    }
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
