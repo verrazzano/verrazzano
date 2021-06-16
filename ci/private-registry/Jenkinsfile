@@ -3,7 +3,8 @@
 
 def DOCKER_IMAGE_TAG
 // Pin to PHX for now for testing
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+//def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = "phxlarge"
 def ocirRegion = ""
 def ocirRegistry = ""
 def imageRepoSubPath=""
