@@ -271,17 +271,10 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Run Acceptance Tests') {
                     environment {
                         TEST_ENV = "KIND"
                     }
-                    steps {
-                        script {
-                            echo "TODO"
-                        }
-                    }
-                    /*
                     parallel {
                         stage('verify-install') {
                             steps {
@@ -303,12 +296,12 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        stage('examples helidon') {
+                        /*stage('examples helidon') {
                             steps {
                                 runGinkgo('examples/helidon')
                             }
-                        }
-                    }*/
+                        }*/
+                    }
                     post {
                         always {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
@@ -368,16 +361,16 @@ pipeline {
                 #sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
             """
         }
-        /*failure {
-            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+        failure {
+            //mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
+            //subject: "Verrazzano: ${env.JOB_NAME} - Failed",
+            //body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
             script {
                 if (env.BRANCH_NAME == "master") {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
             }
-        }*/
+        }
         cleanup {
             deleteDir()
         }
