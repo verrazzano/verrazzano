@@ -223,9 +223,6 @@ pipeline {
         stage('Download and extract Tarball') {
             steps {
                 sh """
-                    echo "OCI_CLI_REGION=${OCI_CLI_REGION}"
-                    echo "Download OCIR region: $ocirRegion"
-                    echo "Download OCIR Repository: ${ocirRegistry}"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/tarball.tar.gz --file ${WORKSPACE}/vz-latest-tarball.tar.gz
                     mkdir ${TARBALL_DIR} || true
                     cd ${TARBALL_DIR}
@@ -237,10 +234,6 @@ pipeline {
             steps {
                 sh """
                     # Create OCIR repos for the images in the tarballs in the test compartment
-                    echo "OCI_CLI_REGION=${OCI_CLI_REGION}"
-                    echo "Image repo subpath: ${imageRepoSubPath}"
-                    echo "Base image repo: ${baseImageRepo}"
-                    echo "${WORKSPACE}"
                     sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
                     echo "Upload OCIR region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
@@ -488,9 +481,6 @@ pipeline {
             """
         }
         failure {
-            //mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            //subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            //body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
             script {
                 if (env.BRANCH_NAME == "master") {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
