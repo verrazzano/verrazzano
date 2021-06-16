@@ -10,11 +10,11 @@ set -o pipefail
 
 set -xv
 
-if [ -z "$GO_REPO_PATH" ] || [ -z "$WORKSPACE" ] || [ -z "$TARBALL_DIR" ] || [ -z "$CLUSTER_NAME" ] || -z [ "$KIND_KUBERNETES_CLUSTER_VERSION" ] || -z [ "$KUBECONFIG" ] ||
-  [ -z "$IMAGE_PULL_SECRET" ] || [ -z "$PRIVATE_REPO" ] || [ -z "$REGISTRY" ] || [ -z "$PRIVATE_REGISTRY_USR" ] || [ -z "$PRIVATE_REGISTRY_PSW" ] ||
-  [ -z "$VZ_ENVIRONMENT_NAME" ] || [ -z "$INSTALL_PROFILE" ] || 
-  [ -z "$INSTALL_CONFIG_FILE_KIND" ] || [ -z "$TEST_SCRIPTS_DIR" ]; then
-  #[ -z "$TESTS_EXECUTED_FILE" ] || [ -z "$JENKINS_URL" ]; then
+if [ -z "$GO_REPO_PATH" ] || [ -z "$WORKSPACE" ] || [ -z "$TARBALL_DIR" ] || [ -z "$CLUSTER_NAME" ] ||
+  [ -z "$KIND_KUBERNETES_CLUSTER_VERSION" ] || -z [ "$KUBECONFIG" ] ||
+  [ -z "$IMAGE_PULL_SECRET" ] || [ -z "$PRIVATE_REPO" ] || [ -z "$REGISTRY" ] || [ -z "$PRIVATE_REGISTRY_USR" ] ||
+  [ -z "$PRIVATE_REGISTRY_PSW" ] || [ -z "$VZ_ENVIRONMENT_NAME" ] || [ -z "$INSTALL_PROFILE" ] ||
+  [ -z "$TESTS_EXECUTED_FILE" ] || [ -z "$INSTALL_CONFIG_FILE_KIND" ] || [ -z "$TEST_SCRIPTS_DIR" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
@@ -26,7 +26,7 @@ BOM_FILE=${TARBALL_DIR}/verrazzano-bom.json
 CHART_LOCATION=${TARBALL_DIR}/charts
 
 cd ${GO_REPO_PATH}/verrazzano
-#echo "tests will execute" > ${TESTS_EXECUTED_FILE}
+echo "tests will execute" > ${TESTS_EXECUTED_FILE}
 echo "Create Kind cluster"
 cd ${TEST_SCRIPTS_DIR}
 ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true $INSTALL_CALICO
@@ -52,7 +52,6 @@ cd ${GO_REPO_PATH}/verrazzano
 echo "Create Image Pull Secrets"
 cd ${GO_REPO_PATH}/verrazzano
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}"
-#./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
 ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
 echo "Install Platform Operator"
@@ -91,7 +90,7 @@ until kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}; do
   fi
 done
 
-#${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump -r ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump/analysis.report
+${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump -r ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump/analysis.report
 
 # wait for Verrazzano install to complete
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh

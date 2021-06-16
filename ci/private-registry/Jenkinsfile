@@ -86,6 +86,8 @@ pipeline {
         // Ideally use the TIBURON-DEV compartment, but we need permissions
         //REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tenancy')
+
+        TARBALL_DIR = "${WORKSPACE}/vz-tarball"
     }
 
     stages {
@@ -130,7 +132,9 @@ pipeline {
                         }
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                    imageRepoSubPath="verrazzano-private-registry/${env.GIT_BRANCH}/b${env.BUILD_NUMBER}"
+                    // Remove the build number for now until we have permissions to manage repos through the CLI
+                    //imageRepoSubPath="verrazzano-private-registry/${env.GIT_BRANCH}/b${env.BUILD_NUMBER}"
+                    imageRepoSubPath="verrazzano-private-registry/${env.GIT_BRANCH}"
                     baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}"
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
@@ -214,8 +218,8 @@ pipeline {
                     echo "Download OCIR region: $ocirRegion"
                     echo "Download OCIR Repository: ${ocirRegistry}"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/tarball.tar.gz --file ${WORKSPACE}/vz-latest-tarball.tar.gz
-                    mkdir ${WORKSPACE}/vz-tarball || true
-                    cd ${WORKSPACE}/vz-tarball
+                    mkdir ${TARBALL_DIR} || true
+                    cd ${TARBALL_DIR}
                     tar xvf ${WORKSPACE}/vz-latest-tarball.tar.gz
                 """
             }
@@ -227,12 +231,12 @@ pipeline {
                     echo "Image repo subpath: ${imageRepoSubPath}"
                     echo "Base image repo: ${baseImageRepo}"
                     echo "${WORKSPACE}"
-                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${WORKSPACE}/vz-tarball -c ${REPOSITORY_COMPARTMENT_OCID}
+                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
                     echo "Upload OCIR region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
                     # Run the image-helper to load the images into the OCIR registry in the runner's region
-                    cd ${WORKSPACE}/vz-tarball
-                    ${WORKSPACE}/vz-tarball/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
+                    cd ${TARBALL_DIR}
+                    ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
                 """
             }
         }
@@ -241,16 +245,15 @@ pipeline {
                 stage('Prepare AT environment') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                        PRIVATE_REPO="${baseImageRepo}"
+                        REGISTRY="${ocirRegistry}"
+                        PRIVATE_REGISTRY_USR="${OCIR_CREDS_USR}"
+                        PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
                     }
                     steps {
-                        script {
-                            echo "TODO"
-                        }
-                    }
-                    /*steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                            ci/scripts/prepare_private_registry_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
                     }
                     post {
@@ -266,7 +269,7 @@ pipeline {
                                 echo "------------------------------------------"
                             """
                         }
-                    }*/
+                    }
                 }
 
                 stage('Run Acceptance Tests') {
@@ -350,13 +353,13 @@ pipeline {
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
-                #cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                #make delete-cluster
-                #cd ${WORKSPACE}/verrazzano
-                #if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                #  echo "Failures seen during dumping of artifacts, treat post as failed"
-                #  exit 1
-                #fi
+                cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                make delete-cluster
+                cd ${WORKSPACE}/verrazzano
+                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                  echo "Failures seen during dumping of artifacts, treat post as failed"
+                  exit 1
+                fi
 
                 echo "Current execution region: $ocirRegion"
                 echo "OCIR Repository: ${ocirRegistry}"
