@@ -433,7 +433,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 				// could be a transient network error so log it and let the Eventually retry
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to do http request: %v", err))
 			}
-			return gomega.Expect(resp.StatusCode).To(gomega.Equal(500))
+			return resp.StatusCode == 500
 		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify NoIstio Frontend canNOT call Bar Backend")
 	})
 

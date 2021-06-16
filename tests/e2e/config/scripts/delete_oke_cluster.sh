@@ -61,6 +61,16 @@ do
   cleanup_vz_resources
 done
 
-# delete the OKE cluster
+# delete the OKE clusters
 cd $SCRIPT_DIR/terraform/cluster
-./delete-cluster.sh
+
+for i in $(seq 1 $CLUSTER_COUNT)
+do
+  if [ "$CLUSTER_COUNT" -gt 1 ]; then
+    workspace=cluster-$i
+    echo "Setting Terraform workspace: $workspace"
+    ./terraform workspace select $workspace -no-color
+  fi
+
+  ./delete-cluster.sh
+done
