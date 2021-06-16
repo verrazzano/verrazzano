@@ -90,8 +90,8 @@ pipeline {
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
         // Ideally use the TIBURON-DEV compartment, but we need permissions
-        //REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
-        REPOSITORY_COMPARTMENT_OCID = credentials('oci-tenancy')
+        //REPOSITORY_COMPARTMENT_OCID = credentials('oci-tenancy')
+        REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
         TARBALL_DIR = "${WORKSPACE}/vz-tarball"
     }
@@ -138,9 +138,7 @@ pipeline {
                         }
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                    // Remove the build number for now until we have permissions to manage repos through the CLI
-                    //imageRepoSubPath="verrazzano-private-registry/${env.GIT_BRANCH}/b${env.BUILD_NUMBER}"
-                    imageRepoSubPath="verrazzano-private-registry/${env.GIT_BRANCH}"
+                    imageRepoSubPath="verrazzano-private-registry/${env.GIT_BRANCH}/b${env.BUILD_NUMBER}"
                     baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}"
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
@@ -237,7 +235,7 @@ pipeline {
                     echo "Image repo subpath: ${imageRepoSubPath}"
                     echo "Base image repo: ${baseImageRepo}"
                     echo "${WORKSPACE}"
-                    #sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
                     echo "Upload OCIR region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
                     # Run the image-helper to load the images into the OCIR registry in the runner's region
@@ -480,7 +478,7 @@ pipeline {
                 echo "OCIR Repository: ${ocirRegistry}"
                 echo "Image repo subpath: ${imageRepoSubPath}"
                 echo "Base image repo: ${baseImageRepo}"
-                #sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
+                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
             """
         }
         failure {
