@@ -1,7 +1,7 @@
 # Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-ARG JDK_BINARY="${JDK_BINARY:-jdk-8u281-linux-x64.tar.gz}"
+ARG JDK_BINARY="${JDK_BINARY:-installers/jdk-8u291-linux-x64.tar.gz}"
 
 # Build stage for WebLogic Image Tool installation
 FROM ghcr.io/oracle/oraclelinux:7-slim AS build_wit
@@ -28,8 +28,8 @@ RUN yum update -y \
     && rm -rf /var/cache/yum
 
 ENV JAVA_HOME=/usr/java
-COPY ${JDK_BINARY} /
-ENV JDK_DOWNLOAD_SHA256=85e8c7da7248c7450fb105567a78841d0973597850776c24a527feb02ef3e586
+COPY ${JDK_BINARY} ${JDK_BINARY}
+ENV JDK_DOWNLOAD_SHA256=c5052d2e1dd9621a44658ef06be145c5cdfcd7ea956c0c9d655ccd64e79c8613
 
 RUN set -eux \
     echo "Checking JDK hash"; \
@@ -56,7 +56,7 @@ COPY --from=build_wit --chown=verrazzano:verrazzano imagetool imagetool
 
 # copy over installers
 COPY --from=build_jdk --chown=verrazzano:verrazzano ${JDK_BINARY} /imagetool/installers/
-COPY --chown=verrazzano:verrazzano fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip /imagetool/installers/
+COPY --chown=verrazzano:verrazzano installers/fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip /imagetool/installers/
 
 USER 1000
 
