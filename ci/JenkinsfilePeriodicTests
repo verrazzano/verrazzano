@@ -98,6 +98,16 @@ pipeline {
                         }
                     }
                 }
+                stage('Private registry tests') {
+                    steps {
+                        script {
+                            build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                ], wait: true
+                        }
+                    }
+                }
             }
         }
     }
