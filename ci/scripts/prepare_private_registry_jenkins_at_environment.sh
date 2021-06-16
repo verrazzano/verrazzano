@@ -11,7 +11,7 @@ set -o pipefail
 set -xv
 
 if [ -z "$GO_REPO_PATH" ] || [ -z "$WORKSPACE" ] || [ -z "$TARBALL_DIR" ] || [ -z "$CLUSTER_NAME" ] ||
-  [ -z "$KIND_KUBERNETES_CLUSTER_VERSION" ] || -z [ "$KUBECONFIG" ] ||
+  [ -z "$KIND_KUBERNETES_CLUSTER_VERSION" ] || [ -z "$KUBECONFIG" ] ||
   [ -z "$IMAGE_PULL_SECRET" ] || [ -z "$PRIVATE_REPO" ] || [ -z "$REGISTRY" ] || [ -z "$PRIVATE_REGISTRY_USR" ] ||
   [ -z "$PRIVATE_REGISTRY_PSW" ] || [ -z "$VZ_ENVIRONMENT_NAME" ] || [ -z "$INSTALL_PROFILE" ] ||
   [ -z "$TESTS_EXECUTED_FILE" ] || [ -z "$INSTALL_CONFIG_FILE_KIND" ] || [ -z "$TEST_SCRIPTS_DIR" ]; then
