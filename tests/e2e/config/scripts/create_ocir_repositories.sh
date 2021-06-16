@@ -60,10 +60,9 @@ function create_image_repos_from_archives() {
       repo_path=${PARENT_REPO}/${repo_path}
     fi
 
-    set -x
+    echo "Creating repository ${repo_path} in ${REGION}, public: ${is_public}"
     oci --region ${REGION} artifacts container repository create --display-name ${repo_path} \
       --is-public ${is_public} --compartment-id ${COMPARTMENT_ID}
-    set +x
   done
 }
 
