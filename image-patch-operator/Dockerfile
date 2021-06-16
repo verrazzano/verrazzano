@@ -36,7 +36,8 @@ RUN set -eux \
     echo "${JDK_DOWNLOAD_SHA256} ${JDK_BINARY}" | sha256sum --check -; \
     echo "Installing JDK"; \
     mkdir -p "$JAVA_HOME"; \
-    tar xzf ${JDK_BINARY} --directory "${JAVA_HOME}" --strip-components=1;
+    tar xzf ${JDK_BINARY} --directory "${JAVA_HOME}" --strip-components=1; \
+    rm -f ${JDK_BINARY}
 
 # Final image for deploying WebLogic Image Tool
 FROM ghcr.io/oracle/oraclelinux:7-slim
@@ -55,8 +56,11 @@ RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 ver
 COPY --from=build_wit --chown=verrazzano:verrazzano imagetool imagetool
 
 # copy over installers
-COPY --from=build_jdk --chown=verrazzano:verrazzano ${JDK_BINARY} /imagetool/installers/
-COPY --chown=verrazzano:verrazzano installers/fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip /imagetool/installers/
+COPY --chown=verrazzano:verrazzano \
+    ${JDK_BINARY} \
+    installers/fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip \
+    installers/weblogic-deploy.zip \
+    /imagetool/installers/
 
 USER 1000
 
