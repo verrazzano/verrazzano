@@ -42,6 +42,11 @@ OUTPUT_FILE=$OUTPUT_DIR/$CLUSTER_NAME.yaml
 TLS_SECRET=$(kubectl -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"')
 if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
   CA_CERT=$(kubectl -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 -d)
+else
+  ACME_SECRET=$(kubectl -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"')
+  if [ ! -z "${ACME_SECRET%%*( )}" ] && [ "null" != "${ACME_SECRET}" ] ; then
+    CA_CERT=$(kubectl -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"' | base64 -d)
+  fi
 fi
 
 #create the yaml file

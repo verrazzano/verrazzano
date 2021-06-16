@@ -37,6 +37,12 @@ CA_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
 TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"')
 if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
   CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
+else
+  # For Let's Encrypt staging, we need to use the ACME staging CAs
+  ACME_SECRET=$(kubectl -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"')
+  if [ ! -z "${ACME_SECRET%%*( )}" ] && [ "null" != "${ACME_SECRET}" ] ; then
+    CA_CERT=$(kubectl -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"' | base64 -d)
+  fi
 fi
 if [ ! -z "${CA_CERT}" ] ; then
    kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
