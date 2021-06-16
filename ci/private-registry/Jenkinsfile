@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -44,6 +44,7 @@ pipeline {
                 choices: [ "nip.io", "sslip.io"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
     }
 
     environment {
@@ -82,6 +83,11 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_CLI_AUTH="instance_principal"
+
+        // Used for dumping cluster from inside tests
+        DUMP_KUBECONFIG="${KUBECONFIG}"
+        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
         // Ideally use the TIBURON-DEV compartment, but we need permissions
         //REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
@@ -296,11 +302,127 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        /*stage('examples helidon') {
+                        stage('istio authorization policy') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
+                            }
+                            steps {
+                                runGinkgo('istio/authz')
+                            }
+                        }
+                        stage('security role based access') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
+                            }
+                            steps {
+                                runGinkgo('security/rbac')
+                            }
+                        }
+                        stage('security network policies') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-network-policies"
+                            }
+                            steps {
+                                script {
+                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                                        runGinkgo('security/network-policies')
+                                    }
+                                }
+                            }
+                        }
+                        stage('k8s deployment workload metrics') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
+                            }
+                            steps {
+                                runGinkgo('deploymetrics')
+                            }
+                        }
+                        stage('examples logging helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
+                            }
+                            steps {
+                                runGinkgo('logging/helidon')
+                            }
+                        }
+                        stage('examples todo') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+                            }
+                            steps {
+                                runGinkgo('examples/todo')
+                            }
+                        }
+                        stage('examples socks') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
+                            }
+                            steps {
+                                runGinkgo('examples/socks')
+                            }
+                        }
+                        stage('examples spring') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
+                            }
+                            steps {
+                                runGinkgo('examples/springboot')
+                            }
+                        }
+                        stage('examples helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                            }
                             steps {
                                 runGinkgo('examples/helidon')
                             }
-                        }*/
+                        }
+                        stage('examples helidon-config') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
+                            }
+                            steps {
+                                runGinkgo('examples/helidonconfig')
+                            }
+                        }
+                        stage('examples bobs') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
+                            }
+                            when {
+                                expression {params.RUN_SLOW_TESTS == true}
+                            }
+                            steps {
+                                runGinkgo('examples/bobsbooks')
+                            }
+                        }
+                        stage('console ingress') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
+                            }
+                            steps {
+                                runGinkgo('ingress/console')
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+                stage('Verify Registry') {
+                    environment {
+                        REGISTRY="${ocirRegistry}"
+                    }
+                    parallel {
+                        stage('verify-registry-url') {
+                            steps {
+                                runGinkgo('registry')
+                            }
+                        }
                     }
                     post {
                         always {
@@ -397,7 +519,7 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${DUMP_COMMAND} -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
     """
 }
 
