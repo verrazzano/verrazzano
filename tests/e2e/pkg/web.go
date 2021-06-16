@@ -125,39 +125,50 @@ func GetKeycloakHTTPClient(kubeconfigPath string) *retryablehttp.Client {
 	return client
 }
 
-// ExpectHTTPOk validates that this is no error and a that the status is 200
-func ExpectHTTPOk(resp *HTTPResponse, err error, msg string) {
-	ExpectHTTPStatus(http.StatusOK, resp, err, msg)
+// IsHTTPStatusOk validates that this is no error and a that the status is 200
+func IsHTTPStatusOk(resp *HTTPResponse, err error, msg string) bool {
+	return CheckHTTPStatus(http.StatusOK, resp, err, msg)
 }
 
-// ExpectHTTPStatus validates that this is no error and a that the status matchs
-func ExpectHTTPStatus(status int, resp *HTTPResponse, err error, msg string) {
-	gomega.Expect(err).To(gomega.BeNil(), msg)
+// CheckHTTPStatus validates that this is no error and a that the status matchs
+func CheckHTTPStatus(status int, resp *HTTPResponse, err error, msg string) bool {
+	if err != nil {
+		return false
+	}
 
 	if resp.StatusCode != status {
 		if len(resp.Body) > 0 {
 			msg = msg + "\n" + string(resp.Body)
 		}
-		gomega.Expect(resp.StatusCode).To(gomega.Equal(status), msg)
+		Log(Error, msg)
+		return false
 	}
+
+	return true
 }
 
-// ExpectNoServerHeader validates that the response does not include a Server header.
-func ExpectNoServerHeader(resp *HTTPResponse) {
+// CheckNoServerHeader validates that the response does not include a Server header.
+func CheckNoServerHeader(resp *HTTPResponse) bool {
 	// HTTP Server headers should never be returned.
 	for headerName, headerValues := range resp.Header {
 		if strings.EqualFold(headerName, "Server") {
-			gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("server"), fmt.Sprintf("Unexpected Server header %v", headerValues))
+			Log(Error, fmt.Sprintf("Unexpected Server header %v", headerValues))
+			return false
 		}
 	}
+
+	return true
 }
 
-// ExpectHTTPGetOk submits a GET request and expect a status 200 response
-func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
+// MakeHTTPGetRequest submits a GET request and expect a status 200 response
+func MakeHTTPGetRequest(httpClient *retryablehttp.Client, url string) bool {
 	resp, err := httpClient.Get(url)
 	httpResp := ProcHTTPResponse(resp, err)
-	ExpectHTTPOk(httpResp, err, "Error doing http(s) get from "+url)
-	ExpectNoServerHeader(httpResp)
+	ok := IsHTTPStatusOk(httpResp, err, "Error doing http(s) get from "+url)
+	if !ok {
+		return false
+	}
+	return CheckNoServerHeader(httpResp)
 }
 
 // GetSystemVmiHTTPClient returns an HTTP client configured with the system vmi CA cert
