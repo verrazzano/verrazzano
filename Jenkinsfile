@@ -205,17 +205,7 @@ pipeline {
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    case "${env.BRANCH_NAME}" in
-                        master|release-*)
-                            ;;
-                        *)
-                            echo "Adding image pull secrets to operator.yaml for non master/release branch"
-                            export IMAGE_PULL_SECRETS=verrazzano-container-registry
-                    esac
-                    DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
-                   """
+                generateOperatorYaml("${DOCKER_IMAGE_TAG}")
             }
             post {
                 failure {
@@ -232,11 +222,24 @@ pipeline {
         stage('Build') {
             when { not { buildingTag() } }
             steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-                    cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
-                   """
+                buildImages("${DOCKER_IMAGE_TAG}")
+            }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+                success {
+                    archiveArtifacts artifacts: "generated-verrazzano-bom.json", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('DummyBuild') {
+            when { not { buildingTag() } }
+            steps {
+                buildImages("${DOCKER_IMAGE_TAG}")
             }
             post {
                 failure {
@@ -257,13 +260,7 @@ pipeline {
                 }
             }
             steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
-                   """
+                saveGeneratedFiles()
             }
             post {
                 failure {
@@ -277,16 +274,7 @@ pipeline {
         stage('Quality and Compliance Checks') {
             when { not { buildingTag() } }
             steps {
-                sh """
-                    echo "run all linters"
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make check
-
-                    echo "copyright scan"
-                    time make copyright-check
-
-                    echo "Third party license check"
-                """
+                qualityCheck()
                 thirdpartyCheck()
             }
             post {
@@ -623,7 +611,7 @@ pipeline {
                                     curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
                                     unzip chromedriver.zip
                                     sudo cp chromedriver /usr/local/bin/
-                                    
+
                                     # Run the tests
                                     make run-ui-tests
                                 """
@@ -757,6 +745,51 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+def buildImages(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+        cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
+    """
+}
+
+def generateOperatorYaml(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        case "${env.BRANCH_NAME}" in
+            master|release-*)
+                ;;
+            *)
+                echo "Adding image pull secrets to operator.yaml for non master/release branch"
+                export IMAGE_PULL_SECRETS=verrazzano-container-registry
+        esac
+        DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
+    """
+}
+
+def qualityCheck() {
+    sh """
+        echo "run all linters"
+        cd ${GO_REPO_PATH}/verrazzano
+        make check
+
+        echo "copyright scan"
+        time make copyright-check
+
+        echo "Third party license check"
+    """
+}
+
+def saveGeneratedFiles() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
+    """
 }
 
 def runGinkgoRandomize(testSuitePath) {
