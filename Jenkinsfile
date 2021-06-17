@@ -145,7 +145,7 @@ pipeline {
                         }
                     }
                 }
-                cleanWorkspaceCheckout()
+                moveContentToGoRepoPath()
 
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
@@ -177,7 +177,7 @@ pipeline {
                 }
             }
             steps {
-                analysisTool()
+                buildAnalysisTool()
             }
             post {
                 failure {
@@ -388,7 +388,7 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                            prepareAtEnvironment()
+                            prepareATEnvironment()
                         }
                     }
                 }
@@ -617,7 +617,7 @@ pipeline {
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
-            pipelinePostAlways()
+            deleteCluster()
         }
         failure {
             sh """
@@ -640,7 +640,7 @@ pipeline {
             }
         }
         success {
-            pipelinePostSuccess()
+            storePipelineArtifacts()
         }
         cleanup {
             deleteDir()
@@ -649,7 +649,7 @@ pipeline {
 }
 
 // Called in Stage Clean workspace and checkout steps
-def cleanWorkspaceCheckout() {
+def moveContentToGoRepoPath() {
     sh """
         rm -rf ${GO_REPO_PATH}/verrazzano
         mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -658,7 +658,7 @@ def cleanWorkspaceCheckout() {
 }
 
 // Called in final post always block of pipeline
-def pipelinePostAlways() {
+def deleteCluster() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
         make delete-cluster
@@ -670,7 +670,7 @@ def pipelinePostAlways() {
 }
 
 // Called in final post success block of pipeline
-def pipelinePostSuccess() {
+def storePipelineArtifacts() {
     sh """
         if [ "${params.GENERATE_TARBALL}" == "true" ]; then
             mkdir ${WORKSPACE}/tar-files
@@ -718,7 +718,7 @@ def acceptanceTestsConsole() {
 }
 
 // Called in Stage Prepare AT Environment post
-def prepareAtEnvironment() {
+def prepareATEnvironment() {
     sh """
         ## dump out install logs
         mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
@@ -753,7 +753,7 @@ def integrationTests(dockerImageTag) {
 }
 
 // Called in Stage Analysis Tool steps
-def analysisTool() {
+def buildAnalysisTool() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/tools/analysis
         make go-build
