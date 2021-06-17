@@ -42,5 +42,3 @@ application-operator/THIRD_PARTY_LICENSES.txt
 image-patch-operator/THIRD_PARTY_LICENSES.txt
 tools/analysis/THIRD_PARTY_LICENSES.txt
 tests/e2e/**/*.test
-image-patch-operator/bin
-image-patch-operator/out
