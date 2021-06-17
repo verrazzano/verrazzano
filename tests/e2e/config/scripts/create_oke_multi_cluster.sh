@@ -51,65 +51,69 @@ if [ -f /tmp/main.tf ]; then
   rm /tmp/main.tf
 fi
 
-# Create main.tf for the multi-cluster configuration, and evaluate the VNC and LB counts
+# Create main.tf files for each cluster, and evaluate the VNC and LB counts
 for i in $(seq 1 $CLUSTER_COUNT)
 do
   let REQUIRED_VNC_COUNT=$REQUIRED_VNC_COUNT+1
   let REQUIRED_LB_COUNT=$REQUIRED_LB_COUNT+2
-  cp ${SCRIPT_DIR}/terraform/cluster/multi_cluster_main_tf_template /tmp/main.tf.tmp
-  sed -i "s/MODULE_NAME/$MODULE_NAME_PREFIX-$i/g" /tmp/main.tf.tmp
-  sed -i "s/CLUSTER_NAME/$CLUSTER_NAME_PREFIX-$i/g" /tmp/main.tf.tmp
-  cat /tmp/main.tf.tmp >> /tmp/main.tf
+  cp ${SCRIPT_DIR}/terraform/cluster/multi_cluster_main_tf_template /tmp/main.tf.$i
+  sed -i "s/MODULE_NAME/$MODULE_NAME_PREFIX-$i/g" /tmp/main.tf.$i
+  sed -i "s/CLUSTER_NAME/$CLUSTER_NAME_PREFIX-$i/g" /tmp/main.tf.$i
 done
 
 echo "Minimum required VNC count: ${REQUIRED_VNC_COUNT}"
 echo "Minimum required Load Balancer count: ${REQUIRED_LB_COUNT}"
 
-# Copy the temporary file as main.tf
-cat /tmp/main.tf
-cp /tmp/main.tf ${SCRIPT_DIR}/terraform/cluster/main.tf
-
-rm /tmp/main.tf
 rm -rf ${KUBECONFIG_DIR}/*
 
 # check available resources
 check_for_resources VCN vcn vcn-count $REQUIRED_VNC_COUNT
 check_for_resources LB load-balancer lb-100mbps-count $REQUIRED_LB_COUNT
 
-echo 'Create OKE cluster...'
 cd ${SCRIPT_DIR}/terraform/cluster
-./create-multi-cluster.sh $CLUSTER_COUNT $CLUSTER_NAME_PREFIX
-status_code=$?
 
-if [ ${status_code:-1} -eq 0 ]; then
-    echo "OKE Cluster creation request submitted."
-    for i in $(seq 1 $CLUSTER_COUNT)
-    do
-      echo "Create kube config for cluster ${TF_VAR_label_prefix}-$CLUSTER_NAME_PREFIX-$i ..."
-      CLUSTER_OCID=$(oci ce cluster list --compartment-id "${TF_VAR_compartment_id}" --name "${TF_VAR_label_prefix}-${CLUSTER_NAME_PREFIX}-$i" --lifecycle-state "ACTIVE" | jq -r '.data[0]."id"')
-      echo "OCID of the cluster ${TF_VAR_label_prefix}-$CLUSTER_NAME_PREFIX-$i : ${CLUSTER_OCID}."
-      mkdir -p "${KUBECONFIG_DIR}/$i"
-      oci ce cluster create-kubeconfig --cluster-id ${CLUSTER_OCID} --file "${KUBECONFIG_DIR}/$i/kube_config" --region "${TF_VAR_region}" --token-version 2.0.0
-      export KUBECONFIG="${KUBECONFIG_DIR}/$i/kube_config"
-      # Adding a Service Account Authentication Token to kubeconfig
-      # https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengaddingserviceaccttoken.htm
-      ${SCRIPT_DIR}/update_oke_kubeconfig.sh
-      # Right after oke cluster is provisioned, it takes a while before any node is added to the cluster
-      # The next command will wait for node to come up before continue
-      echo "Waiting for nodes to be added to cluster..."
-      timeout 15m bash -c 'until kubectl get nodes | grep NAME; do sleep 10; done'
-      echo "Waiting for nodes to transition to 'READY'..."
-      kubectl wait --for=condition=ready nodes --timeout=5m --all
+for i in $(seq 1 $CLUSTER_COUNT)
+do
+  echo 'Create OKE cluster...'
+  # Copy the temporary file as main.tf
+  cat /tmp/main.tf.$i
+  cp /tmp/main.tf.$i ${SCRIPT_DIR}/terraform/cluster/main.tf
 
-      if [ $INSTALL_CALICO == true ] ; then
-        ${SCRIPT_DIR}/install_calico_oke.sh
-        if [ $? -ne 0 ]; then
-            echo "Install Calico failed!"
-            exit 1
-        fi
+  ./create-multi-cluster.sh $i $CLUSTER_NAME_PREFIX
+  status_code=$?
+
+  if [ ${status_code:-1} -eq 0 ]; then
+    echo "Create kube config for cluster ${TF_VAR_label_prefix}-$CLUSTER_NAME_PREFIX-$i ..."
+    CLUSTER_OCID=$(oci ce cluster list --compartment-id "${TF_VAR_compartment_id}" --name "${TF_VAR_label_prefix}-${CLUSTER_NAME_PREFIX}-$i" --lifecycle-state "ACTIVE" | jq -r '.data[0]."id"')
+    echo "OCID of the cluster ${TF_VAR_label_prefix}-$CLUSTER_NAME_PREFIX-$i : ${CLUSTER_OCID}."
+    mkdir -p "${KUBECONFIG_DIR}/$i"
+    oci ce cluster create-kubeconfig --cluster-id ${CLUSTER_OCID} --file "${KUBECONFIG_DIR}/$i/kube_config" --region "${TF_VAR_region}" --token-version 2.0.0
+    export KUBECONFIG="${KUBECONFIG_DIR}/$i/kube_config"
+    # Adding a Service Account Authentication Token to kubeconfig
+    # https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengaddingserviceaccttoken.htm
+    ${SCRIPT_DIR}/update_oke_kubeconfig.sh
+
+    # Calico needs to be installed before the node pool and workers are ready, otherwise the kube-system
+    # pods get into a bad state
+    if [ $INSTALL_CALICO == true ] ; then
+      ${SCRIPT_DIR}/install_calico_oke.sh
+      if [ $? -ne 0 ]; then
+          echo "Install Calico failed!"
+          exit 1
       fi
-    done
-else
+    fi
+  else
     echo "OKE Cluster creation request failed!"
     exit 1
-fi
+  fi
+done
+
+# Wait for all of the OKE clusters to be ready
+for i in $(seq 1 $CLUSTER_COUNT)
+do
+  export KUBECONFIG="${KUBECONFIG_DIR}/$i/kube_config"
+  echo "Waiting for nodes to be added to cluster..."
+  timeout 15m bash -c 'until kubectl get nodes | grep NAME; do sleep 10; done'
+  echo "Waiting for nodes to transition to 'READY'..."
+  kubectl wait --for=condition=ready nodes --timeout=5m --all
+done

@@ -107,24 +107,24 @@ func newScheme() *runtime.Scheme {
 	return scheme
 }
 
-// validateSecret enforces that the Prometheus secret name was specified and that the secret exists
+// validateSecret enforces that the CA secret name was specified and that the secret exists
 func (v VerrazzanoManagedCluster) validateSecret(client client.Client) error {
-	if len(v.Spec.PrometheusSecret) == 0 {
-		return fmt.Errorf("The name of the Prometheus secret in namespace %s must be specified", constants.VerrazzanoMultiClusterNamespace)
+	if len(v.Spec.CASecret) == 0 {
+		return fmt.Errorf("The name of the CA secret in namespace %s must be specified", constants.VerrazzanoMultiClusterNamespace)
 	}
 	secret := corev1.Secret{}
 	nsn := types.NamespacedName{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
-		Name:      v.Spec.PrometheusSecret,
+		Name:      v.Spec.CASecret,
 	}
 	err := client.Get(context.TODO(), nsn, &secret)
 	if err == nil {
 		return nil
 	}
 	if errors.IsNotFound(err) {
-		return fmt.Errorf("The Prometheus secret %s does not exist in namespace %s", v.Spec.PrometheusSecret, constants.VerrazzanoMultiClusterNamespace)
+		return fmt.Errorf("The CA secret %s does not exist in namespace %s", v.Spec.CASecret, constants.VerrazzanoMultiClusterNamespace)
 	}
-	return fmt.Errorf("Error getting the Prometheus secret %s namespace %s. Error: %s", v.Spec.PrometheusSecret, constants.VerrazzanoMultiClusterNamespace, err.Error())
+	return fmt.Errorf("Error getting the CA secret %s namespace %s. Error: %s", v.Spec.CASecret, constants.VerrazzanoMultiClusterNamespace, err.Error())
 }
 
 // validateConfigMap enforces that the verrazzano-admin-cluster secret name exists and server key has non-empty value

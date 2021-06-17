@@ -3,6 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
+def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
@@ -29,10 +30,15 @@ pipeline {
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
+        booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: 'master',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
     }
 
     environment {
@@ -53,6 +59,7 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
+        GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
@@ -180,10 +187,15 @@ pipeline {
                     cd out
                     zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
                 """
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 always {
                     archiveArtifacts artifacts: '**/analysis-tool.zip', allowEmptyArchive: true
                 }
@@ -206,6 +218,11 @@ pipeline {
                    """
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 success {
                     archiveArtifacts artifacts: "generated-operator.yaml", allowEmptyArchive: true
                 }
@@ -222,6 +239,11 @@ pipeline {
                    """
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 success {
                     archiveArtifacts artifacts: "generated-verrazzano-bom.json", allowEmptyArchive: true
                 }
@@ -238,10 +260,17 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
                    """
+            }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
             }
         }
 
@@ -260,6 +289,13 @@ pipeline {
                 """
                 thirdpartyCheck()
             }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+            }
         }
 
         stage('Unit Tests') {
@@ -271,6 +307,11 @@ pipeline {
                 """
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 always {
                     sh """
                         cd ${GO_REPO_PATH}/verrazzano
@@ -306,6 +347,11 @@ pipeline {
                 }
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 always {
                     archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
                 }
@@ -316,6 +362,10 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
+                    if [ "${params.SIMULATE_FAILURE}" == "true" ]; then
+                        echo "Simulate failure from a stage"
+                        exit 1
+                    fi
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
 
                     make cleanup-cluster
@@ -331,6 +381,11 @@ pipeline {
                 """
             }
             post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -380,7 +435,7 @@ pipeline {
                     environment {
                         VERRAZZANO_OPERATOR_IMAGE="NONE"
                         KIND_KUBERNETES_CLUSTER_VERSION="1.18"
-                        OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
+                        OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                     }
                     steps {
                         sh """
@@ -549,6 +604,31 @@ pipeline {
                                 runGinkgo('ingress/console')
                             }
                         }
+                        stage ('console') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                                GOOGLE_CHROME_VERSION="90.0.4430.93-1"
+                                CHROMEDRIVER_VERSION="90.0.4430.24"
+                            }
+                            steps {
+                                sh """
+                                    # Temporarily clone the console repo until it is moved to the verrazzano repo
+                                    cd ${GO_REPO_PATH}
+                                    git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
+                                    cd console
+                                    git checkout ${params.CONSOLE_REPO_BRANCH}
+
+                                    # Configure headless browser
+                                    google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
+                                    curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+                                    unzip chromedriver.zip
+                                    sudo cp chromedriver /usr/local/bin/
+                                    
+                                    # Run the tests
+                                    make run-ui-tests
+                                """
+                            }
+                        }
                     }
                     post {
                         always {
@@ -562,6 +642,7 @@ pipeline {
             post {
                 failure {
                     script {
+                        SKIP_TRIGGERED_TESTS = true
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-acceptance-tests-cluster-dump')
                         }
@@ -581,6 +662,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    expression {SKIP_TRIGGERED_TESTS == false}
                     anyOf {
                         branch 'master';
                         branch 'release-*';
@@ -632,7 +714,7 @@ pipeline {
             archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.BRANCH_NAME}-${env.BUILD_NUMBER}/archive.zip --file archive.zip
+                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
                 rm archive.zip
             """
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
@@ -682,6 +764,7 @@ def runGinkgoRandomize(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+            ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
 }
@@ -691,6 +774,7 @@ def runGinkgo(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
 }

@@ -4,9 +4,17 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-CLUSTER_COUNT=${1:-1}
+CLUSTER_INDEX=${1:-1}
 CLUSTER_NAME_PREFIX=${2:-""}
 . ./init.sh
+
+$SCRIPT_DIR/terraform init -no-color
+
+workspace=cluster-${CLUSTER_INDEX}
+echo "Creating Terraform workspace: $workspace"
+$SCRIPT_DIR/terraform workspace new $workspace -no-color
+
+$SCRIPT_DIR/terraform plan -var-file=$TF_VAR_nodepool_config.tfvars -var-file=$TF_VAR_region.tfvars -no-color
 
 # retry 3 times, 30 seconds apart
 tries=0
@@ -33,60 +41,57 @@ echo "Updating OKE private_workers_seclist to allow pub_lb_subnet access to work
 # the script would return 0 even if it fails to update OKE private_workers_seclist
 # because the OKE still could work if it didn't hit the rate limiting
 
-for i in $(seq 1 $CLUSTER_COUNT)
-do
-  # find vcn id
-  VCN_ID=$(oci network vcn list \
-    --compartment-id "${TF_VAR_compartment_id}" \
-    --display-name "${TF_VAR_label_prefix}-${CLUSTER_NAME_PREFIX}-$i-vcn" \
-    | jq -r '.data[0].id')
-  if [ -z "$VCN_ID" ]; then
-      echo "Failed to get the id for OKE cluster vcn ${TF_VAR_label_prefix}-${CLUSTER_NAME_PREFIX}-$i-vcn"
-      exit 0
-  fi
-
-  # find private_workers_seclist id
-  SEC_LIST_ID=$(oci network security-list list \
-    --compartment-id "${TF_VAR_compartment_id}" \
-    --display-name "${TF_VAR_label_prefix}-private-workers" \
-    --vcn-id "${VCN_ID}" \
-    | jq -r '.data[0].id')
-
-  if [ -z "$SEC_LIST_ID" ]; then
-      echo "Failed to get the id for security-list ${TF_VAR_label_prefix}-private-workers"
-      exit 0
-  fi
-
-  # find pub_lb_subnet CIDR
-  LB_SUBNET_CIDR=$(oci network subnet list \
-    --compartment-id "${TF_VAR_compartment_id}" \
-    --display-name "${TF_VAR_label_prefix}-pub_lb" \
-    --vcn-id "${VCN_ID}" \
-    | jq -r '.data[0]."cidr-block"')
-
-  if [ -z "$LB_SUBNET_CIDR" ]; then
-      echo "Failed to get the cidr-block for subnet ${TF_VAR_label_prefix}-pub_lb"
-      exit 0
-  fi
-
-  # get current ingress-security-rules
-  oci network security-list get --security-list-id "${SEC_LIST_ID}" | jq '.data."ingress-security-rules"' > ingress-security-rules-$i.json
-  if [ $? -eq 0 ]; then
-    echo "ingress-security-rules for security-list ${TF_VAR_label_prefix}-private-workers:"
-    cat ingress-security-rules-$i.json
-  else
-    echo "Failed to retrieve the ingress-security-rules for security-list ${TF_VAR_label_prefix}-private-workers"
+# find vcn id
+VCN_ID=$(oci network vcn list \
+  --compartment-id "${TF_VAR_compartment_id}" \
+  --display-name "${TF_VAR_label_prefix}-${CLUSTER_NAME_PREFIX}-${CLUSTER_INDEX}-vcn" \
+  | jq -r '.data[0].id')
+if [ -z "$VCN_ID" ]; then
+    echo "Failed to get the id for OKE cluster vcn ${TF_VAR_label_prefix}-${CLUSTER_NAME_PREFIX}-${CLUSTER_INDEX}-vcn"
     exit 0
-  fi
+fi
 
-  # add pub_lb_subnet ingress-security-rule
-  cat ingress-security-rules-$i.json | jq --arg LB_SUBNET_CIDR "${LB_SUBNET_CIDR}" '. += [{"description": "allow pub_lb_subnet access to workers","is-stateless": false,"protocol": "6","source": $LB_SUBNET_CIDR,"tcp-options": {"destination-port-range": {"max": 32767,"min": 30000}}},{"description": "allow pub_lb_subnet health check access to workers","is-stateless": false,"protocol": "6","source": $LB_SUBNET_CIDR,"tcp-options": {"destination-port-range": {"max": 10256,"min": 10256}}}]' > new.ingress-security-rules-$i.json
+# find private_workers_seclist id
+SEC_LIST_ID=$(oci network security-list list \
+  --compartment-id "${TF_VAR_compartment_id}" \
+  --display-name "${TF_VAR_label_prefix}-private-workers" \
+  --vcn-id "${VCN_ID}" \
+  | jq -r '.data[0].id')
 
-  # update private_workers_seclist
-  oci network security-list update --force --security-list-id "${SEC_LIST_ID}" --ingress-security-rules "file://${PWD}/new.ingress-security-rules-$i.json"
-  if [ $? -eq 0 ]; then
-    echo "Updated the OKE private_workers_seclist"
-  else
-    echo "Failed to update the OKE private_workers_seclist"
-  fi
-done
+if [ -z "$SEC_LIST_ID" ]; then
+    echo "Failed to get the id for security-list ${TF_VAR_label_prefix}-private-workers"
+    exit 0
+fi
+
+# find pub_lb_subnet CIDR
+LB_SUBNET_CIDR=$(oci network subnet list \
+  --compartment-id "${TF_VAR_compartment_id}" \
+  --display-name "${TF_VAR_label_prefix}-pub_lb" \
+  --vcn-id "${VCN_ID}" \
+  | jq -r '.data[0]."cidr-block"')
+
+if [ -z "$LB_SUBNET_CIDR" ]; then
+    echo "Failed to get the cidr-block for subnet ${TF_VAR_label_prefix}-pub_lb"
+    exit 0
+fi
+
+# get current ingress-security-rules
+oci network security-list get --security-list-id "${SEC_LIST_ID}" | jq '.data."ingress-security-rules"' > ingress-security-rules-${CLUSTER_INDEX}.json
+if [ $? -eq 0 ]; then
+  echo "ingress-security-rules for security-list ${TF_VAR_label_prefix}-private-workers:"
+  cat ingress-security-rules-${CLUSTER_INDEX}.json
+else
+  echo "Failed to retrieve the ingress-security-rules for security-list ${TF_VAR_label_prefix}-private-workers"
+  exit 0
+fi
+
+# add pub_lb_subnet ingress-security-rule
+cat ingress-security-rules-${CLUSTER_INDEX}.json | jq --arg LB_SUBNET_CIDR "${LB_SUBNET_CIDR}" '. += [{"description": "allow pub_lb_subnet access to workers","is-stateless": false,"protocol": "6","source": $LB_SUBNET_CIDR,"tcp-options": {"destination-port-range": {"max": 32767,"min": 30000}}},{"description": "allow pub_lb_subnet health check access to workers","is-stateless": false,"protocol": "6","source": $LB_SUBNET_CIDR,"tcp-options": {"destination-port-range": {"max": 10256,"min": 10256}}}]' > new.ingress-security-rules-${CLUSTER_INDEX}.json
+
+# update private_workers_seclist
+oci network security-list update --force --security-list-id "${SEC_LIST_ID}" --ingress-security-rules "file://${PWD}/new.ingress-security-rules-${CLUSTER_INDEX}.json"
+if [ $? -eq 0 ]; then
+  echo "Updated the OKE private_workers_seclist"
+else
+  echo "Failed to update the OKE private_workers_seclist"
+fi
