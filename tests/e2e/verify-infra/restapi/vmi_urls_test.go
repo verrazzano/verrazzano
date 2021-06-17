@@ -6,6 +6,7 @@ package restapi_test
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
@@ -61,6 +62,8 @@ var _ = ginkgo.Describe("vmi urls test", func() {
 func verifySystemVMIComponent(api *pkg.APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *pkg.UsernamePassword, ingressName, expectedURLPrefix string) bool {
 	ingress := api.GetIngress("verrazzano-system", ingressName)
 	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	gomega.Expect(vmiComponentURL).Should(gomega.HavePrefix(expectedURLPrefix))
+	if !strings.HasPrefix(vmiComponentURL, expectedURLPrefix) {
+		return false
+	}
 	return pkg.AssertURLAccessibleAndAuthorized(sysVmiHTTPClient, vmiComponentURL, vmiCredentials)
 }

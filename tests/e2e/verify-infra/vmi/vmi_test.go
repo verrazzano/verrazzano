@@ -179,7 +179,7 @@ var _ = ginkgo.Describe("VMI", func() {
 
 		ginkgo.It("Elasticsearch systemd journal Index should be accessible", func() {
 			gomega.Eventually(func() bool {
-				return pkg.FindLog("verrazzano-systemd-journal",
+				return pkg.FindAnyLog("verrazzano-systemd-journal",
 					[]pkg.Match{
 						{Key: "tag", Value: "systemd"},
 						{Key: "TRANSPORT", Value: "journal"},

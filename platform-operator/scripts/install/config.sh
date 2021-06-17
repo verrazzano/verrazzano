@@ -397,6 +397,82 @@ function is_keycloak_enabled() {
   echo ${keycloak_enabled}
 }
 
+# Parse the verrazzanoInstallArgs from the config.json and return the value of the configuration value
+function parse_vz_install_args() {
+  local install_args=$1
+  local config_value=$2
+  local vz_install_args=($(get_config_array $install_args)) || return 1
+  if [ ${#vz_install_args[@]} -ne 0 ]; then
+    for arg in "${vz_install_args[@]}"; do
+      param_name=$(echo "$arg" | jq -r '.name')
+      param_value=$(echo "$arg" | jq -r '.value')
+      if [ ! -z "$param_name" ] && [ ! -z "$param_value" ] && [ "$param_name" == "$config_value" ]; then
+        echo "$param_value"
+        return 0
+      fi
+    done
+  fi
+  return 0
+}
+
+# The function get_console_enabled outputs to stdout a configuration value, without the surrounding quotes, in the
+# following order.
+# - check whether "<config value>.enabled is there under verrazzanoInstallArgs in config.json, which is based on the
+#   configuration specified by the custom resource
+# - check whether "consolesEnabled.<config value> is set to true in install-overrides/config.${profile}.json
+# - check whether "consolesEnabled.<config value> is set to true in install-overrides/config.json
+# The configuration value in the
+function get_console_enabled() {
+  local jq_expr="$1"
+  local config_value=""
+  if [ ! -z "$(get_config_value '.verrazzanoInstallArgs')" ]; then
+    # Read the value from the config.json
+    config_value="$(parse_vz_install_args '.verrazzanoInstallArgs[]' "$jq_expr.enabled")"
+    if [ -z "$config_value" ] || [ "$config_value" == "null" ] || [ "$config_value" == "" ]; then
+      config_value=""
+    else
+      echo "${config_value}"
+      return 0
+    fi
+  fi
+  if [ "$config_value" == "" ] ; then
+    # Read the value from the config overrides
+    config_value=$(get_config_value ".consolesEnabled.${jq_expr}")
+  fi
+  echo "${config_value}"
+}
+
+# Return whether Elasticsearch console is enabled
+function is_elasticsearch_console_enabled() {
+  local es_enabled=$(get_console_enabled 'elasticsearch')
+  echo ${es_enabled}
+}
+
+# Return whether Grafana console is enabled
+function is_grafana_console_enabled() {
+  local grafana_enabled=$(get_console_enabled 'grafana')
+  echo ${grafana_enabled}
+}
+
+# Return whether Kibana console is enabled
+function is_kibana_console_enabled() {
+  local kibana_enabled=$(get_console_enabled 'kibana')
+  echo ${kibana_enabled}
+}
+
+# Return whether Verrazzano console is enabled
+function is_vz_console_enabled() {
+  local console_enabled=$(get_console_enabled 'console')
+  echo ${console_enabled}
+}
+
+# Return whether Prometheus console is enabled. For a managed-cluster profile, the console enabled flag is set to false
+# in the overrides, as the admin cluster should be used to query the metrics from the managed clusters.
+function is_prometheus_console_enabled() {
+  local prometheus_enabled=$(get_console_enabled 'prometheus')
+  echo ${prometheus_enabled}
+}
+
 # Return a flag indicating whether this is an installation leveraging OCI DNS
 function is_oci_dns() {
   local dns_type=$(get_config_value '.dns.type')

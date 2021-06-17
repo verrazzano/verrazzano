@@ -4,5 +4,12 @@
   },
   "keycloak": {
     "enabled": true
+  },
+  "consolesEnabled": {
+    "grafana": true,
+    "kibana": true,
+    "elasticsearch": true,
+    "prometheus": true,
+    "console": true
   }
 }

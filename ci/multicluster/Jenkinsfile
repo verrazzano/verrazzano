@@ -143,6 +143,9 @@ pipeline {
 
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+
+        VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
+        VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
     }
 
     stages {
@@ -337,7 +340,7 @@ pipeline {
                                 cd ${GO_REPO_PATH}/verrazzano
                                 if [ "NONE" = "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
                                     echo "Using the latest master branch operator.yaml from object storage"
-                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                                 else
                                     echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
@@ -380,6 +383,11 @@ pipeline {
                         stage('verify-install') {
                             steps {
                                 runGinkgoRandomize('verify-install')
+                            }
+                        }
+                        stage('verify-scripts') {
+                            steps {
+                                runGinkgo('scripts', "${ADMIN_KUBECONFIG}", "${params.TOTAL_CLUSTERS}")
                             }
                         }
                         stage('verify-infra restapi') {
@@ -479,6 +487,23 @@ pipeline {
                                         export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                                         export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-ns-ops"
                                         ginkgo -v -keepGoing --noColor multicluster/examples/helidon-ns-ops/...
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+                stage ('Multi-cluster Verify Api') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            script {
+                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                                for(int count=2; count<=clusterCount; count++) {
+                                    sh """
+                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
+                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                        ginkgo -v -keepGoing --noColor multicluster/verify-api/...
                                     """
                                 }
                             }
@@ -754,6 +779,18 @@ def runGinkgoRandomize(testSuitePath) {
     }
 }
 
+// Run a test suite using a given kube configuration against all clusters
+def runGinkgo(testSuitePath, kubeConfig, clusterCount) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            export KUBECONFIG="${kubeConfig}"
+            export CLUSTER_COUNT="${clusterCount}"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+        """
+    }
+}
+
 // Configure the Admin and Managed cluster installer custom resources
 def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript, String... extraArgs) {
     script {
@@ -855,7 +892,7 @@ def dumpVerrazzanoSystemPods() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -876,7 +913,7 @@ def dumpCattleSystemPods() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -893,7 +930,7 @@ def dumpNginxIngressControllerLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -965,7 +1002,7 @@ def dumpVerrazzanoApiLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
@@ -980,12 +1017,12 @@ def dumpInstallLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
                 ## dump verrazzano install logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
-                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install.log --tail -1
+                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
                 kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
                 echo "------------------------------------------"
             """

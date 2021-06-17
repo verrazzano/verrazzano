@@ -64,6 +64,7 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	// Admin Cluster - expect a get followed by status update on VMC to record last agent connect time
 	vmcName := types.NamespacedName{Name: string(validSecret.Data[constants.ClusterNameData]), Namespace: constants.VerrazzanoMultiClusterNamespace}
 	expectGetAPIServerURLCalled(mcMock)
+	expectGetPrometheusHostCalled(mcMock)
 	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
 
 	// Admin Cluster - expect call to list VerrazzanoProject objects - return an empty list
@@ -402,6 +403,8 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 			assert.Equal(vmcName.Name, vmc.Name)
 			assert.NotNil(vmc.Status)
 			assert.NotNil(vmc.Status.LastAgentConnectTime)
+			assert.NotNil(vmc.Status.APIUrl)
+			assert.NotNil(vmc.Status.PrometheusHost)
 			return nil
 		})
 }
@@ -432,6 +435,7 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 	vmcName := types.NamespacedName{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
 
 	expectGetAPIServerURLCalled(localClientMock)
+	expectGetPrometheusHostCalled(localClientMock)
 	// Mock the success of status updates and assert that updateVMCStatus returns nil error
 	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
 	assert.Nil(s.updateVMCStatus())
@@ -456,6 +460,24 @@ func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
 				Name:      name.Name}
 			ingress.Spec.TLS = []extv1beta1.IngressTLS{{
 				Hosts: []string{"console"},
+			}}
+			return nil
+		})
+}
+
+func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
+	// Expect a call to get the prometheus ingress and return the host.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzPrometheusIngress}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *extv1beta1.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			ingress.Spec.TLS = []extv1beta1.IngressTLS{{
+				Hosts: []string{"prometheus"},
 			}}
 			return nil
 		})

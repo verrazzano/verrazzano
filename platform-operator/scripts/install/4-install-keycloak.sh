@@ -769,19 +769,52 @@ rm -rf $TMP_DIR
 
 consoleout
 consoleout "Installation Complete."
-consoleout
-consoleout "Verrazzano provides various user interfaces."
-consoleout
-consoleout "Grafana - https://grafana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
-consoleout "Prometheus - https://prometheus.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
-consoleout "Kibana - https://kibana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
-consoleout "Elasticsearch - https://elasticsearch.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
-consoleout "Verrazzano Console - https://verrazzano.${ENV_NAME}.${DNS_SUFFIX}"
-consoleout
-consoleout "You will need the credentials to access the preceding user interfaces.  They are all accessed by the same username/password."
-consoleout "User: verrazzano"
-consoleout "Password: kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo"
-consoleout
+
+# Determine the consoles enabled for the profile and display the URLs accordingly
+consoleArr=()
+if [ "$(is_grafana_console_enabled)" == "true" ]; then
+  consoleArr+=("Grafana - https://grafana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}")
+fi
+
+if [ "$(is_prometheus_console_enabled)" == "true" ]; then
+  consoleArr+=("Prometheus - https://prometheus.vmi.system.${ENV_NAME}.${DNS_SUFFIX}")
+fi
+
+if [ "$(is_kibana_console_enabled)" == "true" ]; then
+  consoleArr+=("Kibana - https://kibana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}")
+fi
+
+if [ "$(is_elasticsearch_console_enabled)" == "true" ]; then
+  consoleArr+=("Elasticsearch - https://elasticsearch.vmi.system.${ENV_NAME}.${DNS_SUFFIX}")
+fi
+
+if [[ "$(is_vz_console_enabled)" == "true" ]]; then
+  consoleArr+=("Verrazzano Console - https://verrazzano.${ENV_NAME}.${DNS_SUFFIX}")
+fi
+
+console_count=${#consoleArr[@]}
+if [ $console_count -gt 0 ];then
+  consoleout
+  if [ $console_count -eq 1 ];then
+    consoleout "Verrazzano provides the following user interface."
+  else
+    consoleout "Verrazzano provides various user interfaces."
+  fi
+  consoleout
+  for consoleValue in "${consoleArr[@]}"
+  do
+    consoleout "$consoleValue"
+  done
+  consoleout
+  if [ $console_count -eq 1 ];then
+    consoleout "You will need the credentials to access the preceding user interface. The user interface can be accessed by the username/password."
+  else
+    consoleout "You will need the credentials to access the preceding user interfaces. They are all accessed by the same username/password."
+  fi
+  consoleout "User: verrazzano"
+  consoleout "Password: kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo"
+  consoleout
+fi
 if [ $(is_rancher_enabled) == "true" ]; then
   consoleout "Rancher - https://rancher.${ENV_NAME}.${DNS_SUFFIX}"
   consoleout "User: admin"
