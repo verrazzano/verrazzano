@@ -7,9 +7,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/cobra"
-	cluster_client "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -20,6 +19,7 @@ type ClusterListOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	args        []string
 	genericclioptions.IOStreams
+	outputOptions string
 }
 
 func NewClusterListOptions(streams genericclioptions.IOStreams) *ClusterListOptions {
@@ -29,26 +29,28 @@ func NewClusterListOptions(streams genericclioptions.IOStreams) *ClusterListOpti
 	}
 }
 
-func NewCmdClusterList(streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdClusterList(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewClusterListOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List the clusters",
 		Long:  "List the clusters",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := listClusters(cmd, args); err != nil {
+			o.args = args
+			if err := o.listClusters(kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
 		},
 	}
-	o.configFlags.AddFlags(cmd.Flags())
+	//o.configFlags.AddFlags(cmd.Flags())
+	cmd.Flags().StringVarP(&o.outputOptions, "output", "o", "", helpers.OutputUsage)
 	return cmd
 }
 
-func listClusters(cmd *cobra.Command,args []string) error {
+func (o *ClusterListOptions) listClusters(kubernetesInterface helpers.Kubernetes) error {
 
-	clientset, err := cluster_client.NewForConfig(pkg.GetKubeConfig())
+	clientset, err := kubernetesInterface.NewClientSet()
 	if err != nil {
 		return err
 	}
@@ -64,13 +66,21 @@ func listClusters(cmd *cobra.Command,args []string) error {
 		return nil
 	}
 
+	//Output options was specified
+	if len(o.outputOptions) != 0 {
+		//data, err := vmcs.Marshal()
+		err = helpers.PrintJsonYaml(o.outputOptions, vmcs, o.Out)
+		return err
+	}
+
 	// print out details of the clusters
-	headings := []string{"NAME", "AGE", "DESCRIPTION", "APISERVER"}
+	headings := []string{"NAME", "AGE", "STATUS", "DESCRIPTION", "APISERVER"}
 	data := [][]string{}
 	for _, vmc := range vmcs.Items {
 		rowData := []string{
 			vmc.Name,
 			helpers.Age(vmc.CreationTimestamp),
+			getStatus(vmc.Status.Conditions[0].Status),
 			vmc.Spec.Description,
 			vmc.Status.APIUrl,
 		}
@@ -78,8 +88,22 @@ func listClusters(cmd *cobra.Command,args []string) error {
 	}
 
 	// print out the data
-	if err := helpers.PrintTable(headings, data, cmd); err != nil {
+	if err := helpers.PrintTable(headings, data, o.Out); err != nil {
 		return err
 	}
 	return nil
 }
+
+func getStatus(status corev1.ConditionStatus) string {
+	switch status {
+	case "True":
+		return "Ready"
+	case "False":
+		return "Not Ready"
+	case "Unknown":
+		return ""
+	default:
+		panic("shouldn't reach here")
+	}
+}
+

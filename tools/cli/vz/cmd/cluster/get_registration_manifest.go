@@ -7,8 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/cobra"
-	cluster_client "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -17,6 +16,7 @@ type ClusterManifestOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	args        []string
 	genericclioptions.IOStreams
+	outputOptions string
 }
 
 func NewClusterManifestOptions (streams genericclioptions.IOStreams) *ClusterManifestOptions {
@@ -26,7 +26,7 @@ func NewClusterManifestOptions (streams genericclioptions.IOStreams) *ClusterMan
 	}
 }
 
-func NewCmdClusterManifest (streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdClusterManifest (streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewClusterManifestOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "get-registration-manifest [name]",
@@ -34,23 +34,23 @@ func NewCmdClusterManifest (streams genericclioptions.IOStreams) *cobra.Command 
 		Long:  "Get the registration manifest to be applied on the managed cluster",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := getManifest(cmd, args); err != nil {
+			o.args = args
+			if err := o.getManifest(kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
 		},
 	}
-	o.configFlags.AddFlags(cmd.Flags())
+	cmd.Flags().StringVarP(&o.outputOptions, "output", "o", "yaml", helpers.OutputUsage)
 	return cmd
 }
 
-func getManifest(cmd *cobra.Command, args []string) error {
+func (o *ClusterManifestOptions) getManifest(kubenetesInterface helpers.Kubernetes) error {
 	//name of managedCluster
-	vmcName := args[0]
+	vmcName := o.args[0]
 
 	//get the vmcObject to get the name of the manifest secret
-	config := pkg.GetKubeConfig()
-	clientset, err := cluster_client.NewForConfig(config)
+	clientset, err := kubenetesInterface.NewClientSet()
 
 	if err != nil {
 		return nil
@@ -66,14 +66,15 @@ func getManifest(cmd *cobra.Command, args []string) error {
 	manifestName := vmcObject.Spec.ManagedClusterManifestSecret
 
 	//k8s client set to fetch the secret
-	kclientset := pkg.GetKubernetesClientset()
+	kclientset := kubenetesInterface.NewKubernetesClientSet()
 	secret, err := kclientset.CoreV1().Secrets(vmcNamespace).Get(context.Background(), manifestName, v1.GetOptions{})
 
 	if err != nil {
 		return err
 	}
 
-	_, err = fmt.Fprintln(cmd.OutOrStdout(), string(secret.Data["yaml"]))
+	//err = helpers.PrintJsonYaml("yaml", secret.Data["yaml"], o.Out)
+	_, err = fmt.Fprintln(o.Out, string(secret.Data["yaml"]))
 	return err
 }
 

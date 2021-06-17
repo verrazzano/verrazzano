@@ -8,7 +8,7 @@ import (
 	clientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/kubernetes"
 )
 
 type ClusterOptions struct {
@@ -17,13 +17,13 @@ type ClusterOptions struct {
 	genericclioptions.IOStreams
 }
 
-func (o *ClusterOptions) GetKubeConfig() *restclient.Config{
-	return pkg.GetKubeConfig()
+func (c *ClusterOptions) NewClientSet() (clientset.Interface, error) {
+	client, err := clientset.NewForConfig(pkg.GetKubeConfig())
+	return client, err
 }
 
-func (o *ClusterOptions) NewClientSet() (clientset.Interface, error) {
-	client, err := clientset.NewForConfig(o.GetKubeConfig())
-	return client, err
+func (c *ClusterOptions) NewKubernetesClientSet() kubernetes.Interface {
+	return pkg.GetKubernetesClientset()
 }
 
 func NewClusterOptions(streams genericclioptions.IOStreams) *ClusterOptions {
@@ -40,10 +40,10 @@ func NewCmdCluster(streams genericclioptions.IOStreams) *cobra.Command {
 		Short: "Information about clusters",
 		Long:  "Information about clusters",
 	}
-	o.configFlags.AddFlags(cmd.Flags())
-	cmd.AddCommand(NewCmdClusterList(streams))
+
+	cmd.AddCommand(NewCmdClusterList(streams, o))
 	cmd.AddCommand(NewCmdClusterRegister(streams, o))
-	//cmd.AddCommand(NewCmdClusterDeregister(streams))
-	//cmd.AddCommand(NewCmdClusterManifest(streams))
+	cmd.AddCommand(NewCmdClusterDeregister(streams, o))
+	cmd.AddCommand(NewCmdClusterManifest(streams, o))
 	return cmd
 }
