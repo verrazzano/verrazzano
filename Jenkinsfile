@@ -566,22 +566,7 @@ pipeline {
                                 CHROMEDRIVER_VERSION="90.0.4430.24"
                             }
                             steps {
-                                sh """
-                                    # Temporarily clone the console repo until it is moved to the verrazzano repo
-                                    cd ${GO_REPO_PATH}
-                                    git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
-                                    cd console
-                                    git checkout ${params.CONSOLE_REPO_BRANCH}
-
-                                    # Configure headless browser
-                                    google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
-                                    curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-                                    unzip chromedriver.zip
-                                    sudo cp chromedriver /usr/local/bin/
-
-                                    # Run the tests
-                                    make run-ui-tests
-                                """
+                                acceptanceTestsConsole()
                             }
                         }
                     }
@@ -712,6 +697,26 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+// Called in parallel Stage console of Stage Run Acceptance Tests
+def acceptanceTestsConsole() {
+    sh """
+        # Temporarily clone the console repo until it is moved to the verrazzano repo
+        cd ${GO_REPO_PATH}
+        git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
+        cd console
+        git checkout ${params.CONSOLE_REPO_BRANCH}
+
+        # Configure headless browser
+        google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
+        curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+        unzip chromedriver.zip
+        sudo cp chromedriver /usr/local/bin/
+
+        # Run the tests
+        make run-ui-tests
+    """
 }
 
 // Called in Stage Prepare AT Environment post
