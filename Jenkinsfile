@@ -394,7 +394,6 @@ pipeline {
             }
 
             stages {
-
                 stage('Prepare AT environment') {
                     environment {
                         VERRAZZANO_OPERATOR_IMAGE="NONE"
@@ -410,15 +409,7 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                            sh """
-                                ## dump out install logs
-                                mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
-                                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
-                                kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
-                                echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                                echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                                echo "------------------------------------------"
-                            """
+                            prepareAtEnvironment()
                         }
                     }
                 }
@@ -721,6 +712,19 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+// Called in Stage Prepare AT Environment post
+def prepareAtEnvironment() {
+    sh """
+        ## dump out install logs
+        mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
+        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
+        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
+        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+        echo "------------------------------------------"
+    """
 }
 
 // Called in Stage Integration Tests steps
