@@ -113,6 +113,6 @@ func listHelidonApplications(cmd *cobra.Command, args []string) error {
 	}
 
 	// print out the data
-	helpers.PrintTable(headings, data, cmd)
+	helpers.PrintTable(headings, data, cmd.OutOrStdout())
 	return nil
 }

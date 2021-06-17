@@ -7,8 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/cobra"
-	cluster_client "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -26,7 +25,7 @@ func NewClusterDeregisterOptions (streams genericclioptions.IOStreams) *ClusterD
 	}
 }
 
-func NewCmdClusterDeregister(streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdClusterDeregister(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewClusterDeregisterOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "deregister [name]",
@@ -34,24 +33,23 @@ func NewCmdClusterDeregister(streams genericclioptions.IOStreams) *cobra.Command
 		Long:  "Deregister a managed cluster",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := deregisterCluster(cmd, args); err != nil {
+			o.args = args
+			if err := o.deregisterCluster(kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
 		},
 	}
-	o.configFlags.AddFlags(cmd.Flags())
 	return cmd
 }
 
-func deregisterCluster(cmd *cobra.Command, args []string) error {
+func (o *ClusterDeregisterOptions) deregisterCluster(kubernetesInterface helpers.Kubernetes) error {
 
 	//name of vmc resource
-	vmcName := args[0]
+	vmcName := o.args[0]
 
 	//get the vmc resource and delete it
-	config := pkg.GetKubeConfig()
-	clientset, err := cluster_client.NewForConfig(config)
+	clientset, err := kubernetesInterface.NewClientSet()
 
 	if err != nil {
 		return err
@@ -63,6 +61,6 @@ func deregisterCluster(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	_, err = fmt.Fprintln(cmd.OutOrStdout(), vmcName + " deregistered")
+	_, err = fmt.Fprintln(o.Out, vmcName + " deregistered")
 	return err
 }

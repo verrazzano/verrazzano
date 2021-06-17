@@ -14,15 +14,13 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
-var (
-	prometheusSecret string
-	description string
-)
-
 type ClusterRegisterOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	args        []string
 	genericclioptions.IOStreams
+
+	prometheusSecret string
+	description string
 }
 
 func NewClusterRegisterOptions (streams genericclioptions.IOStreams) *ClusterRegisterOptions {
@@ -40,24 +38,25 @@ func NewCmdClusterRegister(streams genericclioptions.IOStreams, kubernetesInterf
 		Long:  "Register a new managed cluster",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := registerCluster(cmd, args, kubernetesInterface); err != nil {
+			o.args = args
+			if err := o.registerCluster(kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
 		},
 	}
-	o.configFlags.AddFlags(cmd.Flags())
-	cmd.Flags().StringVarP(&description, "description", "d", "", "Description of the managed cluster")
-	cmd.Flags().StringVarP(&prometheusSecret, "prometheusSecret", "p", "", "Name of the Prometheus Secret")
+	//o.configFlags.AddFlags(cmd.Flags())
+	cmd.Flags().StringVarP(&o.description, "description", "d", "", "Description of the managed cluster")
+	cmd.Flags().StringVarP(&o.prometheusSecret, "prometheusSecret", "p", "", "Name of the Prometheus Secret")
 	return cmd
 }
 
-func registerCluster(cmd *cobra.Command, args []string, kubernetesInterface helpers.Kubernetes) error {
+func (o *ClusterRegisterOptions) registerCluster(kubernetesInterface helpers.Kubernetes) error {
 	//name of the managedCluster
-	mcName := args[0]
+	mcName := o.args[0]
 
 	//prometheusSecret name was not provided
-	if len(prometheusSecret) == 0 {
+	if len(o.prometheusSecret) == 0 {
 		return errors.New("prometheus secret is needed")
 	}
 
@@ -68,13 +67,13 @@ func registerCluster(cmd *cobra.Command, args []string, kubernetesInterface help
 			Namespace: vmcNamespace,
 		},
 		Spec: v1alpha1.VerrazzanoManagedClusterSpec{
-			Description: description,
-			PrometheusSecret: prometheusSecret,
+			Description: o.description,
+			PrometheusSecret: o.prometheusSecret,
 		},
 	}
 
 	clientset, err := kubernetesInterface.NewClientSet()
-	//clientset := r.clientset
+
 	if err != nil {
 		return err
 	}
@@ -85,7 +84,7 @@ func registerCluster(cmd *cobra.Command, args []string, kubernetesInterface help
 		return err
 	}
 
-	_, err = fmt.Fprintln(cmd.OutOrStdout(), "verrazzanomanagedcluster/"+mcName+" created")
+	_, err = fmt.Fprintln(o.Out, "verrazzanomanagedcluster/"+mcName+" created")
 
 	if err != nil {
 		return err
