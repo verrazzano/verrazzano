@@ -225,23 +225,6 @@ pipeline {
             }
         }
 
-        stage('DummyBuild') {
-            when { not { buildingTag() } }
-            steps {
-                buildImages("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                success {
-                    archiveArtifacts artifacts: "generated-verrazzano-bom.json", allowEmptyArchive: true
-                }
-            }
-        }
-
         stage('Save Generated Files') {
             when {
                 allOf {
