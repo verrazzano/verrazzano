@@ -181,14 +181,7 @@ pipeline {
                 }
             }
             steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/tools/analysis
-                    make go-build
-                    cd out
-                    zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-                """
+                analysisTool()
             }
             post {
                 failure {
@@ -747,6 +740,20 @@ pipeline {
     }
 }
 
+// Called in Stage Analysis Tool steps
+def analysisTool() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/tools/analysis
+        make go-build
+        cd out
+        zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
+    """
+}
+
+// Called in Stage Build steps
+// Makes target docker push for application/platform operator and analysis
 def buildImages(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
@@ -755,6 +762,7 @@ def buildImages(dockerImageTag) {
     """
 }
 
+// Called in Stage Generate operator.yaml steps
 def generateOperatorYaml(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -769,6 +777,8 @@ def generateOperatorYaml(dockerImageTag) {
     """
 }
 
+// Called in Stage Quality and Compliance Checks steps
+// Makes target check to run all linters
 def qualityCheck() {
     sh """
         echo "run all linters"
@@ -782,6 +792,7 @@ def qualityCheck() {
     """
 }
 
+// Called in Stage Save Generated Files steps
 def saveGeneratedFiles() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
@@ -792,6 +803,7 @@ def saveGeneratedFiles() {
     """
 }
 
+// Called in many parallel stages of Stage Run Acceptance Tests
 def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
@@ -802,6 +814,7 @@ def runGinkgoRandomize(testSuitePath) {
     }
 }
 
+// Called in many parallel stages of Stage Run Acceptance Tests
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
@@ -812,12 +825,14 @@ def runGinkgo(testSuitePath) {
     }
 }
 
+// Called in Stage Acceptance Tests post
 def dumpK8sCluster(dumpDirectory) {
     sh """
         ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/analysis.report
     """
 }
 
+// Called in final post block of pipeline
 def dumpVerrazzanoSystemPods() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -832,6 +847,7 @@ def dumpVerrazzanoSystemPods() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpCattleSystemPods() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -842,6 +858,7 @@ def dumpCattleSystemPods() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpNginxIngressControllerLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -850,6 +867,7 @@ def dumpNginxIngressControllerLogs() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpVerrazzanoPlatformOperatorLogs() {
     sh """
         ## dump out verrazzano-platform-operator logs
@@ -862,6 +880,7 @@ def dumpVerrazzanoPlatformOperatorLogs() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpVerrazzanoApplicationOperatorLogs() {
     sh """
         ## dump out verrazzano-application-operator logs
@@ -874,6 +893,7 @@ def dumpVerrazzanoApplicationOperatorLogs() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpOamKubernetesRuntimeLogs() {
     sh """
         ## dump out oam-kubernetes-runtime logs
@@ -886,6 +906,7 @@ def dumpOamKubernetesRuntimeLogs() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpVerrazzanoApiLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -894,6 +915,7 @@ def dumpVerrazzanoApiLogs() {
     """
 }
 
+// Called in Stage Clean workspace and checkout steps
 @NonCPS
 def getCommitList() {
     echo "Checking for change sets"
