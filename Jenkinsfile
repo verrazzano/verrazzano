@@ -668,35 +668,40 @@ pipeline {
             }
         }
         success {
-            sh """
-                if [ "${params.GENERATE_TARBALL}" == "true" ]; then
-                    mkdir ${WORKSPACE}/tar-files
-                    chmod uog+w ${WORKSPACE}/tar-files
-                    cp $WORKSPACE/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
-                    cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
-                    cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
-                    mkdir -p ${WORKSPACE}/tar-files/charts
-                    cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
-                    tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
-                    echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/tarball-commit.txt
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball-commit.txt --file $WORKSPACE/tarball-commit.txt
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
-                fi
-            """
-
-            // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
-            sh """
-                if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
-                    cd ${GO_REPO_PATH}/verrazzano
-                    echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
-                fi
-            """
+            pipelinePostSuccess()
         }
         cleanup {
             deleteDir()
         }
     }
+}
+
+// Called in final post success block of pipeline
+def pipelinePostSuccess() {
+    sh """
+        if [ "${params.GENERATE_TARBALL}" == "true" ]; then
+            mkdir ${WORKSPACE}/tar-files
+            chmod uog+w ${WORKSPACE}/tar-files
+            cp $WORKSPACE/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
+            cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
+            cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
+            mkdir -p ${WORKSPACE}/tar-files/charts
+            cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
+            tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
+            echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/tarball-commit.txt
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball-commit.txt --file $WORKSPACE/tarball-commit.txt
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
+        fi
+    """
+
+    // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
+    sh """
+        if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
+            cd ${GO_REPO_PATH}/verrazzano
+            echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
+        fi
+    """
 }
 
 // Called in parallel Stage console of Stage Run Acceptance Tests
