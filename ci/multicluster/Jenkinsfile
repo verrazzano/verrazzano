@@ -777,7 +777,6 @@ def runGinkgoRandomize(testSuitePath) {
             for(int count=1; count<=clusterCount; count++) {
                 // The first cluster created by this script is named as admin, and the subsequent clusters are named as
                 // managed1, managed2, etc.
-                // managed and an incrementing integer suffix starting with 2.
                 if (count == 1) {
                     clusterName="admin"
                 } else {
