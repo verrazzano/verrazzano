@@ -145,11 +145,7 @@ pipeline {
                         }
                     }
                 }
-                sh """
-                    rm -rf ${GO_REPO_PATH}/verrazzano
-                    mkdir -p ${GO_REPO_PATH}/verrazzano
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-                """
+                cleanWorkspaceCheckout()
 
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
@@ -638,14 +634,7 @@ pipeline {
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
-            sh """
-                cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                make delete-cluster
-                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                  echo "Failures seen during dumping of artifacts, treat post as failed"
-                  exit 1
-                fi
-            """
+            pipelinePostAlways()
         }
         failure {
             sh """
@@ -674,6 +663,27 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+// Called in Stage Clean workspace and checkout steps
+def cleanWorkspaceCheckout() {
+    sh """
+        rm -rf ${GO_REPO_PATH}/verrazzano
+        mkdir -p ${GO_REPO_PATH}/verrazzano
+        tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+    """
+}
+
+// Called in final post always block of pipeline
+def pipelinePostAlways() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        make delete-cluster
+        if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+          echo "Failures seen during dumping of artifacts, treat post as failed"
+          exit 1
+        fi
+    """
 }
 
 // Called in final post success block of pipeline
