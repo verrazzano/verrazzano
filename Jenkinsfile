@@ -472,6 +472,14 @@ pipeline {
                                 runGinkgoRandomize('verify-install')
                             }
                         }
+                        stage('Verify Metrics') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/metrics"
+                            }
+                            steps {
+                                runGinkgo('metrics')
+                            }
+                        }
                         stage('verify-scripts') {
                             steps {
                                 runGinkgo('scripts')
