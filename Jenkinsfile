@@ -186,7 +186,7 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/tools/analysis
                     make go-build
-                    sh ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh
+                    ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME}
                 """
             }
             post {
