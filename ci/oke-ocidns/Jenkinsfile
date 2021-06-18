@@ -420,7 +420,7 @@ pipeline {
                 stage('metrics') {
                     steps {
                         script {
-                            runGinkgo('metrics')
+                            runGinkgo('metrics/compmetrics')
                         }
                     }
                 }

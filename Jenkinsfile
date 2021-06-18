@@ -472,14 +472,6 @@ pipeline {
                                 runGinkgoRandomize('verify-install')
                             }
                         }
-                        stage('Verify Metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/metrics"
-                            }
-                            steps {
-                                runGinkgo('metrics')
-                            }
-                        }
                         stage('verify-scripts') {
                             steps {
                                 runGinkgo('scripts')
@@ -527,22 +519,22 @@ pipeline {
                         }
                         stage('security network policies') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-network-policies"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
                             }
                             steps {
                                 script {
                                     if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                                        runGinkgo('security/network-policies')
+                                        runGinkgo('security/netpol')
                                     }
                                 }
                             }
                         }
-                        stage('k8s deployment workload metrics') {
+                        stage('metrics') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/metrics"
                             }
                             steps {
-                                runGinkgo('deploymetrics')
+                                runGinkgoRandomize('metrics')
                             }
                         }
                         stage('examples logging helidon') {

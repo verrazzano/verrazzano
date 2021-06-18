@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package network_policy_test
+package compmetrics
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestSecurityNetworkPolicies(t *testing.T) {
+func TestComponentMetrics(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("security-network-policy-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Verrazzano Network Policy Suite", []ginkgo.Reporter{junitReporter})
+	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("compmetrics-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
+	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "System Component Metrics Suite", []ginkgo.Reporter{junitReporter})
 }
