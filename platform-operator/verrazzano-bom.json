@@ -226,10 +226,11 @@
               "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
             },
             {
-              "image": "verrazzano-monitoring-operator",
-              "tag": "0.15.0-20210527135645-9046e4b",
+              "image": "verrazzano-monitoring-operator-jenkins",
+              "tag": "0.15.0-20210618045355-171a7c7",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
+
             },
             {
               "image": "proxyv2",
