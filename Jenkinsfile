@@ -529,12 +529,20 @@ pipeline {
                                 }
                             }
                         }
-                        stage('metrics') {
+                        stage('k8s deployment workload metrics') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/metrics"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
                             }
                             steps {
-                                runGinkgoRandomize('metrics')
+                                runGinkgo('metrics/deploymetrics')
+                            }
+                        }
+                        stage('system component metrics') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
+                            }
+                            steps {
+                                runGinkgo('metrics/compmetrics')
                             }
                         }
                         stage('examples logging helidon') {
