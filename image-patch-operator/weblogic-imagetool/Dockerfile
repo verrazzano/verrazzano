@@ -10,8 +10,7 @@ ARG JDK_BINARY
 
 RUN microdnf update -y \
     && microdnf install -y unzip wget tar gzip \
-    && microdnf clean all \
-    && rm -rf /var/cache/microdnf
+    && microdnf clean all
 
 # Fetch and install docker
 RUN wget https://download.docker.com/linux/static/stable/x86_64/docker-20.10.7.tgz \
@@ -41,8 +40,7 @@ FROM ghcr.io/oracle/oraclelinux:8-slim
 # Install the image tool's builder
 RUN microdnf update -y \
     && microdnf install -y podman \
-    && microdnf clean all \
-    && rm -rf /var/cache/microdnf
+    && microdnf clean all
 
 WORKDIR /home/verrazzano
 
