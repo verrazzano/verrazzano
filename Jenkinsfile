@@ -5,6 +5,7 @@ def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
+def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
@@ -623,7 +624,7 @@ pipeline {
                                     curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
                                     unzip chromedriver.zip
                                     sudo cp chromedriver /usr/local/bin/
-                                    
+
                                     # Run the tests
                                     make run-ui-tests
                                 """
@@ -650,7 +651,7 @@ pipeline {
                 }
                 success {
                     script {
-                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-acceptance-tests-cluster-dump')
                         }
                     }
@@ -937,4 +938,13 @@ def getSuspectList(commitList, userMappings) {
     }
     echo "returning suspect list: ${retValue}"
     return retValue
+}
+
+def setEffectiveDumpOnSuccess() {
+    sh """
+        EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = params.DUMP_K8S_CLUSTER_ON_SUCCESS
+        if [ "${FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS}" == "true" ] && [ "${env.BRANCH_NAME}" == "tvlatas/dump-on-success-global" ] ; then
+            EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = true
+        fi
+    ""
 }
