@@ -7,7 +7,7 @@ metadata:
   name: my-verrazzano
 spec:
   components:
-    # OKE need extraVolumeMounts; it should work for KIND
+    # OKE need extraVolumeMounts; it should also work for KIND
     fluentd:
       extraVolumeMounts:
         - source: /u01/data
