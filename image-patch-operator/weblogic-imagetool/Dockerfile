@@ -3,18 +3,15 @@
 
 ARG JDK_BINARY="${JDK_BINARY:-installers/jdk-8u291-linux-x64.tar.gz}"
 
-# Build stage for WebLogic Image Tool and JDK installation
-FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
+# Build stage for required software installation
+FROM ghcr.io/oracle/oraclelinux:8-slim AS build_base
 
 ARG JDK_BINARY
 
-RUN yum update -y \
-    && yum-config-manager --save --setopt=ol7_ociyum_config.skip_if_unavailable=true \
-    && yum install -y unzip wget tar gzip \
-    && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne11/x86_64/ \
-    && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne12/x86_64/ \
-    && yum clean all \
-    && rm -rf /var/cache/yum
+RUN microdnf update -y \
+    && microdnf install -y unzip wget tar gzip \
+    && microdnf clean all \
+    && rm -rf /var/cache/microdnf
 
 # Fetch and install docker
 RUN wget https://download.docker.com/linux/static/stable/x86_64/docker-20.10.7.tgz \
@@ -39,7 +36,13 @@ RUN set -eux \
     rm -f ${JDK_BINARY}
 
 # Final image for deploying WebLogic Image Tool
-FROM ghcr.io/oracle/oraclelinux:7-slim
+FROM ghcr.io/oracle/oraclelinux:8-slim
+
+# Install the image tool's builder
+RUN microdnf update -y \
+    && microdnf install -y podman \
+    && microdnf clean all \
+    && rm -rf /var/cache/microdnf
 
 WORKDIR /home/verrazzano
 
@@ -47,9 +50,8 @@ ARG JDK_BINARY
 ARG WLS_BINARY="${WLS_BINARY:-installers/fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip}"
 ARG WDT_BINARY="${WDT_BINARY:-installers/weblogic-deploy.zip}"
 
-# Copy over Docker installation
-COPY --from=build_base /docker/* /usr/bin
-# RUN dockerd &
+RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
+    && chown -R 1000:verrazzano /home/verrazzano
 
 # Copy over JDK installation
 ENV JAVA_HOME=/usr/java
@@ -57,9 +59,6 @@ ENV PATH $JAVA_HOME/bin:$PATH
 COPY --from=build_base --chown=verrazzano:verrazzano ${JAVA_HOME} ${JAVA_HOME}
 
 # Copy over WebLogic Image Tool installation
-RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
-    && chown -R 1000:verrazzano /home/verrazzano
-# TODO: give verrazzano user access to docker
 COPY --from=build_base --chown=verrazzano:verrazzano /imagetool ./imagetool
 
 # Copy over installers
