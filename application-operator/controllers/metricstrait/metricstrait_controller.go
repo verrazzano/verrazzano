@@ -205,7 +205,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if trait.DeletionTimestamp.IsZero() {
-		return r.reconcileTraitCreateOrUpdate(ctx, trait)
+		result, supported, err := r.reconcileTraitCreateOrUpdate(ctx, trait)
+		if err != nil {
+			return result, err
+		}
+		if !supported {
+			// If the workload kind is not supported then delete the trait
+			r.Log.V(1).Info(fmt.Sprintf("deleting trait %s because workload is not supported", trait.Name))
+			err = r.Client.Delete(context.TODO(), trait, &client.DeleteOptions{})
+		}
+		return result, err
 	}
 	return r.reconcileTraitDelete(ctx, trait)
 }
@@ -221,39 +230,40 @@ func (r *Reconciler) reconcileTraitDelete(ctx context.Context, trait *vzapi.Metr
 }
 
 // reconcileTraitCreateOrUpdate reconciles a metrics trait that is being created or updated.
-func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vzapi.MetricsTrait) (ctrl.Result, error) {
+func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vzapi.MetricsTrait) (ctrl.Result, bool, error) {
 	var err error
 
 	// Add finalizer if required.
 	if err = r.addFinalizerIfRequired(ctx, trait); err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, true, err
 	}
 
 	// Fetch workload resource using information from the trait
 	var workload *unstructured.Unstructured
 	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r, r.Log, trait); err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, true, err
 	}
 
 	// Resolve trait defaults from the trait and the workload.
 	var traitDefaults *vzapi.MetricsTraitSpec
-	traitDefaults, err = r.fetchTraitDefaults(ctx, workload)
+	var supported bool
+	traitDefaults, supported, err = r.fetchTraitDefaults(ctx, workload)
 	if err != nil {
-		return reconcile.Result{}, err
-	} else if traitDefaults == nil {
-		return reconcile.Result{}, nil
+		return reconcile.Result{}, supported, err
+	} else if traitDefaults == nil || !supported {
+		return reconcile.Result{}, supported, nil
 	}
 
 	var scraper *k8sapps.Deployment
 	if scraper, err = r.fetchPrometheusDeploymentFromTrait(ctx, trait, traitDefaults); err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, true, err
 	}
 
 	// Find the child resources of the workload based on the childResourceKinds from the
 	// workload definition, workload uid and the ownerReferences of the children.
 	var children []*unstructured.Unstructured
 	if children, err = vznav.FetchWorkloadChildren(ctx, r, r.Log, workload); err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, true, err
 	}
 
 	// Create or update the related resources of the trait and collect the outcomes.
@@ -262,7 +272,8 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 	status = r.deleteOrUpdateObsoleteResources(ctx, trait, status)
 
 	// Update the status of the trait resource using the outcomes of the create or update.
-	return r.updateTraitStatus(ctx, trait, status)
+	traitStatus, err := r.updateTraitStatus(ctx, trait, status)
+	return traitStatus, true, err
 }
 
 // addFinalizerIfRequired adds the finalizer to the trait if required
@@ -676,40 +687,45 @@ func (r *Reconciler) fetchSourceCredentialsSecretIfRequired(ctx context.Context,
 
 // fetchTraitDefaults fetches metrics trait default values.
 // These default values are workload type dependent.
-func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
+func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, bool, error) {
 	apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 	// Match any version of Group=weblogic.oracle and Kind=Domain
 	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
-		return r.NewTraitDefaultsForWLSDomainWorkload(ctx, workload)
+		spec, err := r.NewTraitDefaultsForWLSDomainWorkload(ctx, workload)
+		return spec, true, err
 	}
 	// Match any version of Group=coherence.oracle and Kind=Coherence
 	if matched, _ := regexp.MatchString("^coherence.oracle.com/.*\\.Coherence$", apiVerKind); matched {
-		return r.NewTraitDefaultsForCOHWorkload(ctx, workload)
+		spec, err := r.NewTraitDefaultsForCOHWorkload(ctx, workload)
+		return spec, true, err
 	}
 
 	// Match any version of Group=coherence.oracle and Kind=VerrazzanoHelidonWorkload
 	// In the case of Helidon, the workload isn't currently being unwrapped
 	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoHelidonWorkload$", apiVerKind); matched {
-		return r.NewTraitDefaultsForGenericWorkload()
+		spec, err := r.NewTraitDefaultsForGenericWorkload()
+		return spec, true, err
 	}
 
 	// Match any version of Group=core.oam.dev and Kind=ContainerizedWorkload
 	if matched, _ := regexp.MatchString("^core.oam.dev/.*\\.ContainerizedWorkload$", apiVerKind); matched {
-		return r.NewTraitDefaultsForGenericWorkload()
+		spec, err := r.NewTraitDefaultsForGenericWorkload()
+		return spec, true, err
 	}
 
 	// Match any version of Group=apps and Kind=Deployment
 	if matched, _ := regexp.MatchString("^apps/.*\\.Deployment$", apiVerKind); matched {
-		return r.NewTraitDefaultsForGenericWorkload()
+		spec, err := r.NewTraitDefaultsForGenericWorkload()
+		return spec, true, err
 	}
 
 	// Log the kind/workload is unsupported and return a nil trait.
 	gvk, _ := vznav.GetAPIVersionKindOfUnstructured(workload)
 	r.Log.V(1).Info(fmt.Sprintf("unsupported kind %s of workload %s", gvk, vznav.GetNamespacedNameFromUnstructured(workload)))
-	return nil, nil
+	return nil, false, nil
 }
 
 // NewTraitDefaultsForWLSDomainWorkload creates metrics trait default values for a WLS domain workload.

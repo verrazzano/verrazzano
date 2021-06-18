@@ -77,13 +77,14 @@ func deployBobsBooksExample() {
 		map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books"}, nil); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
 	}
-	pkg.Log(pkg.Info, "Create component resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-comp.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create Bobs Books component resources: %v", err))
-	}
+	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
 	pkg.Log(pkg.Info, "Create application resources")
-	gomega.Eventually(func() error { return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml") },
-		shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books application resource").Should(gomega.BeNil())
+	if err := pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml"); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create Bobs Books application resource: %v", err))
+	}
+	pkg.Log(pkg.Info, "Create component resources")
+	gomega.Eventually(func() error { return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-comp.yaml") },
+		shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").Should(gomega.BeNil())
 }
 
 func undeployBobsBooksExample() {
