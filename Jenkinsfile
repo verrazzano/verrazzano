@@ -946,5 +946,5 @@ def setEffectiveDumpOnSuccess() {
         if [ "${FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS}" == "true" ] && [ "${env.BRANCH_NAME}" == "tvlatas/dump-on-success-global" ] ; then
             EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = true
         fi
-    ""
+    """
 }
