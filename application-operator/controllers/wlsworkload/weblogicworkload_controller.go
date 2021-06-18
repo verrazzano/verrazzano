@@ -156,13 +156,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	if found {
-		log.Info(fmt.Sprintf("Found runtimeEncryptionSecret: %s", secret))
 		err = r.createRuntimeEncryptionSecret(ctx, log, namespace.Name, secret, workload.ObjectMeta.Labels)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-	} else {
-		log.Info("runtimeEncryptionSecret not found")
 	}
 
 	// make a copy of the WebLogic spec since u.Object will get overwritten in CreateOrUpdate
@@ -340,7 +337,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr.Logger, namespaceName string, secretName string, workloadLabels map[string]string) error {
 	appName, ok := workloadLabels[oam.LabelAppName]
 	if !ok {
-		return errors.New("OAM app name label missing from metadata, unable to generate destination rule name")
+		return errors.New("OAM app name label missing from metadata, unable to create owner reference to appconfig")
 	}
 
 	// Create the secret if it does not already exist
@@ -350,7 +347,7 @@ func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr
 		secret = &corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
-				Kind:       "secret",
+				Kind:       "Secret",
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: namespaceName,
