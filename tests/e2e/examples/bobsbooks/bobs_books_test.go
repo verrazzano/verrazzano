@@ -60,16 +60,8 @@ func deployBobsBooksExample() {
 	if _, err := pkg.CreateCredentialsSecret("bobs-books", "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
 	}
-	pkg.Log(pkg.Info, "Create Bobbys front end runtime encrypt secret")
-	if _, err := pkg.CreateCredentialsSecret("bobs-books", "bobbys-front-end-runtime-encrypt-secret", wlsUser, wlsPass, map[string]string{"weblogic.domainUID": "bobbys-front-end"}); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
-	}
 	pkg.Log(pkg.Info, "Create Bobs Bookstore Weblogic credentials secret")
 	if _, err := pkg.CreateCredentialsSecret("bobs-books", "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
-	}
-	pkg.Log(pkg.Info, "Create Bobs Bookstore runtime encrypt secret")
-	if _, err := pkg.CreateCredentialsSecret("bobs-books", "bobs-bookstore-runtime-encrypt-secret", wlsUser, wlsPass, map[string]string{"weblogic.domainUID": "bobs-bookstore"}); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create database credentials secret")

@@ -7,6 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"strings"
+	"time"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -44,6 +47,7 @@ var specServerPodContainersFields = append(specServerPodFields, "containers")
 var specServerPodVolumesFields = append(specServerPodFields, "volumes")
 var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts")
 var specConfigurationIstioEnabledFields = []string{specField, "configuration", "istio", "enabled"}
+var specConfigurationRuntimeEncryptionSecret = []string{specField, "configuration", "model", "runtimeEncryptionSecret"}
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -144,6 +148,21 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err = controllerutil.SetControllerReference(workload, u, r.Scheme); err != nil {
 		log.Error(err, "Unable to set controller ref")
 		return reconcile.Result{}, err
+	}
+
+	// create the RuntimeEncryptionSecret if specified and the secret does not exist
+	secret, found, err := unstructured.NestedString(u.Object, specConfigurationRuntimeEncryptionSecret...)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if found {
+		log.Info(fmt.Sprintf("Found runtimeEncryptionSecret: %s", secret))
+		err = r.createRuntimeEncryptionSecret(ctx, log, namespace.Name, secret, workload.ObjectMeta.Labels)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	} else {
+		log.Info("runtimeEncryptionSecret not found")
 	}
 
 	// make a copy of the WebLogic spec since u.Object will get overwritten in CreateOrUpdate
@@ -317,6 +336,56 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 	return nil
 }
 
+// createRuntimeEncryptionSecret creates the runtimeEncryptionSecret specified in the domain spec if it does not exist.
+func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr.Logger, namespaceName string, secretName string, workloadLabels map[string]string) error {
+	appName, ok := workloadLabels[oam.LabelAppName]
+	if !ok {
+		return errors.New("OAM app name label missing from metadata, unable to generate destination rule name")
+	}
+
+	// Create the secret if it does not already exist
+	secret := &corev1.Secret{}
+	err := r.Get(ctx, client.ObjectKey{Namespace: namespaceName, Name: secretName}, secret)
+	if err != nil && k8serrors.IsNotFound(err) {
+		secret = &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "v1",
+				Kind:       "secret",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespaceName,
+				Name:      secretName,
+			},
+			Data: map[string][]byte{
+				"password": []byte(genPassword(10)),
+			},
+		}
+
+		// Set the owner reference.
+		appConfig := &v1alpha2.ApplicationConfiguration{}
+		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: appName}, appConfig)
+		if err != nil {
+			return err
+		}
+		err = controllerutil.SetControllerReference(appConfig, secret, r.Scheme)
+		if err != nil {
+			return err
+		}
+
+		log.Info(fmt.Sprintf("Creating secret %s:%s", namespaceName, secretName))
+		err = r.Create(ctx, secret)
+		if err != nil {
+			return err
+		}
+
+	} else if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("Secret %s:%s already exist", namespaceName, secretName))
+
+	return nil
+}
+
 // createDestinationRule creates an Istio destinationRule required by WebLogic servers.
 // The destinationRule is only created when the namespace has the label istio-injection=enabled.
 func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
@@ -397,4 +466,15 @@ func updateIstioEnabled(labels map[string]string, u *unstructured.Unstructured) 
 	}
 
 	return unstructured.SetNestedField(u.Object, istioEnabled, specConfigurationIstioEnabledFields...)
+}
+
+var passwordChars = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func genPassword(passSize int) string {
+	rand.Seed(time.Now().UnixNano())
+	var b strings.Builder
+	for i := 0; i < passSize; i++ {
+		b.WriteRune(passwordChars[rand.Intn(len(passwordChars))])
+	}
+	return b.String()
 }
