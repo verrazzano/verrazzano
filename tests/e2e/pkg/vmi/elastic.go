@@ -49,7 +49,10 @@ func (e *Elastic) PodsRunning() bool {
 // Connect checks if the elasticsearch cluster can be connected
 func (e *Elastic) Connect() bool {
 	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-	esURL := pkg.GetAPIEndpoint(kubeconfigPath).GetElasticURL()
+	esURL, err := pkg.GetAPIEndpoint(kubeconfigPath).GetElasticURL()
+	if err != nil {
+		return false
+	}
 	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	if err != nil {
 		return false
@@ -99,7 +102,11 @@ func (e *Elastic) ListIndices() []string {
 
 // getIndices gets index metadata (aliases, mappings, and settings) of all elasticsearch indices in the given cluster
 func (e *Elastic) getIndices(kubeconfigPath string) map[string]interface{} {
-	esURL := pkg.GetAPIEndpoint(kubeconfigPath).GetElasticURL() + "/_all"
+	esURL, err := pkg.GetAPIEndpoint(kubeconfigPath).GetElasticURL()
+	if err != nil {
+		return nil
+	}
+	esURL = esURL + "/_all"
 	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error ListIndices %v error: %v", esURL, err))
