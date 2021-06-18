@@ -250,7 +250,8 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 	traitDefaults, supported, err = r.fetchTraitDefaults(ctx, workload)
 	if err != nil {
 		return reconcile.Result{}, supported, err
-	} else if traitDefaults == nil || !supported {
+	}
+	if traitDefaults == nil || !supported {
 		return reconcile.Result{}, supported, nil
 	}
 
