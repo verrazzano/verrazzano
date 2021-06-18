@@ -153,7 +153,7 @@ pipeline {
                 """
 
                 script {
-                    setEffectiveDumpOnSuccess()
+                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -941,11 +941,11 @@ def getSuspectList(commitList, userMappings) {
     return retValue
 }
 
-def setEffectiveDumpOnSuccess() {
-    sh """
-        EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = params.DUMP_K8S_CLUSTER_ON_SUCCESS
-        if [ "${FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS}" == "true" ] && [ "${env.BRANCH_NAME}" == "tvlatas/dump-on-success-global" ] ; then
-            EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = true
-        fi
-    """
+setEffectiveDumpOnSuccess() {
+    def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
+    if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.equals("tvlatas/dump-on-success-global"))) {
+        effectiveValue = true
+        echo "Forcing dump on success based on global override setting"
+    }
+    return effectiveValue
 }
