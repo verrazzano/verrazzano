@@ -153,6 +153,7 @@ pipeline {
                 """
 
                 script {
+                    setEffectiveDumpOnSuccess()
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
