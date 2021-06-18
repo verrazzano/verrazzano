@@ -89,6 +89,7 @@ const OidcConfLuaFileTemplate = `    local ingressUri = 'https://'..'{{ .Ingress
     end
 {{ else if eq .Mode "oauth-proxy" }}
     -- set the oidc_user
-    ngx.var.oidc_user = auth.usernameFromIdToken(idToken)
+    ngx.var.oidc_user = auth.usernameFromIdToken(token)
+    auth.info("Authorized: oidc_user is "..ngx.var.oidc_user)
 {{ end }}
 `

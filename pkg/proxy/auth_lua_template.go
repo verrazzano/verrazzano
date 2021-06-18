@@ -36,6 +36,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     local oidcProviderUri = nil
     local oidcProviderInClusterUri = nil
     local oidcIssuerUri = nil
+    local oidcIssuerUriLocal = nil
 
     local logoutCallbackUri = nil
 
@@ -69,6 +70,8 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         end
 {{ end }}
         oidcIssuerUri = oidcProviderUri
+        oidcIssuerUriLocal = oidcProviderInClusterUri
+        --[[
         if oidcProviderUri then
             me.info("set oidcProviderUri to "..oidcProviderUri)
         end
@@ -78,6 +81,10 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         if oidcIssuerUri then
             me.info("set oidcIssuerUri to "..oidcIssuerUri)
         end
+        if oidcIssuerUri then
+            me.info("set oidcIssuerUriLocal to "..oidcIssuerUriLocal)
+        end
+        --]]
     end
 
     function me.log(logLevel, msg, name, value)
@@ -194,7 +201,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     -- should only be called if some vz process is trying to access vmi using basic auth
     -- tokens are cached locally
     function me.handleBasicAuth(authHeader)
-        me.info("Checking for basic auth credentials")
+        -- me.info("Checking for basic auth credentials")
         local found, index = authHeader:find('Basic')
         if not found then
             me.info("No basic auth credentials found")
@@ -225,7 +232,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         if not tokenRes then
             me.unauthorized("Could not get token")
         end
-        me.oidcValidateIDToken(tokenRes.id_token)
+        me.oidcValidateIDTokenPG(tokenRes.id_token)
         local expires_in = tonumber(tokenRes.expires_in)
         for key, val in pairs(basicCache) do
             if val.expiry and now > val.expiry then
@@ -269,6 +276,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     end
 
     function me.oidcAuthenticate()
+        me.info("Authenticating user")
         local sha256 = (require 'resty.sha256'):new()
         -- code verifier must be between 43 and 128 characters
         local codeVerifier = me.randomBase64(56)
@@ -294,28 +302,20 @@ const OidcAuthLuaFileTemplate = `    local me = {}
             redirect_uri = me.callbackUri
         })
         local redirectURL = me.getOidcAuthUri()..'?'..redirectArgs
-        if me.readCookie("authn") then
-            me.info("Deleting authn cookie")
-            me.deleteCookie("authn")
-        end
-        if me.readCookie("state") then
-            me.info("Deleting state cookie")
-            me.deleteCookie("state")
-        end
         me.setCookie("state", stateData, authStateTtlInSec)
         ngx.header["Cache-Control"] = "no-cache, no-store, max-age=0"
         ngx.redirect(redirectURL)
     end
 
     function me.oidcHandleCallback()
+        me.info("Handle authentication callback")
         local queryParams = me.queryParams(ngx.var.request_uri)
         local state = queryParams.state
         local code = queryParams.code
         local nonce = queryParams.nonce
         local cookie = me.readCookie("state")
         if not cookie then
-            me.log(ngx.ERR, "Missing state cookie, reauthenticating")
-            me.oidcAuthenticate()
+            me.unauthorized("Missing state cookie")
         end
         me.deleteCookie("state")
         local stateCk = cookie.state
@@ -323,20 +323,17 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         local request_uri = cookie.request_uri
 
         if (state == nil) or (stateCk == nil) then
-            me.log(ngx.ERR, "Missing callback state, reauthenticating")
-            me.oidcAuthenticate()
+            me.unauthorized("Missing callback state")
         else
             if state ~= stateCk then
-                me.log(ngx.ERR, "Invalid callback state, reauthenticating")
-                me.oidcAuthenticate()
+                me.unauthorized("Invalid callback state")
             end
             if not cookie.code_verifier then
-                me.log(ngx.ERR, "Invalid code_verifier, reauthenticating")
-                me.oidcAuthenticate()
+                me.unauthorized("Invalid code_verifier")
             end
             local tokenRes = me.oidcGetTokenWithCode(code, cookie.code_verifier, me.callbackUri)
             if tokenRes then
-                me.oidcValidateIDToken(tokenRes.id_token)
+                me.oidcValidateIDTokenPKCE(tokenRes.id_token)
                 me.tokenToCookie(tokenRes)
                 ngx.redirect(request_uri)
             end
@@ -350,6 +347,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     end
 
     function me.oidcTokenRequest(formArgs)
+        me.info("Requesting token from OP")
         local tokenUri = me.getOidcTokenUri()
         local http = require "resty.http"
         local httpc = http.new()
@@ -400,39 +398,46 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     end
 
     function me.oidcValidateBearerToken(token)
-        local claim_spec = {
-            typ = validators.equals( "Bearer" ),
-            iss = validators.equals( oidcIssuerUri ),
-            iat = validators.is_not_before(),
-            exp = validators.is_not_expired(),
-            azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient, "webui", "verrazzano-oauth-client" }),
-            aud = validators.required()
-        }
-        return me.oidcValidateToken(token, claim_spec)
+        return me.oidcValidateToken(token, "Bearer", oidcIssuerUri, oidcClient)
     end
 
-    function me.oidcValidateIDToken(token)
-        local claim_spec = {
-            typ = validators.equals( "ID" ),
-            iss = validators.equals( oidcIssuerUri ),
-            iat = validators.is_not_before(),
-            exp = validators.is_not_expired(),
-            azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient, "webui", "verrazzano-oauth-client" }),
-            aud = validators.required()
-        }
-        return me.oidcValidateToken(token, claim_spec)
+    function me.oidcValidateIDTokenPKCE(token)
+        return me.oidcValidateToken(token, "ID", oidcIssuerUri, oidcClient)
+    end
+
+    function me.oidcValidateIDTokenPG(token)
+        if not oidcIssuerUriLocal then
+            return me.oidcValidateToken(token, "ID", oidcIssuerUri, oidcDirectAccessClient)
+        else
+            return me.oidcValidateToken(token, "ID", oidcIssuerUriLocal, oidcDirectAccessClient)
+        end
     end
 
     -- returns nil if successful, or err otherwise
-    function me.oidcValidateToken(token, claim_spec)
+    function me.oidcValidateToken(token, expectedType, expectedIssuer, clientName)
         if not token or token == "" then
             me.unauthorized("Nil or empty token")
         end
-        if not claim_spec then
-            me.unauthorized("Nil or empty claim_spec")
+        if not expectedType then
+            me.unauthorized("Nil or empty expectedType")
+        end
+        if not expectedIssuer then
+            me.unauthorized("Nil or empty expectedIssuer")
+        end
+        if not clientName then
+            me.unauthorized("Nil or empty clientName")
         end
 
-        me.logJson(ngx.INFO, "Validating JWT token")
+        me.info("Validating JWT token")
+
+        local claim_spec = {
+            typ = validators.equals( expectedType ),
+            iss = validators.equals( expectedIssuer ),
+            iat = validators.is_not_before(),
+            exp = validators.is_not_expired(),
+            azp = validators.equals( clientName ),
+            aud = validators.required()
+        }
 
         -- passing verify a function to retrieve key didn't seem to work, so doing load then verify
         local jwt_obj = jwt:load_jwt(token)
@@ -445,7 +450,6 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         end
         -- me.info("TOKEN: iss is "..jwt_obj.payload.iss)
         -- me.info("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
-        -- verify returns a table when successful
         local verified = jwt:verify_jwt_obj(publicKey, jwt_obj, claim_spec)
         if not verified or (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
             me.unauthorized("Failed to validate token", jwt_obj.reason)
@@ -453,7 +457,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     end
 
     function me.isAuthorized(idToken)
-        me.info("Checking for required role 'requiredRole'")
+        me.info("Checking for required role '"..requiredRole.."'")
         local id_token = jwt:load_jwt(idToken)
         if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
             for _, role in ipairs(id_token.payload.realm_access.roles) do
@@ -466,16 +470,18 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     end
 
     function me.usernameFromIdToken(idToken)
+        -- me.info("usernameFromIdToken: fetching preferred_username")
         local id_token = jwt:load_jwt(idToken)
         if id_token and id_token.payload and id_token.payload.preferred_username then
             return id_token.payload.preferred_username
         end
-        return ""
+        me.unauthorized("usernameFromIdToken: preferred_username not found")
     end
 
     -- returns id token, token is refreshed first, if necessary.
     -- nil token returned if no session or the refresh token has expired
     function me.getTokenFromSession()
+        me.info("Check for existing session")
         local ck = me.readCookie("authn")
         if ck then
             local rft = ck.rt
@@ -488,7 +494,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
                 if now < refresh_expiry then
                     local tokenRes = me.oidcRefreshToken(rft, me.callbackUri)
                     if tokenRes then
-                        me.oidcValidateIDToken(tokenRes.id_token)
+                        me.oidcValidateIDTokenPKCE(tokenRes.id_token)
                         me.tokenToCookie(tokenRes)
                         me.info("token refreshed",  tokenRes)
                         return tokenRes.idt
