@@ -228,6 +228,25 @@ pipeline {
             }
         }
 
+        stage('Image Patch Operator') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    changeset "image-patch-operator/**"
+                }
+            }
+            steps {
+                buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
+            }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+            }
+        }
+
         stage('Save Generated Files') {
             when {
                 allOf {
@@ -775,6 +794,15 @@ def buildImages(dockerImageTag) {
         cd ${GO_REPO_PATH}/verrazzano
         make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
+    """
+}
+
+// Called in Stage Image Patch Operator
+// Makes target docker-push-ipo
+def buildImagePatchOperator(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        make docker-push-ipo VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_PATCH_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
     """
 }
 
