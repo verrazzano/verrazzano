@@ -180,6 +180,14 @@ const OidcAuthLuaFileTemplate = `local me = {}
       file:close()
     end
 
+    function me.hasCredentialType(authHeader, credentialType)
+        local start, end = authHeader:find(credentialType)
+        if start > 1 then
+            return true
+        end
+        return false
+    end
+
     -- console sends access token by itself (originally obtained via pkce client)
     function me.handleBearerToken(authHeader)
         local found, index = authHeader:find('Bearer')

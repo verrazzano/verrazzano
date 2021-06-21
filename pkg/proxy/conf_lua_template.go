@@ -39,19 +39,19 @@ const OidcConfLuaFileTemplate = `local ingressUri = 'https://'..'{{ .Ingress }}'
     local authHeader = ngx.req.get_headers()["authorization"]
     local token = nil
     if authHeader then
-{{ if eq .Mode "api-proxy" }}
-        -- console sent access token with k8s api request (not cached)
-        token = auth.handleBearerToken(authHeader)
-{{ else if eq .Mode "oauth-proxy" }}
-        -- vz component calling vmi component using basic auth (cached locally)
-        token = auth.handleBasicAuth(authHeader)
+        if auth.hasCredentialType(authHeader, 'Bearer') then
+            token = auth.handleBearerToken(authHeader)
+{{ if eq .Mode "oauth-proxy" }}
+        elseif auth.hasCredentialType(authHeader, 'Basic') then
+            token = auth.handleBasicAuth(authHeader)
 {{ end }}
+        end
         if not token then
             auth.info("No recognized credentials in authorization header")
         end
     else
 {{ if eq .Mode "api-proxy" }}
-        auth.info("No authorization header")
+        auth.info("No authorization header found")
 {{ else if eq .Mode "oauth-proxy" }}
         if string.find(ngx.var.request_uri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
