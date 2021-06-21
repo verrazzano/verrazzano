@@ -1,10 +1,10 @@
 # WIT in Docker Image
 
 This Dockerfile is used to run WebLogic Image Tool inside a Docker container. <br>
-Each of the `.download` files in the `installers` directory are placeholders for the installer files that need to be downloaded.
-Docker Desktop is also needed to run the below example.
+Each of the `.download` files in the `installers` directory are placeholders for the installer files that need to be downloaded. <br>
+Docker Desktop is needed to run the below example.
 
-### Create a Image using WIT inside a Docker container
+## Create a Image using WIT inside a Docker container
 This example shows how to use this Dockerfile to create a container that supports the WebLogic Image Tool.
 
 First, build the image from the Dockerfile.
