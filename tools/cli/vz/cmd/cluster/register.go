@@ -19,7 +19,7 @@ type ClusterRegisterOptions struct {
 	args        []string
 	genericclioptions.IOStreams
 
-	prometheusSecret string
+	caSecret string
 	description string
 }
 
@@ -47,7 +47,7 @@ func NewCmdClusterRegister(streams genericclioptions.IOStreams, kubernetesInterf
 	}
 	//o.configFlags.AddFlags(cmd.Flags())
 	cmd.Flags().StringVarP(&o.description, "description", "d", "", "Description of the managed cluster")
-	cmd.Flags().StringVarP(&o.prometheusSecret, "prometheusSecret", "p", "", "Name of the Prometheus Secret")
+	cmd.Flags().StringVarP(&o.caSecret, "casecret", "c", "", "Name of the CA Secret")
 	return cmd
 }
 
@@ -55,9 +55,9 @@ func (o *ClusterRegisterOptions) registerCluster(kubernetesInterface helpers.Kub
 	//name of the managedCluster
 	mcName := o.args[0]
 
-	//prometheusSecret name was not provided
-	if len(o.prometheusSecret) == 0 {
-		return errors.New("prometheus secret is needed")
+	//CA Secret name was not provided
+	if len(o.caSecret) == 0 {
+		return errors.New("CA secret is needed")
 	}
 
 	//create the vmc resource for the managed cluster
@@ -68,7 +68,7 @@ func (o *ClusterRegisterOptions) registerCluster(kubernetesInterface helpers.Kub
 		},
 		Spec: v1alpha1.VerrazzanoManagedClusterSpec{
 			Description: o.description,
-			PrometheusSecret: o.prometheusSecret,
+			CASecret: o.caSecret,
 		},
 	}
 
