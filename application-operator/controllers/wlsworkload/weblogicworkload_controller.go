@@ -471,7 +471,7 @@ func genPassword(passSize int) string {
 	rand.Seed(time.Now().UnixNano())
 	var b strings.Builder
 	for i := 0; i < passSize; i++ {
-		b.WriteRune(passwordChars[rand.Intn(len(passwordChars))])
+		b.WriteRune(passwordChars[rand.Intn(len(passwordChars)-1)])
 	}
 	return b.String()
 }
