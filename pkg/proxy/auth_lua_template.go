@@ -432,7 +432,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
 
         local claim_spec = {
             typ = validators.equals( expectedType ),
-            iss = validators.equals( expectedIssuer ),
+            iss = validators.equals_any_of( oidcClient, oidcDirectAccessClient ),
             iat = validators.is_not_before(),
             exp = validators.is_not_expired(),
             azp = validators.equals( clientName ),
