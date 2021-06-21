@@ -179,7 +179,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      verrazzano.io/namespace: monitoring
+      app: node-exporter
   policyTypes:
     - Ingress
   ingress:
