@@ -75,7 +75,7 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 	})
 
 	// GIVEN a Verrazzano deployment
-	// WHEN access is attempted between pods within the rules of the Verrazzano network policies
+	// WHEN access is attempted between pods within the ingress rules of the Verrazzano network policies
 	// THEN the attempted access should succeed
 	ginkgo.It("Test NetworkPolicy Rules", func() {
 		pkg.Concurrently(

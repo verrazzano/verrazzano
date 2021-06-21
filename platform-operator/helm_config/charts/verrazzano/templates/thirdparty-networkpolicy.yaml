@@ -193,8 +193,6 @@ spec:
       ports:
         - port: 9100
           protocol: TCP
-        - port: 15090
-          protocol: TCP
 {{- if .Values.keycloak.enabled }}
 ---
 # Network policy for Keycloak
