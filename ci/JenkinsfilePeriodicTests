@@ -106,7 +106,7 @@ pipeline {
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'CERT_ISSUER', value: "acme"),
                                     string(name: 'ACME_ENVIRONMENT', value: "staging"),
-                                    string(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
+                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
                                 ], wait: true
                         }
                     }
