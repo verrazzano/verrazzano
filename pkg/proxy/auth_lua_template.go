@@ -181,8 +181,8 @@ const OidcAuthLuaFileTemplate = `local me = {}
     end
 
     function me.hasCredentialType(authHeader, credentialType)
-        local start, end = authHeader:find(credentialType)
-        if start > 1 then
+        local start, _ = authHeader:find(credentialType)
+        if start then
             return true
         end
         return false
