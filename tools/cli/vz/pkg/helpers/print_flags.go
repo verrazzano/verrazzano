@@ -1,3 +1,6 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package helpers
 
 import (
@@ -36,7 +39,7 @@ func (f *PrintFlags) AddFlags(cmd *cobra.Command) {
 	f.TemplateFlags.AddFlags(cmd)
 
 	if f.OutputFormat != nil {
-		cmd.Flags().StringVarP(f.OutputFormat, "output", "o", *f.OutputFormat, fmt.Sprintf("Output format. One of: %s See custom columns [http://kubernetes.io/docs/user-guide/kubectl-overview/#custom-columns], golang template [http://golang.org/pkg/text/template/#pkg-overview] and jsonpath template [http://kubernetes.io/docs/user-guide/jsonpath].", strings.Join(f.AllowedFormats(), "|")))
+		cmd.Flags().StringVarP(f.OutputFormat, "output", "o", *f.OutputFormat, fmt.Sprintf("Output format. One of: %s", strings.Join(f.AllowedFormats(), "|")))
 	}
 }
 
