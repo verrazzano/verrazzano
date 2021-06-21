@@ -5,6 +5,7 @@ package springboot
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -114,18 +115,16 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 		gomega.Eventually(func() bool {
 			url := fmt.Sprintf("https://%s/", host)
 			status, content := pkg.GetWebPageWithCABundle(url, host)
-			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			return status == 200 && strings.Contains(content, "Greetings from Verrazzano Enterprise Container Platform")
+		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to get welcome page content")
 	})
 
 	ginkgo.It("Verify Verrazzano facts endpoint is working.", func() {
 		gomega.Eventually(func() bool {
 			url := fmt.Sprintf("https://%s/facts", host)
 			status, content := pkg.GetWebPageWithCABundle(url, host)
-			gomega.Expect(len(content) > 0, fmt.Sprintf("An empty string returned from /facts endpoint %v", content))
-			return gomega.Expect(status).To(gomega.Equal(200))
-		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			return status == 200 && len(content) > 0
+		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to get a non-empty string returned from /facts endpoint")
 	})
 
 	ginkgo.Context("Logging.", func() {

@@ -746,6 +746,7 @@ data:
     end
 
     function me.handleExternalAPICall(token)
+        local args = ngx.req.get_uri_args()
         me.logJson(ngx.INFO, "Read vmc resource for " .. args.cluster)
         local vmc = me.getVMC(args.cluster)
         if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
@@ -755,41 +756,36 @@ data:
         end
 
         -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
-        -- A secret is created in admin cluster during mutli cluster setup that contains the prometheus host and this ca certificate.
+        -- A secret is created in admin cluster during mutli cluster setup that contains the ca certificate.
         -- Here we read the name of that secret from vmc spec and retrieve the secret from cluster and read the cacrt field.
         -- The value of cacrt field is decoded to get the ca certificate and is appended to file being pointed to by the proxy_ssl_trusted_certificate variable.
         local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
-        if not(vmc.spec) or not(vmc.spec.prometheusSecret) then
+        if not(vmc.spec) or not(vmc.spec.caSecret) then
             ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to fetch prometheus secret name for vmc to access cart for managed cluster " .. args.cluster)
+            me.logJson(ngx.ERR, "Unable to fetch ca secret name for vmc to access api server of managed cluster " .. args.cluster)
             ngx.exit(ngx.HTTP_UNAUTHORIZED)
         end
 
-        local secret = me.getSecret(vmc.spec.prometheusSecret)
-        if not(secret) or not(secret.data) or not(secret.data[args.cluster .. ".yaml"]) then
+        local secret = me.getSecret(vmc.spec.caSecret)
+        if not(secret) or not(secret.data) or not(secret.data["cacrt"]) then
             ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to fetch prometheus secret for vmc to access cart for managed cluster " .. args.cluster)
+            me.logJson(ngx.ERR, "Unable to fetch ca secret for vmc to access api server of managed cluster " .. args.cluster)
             ngx.exit(ngx.HTTP_UNAUTHORIZED)
         end
 
-        local decodedSecretYaml = ngx.decode_base64(secret.data[args.cluster .. ".yaml"])
-        if not(decodedSecretYaml) then
+        local decodedSecret = ngx.decode_base64(secret.data["cacrt"])
+        if not(decodedSecret) then
             ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to decode prometheus secret for vmc to access cart for managed cluster " .. args.cluster)
+            me.logJson(ngx.ERR, "Unable to decode ca secret for vmc to access api server of managed cluster " .. args.cluster)
             ngx.exit(ngx.HTTP_UNAUTHORIZED)
         end
 
-        local startIndex, endIndex = string.find(decodedSecretYaml, "cacrt: |")
+        local startIndex, _ = string.find(decodedSecret, "-----BEGIN CERTIFICATE-----")
+        local _, endIndex = string.find(decodedSecret, "-----END CERTIFICATE-----")
         if startIndex >= 1 and endIndex > startIndex then
-            local sub = string.sub(decodedSecretYaml, endIndex+1)
-            local startIndex, _ = string.find(sub, "-----BEGIN CERTIFICATE-----")
-            local _, endIndex = string.find(sub, "-----END CERTIFICATE-----")
-            if startIndex >= 1 and endIndex > startIndex then
-                me.write_file("/etc/nginx/upstream.pem", string.sub(sub, startIndex, endIndex))
-            end
+            me.write_file("/etc/nginx/upstream.pem", string.sub(decodedSecret, startIndex, endIndex))
         end
-
-        local args = ngx.req.get_uri_args()
+        
         args.cluster = nil
         ngx.req.set_uri_args(args)
         ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
@@ -942,50 +938,83 @@ data:
   reload.sh: |
     #!/bin/bash
 
-    function reload() {
-      nginx -t -p /etc/nginx
-      if [ $? -eq 0 ]
-      then
-        echo "Detected Nginx Configuration Change"
-        echo "Executing: nginx -s reload -p /etc/nginx"
-        nginx -s reload -p /etc/nginx
-      fi
-    }
-
     adminCABundleMD5=""
     defaultCABundleMD5=""
+    upstreamCACertFile="/etc/nginx/upstream.pem"
+    localClusterCACertFile="/api-config/default-ca-bundle"
+    adminClusterCACertFile="/api-config/admin-ca-bundle"
+    defaultCACertFile="/etc/ssl/certs/ca-bundle.crt"
+    tmpUpstreamCACertFile="/tmp/upstream.pem"
     maxSizeTrustedCertsFileDefault=$(echo $((10*1024*1024)))
     if [[ ! -z "${MAX_SIZE_TRUSTED_CERTS_FILE}" ]]; then
         maxSizeTrustedCertsFileDefault=${MAX_SIZE_TRUSTED_CERTS_FILE}
     fi
 
-    while true
-    do
-        trustedCertsFileSize=$(wc -c < /etc/nginx/upstream.pem)
-        if [ $trustedCertsFileSize -ge $maxSizeTrustedCertsFileDefault ] ; then
-            cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/upstream.pem
-            adminCABundleMD5=""
-            defaultCABundleMD5=""
+    function reload() {
+        nginx -t -p /etc/nginx
+        if [ $? -eq 0 ]
+        then
+            echo "Detected Nginx Configuration Change"
+            echo "Executing: nginx -s reload -p /etc/nginx"
+            nginx -s reload -p /etc/nginx
         fi
+    }
 
-        if [[ -s /api-config/admin-ca-bundle ]]; then
-            md5Hash=$(md5sum "/api-config/admin-ca-bundle")
-            if [ "$adminCABundleMD5" != "$md5Hash" ] ; then
-                cat /api-config/admin-ca-bundle >> /etc/nginx/upstream.pem
-                adminCABundleMD5="$md5Hash"
-                reload
-            fi
-        fi
+    function reset_md5() {
+        adminCABundleMD5=""
+        defaultCABundleMD5=""
+    }
 
-        if [[ -s /api-config/default-ca-bundle ]]; then
-            md5Hash=$(md5sum "/api-config/default-ca-bundle")
+    function local_cert_config() {
+        if [[ -s $localClusterCACertFile ]]; then
+            md5Hash=$(md5sum "$localClusterCACertFile")
             if [ "$defaultCABundleMD5" != "$md5Hash" ] ; then
-                cat /api-config/default-ca-bundle >> /etc/nginx/upstream.pem
+                echo "Adding local CA cert to $upstreamCACertFile"
+                cat $upstreamCACertFile > $tmpUpstreamCACertFile
+                cat $localClusterCACertFile > $upstreamCACertFile
+                cat $tmpUpstreamCACertFile >> $upstreamCACertFile
+                rm -rf $tmpUpstreamCACertFile
                 defaultCABundleMD5="$md5Hash"
                 reload
             fi
         fi
+    }
 
-        sleep 5
+    function admin_cluster_cert_config() {
+        if [[ -s $adminClusterCACertFile ]]; then
+            md5Hash=$(md5sum "$adminClusterCACertFile")
+            if [ "$adminCABundleMD5" != "$md5Hash" ] ; then
+                echo "Adding admin cluster CA cert to $upstreamCACertFile"
+                cat $upstreamCACertFile > $tmpUpstreamCACertFile
+                cat $adminClusterCACertFile > $upstreamCACertFile
+                cat $tmpUpstreamCACertFile >> $upstreamCACertFile
+                rm -rf $tmpUpstreamCACertFile
+                adminCABundleMD5="$md5Hash"
+                reload
+            fi
+        else 
+            if [ "$adminCABundleMD5" != "" ] ; then
+                reset_md5
+                local_cert_config
+            fi 
+        fi
+    }
+
+    function default_cert_config() {
+        cat $defaultCACertFile > $upstreamCACertFile
+    }
+
+    while true
+    do
+        trustedCertsFileSize=$(wc -c < $upstreamCACertFile)
+        if [ $trustedCertsFileSize -ge $maxSizeTrustedCertsFileDefault ] ; then
+            echo "$upstreamCACertFile file size greater than  $maxSizeTrustedCertsFileDefault, resetting.."
+            reset_md5
+            default_cert_config
+        fi
+
+        local_cert_config
+        admin_cluster_cert_config
+        sleep .1
     done
 {{ end }}

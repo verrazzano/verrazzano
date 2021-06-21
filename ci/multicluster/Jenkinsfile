@@ -340,7 +340,7 @@ pipeline {
                                 cd ${GO_REPO_PATH}/verrazzano
                                 if [ "NONE" = "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
                                     echo "Using the latest master branch operator.yaml from object storage"
-                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                                 else
                                     echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
@@ -487,6 +487,23 @@ pipeline {
                                         export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                                         export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-ns-ops"
                                         ginkgo -v -keepGoing --noColor multicluster/examples/helidon-ns-ops/...
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+                stage ('Multi-cluster Verify Api') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            script {
+                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                                for(int count=2; count<=clusterCount; count++) {
+                                    sh """
+                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
+                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                        ginkgo -v -keepGoing --noColor multicluster/verify-api/...
                                     """
                                 }
                             }

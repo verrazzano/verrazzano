@@ -674,6 +674,7 @@ const OidcAuthLuaFileTemplate = `    local me = {}
     end
 
     function me.handleExternalAPICall(token)
+        local args = ngx.req.get_uri_args()
         me.logJson(ngx.INFO, "Read vmc resource for " .. args.cluster)
         local vmc = me.getVMC(args.cluster)
         if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
@@ -683,41 +684,36 @@ const OidcAuthLuaFileTemplate = `    local me = {}
         end
 
         -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
-        -- A secret is created in admin cluster during mutli cluster setup that contains the prometheus host and this ca certificate.
+        -- A secret is created in admin cluster during mutli cluster setup that contains the ca certificate.
         -- Here we read the name of that secret from vmc spec and retrieve the secret from cluster and read the cacrt field.
         -- The value of cacrt field is decoded to get the ca certificate and is appended to file being pointed to by the proxy_ssl_trusted_certificate variable.
         local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
-        if not(vmc.spec) or not(vmc.spec.prometheusSecret) then
+        if not(vmc.spec) or not(vmc.spec.caSecret) then
             ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to fetch prometheus secret name for vmc to access cart for managed cluster " .. args.cluster)
+            me.logJson(ngx.ERR, "Unable to fetch ca secret name for vmc to access api server of managed cluster " .. args.cluster)
             ngx.exit(ngx.HTTP_UNAUTHORIZED)
         end
 
-        local secret = me.getSecret(vmc.spec.prometheusSecret)
-        if not(secret) or not(secret.data) or not(secret.data[args.cluster .. ".yaml"]) then
+        local secret = me.getSecret(vmc.spec.caSecret)
+        if not(secret) or not(secret.data) or not(secret.data["cacrt"]) then
             ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to fetch prometheus secret for vmc to access cart for managed cluster " .. args.cluster)
+            me.logJson(ngx.ERR, "Unable to fetch ca secret for vmc to access api server of managed cluster " .. args.cluster)
             ngx.exit(ngx.HTTP_UNAUTHORIZED)
         end
 
-        local decodedSecretYaml = ngx.decode_base64(secret.data[args.cluster .. ".yaml"])
-        if not(decodedSecretYaml) then
+        local decodedSecret = ngx.decode_base64(secret.data["cacrt"])
+        if not(decodedSecret) then
             ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to decode prometheus secret for vmc to access cart for managed cluster " .. args.cluster)
+            me.logJson(ngx.ERR, "Unable to decode ca secret for vmc to access api server of managed cluster " .. args.cluster)
             ngx.exit(ngx.HTTP_UNAUTHORIZED)
         end
 
-        local startIndex, endIndex = string.find(decodedSecretYaml, "cacrt: |")
+        local startIndex, _ = string.find(decodedSecret, "-----BEGIN CERTIFICATE-----")
+        local _, endIndex = string.find(decodedSecret, "-----END CERTIFICATE-----")
         if startIndex >= 1 and endIndex > startIndex then
-            local sub = string.sub(decodedSecretYaml, endIndex+1)
-            local startIndex, _ = string.find(sub, "-----BEGIN CERTIFICATE-----")
-            local _, endIndex = string.find(sub, "-----END CERTIFICATE-----")
-            if startIndex >= 1 and endIndex > startIndex then
-                me.write_file("/etc/nginx/upstream.pem", string.sub(sub, startIndex, endIndex))
-            end
+            me.write_file("/etc/nginx/upstream.pem", string.sub(decodedSecret, startIndex, endIndex))
         end
-
-        local args = ngx.req.get_uri_args()
+        
         args.cluster = nil
         ngx.req.set_uri_args(args)
         ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri

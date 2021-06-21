@@ -6,13 +6,15 @@ package installscript_test
 import (
 	"bufio"
 	"fmt"
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 const (
@@ -28,6 +30,11 @@ const (
 	keycloakIngress           = "keycloak"
 	rancherIngress            = "rancher"
 	noOfLinesToRead           = 20
+)
+
+const (
+	waitTimeout     = 5 * time.Minute
+	pollingInterval = 5 * time.Second
 )
 
 var installLogDir = os.Getenv("VERRAZZANO_INSTALL_LOGS_DIR")
@@ -52,7 +59,9 @@ var _ = ginkgo.Describe("Verify Verrazzano install scripts", func() {
 		if present && clusterCount > 0 {
 			ginkgo.It("Verify the expected console URLs are there in the mc log ", func() {
 				// Validation for admin cluster
-				gomega.Expect(validateConsoleUrlsCluster(kubeConfigFromEnv, "cluster-1")).To(gomega.BeTrue())
+				gomega.Eventually(func() bool {
+					return validateConsoleUrlsCluster(kubeConfigFromEnv, "cluster-1")
+				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 
 				// Validation for managed clusters
 				for i := 2; i <= clusterCount; i++ {
@@ -67,7 +76,9 @@ var _ = ginkgo.Describe("Verify Verrazzano install scripts", func() {
 			})
 		} else {
 			ginkgo.It("Verify the expected console URLs are there in the install log", func() {
-				gomega.Expect(validateConsoleUrlsCluster(kubeConfigFromEnv, "")).To(gomega.BeTrue())
+				gomega.Eventually(func() bool {
+					return validateConsoleUrlsCluster(kubeConfigFromEnv, "")
+				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 			})
 		}
 	})
@@ -77,9 +88,15 @@ var _ = ginkgo.Describe("Verify Verrazzano install scripts", func() {
 func validateConsoleUrlsCluster(kubeconfig string, clusterPrefix string) bool {
 	consoleUrls, err := getConsoleURLsFromLog(filepath.FromSlash(installLogDir + "/" + clusterPrefix + "/" + installLog))
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("There is an error getting console URLs from the log file - %v", err))
+		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from the log file - %v", err))
+		return false
 	}
-	expectedConsoleUrls := getExpectedConsoleURLs(kubeconfig)
+	expectedConsoleUrls, err := getExpectedConsoleURLs(kubeconfig)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from the API server - %v", err))
+		return false
+	}
+
 	return pkg.SlicesContainSameStrings(consoleUrls, expectedConsoleUrls)
 }
 
@@ -126,17 +143,38 @@ func getConsoleURLsFromLog(installLog string) ([]string, error) {
 }
 
 // Get the expected console URLs in the install log for the given cluster
-func getExpectedConsoleURLs(kubeConfig string) []string {
+func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 	api := pkg.GetAPIEndpoint(kubeConfig)
-	ingress := api.GetIngress(keycloakNamespace, keycloakIngress)
+	ingress, err := api.GetIngress(keycloakNamespace, keycloakIngress)
+	if err != nil {
+		return nil, err
+	}
 	keycloakURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	ingress = api.GetIngress(rancherNamespace, rancherIngress)
+	ingress, err = api.GetIngress(rancherNamespace, rancherIngress)
+	if err != nil {
+		return nil, err
+	}
 	rancherURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	grafanaURL := getComponentURL(api, grafanaIngress)
-	prometheusURL := getComponentURL(api, prometheusIngress)
-	kibanaURL := getComponentURL(api, kibanaIngress)
-	elasticsearchURL := getComponentURL(api, elasticsearchIngress)
-	consoleURL := getComponentURL(api, verrazzanoIngress)
+	grafanaURL, err := getComponentURL(api, grafanaIngress)
+	if err != nil {
+		return nil, err
+	}
+	prometheusURL, err := getComponentURL(api, prometheusIngress)
+	if err != nil {
+		return nil, err
+	}
+	kibanaURL, err := getComponentURL(api, kibanaIngress)
+	if err != nil {
+		return nil, err
+	}
+	elasticsearchURL, err := getComponentURL(api, elasticsearchIngress)
+	if err != nil {
+		return nil, err
+	}
+	consoleURL, err := getComponentURL(api, verrazzanoIngress)
+	if err != nil {
+		return nil, err
+	}
 
 	// Expected console URLs in the order in which they appear in the install log
 	var expectedUrls = []string{
@@ -147,11 +185,14 @@ func getExpectedConsoleURLs(kubeConfig string) []string {
 		"Verrazzano Console - " + consoleURL,
 		"Rancher - " + rancherURL,
 		"Keycloak - " + keycloakURL}
-	return expectedUrls
+	return expectedUrls, nil
 }
 
-func getComponentURL(api *pkg.APIEndpoint, ingressName string) string {
-	ingress := api.GetIngress(verrazzanoSystemNamespace, ingressName)
+func getComponentURL(api *pkg.APIEndpoint, ingressName string) (string, error) {
+	ingress, err := api.GetIngress(verrazzanoSystemNamespace, ingressName)
+	if err != nil {
+		return "", err
+	}
 	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	return vmiComponentURL
+	return vmiComponentURL, nil
 }

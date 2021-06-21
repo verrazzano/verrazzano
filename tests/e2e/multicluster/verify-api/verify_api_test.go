@@ -16,19 +16,24 @@ import (
 )
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 
 var _ = ginkgo.Describe("Multi Cluster Verify API", func() {
 	ginkgo.Context("Admin Cluster", func() {
+		ginkgo.BeforeEach(func() {
+			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+		})
+
 		ginkgo.It("Get and Validate Verrazzano resource for admin cluster", func() {
 			// create a project
-			api := pkg.GetAPIEndpoint(os.Getenv("ADMIN_KUBECONFIG"))
+			api := pkg.GetAPIEndpoint(adminKubeconfig)
 			response, err := api.Get("apis/install.verrazzano.io/v1alpha1/verrazzanos")
 			validateVerrazzanosResponse(response, err)
 		})
 
 		ginkgo.It("Get and Validate Verrazzano resource for managed cluster", func() {
 			// create a project
-			api := pkg.GetAPIEndpoint(os.Getenv("ADMIN_KUBECONFIG"))
+			api := pkg.GetAPIEndpoint(adminKubeconfig)
 			response, err := api.Get("apis/install.verrazzano.io/v1alpha1/verrazzanos?cluster=" + managedClusterName)
 			validateVerrazzanosResponse(response, err)
 		})
@@ -36,7 +41,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify API", func() {
 })
 
 func validateVerrazzanosResponse(response *pkg.HTTPResponse, err error) {
-	pkg.ExpectHTTPOk(response, err, fmt.Sprintf("Error fetching verrazzanos from api, error: %v, response: %v", err, response))
+	pkg.IsHTTPStatusOk(response, err, fmt.Sprintf("Error fetching verrazzanos from api, error: %v, response: %v", err, response))
 	verrazzanos := v1alpha1.VerrazzanoList{}
 	err = json.Unmarshal(response.Body, &verrazzanos)
 	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Invalid response for verrazzanos from api, error: %v", err))

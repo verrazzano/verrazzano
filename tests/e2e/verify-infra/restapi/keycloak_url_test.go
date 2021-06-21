@@ -5,6 +5,7 @@ package restapi_test
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -12,17 +13,33 @@ import (
 )
 
 var _ = ginkgo.Describe("keycloak url test", func() {
+	const (
+		waitTimeout     = 5 * time.Minute
+		pollingInterval = 5 * time.Second
+	)
+
 	ginkgo.Context("Fetching the keycloak url using api and test ", func() {
 		ginkgo.It("Fetches keycloak url", func() {
-			isManagedClusterProfile := pkg.IsManagedClusterProfile()
-			if !isManagedClusterProfile {
+			if !pkg.IsManagedClusterProfile() {
 				api := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
-				ingress := api.GetIngress("keycloak", "keycloak")
-				keycloakURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-				gomega.Expect(keycloakURL).NotTo(gomega.BeEmpty())
 
+				var keycloakURL string
+				gomega.Eventually(func() error {
+					ingress, err := api.GetIngress("keycloak", "keycloak")
+					if err != nil {
+						return err
+					}
+					keycloakURL = fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+					pkg.Log(pkg.Info, fmt.Sprintf("Found ingress URL: %s", keycloakURL))
+					return nil
+				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+
+				gomega.Expect(keycloakURL).NotTo(gomega.BeEmpty())
 				httpClient := pkg.GetVerrazzanoHTTPClient()
-				pkg.ExpectHTTPGetOk(httpClient, keycloakURL)
+
+				gomega.Eventually(func() bool {
+					return pkg.MakeHTTPGetRequest(httpClient, keycloakURL)
+				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 			}
 		})
 	})

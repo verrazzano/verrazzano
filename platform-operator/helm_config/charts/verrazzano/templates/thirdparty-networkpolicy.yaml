@@ -179,7 +179,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      verrazzano.io/namespace: monitoring
+      app: node-exporter
   policyTypes:
     - Ingress
   ingress:
@@ -192,8 +192,6 @@ spec:
               app: system-prometheus
       ports:
         - port: 9100
-          protocol: TCP
-        - port: 15090
           protocol: TCP
 {{- if .Values.keycloak.enabled }}
 ---
