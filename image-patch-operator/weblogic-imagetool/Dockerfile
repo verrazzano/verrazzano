@@ -33,6 +33,7 @@ RUN set -eux \
 # Final image for deploying WebLogic Image Tool
 FROM ghcr.io/oracle/oraclelinux:8-slim
 
+# Install the builder for WIT and dependencies
 RUN microdnf update -y \
     && microdnf install -y podman \
     && microdnf reinstall -y shadow-utils \
@@ -62,7 +63,7 @@ COPY --from=build_base --chown=verrazzano:verrazzano /imagetool ./imagetool
 # Copy over installers
 COPY --chown=verrazzano:verrazzano ./${JDK_BINARY} ./${WLS_BINARY} ./${WDT_BINARY} ./installers/
 
-# FIXME: put COPY's together if possible
+# Copy over installer metadata for imagetool cache
 COPY --chown=verrazzano:verrazzano ./metadata /home/verrazzano/cache/.metadata
 
 USER 1000
