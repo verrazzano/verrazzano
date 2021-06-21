@@ -91,7 +91,7 @@ func generateConfigmapYaml(name, namespace string, labels, configs map[string]st
 	}
 	yaml = fmt.Sprintf("%s\ndata:\n", yaml)
 	for key, value := range configs {
-		yaml = fmt.Sprintf("%s  %s: |\n%s\n", yaml, key, value)
+		yaml = fmt.Sprintf("%s  %s: |\n    %s\n", yaml, key, value)
 	}
 	return yaml
 }
