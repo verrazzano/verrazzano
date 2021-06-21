@@ -400,11 +400,11 @@ const OidcAuthLuaFileTemplate = `local me = {}
     function me.oidcValidateBearerToken(token)
         -- console sends access tokens obtained via PKCE client
         -- test code sends ID tokens obtained from the PG client
-        -- need to accept either type of token here (for now)
+        -- need to accept either type in Authorization header (for now)
         local claim_spec = {
-            typ = validators.equals( "Bearer", "ID" ),
+            typ = validators.equals({ "Bearer", "ID" }),
             iss = validators.equals( oidcIssuerUri ),
-            azp = validators.equals_any_of( oidcClient, oidcDirectAccessClient ),
+            azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient }),
         }
         me.oidcValidateTokenWithClaims(token, claim_spec)
     end
