@@ -755,6 +755,102 @@ func TestCreateDestinationRuleNoIstioLabel(t *testing.T) {
 	assert.NoError(err)
 }
 
+// TestCreateRuntimeEncryptionSecretCreate tests creation of a runtimeEncryptionSecret
+// GIVEN the runtime encryption secret does not exist
+// WHEN the controller CreateRuntimeEncryptionSecret function is called
+// THEN expect no error to be returned and runtime encryption secret is created
+func TestCreateRuntimeEncryptionSecretCreate(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// Expect a call to get a secret and return that it is not found.
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-secret"}, gomock.Not(gomock.Nil())).
+		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Secret"}, "test-space-secret"))
+
+	// Expect a call to get the appconfig resource to set the owner reference
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *oamcore.ApplicationConfiguration) error {
+			app.TypeMeta = metav1.TypeMeta{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ApplicationConfiguration",
+			}
+			return nil
+		})
+
+	// Expect a call to create the secret and return success
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			assert.Equal("Secret", secret.Kind)
+			assert.Equal("v1", secret.APIVersion)
+			assert.Len(secret.Data, 1)
+			assert.Equal(1, len(secret.OwnerReferences))
+			assert.Equal("ApplicationConfiguration", secret.OwnerReferences[0].Kind)
+			assert.Equal("core.oam.dev/v1alpha2", secret.OwnerReferences[0].APIVersion)
+			return nil
+		})
+
+	scheme := runtime.NewScheme()
+	core.AddToScheme(scheme)
+	vzapi.AddToScheme(scheme)
+	reconciler := Reconciler{Client: cli, Scheme: scheme}
+
+	workloadLabels := make(map[string]string)
+	workloadLabels["app.oam.dev/name"] = "test-app"
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), ctrl.Log, "test-namespace", "test-secret", workloadLabels)
+	mocker.Finish()
+	assert.NoError(err)
+}
+
+// TestCreateRuntimeEncryptionSecretNoCreate tests that a runtimeEncryptionSecret already exist
+// GIVEN the runtime encryption secret exist
+// WHEN the controller createRuntimeEncryptionSecret function is called
+// THEN expect no error to be returned and runtime encryption secret is not created
+func TestCreateRuntimeEncryptionSecretNoCreate(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// Expect a call to get a secret and return that it was found.
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-secret"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dr *corev1.Secret) error {
+			dr.TypeMeta = metav1.TypeMeta{
+				APIVersion: "v1",
+				Kind:       "Secret"}
+			return nil
+		})
+
+	scheme := runtime.NewScheme()
+	core.AddToScheme(scheme)
+	vzapi.AddToScheme(scheme)
+	reconciler := Reconciler{Client: cli, Scheme: scheme}
+
+	workloadLabels := make(map[string]string)
+	workloadLabels["app.oam.dev/name"] = "test-app"
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), ctrl.Log, "test-namespace", "test-secret", workloadLabels)
+	mocker.Finish()
+	assert.NoError(err)
+}
+
+// TestCreateRuntimeEncryptionSecretNoOamLabel tests creation of a runtime encryption secret with no oam label found
+// GIVEN no app.oam.dev/name label specified
+// WHEN the controller createRuntimeEncryptionSecret function is called
+// THEN expect an error to be returned
+func TestCreateRuntimeEncryptionSecretNoOamLabel(t *testing.T) {
+	assert := asserts.New(t)
+
+	reconciler := Reconciler{}
+	workloadLabels := make(map[string]string)
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), ctrl.Log, "test-namespace", "test-secret", workloadLabels)
+	assert.Equal("OAM app name label missing from metadata, unable to create owner reference to appconfig", err.Error())
+}
+
 // TestIstioEnabled tests that domain resource spec.configuration.istio.enabled is set correctly.
 // GIVEN istio-injection is enabled
 // THEN the domain resource to spec.configuration.istio.enabled is set to true
