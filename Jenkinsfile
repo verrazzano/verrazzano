@@ -762,7 +762,7 @@ def buildAnalysisTool() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/tools/analysis
         make go-build
-        ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME}
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
     """
 }
 
