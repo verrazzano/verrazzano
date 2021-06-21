@@ -12,6 +12,7 @@ CURRENT_BRANCH_NAME="$1"
 
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$SHORT_COMMIT_HASH" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
+  echo "DEBUG: $JENKINS_URL | $WORKSPACE | $OCI_OS_NAMESPACE | $OCI_OS_BUCKET | $SHORT_COMMIT_HASH"
   exit 1
 fi
 
