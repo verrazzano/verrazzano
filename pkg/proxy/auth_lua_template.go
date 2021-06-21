@@ -742,7 +742,7 @@ const OidcAuthLuaFileTemplate = `local me = {}
         end
 
         -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
-        -- A secret is created in admin cluster during mutli cluster setup that contains the ca certificate.
+        -- A secret is created in admin cluster during multi cluster setup that contains the ca certificate.
         -- Here we read the name of that secret from vmc spec and retrieve the secret from cluster and read the cacrt field.
         -- The value of cacrt field is decoded to get the ca certificate and is appended to file being pointed to by the proxy_ssl_trusted_certificate variable.
         local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
@@ -771,7 +771,7 @@ const OidcAuthLuaFileTemplate = `local me = {}
         if startIndex >= 1 and endIndex > startIndex then
             me.write_file("/etc/nginx/upstream.pem", string.sub(decodedSecret, startIndex, endIndex))
         end
-        
+
         args.cluster = nil
         ngx.req.set_uri_args(args)
         ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
