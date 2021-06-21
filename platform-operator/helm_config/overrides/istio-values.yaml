@@ -8,7 +8,6 @@ global:
     amd64: 2
     s390x: 2
     ppc64le: 2
-  # Provides dns resolution for global services
   multiCluster:
     enabled: false
   controlPlaneSecurityEnabled: true
