@@ -5,6 +5,4 @@ package helpers
 
 const (
 	NothingFound = "no resources found"
-	OutputUsage = `Output Format. One of
-json|yaml`
 )

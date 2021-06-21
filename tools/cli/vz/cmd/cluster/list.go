@@ -27,7 +27,6 @@ func NewClusterListOptions(streams genericclioptions.IOStreams) *ClusterListOpti
 	return &ClusterListOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
 		IOStreams:   streams,
-		//jsonPath: genericclioptions.NewJSONPathPrintFlags("", true),
 		PrintFlags: helpers.NewGetPrintFlags(),
 	}
 }
