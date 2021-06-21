@@ -12,10 +12,6 @@ RUN microdnf update -y \
     && microdnf install -y unzip wget tar gzip \
     && microdnf clean all
 
-# Fetch and install docker
-RUN wget https://download.docker.com/linux/static/stable/x86_64/docker-20.10.7.tgz \
-    && tar xzsf ./docker-20.10.7.tgz
-
 # Fetch and unzip WebLogic Image Tool
 RUN wget https://github.com/oracle/weblogic-image-tool/releases/download/release-1.9.12/imagetool.zip \
     && unzip ./imagetool.zip
@@ -49,6 +45,7 @@ ARG WLS_BINARY="${WLS_BINARY:-installers/fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip}
 ARG WDT_BINARY="${WDT_BINARY:-installers/weblogic-deploy.zip}"
 
 RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
+    && mkdir -p /home/verrazzano/cache \
     && chown -R 1000:verrazzano /home/verrazzano \
     # For Podman in rootless mode \
     && echo verrazzano:100000:65536 >> /etc/subuid \
@@ -64,6 +61,9 @@ COPY --from=build_base --chown=verrazzano:verrazzano /imagetool ./imagetool
 
 # Copy over installers
 COPY --chown=verrazzano:verrazzano ./${JDK_BINARY} ./${WLS_BINARY} ./${WDT_BINARY} ./installers/
+
+# FIXME: put COPY's together if possible
+COPY --chown=verrazzano:verrazzano ./metadata /home/verrazzano/cache/.metadata
 
 USER 1000
 
