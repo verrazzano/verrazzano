@@ -37,9 +37,9 @@ RUN set -eux \
 # Final image for deploying WebLogic Image Tool
 FROM ghcr.io/oracle/oraclelinux:8-slim
 
-# Install the image tool's builder
 RUN microdnf update -y \
     && microdnf install -y podman \
+    && microdnf reinstall -y shadow-utils \
     && microdnf clean all
 
 WORKDIR /home/verrazzano
@@ -49,7 +49,10 @@ ARG WLS_BINARY="${WLS_BINARY:-installers/fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip}
 ARG WDT_BINARY="${WDT_BINARY:-installers/weblogic-deploy.zip}"
 
 RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
-    && chown -R 1000:verrazzano /home/verrazzano
+    && chown -R 1000:verrazzano /home/verrazzano \
+    # For Podman in rootless mode \
+    && echo verrazzano:100000:65536 >> /etc/subuid \
+    && echo verrazzano:100000:65536 >> /etc/subgid
 
 # Copy over JDK installation
 ENV JAVA_HOME=/usr/java
