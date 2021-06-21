@@ -14,7 +14,6 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -117,17 +116,28 @@ func ProcHTTPResponse(resp *http.Response, httpErr error) *HTTPResponse {
 }
 
 //GetIngress fetches ingress from api
-func (api *APIEndpoint) GetIngress(namespace, name string) extensionsv1beta1.Ingress {
+func (api *APIEndpoint) GetIngress(namespace, name string) (*extensionsv1beta1.Ingress, error) {
 	response, err := api.Get(fmt.Sprintf("apis/extensions/v1beta1/namespaces/%s/ingresses/%s", namespace, name))
-	ExpectHTTPOk(response, err, fmt.Sprintf("Error fetching ingress %s/%s from api, error: %v, response: %v", namespace, name, err, response))
+	if err != nil || response.StatusCode != http.StatusOK {
+		Log(Error, fmt.Sprintf("Error fetching ingress %s/%s from api, error: %v, response: %v", namespace, name, err, response))
+		return nil, err
+	}
+
 	ingress := extensionsv1beta1.Ingress{}
 	err = json.Unmarshal(response.Body, &ingress)
-	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Invalid response for ingress %s/%s from api, error: %v", namespace, name, err))
-	return ingress
+	if err != nil {
+		Log(Error, fmt.Sprintf("Invalid response for ingress %s/%s from api, error: %v", namespace, name, err))
+		return nil, err
+	}
+
+	return &ingress, nil
 }
 
 //GetElasticURL fetches ElasticSearch endpoint URL
-func (api *APIEndpoint) GetElasticURL() string {
-	ingress := api.GetIngress("verrazzano-system", "vmi-system-es-ingest")
-	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+func (api *APIEndpoint) GetElasticURL() (string, error) {
+	ingress, err := api.GetIngress("verrazzano-system", "vmi-system-es-ingest")
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0]), nil
 }
