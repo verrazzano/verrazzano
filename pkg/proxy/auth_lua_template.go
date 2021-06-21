@@ -410,9 +410,9 @@ const OidcAuthLuaFileTemplate = `local me = {}
         -- test code sends ID tokens obtained from the PG client
         -- need to accept either type in Authorization header (for now)
         local claim_spec = {
-            typ = validators.equals({ "Bearer", "ID" }),
+            typ = validators.equals_any_of({ "Bearer", "ID" }),
             iss = validators.equals( oidcIssuerUri ),
-            azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient }),
+            azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient })
         }
         me.oidcValidateTokenWithClaims(token, claim_spec)
     end
@@ -445,7 +445,7 @@ const OidcAuthLuaFileTemplate = `local me = {}
         local claim_spec = {
             typ = validators.equals( expectedType ),
             iss = validators.equals( expectedIssuer ),
-            azp = validators.equals( clientName ),
+            azp = validators.equals( clientName )
         }
         me.oidcValidateTokenWithClaims(token, claim_spec)
     end
