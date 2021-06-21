@@ -688,7 +688,7 @@ def storePipelineArtifacts() {
             echo "git-commit=${env.GIT_COMMIT}" > tarball-commit.txt
             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball-commit.txt --file tarball-commit.txt
             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz --file tarball.tar.gz
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz.sha256 --file arball.tar.gz.sha256
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz.sha256 --file tarball.tar.gz.sha256
        fi
     """
 
