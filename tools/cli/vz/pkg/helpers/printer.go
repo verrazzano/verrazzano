@@ -8,10 +8,7 @@ import (
 	"fmt"
 	"io"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/duration"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/printers"
 	"strings"
 	"time"
 )
@@ -32,22 +29,6 @@ func PrintTable(headings []string, data [][]string, w io.Writer) error {
 	_, err = fmt.Fprintln(w, output)
 	return err
 
-}
-
-// PrintJsonYaml will print the data as JSON or YAML as specified in outputFormat
-func PrintJsonYaml (outputFormat string, obj runtime.Object, w io.Writer) error {
-	var printer printers.ResourcePrinter
-	outputFormat = strings.ToLower(outputFormat)
-	switch outputFormat {
-	case "json":
-		printer = &printers.JSONPrinter{}
-	case "yaml":
-		printer = &printers.YAMLPrinter{}
-	default:
-		return genericclioptions.NoCompatiblePrinterError{OutputFormat: &outputFormat, AllowedFormats: []string{"json", "yaml"}}
-	}
-	err := printer.PrintObj(obj, w)
-	return err
 }
 
 func formatOutput(headings []string, data [][]string) (string, error) {

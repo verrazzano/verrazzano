@@ -16,13 +16,14 @@ type ClusterManifestOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	args        []string
 	genericclioptions.IOStreams
-	outputOptions string
+	PrintFlags *helpers.PrintFlags
 }
 
 func NewClusterManifestOptions (streams genericclioptions.IOStreams) *ClusterManifestOptions {
 	return &ClusterManifestOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
 		IOStreams:   streams,
+		PrintFlags: helpers.NewGetPrintFlags(),
 	}
 }
 
@@ -41,7 +42,7 @@ func NewCmdClusterManifest (streams genericclioptions.IOStreams, kubernetesInter
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&o.outputOptions, "output", "o", "yaml", helpers.OutputUsage)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -73,7 +74,19 @@ func (o *ClusterManifestOptions) getManifest(kubenetesInterface helpers.Kubernet
 		return err
 	}
 
-	//err = helpers.PrintJsonYaml("yaml", secret.Data["yaml"], o.Out)
+	//output option was specified
+	if len(*o.PrintFlags.OutputFormat) != 0 {
+		printer, err := o.PrintFlags.ToPrinter()
+		if err != nil {
+			return err
+		}
+		//set group and kind
+		secret.APIVersion = "v1"
+		secret.Kind = "Secret"
+		err = printer.PrintObj(secret, o.Out)
+		return err
+	}
+
 	_, err = fmt.Fprintln(o.Out, string(secret.Data["yaml"]))
 	return err
 }
