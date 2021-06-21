@@ -29,6 +29,7 @@ pipeline {
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
@@ -173,6 +174,7 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'release-*';
+                        expression {params.GENERATE_TOOL == true};
                     }
                 }
             }
@@ -186,7 +188,7 @@ pipeline {
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: '**/analysis-tool.zip', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
                 }
             }
         }
@@ -681,10 +683,13 @@ def storePipelineArtifacts() {
             mkdir -p ${WORKSPACE}/tar-files/charts
             cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
             tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
-            echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/tarball-commit.txt
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball-commit.txt --file $WORKSPACE/tarball-commit.txt
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
-        fi
+            cd ${WORKSPACE}
+            sha256sum tarball.tar.gz > tarball.tar.gz.sha256
+            echo "git-commit=${env.GIT_COMMIT}" > tarball-commit.txt
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball-commit.txt --file tarball-commit.txt
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz --file tarball.tar.gz
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz.sha256 --file tarball.tar.gz.sha256
+       fi
     """
 
     // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
@@ -757,10 +762,7 @@ def buildAnalysisTool() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/tools/analysis
         make go-build
-        cd out
-        zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
     """
 }
 

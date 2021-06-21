@@ -20,7 +20,7 @@ function usage {
     echo " -z tar_gz_file   Name of the compressed tar file to generate. Ie: capture.tar.gz"
     echo " -d directory     Directory to capture an expanded dump into. This does not affect a tar_gz_file if that is also specified"
     echo " -a               Call the analyzer on the captured dump and report to stdout"
-    echo " -r report_file   Call the analyzer on the captured dump and report to the file specified"
+    echo " -r report_file   Call the analyzer on the captured dump and report to the file specified, requires sources and go build environment"
     echo " -h               Help"
     echo ""
     exit 1
