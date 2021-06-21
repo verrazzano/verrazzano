@@ -471,22 +471,29 @@ data:
     end
 
     function me.oidcValidateBearerToken(token)
-        return me.oidcValidateToken(token, "Bearer", oidcIssuerUri, oidcClient)
+        -- console sends access tokens obtained via PKCE client
+        -- test code sends ID tokens obtained from the PG client
+        -- need to accept either type of token here (for now)
+        local claim_spec = {
+            typ = validators.equals( "Bearer", "ID" ),
+            iss = validators.equals( oidcIssuerUri ),
+            azp = validators.equals_any_of( oidcClient, oidcDirectAccessClient ),
+        }
+        me.oidcValidateTokenWithClaims(token, claim_spec)
     end
 
     function me.oidcValidateIDTokenPKCE(token)
-        return me.oidcValidateToken(token, "ID", oidcIssuerUri, oidcClient)
+        me.oidcValidateToken(token, "ID", oidcIssuerUri, oidcClient)
     end
 
     function me.oidcValidateIDTokenPG(token)
         if not oidcIssuerUriLocal then
-            return me.oidcValidateToken(token, "ID", oidcIssuerUri, oidcDirectAccessClient)
+            me.oidcValidateToken(token, "ID", oidcIssuerUri, oidcDirectAccessClient)
         else
-            return me.oidcValidateToken(token, "ID", oidcIssuerUriLocal, oidcDirectAccessClient)
+            me.oidcValidateToken(token, "ID", oidcIssuerUriLocal, oidcDirectAccessClient)
         end
     end
 
-    -- returns nil if successful, or err otherwise
     function me.oidcValidateToken(token, expectedType, expectedIssuer, clientName)
         if not token or token == "" then
             me.unauthorized("Nil or empty token")
@@ -500,18 +507,21 @@ data:
         if not clientName then
             me.unauthorized("Nil or empty clientName")
         end
-
-        me.info("Validating JWT token")
-
         local claim_spec = {
             typ = validators.equals( expectedType ),
             iss = validators.equals( expectedIssuer ),
+            azp = validators.equals( clientName ),
+        }
+        me.oidcValidateTokenWithClaims(token, claim_spec)
+    end
+
+    function me.oidcValidateTokenWithClaims(token, claim_spec)
+        me.info("Validating JWT token")
+        local default_claim_spec = {
             iat = validators.is_not_before(),
             exp = validators.is_not_expired(),
-            azp = validators.equals( clientName ),
             aud = validators.required()
         }
-
         -- passing verify a function to retrieve key didn't seem to work, so doing load then verify
         local jwt_obj = jwt:load_jwt(token)
         if (not jwt_obj) or (not jwt_obj.header) or (not jwt_obj.header.kid) then
@@ -523,7 +533,7 @@ data:
         end
         -- me.info("TOKEN: iss is "..jwt_obj.payload.iss)
         -- me.info("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
-        local verified = jwt:verify_jwt_obj(publicKey, jwt_obj, claim_spec)
+        local verified = jwt:verify_jwt_obj(publicKey, jwt_obj, default_claim_spec, claim_spec)
         if not verified or (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
             me.unauthorized("Failed to validate token", jwt_obj.reason)
         end
