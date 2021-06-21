@@ -128,6 +128,16 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	statusErr := r.updateStatusReady(ctx, vmc, "Ready")
+	if statusErr != nil {
+		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, err)
+	}
+
+	if vmc.Status.PrometheusHost == "" {
+		log.Infof("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
+		return ctrl.Result{}, nil
+	}
+
 	log.Infof("Syncing the prometheus scraper for VMC %s", vmc.Name)
 	err = r.syncPrometheusScraper(ctx, vmc)
 	if err != nil {
@@ -135,10 +145,6 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	statusErr := r.updateStatusReady(ctx, vmc, "Ready")
-	if statusErr != nil {
-		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, err)
-	}
 	return ctrl.Result{}, nil
 }
 

@@ -8,11 +8,8 @@ global:
     amd64: 2
     s390x: 2
     ppc64le: 2
-  # Provides dns resolution for global services
-  podDNSSearchNamespaces:
-    - global
   multiCluster:
-    enabled: true
+    enabled: false
   controlPlaneSecurityEnabled: true
   enableHelmTest: false
   istioNamespace: istio-system

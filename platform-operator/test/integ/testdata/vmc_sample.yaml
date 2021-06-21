@@ -7,4 +7,4 @@ metadata:
   namespace: verrazzano-mc
 spec:
   description: "Test VerrazzanoManagedCluster object"
-  prometheusSecret: prometheus-cluster1
+  caSecret: ca-secret-cluster1

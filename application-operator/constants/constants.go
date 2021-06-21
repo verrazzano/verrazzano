@@ -90,3 +90,6 @@ const IstioSystemNamespace = "istio-system"
 
 // DefaultClusterName - the default cluster name
 const DefaultClusterName = "local"
+
+// VzPrometehusIngress - the name of the ingress for system vmi prometheus
+const VzPrometheusIngress = "vmi-system-prometheus"

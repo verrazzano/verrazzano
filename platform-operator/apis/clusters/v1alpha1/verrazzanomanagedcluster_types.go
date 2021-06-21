@@ -16,10 +16,9 @@ type VerrazzanoManagedClusterSpec struct {
 	// The description of the managed cluster.
 	Description string `json:"description,omitempty"`
 
-	// The name of a secret that contains the credentials for scraping from
-	// the prometheus endpoint on the managed cluster.  The secret contains
-	// the endpoint, username and password.
-	PrometheusSecret string `json:"prometheusSecret"`
+	// The name of a secret that contains the ca certificate for accessing console
+	// and api endpoints on the managed cluster.
+	CASecret string `json:"caSecret"`
 
 	// The name of the ServiceAccount that was generated for the managed cluster.
 	// This field is managed by a Verrazzano Kubernetes operator.
@@ -61,6 +60,8 @@ type VerrazzanoManagedClusterStatus struct {
 	LastAgentConnectTime *metav1.Time `json:"lastAgentConnectTime,omitempty"`
 	// Verrazzano API Server URL for the managed cluster.
 	APIUrl string `json:"apiUrl,omitempty"`
+	// Prometheus Host for the managed cluster.
+	PrometheusHost string `json:"prometheusHost,omitempty"`
 }
 
 // VerrazzanoManagedCluster is the Schema for the Verrazzanomanagedclusters API

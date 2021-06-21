@@ -216,7 +216,7 @@
           "images": [
             {
               "image": "verrazzano-operator",
-              "tag": "0.15.0-20210512213227-2785c3a",
+              "tag": "0.16.0-20210615185748-b8fa543",
               "helmFullImageKey": "verrazzanoOperator.imageName",
               "helmTagKey": "verrazzanoOperator.imageVersion"
             },
@@ -279,7 +279,7 @@
             },
             {
               "image": "console",
-              "tag": "0.15.0-20210614150932-4d89ea8",
+              "tag": "0.16.0-20210618131715-9ddff61",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -361,7 +361,7 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.2.3",
+              "tag": "3.2.4",
               "helmFullImageKey": "image"
             }
           ]
@@ -434,7 +434,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "0.15.0-20210510085250-01638c7"
+              "tag": "0.16.0-20210615185744-471503f"
             }
           ]
         }

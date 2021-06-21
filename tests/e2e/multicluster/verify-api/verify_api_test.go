@@ -41,7 +41,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify API", func() {
 })
 
 func validateVerrazzanosResponse(response *pkg.HTTPResponse, err error) {
-	pkg.ExpectHTTPOk(response, err, fmt.Sprintf("Error fetching verrazzanos from api, error: %v, response: %v", err, response))
+	pkg.IsHTTPStatusOk(response, err, fmt.Sprintf("Error fetching verrazzanos from api, error: %v, response: %v", err, response))
 	verrazzanos := v1alpha1.VerrazzanoList{}
 	err = json.Unmarshal(response.Body, &verrazzanos)
 	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Invalid response for verrazzanos from api, error: %v", err))

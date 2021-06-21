@@ -27,7 +27,6 @@ RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 ver
 
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-application-operator /usr/local/bin/verrazzano-application-operator
 
-# Copy source tree to image
 COPY --from=build_base /root/go/src/github.com/verrazzano/application-operator/THIRD_PARTY_LICENSES.txt /licenses
 
 USER 1000
