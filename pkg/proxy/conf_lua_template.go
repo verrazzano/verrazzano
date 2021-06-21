@@ -16,7 +16,7 @@ package proxy
 const OidcConfLuaFilename = "conf.lua"
 
 // OidcConfLuaFileTemplate is the template of conf.lua file in OIDC proxy ConfigMap
-const OidcConfLuaFileTemplate = `    local ingressUri = 'https://'..'{{ .Ingress }}'
+const OidcConfLuaFileTemplate = `local ingressUri = 'https://'..'{{ .Ingress }}'
     local callbackPath = "{{ .OidcCallbackPath }}"
     local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
 

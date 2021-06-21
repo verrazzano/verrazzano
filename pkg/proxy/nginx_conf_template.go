@@ -16,7 +16,7 @@ package proxy
 const OidcNginxConfFilename = "nginx.conf"
 
 // OidcNginxConfFileTemplate is the template of nginx.conf file in OIDC proxy ConfigMap
-const OidcNginxConfFileTemplate = `    #user  nobody;
+const OidcNginxConfFileTemplate = `#user  nobody;
     worker_processes  1;
 
     #error_log  logs/error.log;

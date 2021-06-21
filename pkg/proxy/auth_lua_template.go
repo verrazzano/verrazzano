@@ -16,7 +16,7 @@ package proxy
 const OidcAuthLuaFilename = "auth.lua"
 
 // OidcAuthLuaFileTemplate is the content of auth.lua file in OIDC proxy ConfigMap
-const OidcAuthLuaFileTemplate = `    local me = {}
+const OidcAuthLuaFileTemplate = `local me = {}
     local random = require("resty.random")
     local base64 = require("ngx.base64")
     local cjson = require "cjson"
