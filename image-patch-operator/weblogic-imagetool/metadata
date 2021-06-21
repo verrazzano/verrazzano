@@ -1,0 +1,3 @@
+jdk_8u291=/home/verrazzano/./installers/jdk-8u291-linux-x64.tar.gz
+cache.dir=/home/verrazzano/cache
+wls_12.2.1.4.0=/home/verrazzano/./installers/fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip
