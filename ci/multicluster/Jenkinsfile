@@ -509,6 +509,13 @@ pipeline {
                             }
                         }
                     }
+                    post {
+                        failure {
+                            script {
+                                dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump-pre-uninstall")
+                            }
+                        }
+                    }
                 }
                 stage ('Uninstall Verrazzano') {
                     steps {
