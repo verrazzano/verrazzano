@@ -240,12 +240,16 @@ pipeline {
             }
             steps {
                 buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
-                SCAN_IMAGE_PATCH_OPERATOR = true
             }
             post {
                 failure {
                     script {
                         SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+                success {
+                    script {
+                        SCAN_IMAGE_PATCH_OPERATOR = true
                     }
                 }
             }
