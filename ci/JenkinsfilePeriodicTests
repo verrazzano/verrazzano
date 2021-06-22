@@ -192,6 +192,24 @@ pipeline {
     }
 
     post {
+        success {
+            sh """
+                if [ "${env.BRANCH_NAME}" == "master" ]; then
+                    ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH}
+                fi
+            """
+        }
+        failure {
+            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
+            subject: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
+            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n"
+            script {
+                if (env.JOB_NAME == "verrazzano-periodic-triggered-tests/master") {
+                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n" )
+                }
+            }
+        }
         cleanup {
             deleteDir()
         }
