@@ -63,8 +63,10 @@ COPY --from=build_base --chown=verrazzano:verrazzano /imagetool ./imagetool
 # Copy over installers
 COPY --chown=verrazzano:verrazzano ./${JDK_BINARY} ./${WLS_BINARY} ./${WDT_BINARY} ./installers/
 
-# Copy over installer metadata for imagetool cache
-COPY --chown=verrazzano:verrazzano ./metadata /home/verrazzano/cache/.metadata
+# Add installers to WIT
+ENV WLSIMG_CACHEDIR="/home/verrazzano/cache"
+RUN ./imagetool/bin/imagetool.sh cache addInstaller --type wls --version 12.2.1.4.0 --path ./${WLS_BINARY} \
+    && ./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version 8u291 --path ./${JDK_BINARY}
 
 USER 1000
 
