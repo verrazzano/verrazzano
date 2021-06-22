@@ -88,6 +88,10 @@ const OidcConfLuaFileTemplate = `local ingressUri = 'https://'..'{{ .Ingress }}'
         auth.handleLocalAPICall(token)
     end
 {{ else if eq .Mode "oauth-proxy" }}
+    if auth.hasCredentialType(authHeader, 'Bearer') then
+        -- clear the auth header if it's a bearer token
+        ngx.req.clear_header("Authorization")
+    end
     -- set the oidc_user
     ngx.var.oidc_user = auth.usernameFromIdToken(token)
     auth.info("Authorized: oidc_user is "..ngx.var.oidc_user)

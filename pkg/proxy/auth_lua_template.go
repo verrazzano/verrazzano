@@ -181,9 +181,11 @@ const OidcAuthLuaFileTemplate = `local me = {}
     end
 
     function me.hasCredentialType(authHeader, credentialType)
-        local start, _ = authHeader:find(credentialType)
-        if start then
-            return true
+        if authHeader then
+            local start, _ = authHeader:find(credentialType)
+            if start then
+                return true
+            end
         end
         return false
     end
@@ -193,7 +195,6 @@ const OidcAuthLuaFileTemplate = `local me = {}
         local found, index = authHeader:find('Bearer')
         if found then
             local token = string.sub(authHeader, index+2)
-            ngx.req.clear_header("Authorization")
             if token then
                 me.info("Found bearer token in authorization header")
                 me.oidcValidateBearerToken(token)
