@@ -335,6 +335,9 @@ pipeline {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
                             }
+                            when {
+                                expression {params.RUN_SLOW_TESTS == true}
+                            }
                             steps {
                                 runGinkgo('examples/todo')
                             }
