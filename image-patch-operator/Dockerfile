@@ -3,7 +3,7 @@
 
 FROM ghcr.io/oracle/oraclelinux:7-slim as builder
 
-# Need to use specific WORKDIR to match verrazzano-image-patch-operator's source packages
+# Need specific WORKDIR to match verrazzano-image-patch-operator's source packages
 WORKDIR /root/go/src/github.com/verrazzano/verrazzano/image-patch-operator
 COPY . .
 
