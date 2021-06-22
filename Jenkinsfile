@@ -5,6 +5,7 @@ def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
+def SCAN_IMAGE_PATCH_OPERATOR = false
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
@@ -239,6 +240,7 @@ pipeline {
             }
             steps {
                 buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
+                SCAN_IMAGE_PATCH_OPERATOR = true
             }
             post {
                 failure {
@@ -328,7 +330,9 @@ pipeline {
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_ANALYSIS_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_PATCH_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    if (SCAN_IMAGE_PATCH_OPERATOR == true) {
+                        clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_PATCH_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    }
                 }
             }
             post {
