@@ -3,7 +3,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Create a Docker repository in a specific compartment using an exploded tarball of Verrazzano images; useful for
-# scoping a repo someplace other than the root compartent.
+# scoping a repo someplace other than the root compartment.
 #
 set -u
 
@@ -28,9 +28,9 @@ $0  -p <parent-repo> -c <compartment-id> [ -r <region> -d <path> ]
 -d Images directory
 
 Example, to create a repo in compartment ocid.compartment.oc1..blah, where the desired docker path with tenancy namespace
-to the image is "stevengreenberginc/testuser/myrepo/v8o", and the extracted tarball location is /tmp/exploded:
+to the image is "myreporoot/testuser/myrepo/v8o", and the extracted tarball location is /tmp/exploded:
 
-$0 -p testuser/myrepo/v8o -r uk-london-1 -c ocid.compartment.oc1..blah -d /tmp/exploded
+$0 -p myreporoot/testuser/myrepo/v8o -r uk-london-1 -c ocid.compartment.oc1..blah -d /tmp/exploded
   """
 }
 
@@ -44,7 +44,7 @@ function create_image_repos_from_archives() {
       exit 1
     fi
 
-    # Build up the image name and target image names, and do a tag/push
+    # Build up the image name and target image names, and create the repo
     local from_image=$(tar xOvf $file manifest.json | jq -r '.[0].RepoTags[0]')
     local from_image_name=$(basename $from_image | cut -d \: -f 1)
     local from_repository=$(dirname $from_image | cut -d \/ -f 2-)

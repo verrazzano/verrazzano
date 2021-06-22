@@ -15,6 +15,7 @@ import (
 )
 
 var registry = os.Getenv("REGISTRY")
+var privateRepo = os.Getenv("PRIVATE_REPO")
 
 // List of namespaces from which all the pods are queried to confirm the images are loaded from the target registry/repo
 var listOfNamespaces = []string{
@@ -42,6 +43,13 @@ var _ = ginkgo.Describe("Private Registry Verification",
 		ginkgo.It("All the pods in the cluster have the expected registry URLs",
 			func() {
 				var pod corev1.Pod
+				imagePrefix := "ghcr.io"
+				if len(registry) > 0 {
+					imagePrefix = registry
+				}
+				if len(privateRepo) > 0 {
+					imagePrefix += "/" + privateRepo
+				}
 				for i, ns := range listOfNamespaces {
 					pods, err := pkg.ListPods(ns, metav1.ListOptions{})
 					if err != nil {
@@ -51,11 +59,11 @@ var _ = ginkgo.Describe("Private Registry Verification",
 						pod = pods.Items[j]
 						pkg.Log(pkg.Info, fmt.Sprintf("%d. Validating the registry url prefix for pod: %s in namespace: %s", i, pod.Name, ns))
 						for k := range pod.Spec.Containers {
-							gomega.Expect(strings.HasPrefix(pod.Spec.Containers[k].Image, registry)).To(gomega.BeTrue(),
+							gomega.Expect(strings.HasPrefix(pod.Spec.Containers[k].Image, imagePrefix)).To(gomega.BeTrue(),
 								fmt.Sprintf("FAIL: The image for the pod %s in containers, doesn't starts with expected registry URL prefix %s", pod.Name, registry))
 						}
 						for k := range pod.Spec.InitContainers {
-							gomega.Expect(strings.HasPrefix(pod.Spec.InitContainers[k].Image, registry)).To(gomega.BeTrue(),
+							gomega.Expect(strings.HasPrefix(pod.Spec.InitContainers[k].Image, imagePrefix)).To(gomega.BeTrue(),
 								fmt.Sprintf("FAIL: The image for the pod %s in initContainers, doesn't starts with expected registry URL prefix %s", pod.Name, registry))
 						}
 					}

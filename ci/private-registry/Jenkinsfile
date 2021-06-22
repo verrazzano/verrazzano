@@ -2,11 +2,12 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-// Pin to PHX for now for testing
+// Pin to PHX for now for testing; tarball is located only in PHX at present, and takes 15+ mins to download to LHR at runtime
+// - at some point, we can either enable bucket replication or have the pipeline push it to more regions
 //def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def agentLabel = "phxlarge"
-def ocirRegion = ""
-def ocirRegistry = ""
+def ocirRegion = "phx"
+def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
 
@@ -33,10 +34,6 @@ pipeline {
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
-                        trim: true)
-        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
-                        defaultValue: 'NONE',
-                        description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
                         trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
@@ -75,7 +72,6 @@ pipeline {
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
-        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
@@ -97,7 +93,6 @@ pipeline {
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
         // Ideally use the TIBURON-DEV compartment, but we need permissions
-        //REPOSITORY_COMPARTMENT_OCID = credentials('oci-tenancy')
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
         TARBALL_DIR = "${WORKSPACE}/vz-tarball"
@@ -107,13 +102,6 @@ pipeline {
         stage('Initialize workspace and checkout') {
             steps {
                 script {
-                    if (env.NODE_LABELS.contains("phx")) {
-                        ocirRegion = "phx"
-                    } else {
-                        ocirRegion = "lhr"
-                        env.OCI_CLI_REGION = "uk-london-1"
-                    }
-                    ocirRegistry = "${ocirRegion}.ocir.io"
                     echo "Current execution region: $ocirRegion"
                     echo "OCIR Repository: ${ocirRegistry}"
                 }
@@ -410,9 +398,12 @@ pipeline {
                         }
                     }
                 }
+                // Run Verify Registry after the other tests, when we know all the pods are up and ready without
+                // having to duplicate the waits.
                 stage('Verify Registry') {
                     environment {
                         REGISTRY="${ocirRegistry}"
+                        PRIVATE_REPO="${baseImageRepo}"
                     }
                     parallel {
                         stage('verify-registry-url') {
@@ -479,13 +470,6 @@ pipeline {
                 echo "Base image repo: ${baseImageRepo}"
                 sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
             """
-        }
-        failure {
-            script {
-                if (env.BRANCH_NAME == "master") {
-                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
-                }
-            }
         }
         cleanup {
             deleteDir()

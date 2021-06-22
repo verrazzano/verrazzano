@@ -20,7 +20,7 @@ if [ -z "$GO_REPO_PATH" ] || [ -z "$WORKSPACE" ] || [ -z "$TARBALL_DIR" ] || [ -
 fi
 
 INSTALL_CALICO=${1:-false}
-WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
+WILDCARD_DNS_DOMAIN=${2:-"nip.io"}
 
 BOM_FILE=${TARBALL_DIR}/verrazzano-bom.json
 CHART_LOCATION=${TARBALL_DIR}/charts
