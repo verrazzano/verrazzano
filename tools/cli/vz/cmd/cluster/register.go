@@ -19,11 +19,11 @@ type ClusterRegisterOptions struct {
 	args        []string
 	genericclioptions.IOStreams
 
-	caSecret string
+	caSecret    string
 	description string
 }
 
-func NewClusterRegisterOptions (streams genericclioptions.IOStreams) *ClusterRegisterOptions {
+func NewClusterRegisterOptions(streams genericclioptions.IOStreams) *ClusterRegisterOptions {
 	return &ClusterRegisterOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
 		IOStreams:   streams,
@@ -36,7 +36,7 @@ func NewCmdClusterRegister(streams genericclioptions.IOStreams, kubernetesInterf
 		Use:   "register [name]",
 		Short: "Register a new managed cluster",
 		Long:  "Register a new managed cluster",
-		Args: cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			o.args = args
 			if err := o.registerCluster(kubernetesInterface); err != nil {
@@ -63,12 +63,12 @@ func (o *ClusterRegisterOptions) registerCluster(kubernetesInterface helpers.Kub
 	//create the vmc resource for the managed cluster
 	vmcObject := v1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: mcName,
+			Name:      mcName,
 			Namespace: vmcNamespace,
 		},
 		Spec: v1alpha1.VerrazzanoManagedClusterSpec{
 			Description: o.description,
-			CASecret: o.caSecret,
+			CASecret:    o.caSecret,
 		},
 	}
 

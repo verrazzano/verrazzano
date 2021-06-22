@@ -27,9 +27,9 @@ var (
 	caSecret       = "-c test-caSecret-secret"
 	registerOutput = "verrazzanomanagedcluster/test%d created\n"
 	tests          = []struct {
-		args []string
+		args   []string
 		output string
-	} {
+	}{
 		{
 			[]string{"test1", description, caSecret},
 			fmt.Sprintf(registerOutput, 1),
@@ -58,7 +58,7 @@ var (
 )
 
 type TestKubernetes struct {
-	fakeClient clientset.Interface
+	fakeClient    clientset.Interface
 	fakek8sClient kubernetes.Interface
 }
 
@@ -71,7 +71,7 @@ func (o *TestKubernetes) NewKubernetesClientSet() kubernetes.Interface {
 }
 
 //Test different permutations for flags for register command
-func TestNewCmdClusterRegister (t *testing.T) {
+func TestNewCmdClusterRegister(t *testing.T) {
 
 	asserts := assert.New(t)
 	fakeKubernetes := &TestKubernetes{
@@ -105,7 +105,7 @@ func TestNewCmdClusterRegister (t *testing.T) {
 }
 
 //Current test fails because fake types are using wrong group
-func TestNewCmdClusterList (t *testing.T) {
+func TestNewCmdClusterList(t *testing.T) {
 
 	asserts := assert.New(t)
 	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
@@ -118,7 +118,7 @@ func TestNewCmdClusterList (t *testing.T) {
 	//Instead no resource found message
 	err := testCmd.Execute()
 	asserts.NoError(err)
-	asserts.Equal(helpers.NothingFound + "\n", outBuffer.String())
+	asserts.Equal(helpers.NothingFound+"\n", outBuffer.String())
 
 	//create fake vmcs
 	testRegisterCmd := NewCmdClusterRegister(streams, testKubernetes)
@@ -173,7 +173,7 @@ func TestNewCmdClusterManifest(t *testing.T) {
 	asserts := assert.New(t)
 	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
 	testKubernetes := &TestKubernetes{
-		fakeClient: fake.NewSimpleClientset(),
+		fakeClient:    fake.NewSimpleClientset(),
 		fakek8sClient: k8sfake.NewSimpleClientset(),
 	}
 	testCmd := NewCmdClusterManifest(streams, testKubernetes)
@@ -206,7 +206,7 @@ func TestNewCmdClusterManifest(t *testing.T) {
 	outBuffer.Reset()
 }
 
-func newFakeSecret (fakek8sClient kubernetes.Interface) error {
+func newFakeSecret(fakek8sClient kubernetes.Interface) error {
 	fakeSecret := &v1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -221,8 +221,8 @@ func newFakeSecret (fakek8sClient kubernetes.Interface) error {
 				Name:       "test1",
 			}},
 		},
-		Data: map[string][]byte {
-			"yaml" : []byte("LS0tCmFwaVZlcnNpb246IHYxCmRhdGE6CiAgYWRtaW4ta3ViZWNvbmZpZzogWTJ4MWMzUmxjbk02Q2kwZ1kyeDFjM1JsY2pvS0lDQWdJR05sY25ScFptbGpZWFJsTFdGMWRHaHZjbWwwZVMxa1lYUmhPaUJNVXpCMFRGTXhRMUpWWkVwVWFVSkVVbFpL"),
+		Data: map[string][]byte{
+			"yaml": []byte("LS0tCmFwaVZlcnNpb246IHYxCmRhdGE6CiAgYWRtaW4ta3ViZWNvbmZpZzogWTJ4MWMzUmxjbk02Q2kwZ1kyeDFjM1JsY2pvS0lDQWdJR05sY25ScFptbGpZWFJsTFdGMWRHaHZjbWwwZVMxa1lYUmhPaUJNVXpCMFRGTXhRMUpWWkVwVWFVSkVVbFpL"),
 		},
 	}
 	_, err := fakek8sClient.CoreV1().Secrets(vmcNamespace).Create(context.Background(), fakeSecret, metav1.CreateOptions{})

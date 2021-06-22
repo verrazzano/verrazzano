@@ -21,7 +21,7 @@ type PrintFlags struct {
 func NewGetPrintFlags() *PrintFlags {
 	outputFormat := ""
 	return &PrintFlags{
-		OutputFormat: &outputFormat,
+		OutputFormat:       &outputFormat,
 		JSONYamlPrintFlags: genericclioptions.NewJSONYamlPrintFlags(),
 		TemplateFlags:      genericclioptions.NewKubeTemplatePrintFlags(),
 	}
@@ -32,7 +32,6 @@ func (f *PrintFlags) AllowedFormats() []string {
 	formats = append(formats, f.TemplateFlags.AllowedFormats()...)
 	return formats
 }
-
 
 func (f *PrintFlags) AddFlags(cmd *cobra.Command) {
 	f.JSONYamlPrintFlags.AddFlags(cmd)
