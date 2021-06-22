@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # This install resource installs the "prod" profile to install a full set of Verrazzano services
@@ -12,22 +12,7 @@ kind: Verrazzano
 metadata:
   name: my-verrazzano
 spec:
-  environmentName: env
-  profile: prod
   components:
-    certManager:
-      certificate:
-        acme:
-          provider: letsEncrypt
-          emailAddress: emailAddress@domain.com
-    dns:
-      oci:
-        ociConfigSecret: oci
-        dnsZoneCompartmentOCID: dnsZoneCompartmentOcid
-        dnsZoneOCID: dnsZoneOcid
-        dnsZoneName: my.dns.zone.name
-    ingress:
-      type: LoadBalancer
     fluentd:
       extraVolumeMounts:
         - source: /u01/data

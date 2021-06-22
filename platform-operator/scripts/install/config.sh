@@ -238,25 +238,25 @@ function get_application_ingress_https_port {
 }
 
 function get_nginx_helm_args_from_config {
-  if [ ! -z "$(get_config_value ".ingress.verrazzano")" ] && [ ! -z "$(get_config_value '.ingress.verrazzano.nginxInstallArgs')" ]; then
+  if [ ! -z "$(get_config_value '.ingress.verrazzano')" ] && [ ! -z "$(get_config_value '.ingress.verrazzano.nginxInstallArgs')" ]; then
     config_array_to_helm_args ".ingress.verrazzano.nginxInstallArgs[]" || return 1
   fi
 }
 
 function get_istio_helm_args_from_config {
-  if [ ! -z "$(get_config_value ".ingress.application")" ] && [ ! -z "$(get_config_value '.ingress.application.istioInstallArgs')" ]; then
+  if [ ! -z "$(get_config_value '.ingress.application')" ] && [ ! -z "$(get_config_value '.ingress.application.istioInstallArgs')" ]; then
     config_array_to_helm_args ".ingress.application.istioInstallArgs[]" || return 1
   fi
 }
 
 function get_keycloak_helm_args_from_config {
-  if [ ! -z "$(get_config_value ".keycloak")" ] && [ ! -z "$(get_config_value '.keycloak.keycloakInstallArgs')" ]; then
+  if [ ! -z "$(get_config_value '.keycloak')" ] && [ ! -z "$(get_config_value '.keycloak.keycloakInstallArgs')" ]; then
     config_array_to_helm_args ".keycloak.keycloakInstallArgs[]" || return 1
   fi
 }
 
 function get_mysql_helm_args_from_config {
-  if [ ! -z "$(get_config_value ".keycloak.mysql")" ] && [ ! -z "$(get_config_value '.keycloak.mysql.mySqlInstallArgs')" ]; then
+  if [ ! -z "$(get_config_value '.keycloak.mysql')" ] && [ ! -z "$(get_config_value '.keycloak.mysql.mySqlInstallArgs')" ]; then
     config_array_to_helm_args ".keycloak.mysql.mySqlInstallArgs[]" || return 1
   fi
 }
@@ -291,7 +291,7 @@ function config_array_to_helm_args {
 
 function get_verrazzano_ports_spec() {
   local ports_spec=""
-  if [ ! -z "$(get_config_value ".ingress.verrazzano")" ] && [ ! -z "$(get_config_value '.ingress.verrazzano.ports')" ]; then
+  if [ ! -z "$(get_config_value '.ingress.verrazzano')" ] && [ ! -z "$(get_config_value '.ingress.verrazzano.ports')" ]; then
     local port_mappings=($(get_config_array ".ingress.verrazzano.ports[]"))
     local port_mappings_len=${#port_mappings[@]}
     if [ $port_mappings_len -ne 0 ]; then
@@ -313,7 +313,7 @@ function get_install_profile() {
 }
 
 function get_acme_environment() {
-  if [ -z "$(get_config_value ".certificates.acme.environment")" ]; then
+  if [ -z "$(get_config_value '.certificates.acme.environment')" ]; then
     echo "production"
   else
     get_config_value ".certificates.acme.environment"
@@ -395,6 +395,12 @@ function is_rancher_enabled() {
 function is_keycloak_enabled() {
   local keycloak_enabled=$(get_config_value '.keycloak.enabled')
   echo ${keycloak_enabled}
+}
+
+function get_fluentd_extra_volume_mounts {
+  if [ ! -z "$(get_config_value '.fluentd')" ] && [ ! -z "$(get_config_value '.fluentd.fluentdInstallArgs')" ]; then
+    config_array_to_helm_args ".fluentd.fluentdInstallArgs[]" || return 1
+  fi
 }
 
 # Parse the verrazzanoInstallArgs from the config.json and return the value of the configuration value
