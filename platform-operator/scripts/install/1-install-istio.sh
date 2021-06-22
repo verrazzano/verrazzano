@@ -195,23 +195,6 @@ spec:
 ")
 }
 
-function update_coredns()
-{
-    local cluster_ip
-    cluster_ip=$(kubectl get svc -n istio-system istiocoredns -o jsonpath={.spec.clusterIP})
-    if [ $? -ne 0 ] ; then
-      return 1
-    fi
-
-    # Update coredns configmap to include global section in data.
-    # This update requires coredns be greater than 1.4.0
-    sed -e "s#@CLUSTER_IP@#${cluster_ip}#g" $CONFIG_DIR/coredns-template.yaml \
-       | kubectl apply -f - \
-       || return 1
-
-    return 0
-}
-
 function log_kube_version {
     local kubeVer=$(kubectl version -o json)
     log "------Begin Kubernetes Version Info----"
@@ -289,6 +272,5 @@ if ! kubectl get secret cacerts -n istio-system > /dev/null 2>&1 ; then
 fi
 
 action "Installing Istio" install_istio || exit 1
-action "Updating CoreDNS configuration" update_coredns || exit 1
 
 kubectl get pods -n istio-system

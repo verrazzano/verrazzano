@@ -15,3 +15,6 @@ spec:
         dnsZoneName: my.dns.zone.name
     ingress:
       type: LoadBalancer
+    fluentd:
+      extraVolumeMounts:
+        - source: /u01/data

@@ -1009,6 +1009,68 @@ func TestDeploymentUpdateError(t *testing.T) {
 	assert.Equal(time.Duration(0), result.RequeueAfter)
 }
 
+// TestUnsupportedWorkloadType tests a metrics trait with an unsupported workload type
+// GIVEN a metrics trait has an unsupported workload type of ConfigMap
+// WHEN the metrics trait Reconcile method is invoked
+// THEN verify the trait is deleted
+func TestUnsupportedWorkloadType(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	// Expect a call to get the trait resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
+			trait.TypeMeta = k8smeta.TypeMeta{
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
+				Kind:       vzapi.MetricsTraitKind}
+			trait.ObjectMeta = k8smeta.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			trait.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: "v1",
+				Kind:       "ConfigMap",
+				Name:       "test-workload-name"}
+			return nil
+		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+			assert.Equal("test-namespace", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("metricstrait.finalizers.verrazzano.io", trait.Finalizers[0])
+			return nil
+		})
+	// Expect a call to get the ConfigMap workload resource
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
+			workload.SetGroupVersionKind(schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"})
+			workload.SetNamespace(name.Namespace)
+			workload.SetName(name.Name)
+			workload.SetUID("test-workload-uid")
+			return nil
+		})
+	// Expect a call to delete the trait resource.
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.DeleteOption) error {
+			return nil
+		})
+	// Create and make the request
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
+
+	reconciler := newMetricsTraitReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
 // TestNoUpdatesRequired tests a reconcile where no updates to any resources was required.
 // GIVEN a metrics trait that has not been updated
 // WHEN the metrics trait Reconcile method is invoked
