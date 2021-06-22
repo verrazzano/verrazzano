@@ -77,10 +77,17 @@ spec:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
               readOnly: true
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
           resources:
             requests:
               memory: 72Mi
       volumes:
         - name: webhook-certs
           emptyDir: {}
+        - name: varlog
+          hostPath:
+            path: /var/log
+            type: ""
       serviceAccountName: {{ .Values.name }}
