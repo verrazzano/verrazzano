@@ -49,28 +49,105 @@ const monitoringExporterData = `
       "metricsNameSnakeCase": true,
       "queries": [
         {
-          "applicationRuntimes": {
-            "componentRuntimes": {
+           "key": "name",
+           "keyName": "location",
+           "prefix": "wls_server_",
+           "applicationRuntimes": {
               "key": "name",
-              "prefix": "webapp_config_",
-              "servlets": {
-                "key": "servletName",
-                "prefix": "weblogic_servlet_",
-                "values": "invocationTotalCount"
-              },
-              "type": "WebAppComponentRuntime",
+              "keyName": "app",
+              "componentRuntimes": {
+                 "prefix": "wls_webapp_config_",
+                 "type": "WebAppComponentRuntime",
+                 "key": "name",
+                 "values": [
+                    "deploymentState",
+                    "contextRoot",
+                    "sourceInfo",
+                    "sessionsOpenedTotalCount",
+                    "openSessionsCurrentCount",
+                    "openSessionsHighCount"
+                 ],
+                 "servlets": {
+                    "prefix": "wls_servlet_",
+                    "key": "servletName"
+                 }
+              }
+           }
+        },
+        {
+           "JVMRuntime": {
+              "prefix": "wls_jvm_",
+              "key": "name"
+           }
+        },
+        {
+           "executeQueueRuntimes": {
+              "prefix": "wls_socketmuxer_",
+              "key": "name",
               "values": [
-                "deploymentState",
-                "contextRoot",
-                "sourceInfo",
-                "openSessionsHighCount"
+                 "pendingRequestCurrentCount"
               ]
-            },
-            "key": "name",
-            "keyName": "app"
-          },
-          "key": "name",
-          "keyName": "server"
+           }
+        },
+        {
+           "workManagerRuntimes": {
+              "prefix": "wls_workmanager_",
+              "key": "name",
+              "values": [
+                 "stuckThreadCount",
+                 "pendingRequests",
+                 "completedRequests"
+              ]
+           }
+        },
+        {
+           "threadPoolRuntime": {
+              "prefix": "wls_threadpool_",
+              "key": "name",
+              "values": [
+                 "executeThreadTotalCount",
+                 "queueLength",
+                 "stuckThreadCount",
+                 "hoggingThreadCount"
+              ]
+           }
+        },
+        {
+           "JMSRuntime": {
+              "key": "name",
+              "keyName": "jmsruntime",
+              "prefix": "wls_jmsruntime_",
+              "JMSServers": {
+                 "prefix": "wls_jms_",
+                 "key": "name",
+                 "keyName": "jmsserver",
+                 "destinations": {
+                    "prefix": "wls_jms_dest_",
+                    "key": "name",
+                    "keyName": "destination"
+                 }
+              }
+           }
+        },
+        {
+           "persistentStoreRuntimes": {
+              "prefix": "wls_persistentstore_",
+              "key": "name"
+           }
+        },
+        {
+           "JDBCServiceRuntime": {
+              "JDBCDataSourceRuntimeMBeans": {
+                 "prefix": "wls_datasource_",
+                 "key": "name"
+              }
+           }
+        },
+        {
+           "JTARuntime": {
+              "prefix": "wls_jta_",
+              "key": "name"
+           }
         }
       ]
     },

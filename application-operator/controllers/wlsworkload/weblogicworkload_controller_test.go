@@ -944,7 +944,7 @@ func validateMonitoringExporter(u *unstructured.Unstructured, t *testing.T) {
 	metricsNameSnakeCase, _, _ := unstructured.NestedBool(u.Object, append(specMonitoringExporterFields, "configuration", "metricsNameSnakeCase")...)
 	asserts.True(t, metricsNameSnakeCase, "monitoringExporter.configuration.metricsNameSnakeCase should be TRUE")
 	queries, _, _ := unstructured.NestedSlice(u.Object, append(specMonitoringExporterFields, "configuration", "queries")...)
-	asserts.Equal(t, len(queries), 1, "there should be one query")
+	asserts.Equal(t, 9, len(queries), "there should be one query")
 	query, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&queries[0])
 	runtimeType, _, _ := unstructured.NestedString(query, "applicationRuntimes", "componentRuntimes", "type")
 	asserts.Equal(t, "WebAppComponentRuntime", runtimeType, "query runtime type should be WebAppComponentRuntime")
