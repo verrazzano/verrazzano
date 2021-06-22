@@ -15,7 +15,6 @@ import (
 )
 
 const dnsSuffix = "example.com"
-//const dnsSuffix = "129.159.240.145.nip.io"
 
 func getProxyConfigAPIProxyWithParams(providerHost string) OidcProxyConfig {
 	proxyConfig := OidcProxyConfig{}
@@ -33,7 +32,7 @@ func getProxyConfigAPIProxyWithParams(providerHost string) OidcProxyConfig {
 }
 
 func getProxyConfigAPIProxy() OidcProxyConfig {
-	return getProxyConfigAPIProxyWithParams("keycloak.default."..dnsSuffix)
+	return getProxyConfigAPIProxyWithParams("keycloak.default." + dnsSuffix)
 }
 
 // getProxyConfigOidcProxy returns an OidcProxyConfig struct
@@ -73,10 +72,10 @@ func getProxyConfigOidcProxyWithParams(ingressHost, verrazzanoURI, keycloakURL s
 
 func getProxyConfigOidcProxy() OidcProxyConfig {
 	return getProxyConfigOidcProxyWithParams(
-		"grafana.vmi.system.default."..dnsSuffix,
-		"default."..dnsSuffix,
+		"grafana.vmi.system.default."+dnsSuffix,
+		"default."+dnsSuffix,
 		"",
-		9000,
+		3000,
 		false,
 	)
 }

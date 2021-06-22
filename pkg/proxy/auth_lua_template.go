@@ -193,6 +193,7 @@ const OidcAuthLuaFileTemplate = `local me = {}
         local found, index = authHeader:find('Bearer')
         if found then
             local token = string.sub(authHeader, index+2)
+            ngx.req.clear_header("Authorization")
             if token then
                 me.info("Found bearer token in authorization header")
                 me.oidcValidateBearerToken(token)
