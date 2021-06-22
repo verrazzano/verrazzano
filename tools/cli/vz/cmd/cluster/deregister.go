@@ -18,7 +18,7 @@ type ClusterDeregisterOptions struct {
 	genericclioptions.IOStreams
 }
 
-func NewClusterDeregisterOptions (streams genericclioptions.IOStreams) *ClusterDeregisterOptions {
+func NewClusterDeregisterOptions(streams genericclioptions.IOStreams) *ClusterDeregisterOptions {
 	return &ClusterDeregisterOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
 		IOStreams:   streams,
@@ -31,7 +31,7 @@ func NewCmdClusterDeregister(streams genericclioptions.IOStreams, kubernetesInte
 		Use:   "deregister [name]",
 		Short: "Deregister a managed cluster",
 		Long:  "Deregister a managed cluster",
-		Args: cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			o.args = args
 			if err := o.deregisterCluster(kubernetesInterface); err != nil {
@@ -61,6 +61,6 @@ func (o *ClusterDeregisterOptions) deregisterCluster(kubernetesInterface helpers
 		return err
 	}
 
-	_, err = fmt.Fprintln(o.Out, vmcName + " deregistered")
+	_, err = fmt.Fprintln(o.Out, vmcName+" deregistered")
 	return err
 }

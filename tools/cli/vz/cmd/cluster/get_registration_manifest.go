@@ -19,21 +19,21 @@ type ClusterManifestOptions struct {
 	PrintFlags *helpers.PrintFlags
 }
 
-func NewClusterManifestOptions (streams genericclioptions.IOStreams) *ClusterManifestOptions {
+func NewClusterManifestOptions(streams genericclioptions.IOStreams) *ClusterManifestOptions {
 	return &ClusterManifestOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
 		IOStreams:   streams,
-		PrintFlags: helpers.NewGetPrintFlags(),
+		PrintFlags:  helpers.NewGetPrintFlags(),
 	}
 }
 
-func NewCmdClusterManifest (streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
+func NewCmdClusterManifest(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewClusterManifestOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "get-registration-manifest [name]",
 		Short: "Get the registration manifest for the manged cluster",
 		Long:  "Get the registration manifest to be applied on the managed cluster",
-		Args: cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			o.args = args
 			if err := o.getManifest(kubernetesInterface); err != nil {
@@ -90,4 +90,3 @@ func (o *ClusterManifestOptions) getManifest(kubenetesInterface helpers.Kubernet
 	_, err = fmt.Fprintln(o.Out, string(secret.Data["yaml"]))
 	return err
 }
-

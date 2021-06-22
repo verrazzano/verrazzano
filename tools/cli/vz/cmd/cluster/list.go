@@ -27,7 +27,7 @@ func NewClusterListOptions(streams genericclioptions.IOStreams) *ClusterListOpti
 	return &ClusterListOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
 		IOStreams:   streams,
-		PrintFlags: helpers.NewGetPrintFlags(),
+		PrintFlags:  helpers.NewGetPrintFlags(),
 	}
 }
 
@@ -127,4 +127,3 @@ func getReadyStatus(status v1alpha1.VerrazzanoManagedClusterStatus) string {
 	}
 	return ""
 }
-
