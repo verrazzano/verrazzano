@@ -292,7 +292,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
                             }
                             steps {
-                                runGinkgo('istio/authz')
+                                runGinkgoKeepGoing('istio/authz')
                             }
                         }
                         stage('security role based access') {
@@ -300,7 +300,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
                             }
                             steps {
-                                runGinkgo('security/rbac')
+                                runGinkgoKeepGoing('security/rbac')
                             }
                         }
                         stage('security network policies') {
@@ -310,7 +310,7 @@ pipeline {
                             steps {
                                 script {
                                     if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                                        runGinkgo('security/network-policies')
+                                        runGinkgoKeepGoing('security/network-policies')
                                     }
                                 }
                             }
@@ -320,7 +320,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
                             }
                             steps {
-                                runGinkgo('deploymetrics')
+                                runGinkgoKeepGoing('deploymetrics')
                             }
                         }
                         stage('examples logging helidon') {
@@ -328,18 +328,15 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
                             }
                             steps {
-                                runGinkgo('logging/helidon')
+                                runGinkgoKeepGoing('logging/helidon')
                             }
                         }
                         stage('examples todo') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
                             }
-                            when {
-                                expression {params.RUN_SLOW_TESTS == true}
-                            }
                             steps {
-                                runGinkgo('examples/todo')
+                                runGinkgoFailFast('examples/todo')
                             }
                         }
                         stage('examples socks') {
@@ -347,7 +344,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
                             }
                             steps {
-                                runGinkgo('examples/socks')
+                                runGinkgoKeepGoing('examples/socks')
                             }
                         }
                         stage('examples spring') {
@@ -355,7 +352,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
                             }
                             steps {
-                                runGinkgo('examples/springboot')
+                                runGinkgoKeepGoing('examples/springboot')
                             }
                         }
                         stage('examples helidon') {
@@ -363,7 +360,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
                             }
                             steps {
-                                runGinkgo('examples/helidon')
+                                runGinkgoKeepGoing('examples/helidon')
                             }
                         }
                         stage('examples helidon-config') {
@@ -371,7 +368,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
                             }
                             steps {
-                                runGinkgo('examples/helidonconfig')
+                                runGinkgoKeepGoing('examples/helidonconfig')
                             }
                         }
                         stage('examples bobs') {
@@ -382,7 +379,7 @@ pipeline {
                                 expression {params.RUN_SLOW_TESTS == true}
                             }
                             steps {
-                                runGinkgo('examples/bobsbooks')
+                                runGinkgoKeepGoing('examples/bobsbooks')
                             }
                         }
                         stage('console ingress') {
@@ -390,7 +387,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
                             }
                             steps {
-                                runGinkgo('ingress/console')
+                                runGinkgoKeepGoing('ingress/console')
                             }
                         }
                     }
@@ -480,20 +477,34 @@ pipeline {
     }
 }
 
-def runGinkgoRandomize(testSuitePath) {
+def runGinkgoRandomize(testSuitePath, String... extraArgs) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+            // Concatenate the variable args into a single string
+            String extraGinkgoArgs = ""
+            extraArgs.each { extraGinkgoArgs += it + " " }
+            ginkgo -p --randomizeAllSpecs -v --noColor ${extraGinkgoArgs} ${testSuitePath}/...
         """
     }
 }
 
-def runGinkgo(testSuitePath) {
+def runGinkgoKeepGoing(testSuitePath) {
+    runGinkgo(testSuitePath, '-keepGoing')
+}
+
+def runGinkgoFailFast(testSuitePath) {
+    runGinkgo(testSuitePath, '-failFast')
+}
+
+def runGinkgo(testSuitePath, String... extraArgs) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        // Concatenate the variable args into a single string
+        String extraGinkgoArgs = ""
+        extraArgs.each { extraGinkgoArgs += it + " " }
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v ${extraGinkgoArgs} --noColor ${testSuitePath}/...
         """
     }
 }
