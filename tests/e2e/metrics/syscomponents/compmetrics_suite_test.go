@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package compmetrics
+package syscomponents
 
 import (
 	"fmt"
@@ -15,6 +15,6 @@ import (
 
 func TestComponentMetrics(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("compmetrics-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
+	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("syscomponents-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
 	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "System Component Metrics Suite", []ginkgo.Reporter{junitReporter})
 }

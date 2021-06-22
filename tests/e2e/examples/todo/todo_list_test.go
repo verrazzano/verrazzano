@@ -65,10 +65,6 @@ func deployToDoListExample() {
 	if _, err := pkg.CreateCredentialsSecret("todo-list", "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"}); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create JDBC credentials secret: %v", err))
 	}
-	pkg.Log(pkg.Info, "Create encryption credentials secret")
-	if _, err := pkg.CreatePasswordSecret("todo-list", "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "tododomain"}); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create encryption secret: %v", err))
-	}
 	pkg.Log(pkg.Info, "Create component resources")
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-components.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create ToDo List component resources: %v", err))

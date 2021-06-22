@@ -29,6 +29,7 @@ pipeline {
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
@@ -48,6 +49,9 @@ pipeline {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
+        DOCKER_IMAGE_PATCH_CI_IMAGE_NAME = 'verrazzano-image-patch-operator-jenkins'
+        DOCKER_IMAGE_PATCH_PUBLISH_IMAGE_NAME = 'verrazzano-image-patch-operator'
+        DOCKER_IMAGE_PATCH_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_IMAGE_PATCH_PUBLISH_IMAGE_NAME : env.DOCKER_IMAGE_PATCH_CI_IMAGE_NAME}"
         DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
         DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
         DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
@@ -145,11 +149,7 @@ pipeline {
                         }
                     }
                 }
-                sh """
-                    rm -rf ${GO_REPO_PATH}/verrazzano
-                    mkdir -p ${GO_REPO_PATH}/verrazzano
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-                """
+                moveContentToGoRepoPath()
 
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
@@ -177,18 +177,12 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'release-*';
+                        expression {params.GENERATE_TOOL == true};
                     }
                 }
             }
             steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/tools/analysis
-                    make go-build
-                    cd out
-                    zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-                """
+                buildAnalysisTool()
             }
             post {
                 failure {
@@ -197,7 +191,7 @@ pipeline {
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: '**/analysis-tool.zip', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
                 }
             }
         }
@@ -205,17 +199,7 @@ pipeline {
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    case "${env.BRANCH_NAME}" in
-                        master|release-*)
-                            ;;
-                        *)
-                            echo "Adding image pull secrets to operator.yaml for non master/release branch"
-                            export IMAGE_PULL_SECRETS=verrazzano-container-registry
-                    esac
-                    DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
-                   """
+                generateOperatorYaml("${DOCKER_IMAGE_TAG}")
             }
             post {
                 failure {
@@ -232,11 +216,7 @@ pipeline {
         stage('Build') {
             when { not { buildingTag() } }
             steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-                    cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
-                   """
+                buildImages("${DOCKER_IMAGE_TAG}")
             }
             post {
                 failure {
@@ -250,6 +230,25 @@ pipeline {
             }
         }
 
+        stage('Image Patch Operator') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    changeset "image-patch-operator/**"
+                }
+            }
+            steps {
+                buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
+            }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+            }
+        }
+
         stage('Save Generated Files') {
             when {
                 allOf {
@@ -257,13 +256,7 @@ pipeline {
                 }
             }
             steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
-                   """
+                saveGeneratedFiles()
             }
             post {
                 failure {
@@ -277,16 +270,7 @@ pipeline {
         stage('Quality and Compliance Checks') {
             when { not { buildingTag() } }
             steps {
-                sh """
-                    echo "run all linters"
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make check
-
-                    echo "copyright scan"
-                    time make copyright-check
-
-                    echo "Third party license check"
-                """
+                qualityCheck()
                 thirdpartyCheck()
             }
             post {
@@ -344,6 +328,7 @@ pipeline {
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_ANALYSIS_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_PATCH_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                 }
             }
             post {
@@ -361,24 +346,7 @@ pipeline {
         stage('Integration Tests') {
             when { not { buildingTag() } }
             steps {
-                sh """
-                    if [ "${params.SIMULATE_FAILURE}" == "true" ]; then
-                        echo "Simulate failure from a stage"
-                        exit 1
-                    fi
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-
-                    make cleanup-cluster
-                    make create-cluster KIND_CONFIG="kind-config-ci.yaml"
-                    ../ci/scripts/setup_kind_for_jenkins.sh
-                    make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    ../build/copy-junit-output.sh ${WORKSPACE}
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make cleanup-cluster
-                    make integ-test KIND_CONFIG="kind-config-ci.yaml" CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    ../build/copy-junit-output.sh ${WORKSPACE}
-                    make cleanup-cluster
-                """
+                integrationTests("${DOCKER_IMAGE_TAG}")
             }
             post {
                 failure {
@@ -430,7 +398,6 @@ pipeline {
             }
 
             stages {
-
                 stage('Prepare AT environment') {
                     environment {
                         VERRAZZANO_OPERATOR_IMAGE="NONE"
@@ -446,15 +413,7 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                            sh """
-                                ## dump out install logs
-                                mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
-                                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
-                                kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
-                                echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                                echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                                echo "------------------------------------------"
-                            """
+                            prepareATEnvironment()
                         }
                     }
                 }
@@ -542,7 +501,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
                             }
                             steps {
-                                runGinkgo('metrics/compmetrics')
+                                runGinkgo('metrics/syscomponents')
                             }
                         }
                         stage('examples logging helidon') {
@@ -619,22 +578,7 @@ pipeline {
                                 CHROMEDRIVER_VERSION="90.0.4430.24"
                             }
                             steps {
-                                sh """
-                                    # Temporarily clone the console repo until it is moved to the verrazzano repo
-                                    cd ${GO_REPO_PATH}
-                                    git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
-                                    cd console
-                                    git checkout ${params.CONSOLE_REPO_BRANCH}
-
-                                    # Configure headless browser
-                                    google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
-                                    curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-                                    unzip chromedriver.zip
-                                    sudo cp chromedriver /usr/local/bin/
-                                    
-                                    # Run the tests
-                                    make run-ui-tests
-                                """
+                                acceptanceTestsConsole()
                             }
                         }
                     }
@@ -706,14 +650,7 @@ pipeline {
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
-            sh """
-                cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                make delete-cluster
-                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                  echo "Failures seen during dumping of artifacts, treat post as failed"
-                  exit 1
-                fi
-            """
+            deleteCluster()
         }
         failure {
             sh """
@@ -736,30 +673,7 @@ pipeline {
             }
         }
         success {
-            sh """
-                if [ "${params.GENERATE_TARBALL}" == "true" ]; then
-                    mkdir ${WORKSPACE}/tar-files
-                    chmod uog+w ${WORKSPACE}/tar-files
-                    cp $WORKSPACE/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
-                    cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
-                    cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
-                    mkdir -p ${WORKSPACE}/tar-files/charts
-                    cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
-                    tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
-                    echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/tarball-commit.txt
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball-commit.txt --file $WORKSPACE/tarball-commit.txt
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz --file ${WORKSPACE}/tarball.tar.gz
-                fi
-            """
-
-            // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
-            sh """
-                if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
-                    cd ${GO_REPO_PATH}/verrazzano
-                    echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
-                fi
-            """
+            storePipelineArtifacts()
         }
         cleanup {
             deleteDir()
@@ -767,6 +681,183 @@ pipeline {
     }
 }
 
+// Called in Stage Clean workspace and checkout steps
+def moveContentToGoRepoPath() {
+    sh """
+        rm -rf ${GO_REPO_PATH}/verrazzano
+        mkdir -p ${GO_REPO_PATH}/verrazzano
+        tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+    """
+}
+
+// Called in final post always block of pipeline
+def deleteCluster() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        make delete-cluster
+        if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+          echo "Failures seen during dumping of artifacts, treat post as failed"
+          exit 1
+        fi
+    """
+}
+
+// Called in final post success block of pipeline
+def storePipelineArtifacts() {
+    sh """
+        if [ "${params.GENERATE_TARBALL}" == "true" ]; then
+            mkdir ${WORKSPACE}/tar-files
+            chmod uog+w ${WORKSPACE}/tar-files
+            cp $WORKSPACE/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
+            cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
+            cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
+            mkdir -p ${WORKSPACE}/tar-files/charts
+            cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
+            tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
+            cd ${WORKSPACE}
+            sha256sum tarball.tar.gz > tarball.tar.gz.sha256
+            echo "git-commit=${env.GIT_COMMIT}" > tarball-commit.txt
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball-commit.txt --file tarball-commit.txt
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz --file tarball.tar.gz
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz.sha256 --file tarball.tar.gz.sha256
+       fi
+    """
+
+    // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
+    sh """
+        if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
+            cd ${GO_REPO_PATH}/verrazzano
+            echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
+        fi
+    """
+}
+
+// Called in parallel Stage console of Stage Run Acceptance Tests
+def acceptanceTestsConsole() {
+    sh """
+        # Temporarily clone the console repo until it is moved to the verrazzano repo
+        cd ${GO_REPO_PATH}
+        git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
+        cd console
+        git checkout ${params.CONSOLE_REPO_BRANCH}
+
+        # Configure headless browser
+        google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
+        curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+        unzip chromedriver.zip
+        sudo cp chromedriver /usr/local/bin/
+
+        # Run the tests
+        make run-ui-tests
+    """
+}
+
+// Called in Stage Prepare AT Environment post
+def prepareATEnvironment() {
+    sh """
+        ## dump out install logs
+        mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
+        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
+        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
+        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+// Called in Stage Integration Tests steps
+def integrationTests(dockerImageTag) {
+    sh """
+        if [ "${params.SIMULATE_FAILURE}" == "true" ]; then
+            echo "Simulate failure from a stage"
+            exit 1
+        fi
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+
+        make cleanup-cluster
+        make create-cluster KIND_CONFIG="kind-config-ci.yaml"
+        ../ci/scripts/setup_kind_for_jenkins.sh
+        make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${dockerImageTag}
+        ../build/copy-junit-output.sh ${WORKSPACE}
+        cd ${GO_REPO_PATH}/verrazzano/application-operator
+        make cleanup-cluster
+        make integ-test KIND_CONFIG="kind-config-ci.yaml" CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${dockerImageTag}
+        ../build/copy-junit-output.sh ${WORKSPACE}
+        make cleanup-cluster
+    """
+}
+
+// Called in Stage Analysis Tool steps
+def buildAnalysisTool() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/tools/analysis
+        make go-build
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
+    """
+}
+
+// Called in Stage Build steps
+// Makes target docker push for application/platform operator and analysis
+def buildImages(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+        cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
+    """
+}
+
+// Called in Stage Image Patch Operator
+// Makes target docker-push-ipo
+def buildImagePatchOperator(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        make docker-push-ipo VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_PATCH_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+    """
+}
+
+// Called in Stage Generate operator.yaml steps
+def generateOperatorYaml(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        case "${env.BRANCH_NAME}" in
+            master|release-*)
+                ;;
+            *)
+                echo "Adding image pull secrets to operator.yaml for non master/release branch"
+                export IMAGE_PULL_SECRETS=verrazzano-container-registry
+        esac
+        DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
+    """
+}
+
+// Called in Stage Quality and Compliance Checks steps
+// Makes target check to run all linters
+def qualityCheck() {
+    sh """
+        echo "run all linters"
+        cd ${GO_REPO_PATH}/verrazzano
+        make check
+
+        echo "copyright scan"
+        time make copyright-check
+
+        echo "Third party license check"
+    """
+}
+
+// Called in Stage Save Generated Files steps
+def saveGeneratedFiles() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
+    """
+}
+
+// Called in many parallel stages of Stage Run Acceptance Tests
 def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
@@ -777,6 +868,7 @@ def runGinkgoRandomize(testSuitePath) {
     }
 }
 
+// Called in many parallel stages of Stage Run Acceptance Tests
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
@@ -787,12 +879,14 @@ def runGinkgo(testSuitePath) {
     }
 }
 
+// Called in Stage Acceptance Tests post
 def dumpK8sCluster(dumpDirectory) {
     sh """
         ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/analysis.report
     """
 }
 
+// Called in final post block of pipeline
 def dumpVerrazzanoSystemPods() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -807,6 +901,7 @@ def dumpVerrazzanoSystemPods() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpCattleSystemPods() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -817,6 +912,7 @@ def dumpCattleSystemPods() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpNginxIngressControllerLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -825,6 +921,7 @@ def dumpNginxIngressControllerLogs() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpVerrazzanoPlatformOperatorLogs() {
     sh """
         ## dump out verrazzano-platform-operator logs
@@ -837,6 +934,7 @@ def dumpVerrazzanoPlatformOperatorLogs() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpVerrazzanoApplicationOperatorLogs() {
     sh """
         ## dump out verrazzano-application-operator logs
@@ -849,6 +947,7 @@ def dumpVerrazzanoApplicationOperatorLogs() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpOamKubernetesRuntimeLogs() {
     sh """
         ## dump out oam-kubernetes-runtime logs
@@ -861,6 +960,7 @@ def dumpOamKubernetesRuntimeLogs() {
     """
 }
 
+// Called in final post block of pipeline
 def dumpVerrazzanoApiLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -869,6 +969,7 @@ def dumpVerrazzanoApiLogs() {
     """
 }
 
+// Called in Stage Clean workspace and checkout steps
 @NonCPS
 def getCommitList() {
     echo "Checking for change sets"

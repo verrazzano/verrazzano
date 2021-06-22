@@ -455,7 +455,7 @@ pipeline {
                 }
                 stage ('Verify Metrics') {
                     steps {
-                        runGinkgoRandomize('metrics/compmetrics')
+                        runGinkgoRandomize('metrics/syscomponents')
                     }
                 }
                 stage ('Example apps') {

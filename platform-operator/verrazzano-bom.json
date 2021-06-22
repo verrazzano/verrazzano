@@ -278,7 +278,7 @@
             },
             {
               "image": "console",
-              "tag": "0.16.0-20210616152739-b08f1d1",
+              "tag": "0.16.0-20210618131715-9ddff61",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -360,7 +360,7 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.2.3",
+              "tag": "3.2.4",
               "helmFullImageKey": "image"
             }
           ]
