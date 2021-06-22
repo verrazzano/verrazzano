@@ -202,19 +202,22 @@ spec:
               domainQualifier: true
               queries:
                 - key: name
-                  keyName: server
+                  keyName: location
+                  prefix: wls_server_
                   applicationRuntimes:
                     key: name
                     keyName: app
                     componentRuntimes:
+                      prefix: wls_webapp_config_
                       type: WebAppComponentRuntime
-                      prefix: webapp_config_
                       key: name
-                      values: [deploymentState, contextRoot, sourceInfo, openSessionsHighCount]
+                      values: [ deploymentState, contextRoot, sourceInfo, sessionsOpenedTotalCount, openSessionsCurrentCount, openSessionsHighCount ]
                       servlets:
-                        prefix: weblogic_servlet_
+                        prefix: wls_servlet_
                         key: servletName
-                        values: invocationTotalCount
+                - JVMRuntime:
+                  prefix: wls_jvm_
+                  key: name
           serverPod:
             env:
               - name: JAVA_OPTIONS
@@ -448,19 +451,22 @@ spec:
               domainQualifier: true
               queries:
                 - key: name
-                  keyName: server
+                  keyName: location
+                  prefix: wls_server_
                   applicationRuntimes:
                     key: name
                     keyName: app
                     componentRuntimes:
+                      prefix: wls_webapp_config_
                       type: WebAppComponentRuntime
-                      prefix: webapp_config_
                       key: name
-                      values: [deploymentState, contextRoot, sourceInfo, openSessionsHighCount]
+                      values: [ deploymentState, contextRoot, sourceInfo, sessionsOpenedTotalCount, openSessionsCurrentCount, openSessionsHighCount ]
                       servlets:
-                        prefix: weblogic_servlet_
+                        prefix: wls_servlet_
                         key: servletName
-                        values: invocationTotalCount
+                - JVMRuntime:
+                  prefix: wls_jvm_
+                  key: name
           serverPod:
             env:
               - name: JAVA_OPTIONS
