@@ -1042,7 +1042,7 @@ def getSuspectList(commitList, userMappings) {
     return retValue
 }
 
-getEffectiveDumpOnSuccess() {
+def getEffectiveDumpOnSuccess() {
     def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
     if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.equals("tvlatas/dump-on-success-global"))) {
         effectiveValue = true
