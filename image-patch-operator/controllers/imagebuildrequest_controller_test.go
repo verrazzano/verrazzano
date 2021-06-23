@@ -4,79 +4,41 @@
 package controllers
 
 import (
-	"reflect"
 	"testing"
 
-	"github.com/go-logr/logr"
+	"github.com/golang/mock/gomock"
+	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
 	"k8s.io/apimachinery/pkg/runtime"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	ipoapi "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
 )
 
-func TestImageBuildRequestReconciler_Reconcile(t *testing.T) {
-	type fields struct {
-		Client client.Client
-		Log    logr.Logger
-		Scheme *runtime.Scheme
-	}
-	type args struct {
-		req controllerruntime.Request
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    controllerruntime.Result
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := &ImageBuildRequestReconciler{
-				Client: tt.fields.Client,
-				Log:    tt.fields.Log,
-				Scheme: tt.fields.Scheme,
-			}
-			got, err := r.Reconcile(tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Reconcile() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Reconcile() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+func TestReconcilerSetupWithManager(t *testing.T) {
+	assert := asserts.New(t)
 
-func TestImageBuildRequestReconciler_SetupWithManager(t *testing.T) {
-	type fields struct {
-		Client client.Client
-		Log    logr.Logger
-		Scheme *runtime.Scheme
-	}
-	type args struct {
-		mgr controllerruntime.Manager
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := &ImageBuildRequestReconciler{
-				Client: tt.fields.Client,
-				Log:    tt.fields.Log,
-				Scheme: tt.fields.Scheme,
-			}
-			if err := r.SetupWithManager(tt.args.mgr); (err != nil) != tt.wantErr {
-				t.Errorf("SetupWithManager() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
+	var mocker *gomock.Controller
+	var mgr *mocks.MockManager
+	var cli *mocks.MockClient
+	var scheme *runtime.Scheme
+	var reconciler ImageBuildRequestReconciler
+	var err error
+
+	mocker = gomock.NewController(t)
+	mgr = mocks.NewMockManager(mocker)
+	cli = mocks.NewMockClient(mocker)
+	scheme = runtime.NewScheme()
+	ipoapi.AddToScheme(scheme)
+	reconciler = ImageBuildRequestReconciler{Client: cli, Scheme: scheme}
+	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetScheme().Return(scheme)
+	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
+	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
+	err = reconciler.SetupWithManager(mgr)
+	mocker.Finish()
+	assert.NoError(err)
 }
