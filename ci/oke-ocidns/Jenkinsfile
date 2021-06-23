@@ -24,6 +24,7 @@ def availableRegions = [  "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "a
 Collections.shuffle(availableRegions)
 def keepOKEClusterOnFailure = "false"
 def OKE_CLUSTER_PREFIX = ""
+def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
     options {
@@ -145,6 +146,7 @@ pipeline {
         stage('Initialize') {
             steps {
                 script {
+                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
@@ -533,7 +535,7 @@ pipeline {
     post {
         always {
             script {
-                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
+                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
                     dumpK8sCluster('oke-acceptance-tests-cluster-dump')
                 }
             }
@@ -766,4 +768,13 @@ def dumpVerrazzanoApiLogs() {
         export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-api.log"
         ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
+}
+
+def getEffectiveDumpOnSuccess() {
+    def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
+    if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
+        effectiveValue = true
+        echo "Forcing dump on success based on global override setting"
+    }
+    return effectiveValue
 }
