@@ -20,6 +20,7 @@ VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME ?= verrazzano-platform-operator-dev
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME ?= verrazzano-application-operator-dev
 VERRAZZANO_ANALYSIS_IMAGE_NAME ?= verrazzano-analysis-dev
 VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME ?= verrazzano-image-patch-operator-dev
+VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME ?= verrazzano-weblogic-image-tool-dev
 
 VERRAZZANO_PLATFORM_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
@@ -50,9 +51,9 @@ docker-push:
 docker-push-ipo:
 	(cd image-patch-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 
-.PHONY: docker-push-wit-img
-docker-push-wit-img:
-	(cd image-patch-operator; make dockerpush )
+.PHONY: docker-push-wit
+docker-push-wit:
+	(cd image-patch-operator/weblogic-imagetool; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 
 .PHONY: create-test-deploy
 create-test-deploy: docker-push
