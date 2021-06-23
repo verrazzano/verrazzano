@@ -338,13 +338,6 @@ pipeline {
                             steps {
                                 runGinkgoFailFast('examples/todo')
                             }
-                            post{
-                                always {
-                                    script {
-                                        dumpK8sCluster('private-registry-todo-dump')
-                                    }
-                                }
-                            }
                         }
                         stage('examples socks') {
                             environment {
@@ -484,14 +477,12 @@ pipeline {
     }
 }
 
-def runGinkgoRandomize(testSuitePath, String... extraArgs) {
+def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            // Concatenate the variable args into a single string
-            String extraGinkgoArgs = ""
-            extraArgs.each { extraGinkgoArgs += it + " " }
-            ginkgo -p --randomizeAllSpecs -v --noColor ${extraGinkgoArgs} ${testSuitePath}/...
+            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+            ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
 }
@@ -512,6 +503,7 @@ def runGinkgo(testSuitePath, String... extraArgs) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v ${extraGinkgoArgs} --noColor ${testSuitePath}/...
+            ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
 }
