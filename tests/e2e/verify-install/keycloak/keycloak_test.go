@@ -16,12 +16,12 @@ import (
 )
 
 const (
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 30 * time.Second
-    keycloakNamespace string = "keycloak"
+	waitTimeout              = 10 * time.Minute
+	pollingInterval          = 30 * time.Second
+	keycloakNamespace string = "keycloak"
 )
 
-var volumeClaims           map[string]*corev1.PersistentVolumeClaim
+var volumeClaims map[string]*corev1.PersistentVolumeClaim
 
 var _ = ginkgo.Describe("Verify Keycloak configuration", func() {
 	var _ = ginkgo.Context("Verify password policies", func() {
@@ -44,7 +44,6 @@ var _ = ginkgo.Describe("Verify Keycloak configuration", func() {
 		})
 	})
 })
-
 
 var _ = ginkgo.Describe("Verify MySQL Persistent Volumes based on install profile", func() {
 	var _ = ginkgo.Context("Verify Persistent volumes allocated per install profile", func() {
@@ -133,7 +132,6 @@ func verifyKeycloakRealmPasswordPolicyIsCorrect(realm string) bool {
 	}
 	return true
 }
-
 
 func assertPersistentVolume(key string, size string) {
 	gomega.Expect(volumeClaims).To(gomega.HaveKey(key))

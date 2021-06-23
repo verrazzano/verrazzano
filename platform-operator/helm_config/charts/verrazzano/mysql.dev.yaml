@@ -5,4 +5,3 @@
 # - with no persistent storage MySQL
 persistence:
   enabled: false
-  
