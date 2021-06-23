@@ -66,9 +66,10 @@ COPY --chown=verrazzano:verrazzano ./${JDK_BINARY} ./${WLS_BINARY} ./${WDT_BINAR
 # Add installers to WIT
 ENV WLSIMG_CACHEDIR="/home/verrazzano/cache"
 RUN ./imagetool/bin/imagetool.sh cache addInstaller --type wls --version 12.2.1.4.0 --path ./${WLS_BINARY} \
-    && ./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version 8u291 --path ./${JDK_BINARY}
+    && ./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version 8u291 --path ./${JDK_BINARY} \
+    && ./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version latest --path ./${WDT_BINARY}
 
-# TODO: copy license into image
+COPY ../../THIRD_PARTY_LICENSES.txt /licenses
 
 USER 1000
 
