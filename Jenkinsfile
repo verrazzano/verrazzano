@@ -577,9 +577,9 @@ def buildImagePatchOperator(dockerImageTag) {
 def buildWITImage(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/
-        make docker-push-wit VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_PATCH_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+        make docker-push-wit VERRAZZANO_WIT_IMAGE_NAME=${DOCKER_WIT_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
     """
-    // TODO: fill in make command
+    // VERRAZZANO_WIT_IMAGE_NAME define this somewhere
 }
 
 // Called in Stage Generate operator.yaml steps

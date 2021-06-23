@@ -1,15 +1,14 @@
 # Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-include ../make/quality.mk
-include ../make/generate.mk
+include ../../make/quality.mk
+include ../../make/generate.mk
 
 SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 
-NAME:=verrazzano-ipo-weblogic-image-tool
-REPO_NAME:=verrazzano-ipo-weblogic-image-tool
+NAME:=verrazzano-weblogic-image-tool
+REPO_NAME:=verrazzano-weblogic-image-tool
 
-CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
 CREATE_LATEST_TAG=0
 
 ifndef DOCKER_IMAGE_FULLNAME
@@ -41,46 +40,21 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
-
 DIST_DIR:=dist
 K8S_NAMESPACE:=default
 WATCH_NAMESPACE:=
 EXTRA_PARAMS=
 INTEG_RUN_ID=
-ENV_NAME=verrazzano-image-patch-operator
-GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
-GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
-KIND_CONFIG ?= kind-config.yaml
-CRD_PATH=../image-patch-operator/config/crd/bases
+ENV_NAME=verrazzano-weblogic-image-tool
 
-CLUSTER_DUMP_LOCATION ?= image-patch-operator-integ-cluster-dump
-
-.PHONY: go-build
-go-build:
-	$(GO) build \
-		-ldflags "${GO_LDFLAGS}" \
-		-o out/$(shell uname)_$(shell uname -m)/verrazzano-image-patch-operator \
-		main.go
-
-.PHONY: go-build-linux
-go-build-linux:
-	GOOS=linux GOARCH=amd64 $(GO) build \
-		-ldflags "${GO_LDFLAGS}" \
-		-o out/linux_amd64/verrazzano-image-patch-operator \
-		main.go
-
-.PHONY: go-install
-go-install:
-	$(GO) install
+CLUSTER_DUMP_LOCATION ?= weblogic-image-tool-integ-cluster-dump
 
 .PHONY: docker-clean
 docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: go-build-linux
+docker-build:
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../../THIRD_PARTY_LICENSES.txt .
 	docker build --pull \

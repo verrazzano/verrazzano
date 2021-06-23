@@ -68,6 +68,8 @@ ENV WLSIMG_CACHEDIR="/home/verrazzano/cache"
 RUN ./imagetool/bin/imagetool.sh cache addInstaller --type wls --version 12.2.1.4.0 --path ./${WLS_BINARY} \
     && ./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version 8u291 --path ./${JDK_BINARY}
 
+# TODO: copy license into image
+
 USER 1000
 
 ENTRYPOINT ["imagetool/bin/imagetool.sh"]
