@@ -373,7 +373,7 @@ pipeline {
                 }
                 stage ('Verify Install') {
                     // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-                    //       each cluster in sequence.  But we should parallizing those also, if we can.
+                    //       each cluster in sequence. If possible, we should parallelize that as well.
                     parallel {
                         stage ('multicluster/verify-install') {
                             steps {
@@ -451,6 +451,11 @@ pipeline {
                                 }
                             }
                         }
+                    }
+                }
+                stage ('Verify Metrics') {
+                    steps {
+                        runGinkgoRandomize('metrics/syscomponents')
                     }
                 }
                 stage ('Example apps') {
@@ -768,9 +773,18 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            def clusterName = ""
             for(int count=1; count<=clusterCount; count++) {
+                // The first cluster created by this script is named as admin, and the subsequent clusters are named as
+                // managed1, managed2, etc.
+                if (count == 1) {
+                    clusterName="admin"
+                } else {
+                    clusterName="managed${count-1}"
+                }
                 sh """
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                    export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                     ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
                 """

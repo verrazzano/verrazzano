@@ -417,6 +417,13 @@ pipeline {
                         }
                     }
                 }
+                stage('metrics') {
+                    steps {
+                        script {
+                            runGinkgo('metrics/syscomponents')
+                        }
+                    }
+                }
                 stage('hello-helidon') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-hello-helidon"
