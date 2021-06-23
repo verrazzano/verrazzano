@@ -338,6 +338,13 @@ pipeline {
                             steps {
                                 runGinkgoFailFast('examples/todo')
                             }
+                            post{
+                                always {
+                                    script {
+                                        dumpK8sCluster('private-registry-todo-dump')
+                                    }
+                                }
+                            }
                         }
                         stage('examples socks') {
                             environment {
