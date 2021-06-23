@@ -16,7 +16,7 @@ package proxy
 const OidcStartupFilename = "startup.sh"
 
 // OidcStartupFileTemplate is the template of startup.sh file in OIDC proxy ConfigMap
-const OidcStartupFileTemplate = `    #!/bin/bash
+const OidcStartupFileTemplate = `#!/bin/bash
     startupDir=$(dirname $0)
     cd $startupDir
     cp $startupDir/nginx.conf /etc/nginx/nginx.conf
