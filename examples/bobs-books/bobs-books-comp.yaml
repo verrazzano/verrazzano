@@ -216,8 +216,8 @@ spec:
                         prefix: wls_servlet_
                         key: servletName
                 - JVMRuntime:
-                  prefix: wls_jvm_
-                  key: name
+                    prefix: wls_jvm_
+                    key: name
           serverPod:
             env:
               - name: JAVA_OPTIONS
@@ -465,8 +465,8 @@ spec:
                         prefix: wls_servlet_
                         key: servletName
                 - JVMRuntime:
-                  prefix: wls_jvm_
-                  key: name
+                    prefix: wls_jvm_
+                    key: name
           serverPod:
             env:
               - name: JAVA_OPTIONS
