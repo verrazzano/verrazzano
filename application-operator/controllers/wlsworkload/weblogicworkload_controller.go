@@ -42,7 +42,7 @@ const (
 	destinationRuleKind       = "DestinationRule"
 )
 
-const monitoringExporterData = `
+const defaultMonitoringExporterData = `
   {
     "configuration": {
       "domainQualifier": true,
@@ -249,7 +249,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Add the monitoringExporter to the spec if not already present
-	if err = addMonitoringExporter(u); err != nil {
+	if err = addDefaultMonitoringExporter(u); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -596,14 +596,14 @@ func genPassword(passSize int) string {
 	return b.String()
 }
 
-// addMonitoringExporter adds monitoringExporter to the WebLogic spec if there is not one present
-func addMonitoringExporter(weblogic *unstructured.Unstructured) error {
+// addDefaultMonitoringExporter adds monitoringExporter to the WebLogic spec if there is not one present
+func addDefaultMonitoringExporter(weblogic *unstructured.Unstructured) error {
 	if _, found, _ := unstructured.NestedFieldNoCopy(weblogic.Object, specMonitoringExporterFields...); !found {
-		monitoringExporter, err := createMonitoringExporter()
+		defaultMonitoringExporter, err := getDefaultMonitoringExporter()
 		if err != nil {
 			return err
 		}
-		err = unstructured.SetNestedField(weblogic.Object, monitoringExporter, specMonitoringExporterFields...)
+		err = unstructured.SetNestedField(weblogic.Object, defaultMonitoringExporter, specMonitoringExporterFields...)
 		if err != nil {
 			return err
 		}
@@ -611,8 +611,8 @@ func addMonitoringExporter(weblogic *unstructured.Unstructured) error {
 	return nil
 }
 
-func createMonitoringExporter() (interface{}, error) {
-	bytes := []byte(monitoringExporterData)
+func getDefaultMonitoringExporter() (interface{}, error) {
+	bytes := []byte(defaultMonitoringExporterData)
 	var monitoringExporter map[string]interface{}
 	json.Unmarshal(bytes, &monitoringExporter)
 	result, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&monitoringExporter)
