@@ -1051,7 +1051,7 @@ def dumpUninstallLogs() {
 
 def getEffectiveDumpOnSuccess() {
     def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
-    if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.equals("tvlatas/dump-on-success-global"))) {
+    if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
         effectiveValue = true
         echo "Forcing dump on success based on global override setting"
     }
