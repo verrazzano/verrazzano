@@ -210,9 +210,18 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that metrics are being collected
 		ginkgo.It("Retrieve Prometheus scraped metrics", func() {
-			gomega.Eventually(func() bool {
-				return pkg.MetricsExist("wls_scrape_mbeans_count_total", "app_oam_dev_name", "todo-appconf")
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find metrics for todo-list")
+			pkg.Concurrently(
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_name", "todo-appconf")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find metrics for todo-list")
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "app_oam_dev_name", "todo-appconf")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find metrics for todo-list")
+				},
+			)
 		})
 	})
 
