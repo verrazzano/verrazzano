@@ -575,11 +575,13 @@ def buildImagePatchOperator(dockerImageTag) {
 
 // Called in Stage Image Patch Operator
 def buildWITImage(dockerImageTag) {
+    // FIXME: download installers for WLS and JDK
     sh """
-        cd ${GO_REPO_PATH}/verrazzano/
-        make docker-push-wit VERRAZZANO_WIT_IMAGE_NAME=${DOCKER_WIT_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+        cd ${GO_REPO_PATH}/verrazzano/image-patch-operator/weblogic-imagetool/installers
+        wget https://github.com/oracle/weblogic-deploy-tooling/releases/download/release-1.9.15/weblogic-deploy.zip
+        cd ${GO_REPO_PATH}/verrazzano
+        make docker-push-wit VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME=${DOCKER_WIT_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
     """
-    // VERRAZZANO_WIT_IMAGE_NAME define this somewhere
 }
 
 // Called in Stage Generate operator.yaml steps
