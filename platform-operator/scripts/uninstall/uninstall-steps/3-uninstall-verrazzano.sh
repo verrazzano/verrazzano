@@ -60,10 +60,10 @@ function delete_verrazzano() {
 
   # Delete CRDS from all namespaces
   delete_k8s_resource_from_all_namespaces applicationconfigurations.core.oam.dev
-  delete_k8s_resource_from_all_namespaces coherence.coherence.oracle.com
+#  delete_k8s_resource_from_all_namespaces coherence.coherence.oracle.com
   delete_k8s_resource_from_all_namespaces components.core.oam.dev
   delete_k8s_resource_from_all_namespaces containerizedworkloads.core.oam.dev
-  delete_k8s_resource_from_all_namespaces domains.weblogic.oracle
+#  delete_k8s_resource_from_all_namespaces domains.weblogic.oracle
   delete_k8s_resource_from_all_namespaces healthscopes.core.oam.dev
   delete_k8s_resource_from_all_namespaces manualscalertraits.core.oam.dev
   delete_k8s_resource_from_all_namespaces traitdefinitions.core.oam.dev
