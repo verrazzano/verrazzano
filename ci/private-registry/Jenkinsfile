@@ -1,9 +1,15 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
-def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+// Pin to PHX for now for testing; tarball is located only in PHX at present, and takes 15+ mins to download to LHR at runtime
+// - at some point, we can either enable bucket replication or have the pipeline push it to more regions
+//def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = "phxlarge"
+def ocirRegion = "phx"
+def ocirRegistry = "${ocirRegion}.ocir.io"
+def imageRepoSubPath=""
+def baseImageRepo=""
 
 pipeline {
     options {
@@ -29,21 +35,20 @@ pipeline {
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
-        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
-                        defaultValue: 'NONE',
-                        description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
-                        trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
     }
 
     environment {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
+        OCIR_CREDS = credentials('ocir-pull-and-push-account')
+
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
@@ -67,21 +72,41 @@ pipeline {
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
-        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
+
+        // Variables to set the OCI CLI user context to the CI user
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
+        OCI_CLI_REGION = "us-phoenix-1"
+
+        // Used for dumping cluster from inside tests
+        DUMP_KUBECONFIG="${KUBECONFIG}"
+        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dump"
+
+        // Ideally use the TIBURON-DEV compartment, but we need permissions
+        REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
+
+        TARBALL_DIR = "${WORKSPACE}/vz-tarball"
     }
 
     stages {
-        stage('Clean workspace and checkout') {
+        stage('Initialize workspace and checkout') {
             steps {
-                sh """
-                    echo "${NODE_LABELS}"
-                """
+                script {
+                    echo "Current execution region: $ocirRegion"
+                    echo "OCIR Repository: ${ocirRegistry}"
+                }
 
                 script {
-                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
@@ -105,11 +130,19 @@ pipeline {
                         }
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                    imageRepoSubPath="verrazzano-private-registry/${env.GIT_BRANCH}/b${env.BUILD_NUMBER}"
+                    baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}"
+                    echo "Image Repo Subpath: ${imageRepoSubPath}"
+                    echo "Base Image Repo: ${baseImageRepo}"
                 }
 
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
+                """
+                println("agentlabel: ${agentLabel}")
+                sh """
+                    echo "${NODE_LABELS}"
                 """
 
                 script {
@@ -142,6 +175,21 @@ pipeline {
                         }
                     }
 	            }
+                script {
+                    try {
+                        sh """
+                            echo "${OCIR_CREDS_PSW}" | docker login -u ${OCIR_CREDS_USR} ${ocirRegistry} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "OCIR docker login at ${OCIR_REPO} failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                            echo "${OCIR_CREDS_PSW}" | docker login -u ${OCIR_CREDS_USR} ${ocirRegistry} --password-stdin
+                            """
+                        }
+                    }
+	            }
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -160,20 +208,43 @@ pipeline {
             }
         }
 
+        stage('Download and extract Tarball') {
+            steps {
+                sh """
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/tarball.tar.gz --file ${WORKSPACE}/vz-latest-tarball.tar.gz
+                    mkdir ${TARBALL_DIR} || true
+                    cd ${TARBALL_DIR}
+                    tar xvf ${WORKSPACE}/vz-latest-tarball.tar.gz
+                """
+            }
+        }
+        stage('Upload Verrazzano Images') {
+            steps {
+                sh """
+                    # Create OCIR repos for the images in the tarballs in the test compartment
+                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                    echo "Upload OCIR region: $ocirRegion"
+                    echo "Upload OCIR Repository: ${ocirRegistry}"
+                    # Run the image-helper to load the images into the OCIR registry in the runner's region
+                    cd ${TARBALL_DIR}
+                    ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
+                """
+            }
+        }
         stage('Acceptance Tests') {
             stages {
                 stage('Prepare AT environment') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
-                        OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                        PRIVATE_REPO="${baseImageRepo}"
+                        REGISTRY="${ocirRegistry}"
+                        PRIVATE_REGISTRY_USR="${OCIR_CREDS_USR}"
+                        PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
                     }
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                            ci/scripts/prepare_private_registry_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
                     }
                     post {
@@ -191,7 +262,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Run Acceptance Tests') {
                     environment {
                         TEST_ENV = "KIND"
@@ -217,24 +287,128 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        stage('examples todo') {
+                        stage('istio authorization policy') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
+                            }
                             steps {
-                                runGinkgo('examples/todo')
+                                runGinkgoKeepGoing('istio/authz')
+                            }
+                        }
+                        stage('security role based access') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
+                            }
+                            steps {
+                                runGinkgoKeepGoing('security/rbac')
+                            }
+                        }
+                        stage('security network policies') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-network-policies"
+                            }
+                            steps {
+                                script {
+                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                                        runGinkgoKeepGoing('security/network-policies')
+                                    }
+                                }
+                            }
+                        }
+                        stage('k8s deployment workload metrics') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
+                            }
+                            steps {
+                                runGinkgoKeepGoing('deploymetrics')
+                            }
+                        }
+                        stage('examples logging helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
+                            }
+                            steps {
+                                runGinkgoKeepGoing('logging/helidon')
+                            }
+                        }
+                        stage('examples todo') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+                            }
+                            steps {
+                                runGinkgoFailFast('examples/todo')
                             }
                         }
                         stage('examples socks') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
+                            }
                             steps {
-                                runGinkgo('examples/socks')
+                                runGinkgoKeepGoing('examples/socks')
                             }
                         }
                         stage('examples spring') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
+                            }
                             steps {
-                                runGinkgo('examples/springboot')
+                                runGinkgoKeepGoing('examples/springboot')
                             }
                         }
                         stage('examples helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                            }
                             steps {
-                                runGinkgo('examples/helidon')
+                                runGinkgoKeepGoing('examples/helidon')
+                            }
+                        }
+                        stage('examples helidon-config') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
+                            }
+                            steps {
+                                runGinkgoKeepGoing('examples/helidonconfig')
+                            }
+                        }
+                        stage('examples bobs') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
+                            }
+                            when {
+                                expression {params.RUN_SLOW_TESTS == true}
+                            }
+                            steps {
+                                runGinkgoKeepGoing('examples/bobsbooks')
+                            }
+                        }
+                        stage('console ingress') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
+                            }
+                            steps {
+                                runGinkgoKeepGoing('ingress/console')
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+                // Run Verify Registry after the other tests, when we know all the pods are up and ready without
+                // having to duplicate the waits.
+                stage('Verify Registry') {
+                    environment {
+                        REGISTRY="${ocirRegistry}"
+                        PRIVATE_REPO="${baseImageRepo}"
+                    }
+                    parallel {
+                        stage('verify-registry-url') {
+                            steps {
+                                runGinkgo('registry')
                             }
                         }
                     }
@@ -246,19 +420,18 @@ pipeline {
                     }
                 }
             }
-
             post {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('private-registry-tests-cluster-dump')
                         }
                     }
                 }
                 success {
                     script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('private-registry-tests-cluster-dump')
                         }
                     }
                 }
@@ -290,17 +463,13 @@ pipeline {
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
                 fi
+
+                echo "Current execution region: $ocirRegion"
+                echo "OCIR Repository: ${ocirRegistry}"
+                echo "Image repo subpath: ${imageRepoSubPath}"
+                echo "Base image repo: ${baseImageRepo}"
+                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
             """
-        }
-        failure {
-            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
-            script {
-                if (env.BRANCH_NAME == "master") {
-                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
-                }
-            }
         }
         cleanup {
             deleteDir()
@@ -313,22 +482,35 @@ def runGinkgoRandomize(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+            ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
 }
 
-def runGinkgo(testSuitePath) {
+def runGinkgoKeepGoing(testSuitePath) {
+    runGinkgo(testSuitePath, '-keepGoing')
+}
+
+def runGinkgoFailFast(testSuitePath) {
+    runGinkgo(testSuitePath, '-failFast')
+}
+
+def runGinkgo(testSuitePath, String... extraArgs) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        // Concatenate the variable args into a single string
+        String extraGinkgoArgs = ""
+        extraArgs.each { extraGinkgoArgs += it + " " }
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v ${extraGinkgoArgs} --noColor ${testSuitePath}/...
+            ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
 }
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${DUMP_COMMAND} -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
     """
 }
 
@@ -406,13 +588,4 @@ def dumpVerrazzanoApiLogs() {
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-api.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
-}
-
-def getEffectiveDumpOnSuccess() {
-    def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
-    if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
-        effectiveValue = true
-        echo "Forcing dump on success based on global override setting"
-    }
-    return effectiveValue
 }

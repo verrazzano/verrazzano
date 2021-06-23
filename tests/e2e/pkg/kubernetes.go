@@ -138,6 +138,11 @@ func ListNamespaces(opts metav1.ListOptions) (*corev1.NamespaceList, error) {
 	return GetKubernetesClientset().CoreV1().Namespaces().List(context.TODO(), opts)
 }
 
+// ListNamespaces returns a namespace list for the given list options in the specified cluster
+func ListNamespacesInCluster(opts metav1.ListOptions, kubeconfigPath string) (*corev1.NamespaceList, error) {
+	return GetKubernetesClientsetForCluster(kubeconfigPath).CoreV1().Namespaces().List(context.TODO(), opts)
+}
+
 // ListPods returns a pod list for the given namespace and list options
 func ListPods(namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
 	return GetKubernetesClientset().CoreV1().Pods(namespace).List(context.TODO(), opts)
