@@ -50,6 +50,10 @@ docker-push:
 docker-push-ipo:
 	(cd image-patch-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 
+.PHONY: docker-push-wit-img
+docker-push-wit-img:
+	(cd image-patch-operator; make dockerpush )
+
 .PHONY: create-test-deploy
 create-test-deploy: docker-push
 	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE} VZ_APP_OP_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE})
