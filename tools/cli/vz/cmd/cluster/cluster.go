@@ -42,6 +42,7 @@ func NewCmdCluster(streams genericclioptions.IOStreams) *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCmdClusterList(streams, o))
+	cmd.AddCommand(NewCmdClusterGet(streams, o))
 	cmd.AddCommand(NewCmdClusterRegister(streams, o))
 	cmd.AddCommand(NewCmdClusterDeregister(streams, o))
 	cmd.AddCommand(NewCmdClusterManifest(streams, o))
