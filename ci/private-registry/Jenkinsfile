@@ -305,12 +305,12 @@ pipeline {
                         }
                         stage('security network policies') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-network-policies"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
                             }
                             steps {
                                 script {
                                     if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                                        runGinkgoKeepGoing('security/network-policies')
+                                        runGinkgo('security/netpol')
                                     }
                                 }
                             }
@@ -320,7 +320,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
                             }
                             steps {
-                                runGinkgoKeepGoing('deploymetrics')
+                                runGinkgo('metrics/deploymetrics')
                             }
                         }
                         stage('examples logging helidon') {

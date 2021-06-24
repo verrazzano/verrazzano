@@ -211,6 +211,16 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				},
 				func() {
 					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobbys-front-end")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobs-bookstore")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "bobbys-coherence")
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				},
