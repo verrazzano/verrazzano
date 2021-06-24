@@ -95,6 +95,10 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
+
+        BUCKET_NAME = "build-shared-files"
+        JDK8_BUNDLE = "jdk-8u281-linux-x64.tar.gz"
+        WEBLOGIC_BUNDLE = "fmw_12.2.1.4.0_wls.jar"
     }
 
     stages {
@@ -579,6 +583,8 @@ def buildWITImage(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/image-patch-operator/weblogic-imagetool/installers
         wget https://github.com/oracle/weblogic-deploy-tooling/releases/download/release-1.9.15/weblogic-deploy.zip
+        oci os object get -bn ${BUCKET_NAME} --file ${JDK8_BUNDLE} --name ${JDK8_BUNDLE}
+        oci os object get -bn ${BUCKET_NAME} --file ${WEBLOGIC_BUNDLE} --name ${WEBLOGIC_BUNDLE}
         cd ${GO_REPO_PATH}/verrazzano
         make docker-push-wit VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME=${DOCKER_WIT_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
     """
