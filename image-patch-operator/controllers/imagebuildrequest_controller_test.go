@@ -8,13 +8,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
+	ipoapi "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
 	"github.com/verrazzano/verrazzano/image-patch-operator/mocks"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
-	ipoapi "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
 )
 
 func TestReconcilerSetupWithManager(t *testing.T) {
