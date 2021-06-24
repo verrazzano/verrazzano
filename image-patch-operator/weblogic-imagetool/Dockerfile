@@ -69,7 +69,7 @@ RUN ./imagetool/bin/imagetool.sh cache addInstaller --type wls --version 12.2.1.
     && ./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version 8u291 --path ./${JDK_BINARY} \
     && ./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version latest --path ./${WDT_BINARY}
 
-COPY ../../THIRD_PARTY_LICENSES.txt /licenses
+COPY ../../THIRD_PARTY_LICENSES.txt /licenses/
 
 USER 1000
 
