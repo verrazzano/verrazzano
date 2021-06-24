@@ -49,7 +49,7 @@ var _ = ginkgo.Describe("Verify MySQL Persistent Volumes based on install profil
 	var _ = ginkgo.Context("Verify Persistent volumes allocated per install profile", func() {
 
 		var err error
-		size := "50Gi"
+		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
 
 		volumeClaims, err = pkg.GetPersistentVolumes(keycloakNamespace)
 		if err != nil {
