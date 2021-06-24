@@ -39,9 +39,9 @@ if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
   CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
 else
   # For Let's Encrypt staging, we need to use the ACME staging CAs
-  ACME_SECRET=$(kubectl -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"')
+  ACME_SECRET=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"')
   if [ ! -z "${ACME_SECRET%%*( )}" ] && [ "null" != "${ACME_SECRET}" ] ; then
-    CA_CERT=$(kubectl -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"' | base64 -d)
+    CA_CERT=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"' | base64 --decode)
   fi
 fi
 if [ ! -z "${CA_CERT}" ] ; then
