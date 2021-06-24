@@ -182,7 +182,8 @@ function install_cert_manager()
     fi
 
     setup_cert_manager_crd
-    kubectl apply -f "$TMP_DIR/cert-manager.crds.yaml" --validate=false
+    local yaml=$(<"$TMP_DIR/cert-manager.crds.yaml")
+    kubectl_apply_with_retry "$yaml" --validate=false
 
     if ! is_chart_deployed ${chartName} ${cert_manager_ns} ${CERT_MANAGER_CHART_DIR} ; then
       log "cert-manager hasn't been previously installed"
@@ -215,9 +216,9 @@ function install_cert_manager()
         --wait \
         || return $?
 
-    setup_cluster_issuer
-
     kubectl -n cert-manager rollout status -w deploy/cert-manager
+
+    setup_cluster_issuer
 }
 
 function install_external_dns()
@@ -532,7 +533,7 @@ function kubectl_apply_with_retry() {
   echo "Invoking: kubectl apply for $1"
   local count=0
   local ret=0
-  until kubectl apply -f <(echo "$1"); do
+  until kubectl apply -f <(echo "$1") "${@:2}"; do
     ret=$?
     count=$((count+1))
     if [[ "$count" -lt 60 ]]; then
