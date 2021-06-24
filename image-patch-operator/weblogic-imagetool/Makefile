@@ -49,12 +49,19 @@ ENV_NAME=verrazzano-weblogic-image-tool
 
 CLUSTER_DUMP_LOCATION ?= weblogic-image-tool-integ-cluster-dump
 
+.PHONY: get-installers
+get-installers:
+	cd ./installers
+	wget https://github.com/oracle/weblogic-deploy-tooling/releases/download/release-1.9.15/weblogic-deploy.zip
+	oci os object get -bn ${BUCKET_NAME} --file ${JDK8_BUNDLE} --name ${JDK8_BUNDLE}
+	oci os object get -bn ${BUCKET_NAME} --file ${WEBLOGIC_BUNDLE} --name ${WEBLOGIC_BUNDLE}
+
 .PHONY: docker-clean
 docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build:
+docker-build: get-installers
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../../THIRD_PARTY_LICENSES.txt .
 	docker build --pull \
