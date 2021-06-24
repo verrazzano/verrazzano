@@ -239,6 +239,7 @@ pipeline {
             }
             steps {
                 buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
+                buildWITImage("${DOCKER_IMAGE_TAG}")
             }
             post {
                 failure {
@@ -573,6 +574,18 @@ def buildImagePatchOperator(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
         make docker-push-ipo VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_PATCH_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+    """
+}
+
+// Called in Stage Image Patch Operator
+def buildWITImage(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/image-patch-operator/weblogic-imagetool/installers
+        wget https://github.com/oracle/weblogic-deploy-tooling/releases/download/release-1.9.15/weblogic-deploy.zip
+        oci os object get -bn ${BUCKET_NAME} --file ${JDK8_BUNDLE} --name ${JDK8_BUNDLE}
+        oci os object get -bn ${BUCKET_NAME} --file ${WEBLOGIC_BUNDLE} --name ${WEBLOGIC_BUNDLE}
+        cd ${GO_REPO_PATH}/verrazzano
+        make docker-push-wit VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME=${DOCKER_WIT_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
     """
 }
 
