@@ -94,6 +94,10 @@ function setup_cluster_issuer() {
     local OCI_DNS_ZONE_OCID=$(get_config_value ".dns.oci.dnsZoneOcid")
     local OCI_DNS_ZONE_NAME=$(get_config_value ".dns.oci.dnsZoneName")
 
+    local INGRESS_IP=$(get_verrazzano_ingress_ip)
+
+    local DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
+
     if ! kubectl get secret $OCI_DNS_CONFIG_SECRET ; then
         fail "The OCI Configuration Secret $OCI_DNS_CONFIG_SECRET does not exist"
     fi
@@ -345,6 +349,12 @@ function install_rancher()
 {
     local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
 
+    local INGRESS_IP=$(get_verrazzano_ingress_ip)
+
+    local DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
+
+    local RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
+
     # Create the rancher-operator-system namespace so we can create network policies
     if ! kubectl get namespace rancher-operator-system > /dev/null 2>&1; then
         kubectl create namespace rancher-operator-system
@@ -450,6 +460,14 @@ function install_rancher()
 
 function set_rancher_server_url
 {
+    # We can only know the ingress IP after installing nginx ingress controller
+    local INGRESS_IP=$(get_verrazzano_ingress_ip)
+
+    # DNS_SUFFIX is only used by install_rancher
+    local DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
+
+    local RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
+
     echo "Get Rancher admin password."
     rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password})
     if [ $? -ne 0 ]; then
@@ -500,6 +518,14 @@ function wait_for_rancher_agent_to_exist {
 }
 
 function patch_rancher_agents() {
+    # We can only know the ingress IP after installing nginx ingress controller
+    local INGRESS_IP=$(get_verrazzano_ingress_ip)
+
+    # DNS_SUFFIX is only used by install_rancher
+    local DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
+
+    local RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
+
     local rancher_in_cluster_host=$(get_rancher_in_cluster_host ${RANCHER_HOSTNAME})
 
     if [ ${RANCHER_HOSTNAME} != ${rancher_in_cluster_host} ]; then
@@ -560,15 +586,21 @@ NAME=$(get_config_value ".environmentName")
 DNS_TYPE=$(get_config_value ".dns.type")
 CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")
 
+if [ $# -eq 1 ]; then
+  case "$1" in
+      "") ;;
+      install_cert_manager) "$@"; exit;;
+      install_rancher) "$@"; exit;;
+      set_rancher_server_url) "$@"; exit;;
+      patch_rancher_agents) "$@"; exit;;
+      install_nginx_ingress_controller) "$@"; exit;;
+      create_cattle_system_namespace) "$@"; exit;;
+      install_nginx_ingress_controller) "$@"; exit;;
+      *) echo "Unkown function: $1()"; exit 2;;
+  esac
+fi
+
 action "Installing NGINX Ingress Controller" install_nginx_ingress_controller || exit 1
-
-# We can only know the ingress IP after installing nginx ingress controller
-INGRESS_IP=$(get_verrazzano_ingress_ip)
-
-# DNS_SUFFIX is only used by install_rancher
-DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
-
-RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
 # Always create the cattle-system namespace so we can create network policies
 action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1

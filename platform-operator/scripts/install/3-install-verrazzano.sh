@@ -15,20 +15,19 @@ MONITORING_NS=monitoring
 
 ENV_NAME=$(get_config_value ".environmentName")
 
-INGRESS_TYPE=$(get_config_value ".ingress.type")
-INGRESS_IP=$(get_verrazzano_ingress_ip)
-if [ -n "${INGRESS_IP:-}" ]; then
-  log "Found ingress address ${INGRESS_IP}"
-else
-  fail "Failed to find ingress address."
-fi
-
-DNS_TYPE=$(get_config_value ".dns.type")
-DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
-
 # Check if the nginx ingress ports are accessible
 function check_ingress_ports() {
   exitvalue=0
+  local INGRESS_TYPE=$(get_config_value ".ingress.type")
+  local INGRESS_IP=$(get_verrazzano_ingress_ip)
+  if [ -n "${INGRESS_IP:-}" ]; then
+    log "Found ingress address ${INGRESS_IP}"
+  else
+    fail "Failed to find ingress address."
+  fi
+
+  local DNS_TYPE=$(get_config_value ".dns.type")
+
   if [ ${INGRESS_TYPE} == "LoadBalancer" ] && [ $DNS_TYPE != "external" ]; then
     # Get the ports from the ingress
     PORTS=$(kubectl get services -n ingress-nginx ingress-controller-ingress-nginx-controller -o=custom-columns=PORT:.spec.ports[*].name --no-headers)
@@ -68,13 +67,21 @@ function check_ingress_ports() {
   return $exitvalue
 }
 
-action "Checking ingress ports" check_ingress_ports || fail "ERROR: Failed ingress port check."
-
-set -eu
-
 function install_verrazzano()
 {
   if [ $(is_rancher_enabled) == "true" ]; then
+
+    local INGRESS_TYPE=$(get_config_value ".ingress.type")
+    local INGRESS_IP=$(get_verrazzano_ingress_ip)
+    if [ -n "${INGRESS_IP:-}" ]; then
+      log "Found ingress address ${INGRESS_IP}"
+    else
+      fail "Failed to find ingress address."
+    fi
+
+    local DNS_TYPE=$(get_config_value ".dns.type")
+    local DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
+
     local RANCHER_HOSTNAME=rancher.${ENV_NAME}.${DNS_SUFFIX}
 
     local rancher_admin_password=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
@@ -297,12 +304,28 @@ function install_coherence_operator {
   fi
 }
 
-# Set environment variable for checking if optional imagePullSecret was provided
-REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
-
 if ! kubectl get namespace ${VERRAZZANO_NS} ; then
   action "Creating ${VERRAZZANO_NS} namespace" kubectl create namespace ${VERRAZZANO_NS} || exit 1
 fi
+
+# Set environment variable for checking if optional imagePullSecret was provided
+REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
+
+if [ $# -eq 1 ]; then
+  case "$1" in
+      "") ;;
+      install_oam_operator) "$@"; exit;;
+      install_application_operator_crds) "$@"; exit;;
+      install_application_operator) "$@"; exit;;
+      install_coherence_operator) "$@"; exit;;
+      install_weblogic_operator) "$@"; exit;;
+      *) echo "Unkown function: $1()"; exit 2;;
+  esac
+fi
+
+action "Checking ingress ports" check_ingress_ports || fail "ERROR: Failed ingress port check."
+
+set -eu
 
 log "Adding label needed by network policies to ${VERRAZZANO_NS} namespace"
 kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_NS}" --overwrite

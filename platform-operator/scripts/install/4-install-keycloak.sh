@@ -747,6 +747,16 @@ if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   fi
 fi
 
+if [ $# -eq 1 ]; then
+  case "$1" in
+      "") ;;
+      install_mysql) "$@"; exit;;
+      install_keycloak) "$@"; exit;;
+      patch_prometheus) "$@"; exit;;
+      *) echo "Unkown function: $1()"; exit 2;;
+  esac
+fi
+
 if [ $(is_keycloak_enabled) == "true" ]; then
   action "Installing MySQL" install_mysql
     if [ "$?" -ne 0 ]; then
