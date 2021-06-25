@@ -153,7 +153,7 @@ function install_verrazzano()
         ${EXTRA_V8O_ARGUMENTS} || return $?
   fi
   log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
-  kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
+  kubectl wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system --timeout=300s || return $?
 
   log "Verifying that needed secrets are created"
   retries=0
