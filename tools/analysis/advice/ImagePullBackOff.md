@@ -1,1 +1,1 @@
-This information has moved to [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullbackoff/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullbackoff/)
+See [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullbackoff/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullbackoff/)

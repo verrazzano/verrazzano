@@ -1,1 +1,1 @@
-This information has moved to [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/podproblemsnotreported/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/podproblemsnotreported/)
+See [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/podproblemsnotreported/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/podproblemsnotreported/)

@@ -1,1 +1,1 @@
-This information has moved to [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/installfailure/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/installfailure/)
+See [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/installfailure/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/installfailure/)

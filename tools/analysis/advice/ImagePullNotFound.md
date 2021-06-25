@@ -1,1 +1,1 @@
-This information has moved to [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullnotfound/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullnotfound/)
+See [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullnotfound/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullnotfound/)

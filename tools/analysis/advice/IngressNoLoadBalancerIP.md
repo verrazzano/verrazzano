@@ -1,1 +1,1 @@
-This information has moved to [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip/)
+See [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip/)

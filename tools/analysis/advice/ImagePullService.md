@@ -1,1 +1,1 @@
-This information has moved to [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullservice/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullservice/)
+See [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullservice/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullservice/)
