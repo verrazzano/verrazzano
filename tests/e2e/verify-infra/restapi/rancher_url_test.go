@@ -23,10 +23,13 @@ var _ = ginkgo.Describe("rancher url test", func() {
 		ginkgo.It("Fetches rancher url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-				api := pkg.GetAPIEndpoint(kubeconfigPath)
-
 				var rancherURL string
+
 				gomega.Eventually(func() error {
+					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
+					if err != nil {
+						return err
+					}
 					ingress, err := api.GetIngress("cattle-system", "rancher")
 					if err != nil {
 						return err

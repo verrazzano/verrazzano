@@ -476,8 +476,8 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 		gomega.Eventually(func() bool {
 			var httpsFound bool = false
 
-			configMap := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
-			if configMap == nil {
+			configMap, err := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
+			if err != nil {
 				return false
 			}
 			dataMap := configMap.Data
@@ -514,8 +514,8 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 		gomega.Eventually(func() bool {
 			var httpsFound bool = false
 
-			configMap := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
-			if configMap == nil {
+			configMap, err := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
+			if err != nil {
 				return false
 			}
 			dataMap := configMap.Data
@@ -552,8 +552,8 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 		gomega.Eventually(func() bool {
 			var httpsNotFound bool = true
 
-			configMap := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
-			if configMap == nil {
+			configMap, err := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
+			if err != nil {
 				return false
 			}
 			dataMap := configMap.Data

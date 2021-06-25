@@ -64,14 +64,15 @@ func Log(level LogLevel, message string) {
 
 // CreateLogFile creates a file with the given name (or truncates the file if it already exists)
 // and writes the given content string to the file.
-func CreateLogFile(filename string, content string) {
+func CreateLogFile(filename string, content string) error {
 	// create out output file
 	f, err := os.Create(filename + ".log")
 	if err != nil {
-		ginkgo.Fail("Could not create output file")
+		return err
 	}
 	defer f.Close()
 
 	f.WriteString(content)
 	f.Sync()
+	return nil
 }

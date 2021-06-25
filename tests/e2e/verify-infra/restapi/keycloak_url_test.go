@@ -21,10 +21,12 @@ var _ = ginkgo.Describe("keycloak url test", func() {
 	ginkgo.Context("Fetching the keycloak url using api and test ", func() {
 		ginkgo.It("Fetches keycloak url", func() {
 			if !pkg.IsManagedClusterProfile() {
-				api := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
-
 				var keycloakURL string
 				gomega.Eventually(func() error {
+					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+					if err != nil {
+						return err
+					}
 					ingress, err := api.GetIngress("keycloak", "keycloak")
 					if err != nil {
 						return err

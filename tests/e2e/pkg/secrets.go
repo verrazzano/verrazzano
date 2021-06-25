@@ -9,22 +9,21 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/onsi/ginkgo"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ListSecrets returns the list of secrets in a given namespace for the cluster
-func ListSecrets(namespace string) *corev1.SecretList {
+func ListSecrets(namespace string) (*corev1.SecretList, error) {
 	// Get the kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	secrets, err := clientset.CoreV1().Secrets(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list secrets in namespace %s with error: %v", namespace, err))
+		Log(Error, fmt.Sprintf("Failed to list secrets in namespace %s with error: %v", namespace, err))
+		return nil, err
 	}
-	return secrets
+	return secrets, nil
 }
 
 // GetSecret returns the a secret in a given namespace for the cluster specified in the environment
@@ -32,16 +31,17 @@ func GetSecret(namespace string, name string) (*corev1.Secret, error) {
 	return GetSecretInCluster(namespace, name, GetKubeConfigPathFromEnv())
 }
 
-// GetSecretInCluster returns the a secret in a given namespace for the given cluster
+// GetSecretInCluster returns the secret in a given namespace for the given cluster
 func GetSecretInCluster(namespace string, name string, kubeconfigPath string) (*corev1.Secret, error) {
 	// Get the kubernetes clientset for the given cluster
 	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
 
 	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		ginkgo.Fail(fmt.Sprintf("Failed to get secrets %s in namespace %s with error: %v", name, namespace, err))
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
+		return nil, err
 	}
-	return secret, err
+	return secret, nil
 }
 
 // CreateCredentialsSecret creates opaque secret
@@ -131,7 +131,10 @@ func DeleteSecret(namespace string, name string) error {
 
 // SecretsCreated checks if all the secrets identified by names are created
 func SecretsCreated(namespace string, names ...string) bool {
-	secrets := ListSecrets(namespace)
+	secrets, err := ListSecrets(namespace)
+	if err != nil {
+		return false
+	}
 	missing := missingSecrets(secrets.Items, names...)
 	Log(Info, fmt.Sprintf("Secrets %v were NOT created in %v", missing, namespace))
 	return (len(missing) == 0)
