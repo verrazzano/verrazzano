@@ -101,7 +101,7 @@ func undeployToDoListExample() {
 	gomega.Eventually(func() bool {
 		s, err := pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
 		return s == nil && err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeFalse())
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
 
 var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
