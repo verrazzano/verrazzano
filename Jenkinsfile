@@ -231,12 +231,12 @@ pipeline {
         }
 
         stage('Image Patch Operator') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    changeset "image-patch-operator/**"
-                }
-            }
+            // when {
+            //     allOf {
+            //         not { buildingTag() }
+            //         changeset "image-patch-operator/**"
+            //     }
+            // }
             steps {
                 buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
                 buildWITImage("${DOCKER_IMAGE_TAG}")
