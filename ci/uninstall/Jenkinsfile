@@ -443,6 +443,9 @@ pipeline {
                         }
                     }
                 }
+                failure {
+                    dumpK8sCluster('verrazzano-test-failure-after-reinstall-cluster-dump')
+                }
             }
         }
     }
