@@ -71,6 +71,8 @@ pipeline {
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+
+        VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
     }
 
     stages {
@@ -533,4 +535,24 @@ def getEffectiveDumpOnSuccess() {
         echo "Forcing dump on success based on global override setting"
     }
     return effectiveValue
+}
+
+// Called in parallel Stage console of Stage Run Acceptance Tests
+def acceptanceTestsConsole() {
+    sh """
+        # Temporarily clone the console repo until it is moved to the verrazzano repo
+        cd ${GO_REPO_PATH}
+        git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
+        cd console
+        git checkout ${params.CONSOLE_REPO_BRANCH}
+
+        # Configure headless browser
+        google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
+        curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+        unzip chromedriver.zip
+        sudo cp chromedriver /usr/local/bin/
+
+        # Run the tests
+        make run-ui-tests
+    """
 }
