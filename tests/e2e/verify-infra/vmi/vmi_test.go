@@ -274,7 +274,10 @@ func assertURLAccessibleAndAuthorized(url string) bool {
 
 func assertBearerAuthorized(url string) bool {
 	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
-	api := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+	api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+	if err != nil {
+		return false
+	}
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	if api.AccessToken != "" {
 		bearer := fmt.Sprintf("Bearer %v", api.AccessToken)
