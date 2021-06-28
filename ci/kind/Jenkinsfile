@@ -542,7 +542,7 @@ def acceptanceTestsConsole() {
     sh """
         # Temporarily clone the console repo until it is moved to the verrazzano repo
         cd ${GO_REPO_PATH}
-        git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
+        git clone https://${DOCKER_CREDS_USR}:${DOCKER_CREDS_PSW}@github.com/verrazzano/console.git
         cd console
         git checkout ${params.CONSOLE_REPO_BRANCH}
 
