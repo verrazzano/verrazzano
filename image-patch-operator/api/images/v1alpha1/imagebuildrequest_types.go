@@ -15,8 +15,18 @@ type ImageBuildRequestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of ImageBuildRequest. Edit imagebuildrequest_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	BaseImage         string `json:"baseImage"`
+	JDKInstaller      string `json:"jdkInstaller"`
+	WebLogicInstaller string `json:"webLogicInstaller"`
+
+	Image Image `json:"image"`
+}
+
+type Image struct {
+	Name       string `json:"name"`
+	Tag        string `json:"tag"`
+	Registry   string `json:"registry"`
+	Repository string `json:"repository"`
 }
 
 // ImageBuildRequestStatus defines the observed state of ImageBuildRequest
