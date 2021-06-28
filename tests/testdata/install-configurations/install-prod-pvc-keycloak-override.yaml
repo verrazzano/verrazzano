@@ -1,0 +1,13 @@
+# Configure emptyDir storage for KeyCloak MySQL in prod install profile
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: prod-mysql-storage-example
+spec:
+  profile: prod
+  components:
+    keycloak:
+      mysql:
+        volumeSource:
+          emptyDir: {}
+
