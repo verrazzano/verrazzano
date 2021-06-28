@@ -793,3 +793,17 @@ func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
 	}
 	return sa, nil
 }
+
+func GetPersistentVolumes(namespace string) (map[string]*corev1.PersistentVolumeClaim, error) {
+	pvcs, err := GetKubernetesClientset().CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	volumeClaims := make(map[string]*corev1.PersistentVolumeClaim)
+
+	for _, pvc := range pvcs.Items {
+		volumeClaims[pvc.Name] = &pvc
+	}
+	return volumeClaims, nil
+}

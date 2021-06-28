@@ -1002,7 +1002,7 @@ func TestGetKeycloakPVCVolumeSourceOverrideDefaultVolumeSource(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
-	assert.Len(t, args, 3)
+	assert.Len(t, args, 4)
 
 	assert.Equal(t, "persistence.storageClass", args[0].Name)
 	assert.Equal(t, storageClass, args[0].Value)
@@ -1055,7 +1055,7 @@ func TestGetKeycloakPVCVolumeSourceNoAccessModes(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
-	assert.Len(t, args, 2)
+	assert.Len(t, args, 3)
 
 	assert.Equal(t, "persistence.storageClass", args[0].Name)
 	assert.Equal(t, storageClass, args[0].Value)
@@ -1129,7 +1129,7 @@ func TestGetKeycloakPVCVolumeSourceStorageSizeOnly(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
-	assert.Len(t, args, 1)
+	assert.Len(t, args, 2)
 
 	assert.Equal(t, "persistence.size", args[0].Name)
 	assert.Equal(t, "50Gi", args[0].Value)
@@ -1174,7 +1174,7 @@ func TestGetKeycloakPVCVolumeSourceZeroStorageSize(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
-	assert.Len(t, args, 0)
+	assert.Len(t, args, 1)
 }
 
 // TestGetKeycloakPVCVolumeSourceEmptyPVCConfiguration Test the getKeycloak  function
@@ -1206,7 +1206,7 @@ func TestGetKeycloakPVCVolumeSourceEmptyPVCConfiguration(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
-	assert.Len(t, args, 0)
+	assert.Len(t, args, 1)
 }
 
 // TestNewExternalDNSInstallConfigInvalidVZInstallArgs Test the getVerrazzanoInstallArgs  function
