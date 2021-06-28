@@ -407,199 +407,21 @@ pipeline {
                 }
             }
 
-            stages {
-                stage('Prepare AT environment') {
-                    environment {
-                        VERRAZZANO_OPERATOR_IMAGE="NONE"
-                        KIND_KUBERNETES_CLUSTER_VERSION="1.18"
-                        OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
-                    }
-                    steps {
-                        sh """
-                            cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
-                        """
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                            prepareATEnvironment()
-                        }
-                    }
-                }
-
-                stage('Run Acceptance Tests') {
-                    environment {
-                        TEST_ENV = "KIND"
-                    }
-                    parallel {
-                        stage('verify-install') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-install')
-                            }
-                        }
-                        stage('verify-scripts') {
-                            steps {
-                                runGinkgo('scripts')
-                            }
-                        }
-                        stage('verify-infra restapi') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/restapi')
-                            }
-                        }
-                        stage('verify-infra oam') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/oam')
-                            }
-                        }
-                        stage('verify-infra vmi') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/vmi')
-                            }
-                        }
-                        stage('istio authorization policy') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-                            }
-                            steps {
-                                runGinkgo('istio/authz')
-                            }
-                        }
-                        stage('security role based access') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
-                            }
-                            steps {
-                                runGinkgo('security/rbac')
-                            }
-                        }
-                        stage('security network policies') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
-                            }
-                            steps {
-                                script {
-                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                                        runGinkgo('security/netpol')
-                                    }
-                                }
-                            }
-                        }
-                        stage('k8s deployment workload metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
-                            }
-                            steps {
-                                runGinkgo('metrics/deploymetrics')
-                            }
-                        }
-                        stage('system component metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
-                            }
-                            steps {
-                                runGinkgo('metrics/syscomponents')
-                            }
-                        }
-                        stage('examples logging helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
-                            }
-                            steps {
-                                runGinkgo('logging/helidon')
-                            }
-                        }
-                        stage('examples todo') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
-                            }
-                            steps {
-                                runGinkgo('examples/todo')
-                            }
-                        }
-                        stage('examples socks') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
-                            }
-                            steps {
-                                runGinkgo('examples/socks')
-                            }
-                        }
-                        stage('examples spring') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
-                            }
-                            steps {
-                                runGinkgo('examples/springboot')
-                            }
-                        }
-                        stage('examples helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-                            }
-                            steps {
-                                runGinkgo('examples/helidon')
-                            }
-                        }
-                        stage('examples helidon-config') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
-                            }
-                            steps {
-                                runGinkgo('examples/helidonconfig')
-                            }
-                        }
-                        stage('examples bobs') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
-                            }
-                            when {
-                                expression {params.RUN_SLOW_TESTS == true}
-                            }
-                            steps {
-                                runGinkgo('examples/bobsbooks')
-                            }
-                        }
-                        stage('console ingress') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
-                            }
-                            steps {
-                                runGinkgo('ingress/console')
-                            }
-                        }
-                        stage ('console') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                                GOOGLE_CHROME_VERSION="90.0.4430.93-1"
-                                CHROMEDRIVER_VERSION="90.0.4430.24"
-                            }
-                            steps {
-                                acceptanceTestsConsole()
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
+            stage('Kind Acceptance Tests on 1.18') {
+                steps {
+                    script {
+                        build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            parameters: [
+                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.18'),
+                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
+                            ], wait: true
                     }
                 }
             }
+
 
             post {
                 failure {
@@ -740,39 +562,6 @@ def storePipelineArtifacts() {
             echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
         fi
-    """
-}
-
-// Called in parallel Stage console of Stage Run Acceptance Tests
-def acceptanceTestsConsole() {
-    sh """
-        # Temporarily clone the console repo until it is moved to the verrazzano repo
-        cd ${GO_REPO_PATH}
-        git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
-        cd console
-        git checkout ${params.CONSOLE_REPO_BRANCH}
-
-        # Configure headless browser
-        google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
-        curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-        unzip chromedriver.zip
-        sudo cp chromedriver /usr/local/bin/
-
-        # Run the tests
-        make run-ui-tests
-    """
-}
-
-// Called in Stage Prepare AT Environment post
-def prepareATEnvironment() {
-    sh """
-        ## dump out install logs
-        mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
-        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
-        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
-        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-        echo "------------------------------------------"
     """
 }
 
