@@ -73,6 +73,8 @@ pipeline {
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
+        VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
+
     }
 
     stages {
