@@ -414,6 +414,11 @@ func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []instal
 				SetString: true,
 			})
 		}
+		// Enable MySQL persistence
+		mySQLArgs = append(mySQLArgs, InstallArg{
+			Name:  "persistence.enabled",
+			Value: "true",
+		})
 	}
 	// Update the MySQL Install args
 	keycloakConfig.MySQL.MySQLInstallArgs = mySQLArgs
