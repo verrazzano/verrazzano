@@ -23,7 +23,7 @@ type ImageBuildRequestSpec struct {
 }
 
 type Image struct {
-	Name       string `json:"name,omitempty""`
+	Name       string `json:"name,omitempty"`
 	Tag        string `json:"tag"`
 	Registry   string `json:"registry,omitempty"`
 	Repository string `json:"repository,omitempty"`

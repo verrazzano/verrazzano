@@ -41,10 +41,29 @@ spec:
           spec:
             description: ImageBuildRequestSpec defines the desired state of ImageBuildRequest
             properties:
-              foo:
-                description: Foo is an example field of ImageBuildRequest. Edit imagebuildrequest_types.go
-                  to remove/update
+              baseImage:
                 type: string
+              image:
+                properties:
+                  name:
+                    type: string
+                  registry:
+                    type: string
+                  repository:
+                    type: string
+                  tag:
+                    type: string
+                required:
+                - tag
+                type: object
+              jdkInstaller:
+                type: string
+              webLogicInstaller:
+                type: string
+            required:
+            - image
+            - jdkInstaller
+            - webLogicInstaller
             type: object
           status:
             description: ImageBuildRequestStatus defines the observed state of ImageBuildRequest
