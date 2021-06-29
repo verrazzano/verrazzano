@@ -90,7 +90,7 @@ function validate_certificates_section() {
       fail "The value .certificates.acme.provider must be set"
     fi
     if [ "$provider" != "letsEncrypt" ]; then
-      fail "The only .certificates.acme.provider spported is letsEncrypt"
+      fail "The only .certificates.acme.provider supported is letsEncrypt"
     fi
     local email=$(get_config_value ".certificates.acme.emailAddress")
     if [ -z "$email" ]; then
