@@ -410,6 +410,13 @@ pipeline {
                             string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                         ], wait: true
                 }
+                post {
+                    failure {
+                        script {
+                            SKIP_TRIGGERED_TESTS = true
+                        }
+                    }
+                }
             }
         }
 
