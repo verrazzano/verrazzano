@@ -2089,23 +2089,6 @@ func Test_dirsOutsideVarLog(t *testing.T) {
 			want: []string{"/u0/", "/u01/data/containers/"},
 		},
 	}
-	equalStringSet := func(x, y []string) bool {
-		if len(x) != len(y) {
-			return false
-		}
-		for _, a := range x {
-			found := false
-			for _, b := range y {
-				if a == b {
-					found = true
-				}
-			}
-			if !found {
-				return false
-			}
-		}
-		return true
-	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := dirsOutsideVarLog(tt.paths); !equalStringSet(got, tt.want) {
@@ -2150,4 +2133,108 @@ func Test_isParentDir(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test_addFluentdExtraVolumeMounts tests addFluentdExtraVolumeMounts function
+// GIVEN a Verrazzano and a set of file paths
+// WHEN the addFluentdExtraVolumeMounts function is called
+// THEN extra volume mounts are added to the fluentd component
+func Test_addFluentdExtraVolumeMounts(t *testing.T) {
+	tests := []struct {
+		name  string
+		files []string
+		vz    *vzapi.Verrazzano
+		want  []string
+	}{
+		{
+			name: "/u01/data/containers/",
+			files: []string{
+				"/var/log/containers/podx_kube-system_pod-xx-88.log",
+				"/u0/x/pods/kube-system_pod-xx-6rpr5_f69cf85b-x0x0-12345cd3fbd0/pod-xx/0.log",
+				"/u0/y/containers/82e/82e-json.log",
+				"/u01/data/containers/82e/82e-json.log",
+				"/var/log/containers/pody_kube-system_pod-yy-99.log",
+				"/u0/x/pods/kube-system_pod-yy-f64g8_1ff336c7-y1y1-12a345c45e6c/pod-yy/1.log",
+				"/u0/y/containers/92a/92a-json.log",
+				"/u01/data/containers/92a/92a-json.log",
+			},
+			vz:   &vzapi.Verrazzano{},
+			want: []string{"/u0/", "/u01/data/containers/"},
+		}, {
+			name: "/u01/data",
+			files: []string{
+				"/var/log/containers/podx_kube-system_pod-xx-88.log",
+				"/u0/x/pods/kube-system_pod-xx-6rpr5_f69cf85b-x0x0-12345cd3fbd0/pod-xx/0.log",
+				"/u0/y/containers/82e/82e-json.log",
+				"/u01/data/containers/82e/82e-json.log",
+				"/var/log/containers/pody_kube-system_pod-yy-99.log",
+				"/u0/x/pods/kube-system_pod-yy-f64g8_1ff336c7-y1y1-12a345c45e6c/pod-yy/1.log",
+				"/u0/y/containers/92a/92a-json.log",
+				"/u01/data/containers/92a/92a-json.log",
+			},
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
+					ExtraVolumeMounts: []vzapi.VolumeMount{{
+						Source: "/u01/data",
+					}},
+				}}},
+			},
+			want: []string{"/u0/", "/u01/data"},
+		}, {
+			name: "/u01/",
+			files: []string{
+				"/var/log/containers/podx_kube-system_pod-xx-88.log",
+				"/u0/x/pods/kube-system_pod-xx-6rpr5_f69cf85b-x0x0-12345cd3fbd0/pod-xx/0.log",
+				"/u0/y/containers/82e/82e-json.log",
+				"/u01/data/containers/82e/82e-json.log",
+				"/var/log/containers/pody_kube-system_pod-yy-99.log",
+				"/u0/x/pods/kube-system_pod-yy-f64g8_1ff336c7-y1y1-12a345c45e6c/pod-yy/1.log",
+				"/u0/y/containers/92a/92a-json.log",
+				"/u01/data/containers/92a/92a-json.log",
+			},
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
+					ExtraVolumeMounts: []vzapi.VolumeMount{{
+						Source: "/u0/x",
+					}, {
+						Source: "/u01/",
+					}},
+				}}},
+			},
+			want: []string{"/u0/", "/u01/", "/u0/x"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := collectVolumeMounts(addFluentdExtraVolumeMounts(tt.files, tt.vz)); !equalStringSet(got, tt.want) {
+				t.Errorf("addFluentdExtraVolumeMounts() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func collectVolumeMounts(vz *vzapi.Verrazzano) []string {
+	var vms []string
+	for _, vm := range vz.Spec.Components.Fluentd.ExtraVolumeMounts {
+		vms = append(vms, vm.Source)
+	}
+	return vms
+}
+
+func equalStringSet(x, y []string) bool {
+	if len(x) != len(y) {
+		return false
+	}
+	for _, a := range x {
+		found := false
+		for _, b := range y {
+			if a == b {
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }

@@ -240,7 +240,7 @@ func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger
 
 	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
-		vz = addFluentdExtraVolumeMounts(vz)
+		vz = configFluentdExtraVolumeMounts(vz)
 		config, err := installjob.GetInstallConfig(vz)
 		if err != nil {
 			return err
@@ -743,7 +743,7 @@ func getIngressIP(c client.Client) (string, error) {
 	return "", fmt.Errorf("Unsupported service type %s for Nginx ingress", string(nginxService.Spec.Type))
 }
 
-func addFluentdExtraVolumeMounts(vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
+func configFluentdExtraVolumeMounts(vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
 	varLog := "/var/log/containers/"
 	var files []string
 	filepath.Walk(varLog, func(path string, info os.FileInfo, err error) error {
@@ -752,6 +752,10 @@ func addFluentdExtraVolumeMounts(vz *installv1alpha1.Verrazzano) *installv1alpha
 		}
 		return nil
 	})
+	return addFluentdExtraVolumeMounts(files, vz)
+}
+
+func addFluentdExtraVolumeMounts(files []string, vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
 	for _, extraMount := range dirsOutsideVarLog(files) {
 		if vz.Spec.Components.Fluentd == nil {
 			vz.Spec.Components.Fluentd = &installv1alpha1.FluentdComponent{}
