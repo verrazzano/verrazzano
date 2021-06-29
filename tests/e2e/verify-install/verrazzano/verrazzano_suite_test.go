@@ -9,12 +9,12 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
+	vzreporters "github.com/verrazzano/verrazzano/tests/e2e/pkg/reporters"
 )
 
 func TestVerrazzano(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("verrazzano-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
+	junitReporter := vzreporters.NewJUnitReporter(fmt.Sprintf("verrazzano-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
 	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Verrazzano Suite", []ginkgo.Reporter{junitReporter})
 }
