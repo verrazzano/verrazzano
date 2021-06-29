@@ -93,14 +93,6 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
-
-        // Used for dumping cluster from inside tests
-        DUMP_KUBECONFIG="${KUBECONFIG}"
-        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
-
-        VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
-        VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
     }
 
     stages {
@@ -415,6 +407,8 @@ pipeline {
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                             booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
+                            booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
+                            booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
                             string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                         ], wait: true
                 }
