@@ -1,0 +1,32 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
+# Configure a persistent volume for all of verrazzano in a dev install
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: dev-storage-example
+spec:
+  profile: dev
+  defaultVolumeSource:
+    persistentVolumeClaim:
+      claimName: vmi     # use the "largevolume" PVC template for all components unless overridden
+  components:
+    keycloak:
+      mysql:
+        volumeSource:
+          persistentVolumeClaim:
+            claimName: mysql  # use the "smallvolume" PVC template for Keycloak's MySQL volume
+  volumeClaimSpecTemplates:
+    - metadata:
+        name: mysql
+      spec:
+        resources:
+          requests:
+            storage: 100Gi
+    - metadata:
+        name: vmi
+      spec:
+        resources:
+          requests:
+            storage: 200Gi
