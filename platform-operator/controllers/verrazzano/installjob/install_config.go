@@ -657,6 +657,13 @@ func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
 			Name:  esEnabledValueName,
 			Value: strconv.FormatBool(vzSpec.Components.Elasticsearch.Enabled),
 		})
+		for _, esArg := range(vzSpec.Components.Elasticsearch.ESInstallArgs) {
+			vmiArgs = append(vmiArgs, InstallArg{
+				Name:      esArg.Name,
+				Value:     esArg.Value,
+				SetString: esArg.SetString,
+			})
+		}
 	}
 	if vzSpec.Components.Prometheus != nil {
 		vmiArgs = append(vmiArgs, InstallArg{

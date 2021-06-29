@@ -249,6 +249,10 @@ type MonitoringComponent struct {
 // ElasticsearchComponent specifies the Elasticsearch configuration.
 type ElasticsearchComponent struct {
 	MonitoringComponent `json:",inline"`
+
+	// Arguments for installing Elasticsearch
+	// +optional
+	ESInstallArgs []InstallArgs `json:"installArgs,omitempty"`
 }
 
 // KibanaComponent specifies the Kibana configuration.
