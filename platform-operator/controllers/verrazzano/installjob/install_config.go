@@ -388,11 +388,6 @@ func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []instal
 		return keycloakConfig, nil
 	}
 
-	// No volumes to process, return what we have
-	if mysqlVolumeSource == nil {
-		return keycloakConfig, nil
-	}
-
 	if mysqlVolumeSource.EmptyDir == nil {
 		// EmptyDir, disable persistence
 		mySQLArgs = append(mySQLArgs, InstallArg{
