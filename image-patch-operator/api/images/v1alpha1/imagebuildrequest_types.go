@@ -12,7 +12,6 @@ import (
 
 // ImageBuildRequestSpec defines the desired state of ImageBuildRequest
 type ImageBuildRequestSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Image to be used as a base image when creating a new image
