@@ -447,21 +447,8 @@ pipeline {
 
     post {
         always {
-            script {
-                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpVerrazzanoSystemPods()
-                    dumpCattleSystemPods()
-                    dumpNginxIngressControllerLogs()
-                    dumpVerrazzanoPlatformOperatorLogs()
-                    dumpVerrazzanoApplicationOperatorLogs()
-                    dumpOamKubernetesRuntimeLogs()
-                    dumpVerrazzanoApiLogs()
-                }
-            }
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-
-            deleteCluster()
         }
         failure {
             sh """
@@ -498,18 +485,6 @@ def moveContentToGoRepoPath() {
         rm -rf ${GO_REPO_PATH}/verrazzano
         mkdir -p ${GO_REPO_PATH}/verrazzano
         tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-    """
-}
-
-// Called in final post always block of pipeline
-def deleteCluster() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        make delete-cluster
-        if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-          echo "Failures seen during dumping of artifacts, treat post as failed"
-          exit 1
-        fi
     """
 }
 
@@ -664,88 +639,6 @@ def dumpK8sCluster(dumpDirectory) {
     """
 }
 
-// Called in final post block of pipeline
-def dumpVerrazzanoSystemPods() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-pods.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-certs.log"
-        ./scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-kibana.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-es-master.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-// Called in final post block of pipeline
-def dumpCattleSystemPods() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/cattle-system-pods.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/rancher.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-// Called in final post block of pipeline
-def dumpNginxIngressControllerLogs() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/nginx-ingress-controller.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-// Called in final post block of pipeline
-def dumpVerrazzanoPlatformOperatorLogs() {
-    sh """
-        ## dump out verrazzano-platform-operator logs
-        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
-        echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
-        echo "------------------------------------------"
-    """
-}
-
-// Called in final post block of pipeline
-def dumpVerrazzanoApplicationOperatorLogs() {
-    sh """
-        ## dump out verrazzano-application-operator logs
-        mkdir -p ${WORKSPACE}/verrazzano-application-operator/logs
-        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
-        echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
-        echo "------------------------------------------"
-    """
-}
-
-// Called in final post block of pipeline
-def dumpOamKubernetesRuntimeLogs() {
-    sh """
-        ## dump out oam-kubernetes-runtime logs
-        mkdir -p ${WORKSPACE}/oam-kubernetes-runtime/logs
-        kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/oam-kubernetes-runtime/logs/oam-kubernetes-runtime-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/verrazzano-application-operator/logs/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-application-operator logs dumped to oam-kubernetes-runtime-pod.log"
-        echo "verrazzano-application-operator pod description dumped to oam-kubernetes-runtime-pod.out"
-        echo "------------------------------------------"
-    """
-}
-
-// Called in final post block of pipeline
-def dumpVerrazzanoApiLogs() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-api.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
 
 // Called in Stage Clean workspace and checkout steps
 @NonCPS
