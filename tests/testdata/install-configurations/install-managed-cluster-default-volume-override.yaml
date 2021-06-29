@@ -1,0 +1,22 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
+# Configure emphemeral storage for a managed cluster profile.  This should only affect the Prometheus component.
+#
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: mgdcluster-storage-override-example
+spec:
+  profile: managed-cluster
+  defaultVolumeSource:
+    persistentVolumeClaim:
+      claimName: promstorage  # Use the "promstorage" PVC template for the storage configuration
+  volumeClaimSpecTemplates:
+  - metadata:
+      name: promstorage
+    spec:
+      resources:
+        requests:
+          storage: 8Gi
+
