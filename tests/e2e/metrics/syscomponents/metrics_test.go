@@ -5,11 +5,12 @@ package syscomponents
 
 import (
 	"fmt"
-	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
 	"github.com/onsi/ginkgo"
 )
@@ -163,7 +164,10 @@ func verifyEnvoyStats(metricName string) bool {
 	}
 	clientset := pkg.GetKubernetesClientsetForCluster(kubeConfig)
 	for _, ns := range envoyStatsNamespaces {
-		pods := pkg.ListPodsInCluster(ns, clientset)
+		pods, err := pkg.ListPodsInCluster(ns, clientset)
+		if err != nil {
+			return false
+		}
 		for _, pod := range pods.Items {
 			var retValue bool
 			switch ns {

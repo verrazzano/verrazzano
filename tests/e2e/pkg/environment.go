@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,7 +41,10 @@ func Ingress() string {
 // loadBalancerIngress returns the ingress load balancer address
 func loadBalancerIngress() string {
 	fmt.Println("Obtaining ingressgateway info ...")
-	ingressgateway := findIstioIngressGatewaySvc(true)
+	ingressgateway, err := findIstioIngressGatewaySvc(true)
+	if err != nil {
+		return ""
+	}
 	for i := range ingressgateway.Status.LoadBalancer.Ingress {
 		ingress := ingressgateway.Status.LoadBalancer.Ingress[i]
 		fmt.Println("Ingress: ", ingress, "hostname: ", ingress.Hostname, "IP: ", ingress.IP)
@@ -62,7 +64,10 @@ func externalLoadBalancerIngress() string {
 	fmt.Println("Obtaining ingressgateway info ...")
 	// Test a service for a dynamic address (.status.loadBalancer.ingress[0].ip),
 	// 	if that's not present then use .spec.externalIPs[0]
-	lbIngressgateway := findIstioIngressGatewaySvc(true)
+	lbIngressgateway, err := findIstioIngressGatewaySvc(true)
+	if err != nil {
+		return ""
+	}
 	for i := range lbIngressgateway.Status.LoadBalancer.Ingress {
 		ingress := lbIngressgateway.Status.LoadBalancer.Ingress[i]
 		if ingress.Hostname != "" {
@@ -74,7 +79,10 @@ func externalLoadBalancerIngress() string {
 		}
 	}
 	// Nothing found in .status, check .spec
-	ingressgateway := findIstioIngressGatewaySvc(false)
+	ingressgateway, err := findIstioIngressGatewaySvc(false)
+	if err != nil {
+		return ""
+	}
 	for i := range ingressgateway.Spec.ExternalIPs {
 		ingress := ingressgateway.Spec.ExternalIPs[i]
 		fmt.Println("Returning Ingress IP: ", ingress)
@@ -84,8 +92,11 @@ func externalLoadBalancerIngress() string {
 }
 
 // findIstioIngressGatewaySvc retrieves the address of the istio ingress gateway
-func findIstioIngressGatewaySvc(requireLoadBalancer bool) v1.Service {
-	svcList := ListServices(istioSystemNamespace)
+func findIstioIngressGatewaySvc(requireLoadBalancer bool) (*v1.Service, error) {
+	svcList, err := ListServices(istioSystemNamespace)
+	if err != nil {
+		return nil, err
+	}
 	var ingressgateway v1.Service
 	for i := range svcList.Items {
 		svc := svcList.Items[i]
@@ -102,37 +113,27 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) v1.Service {
 			}
 		}
 	}
-	return ingressgateway
+	return &ingressgateway, nil
 }
-
-//// ListCertificates lists certificates in namespace
-//func ListCertificates(namespace string) (*certapiv1alpha2.CertificateList, error) {
-//	certs, err := CertManagerClient().Certificates(namespace).List(metav1.ListOptions{})
-//	if err != nil {
-//		ginkgo.Fail(fmt.Sprintf("Could not get list of certificates: %v\n", err.Error()))
-//	}
-//	// dump out namespace data to file
-//	logData := ""
-//	for i := range certs.Items {
-//		logData = logData + certs.Items[i].Name + "\n"
-//	}
-//	CreateLogFile(fmt.Sprintf("%v-certificates", namespace), logData)
-//	return certs, err
-//}
 
 // ListIngresses lists ingresses in namespace
 func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
 	ingresses, err := GetKubernetesClientset().ExtensionsV1beta1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not get list of ingresses: %v\n", err.Error()))
+		Log(Error, fmt.Sprintf("Could not get list of ingresses: %v", err))
+		return nil, err
 	}
 	// dump out namespace data to file
 	logData := ""
 	for i := range ingresses.Items {
 		logData = logData + ingresses.Items[i].Name + "\n"
 	}
-	CreateLogFile(fmt.Sprintf("%v-ingresses", namespace), logData)
-	return ingresses, err
+	// this seems to be used for debugging, so if there's an error, just log it but don't bubble it up
+	filename := fmt.Sprintf("%v-ingresses", namespace)
+	if err := CreateLogFile(filename, logData); err != nil {
+		Log(Info, fmt.Sprintf("Could not create output file: %s, error: %v", filename, err))
+	}
+	return ingresses, nil
 }
 
 // GetHostnameFromGateway returns the host name from the application gateway that was
@@ -140,7 +141,8 @@ func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
 func GetHostnameFromGateway(namespace string, appConfigName string) string {
 	gateways, err := GetIstioClientset().NetworkingV1alpha3().Gateways(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not list application ingress gateways: %v\n", err.Error()))
+		Log(Error, fmt.Sprintf("Could not list application ingress gateways: %v", err))
+		return ""
 	}
 
 	// if an optional appConfigName is provided, construct the gateway name from the namespace and
