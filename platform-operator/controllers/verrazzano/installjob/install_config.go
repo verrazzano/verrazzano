@@ -350,7 +350,7 @@ func getRancher(rancher *installv1alpha1.RancherComponent) Rancher {
 func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource) (Keycloak, error) {
 
 	if keycloak == nil {
-		if defaultVolumeSpec.EmptyDir != nil {
+		if defaultVolumeSpec != nil && defaultVolumeSpec.EmptyDir != nil {
 			var mySQLArgs []InstallArg
 			mySQLArgs = append(mySQLArgs, InstallArg{
 				Name:  "persistence.enabled",
