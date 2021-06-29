@@ -15,7 +15,7 @@ type ImageBuildRequestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	BaseImage         string `json:"baseImage"`
+	BaseImage         string `json:"baseImage,omitempty"`
 	JDKInstaller      string `json:"jdkInstaller"`
 	WebLogicInstaller string `json:"webLogicInstaller"`
 
@@ -23,10 +23,10 @@ type ImageBuildRequestSpec struct {
 }
 
 type Image struct {
-	Name       string `json:"name"`
+	Name       string `json:"name,omitempty""`
 	Tag        string `json:"tag"`
-	Registry   string `json:"registry"`
-	Repository string `json:"repository"`
+	Registry   string `json:"registry,omitempty"`
+	Repository string `json:"repository,omitempty"`
 }
 
 // ImageBuildRequestStatus defines the observed state of ImageBuildRequest
