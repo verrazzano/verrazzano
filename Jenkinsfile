@@ -6,7 +6,6 @@ def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
 def SCAN_IMAGE_PATCH_OPERATOR = false
-def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
@@ -93,14 +92,6 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
-
-        // Used for dumping cluster from inside tests
-        DUMP_KUBECONFIG="${KUBECONFIG}"
-        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
-
-        VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
-        VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
     }
 
     stages {
@@ -154,7 +145,6 @@ pipeline {
                 moveContentToGoRepoPath()
 
                 script {
-                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -395,7 +385,7 @@ pipeline {
             }
         }
 
-        stage('Acceptance Tests') {
+        stage('Kind Acceptance Tests on 1.18') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -407,214 +397,24 @@ pipeline {
                 }
             }
 
-            stages {
-                stage('Prepare AT environment') {
-                    environment {
-                        VERRAZZANO_OPERATOR_IMAGE="NONE"
-                        KIND_KUBERNETES_CLUSTER_VERSION="1.18"
-                        OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
-                    }
-                    steps {
-                        sh """
-                            cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
-                        """
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                            prepareATEnvironment()
-                        }
-                    }
-                }
-
-                stage('Run Acceptance Tests') {
-                    environment {
-                        TEST_ENV = "KIND"
-                    }
-                    parallel {
-                        stage('verify-install') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-install')
-                            }
-                        }
-                        stage('verify-scripts') {
-                            steps {
-                                runGinkgo('scripts')
-                            }
-                        }
-                        stage('verify-infra restapi') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/restapi')
-                            }
-                        }
-                        stage('verify-infra oam') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/oam')
-                            }
-                        }
-                        stage('verify-infra vmi') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/vmi')
-                            }
-                        }
-                        stage('istio authorization policy') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-                            }
-                            steps {
-                                runGinkgo('istio/authz')
-                            }
-                        }
-                        stage('security role based access') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
-                            }
-                            steps {
-                                runGinkgo('security/rbac')
-                            }
-                        }
-                        stage('security network policies') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
-                            }
-                            steps {
-                                script {
-                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                                        runGinkgo('security/netpol')
-                                    }
-                                }
-                            }
-                        }
-                        stage('k8s deployment workload metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
-                            }
-                            steps {
-                                runGinkgo('metrics/deploymetrics')
-                            }
-                        }
-                        stage('system component metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
-                            }
-                            steps {
-                                runGinkgo('metrics/syscomponents')
-                            }
-                        }
-                        stage('examples logging helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
-                            }
-                            steps {
-                                runGinkgo('logging/helidon')
-                            }
-                        }
-                        stage('examples todo') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
-                            }
-                            steps {
-                                runGinkgo('examples/todo')
-                            }
-                        }
-                        stage('examples socks') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
-                            }
-                            steps {
-                                runGinkgo('examples/socks')
-                            }
-                        }
-                        stage('examples spring') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
-                            }
-                            steps {
-                                runGinkgo('examples/springboot')
-                            }
-                        }
-                        stage('examples helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-                            }
-                            steps {
-                                runGinkgo('examples/helidon')
-                            }
-                        }
-                        stage('examples helidon-config') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
-                            }
-                            steps {
-                                runGinkgo('examples/helidonconfig')
-                            }
-                        }
-                        stage('examples bobs') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
-                            }
-                            when {
-                                expression {params.RUN_SLOW_TESTS == true}
-                            }
-                            steps {
-                                runGinkgo('examples/bobsbooks')
-                            }
-                        }
-                        stage('console ingress') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
-                            }
-                            steps {
-                                runGinkgo('ingress/console')
-                            }
-                        }
-                        stage ('console') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                                GOOGLE_CHROME_VERSION="90.0.4430.93-1"
-                                CHROMEDRIVER_VERSION="90.0.4430.24"
-                            }
-                            steps {
-                                acceptanceTestsConsole()
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
+            steps {
+                script {
+                    build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                        parameters: [
+                            string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.18'),
+                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                            booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
+                            booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
+                            booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
+                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
+                        ], wait: true
                 }
             }
-
             post {
                 failure {
                     script {
                         SKIP_TRIGGERED_TESTS = true
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-acceptance-tests-cluster-dump')
-                        }
-                    }
-                }
-                success {
-                    script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-acceptance-tests-cluster-dump')
-                        }
                     }
                 }
             }
@@ -646,21 +446,8 @@ pipeline {
 
     post {
         always {
-            script {
-                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpVerrazzanoSystemPods()
-                    dumpCattleSystemPods()
-                    dumpNginxIngressControllerLogs()
-                    dumpVerrazzanoPlatformOperatorLogs()
-                    dumpVerrazzanoApplicationOperatorLogs()
-                    dumpOamKubernetesRuntimeLogs()
-                    dumpVerrazzanoApiLogs()
-                }
-            }
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-
-            deleteCluster()
         }
         failure {
             sh """
@@ -700,18 +487,6 @@ def moveContentToGoRepoPath() {
     """
 }
 
-// Called in final post always block of pipeline
-def deleteCluster() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        make delete-cluster
-        if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-          echo "Failures seen during dumping of artifacts, treat post as failed"
-          exit 1
-        fi
-    """
-}
-
 // Called in final post success block of pipeline
 def storePipelineArtifacts() {
     sh """
@@ -740,39 +515,6 @@ def storePipelineArtifacts() {
             echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
         fi
-    """
-}
-
-// Called in parallel Stage console of Stage Run Acceptance Tests
-def acceptanceTestsConsole() {
-    sh """
-        # Temporarily clone the console repo until it is moved to the verrazzano repo
-        cd ${GO_REPO_PATH}
-        git clone https://${GITHUB_PKGS_CREDS_USR}:${GITHUB_PKGS_CREDS_PSW}@github.com/verrazzano/console.git
-        cd console
-        git checkout ${params.CONSOLE_REPO_BRANCH}
-
-        # Configure headless browser
-        google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
-        curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-        unzip chromedriver.zip
-        sudo cp chromedriver /usr/local/bin/
-
-        # Run the tests
-        make run-ui-tests
-    """
-}
-
-// Called in Stage Prepare AT Environment post
-def prepareATEnvironment() {
-    sh """
-        ## dump out install logs
-        mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
-        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
-        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
-        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-        echo "------------------------------------------"
     """
 }
 
@@ -896,88 +638,6 @@ def dumpK8sCluster(dumpDirectory) {
     """
 }
 
-// Called in final post block of pipeline
-def dumpVerrazzanoSystemPods() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-pods.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-certs.log"
-        ./scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-kibana.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-es-master.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-// Called in final post block of pipeline
-def dumpCattleSystemPods() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/cattle-system-pods.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/rancher.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-// Called in final post block of pipeline
-def dumpNginxIngressControllerLogs() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/nginx-ingress-controller.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-// Called in final post block of pipeline
-def dumpVerrazzanoPlatformOperatorLogs() {
-    sh """
-        ## dump out verrazzano-platform-operator logs
-        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
-        echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
-        echo "------------------------------------------"
-    """
-}
-
-// Called in final post block of pipeline
-def dumpVerrazzanoApplicationOperatorLogs() {
-    sh """
-        ## dump out verrazzano-application-operator logs
-        mkdir -p ${WORKSPACE}/verrazzano-application-operator/logs
-        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
-        echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
-        echo "------------------------------------------"
-    """
-}
-
-// Called in final post block of pipeline
-def dumpOamKubernetesRuntimeLogs() {
-    sh """
-        ## dump out oam-kubernetes-runtime logs
-        mkdir -p ${WORKSPACE}/oam-kubernetes-runtime/logs
-        kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/oam-kubernetes-runtime/logs/oam-kubernetes-runtime-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/verrazzano-application-operator/logs/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-application-operator logs dumped to oam-kubernetes-runtime-pod.log"
-        echo "verrazzano-application-operator pod description dumped to oam-kubernetes-runtime-pod.out"
-        echo "------------------------------------------"
-    """
-}
-
-// Called in final post block of pipeline
-def dumpVerrazzanoApiLogs() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-api.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
 
 // Called in Stage Clean workspace and checkout steps
 @NonCPS
@@ -1056,13 +716,4 @@ def getSuspectList(commitList, userMappings) {
     }
     echo "returning suspect list: ${retValue}"
     return retValue
-}
-
-def getEffectiveDumpOnSuccess() {
-    def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
-    if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
-        effectiveValue = true
-        echo "Forcing dump on success based on global override setting"
-    }
-    return effectiveValue
 }
