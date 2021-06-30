@@ -6,6 +6,7 @@ package pkg
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -30,7 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -86,51 +87,54 @@ func GetKubeConfigPathFromEnv() string {
 		kubeconfig = filepath.Join(home, ".kube", "config")
 	} else {
 		// give up
-		ginkgo.Fail("Could not find kube")
+		ginkgo.Fail("Could not find kube config")
 	}
 	return kubeconfig
 }
 
 // DoesCRDExist returns whether a CRD with the given name exists for the cluster
-func DoesCRDExist(crdName string) bool {
+func DoesCRDExist(crdName string) (bool, error) {
 	// use the current context in the kubeconfig
 	config := GetKubeConfig()
 
 	apixClient, err := apixv1beta1client.NewForConfig(config)
 	if err != nil {
-		ginkgo.Fail("Could not get apix client")
+		Log(Error, "Could not get apix client")
+		return false, err
 	}
 
 	crds, err := apixClient.CustomResourceDefinitions().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get CRDS with error: %v", err))
+		Log(Error, fmt.Sprintf("Failed to get CRDS with error: %v", err))
+		return false, err
 	}
 
 	for i := range crds.Items {
 		if strings.Compare(crds.Items[i].ObjectMeta.Name, crdName) == 0 {
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 // DoesNamespaceExist returns whether a namespace with the given name exists for the cluster set in the environment
-func DoesNamespaceExist(name string) bool {
+func DoesNamespaceExist(name string) (bool, error) {
 	return DoesNamespaceExistInCluster(name, GetKubeConfigPathFromEnv())
 }
 
 // DoesNamespaceExistInCluster returns whether a namespace with the given name exists in the specified cluster
-func DoesNamespaceExistInCluster(name string, kubeconfigPath string) bool {
+func DoesNamespaceExistInCluster(name string, kubeconfigPath string) (bool, error) {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
 
 	namespace, err := clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		ginkgo.Fail(fmt.Sprintf("Failed to get namespace %s with error: %v", name, err))
+	if err != nil && !k8serrors.IsNotFound(err) {
+		Log(Error, fmt.Sprintf("Failed to get namespace %s with error: %v", name, err))
+		return false, err
 	}
 
-	return namespace != nil && len(namespace.Name) > 0
+	return namespace != nil && len(namespace.Name) > 0, nil
 }
 
 // ListNamespaces returns a namespace list for the given list options
@@ -148,41 +152,30 @@ func ListPods(namespace string, opts metav1.ListOptions) (*corev1.PodList, error
 	return GetKubernetesClientset().CoreV1().Pods(namespace).List(context.TODO(), opts)
 }
 
-// DoesJobExist returns whether a job with the given name and namespace exists for the cluster
-func DoesJobExist(namespace string, name string) bool {
-	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
-
-	job, err := clientset.BatchV1().Jobs(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get job %s in namespace %s with error: %v", name, namespace, err))
-	}
-
-	return job != nil
-}
-
 // ListDeployments returns the list of deployments in a given namespace for the cluster
-func ListDeployments(namespace string) *appsv1.DeploymentList {
+func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list deployments in namespace %s with error: %v", namespace, err))
+		Log(Error, fmt.Sprintf("Failed to list deployments in namespace %s with error: %v", namespace, err))
+		return nil, err
 	}
-	return deployments
+	return deployments, nil
 }
 
 // ListNodes returns the list of nodes for the cluster
-func ListNodes() *corev1.NodeList {
+func ListNodes() (*corev1.NodeList, error) {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list nodes with error: %v", err))
+		Log(Error, fmt.Sprintf("Failed to list nodes with error: %v", err))
+		return nil, err
 	}
-	return nodes
+	return nodes, nil
 }
 
 // GetPodsFromSelector returns a collection of pods for the given namespace and selector
@@ -205,18 +198,22 @@ func GetPodsFromSelector(selector *metav1.LabelSelector, namespace string) ([]co
 }
 
 // ListPodsInCluster returns the list of pods in a given namespace for the cluster
-func ListPodsInCluster(namespace string, clientset *kubernetes.Clientset) *corev1.PodList {
+func ListPodsInCluster(namespace string, clientset *kubernetes.Clientset) (*corev1.PodList, error) {
 	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list pods in namespace %s with error: %v", namespace, err))
+		Log(Error, fmt.Sprintf("Failed to list pods in namespace %s with error: %v", namespace, err))
+		return nil, err
 	}
-	return pods
+	return pods, nil
 }
 
 // DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
 func DoesPodExist(namespace string, name string) bool {
 	clientset := GetKubernetesClientset()
-	pods := ListPodsInCluster(namespace, clientset)
+	pods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		return false
+	}
 	for i := range pods.Items {
 		if strings.HasPrefix(pods.Items[i].Name, name) {
 			return true
@@ -227,7 +224,10 @@ func DoesPodExist(namespace string, name string) bool {
 
 // DoesServiceExist returns whether a service with the given name and namespace exists for the cluster
 func DoesServiceExist(namespace string, name string) bool {
-	services := ListServices(namespace)
+	services, err := ListServices(namespace)
+	if err != nil {
+		return false
+	}
 	for i := range services.Items {
 		if strings.HasPrefix(services.Items[i].Name, name) {
 			return true
@@ -352,28 +352,17 @@ func APIExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
 	return clientset
 }
 
-// CertManagerClient returns a CertmanagerV1alpha2Client for this cluster
-//func CertManagerClient() *certclientv1alpha2.CertmanagerV1alpha2Client {
-//	config := GetKubeConfig()
-//
-//	client, err := certclientv1alpha2.NewForConfig(config)
-//	if err != nil {
-//		ginkgo.Fail(fmt.Sprintf("Failed to create cert-manager client: %v", err))
-//	}
-//
-//	return client
-//}
-
 // ListServices returns the list of services in a given namespace for the cluster
-func ListServices(namespace string) *corev1.ServiceList {
+func ListServices(namespace string) (*corev1.ServiceList, error) {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list services in namespace %s with error: %v", namespace, err))
+		Log(Error, fmt.Sprintf("Failed to list services in namespace %s with error: %v", namespace, err))
+		return nil, err
 	}
-	return services
+	return services, nil
 }
 
 // GetNamespace returns a namespace
@@ -448,95 +437,104 @@ func DeleteNamespaceInCluster(name string, kubeconfigPath string) error {
 }
 
 // DoesClusterRoleExist returns whether a cluster role with the given name exists in the cluster
-func DoesClusterRoleExist(name string) bool {
+func DoesClusterRoleExist(name string) (bool, error) {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	clusterrole, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
+	if err != nil && !k8serrors.IsNotFound(err) {
+		Log(Error, fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
+		return false, err
 	}
 
-	return clusterrole != nil
+	return clusterrole != nil, nil
 }
 
 // GetClusterRole returns the cluster role with the given name
-func GetClusterRole(name string) *rbacv1.ClusterRole {
+func GetClusterRole(name string) (*rbacv1.ClusterRole, error) {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	clusterrole, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
+		Log(Error, fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
+		return nil, err
 	}
 
-	return clusterrole
+	return clusterrole, nil
 }
 
-//DoesServiceAccountExist returns whether a service account with the given name and namespace exists in the cluster
-func DoesServiceAccountExist(namespace, name string) bool {
-	sa := GetServiceAccount(namespace, name)
-	return sa != nil
+// DoesServiceAccountExist returns whether a service account with the given name and namespace exists in the cluster
+func DoesServiceAccountExist(namespace, name string) (bool, error) {
+	sa, err := GetServiceAccount(namespace, name)
+	if err != nil {
+		return false, err
+	}
+	return sa != nil, nil
 }
 
 // DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
-func DoesClusterRoleBindingExist(name string) bool {
+func DoesClusterRoleBindingExist(name string) (bool, error) {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	clusterrolebinding, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role binding %s with error: %v", name, err))
+	if err != nil && !k8serrors.IsNotFound(err) {
+		Log(Error, fmt.Sprintf("Failed to get cluster role binding %s with error: %v", name, err))
+		return false, err
 	}
 
-	return clusterrolebinding != nil
+	return clusterrolebinding != nil, nil
 }
 
 // GetClusterRoleBinding returns the cluster role with the given name
-func GetClusterRoleBinding(name string) *rbacv1.ClusterRoleBinding {
+func GetClusterRoleBinding(name string) (*rbacv1.ClusterRoleBinding, error) {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	crb, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role binding %s with error: %v", name, err))
+		Log(Error, fmt.Sprintf("Failed to get cluster role binding %s with error: %v", name, err))
+		return nil, err
 	}
 
-	return crb
+	return crb, err
 }
 
 // ListClusterRoleBindings returns the list of cluster role bindings for the cluster
-func ListClusterRoleBindings() *rbacv1.ClusterRoleBindingList {
+func ListClusterRoleBindings() (*rbacv1.ClusterRoleBindingList, error) {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	bindings, err := clientset.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role bindings with error: %v", err))
+		Log(Error, fmt.Sprintf("Failed to get cluster role bindings with error: %v", err))
+		return nil, err
 	}
 
-	return bindings
+	return bindings, err
 }
 
 // DoesRoleBindingContainSubject returns true if the RoleBinding exists and it contains the
 // specified subject
-func DoesRoleBindingContainSubject(namespace, name, subjectKind, subjectName string) bool {
+func DoesRoleBindingContainSubject(namespace, name, subjectKind, subjectName string) (bool, error) {
 	clientset := GetKubernetesClientset()
 
 	rb, err := clientset.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			ginkgo.Fail(fmt.Sprintf("Failed to get RoleBinding %s in namespace %s: %v", name, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get RoleBinding %s in namespace %s: %v", name, namespace, err))
+			return false, err
 		}
-		return false
+		return false, nil
 	}
 
 	for _, s := range rb.Subjects {
 		if s.Kind == subjectKind && s.Name == subjectName {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 func CreateRoleBinding(userOCID string, namespace string, rolebindingname string, clusterrolename string) error {
@@ -625,15 +623,16 @@ func GetIstioClientset() *istioClient.Clientset {
 }
 
 // GetConfigMap returns the config map for the passed in ConfigMap Name and Namespace
-func GetConfigMap(configMapName string, namespace string) *corev1.ConfigMap {
+func GetConfigMap(configMapName string, namespace string) (*corev1.ConfigMap, error) {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 	cmi := clientset.CoreV1().ConfigMaps(namespace)
 	configMap, err := cmi.Get(context.TODO(), configMapName, metav1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		ginkgo.Fail(fmt.Sprintf("Failed to get Config Map %v from namespace %v:  Error = %v ", configMapName, namespace, err))
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Config Map %v from namespace %v:  Error = %v ", configMapName, namespace, err))
+		return nil, err
 	}
-	return configMap
+	return configMap, nil
 }
 
 /*
@@ -665,15 +664,15 @@ func (h *headerAdder) RoundTrip(req *http.Request) (*http.Response, error) {
 	return h.rt.RoundTrip(req)
 }
 
-func CanI(userOCID string, namespace string, verb string, resource string) (bool, string) {
+func CanI(userOCID string, namespace string, verb string, resource string) (bool, string, error) {
 	return CanIForAPIGroup(userOCID, namespace, verb, resource, "")
 }
 
-func CanIForAPIGroup(userOCID string, namespace string, verb string, resource string, group string) (bool, string) {
+func CanIForAPIGroup(userOCID string, namespace string, verb string, resource string, group string) (bool, string, error) {
 	return CanIForAPIGroupForServiceAccountOrUser(userOCID, namespace, verb, resource, group, false, "")
 }
 
-func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace string, verb string, resource string, group string, isServiceAccount bool, saNamespace string) (bool, string) {
+func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace string, verb string, resource string, group string, isServiceAccount bool, saNamespace string) (bool, string, error) {
 	canI := &v1beta1.SelfSubjectAccessReview{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SelfSubjectAccessReview",
@@ -696,7 +695,10 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 
 	wt := config.WrapTransport // Config might already have a transport wrapper
 	if isServiceAccount {
-		token := GetTokenForServiceAccount(saOrUserOCID, saNamespace)
+		token, err := GetTokenForServiceAccount(saOrUserOCID, saNamespace)
+		if err != nil {
+			return false, "", err
+		}
 		clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 			&clientcmd.ClientConfigLoadingRules{ExplicitPath: GetKubeConfigPathFromEnv()},
 			&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}})
@@ -743,40 +745,65 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 
 	auth, err := clientset.AuthorizationV1beta1().SelfSubjectAccessReviews().Create(context.TODO(), canI, metav1.CreateOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to check perms: %v", err))
+		Log(Error, fmt.Sprintf("Failed to check perms: %v", err))
+		return false, "", err
 	}
 
-	return auth.Status.Allowed, auth.Status.Reason
+	return auth.Status.Allowed, auth.Status.Reason, nil
 }
 
 //GetTokenForServiceAccount returns the token associated with service account
-func GetTokenForServiceAccount(sa string, namespace string) []byte {
-	serviceAccount := GetServiceAccount(namespace, sa)
+func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
+	serviceAccount, err := GetServiceAccount(namespace, sa)
+	if err != nil {
+		return nil, err
+	}
 	if len(serviceAccount.Secrets) == 0 {
-		ginkgo.Fail(fmt.Sprintf("No secrets present in service account %s in namespace %s", sa, namespace))
+		msg := fmt.Sprintf("no secrets present in service account %s in namespace %s", sa, namespace)
+		Log(Error, msg)
+		return nil, errors.New(msg)
 	}
 
 	secretName := serviceAccount.Secrets[0].Name
 	clientset := GetKubernetesClientset()
 	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get secret %s for service account %s in namespace %s with error: %v", secretName, sa, namespace, err))
+		msg := fmt.Sprintf("failed to get secret %s for service account %s in namespace %s with error: %v", secretName, sa, namespace, err)
+		Log(Error, msg)
+		return nil, errors.New(msg)
 	}
 
 	token, ok := secret.Data["token"]
 
 	if !ok {
-		ginkgo.Fail(fmt.Sprintf("No token present in secret %s for service account %s in namespace %s with error: %v", secretName, sa, namespace, err))
+		msg := fmt.Sprintf("no token present in secret %s for service account %s in namespace %s with error: %v", secretName, sa, namespace, err)
+		Log(Error, msg)
+		return nil, errors.New(msg)
 	}
 
-	return token
+	return token, nil
 }
 
-func GetServiceAccount(namespace, name string) *corev1.ServiceAccount {
+func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
 	clientset := GetKubernetesClientset()
 	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		ginkgo.Fail(fmt.Sprintf("Failed to get service account %s in namespace %s with error: %v", name, namespace, err))
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get service account %s in namespace %s with error: %v", name, namespace, err))
+		return nil, err
 	}
-	return sa
+	return sa, nil
+}
+
+func GetPersistentVolumes(namespace string) (map[string]*corev1.PersistentVolumeClaim, error) {
+	pvcs, err := GetKubernetesClientset().CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	volumeClaims := make(map[string]*corev1.PersistentVolumeClaim)
+
+	for _, pvc := range pvcs.Items {
+		volumeClaims[pvc.Name] = &pvc
+	}
+	return volumeClaims, nil
 }

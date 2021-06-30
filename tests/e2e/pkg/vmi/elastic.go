@@ -49,7 +49,11 @@ func (e *Elastic) PodsRunning() bool {
 // Connect checks if the elasticsearch cluster can be connected
 func (e *Elastic) Connect() bool {
 	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-	esURL, err := pkg.GetAPIEndpoint(kubeconfigPath).GetElasticURL()
+	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
+	if err != nil {
+		return false
+	}
+	esURL, err := api.GetElasticURL()
 	if err != nil {
 		return false
 	}
@@ -102,7 +106,11 @@ func (e *Elastic) ListIndices() []string {
 
 // getIndices gets index metadata (aliases, mappings, and settings) of all elasticsearch indices in the given cluster
 func (e *Elastic) getIndices(kubeconfigPath string) map[string]interface{} {
-	esURL, err := pkg.GetAPIEndpoint(kubeconfigPath).GetElasticURL()
+	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
+	if err != nil {
+		return nil
+	}
+	esURL, err := api.GetElasticURL()
 	if err != nil {
 		return nil
 	}
@@ -142,7 +150,10 @@ func (e *Elastic) CheckTLSSecret() bool {
 
 // CheckIngress checks the Elasticsearch Ingress
 func (e *Elastic) CheckIngress() bool {
-	ingressList, _ := pkg.ListIngresses("verrazzano-system")
+	ingressList, err := pkg.ListIngresses("verrazzano-system")
+	if err != nil {
+		return false
+	}
 	for _, ingress := range ingressList.Items {
 		if ingress.Name == fmt.Sprintf("vmi-%v-es-ingest", e.binding) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Found Ingress %v for binding %v", ingress.Name, e.binding))

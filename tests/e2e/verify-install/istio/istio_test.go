@@ -39,7 +39,8 @@ var _ = ginkgo.Describe("Istio", func() {
 				}
 				return deploymentNames
 			}
-			deployments := pkg.ListDeployments(namespace)
+			deployments, err := pkg.ListDeployments(namespace)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error listing deployments")
 			gomega.Expect(deployments).Should(
 				gomega.SatisfyAll(
 					gomega.Not(gomega.BeNil()),

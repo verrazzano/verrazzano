@@ -16,7 +16,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,8 +49,8 @@ func GetWebPageWithCABundle(url string, hostHeader string) (int, string) {
 func GetCertificates(url string) ([]*x509.Certificate, error) {
 	resp, err := GetVerrazzanoHTTPClient().Get(url)
 	if err != nil {
-		Log(Error, err.Error())
-		ginkgo.Fail("Could not get web page " + url)
+		Log(Error, fmt.Sprintf("Could not get web page at URL: %s, error: %v", url, err))
+		return nil, err
 	}
 	defer resp.Body.Close()
 	return resp.TLS.PeerCertificates, nil
@@ -238,7 +237,7 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	html, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		Log(Error, err.Error())
-		ginkgo.Fail("Could not read content of response body")
+		return teapot, ""
 	}
 	return resp.StatusCode, string(html)
 }
