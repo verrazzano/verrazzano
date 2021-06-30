@@ -82,6 +82,28 @@ function delete_k8s_resources() {
     || err_return $? "$3" || return $? # return on pipefail
 }
 
+# Deletes kubernetes resources of the specified type from all namespaces that have the verrazzano-managed label set to true
+# $1 resource-type - type of the resources being deleted
+# $2 crd-delete-flag - value of "yes" or "no" to also delete crd, default is "yes" for compatibility
+function delete_managed_k8s_resources {
+  local res=$1
+  local delcrd=$2
+  if kubectl get crd "${res}"> /dev/null 2>&1 ; then
+    IFS=$'\n' read -r -d '' -a namespaces < <( kubectl get namespaces -l verrazzano-managed="true" --no-headers -o custom-columns=":metadata.name" && printf '\0' )
+    for ns in "${namespaces[@]}" ; do
+      if ! kubectl delete "${res}" --namespace ${ns} --all > /dev/null 2>&1 ; then
+        log "Failed to delete ${res} from namespace ${ns}"
+      fi
+    done
+  fi
+  # Delete the CRDs, without any CRs based on that, from all the namespaces
+  if [ -z "${delcrd}" ] || [ "${delcrd}" == "yes" ]; then
+    if kubectl get crd "${res}"> /dev/null 2>&1 ; then
+      kubectl delete crd "${res}" --ignore-not-found > /dev/null 2>&1
+    fi
+  fi
+}
+
 # utility function to patch kubernetes resources
 # $1 resource-type - type of the resources being patched
 # $2 custom-cols   - custom columns used when getting the resources

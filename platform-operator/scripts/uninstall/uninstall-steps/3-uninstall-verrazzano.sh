@@ -58,17 +58,17 @@ function delete_verrazzano() {
   delete_k8s_resources namespace ":metadata.name,:metadata.labels" "Could not delete Verrazzano namespaces" '/k8s-app:verrazzano.io|verrazzano.io\/namespace:monitoring|verrazzano-system|verrazzano-mc/ {print $1}' \
     || return $? # return on pipefail
 
-  # Delete CRDS from all namespaces
-  delete_k8s_resource_from_all_namespaces applicationconfigurations.core.oam.dev
-#  delete_k8s_resource_from_all_namespaces coherence.coherence.oracle.com
-  delete_k8s_resource_from_all_namespaces components.core.oam.dev
-  delete_k8s_resource_from_all_namespaces containerizedworkloads.core.oam.dev
-#  delete_k8s_resource_from_all_namespaces domains.weblogic.oracle
-  delete_k8s_resource_from_all_namespaces healthscopes.core.oam.dev
-  delete_k8s_resource_from_all_namespaces manualscalertraits.core.oam.dev
-  delete_k8s_resource_from_all_namespaces traitdefinitions.core.oam.dev
-  delete_k8s_resource_from_all_namespaces workloaddefinitions.core.oam.dev
-  delete_k8s_resource_from_all_namespaces scopedefinitions.core.oam.dev
+  # Delete CRDS from all Verrazzano managed namespaces
+  delete_managed_k8s_resources applicationconfigurations.core.oam.dev
+  delete_managed_k8s_resources coherence.coherence.oracle.com
+  delete_managed_k8s_resources components.core.oam.dev
+  delete_managed_k8s_resources containerizedworkloads.core.oam.dev
+  delete_managed_k8s_resources domains.weblogic.oracle
+  delete_managed_k8s_resources healthscopes.core.oam.dev
+  delete_managed_k8s_resources manualscalertraits.core.oam.dev
+  delete_managed_k8s_resources traitdefinitions.core.oam.dev
+  delete_managed_k8s_resources workloaddefinitions.core.oam.dev
+  delete_managed_k8s_resources scopedefinitions.core.oam.dev
 }
 
 function delete_oam_operator {
