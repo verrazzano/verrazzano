@@ -41,5 +41,6 @@ platform-operator/THIRD_PARTY_LICENSES.txt
 application-operator/THIRD_PARTY_LICENSES.txt
 image-patch-operator/THIRD_PARTY_LICENSES.txt
 image-patch-operator/weblogic-imagetool/THIRD_PARTY_LICENSES.txt
+image-patch-operator/weblogic-imagetool/installers
 tools/analysis/THIRD_PARTY_LICENSES.txt
 tests/e2e/**/*.test
