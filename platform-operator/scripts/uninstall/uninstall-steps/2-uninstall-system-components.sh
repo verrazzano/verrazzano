@@ -107,13 +107,40 @@ function delete_rancher() {
   log "Deleting rancher"
   helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n fleet-system \
     || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
+  # Determine whether we need to uninstall fleet-crd
+    helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm -n fleet-system uninstall fleet-crd \
+    || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
   helm ls -n rancher-operator-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n rancher-operator-system \
     || err_return $? "Could not delete rancher-operator-system charts from helm" || return $? # return on pipefail
-  helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
-    || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
 
   log "Delete the additional CA secret for Rancher"
   kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
+
+  log "Delete the Rancher service accounts"
+  if kubectl get serviceaccount -n cattle-system rancher > /dev/null 2>&1 ; then
+    if ! kubectl delete serviceaccount -n cattle-system rancher ; then
+      error "Failed to delete the service account rancher."
+    fi
+  fi
+
+  if kubectl get serviceaccount -n cattle-system rancher-webhook > /dev/null 2>&1 ; then
+    if ! kubectl delete serviceaccount -n cattle-system rancher-webhook ; then
+      error "Failed to delete the service account rancher-webhook."
+    fi
+  fi
+
+  if kubectl get serviceaccount -n cattle-system default > /dev/null 2>&1 ; then
+    if ! kubectl delete serviceaccount -n cattle-system default ; then
+      error "Failed to delete the service account default."
+    fi
+  fi
+
+  #helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
+  #  || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
+
+  curl -LJo $UNINSTALL_DIR/system-tools https://github.com/rancher/system-tools/releases/download/v0.1.1-rc7/system-tools_linux-amd64
+  chmod +x $UNINSTALL_DIR/system-tools
+  $UNINSTALL_DIR/system-tools remove --kubeconfig $KUBECONFIG --namespace  cattle-system --force
 
   log "Deleting CRDs from rancher"
 
@@ -157,6 +184,7 @@ function delete_rancher() {
   # delete configmap in kube-system
   log "Deleting ConfigMap"
   kubectl delete configmap cattle-controllers -n kube-system  --ignore-not-found=true || err_return $? "Could not delete ConfigMap from Rancher in namespace kube-system" || return $?
+  kubectl delete configmap rancher-controller-lock -n kube-system --ignore-not-found=true || err_return $? "Could not delete ConfigMap rancher-controller-lock in namespace kube-system" || return $?
 
   log "Removing Rancher namespace finalizers"
   # delete namespace finalizers
