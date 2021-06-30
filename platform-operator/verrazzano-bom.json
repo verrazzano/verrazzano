@@ -216,7 +216,7 @@
           "images": [
             {
               "image": "verrazzano-operator",
-              "tag": "0.16.0-20210615185748-b8fa543",
+              "tag": "0.17.0-20210629214033-a3b63ac",
               "helmFullImageKey": "verrazzanoOperator.imageName",
               "helmTagKey": "verrazzanoOperator.imageVersion"
             },
@@ -227,7 +227,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "0.16.0-20210615185744-bcb285c",
+              "tag": "0.17.0-20210629214320-7138611",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -278,7 +278,7 @@
             },
             {
               "image": "console",
-              "tag": "0.16.0-20210618131715-9ddff61",
+              "tag": "0.17.0-20210629214513-a686730",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -433,7 +433,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "0.16.0-20210615185744-471503f"
+              "tag": "0.17.0-20210629213930-e0de69d"
             }
           ]
         }
