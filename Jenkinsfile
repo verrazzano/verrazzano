@@ -95,6 +95,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
+        OCI_CLI_REGION = 'us-phoenix-1'
 
         BUCKET_NAME = "build-shared-files"
         JDK8_BUNDLE = "jdk-8u281-linux-x64.tar.gz"
@@ -231,12 +232,12 @@ pipeline {
         }
 
         stage('Image Patch Operator') {
-            // when {
-            //     allOf {
-            //         not { buildingTag() }
-            //         changeset "image-patch-operator/**"
-            //     }
-            // }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    changeset "image-patch-operator/**"
+                }
+            }
             steps {
                 buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
                 buildWITImage("${DOCKER_IMAGE_TAG}")
