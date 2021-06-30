@@ -46,9 +46,10 @@ else
 fi
 if [ ! -z "${CA_CERT}" ] ; then
    kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
-   # create managed cluster ca secret on admin.
-   kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f ${CA_SECRET_FILE}
 fi
+
+# create managed cluster ca secret on admin.
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f ${CA_SECRET_FILE}
 
 # create VerrazzanoManagedCluster on admin
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f <<EOF -
