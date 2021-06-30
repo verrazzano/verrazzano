@@ -549,7 +549,6 @@ function patch_rancher_agents() {
 }
 
 function kubectl_apply_with_retry() {
-  echo "Invoking: kubectl apply for $1"
   local count=0
   local ret=0
   until kubectl apply -f <(echo "$1") "${@:2}"; do
