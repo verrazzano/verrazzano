@@ -94,6 +94,7 @@ spec:
                     description: Console configuration
                     properties:
                       enabled:
+                        default: true
                         type: boolean
                     type: object
                   dns:
@@ -141,6 +142,7 @@ spec:
                     description: Elasticsearch configuration
                     properties:
                       enabled:
+                        default: true
                         type: boolean
                       installArgs:
                         description: Arguments for installing Elasticsearch
@@ -195,6 +197,7 @@ spec:
                     description: Grafana configuration
                     properties:
                       enabled:
+                        default: true
                         type: boolean
                     type: object
                   ingress:
@@ -1976,12 +1979,14 @@ spec:
                     description: Grafana configuration
                     properties:
                       enabled:
+                        default: true
                         type: boolean
                     type: object
                   prometheus:
                     description: Prometheus configuration
                     properties:
                       enabled:
+                        default: true
                         type: boolean
                     type: object
                   rancher:

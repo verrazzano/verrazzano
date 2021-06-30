@@ -653,6 +653,9 @@ func validateRoleBindingSubject(subject rbacv1.Subject, name string) error {
 func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
 	vmiArgs := []InstallArg{}
 	if vzSpec.Components.Elasticsearch != nil {
+		// Default to enabled unless explicitly disabled
+		enabled := true
+
 		vmiArgs = append(vmiArgs, InstallArg{
 			Name:  esEnabledValueName,
 			Value: strconv.FormatBool(vzSpec.Components.Elasticsearch.Enabled),
