@@ -34,10 +34,10 @@ RUN set -eux \
 FROM ghcr.io/oracle/oraclelinux:8-slim
 
 # Install the builder for WIT and dependencies
-# RUN microdnf update -y \
-#     && microdnf install -y podman \
-#     && microdnf reinstall -y shadow-utils \
-#     && microdnf clean all
+RUN microdnf update -y \
+    && microdnf install -y podman \
+    && microdnf reinstall -y shadow-utils \
+    && microdnf clean all
 
 WORKDIR /home/verrazzano
 
