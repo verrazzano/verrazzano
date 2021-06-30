@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-)
+	)
 
 type ProjectDeleteOptions struct {
 	configFlags *genericclioptions.ConfigFlags
