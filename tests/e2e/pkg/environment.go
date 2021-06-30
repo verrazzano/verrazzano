@@ -43,6 +43,7 @@ func loadBalancerIngress() string {
 	fmt.Println("Obtaining ingressgateway info ...")
 	ingressgateway, err := findIstioIngressGatewaySvc(true)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error finding Istio ingress gateway service: %v", err))
 		return ""
 	}
 	for i := range ingressgateway.Status.LoadBalancer.Ingress {
@@ -66,6 +67,7 @@ func externalLoadBalancerIngress() string {
 	// 	if that's not present then use .spec.externalIPs[0]
 	lbIngressgateway, err := findIstioIngressGatewaySvc(true)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error finding Istio ingress gateway service: %v", err))
 		return ""
 	}
 	for i := range lbIngressgateway.Status.LoadBalancer.Ingress {
@@ -81,6 +83,7 @@ func externalLoadBalancerIngress() string {
 	// Nothing found in .status, check .spec
 	ingressgateway, err := findIstioIngressGatewaySvc(false)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error finding Istio ingress gateway service: %v", err))
 		return ""
 	}
 	for i := range ingressgateway.Spec.ExternalIPs {
@@ -120,7 +123,6 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) (*v1.Service, error) {
 func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
 	ingresses, err := GetKubernetesClientset().ExtensionsV1beta1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Could not get list of ingresses: %v", err))
 		return nil, err
 	}
 	// dump out namespace data to file

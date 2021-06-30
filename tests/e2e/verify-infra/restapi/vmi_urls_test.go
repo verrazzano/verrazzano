@@ -6,37 +6,43 @@ package restapi_test
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = ginkgo.Describe("VMI urls test", func() {
+var _ = Describe("VMI urls test", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	ginkgo.Context("Fetching the system vmi using api and test urls", func() {
+	Context("Fetching the system vmi using api and test urls", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		var isEsEnabled = false
 		var isKibanaEnabled = false
 		var isPrometheusEnabled = false
 		var isGrafanaEnabled = false
 
-		ginkgo.It("Fetches VMI", func() {
+		It("Fetches VMI", func() {
 			if !isManagedClusterProfile {
-				gomega.Eventually(func() bool {
+				Eventually(func() bool {
 					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 					if err != nil {
 						return false
 					}
 					response, err := api.Get("apis/verrazzano.io/v1/namespaces/verrazzano-system/verrazzanomonitoringinstances/system")
-					if !pkg.IsHTTPStatusOk(response, err, fmt.Sprintf("Error fetching system VMI from api, error: %v, response: %v", err, response)) {
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error fetching system VMI from api, error: %v", err))
+						return false
+					}
+					if response.StatusCode != http.StatusOK {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error fetching system VMI from api, response: %v", response))
 						return false
 					}
 
@@ -52,42 +58,47 @@ var _ = ginkgo.Describe("VMI urls test", func() {
 					isPrometheusEnabled = vmi["spec"].(map[string]interface{})["prometheus"].(map[string]interface{})["enabled"].(bool)
 					isGrafanaEnabled = vmi["spec"].(map[string]interface{})["grafana"].(map[string]interface{})["enabled"].(bool)
 					return true
-				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 			}
 		})
 
-		ginkgo.It("Accesses VMI endpoints", func() {
+		It("Accesses VMI endpoints", func() {
 			if !isManagedClusterProfile {
 				api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
+				Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Error retrieving API endpoint: %v", err))
 				vmiCredentials, err := pkg.GetSystemVMICredentials()
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
+				Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
 
 				// Test VMI endpoints
-				sysVmiHTTPClient := pkg.GetSystemVmiHTTPClient()
+				var sysVmiHTTPClient *retryablehttp.Client
+				Eventually(func() (*retryablehttp.Client, error) {
+					var err error
+					sysVmiHTTPClient, err = pkg.GetSystemVmiHTTPClient()
+					return sysVmiHTTPClient, err
+				}, waitTimeout, pollingInterval).ShouldNot(BeNil(), "Unable to get system VMI HTTP client")
 
 				if isEsEnabled {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Unable to access ElasticSearch VMI url")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access ElasticSearch VMI url")
 				}
 
 				if isKibanaEnabled {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-kibana", "https://kibana.vmi.system")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Unable to access Kibana VMI url")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Kibana VMI url")
 				}
 
 				if isPrometheusEnabled {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-prometheus", "https://prometheus.vmi.system")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Unable to access Prometheus VMI url")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Prometheus VMI url")
 				}
 
 				if isGrafanaEnabled {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-grafana", "https://grafana.vmi.system")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Unable to access Garafana VMI url")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Garafana VMI url")
 				}
 			}
 		})
