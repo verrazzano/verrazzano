@@ -1,0 +1,46 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+global:
+  hub: ghcr.io/verrazzano
+  tag: 1.7.3
+  arch:
+    amd64: 2
+    s390x: 2
+    ppc64le: 2
+  multiCluster:
+    enabled: false
+  controlPlaneSecurityEnabled: true
+  enableHelmTest: false
+  istioNamespace: istio-system
+  imagePullPolicy: IfNotPresent
+  proxy:
+    readinessFailureThreshold: 90
+
+gateways:
+  istio-egressgateway:
+    env:
+      # Needed to route traffic via egress gateway if desired.
+      ISTIO_META_REQUESTED_NETWORK_VIEW: "external"
+
+istiocoredns:
+  enabled: true
+  # NOTE: The image you're looking for isn't here. The istio coredns images now come from
+  # the bill of materials file (verrazzano-bom.json).
+
+meshConfig:
+  enablePrometheusMerge: false
+  defaultConfig:
+    proxyMetadata: {}
+
+sidecarInjectorWebhook:
+  rewriteAppHTTPProbe: true
+  neverInjectSelector:
+    - matchExpressions:
+        - {key: app, operator: In, values: [verrazzano-application-operator, verrazzano-operator]}
+    - matchExpressions:
+        - {key: control-plane, operator: In, values: [coherence]}
+    - matchExpressions:
+        - {key: app.kubernetes.io/name, operator: In, values: [oam-kubernetes-runtime]}
+    - matchExpressions:
+        - {key: k8s-app, operator: In, values: [verrazzano-monitoring-operator]}

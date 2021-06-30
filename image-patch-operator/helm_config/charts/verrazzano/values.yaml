@@ -1,0 +1,134 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+name: verrazzano
+
+global:
+  imagePullSecrets: []
+
+image:
+  pullPolicy: IfNotPresent
+  terminationGracePeriodSeconds: 60
+
+appBinding:
+  useSystemVMI: true
+
+elasticSearch:
+  enabled: true
+  nodes:
+    master:
+      replicas: 3
+      requests:
+        memory: 1.4Gi
+    data:
+      replicas: 2
+      requests:
+        memory: 4.8Gi
+        storage: 50Gi
+    ingest:
+      replicas: 1
+      requests:
+        memory: 2.5Gi
+
+prometheus:
+  enabled: true
+  requests:
+    memory: 128Mi
+    storage: 50Gi
+
+grafana:
+  enabled: true
+  requests:
+    memory: 48Mi
+    storage: 50Gi
+
+kibana:
+  enabled: true
+  requests:
+    memory: 192Mi
+
+verrazzanoOperator:
+  name: verrazzano-operator
+  # NOTE: The image you're looking for isn't here. The verrazzano-operator and node-exporter images
+  # now come from the bill of materials file (verrazzano-bom.json).
+  apiServerRealm: verrazzano-system
+  RequestMemory: 72Mi
+
+monitoringOperator:
+  name: verrazzano-monitoring-operator
+  # NOTE: The monitoring-related images now come from the bill of materials file (verrazzano-bom.json).
+  metricsPort: 8090
+  defaultSimpleCompReplicas: 1
+  defaultPrometheusReplicas: 1
+  alertManagerImage: "noimage"
+  esWaitTargetVersion: 7.6.1
+  oidcAuthEnabled: true
+  RequestMemory: 48Mi
+
+logging:
+  name: fluentd
+  # NOTE: The fluentd-kubernetes-daemonset image now comes from the bill of materials file (verrazzano-bom.json).
+
+console:
+  enabled: true
+  name: verrazzano-console
+  # NOTE: The console image now comes from the bill of materials file (verrazzano-bom.json).
+
+api:
+  name: verrazzano-api
+  # NOTE: The nginx-ingress-controller image now comes from the bill of materials file (verrazzano-bom.json).
+  pullPolicy: IfNotPresent
+  port: 8775
+  impersonatorRoleName: impersonate-api-user
+  proxy:
+    Mode: api-proxy
+    OidcRealm: verrazzano-system
+    PKCEClientID: verrazzano-pkce
+    PGClientID: verrazzano-pg
+    RequiredRealmRole: vz_api_access
+
+# OCI-related values
+oci:
+  region: ""
+  tenancyOcid: ""
+  userOcid: ""
+  fingerprint: ""
+  privateKey: ""
+  compartment: ""
+  clusterOcid: ""
+  objectStore:
+    bucketName: ""
+    namespace: ""
+
+config:
+  envName:
+  dnsSuffix: verrazzano.io
+  enableMonitoringStorage: true
+
+security:
+  adminsGroup: &default_adminsGroup verrazzano-admins
+  monitorsGroup: &default_monitorsGroup verrazzano-monitors
+  usersGroup: &default_usersGroup verrazzano-users
+  systemGroup: &default_systemGroup verrazzano-system-users
+  projectAdminsGroup: &default_projectAdminsGroup verrazzano-project-admins
+  projectMonitorsGroup: &default_projectMonitorsGroup verrazzano-project-monitors
+  adminSubjects:
+    "subject-0":
+      kind: Group
+      name: *default_adminsGroup
+  monitorSubjects:
+    "subject-0":
+      kind: Group
+      name: *default_monitorsGroup
+
+kubernetes:
+  service:
+    endpoint:
+      ip:
+      port:
+
+externaldns:
+  enabled: false
+
+dns:
+  wildcard:
+    domain:

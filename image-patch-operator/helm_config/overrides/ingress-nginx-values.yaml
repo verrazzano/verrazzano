@@ -1,0 +1,29 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+controller:
+  image:
+    # NOTE: The image you're looking for isn't here. The nginx-ingress-controller image now comes from
+    # the bill of materials file (verrazzano-bom.json).
+    digest:
+  config:
+    client-body-buffer-size: 64k
+  metrics:
+    enabled: true
+  publishService:
+    enabled: true
+  service:
+    enableHttp: false
+  admissionWebhooks:
+    enabled: false
+  podAnnotations:
+    prometheus.io/port: "10254"
+    prometheus.io/scrape: "true"
+    system.io/scrape: "true"
+    traffic.sidecar.istio.io/excludeInboundPorts: "80,443"
+    traffic.sidecar.istio.io/includeInboundPorts: ""
+    sidecar.istio.io/rewriteAppHTTPProbers: "true"
+defaultBackend:
+  # NOTE: The image you're looking for isn't here. The nginx-ingress-default-backend image now comes from
+  # the bill of materials file (verrazzano-bom.json).
+  enabled: true

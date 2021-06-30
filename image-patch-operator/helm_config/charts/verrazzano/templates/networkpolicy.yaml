@@ -1,0 +1,140 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# Network policy for Verrazzano API Proxy
+# Ingress: allow nginx-ingress-controller to connect to port 8775
+#          allow connect from Prometheus to scrape Envoy stats on port 15090
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-api
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 8775
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 15090
+          protocol: TCP
+---
+# Network policy for Verrazzano console
+# Ingress: allow nginx-ingress-controller to connect to port 8000
+#          allow connect from Prometheus to scrape Envoy stats on port 15090
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-console
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-console
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 8000
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 15090
+          protocol: TCP
+---
+# Network policy for Verrazzano operator
+# Ingress: deny all
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-operator
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-operator
+  policyTypes:
+    - Ingress
+---
+# Network policy for Verrazzano application operator
+# Ingress: allow access from Kubernetes API server for webhook port 9443
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-application-operator
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-application-operator
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 9443
+          protocol: TCP
+---
+# Network policy for Verrazzano monitoring operator
+# Ingress: deny all
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-monitoring-operator
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      k8s-app: verrazzano-monitoring-operator
+  policyTypes:
+    - Ingress
+---
+# Network policy for OAM Kubernetes Runtime operator
+# Ingress: deny all
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: oam-kubernetes-runtime
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: oam-kubernetes-runtime
+  policyTypes:
+    - Ingress
