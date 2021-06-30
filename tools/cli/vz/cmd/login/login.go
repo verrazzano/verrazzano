@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -18,7 +19,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/homedir"
-	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -51,7 +51,7 @@ func NewCmdLogin(streams genericclioptions.IOStreams) *cobra.Command {
 		Use:   "login api_url",
 		Short: "vz login",
 		Long:  "vz_login",
-		//Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := login(args); err != nil {
 				return err
@@ -63,116 +63,115 @@ func NewCmdLogin(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-var auth_code = ""
-
 func login(args []string) error{
 
 	var vz_api_url string
 	var cli = false
 	credentials := make(map[string]string)
+	var err error
+
+	// Extract parameters from args
 	for index, element := range args {
 		if index==0 {
 			vz_api_url = element
 			continue
 		}
-		if element=="u"{
-			cli = true
-			credentials["username"] = args[index+1]
-		}
-		if element=="p"{
-			credentials["password"] = args[index+1]
-		}
 	}
+
+	// Using the passed arguments, choose which grant flow to follow
 	var jwtData map[string]interface{}
 	if cli {
 		jwtData = directFlowLogin(credentials)
 	} else {
-		jwtData = authFlowLogin()
+		jwtData, err = authFlowLogin()
 	}
-	fmt.Println(vz_api_url)
-	fmt.Println(jwtData)
-	caData := getCAData()
-	f := CreateWithToken(vz_api_url,"verrazzano","verrazzano",caData,fmt.Sprintf("%v",jwtData["access_token"]))
-	WriteToDisk(getKubeconfigLocation(),f)
-	return nil
-}
+	if err!=nil {
+		fmt.Println("Grant flow failed")
+		return err
+	}
 
-func getCAData() []byte {
-	kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(),
-		&clientcmd.ConfigOverrides{},
+	// Obtain the certificate authority data in the form of byte stream
+	caData,err := getCAData()
+	if err!=nil {
+		fmt.Println("Unable to obtain certificate authority data")
+		return err
+	}
+
+	// Create new kubeconfig and write to the default kubeconfig file
+	// After this, subsequent commands will be using this newKubeconfig configuration
+	newKubeConfig := CreateNewKubeConfig( vz_api_url,
+		"verrazzano",
+		"verrazzano",
+		caData,
+		fmt.Sprintf("%v",jwtData["access_token"]),
 	)
-	namespace := "verrazzano-system"
-
-	restconfig, _ := kubeconfig.ClientConfig()
-	coreclient, _ := corev1client.NewForConfig(restconfig)
-	secret, err := coreclient.Secrets(namespace).Get(context.Background(), "system-tls", metav1.GetOptions{})
-	if err != nil{
-		fmt.Println("no secrets")
+	kubeConfigLoc,err := getKubeconfigLocation()
+	if err!=nil {
+		return err
 	}
-	return (*secret).Data["ca.crt"]
-}
-
-func CreateWithToken(serverURL, clusterName, userName string, caCert []byte, token string) *clientcmdapi.Config {
-	config := CreateBasic(serverURL, clusterName, userName, caCert)
-	config.AuthInfos[userName] = &clientcmdapi.AuthInfo{
-		Token: token,
-	}
-	return config
-}
-
-func CreateBasic(serverURL, clusterName, userName string, caCert []byte) *clientcmdapi.Config {
-	// Use the cluster and the username as the context name
-	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
-
-	return &clientcmdapi.Config{
-		Clusters: map[string]*clientcmdapi.Cluster{
-			clusterName: {
-				Server: serverURL,
-				CertificateAuthorityData: caCert,
-			},
-		},
-		Contexts: map[string]*clientcmdapi.Context{
-			contextName: {
-				Cluster:  clusterName,
-				AuthInfo: userName,
-			},
-		},
-		AuthInfos:      map[string]*clientcmdapi.AuthInfo{},
-		CurrentContext: contextName,
-	}
-}
-
-func WriteToDisk(filename string, kubeconfig *clientcmdapi.Config) error {
-	err := clientcmd.WriteToFile(*kubeconfig, filename)
-	if err != nil {
+	err = WriteKubeConfigToDisk( kubeConfigLoc,
+		newKubeConfig,
+	)
+	if err!=nil {
+		fmt.Println("Unable to write the new kubconfig to disk")
 		return err
 	}
 
 	return nil
 }
 
-func getKubeconfigLocation() string {
-	kubeconfig := ""
-	kubeconfigEnvVar := ""
-	testKubeConfigEnvVar := os.Getenv("TEST_KUBECONFIG")
-	if len(testKubeConfigEnvVar) > 0 {
-		kubeconfigEnvVar = testKubeConfigEnvVar
-	}
+var auth_code = ""	//	Http handle fills this after keycloak authentication
 
-	if kubeconfigEnvVar == "" {
-		kubeconfigEnvVar = os.Getenv("KUBECONFIG")
-	}
+// A function to put together all the requirements of authorization grant flow
+// Returns the final jwt token as a map
+func authFlowLogin() (map[string]interface{},error)  {
 
-	if len(kubeconfigEnvVar) > 0 {
-		kubeconfig = kubeconfigEnvVar
-	} else if home := homedir.HomeDir(); home != "" {
-		kubeconfig = filepath.Join(home, ".kube", "config")
-	} else {
-		// give up
-		fmt.Println("Could not find kube config")
-	}
-	return kubeconfig
+// Obtain a available port in non-well known port range
+listener := getFreePort()
+
+// Generate random code verifier and code challenge pair
+code_verifier, code_challenge := generateRandomCodeVerifier()
+
+// Generate the redirect uri using the port obtained
+redirect_uri := generateRedirectURI(listener)
+
+// Generate the login keycloak url by passing the required url parameters
+login_url := generateKeycloakAPIURL(code_challenge,
+redirect_uri,
+)
+
+// Busy wait when the authorization code is still not filled by http handle
+// Close the listener once we obtain it
+go func() {
+for auth_code == "" {
+
+}
+listener.Close()
+}()
+
+// Make sure the go routine is running
+time.Sleep(time.Second)
+
+// Open the generated keycloak login url in the browser
+err := openUrlInBrowser(login_url)
+if err != nil {
+fmt.Println("Unable to open browser")
+}
+
+// Set the handle function and start the http server
+http.HandleFunc("/",
+handle)
+http.Serve(listener,
+nil)
+
+// Obtain the JWT token by exchanging it with auth_code
+jwtData, err := requestJWT(redirect_uri,
+code_verifier)
+if err != nil {
+fmt.Println("Unable to obtain the JWT token")
+return jwtData, err
+}
+return jwtData,nil
 }
 
 func directFlowLogin(credentials map[string]string) map[string]interface{}  {
@@ -193,51 +192,91 @@ func directFlowLogin(credentials map[string]string) map[string]interface{}  {
 		credentials["password"] = password
 	}
 
-	jwtData := requestJWTDirectAccess(credentials)
+	jwtData, _ := requestJWTDirectAccess(credentials)
 
-	fmt.Println(jwtData["access_token"])
-	fmt.Println(jwtData["id_token"])
-	fmt.Println()
-	fmt.Println()
 	return jwtData
 }
 
-func authFlowLogin() map[string]interface{}  {
-	listener := getFreePort()
-	code_verifier, code_challenge := generateRandomCodeVerifier()
-	redirect_uri := generateRedirectURI(listener)
-	login_url := generateKeycloakAPIURL(code_challenge, redirect_uri)
+// Obtain the certificate authority data
+// certificate authority data is stored as a secret named system-tls in verrazzano-system namespace
+// Use client cmd to extract the secret
+func getCAData() ([]byte, error) {
+	var cert []byte
+	kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(),
+		&clientcmd.ConfigOverrides{},
+	)
+	namespace := "verrazzano-system"
 
-	go func() {
-		for auth_code == "" {
+	restconfig, err := kubeconfig.ClientConfig()
+	if err != nil{
+		return cert, err
+	}
+	coreclient, err := corev1client.NewForConfig(restconfig)
+	if err != nil{
+		return cert, err
+	}
+	secret, err := coreclient.Secrets(namespace).Get(context.Background(), "system-tls", metav1.GetOptions{})
+	if err != nil{
+		return cert, err
+	}
+	cert = (*secret).Data["ca.crt"]
+	return cert, nil
+}
 
-		}
-		listener.Close()
-	}()
+// Creates kubeconfig object with given configuration
+func CreateNewKubeConfig(serverURL, clusterName, userName string, caCert []byte, token string) *clientcmdapi.Config {
 
-	time.Sleep(time.Second)
+	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
 
-	openUrlInBrowser(login_url)
-
-	fmt.Println("Using port:", listener.Addr().(*net.TCPAddr).Port)
-	http.HandleFunc("/", handle)
-	http.Serve(listener, nil)
-
-	time.Sleep(time.Second)
-
-	for auth_code == "" {
-
+	return &clientcmdapi.Config{
+		Clusters: map[string]*clientcmdapi.Cluster{
+			clusterName: {
+				Server: serverURL,
+				CertificateAuthorityData: caCert,
+			},
+		},
+		Contexts: map[string]*clientcmdapi.Context{
+			contextName: {
+				Cluster:  clusterName,
+				AuthInfo: userName,
+			},
+		},
+		AuthInfos:      map[string]*clientcmdapi.AuthInfo{
+			userName: {
+				Token: token,
+			},
+		},
+		CurrentContext: contextName,
 	}
 
-	fmt.Println(code_verifier)
+}
 
-	jwtData := requestJWT(redirect_uri, code_verifier)
+// Write the kubeconfig object to a file in yaml format
+func WriteKubeConfigToDisk(filename string, kubeconfig *clientcmdapi.Config) error {
+	err := clientcmd.WriteToFile(*kubeconfig, filename)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-	fmt.Println(jwtData["access_token"])
-	fmt.Println(jwtData["refresh_token"])
-	fmt.Println()
-	fmt.Println()
-	return jwtData
+// Helper function to obtain the default kubeconfig location
+func getKubeconfigLocation() (string,error) {
+
+	var kubeconfig string
+	kubeconfigEnvVar := os.Getenv("KUBECONFIG")
+
+	if len(kubeconfigEnvVar) > 0 {
+		// Find using environment variables
+		kubeconfig = kubeconfigEnvVar
+	} else if home := homedir.HomeDir(); home != "" {
+		// Find in the ~/.kube/ directory
+		kubeconfig = filepath.Join(home, ".kube", "config")
+	} else {
+		// give up
+		return "", errors.New("Could not find kube config")
+	}
+	return kubeconfig,nil
 }
 
 
@@ -272,11 +311,8 @@ func generateRandomCodeVerifier() (string, string) {
 func handle(w http.ResponseWriter, r *http.Request) {
 	u, _ := url.Parse(r.URL.String())
 	m, _ := url.ParseQuery(u.RawQuery)
+	// Set the auth code obtained through redirection
 	auth_code = m["code"][0]
-	fmt.Println("authcode")
-	fmt.Println("authcode")
-	fmt.Println("authcode")
-	fmt.Println(auth_code)
 	fmt.Fprintln(w, "<p>You can close this tab now</p>")
 }
 
@@ -312,8 +348,10 @@ func concatURLParams(urlParams map[string]string) string {
 	return strings.Join(params, "&")
 }
 
+// Returns the oidc client id
 func getClientId() string{
 	clientId := os.Getenv("VZ_CLIENT_ID")
+	// Look for the matching environment variable, return default if not found
 	if clientId == "" {
 		return "webui"
 	} else {
@@ -321,8 +359,10 @@ func getClientId() string{
 	}
 }
 
+// Returns the keycloak base url
 func getKeycloakURL() string{
 	url := os.Getenv("VZ_KEYCLOAK_URL")
+	// Look for the matching environment variable, return default if not found
 	if url == "" {
 		return "keycloak.default.172.18.0.231.nip.io:443"
 	} else {
@@ -330,8 +370,10 @@ func getKeycloakURL() string{
 	}
 }
 
+// Returns the realm name the oidc client is part of
 func getVerrazzanoRealm() string{
 	realmName := os.Getenv("VZ_REALM")
+	// Look for the matching environment variable, return default if not found
 	if realmName == "" {
 		return "verrazzano-system"
 	} else {
@@ -339,7 +381,7 @@ func getVerrazzanoRealm() string{
 	}
 }
 
-// Generates the keycloak api url and returns it
+// Generates the keycloak api url to login
 // Return string of the form `https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/auth?redirect_uri=abc&state=xyz...`
 func generateKeycloakAPIURL(code_challenge string, redirect_uri string) string {
 	urlParams := map[string]string{
@@ -360,7 +402,7 @@ func generateKeycloakAPIURL(code_challenge string, redirect_uri string) string {
 }
 
 // Non-blocking browser opener function
-func openUrlInBrowser(url string) {
+func openUrlInBrowser(url string) error{
 	var err error
 	switch runtime.GOOS {
 	case "linux":
@@ -372,12 +414,11 @@ func openUrlInBrowser(url string) {
 	default:
 		err = fmt.Errorf("unsupported platform")
 	}
-	if err != nil {
-		log.Fatal(err)
-	}
+	return err
 }
 
 // Gnerates and returns keycloak server api url to get the jwt token
+// Return string of the form `https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/token
 func generateKeycloakTokenURL() string {
 	u := &url.URL{
 		Scheme: "https",
@@ -387,12 +428,14 @@ func generateKeycloakTokenURL() string {
 	return u.String()
 }
 
-// Requests the jwt token on out behalf
+// Requests the jwt token on our behalf
 // Returns the key-value pairs obtained from server in the form of a map
-func requestJWT(redirect_uri string, code_verifier string) map[string]interface{} {
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	token_url := generateKeycloakTokenURL()
+func requestJWT(redirect_uri string, code_verifier string) (map[string]interface{},error) {
 
+	// The response is going to be filled in this
+	var jsondata map[string]interface{}
+
+	// Set all the parameters for the POST request
 	grantParams := url.Values{}
 	grantParams.Set("grant_type", "authorization_code")
 	grantParams.Set("client_id", getClientId())
@@ -401,25 +444,24 @@ func requestJWT(redirect_uri string, code_verifier string) map[string]interface{
 	grantParams.Set("code_verifier", code_verifier)
 	grantParams.Set("scope","openid")
 
-	client := &http.Client{}
-	request, _ := http.NewRequest(http.MethodPost, token_url, strings.NewReader(grantParams.Encode()))
-	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	// Execute the request
+	jsondata, err := executeRequestForJWT(grantParams)
+	if err!=nil {
+		fmt.Println("Request failed")
+		return jsondata, err
+	}
 
-	response, _ := client.Do(request)
-	fmt.Println(response)
-	responseBody, _ := ioutil.ReadAll(response.Body)
-
-	var jsondata map[string]interface{}
-	json.Unmarshal([]byte(responseBody), &jsondata)
-	return jsondata
+	return jsondata,nil
 }
 
 // Requests the jwt token  through direct access grant flow.
 // Returns the key-value pairs obtained from server in the form of a map
-func requestJWTDirectAccess(credentials map[string]string) map[string]interface{} {
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	token_url := generateKeycloakTokenURL()
+func requestJWTDirectAccess(credentials map[string]string) (map[string]interface{},error) {
 
+	// The response is going to be filled in this
+	var jsondata map[string]interface{}
+
+	// Set all the parameters for the POST request
 	grantParams := url.Values{}
 	grantParams.Set("grant_type", "password")
 	grantParams.Set("client_id", getClientId())
@@ -427,17 +469,50 @@ func requestJWTDirectAccess(credentials map[string]string) map[string]interface{
 	grantParams.Set("password", credentials["password"])
 	grantParams.Set("scope","openid")
 
+	// Execute the request
+	jsondata, err := executeRequestForJWT(grantParams)
+	if err!=nil {
+		fmt.Println("Request failed")
+		return jsondata, err
+	}
 
-	client := &http.Client{}
-	request, _ := http.NewRequest(http.MethodPost, token_url, strings.NewReader(grantParams.Encode()))
-	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	return jsondata, nil
+}
 
-	response, _ := client.Do(request)
-	fmt.Println(response)
-	responseBody, _ := ioutil.ReadAll(response.Body)
+// Creates and executes the POST request
+// Returns the key-value pairs obtained from server in the form of a map
+func executeRequestForJWT(grantParams url.Values) (map[string]interface{},error) {
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
+	// The response is going to be filled in this
 	var jsondata map[string]interface{}
+
+	// Get the keycloak url to obtain tokens
+	token_url := generateKeycloakTokenURL()
+
+	// Create new http POST request to obtain token as response
+	client := &http.Client{}
+	request, err := http.NewRequest(http.MethodPost, token_url, strings.NewReader(grantParams.Encode()))
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	if err!=nil {
+		fmt.Println("Unable to create POST request")
+		return jsondata,err
+	}
+
+	// Send the request and get response
+	response, err := client.Do(request)
+	if err!=nil {
+		fmt.Println("Error receiving response")
+		return jsondata,err
+	}
+	responseBody, err := ioutil.ReadAll(response.Body)
+	if err!=nil {
+		fmt.Println("Unable to read the response body")
+		return jsondata,err
+	}
+
+	// Convert the response into a map
 	json.Unmarshal([]byte(responseBody), &jsondata)
-	fmt.Println(jsondata)
-	return jsondata
+
+	return jsondata,nil
 }
