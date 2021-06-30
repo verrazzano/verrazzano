@@ -10,13 +10,13 @@ spec:
   profile: dev
   defaultVolumeSource:
     persistentVolumeClaim:
-      claimName: vmi     # use the "largevolume" PVC template for all components unless overridden
+      claimName: vmi     # set storage for the metrics stack
   components:
     keycloak:
       mysql:
         volumeSource:
           persistentVolumeClaim:
-            claimName: mysql  # use the "smallvolume" PVC template for Keycloak's MySQL volume
+            claimName: mysql  # set storage for keycloak's MySql instance
   volumeClaimSpecTemplates:
     - metadata:
         name: mysql
