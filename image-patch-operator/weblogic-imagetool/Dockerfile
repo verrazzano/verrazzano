@@ -35,7 +35,7 @@ FROM ghcr.io/oracle/oraclelinux:8-slim
 
 # Install the builder for WIT and dependencies
 RUN microdnf update -y \
-    && microdnf install -y libslirp \
+    && microdnf install -y libslirp criu conmon libslirp crun containernetworking-plugins slirp4netns \
     && microdnf install -y podman \
     && microdnf reinstall -y shadow-utils \
     && microdnf clean all
