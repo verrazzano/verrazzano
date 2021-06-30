@@ -42,25 +42,41 @@ spec:
             description: ImageBuildRequestSpec defines the desired state of ImageBuildRequest
             properties:
               baseImage:
+                description: Image to be used as a base image when creating a new
+                  image
                 type: string
               image:
+                description: An Image struct that provides more information about
+                  the created image
                 properties:
                   name:
+                    description: Name of the image that will be created
                     type: string
                   registry:
+                    description: Registry to which the image will belong
                     type: string
                   repository:
+                    description: Repository to which the image will belong
                     type: string
                   tag:
+                    description: Tag for the final build image
                     type: string
                 required:
+                - name
+                - registry
+                - repository
                 - tag
                 type: object
               jdkInstaller:
+                description: The JDK installer that will be used by the WebLogic Image
+                  Tool
                 type: string
               webLogicInstaller:
+                description: The WebLogic Installer that will be used by the WebLogic
+                  Image Tool
                 type: string
             required:
+            - baseImage
             - image
             - jdkInstaller
             - webLogicInstaller
