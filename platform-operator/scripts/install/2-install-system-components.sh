@@ -543,6 +543,7 @@ function kubectl_apply_with_retry() {
     fi
   done
 
+  echo "The return code from the kubectl apply $ret"
   if [ $ret -ne 0 ]; then
     echo "kubectl apply attempt timed out"
   else
