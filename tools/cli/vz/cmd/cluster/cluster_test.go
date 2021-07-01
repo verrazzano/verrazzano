@@ -7,7 +7,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	clientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
+	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/api/core/v1"
@@ -65,7 +66,8 @@ configmap/verrazzano-admin-cluster created
 )
 
 type TestKubernetes struct {
-	fakeClustersClient clientset.Interface
+	fakeProjectClient  projectclientset.Interface
+	fakeClustersClient clustersclientset.Interface
 	fakek8sClient      kubernetes.Interface
 }
 
@@ -77,8 +79,12 @@ func (o *TestKubernetes) GetKubeConfig() *rest.Config {
 	return config
 }
 
-func (o *TestKubernetes) NewClustersClientSet() (clientset.Interface, error) {
+func (o *TestKubernetes) NewClustersClientSet() (clustersclientset.Interface, error) {
 	return o.fakeClustersClient, nil
+}
+
+func (o *TestKubernetes) NewProjectClientSet() (projectclientset.Interface, error) {
+	return o.fakeProjectClient, nil
 }
 
 func (o *TestKubernetes) NewClientSet() kubernetes.Interface {

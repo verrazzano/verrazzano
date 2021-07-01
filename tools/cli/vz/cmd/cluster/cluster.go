@@ -5,30 +5,14 @@ package cluster
 
 import (
 	"github.com/spf13/cobra"
-	clientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 type ClusterOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	args        []string
 	genericclioptions.IOStreams
-}
-
-func (c *ClusterOptions) GetKubeConfig() *rest.Config {
-	return pkg.GetKubeConfig()
-}
-
-func (c *ClusterOptions) NewClustersClientSet() (clientset.Interface, error) {
-	client, err := clientset.NewForConfig(c.GetKubeConfig())
-	return client, err
-}
-
-func (c *ClusterOptions) NewClientSet() kubernetes.Interface {
-	return pkg.GetKubernetesClientset()
 }
 
 func NewClusterOptions(streams genericclioptions.IOStreams) *ClusterOptions {
@@ -38,18 +22,17 @@ func NewClusterOptions(streams genericclioptions.IOStreams) *ClusterOptions {
 	}
 }
 
-func NewCmdCluster(streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewClusterOptions(streams)
+func NewCmdCluster(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cluster",
 		Short: "Information about clusters",
 		Long:  "Information about clusters",
 	}
 
-	cmd.AddCommand(NewCmdClusterList(streams, o))
-	cmd.AddCommand(NewCmdClusterGet(streams, o))
-	cmd.AddCommand(NewCmdClusterRegister(streams, o))
-	cmd.AddCommand(NewCmdClusterDeregister(streams, o))
-	cmd.AddCommand(NewCmdClusterManifest(streams, o))
+	cmd.AddCommand(NewCmdClusterList(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdClusterGet(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdClusterRegister(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdClusterDeregister(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdClusterManifest(streams, kubernetesInterface))
 	return cmd
 }

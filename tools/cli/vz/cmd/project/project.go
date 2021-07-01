@@ -5,6 +5,7 @@ package project
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
@@ -21,7 +22,7 @@ func NewProjectOptions(streams genericclioptions.IOStreams) *ProjectOptions {
 	}
 }
 
-func NewCmdProject(streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdProject(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewProjectOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "project",
@@ -29,8 +30,9 @@ func NewCmdProject(streams genericclioptions.IOStreams) *cobra.Command {
 		Long:  "Work with projects",
 	}
 	o.configFlags.AddFlags(cmd.Flags())
-	cmd.AddCommand(NewCmdProjectList(streams))
-	cmd.AddCommand(NewCmdProjectAdd(streams))
-	cmd.AddCommand(NewCmdProjectDelete(streams))
+	cmd.AddCommand(NewCmdProjectList(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdProjectAdd(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdProjectDelete(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdProjectGet(streams, kubernetesInterface))
 	return cmd
 }

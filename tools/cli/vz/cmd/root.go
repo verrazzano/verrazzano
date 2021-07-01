@@ -5,18 +5,41 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
+	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/app"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/cluster"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/login"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/logout"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/project"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type RootOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	args        []string
 	genericclioptions.IOStreams
+}
+
+func (c *RootOptions) GetKubeConfig() *rest.Config {
+	return pkg.GetKubeConfig()
+}
+
+func (c *RootOptions) NewClustersClientSet() (clustersclientset.Interface, error) {
+	client, err := clustersclientset.NewForConfig(c.GetKubeConfig())
+	return client, err
+}
+
+func (c *RootOptions) NewProjectClientSet() (projectclientset.Interface, error) {
+	client, err := projectclientset.NewForConfig(c.GetKubeConfig())
+	return client, err
+}
+
+func (c *RootOptions) NewClientSet() kubernetes.Interface {
+	return pkg.GetKubernetesClientset()
 }
 
 func NewRootOptions(streams genericclioptions.IOStreams) *RootOptions {
@@ -27,14 +50,15 @@ func NewRootOptions(streams genericclioptions.IOStreams) *RootOptions {
 }
 
 func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRootOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "vz",
 		Short: "Verrazzano CLI",
 		Long:  "Verrazzano CLI",
 	}
 
-	cmd.AddCommand(project.NewCmdProject(streams))
-	cmd.AddCommand(cluster.NewCmdCluster(streams))
+	cmd.AddCommand(project.NewCmdProject(streams, o))
+	cmd.AddCommand(cluster.NewCmdCluster(streams, o))
 	cmd.AddCommand(app.NewCmdApp(streams))
 	cmd.AddCommand(login.NewCmdLogin(streams))
 	cmd.AddCommand(logout.NewCmdLogout(streams))

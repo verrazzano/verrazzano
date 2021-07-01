@@ -48,21 +48,21 @@ func NewCmdLogout(streams genericclioptions.IOStreams) *cobra.Command {
 }
 
 func logout() error {
-	kubeConfigLoc,err := getKubeconfigLocation()
-	if err!=nil {
+	kubeConfigLoc, err := getKubeconfigLocation()
+	if err != nil {
 		return err
 	}
 	mykubeConfig, _ := clientcmd.LoadFromFile(kubeConfigLoc)
 
 	delete(mykubeConfig.Clusters, "verrazzano")
-	delete(mykubeConfig.AuthInfos,"verrazzano")
-	delete(mykubeConfig.Contexts,mykubeConfig.CurrentContext)
-	mykubeConfig.CurrentContext = strings.Split(mykubeConfig.CurrentContext,"@")[1]
+	delete(mykubeConfig.AuthInfos, "verrazzano")
+	delete(mykubeConfig.Contexts, mykubeConfig.CurrentContext)
+	mykubeConfig.CurrentContext = strings.Split(mykubeConfig.CurrentContext, "@")[1]
 
-	err = WriteKubeConfigToDisk( kubeConfigLoc,
+	err = WriteKubeConfigToDisk(kubeConfigLoc,
 		mykubeConfig,
 	)
-	if err!=nil {
+	if err != nil {
 		fmt.Println("Unable to write the new kubconfig to disk")
 		return err
 	}
@@ -80,7 +80,7 @@ func WriteKubeConfigToDisk(filename string, kubeconfig *clientcmdapi.Config) err
 }
 
 // Helper function to obtain the default kubeconfig location
-func getKubeconfigLocation() (string,error) {
+func getKubeconfigLocation() (string, error) {
 
 	var kubeconfig string
 	kubeconfigEnvVar := os.Getenv("KUBECONFIG")
@@ -95,5 +95,5 @@ func getKubeconfigLocation() (string,error) {
 		// give up
 		return "", errors.New("Could not find kube config")
 	}
-	return kubeconfig,nil
+	return kubeconfig, nil
 }
