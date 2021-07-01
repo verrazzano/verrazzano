@@ -20,6 +20,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
 )
 
 type LoginOptions struct {
@@ -97,13 +98,13 @@ func login(args []string) error{
 	helpers.SetCluster(mykubeConfig,
 				"verrazzano",
 					  vz_api_url,
-					  caData
+					  caData,
 					)
 
 	// Add the logged-in user with nickname verrazzano
 	helpers.SetUser(mykubeConfig,
 			 "verrazzano",
-			 	   fmt.Sprintf("%v",jwtData["access_token"])
+			 	   fmt.Sprintf("%v",jwtData["access_token"]),
 				)
 
 	// Add new context with name verrazzano@oldcontext
@@ -112,12 +113,12 @@ func login(args []string) error{
 	helpers.SetContext(mykubeConfig,
 					  "verrazzano" + "@" + mykubeConfig.CurrentContext,
 					  "verrazzano",
-					  "verrazzano"
+					  "verrazzano",
 					)
 
 	// Switch over to new context
 	helpers.SetCurrentContext(mykubeConfig,
-							"verrazzano"+"@"+mykubeConfig.CurrentContext
+							"verrazzano"+"@"+mykubeConfig.CurrentContext,
 							)
 
 	// Write the new configuration into the default kubeconfig file
