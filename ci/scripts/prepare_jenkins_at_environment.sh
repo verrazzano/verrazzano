@@ -61,10 +61,14 @@ if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
       echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
       env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
   fi
+  echo "CDD DERIVE OPERATOR YAML"
+  cat ${WORKSPACE}/acceptance-test-operator.yaml
   kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 else
   # The operator.yaml filename was provided, install using that file.
   echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
+  echo "CDD USE PROVIDED OPERATOR YAML"
+  cat ${OPERATOR_YAML}
   kubectl apply -f ${OPERATOR_YAML}
 fi
 
