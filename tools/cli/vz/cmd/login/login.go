@@ -97,26 +97,31 @@ func login(args []string) error{
 		return err
 	}
 
-	// Create new kubeconfig and write to the default kubeconfig file
-	// After this, subsequent commands will be using this newKubeconfig configuration
-	newKubeConfig := CreateNewKubeConfig( vz_api_url,
-		"verrazzano",
-		"verrazzano",
-		caData,
-		fmt.Sprintf("%v",jwtData["access_token"]),
-	)
 	kubeConfigLoc,err := getKubeconfigLocation()
 	if err!=nil {
 		return err
 	}
+	mykubeConfig, _ := clientcmd.LoadFromFile(kubeConfigLoc)
+	mykubeConfig.Clusters["verrazzano"] = &clientcmdapi.Cluster{
+		Server: vz_api_url,
+		CertificateAuthorityData: caData,
+	}
+	mykubeConfig.AuthInfos["verrazzano"] = &clientcmdapi.AuthInfo{
+		Token: fmt.Sprintf("%v",jwtData["access_token"]),
+	}
+	mykubeConfig.Contexts["verrazzano"] = &clientcmdapi.Context{
+		Cluster: "verrazzano",
+		AuthInfo: "verrazzano",
+	}
+	mykubeConfig.CurrentContext = "verrazzano"
 	err = WriteKubeConfigToDisk( kubeConfigLoc,
-		newKubeConfig,
+		mykubeConfig,
 	)
 	if err!=nil {
 		fmt.Println("Unable to write the new kubconfig to disk")
 		return err
 	}
-
+	fmt.Println("Login successful!")
 	return nil
 }
 
@@ -126,52 +131,52 @@ var auth_code = ""	//	Http handle fills this after keycloak authentication
 // Returns the final jwt token as a map
 func authFlowLogin() (map[string]interface{},error)  {
 
-// Obtain a available port in non-well known port range
-listener := getFreePort()
+	// Obtain a available port in non-well known port range
+	listener := getFreePort()
 
-// Generate random code verifier and code challenge pair
-code_verifier, code_challenge := generateRandomCodeVerifier()
+	// Generate random code verifier and code challenge pair
+	code_verifier, code_challenge := generateRandomCodeVerifier()
 
-// Generate the redirect uri using the port obtained
-redirect_uri := generateRedirectURI(listener)
+	// Generate the redirect uri using the port obtained
+	redirect_uri := generateRedirectURI(listener)
 
-// Generate the login keycloak url by passing the required url parameters
-login_url := generateKeycloakAPIURL(code_challenge,
-redirect_uri,
-)
+	// Generate the login keycloak url by passing the required url parameters
+	login_url := generateKeycloakAPIURL(code_challenge,
+		redirect_uri,
+	)
 
-// Busy wait when the authorization code is still not filled by http handle
-// Close the listener once we obtain it
-go func() {
-for auth_code == "" {
+	// Busy wait when the authorization code is still not filled by http handle
+	// Close the listener once we obtain it
+	go func() {
+		for auth_code == "" {
 
-}
-listener.Close()
-}()
+		}
+		listener.Close()
+	}()
 
-// Make sure the go routine is running
-time.Sleep(time.Second)
+	// Make sure the go routine is running
+	time.Sleep(time.Second)
 
-// Open the generated keycloak login url in the browser
-err := openUrlInBrowser(login_url)
-if err != nil {
-fmt.Println("Unable to open browser")
-}
+	// Open the generated keycloak login url in the browser
+	err := openUrlInBrowser(login_url)
+	if err != nil {
+		fmt.Println("Unable to open browser")
+	}
 
-// Set the handle function and start the http server
-http.HandleFunc("/",
-handle)
-http.Serve(listener,
-nil)
+	// Set the handle function and start the http server
+	http.HandleFunc("/",
+		handle)
+	http.Serve(listener,
+		nil)
 
-// Obtain the JWT token by exchanging it with auth_code
-jwtData, err := requestJWT(redirect_uri,
-code_verifier)
-if err != nil {
-fmt.Println("Unable to obtain the JWT token")
-return jwtData, err
-}
-return jwtData,nil
+	// Obtain the JWT token by exchanging it with auth_code
+	jwtData, err := requestJWT(redirect_uri,
+		code_verifier)
+	if err != nil {
+		fmt.Println("Unable to obtain the JWT token")
+		return jwtData, err
+	}
+	return jwtData,nil
 }
 
 func directFlowLogin(credentials map[string]string) map[string]interface{}  {
@@ -221,34 +226,6 @@ func getCAData() ([]byte, error) {
 	}
 	cert = (*secret).Data["ca.crt"]
 	return cert, nil
-}
-
-// Creates kubeconfig object with given configuration
-func CreateNewKubeConfig(serverURL, clusterName, userName string, caCert []byte, token string) *clientcmdapi.Config {
-
-	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
-
-	return &clientcmdapi.Config{
-		Clusters: map[string]*clientcmdapi.Cluster{
-			clusterName: {
-				Server: serverURL,
-				CertificateAuthorityData: caCert,
-			},
-		},
-		Contexts: map[string]*clientcmdapi.Context{
-			contextName: {
-				Cluster:  clusterName,
-				AuthInfo: userName,
-			},
-		},
-		AuthInfos:      map[string]*clientcmdapi.AuthInfo{
-			userName: {
-				Token: token,
-			},
-		},
-		CurrentContext: contextName,
-	}
-
 }
 
 // Write the kubeconfig object to a file in yaml format
