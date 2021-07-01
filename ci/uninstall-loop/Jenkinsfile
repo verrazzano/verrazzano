@@ -359,7 +359,9 @@ pipeline {
             }
         }
         failure {
-            cleanrun = false
+            script {
+                cleanrun = false
+            }
             dumpK8sCluster('verrazzano-install-loop-cluster-dump')
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             sh """
