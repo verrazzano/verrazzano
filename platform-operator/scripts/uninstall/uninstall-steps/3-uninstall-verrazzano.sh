@@ -58,7 +58,7 @@ function delete_verrazzano() {
   delete_k8s_resources namespace ":metadata.name,:metadata.labels" "Could not delete Verrazzano namespaces" '/k8s-app:verrazzano.io|verrazzano.io\/namespace:monitoring|verrazzano-system|verrazzano-mc/ {print $1}' \
     || return $? # return on pipefail
 
-  # Delete CRDS from all Verrazzano managed namespaces
+  # Delete CR'S from all Verrazzano managed namespaces
   delete_managed_k8s_resources applicationconfigurations.core.oam.dev
   delete_managed_k8s_resources coherence.coherence.oracle.com
   delete_managed_k8s_resources components.core.oam.dev

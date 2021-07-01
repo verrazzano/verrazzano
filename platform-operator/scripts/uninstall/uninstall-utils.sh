@@ -96,12 +96,6 @@ function delete_managed_k8s_resources {
       fi
     done
   fi
-  # Delete the CRDs, without any CRs based on that, from all the namespaces
-  if [ -z "${delcrd}" ] || [ "${delcrd}" == "yes" ]; then
-    if kubectl get crd "${res}"> /dev/null 2>&1 ; then
-      kubectl delete crd "${res}" --ignore-not-found > /dev/null 2>&1
-    fi
-  fi
 }
 
 # utility function to patch kubernetes resources
