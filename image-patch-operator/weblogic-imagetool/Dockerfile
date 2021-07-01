@@ -33,7 +33,7 @@ RUN set -eux \
 # Final image for deploying WebLogic Image Tool
 FROM ghcr.io/oracle/oraclelinux:8-slim
 
-# Install the builder for WIT and dependencies
+# Install the podman for WIT and dependencies
 RUN microdnf update -y \
     && microdnf install -y podman \
     && microdnf reinstall -y shadow-utils \
