@@ -72,8 +72,8 @@ func logout() error {
 
 	// Write kubeconfig to file
 	err = clientcmd.WriteToFile(*mykubeConfig,
-								kubeConfigLoc,
-								)
+				     kubeConfigLoc,
+				  )
 	if err!=nil {
 		fmt.Println("Unable to write the new kubconfig to disk")
 		return err
