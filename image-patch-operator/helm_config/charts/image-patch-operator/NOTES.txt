@@ -1,1 +1,1 @@
-Verrazzano Platform Operator Helm chart has been installed!
+Verrazzano Image Patch Operator Helm chart has been installed!
