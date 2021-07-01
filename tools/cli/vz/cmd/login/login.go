@@ -153,6 +153,7 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 	login_url := helpers.GenerateKeycloakAPIURL(code_challenge,
 						    redirect_uri,
 						   )
+	fmt.Println(login_url)
 
 	// Busy wait when the authorization code is still not filled by http handle
 	// Close the listener once we obtain it

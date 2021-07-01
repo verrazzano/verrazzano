@@ -37,33 +37,21 @@ func ConcatURLParams(urlParams map[string]string) string {
 func GetClientId() string{
 	clientId := os.Getenv("VZ_CLIENT_ID")
 	// Look for the matching environment variable, return default if not found
-	if clientId == "" {
-		return "webui"
-	} else {
-		return clientId
-	}
+	return clientId
 }
 
 // Returns the keycloak base url
 func GetKeycloakURL() string{
 	url := os.Getenv("VZ_KEYCLOAK_URL")
 	// Look for the matching environment variable, return default if not found
-	if url == "" {
-		return "keycloak.default.172.18.0.231.nip.io:443"
-	} else {
-		return url
-	}
+	return url
 }
 
 // Returns the realm name the oidc client is part of
 func GetVerrazzanoRealm() string{
 	realmName := os.Getenv("VZ_REALM")
 	// Look for the matching environment variable, return default if not found
-	if realmName == "" {
-		return "verrazzano-system"
-	} else {
-		return realmName
-	}
+	return realmName
 }
 
 // Generates the keycloak api url to login
