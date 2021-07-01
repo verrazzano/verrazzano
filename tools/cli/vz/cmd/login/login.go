@@ -99,35 +99,35 @@ func login(args []string) error {
 
 	// Add the verrazzano cluser into config
 	helpers.SetCluster(mykubeConfig,
-				"verrazzano",
-					  vz_api_url,
-					  caData,
-					)
+			  "verrazzano",
+			   vz_api_url,
+			   caData,
+			)
 
 	// Add the logged-in user with nickname verrazzano
 	helpers.SetUser(mykubeConfig,
 			 "verrazzano",
-			 	   fmt.Sprintf("%v",jwtData["access_token"]),
-				)
+			fmt.Sprintf("%v",jwtData["access_token"]),
+			)
 
 	// Add new context with name verrazzano@oldcontext
 	// This context uses verrazzano cluster and logged-in user
 	// We need oldcontext to fall back after logout
 	helpers.SetContext(mykubeConfig,
-					  "verrazzano" + "@" + mykubeConfig.CurrentContext,
-					  "verrazzano",
-					  "verrazzano",
-					)
+			  "verrazzano" + "@" + mykubeConfig.CurrentContext,
+			  "verrazzano",
+			  "verrazzano",
+			)
 
 	// Switch over to new context
 	helpers.SetCurrentContext(mykubeConfig,
-							"verrazzano"+"@"+mykubeConfig.CurrentContext,
-							)
+				  "verrazzano"+"@"+mykubeConfig.CurrentContext,
+				)
 
 	// Write the new configuration into the default kubeconfig file
 	err = clientcmd.WriteToFile(*mykubeConfig,
-								kubeConfigLoc,
-							)
+				    kubeConfigLoc,
+				   )
 	if err!=nil {
 		fmt.Println("Unable to write the new kubconfig to disk")
 		return err
@@ -153,8 +153,8 @@ func authFlowLogin() (map[string]interface{}, error) {
 
 	// Generate the login keycloak url by passing the required url parameters
 	login_url := helpers.GenerateKeycloakAPIURL(code_challenge,
-		redirect_uri,
-	)
+						    redirect_uri,
+						   )
 
 	// Busy wait when the authorization code is still not filled by http handle
 	// Close the listener once we obtain it
@@ -176,13 +176,16 @@ func authFlowLogin() (map[string]interface{}, error) {
 
 	// Set the handle function and start the http server
 	http.HandleFunc("/",
-		handle)
+			handle,
+		       )
 	http.Serve(listener,
-		nil)
+		   nil,
+		  )
 
 	// Obtain the JWT token by exchanging it with auth_code
 	jwtData, err := requestJWT(redirect_uri,
-		code_verifier)
+				  code_verifier,
+				  )
 	if err != nil {
 		fmt.Println("Unable to obtain the JWT token")
 		return jwtData, err
@@ -196,8 +199,8 @@ func authFlowLogin() (map[string]interface{}, error) {
 func getCAData() ([]byte, error) {
 	var cert []byte
 	kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(),
-																	&clientcmd.ConfigOverrides{},
-																	)
+										&clientcmd.ConfigOverrides{},
+									    )
 
 	restconfig, err := kubeconfig.ClientConfig()
 	if err != nil {
@@ -209,9 +212,9 @@ func getCAData() ([]byte, error) {
 	}
   
 	secret, err := coreclient.Secrets("verrazzano-system").Get(context.Background(),
-																	"system-tls",
-																	metav1.GetOptions{},
-																	)
+								   "system-tls",
+								   metav1.GetOptions{},
+								)
 	if err != nil{
 		return cert, err
 	}
