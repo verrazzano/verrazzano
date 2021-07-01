@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/app"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/cluster"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/login"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/logout"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/project"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -37,5 +38,6 @@ func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.AddCommand(cluster.NewCmdCluster(streams))
 	cmd.AddCommand(app.NewCmdApp(streams))
 	cmd.AddCommand(login.NewCmdLogin(streams))
+	cmd.AddCommand(logout.NewCmdLogout(streams))
 	return cmd
 }

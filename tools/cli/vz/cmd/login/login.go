@@ -94,6 +94,7 @@ func login(args []string) error{
 	caData,err := getCAData()
 	if err!=nil {
 		fmt.Println("Unable to obtain certificate authority data")
+		fmt.Println("Make sure you are in the right context")
 		return err
 	}
 
@@ -109,11 +110,11 @@ func login(args []string) error{
 	mykubeConfig.AuthInfos["verrazzano"] = &clientcmdapi.AuthInfo{
 		Token: fmt.Sprintf("%v",jwtData["access_token"]),
 	}
-	mykubeConfig.Contexts["verrazzano"] = &clientcmdapi.Context{
+	mykubeConfig.Contexts["verrazzano"+"@"+mykubeConfig.CurrentContext] = &clientcmdapi.Context{
 		Cluster: "verrazzano",
 		AuthInfo: "verrazzano",
 	}
-	mykubeConfig.CurrentContext = "verrazzano"
+	mykubeConfig.CurrentContext = "verrazzano"+"@"+mykubeConfig.CurrentContext
 	err = WriteKubeConfigToDisk( kubeConfigLoc,
 		mykubeConfig,
 	)
