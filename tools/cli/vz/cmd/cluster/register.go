@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
+	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -52,15 +54,21 @@ func NewCmdClusterRegister(streams genericclioptions.IOStreams, kubernetesInterf
 }
 
 func (o *ClusterRegisterOptions) registerCluster(kubernetesInterface helpers.Kubernetes) error {
-	//name of the managedCluster
+	// Name of the managedCluster
 	mcName := o.args[0]
 
-	//CA Secret name was not provided
+	// Check for verrazzano-admin-cluster configmap
+	// If doesn't exist, create it
+	if err := o.checkConfigMap(kubernetesInterface); err != nil {
+		return err
+	}
+
+	// CA Secret name was not provided
 	if len(o.caSecret) == 0 {
 		return errors.New("CA secret is needed")
 	}
 
-	//create the vmc resource for the managed cluster
+	// Create the vmc resource for the managed cluster
 	vmcObject := v1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mcName,
@@ -72,7 +80,7 @@ func (o *ClusterRegisterOptions) registerCluster(kubernetesInterface helpers.Kub
 		},
 	}
 
-	clientset, err := kubernetesInterface.NewClientSet()
+	clientset, err := kubernetesInterface.NewClustersClientSet()
 
 	if err != nil {
 		return err
@@ -91,4 +99,43 @@ func (o *ClusterRegisterOptions) registerCluster(kubernetesInterface helpers.Kub
 	}
 
 	return nil
+}
+
+func (o *ClusterRegisterOptions) checkConfigMap(kubernetesInterface helpers.Kubernetes) error {
+	client := kubernetesInterface.NewClientSet()
+	name := "verrazzano-admin-cluster"
+
+	_, err := client.CoreV1().ConfigMaps(vmcNamespace).Get(context.Background(), name, metav1.GetOptions{})
+
+	// Config map doesn't exist, crete one
+	if err != nil && k8serror.IsNotFound(err) {
+		_, err := fmt.Fprintln(o.Out, "configmap/verrazzano-admin-cluster doesn't exist\ncreating configmap/verrazzano-admin-cluster")
+		if err != nil {
+			return err
+		}
+
+		configMap := &corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: vmcNamespace,
+			},
+			Data: map[string]string{
+				"server": kubernetesInterface.GetKubeConfig().Host,
+			},
+		}
+		_, err = client.CoreV1().ConfigMaps(vmcNamespace).Create(context.Background(), configMap, metav1.CreateOptions{})
+
+		if err != nil {
+			return err
+		}
+
+		_, err = fmt.Fprintln(o.Out, "configmap/verrazzano-admin-cluster created")
+		return err
+	}
+
+	return err
 }
