@@ -6,6 +6,7 @@ package login
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
@@ -13,14 +14,12 @@ import (
 	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
-
 )
 
 type LoginOptions struct {
@@ -36,7 +35,7 @@ func NewLoginOptions(streams genericclioptions.IOStreams) *LoginOptions {
 	}
 }
 
-func NewCmdLogin(streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewLoginOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "login api_url",
@@ -44,7 +43,7 @@ func NewCmdLogin(streams genericclioptions.IOStreams) *cobra.Command {
 		Long:  "vz_login",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := login(args); err != nil {
+			if err := login(args, kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
@@ -54,7 +53,7 @@ func NewCmdLogin(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func login(args []string) error {
+func login(args []string, kubernetesInterface helpers.Kubernetes) error {
 
 	var vz_api_url string
 
@@ -66,19 +65,18 @@ func login(args []string) error {
 		}
 	}
 
-
-	// Follow the authorization grant flow to get the json response
-	jwtData, err := authFlowLogin()
-	if err!=nil {
-		fmt.Println("Grant flow failed")
-		return err
-	}
-
 	// Obtain the certificate authority data in the form of byte stream
-	caData, err := getCAData()
+	caData, err := getCAData( kubernetesInterface)
 	if err != nil {
 		fmt.Println("Unable to obtain certificate authority data")
 		fmt.Println("Make sure you are in the right context")
+		return err
+	}
+
+	// Follow the authorization grant flow to get the json response
+	jwtData, err := authFlowLogin(caData)
+	if err!=nil {
+		fmt.Println("Grant flow failed")
 		return err
 	}
 
@@ -140,7 +138,7 @@ var auth_code = "" //	Http handle fills this after keycloak authentication
 
 // A function to put together all the requirements of authorization grant flow
 // Returns the final jwt token as a map
-func authFlowLogin() (map[string]interface{}, error) {
+func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 
 	// Obtain a available port in non-well known port range
 	listener := getFreePort()
@@ -185,6 +183,7 @@ func authFlowLogin() (map[string]interface{}, error) {
 	// Obtain the JWT token by exchanging it with auth_code
 	jwtData, err := requestJWT(redirect_uri,
 				  code_verifier,
+				  caData,
 				  )
 	if err != nil {
 		fmt.Println("Unable to obtain the JWT token")
@@ -196,25 +195,15 @@ func authFlowLogin() (map[string]interface{}, error) {
 // Obtain the certificate authority data
 // certificate authority data is stored as a secret named system-tls in verrazzano-system namespace
 // Use client cmd to extract the secret
-func getCAData() ([]byte, error) {
+func getCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 	var cert []byte
-	kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(),
-										&clientcmd.ConfigOverrides{},
-									    )
 
-	restconfig, err := kubeconfig.ClientConfig()
-	if err != nil {
-		return cert, err
-	}
-	coreclient, err := corev1client.NewForConfig(restconfig)
-	if err != nil {
-		return cert, err
-	}
-  
-	secret, err := coreclient.Secrets("verrazzano-system").Get(context.Background(),
-								   "system-tls",
-								   metav1.GetOptions{},
-								)
+	kclientset := kubernetesInterface.NewClientSet()
+	secret, err := kclientset.CoreV1().Secrets("verrazzano-system").Get(context.Background(),
+									   "system-tls",
+									    metav1.GetOptions{},
+									)
+
 	if err != nil{
 		return cert, err
 	}
@@ -244,7 +233,7 @@ func getFreePort() net.Listener {
 
 // Requests the jwt token on our behalf
 // Returns the key-value pairs obtained from server in the form of a map
-func requestJWT(redirect_uri string, code_verifier string) (map[string]interface{}, error) {
+func requestJWT(redirect_uri string, code_verifier string, caData []byte) (map[string]interface{}, error) {
 
 	// The response is going to be filled in this
 	var jsondata map[string]interface{}
@@ -259,7 +248,7 @@ func requestJWT(redirect_uri string, code_verifier string) (map[string]interface
 	grantParams.Set("scope", "openid")
 
 	// Execute the request
-	jsondata, err := executeRequestForJWT(grantParams)
+	jsondata, err := executeRequestForJWT(grantParams, caData)
 	if err != nil {
 		fmt.Println("Request failed")
 		return jsondata, err
@@ -270,8 +259,7 @@ func requestJWT(redirect_uri string, code_verifier string) (map[string]interface
 
 // Creates and executes the POST request
 // Returns the key-value pairs obtained from server in the form of a map
-func executeRequestForJWT(grantParams url.Values) (map[string]interface{}, error) {
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+func executeRequestForJWT(grantParams url.Values, caData []byte) (map[string]interface{}, error) {
 
 	// The response is going to be filled in this
 	var jsondata map[string]interface{}
@@ -280,7 +268,17 @@ func executeRequestForJWT(grantParams url.Values) (map[string]interface{}, error
 	token_url := helpers.GenerateKeycloakTokenURL()
 
 	// Create new http POST request to obtain token as response
-	client := &http.Client{}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caData)
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:      caCertPool,
+			},
+		},
+	}
+
 	request, err := http.NewRequest(http.MethodPost, token_url, strings.NewReader(grantParams.Encode()))
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	if err != nil {

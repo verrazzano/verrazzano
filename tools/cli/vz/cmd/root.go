@@ -60,7 +60,7 @@ func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.AddCommand(project.NewCmdProject(streams, o))
 	cmd.AddCommand(cluster.NewCmdCluster(streams, o))
 	cmd.AddCommand(app.NewCmdApp(streams))
-	cmd.AddCommand(login.NewCmdLogin(streams))
+	cmd.AddCommand(login.NewCmdLogin(streams, o))
 	cmd.AddCommand(logout.NewCmdLogout(streams))
 	return cmd
 }
