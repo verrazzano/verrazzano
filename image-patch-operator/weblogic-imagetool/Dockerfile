@@ -35,6 +35,17 @@ FROM ghcr.io/oracle/oraclelinux:8-slim
 
 # Install the podman for WIT and dependencies
 RUN microdnf update -y \
+    && microdnf install -y criu \
+    buildah \
+    cockpit-podman \
+    conmon \
+    libslirp \
+    containernetworking-plugins \
+    crun \
+    slirp4netns \
+    container-selinux \
+    runc \
+    udica \
     && microdnf install -y podman \
     && microdnf reinstall -y shadow-utils \
     && microdnf clean all
