@@ -234,7 +234,8 @@ pipeline {
                         }
                         sh """
                             echo "Upgrading the Verrazzano installation"
-                            echo "CDD Just get a branch build going"
+                            echo "CDD Dump the Secrets in Istio-System"
+                            kubectl get secrets -n istio-system
                             # Modify the version field in the verrazzano CR file to be this new verrazzano version
                             cd ${GO_REPO_PATH}/verrazzano
                             cp ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml ${WORKSPACE}/verrazzano-upgrade-cr.yaml
