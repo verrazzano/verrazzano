@@ -51,7 +51,7 @@ cd ${GO_REPO_PATH}/verrazzano
 echo "Install Platform Operator"
 cd ${GO_REPO_PATH}/verrazzano
 
-if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
+#if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
   # Derive the name of the operator.yaml file, copy or generate the file, then install
   if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
       echo "Using operator.yaml from object storage"
@@ -64,13 +64,13 @@ if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
   echo "CDD DERIVE OPERATOR YAML"
   cat ${WORKSPACE}/acceptance-test-operator.yaml
   kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
-else
+#else
   # The operator.yaml filename was provided, install using that file.
-  echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
-  echo "CDD USE PROVIDED OPERATOR YAML"
-  cat ${OPERATOR_YAML}
-  kubectl apply -f ${OPERATOR_YAML}
-fi
+#  echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
+#  echo "CDD USE PROVIDED OPERATOR YAML"
+#  cat ${OPERATOR_YAML}
+#  kubectl apply -f ${OPERATOR_YAML}
+#fi
 
 
 
