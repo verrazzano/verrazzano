@@ -6,9 +6,11 @@ package helpers
 import (
 	clientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type Kubernetes interface {
-	NewClientSet() (clientset.Interface, error)
-	NewKubernetesClientSet() kubernetes.Interface
+	GetKubeConfig() *rest.Config
+	NewClustersClientSet() (clientset.Interface, error)
+	NewClientSet() kubernetes.Interface
 }

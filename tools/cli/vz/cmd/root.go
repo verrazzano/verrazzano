@@ -25,13 +25,12 @@ func NewRootOptions(streams genericclioptions.IOStreams) *RootOptions {
 }
 
 func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
-	_ = NewRootOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "vz",
 		Short: "Verrazzano CLI",
 		Long:  "Verrazzano CLI",
 	}
-	//o.configFlags.AddFlags(cmd.Flags())
+
 	cmd.AddCommand(project.NewCmdProject(streams))
 	cmd.AddCommand(cluster.NewCmdCluster(streams))
 	cmd.AddCommand(app.NewCmdApp(streams))

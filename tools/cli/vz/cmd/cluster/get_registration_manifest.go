@@ -47,11 +47,11 @@ func NewCmdClusterManifest(streams genericclioptions.IOStreams, kubernetesInterf
 }
 
 func (o *ClusterManifestOptions) getManifest(kubenetesInterface helpers.Kubernetes) error {
-	//name of managedCluster
+	// Name of managedCluster
 	vmcName := o.args[0]
 
-	//get the vmcObject to get the name of the manifest secret
-	clientset, err := kubenetesInterface.NewClientSet()
+	// Get the vmcObject to get the name of the manifest secret
+	clientset, err := kubenetesInterface.NewClustersClientSet()
 
 	if err != nil {
 		return nil
@@ -63,24 +63,24 @@ func (o *ClusterManifestOptions) getManifest(kubenetesInterface helpers.Kubernet
 		return err
 	}
 
-	//name of the manifest secret to be applied on the managed cluster
+	// Name of the manifest secret to be applied on the managed cluster
 	manifestName := vmcObject.Spec.ManagedClusterManifestSecret
 
-	//k8s client set to fetch the secret
-	kclientset := kubenetesInterface.NewKubernetesClientSet()
+	// k8s client set to fetch the secret
+	kclientset := kubenetesInterface.NewClientSet()
 	secret, err := kclientset.CoreV1().Secrets(vmcNamespace).Get(context.Background(), manifestName, v1.GetOptions{})
 
 	if err != nil {
 		return err
 	}
 
-	//output option was specified
+	// Output option was specified
 	if len(*o.PrintFlags.OutputFormat) != 0 {
 		printer, err := o.PrintFlags.ToPrinter()
 		if err != nil {
 			return err
 		}
-		//set group and kind
+		// Set group and kind
 		secret.APIVersion = "v1"
 		secret.Kind = "Secret"
 		err = printer.PrintObj(secret, o.Out)

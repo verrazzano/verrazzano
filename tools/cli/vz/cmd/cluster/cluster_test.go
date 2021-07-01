@@ -15,24 +15,31 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 	"testing"
 )
 
-//1) Different permutation of arguments
-//2) Output formatting
-//3) Main Logic Testing - Might want to use fake types
+// 1) Different permutation of arguments
+// 2) Output formatting
+// 3) Main Logic Testing - Might want to use fake types
 
 var (
-	description    = "-d test managed cluster"
-	caSecret       = "-c test-caSecret-secret"
-	registerOutput = "verrazzanomanagedcluster/test%d created\n"
-	tests          = []struct {
+	description      = "-d test managed cluster"
+	caSecret         = "-c test-caSecret-secret"
+	registerOutput   = "verrazzanomanagedcluster/test%d created\n"
+	configMapVerbose = `configmap/verrazzano-admin-cluster doesn't exist
+creating configmap/verrazzano-admin-cluster
+configmap/verrazzano-admin-cluster created
+`
+	// Creation of first vmc will create a configMap
+	// named verrazzano-admin-cluster if it doesn't exist
+	tests = []struct {
 		args   []string
 		output string
 	}{
 		{
 			[]string{"test1", description, caSecret},
-			fmt.Sprintf(registerOutput, 1),
+			fmt.Sprintf(configMapVerbose+registerOutput, 1),
 		},
 		{
 			[]string{"test2", caSecret, description},
@@ -58,31 +65,40 @@ var (
 )
 
 type TestKubernetes struct {
-	fakeClient    clientset.Interface
-	fakek8sClient kubernetes.Interface
+	fakeClustersClient clientset.Interface
+	fakek8sClient      kubernetes.Interface
 }
 
-func (o *TestKubernetes) NewClientSet() (clientset.Interface, error) {
-	return o.fakeClient, nil
+// Fake config with fake Host address
+func (o *TestKubernetes) GetKubeConfig() *rest.Config {
+	config := &rest.Config{
+		Host: "https://1.2.3.4:1234",
+	}
+	return config
 }
 
-func (o *TestKubernetes) NewKubernetesClientSet() kubernetes.Interface {
+func (o *TestKubernetes) NewClustersClientSet() (clientset.Interface, error) {
+	return o.fakeClustersClient, nil
+}
+
+func (o *TestKubernetes) NewClientSet() kubernetes.Interface {
 	return o.fakek8sClient
 }
 
-//Test different permutations for flags for register command
+// Test different permutations for flags for register command
 func TestNewCmdClusterRegister(t *testing.T) {
 
 	asserts := assert.New(t)
 	fakeKubernetes := &TestKubernetes{
-		fakeClient: fake.NewSimpleClientset(),
+		fakeClustersClient: fake.NewSimpleClientset(),
+		fakek8sClient:      k8sfake.NewSimpleClientset(),
 	}
 
-	//NewTestIOStreams returns a valid IOStreams and in, out, errout buffers for unit tests
+	// NewTestIOStreams returns a valid IOStreams and in, out, errout buffers for unit tests
 	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
 	testCmd := NewCmdClusterRegister(streams, fakeKubernetes)
 
-	//creation of vmcs with proper arguments should not raise an error
+	// Creation of vmcs with proper arguments should not raise an error
 	for _, test := range tests {
 		testCmd.SetArgs(test.args)
 		err := testCmd.Execute()
@@ -91,36 +107,37 @@ func TestNewCmdClusterRegister(t *testing.T) {
 		outBuffer.Reset()
 	}
 
-	//creation of vmc with name that already exists should raise an error
+	// Creation of vmc with name that already exists should raise an error
 	testCmd.SetArgs(tests[0].args)
 	err := testCmd.Execute()
-	asserts.EqualError(err, "verrazzanomanagedclusters.clusters \"test1\" already exists")
+	asserts.EqualError(err, `verrazzanomanagedclusters.clusters "test1" already exists`)
 
-	//creation of vmc without specifying caSecret should raise an error
-	//create new cmd to reset flags
+	// Creation of vmc without specifying caSecret should raise an error
+	// Create new cmd to reset flags
 	testCmd = NewCmdClusterRegister(streams, fakeKubernetes)
 	testCmd.SetArgs([]string{"test7"})
 	err = testCmd.Execute()
 	asserts.EqualError(err, "CA secret is needed")
 }
 
-//Current test fails because fake types are using wrong group
+// Current test fails because fake types are using wrong group
 func TestNewCmdClusterList(t *testing.T) {
 
 	asserts := assert.New(t)
 	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
 	testKubernetes := &TestKubernetes{
-		fakeClient: fake.NewSimpleClientset(),
+		fakeClustersClient: fake.NewSimpleClientset(),
+		fakek8sClient:      k8sfake.NewSimpleClientset(),
 	}
 	testCmd := NewCmdClusterList(streams, testKubernetes)
 
-	//Executing list while no vmcs exists should not give an error
-	//Instead no resource found message
+	// Executing list while no vmcs exists should not give an error
+	// Instead no resource found message
 	err := testCmd.Execute()
 	asserts.NoError(err)
 	asserts.Equal(helpers.NothingFound+"\n", outBuffer.String())
 
-	//create fake vmcs
+	// create fake vmcs
 	testRegisterCmd := NewCmdClusterRegister(streams, testKubernetes)
 
 	for _, test := range tests[:3] {
@@ -130,7 +147,7 @@ func TestNewCmdClusterList(t *testing.T) {
 	}
 	outBuffer.Reset()
 
-	//There are 3 spaces after the each column(last one as well)
+	// There are 3 spaces after the each column(last one as well)
 	expected := `NAME    AGE    STATUS   DESCRIPTION             APISERVER   
 test1   292y             test managed cluster               
 test2   292y             test managed cluster               
@@ -147,16 +164,17 @@ func TestNewCmdClusterDeregister(t *testing.T) {
 	asserts := assert.New(t)
 	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
 	testKubernetes := &TestKubernetes{
-		fakeClient: fake.NewSimpleClientset(),
+		fakeClustersClient: fake.NewSimpleClientset(),
+		fakek8sClient:      k8sfake.NewSimpleClientset(),
 	}
 	testCmd := NewCmdClusterDeregister(streams, testKubernetes)
 
-	//trying to deregister a cluster which doesn't exists should raise an error
+	// Trying to deregister a cluster which doesn't exists should raise an error
 	testCmd.SetArgs([]string{"test"})
 	err := testCmd.Execute()
-	asserts.EqualError(err, "verrazzanomanagedclusters.clusters \"test\" not found")
+	asserts.EqualError(err, `verrazzanomanagedclusters.clusters "test" not found`)
 
-	//register a vmc and then deregister it
+	// Register a vmc and then deregister it
 	testCmdRegister := NewCmdClusterRegister(streams, testKubernetes)
 	testCmdRegister.SetArgs(tests[0].args)
 	err = testCmdRegister.Execute()
@@ -173,31 +191,31 @@ func TestNewCmdClusterManifest(t *testing.T) {
 	asserts := assert.New(t)
 	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
 	testKubernetes := &TestKubernetes{
-		fakeClient:    fake.NewSimpleClientset(),
-		fakek8sClient: k8sfake.NewSimpleClientset(),
+		fakeClustersClient: fake.NewSimpleClientset(),
+		fakek8sClient:      k8sfake.NewSimpleClientset(),
 	}
 	testCmd := NewCmdClusterManifest(streams, testKubernetes)
 
-	//trying to get manifest secret for non existing cluster raises an error
+	// Trying to get manifest secret for non existing cluster raises an error
 	testCmd.SetArgs([]string{"test"})
 	err := testCmd.Execute()
-	asserts.EqualError(err, "verrazzanomanagedclusters.clusters \"test\" not found")
+	asserts.EqualError(err, `verrazzanomanagedclusters.clusters "test" not found`)
 
-	//create a vmc resource
+	// Create a vmc resource
 	testCmdRegister := NewCmdClusterRegister(streams, testKubernetes)
 	testCmdRegister.SetArgs(tests[0].args)
 	err = testCmdRegister.Execute()
 	asserts.NoError(err)
 	outBuffer.Reset()
 
-	//trying to fetch the manifest for a vmc that exists can
-	//raise an error if the manifest is not yet generated
+	// Trying to fetch the manifest for a vmc that exists can
+	// Raise an error if the manifest is not yet generated
 	testCmd.SetArgs([]string{tests[0].args[0]})
 	err = testCmd.Execute()
-	asserts.EqualError(err, "secrets \"\" not found")
+	asserts.EqualError(err, `secrets "" not found`)
 
-	//fake clients don't generate a manifest
-	//so create a fake manifest for test
+	// Fake clients don't generate a manifest
+	// so create a fake manifest for test
 	asserts.NoError(newFakeSecret(testKubernetes.fakek8sClient))
 	testCmd.SetArgs([]string{tests[0].args[0]})
 	err = testCmd.Execute()
@@ -206,6 +224,7 @@ func TestNewCmdClusterManifest(t *testing.T) {
 	outBuffer.Reset()
 }
 
+// Create a fake secret with garbage data
 func newFakeSecret(fakek8sClient kubernetes.Interface) error {
 	fakeSecret := &v1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -221,6 +240,7 @@ func newFakeSecret(fakek8sClient kubernetes.Interface) error {
 				Name:       "test1",
 			}},
 		},
+		// Garbage Data
 		Data: map[string][]byte{
 			"yaml": []byte("LS0tCmFwaVZlcnNpb246IHYxCmRhdGE6CiAgYWRtaW4ta3ViZWNvbmZpZzogWTJ4MWMzUmxjbk02Q2kwZ1kyeDFjM1JsY2pvS0lDQWdJR05sY25ScFptbGpZWFJsTFdGMWRHaHZjbWwwZVMxa1lYUmhPaUJNVXpCMFRGTXhRMUpWWkVwVWFVSkVVbFpL"),
 		},

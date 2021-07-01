@@ -35,8 +35,8 @@ func NewCmdClusterList(streams genericclioptions.IOStreams, kubernetesInterface 
 	o := NewClusterListOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List the managed clusters",
-		Long:  "List the managed clusters",
+		Short: "List the clusters",
+		Long:  "List the clusters",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			o.args = args
 			if err := o.listClusters(kubernetesInterface); err != nil {
@@ -51,7 +51,7 @@ func NewCmdClusterList(streams genericclioptions.IOStreams, kubernetesInterface 
 
 func (o *ClusterListOptions) listClusters(kubernetesInterface helpers.Kubernetes) error {
 
-	clientset, err := kubernetesInterface.NewClientSet()
+	clientset, err := kubernetesInterface.NewClustersClientSet()
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (o *ClusterListOptions) listClusters(kubernetesInterface helpers.Kubernetes
 		return nil
 	}
 
-	//Output options was specified
+	// Output options was specified
 	if len(*o.PrintFlags.OutputFormat) != 0 {
 		// Set the Version and Kind before passing it as runtime object
 		vmcs.GetObjectKind().SetGroupVersionKind(schema.GroupVersionKind{
@@ -118,10 +118,6 @@ func getReadyStatus(status v1alpha1.VerrazzanoManagedClusterStatus) string {
 				return "Ready"
 			case "False":
 				return "Not Ready"
-			case "Unknown":
-				return ""
-			default:
-				panic("shouldn't reach here")
 			}
 		}
 	}

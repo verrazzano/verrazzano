@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type ClusterOptions struct {
@@ -17,12 +18,16 @@ type ClusterOptions struct {
 	genericclioptions.IOStreams
 }
 
-func (c *ClusterOptions) NewClientSet() (clientset.Interface, error) {
-	client, err := clientset.NewForConfig(pkg.GetKubeConfig())
+func (c *ClusterOptions) GetKubeConfig() *rest.Config {
+	return pkg.GetKubeConfig()
+}
+
+func (c *ClusterOptions) NewClustersClientSet() (clientset.Interface, error) {
+	client, err := clientset.NewForConfig(c.GetKubeConfig())
 	return client, err
 }
 
-func (c *ClusterOptions) NewKubernetesClientSet() kubernetes.Interface {
+func (c *ClusterOptions) NewClientSet() kubernetes.Interface {
 	return pkg.GetKubernetesClientset()
 }
 

@@ -50,7 +50,7 @@ func (o *ClusterGetOptions) getCluster(kubernetesInterface helpers.Kubernetes) e
 
 	vmcName := o.args[0]
 
-	clientset, err := kubernetesInterface.NewClientSet()
+	clientset, err := kubernetesInterface.NewClustersClientSet()
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (o *ClusterGetOptions) getCluster(kubernetesInterface helpers.Kubernetes) e
 		return err
 	}
 
-	//Output options was specified
+	// Output options was specified
 	if len(*o.PrintFlags.OutputFormat) != 0 {
 		// Set the Version and Kind before passing it as runtime object
 		vmcObject.GetObjectKind().SetGroupVersionKind(schema.GroupVersionKind{

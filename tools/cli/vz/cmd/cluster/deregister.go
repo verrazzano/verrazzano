@@ -45,11 +45,11 @@ func NewCmdClusterDeregister(streams genericclioptions.IOStreams, kubernetesInte
 
 func (o *ClusterDeregisterOptions) deregisterCluster(kubernetesInterface helpers.Kubernetes) error {
 
-	//name of vmc resource
+	// Name of vmc resource
 	vmcName := o.args[0]
 
-	//get the vmc resource and delete it
-	clientset, err := kubernetesInterface.NewClientSet()
+	// Get the vmc resource and delete it
+	clientset, err := kubernetesInterface.NewClustersClientSet()
 
 	if err != nil {
 		return err
