@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -239,6 +240,7 @@ func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger
 
 	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
+		vz = configFluentdExtraVolumeMounts(vz)
 		config, err := installjob.GetInstallConfig(vz)
 		if err != nil {
 			return err
@@ -739,4 +741,92 @@ func getIngressIP(c client.Client) (string, error) {
 		return "127.0.0.1", nil
 	}
 	return "", fmt.Errorf("Unsupported service type %s for Nginx ingress", string(nginxService.Spec.Type))
+}
+
+func configFluentdExtraVolumeMounts(vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
+	varLog := "/var/log/containers/"
+	var files []string
+	filepath.Walk(varLog, func(path string, info os.FileInfo, err error) error {
+		if info != nil {
+			files = append(files, readLink(path, info)...)
+		}
+		return nil
+	})
+	return addFluentdExtraVolumeMounts(files, vz)
+}
+
+func addFluentdExtraVolumeMounts(files []string, vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
+	for _, extraMount := range dirsOutsideVarLog(files) {
+		if vz.Spec.Components.Fluentd == nil {
+			vz.Spec.Components.Fluentd = &installv1alpha1.FluentdComponent{}
+		}
+		found := false
+		for _, vm := range vz.Spec.Components.Fluentd.ExtraVolumeMounts {
+			if isParentDir(extraMount, vm.Source) {
+				found = true
+			}
+		}
+		if !found {
+			vz.Spec.Components.Fluentd.ExtraVolumeMounts = append(vz.Spec.Components.Fluentd.ExtraVolumeMounts,
+				installv1alpha1.VolumeMount{Source: extraMount})
+		}
+	}
+	return vz
+}
+
+func readLink(path string, info os.FileInfo) []string {
+	var files []string
+	if info.Mode()&os.ModeSymlink != 0 {
+		dest, err := os.Readlink(path)
+		if err == nil {
+			files = append(files, dest)
+			destInfo, err := os.Lstat(dest)
+			if err == nil {
+				files = append(files, readLink(dest, destInfo)...)
+			}
+		}
+	}
+	return files
+}
+
+func dirsOutsideVarLog(paths []string) []string {
+	var results []string
+	for _, path := range paths {
+		if !strings.HasPrefix(path, "/var/log/") {
+			found := false
+			var temp []string
+			for _, res := range results {
+				commonPath := commonPath(res, path)
+				if commonPath != "/" {
+					temp = append(temp, commonPath)
+					found = true
+				} else {
+					temp = append(temp, res)
+				}
+			}
+			if !found {
+				temp = append(temp, path)
+			}
+			results = temp
+		}
+	}
+	return results
+}
+
+func isParentDir(path, dir string) bool {
+	if !strings.HasSuffix(dir, "/") {
+		dir = dir + "/"
+	}
+	return commonPath(path, dir) == dir
+}
+
+func commonPath(a, b string) string {
+	i := 0
+	s := 0
+	for ; i < len(a) && i < len(b) && a[i] == b[i]; i++ {
+		if a[i] == '/' {
+			s = i
+		}
+	}
+	return a[0 : s+1]
 }

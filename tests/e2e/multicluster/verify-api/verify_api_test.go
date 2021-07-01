@@ -26,14 +26,16 @@ var _ = ginkgo.Describe("Multi Cluster Verify API", func() {
 
 		ginkgo.It("Get and Validate Verrazzano resource for admin cluster", func() {
 			// create a project
-			api := pkg.GetAPIEndpoint(adminKubeconfig)
+			api, err := pkg.GetAPIEndpoint(adminKubeconfig)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Erroring getting API endpoint")
 			response, err := api.Get("apis/install.verrazzano.io/v1alpha1/verrazzanos")
 			validateVerrazzanosResponse(response, err)
 		})
 
 		ginkgo.It("Get and Validate Verrazzano resource for managed cluster", func() {
 			// create a project
-			api := pkg.GetAPIEndpoint(adminKubeconfig)
+			api, err := pkg.GetAPIEndpoint(adminKubeconfig)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Erroring getting API endpoint")
 			response, err := api.Get("apis/install.verrazzano.io/v1alpha1/verrazzanos?cluster=" + managedClusterName)
 			validateVerrazzanosResponse(response, err)
 		})

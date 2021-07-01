@@ -31,7 +31,10 @@ var _ = ginkgo.Describe("VMI urls test", func() {
 		ginkgo.It("Fetches VMI", func() {
 			if !isManagedClusterProfile {
 				gomega.Eventually(func() bool {
-					api := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+					if err != nil {
+						return false
+					}
 					response, err := api.Get("apis/verrazzano.io/v1/namespaces/verrazzano-system/verrazzanomonitoringinstances/system")
 					if !pkg.IsHTTPStatusOk(response, err, fmt.Sprintf("Error fetching system VMI from api, error: %v, response: %v", err, response)) {
 						return false
@@ -55,9 +58,10 @@ var _ = ginkgo.Describe("VMI urls test", func() {
 
 		ginkgo.It("Accesses VMI endpoints", func() {
 			if !isManagedClusterProfile {
-				api := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+				api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
 				vmiCredentials, err := pkg.GetSystemVMICredentials()
-				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
 
 				// Test VMI endpoints
 				sysVmiHTTPClient := pkg.GetSystemVmiHTTPClient()

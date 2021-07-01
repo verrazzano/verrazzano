@@ -25,22 +25,10 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func vmiPersistentVolumes() (map[string]*corev1.PersistentVolumeClaim, error) {
-	pvcs, err := pkg.GetKubernetesClientset().CoreV1().PersistentVolumeClaims("verrazzano-system").List(context.TODO(), v1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	volumeClaims := make(map[string]*corev1.PersistentVolumeClaim)
-
-	for _, pvc := range pvcs.Items {
-		volumeClaims[pvc.Name] = &pvc
-	}
-	return volumeClaims, nil
-}
+const verrazzanoNamespace string = "verrazzano-system"
 
 func vmiIngressURLs() (map[string]string, error) {
-	ingressList, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").List(context.TODO(), v1.ListOptions{})
+	ingressList, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses(verrazzanoNamespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +88,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		ginkgo.Fail(fmt.Sprintf("Error retrieving system VMI ingress URLs: %v", err))
 	}
 
-	volumeClaims, err = vmiPersistentVolumes()
+	volumeClaims, err = pkg.GetPersistentVolumes(verrazzanoNamespace)
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Error retrieving persistent volumes for verrazzano-system: %v", err))
 	}
@@ -123,23 +111,23 @@ var _ = ginkgo.Describe("VMI", func() {
 	if isManagedClusterProfile {
 		ginkgo.It("Elasticsearch should NOT be present", func() {
 			// Verify ES not present
-			gomega.Expect(pkg.PodsNotRunning("verrazzano-system", []string{"vmi-system-es"})).To(gomega.BeTrue())
+			gomega.Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})).To(gomega.BeTrue())
 			gomega.Expect(elasticTLSSecret()).To(gomega.BeTrue())
 			gomega.Expect(elastic.CheckIngress()).To(gomega.BeFalse())
 			gomega.Expect(ingressURLs).NotTo(gomega.HaveKey("vmi-system-es-ingest"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
 			// Verify Kibana not present
-			gomega.Expect(pkg.PodsNotRunning("verrazzano-system", []string{"vmi-system-kibana"})).To(gomega.BeTrue())
+			gomega.Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})).To(gomega.BeTrue())
 			gomega.Expect(ingressURLs).NotTo(gomega.HaveKey("vmi-system-kibana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
 			// Verify Grafana not present
-			gomega.Expect(pkg.PodsNotRunning("verrazzano-system", []string{"vmi-system-grafana"})).To(gomega.BeTrue())
+			gomega.Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-grafana"})).To(gomega.BeTrue())
 			gomega.Expect(ingressURLs).NotTo(gomega.HaveKey("vmi-system-grafana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 		})
 	} else {
 		ginkgo.It("Elasticsearch endpoint should be accessible", func() {
 			elasticPodsRunning := func() bool {
-				return pkg.PodsRunning("verrazzano-system", []string{"vmi-system-es-master"})
+				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
 			}
 			gomega.Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "pods did not all show up")
 			gomega.Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "tls-secret did not show up")
@@ -190,7 +178,7 @@ var _ = ginkgo.Describe("VMI", func() {
 
 		ginkgo.It("Kibana endpoint should be accessible", func() {
 			kibanaPodsRunning := func() bool {
-				return pkg.PodsRunning("verrazzano-system", []string{"vmi-system-kibana"})
+				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
 			}
 			gomega.Eventually(kibanaPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "kibana pods did not all show up")
 			gomega.Expect(ingressURLs).To(gomega.HaveKey("vmi-system-kibana"), "Ingress vmi-system-kibana not found")
@@ -274,7 +262,10 @@ func assertURLAccessibleAndAuthorized(url string) bool {
 
 func assertBearerAuthorized(url string) bool {
 	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
-	api := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+	api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+	if err != nil {
+		return false
+	}
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	if api.AccessToken != "" {
 		bearer := fmt.Sprintf("Bearer %v", api.AccessToken)

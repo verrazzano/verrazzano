@@ -7,8 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/cobra"
-	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -27,14 +25,14 @@ func NewProjectListOptions(streams genericclioptions.IOStreams) *ProjectListOpti
 	}
 }
 
-func NewCmdProjectList(streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdProjectList(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewProjectListOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List projects",
 		Long:  "List projects",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := listProjects(args); err != nil {
+			if err := listProjects(streams, args, kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
@@ -44,15 +42,22 @@ func NewCmdProjectList(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func listProjects(args []string) error {
-	config := pkg.GetKubeConfig()
-	clientset, err := clustersclient.NewForConfig(config)
+func listProjects(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
+	if len(args) != 0 {
+		fmt.Println("Got unexpected number of arguments")
+		return nil
+		// TODO : Check this return value and print statement again
+	}
+	//config := pkg.GetKubeConfig()
+	//clientset, err := clustersclient.NewForConfig(config)
+	clientset2, err := kubernetesInterface.NewProjectClientSet()
 	if err != nil {
 		fmt.Print("could not get the clientset")
 	}
 
+	//projects, err := clientset.VerrazzanoProjects("verrazzano-mc").List(context.Background(), metav1.ListOptions{})
 	// get a list of the projects
-	projects, err := clientset.VerrazzanoProjects("verrazzano-mc").List(context.Background(), metav1.ListOptions{})
+	projects, err := clientset2.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -89,6 +94,6 @@ func listProjects(args []string) error {
 	}
 
 	// print out the data
-	helpers.PrintTable(headings, data)
+	helpers.PrintTable(headings, data, streams.Out)
 	return nil
 }

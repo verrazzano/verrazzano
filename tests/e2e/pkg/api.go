@@ -6,6 +6,7 @@ package pkg
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/onsi/ginkgo"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -26,7 +26,7 @@ type APIEndpoint struct {
 }
 
 // GetAPIEndpoint returns the APIEndpoint stub with AccessToken, from the given cluster
-func GetAPIEndpoint(kubeconfigPath string) *APIEndpoint {
+func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
 	ingress, _ := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
 	var ingressRules = ingress.Spec.Rules
 	keycloakHTTPClient := GetKeycloakHTTPClient(kubeconfigPath)
@@ -37,13 +37,13 @@ func GetAPIEndpoint(kubeconfigPath string) *APIEndpoint {
 	if status == http.StatusOK {
 		json.Unmarshal([]byte(resp), &api)
 	} else {
-		if status != http.StatusNotFound { //old installder may still using realm=sauron
-			ginkgo.Fail(fmt.Sprintf("%v error getting API access token from %v", status, keycloakURL))
-		}
+		msg := fmt.Sprintf("error getting API access token from %s: %d", keycloakURL, status)
+		Log(Error, msg)
+		return nil, errors.New(msg)
 	}
 	api.APIURL = getAPIURL(kubeconfigPath)
 	api.HTTPClient = GetVerrazzanoHTTPClientForCluster(kubeconfigPath)
-	return &api
+	return &api, nil
 }
 
 // getAPIURL returns the Verrazzano REST API URL for the cluster whose kubeconfig is given as argument

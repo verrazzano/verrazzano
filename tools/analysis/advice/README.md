@@ -1,1 +1,1 @@
-These documents provide advice based on analysis tool findings and reports.
+See [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/)

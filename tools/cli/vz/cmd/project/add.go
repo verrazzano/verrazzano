@@ -8,8 +8,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -30,7 +29,7 @@ func NewProjectAddOptions(streams genericclioptions.IOStreams) *ProjectAddOption
 	}
 }
 
-func NewCmdProjectAdd(streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdProjectAdd(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewProjectAddOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "add name",
@@ -38,7 +37,7 @@ func NewCmdProjectAdd(streams genericclioptions.IOStreams) *cobra.Command {
 		Long:  "Add a project",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := addProject(args); err != nil {
+			if err := addProject(streams, args, kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
@@ -50,7 +49,7 @@ func NewCmdProjectAdd(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func addProject(args []string) error {
+func addProject(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 	projectName := args[0]
 
 	// if no namespace was provided, default to a single namespace
@@ -94,17 +93,20 @@ func addProject(args []string) error {
 	}
 
 	// connect to the cluster
-	config := pkg.GetKubeConfig()
-	clientset, err := clustersclient.NewForConfig(config)
+	//config := pkg.GetKubeConfig()
+	//clientset, err := clustersclient.NewForConfig(config)
+	clientset, err := kubernetesInterface.NewProjectClientSet()
 	if err != nil {
 		fmt.Print("could not get the clientset")
 	}
 
 	// create the project resource in the cluster
-	_, err = clientset.VerrazzanoProjects("verrazzano-mc").Create(context.Background(), &project, metav1.CreateOptions{})
+	//_, err = clientset.VerrazzanoProjects("verrazzano-mc").Create(context.Background(), &project, metav1.CreateOptions{})
+	_, err = clientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Create(context.Background(), &project, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
-	fmt.Println("project created")
+	fmt.Fprintln(streams.Out, "project created")
+	// TODO : Can we make it project <projectname> created ?
 	return nil
 }

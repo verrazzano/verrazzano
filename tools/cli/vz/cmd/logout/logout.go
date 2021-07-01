@@ -81,5 +81,3 @@ func logout() error {
 	fmt.Println("Logout successful!")
 	return nil
 }
-
-

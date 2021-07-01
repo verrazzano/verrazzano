@@ -6,6 +6,7 @@ package helpers
 import (
 	"errors"
 	"fmt"
+	"io"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/duration"
 	"strings"
@@ -13,7 +14,7 @@ import (
 )
 
 // PrintTable will print the data in a well-formatted table with the headings at top
-func PrintTable(headings []string, data [][]string) error {
+func PrintTable(headings []string, data [][]string, w io.Writer) error {
 	// make sure the data has the same number of columns as the headings
 	if len(headings) != len(data[0]) {
 		return errors.New("wrong number of columns in data")
@@ -24,8 +25,9 @@ func PrintTable(headings []string, data [][]string) error {
 		return err
 	}
 
-	fmt.Println(output)
-	return nil
+	//fmt.Println(output)
+	_, err = fmt.Fprintln(w, output)
+	return err
 
 }
 

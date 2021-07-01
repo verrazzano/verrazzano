@@ -39,7 +39,7 @@ func NewCmdAppHelidonList(streams genericclioptions.IOStreams) *cobra.Command {
 		Short: "List Helidon applications",
 		Long:  "List Helidon applications",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := listHelidonApplications(args); err != nil {
+			if err := listHelidonApplications(cmd, args); err != nil {
 				return err
 			}
 			return nil
@@ -50,7 +50,7 @@ func NewCmdAppHelidonList(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func listHelidonApplications(args []string) error {
+func listHelidonApplications(cmd *cobra.Command, args []string) error {
 	// connect to the server
 	config := pkg.GetKubeConfig()
 	oamclientset, err := v1alpha1.NewForConfig(config)
@@ -113,6 +113,6 @@ func listHelidonApplications(args []string) error {
 	}
 
 	// print out the data
-	helpers.PrintTable(headings, data)
+	helpers.PrintTable(headings, data, cmd.OutOrStdout())
 	return nil
 }

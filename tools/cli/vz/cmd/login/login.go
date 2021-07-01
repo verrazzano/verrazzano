@@ -54,17 +54,18 @@ func NewCmdLogin(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func login(args []string) error{
+func login(args []string) error {
 
 	var vz_api_url string
 
 	// Extract parameters from args
 	for index, element := range args {
-		if index==0 {
+		if index == 0 {
 			vz_api_url = element
 			continue
 		}
 	}
+
 
 	// Follow the authorization grant flow to get the json response
 	jwtData, err := authFlowLogin()
@@ -74,12 +75,13 @@ func login(args []string) error{
 	}
 
 	// Obtain the certificate authority data in the form of byte stream
-	caData,err := getCAData()
-	if err!=nil {
+	caData, err := getCAData()
+	if err != nil {
 		fmt.Println("Unable to obtain certificate authority data")
 		fmt.Println("Make sure you are in the right context")
 		return err
 	}
+
 
 	// Obtain the default kubeconfig's location
 	kubeConfigLoc,err := helpers.GetKubeconfigLocation()
@@ -89,6 +91,7 @@ func login(args []string) error{
 
 	// Load the default kubeconfig's configuration into clientcmdapi object
 	mykubeConfig, _ := clientcmd.LoadFromFile(kubeConfigLoc)
+
 	if err!=nil {
 		fmt.Println("Unable to load kubeconfig, check permissions")
 		return err
@@ -133,11 +136,11 @@ func login(args []string) error{
 	return nil
 }
 
-var auth_code = ""	//	Http handle fills this after keycloak authentication
+var auth_code = "" //	Http handle fills this after keycloak authentication
 
 // A function to put together all the requirements of authorization grant flow
 // Returns the final jwt token as a map
-func authFlowLogin() (map[string]interface{},error)  {
+func authFlowLogin() (map[string]interface{}, error) {
 
 	// Obtain a available port in non-well known port range
 	listener := getFreePort()
@@ -184,7 +187,7 @@ func authFlowLogin() (map[string]interface{},error)  {
 		fmt.Println("Unable to obtain the JWT token")
 		return jwtData, err
 	}
-	return jwtData,nil
+	return jwtData, nil
 }
 
 // Obtain the certificate authority data
@@ -197,13 +200,14 @@ func getCAData() ([]byte, error) {
 																	)
 
 	restconfig, err := kubeconfig.ClientConfig()
-	if err != nil{
+	if err != nil {
 		return cert, err
 	}
 	coreclient, err := corev1client.NewForConfig(restconfig)
-	if err != nil{
+	if err != nil {
 		return cert, err
 	}
+  
 	secret, err := coreclient.Secrets("verrazzano-system").Get(context.Background(),
 																	"system-tls",
 																	metav1.GetOptions{},
@@ -237,7 +241,7 @@ func getFreePort() net.Listener {
 
 // Requests the jwt token on our behalf
 // Returns the key-value pairs obtained from server in the form of a map
-func requestJWT(redirect_uri string, code_verifier string) (map[string]interface{},error) {
+func requestJWT(redirect_uri string, code_verifier string) (map[string]interface{}, error) {
 
 	// The response is going to be filled in this
 	var jsondata map[string]interface{}
@@ -249,21 +253,21 @@ func requestJWT(redirect_uri string, code_verifier string) (map[string]interface
 	grantParams.Set("code", auth_code)
 	grantParams.Set("redirect_uri", redirect_uri)
 	grantParams.Set("code_verifier", code_verifier)
-	grantParams.Set("scope","openid")
+	grantParams.Set("scope", "openid")
 
 	// Execute the request
 	jsondata, err := executeRequestForJWT(grantParams)
-	if err!=nil {
+	if err != nil {
 		fmt.Println("Request failed")
 		return jsondata, err
 	}
 
-	return jsondata,nil
+	return jsondata, nil
 }
 
 // Creates and executes the POST request
 // Returns the key-value pairs obtained from server in the form of a map
-func executeRequestForJWT(grantParams url.Values) (map[string]interface{},error) {
+func executeRequestForJWT(grantParams url.Values) (map[string]interface{}, error) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	// The response is going to be filled in this
@@ -276,25 +280,25 @@ func executeRequestForJWT(grantParams url.Values) (map[string]interface{},error)
 	client := &http.Client{}
 	request, err := http.NewRequest(http.MethodPost, token_url, strings.NewReader(grantParams.Encode()))
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	if err!=nil {
+	if err != nil {
 		fmt.Println("Unable to create POST request")
-		return jsondata,err
+		return jsondata, err
 	}
 
 	// Send the request and get response
 	response, err := client.Do(request)
-	if err!=nil {
+	if err != nil {
 		fmt.Println("Error receiving response")
-		return jsondata,err
+		return jsondata, err
 	}
 	responseBody, err := ioutil.ReadAll(response.Body)
-	if err!=nil {
+	if err != nil {
 		fmt.Println("Unable to read the response body")
-		return jsondata,err
+		return jsondata, err
 	}
 
 	// Convert the response into a map
 	json.Unmarshal([]byte(responseBody), &jsondata)
 
-	return jsondata,nil
+	return jsondata, nil
 }

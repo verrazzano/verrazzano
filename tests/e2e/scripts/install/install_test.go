@@ -144,7 +144,10 @@ func getConsoleURLsFromLog(installLog string) ([]string, error) {
 
 // Get the expected console URLs in the install log for the given cluster
 func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
-	api := pkg.GetAPIEndpoint(kubeConfig)
+	api, err := pkg.GetAPIEndpoint(kubeConfig)
+	if api == nil {
+		return nil, err
+	}
 	ingress, err := api.GetIngress(keycloakNamespace, keycloakIngress)
 	if err != nil {
 		return nil, err
