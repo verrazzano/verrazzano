@@ -94,6 +94,7 @@ spec:
                     description: Console configuration
                     properties:
                       enabled:
+                        default: true
                         type: boolean
                     type: object
                   dns:
@@ -141,7 +142,33 @@ spec:
                     description: Elasticsearch configuration
                     properties:
                       enabled:
+                        default: true
                         type: boolean
+                      installArgs:
+                        description: Arguments for installing Elasticsearch
+                        items:
+                          description: InstallArgs identifies a name/value or name/value
+                            list needed for install. Value and ValueList cannot both
+                            be specified.
+                          properties:
+                            name:
+                              description: Name of install argument
+                              type: string
+                            setString:
+                              description: If the Value is a literal string
+                              type: boolean
+                            value:
+                              description: Value for named install argument
+                              type: string
+                            valueList:
+                              description: List of values for named install argument
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - name
+                          type: object
+                        type: array
                     type: object
                   fluentd:
                     description: Fluentd configuration
@@ -170,6 +197,7 @@ spec:
                     description: Grafana configuration
                     properties:
                       enabled:
+                        default: true
                         type: boolean
                     type: object
                   ingress:
@@ -1951,12 +1979,14 @@ spec:
                     description: Grafana configuration
                     properties:
                       enabled:
+                        default: true
                         type: boolean
                     type: object
                   prometheus:
                     description: Prometheus configuration
                     properties:
                       enabled:
+                        default: true
                         type: boolean
                     type: object
                   rancher:
