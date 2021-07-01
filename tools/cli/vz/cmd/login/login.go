@@ -200,9 +200,9 @@ func getCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 
 	kclientset := kubernetesInterface.NewClientSet()
 	secret, err := kclientset.CoreV1().Secrets("verrazzano-system").Get(context.Background(),
-																		"system-tls",
-																		metav1.GetOptions{},
-																		)
+									   "system-tls",
+									    metav1.GetOptions{},
+									)
 
 	if err != nil{
 		return cert, err
