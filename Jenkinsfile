@@ -337,7 +337,6 @@ pipeline {
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_ANALYSIS_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     if (SCAN_IMAGE_PATCH_OPERATOR == true) {
                         clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_PATCH_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                        clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_WIT_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     }
                 }
             }
