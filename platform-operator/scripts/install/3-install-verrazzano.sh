@@ -167,6 +167,7 @@ function install_verrazzano()
       error "ERROR: failed creating verrazzano secret"
       exit 1
   fi
+  kubectl get secret system-tls -n verrazzano-system -o yaml
   log "Verrazzano install completed"
 }
 
