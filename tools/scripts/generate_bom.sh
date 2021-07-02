@@ -13,28 +13,34 @@ fi
 BOM_FILE=$1
 
 if [ -z "$2" ]; then
+  echo "You must specify the Version"
+  exit 1
+fi
+VERRAZZANO_VERSION=$2
+
+if [ -z "$3" ]; then
   echo "You must specify the Application Operator Image"
   exit 1
 fi
-VERRAZZANO_APPLICATION_OPERATOR_IMAGE=$2
+VERRAZZANO_APPLICATION_OPERATOR_IMAGE=$3
 
-if [ -z "$3" ]; then
+if [ -z "$4" ]; then
   echo "You must specify the Platform Operator Image Name"
   exit 1
 fi
-VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=$3
+VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=$4
 
-if [ -z "$4" ]; then
+if [ -z "$5" ]; then
   echo "You must specify the Image Tag"
   exit 1
 fi
-IMAGE_TAG=$4
+IMAGE_TAG=$5
 
-if [ -z "$5" ]; then
+if [ -z "$6" ]; then
   echo "You must specify the BOM filename as output"
   exit 1
 fi
-GENERATED_BOM_FILE=$5
+GENERATED_BOM_FILE=$6
 
 cp ${BOM_FILE} ${GENERATED_BOM_FILE}
 
@@ -51,3 +57,4 @@ else
 fi
 sed -i"" -e "s|VERRAZZANO_PLATFORM_OPERATOR_IMAGE|${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME}|g" ${GENERATED_BOM_FILE}
 sed -i"" -e "s|VERRAZZANO_PLATFORM_OPERATOR_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}
+sed -i"" -e "s|VERRAZZANO_VERSION|${VERRAZZANO_VERSION}|g" ${GENERATED_BOM_FILE}
