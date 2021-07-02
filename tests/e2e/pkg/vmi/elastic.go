@@ -68,7 +68,11 @@ func (e *Elastic) Connect() bool {
 func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string) ([]byte, error) {
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(username, password)
-	client := e.getVmiHTTPClient(kubeconfigPath)
+	client, err := e.getVmiHTTPClient(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
+		return nil, err
+	}
 	client.CheckRetry = pkg.GetRetryPolicy()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -78,7 +82,11 @@ func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string
 	if resp.StatusCode != 200 {
 		pkg.Log(pkg.Info, fmt.Sprintf("Response status code: %d", resp.StatusCode))
 	}
-	httpResp := pkg.ProcHTTPResponse(resp, err)
+	httpResp, err := pkg.ProcessHTTPResponse(resp)
+	if err != nil {
+		pkg.Log(pkg.Info, fmt.Sprintf("Error reading response from GET %v error: %v", url, err))
+		return nil, err
+	}
 	if httpResp.StatusCode == http.StatusNotFound {
 		err = fmt.Errorf("url %s returned not found", url)
 		pkg.Log(pkg.Info, fmt.Sprintf("NotFound %v error: %v", url, err))
@@ -87,11 +95,15 @@ func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string
 	return httpResp.Body, nil
 }
 
-func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) *retryablehttp.Client {
+func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
 	if e.vmiHTTPClient == nil {
-		e.vmiHTTPClient = pkg.GetBindingVmiHTTPClient(e.binding, kubeconfigPath)
+		var err error
+		e.vmiHTTPClient, err = pkg.GetBindingVmiHTTPClient(e.binding, kubeconfigPath)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return e.vmiHTTPClient
+	return e.vmiHTTPClient, nil
 }
 
 // ListIndices lists elasticsearch indices
@@ -152,6 +164,7 @@ func (e *Elastic) CheckTLSSecret() bool {
 func (e *Elastic) CheckIngress() bool {
 	ingressList, err := pkg.ListIngresses("verrazzano-system")
 	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not get list of ingresses: %v", err))
 		return false
 	}
 	for _, ingress := range ingressList.Items {

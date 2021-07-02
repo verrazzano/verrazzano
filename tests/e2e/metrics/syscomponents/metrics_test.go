@@ -166,6 +166,7 @@ func verifyEnvoyStats(metricName string) bool {
 	for _, ns := range envoyStatsNamespaces {
 		pods, err := pkg.ListPodsInCluster(ns, clientset)
 		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 			return false
 		}
 		for _, pod := range pods.Items {
@@ -174,14 +175,12 @@ func verifyEnvoyStats(metricName string) bool {
 			case istioSystemNamespace:
 				if excludePods(pod.Name, excludePodsIstio) {
 					retValue = true
-					break
 				} else {
 					retValue = verifyLabels(envoyStatsMetric, ns, pod.Name)
 				}
 			case verrazzanoSystemNamespace:
 				if excludePods(pod.Name, excludePodsVS) {
 					retValue = true
-					break
 				} else {
 					retValue = verifyLabels(envoyStatsMetric, ns, pod.Name)
 				}

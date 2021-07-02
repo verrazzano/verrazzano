@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -75,126 +75,126 @@ var (
 	elasticPollingInterval = 5 * time.Second
 )
 
-var _ = ginkgo.BeforeSuite(func() {
+var _ = BeforeSuite(func() {
 	var err error
 
 	vzCRD, err = verrazzanoInstallerCRD()
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Error retrieving Verrazzano Installer CRD: %v", err))
+		Fail(fmt.Sprintf("Error retrieving Verrazzano Installer CRD: %v", err))
 	}
 
 	ingressURLs, err = vmiIngressURLs()
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Error retrieving system VMI ingress URLs: %v", err))
+		Fail(fmt.Sprintf("Error retrieving system VMI ingress URLs: %v", err))
 	}
 
 	volumeClaims, err = pkg.GetPersistentVolumes(verrazzanoNamespace)
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Error retrieving persistent volumes for verrazzano-system: %v", err))
+		Fail(fmt.Sprintf("Error retrieving persistent volumes for verrazzano-system: %v", err))
 	}
 
 	vmiCRD, err = verrazzanoMonitoringInstanceCRD()
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Error retrieving system VMI CRD: %v", err))
+		Fail(fmt.Sprintf("Error retrieving system VMI CRD: %v", err))
 	}
 
 	creds, err = pkg.GetSystemVMICredentials()
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
+		Fail(fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
 	}
 	elastic = vmi.GetElastic("system")
 })
 
-var _ = ginkgo.Describe("VMI", func() {
+var _ = Describe("VMI", func() {
 
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
-		ginkgo.It("Elasticsearch should NOT be present", func() {
+		It("Elasticsearch should NOT be present", func() {
 			// Verify ES not present
-			gomega.Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})).To(gomega.BeTrue())
-			gomega.Expect(elasticTLSSecret()).To(gomega.BeTrue())
-			gomega.Expect(elastic.CheckIngress()).To(gomega.BeFalse())
-			gomega.Expect(ingressURLs).NotTo(gomega.HaveKey("vmi-system-es-ingest"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
+			Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})).To(BeTrue())
+			Expect(elasticTLSSecret()).To(BeTrue())
+			Expect(elastic.CheckIngress()).To(BeFalse())
+			Expect(ingressURLs).NotTo(HaveKey("vmi-system-es-ingest"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
 			// Verify Kibana not present
-			gomega.Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})).To(gomega.BeTrue())
-			gomega.Expect(ingressURLs).NotTo(gomega.HaveKey("vmi-system-kibana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
+			Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})).To(BeTrue())
+			Expect(ingressURLs).NotTo(HaveKey("vmi-system-kibana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
 			// Verify Grafana not present
-			gomega.Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-grafana"})).To(gomega.BeTrue())
-			gomega.Expect(ingressURLs).NotTo(gomega.HaveKey("vmi-system-grafana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
+			Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-grafana"})).To(BeTrue())
+			Expect(ingressURLs).NotTo(HaveKey("vmi-system-grafana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 		})
 	} else {
-		ginkgo.It("Elasticsearch endpoint should be accessible", func() {
+		It("Elasticsearch endpoint should be accessible", func() {
 			elasticPodsRunning := func() bool {
 				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
 			}
-			gomega.Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "pods did not all show up")
-			gomega.Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "tls-secret did not show up")
-			//gomega.Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "certificate did not show up")
-			gomega.Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "ingress did not show up")
-			gomega.Expect(ingressURLs).To(gomega.HaveKey("vmi-system-es-ingest"), "Ingress vmi-system-es-ingest not found")
+			Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
+			Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
+			//Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
+			Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
+			Expect(ingressURLs).To(HaveKey("vmi-system-es-ingest"), "Ingress vmi-system-es-ingest not found")
 			assertOidcIngressByName("vmi-system-es-ingest")
-			gomega.Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "never connected")
-			gomega.Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "indices never created")
+			Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
+			Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
 		})
 
-		ginkgo.It("Elasticsearch verrazzano-system Index should be accessible", func() {
+		It("Elasticsearch verrazzano-system Index should be accessible", func() {
 			indexName := "verrazzano-namespace-verrazzano-system"
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return pkg.LogRecordFound(indexName,
 							time.Now().Add(-24*time.Hour), map[string]string{
 								"kubernetes.container_name": "verrazzano-monitoring-operator",
 								"caller":                    "controller",
 								"cluster_name":              constants.MCLocalCluster,
 							})
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
 				},
 				func() {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return pkg.LogRecordFound(indexName,
 							time.Now().Add(-24*time.Hour), map[string]string{
 								"kubernetes.container_name": "verrazzano-application-operator",
 								"caller":                    "controller",
 								"cluster_name":              constants.MCLocalCluster,
 							})
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a verrazzano-application-operator log record")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
 				},
 			)
 		})
 
-		ginkgo.It("Elasticsearch systemd journal Index should be accessible", func() {
-			gomega.Eventually(func() bool {
+		It("Elasticsearch systemd journal Index should be accessible", func() {
+			Eventually(func() bool {
 				return pkg.FindAnyLog("verrazzano-systemd-journal",
 					[]pkg.Match{
 						{Key: "tag", Value: "systemd"},
 						{Key: "TRANSPORT", Value: "journal"},
 						{Key: "cluster_name", Value: constants.MCLocalCluster}},
 					[]pkg.Match{})
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 		})
 
-		ginkgo.It("Kibana endpoint should be accessible", func() {
+		It("Kibana endpoint should be accessible", func() {
 			kibanaPodsRunning := func() bool {
 				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
 			}
-			gomega.Eventually(kibanaPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "kibana pods did not all show up")
-			gomega.Expect(ingressURLs).To(gomega.HaveKey("vmi-system-kibana"), "Ingress vmi-system-kibana not found")
+			Eventually(kibanaPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "kibana pods did not all show up")
+			Expect(ingressURLs).To(HaveKey("vmi-system-kibana"), "Ingress vmi-system-kibana not found")
 			assertOidcIngressByName("vmi-system-kibana")
 		})
 
-		ginkgo.It("Prometheus endpoint should be accessible", func() {
+		It("Prometheus endpoint should be accessible", func() {
 			assertOidcIngressByName("vmi-system-prometheus")
 		})
 
-		ginkgo.It("Grafana endpoint should be accessible", func() {
-			gomega.Expect(ingressURLs).To(gomega.HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
+		It("Grafana endpoint should be accessible", func() {
+			Expect(ingressURLs).To(HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
 			assertOidcIngressByName("vmi-system-grafana")
 		})
 
-		ginkgo.It("Default dashboard should be installed in System Grafana for shared VMI", func() {
+		It("Default dashboard should be installed in System Grafana for shared VMI", func() {
 			pkg.Concurrently(
 				func() { assertDashboard("Host%20Metrics") },
 				func() { assertDashboard("WebLogic%20Server%20Dashboard") },
@@ -219,7 +219,7 @@ var _ = ginkgo.Describe("VMI", func() {
 		})
 	}
 
-	ginkgo.It("Verify the instance info endpoint URLs", func() {
+	It("Verify the instance info endpoint URLs", func() {
 		if !isManagedClusterProfile {
 			assertInstanceInfoURLs()
 		}
@@ -227,17 +227,17 @@ var _ = ginkgo.Describe("VMI", func() {
 
 	size := "50Gi"
 	if pkg.IsDevProfile() {
-		ginkgo.It("Check persistent volumes for dev profile", func() {
-			gomega.Expect(len(volumeClaims)).To(gomega.Equal(0))
+		It("Check persistent volumes for dev profile", func() {
+			Expect(len(volumeClaims)).To(Equal(0))
 		})
 	} else if isManagedClusterProfile {
-		ginkgo.It("Check persistent volumes for managed cluster profile", func() {
-			gomega.Expect(len(volumeClaims)).To(gomega.Equal(1))
+		It("Check persistent volumes for managed cluster profile", func() {
+			Expect(len(volumeClaims)).To(Equal(1))
 			assertPersistentVolume("vmi-system-prometheus", size)
 		})
 	} else if pkg.IsProdProfile() {
-		ginkgo.It("Check persistent volumes for prod cluster profile", func() {
-			gomega.Expect(len(volumeClaims)).To(gomega.Equal(7))
+		It("Check persistent volumes for prod cluster profile", func() {
+			Expect(len(volumeClaims)).To(Equal(7))
 			assertPersistentVolume("vmi-system-prometheus", size)
 			assertPersistentVolume("vmi-system-grafana", size)
 			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
@@ -250,20 +250,29 @@ var _ = ginkgo.Describe("VMI", func() {
 })
 
 func assertPersistentVolume(key string, size string) {
-	gomega.Expect(volumeClaims).To(gomega.HaveKey(key))
+	Expect(volumeClaims).To(HaveKey(key))
 	pvc := volumeClaims[key]
-	gomega.Expect(pvc.Spec.Resources.Requests.Storage().String()).To(gomega.Equal(size))
+	Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal(size))
 }
 
 func assertURLAccessibleAndAuthorized(url string) bool {
-	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
+	vmiHTTPClient, err := pkg.GetSystemVmiHTTPClient()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
+		return false
+	}
 	return pkg.AssertURLAccessibleAndAuthorized(vmiHTTPClient, url, creds)
 }
 
 func assertBearerAuthorized(url string) bool {
-	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
+	vmiHTTPClient, err := pkg.GetSystemVmiHTTPClient()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
+		return false
+	}
 	api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
 		return false
 	}
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
@@ -273,6 +282,7 @@ func assertBearerAuthorized(url string) bool {
 	}
 	resp, err := vmiHTTPClient.Do(req)
 	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed making request: %v", err))
 		return false
 	}
 	resp.Body.Close()
@@ -281,23 +291,32 @@ func assertBearerAuthorized(url string) bool {
 }
 
 func assertOauthURLAccessibleAndUnauthorized(url string) bool {
-	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
+	vmiHTTPClient, err := pkg.GetSystemVmiHTTPClient()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
+		return false
+	}
 	vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		pkg.Log(pkg.Info, fmt.Sprintf("oidcUnauthorized req: %v \nvia: %v\n", req, via))
 		return http.ErrUseLastResponse
 	}
 	resp, err := vmiHTTPClient.Get(url)
 	if err != nil || resp == nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed making request: %v", err))
 		return false
 	}
-	location, _ := resp.Location()
-	gomega.Expect(location).NotTo(gomega.BeNil())
+	location, err := resp.Location()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting location from response: %v, error: %v", resp, err))
+		return false
+	}
+	Expect(location).NotTo(BeNil())
 	pkg.Log(pkg.Info, fmt.Sprintf("oidcUnauthorized %v StatusCode:%v host:%v", url, resp.StatusCode, location.Host))
 	return resp.StatusCode == 302 && strings.Contains(location.Host, "keycloak")
 }
 
 func assertOidcIngressByName(key string) {
-	gomega.Expect(ingressURLs).To(gomega.HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
+	Expect(ingressURLs).To(HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
 	url := ingressURLs[key]
 	assertOidcIngress(url)
 }
@@ -308,19 +327,19 @@ func assertOidcIngress(url string) {
 	assertBearerAuth := assertBearerAuthorized
 	pkg.Concurrently(
 		func() {
-			gomega.Eventually(func() bool { return assertUnAuthorized(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			Eventually(func() bool { return assertUnAuthorized(url) }, waitTimeout, pollingInterval).Should(BeTrue())
 		},
 		func() {
-			gomega.Eventually(func() bool { return assertBasicAuth(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			Eventually(func() bool { return assertBasicAuth(url) }, waitTimeout, pollingInterval).Should(BeTrue())
 		},
 		func() {
-			gomega.Eventually(func() bool { return assertBearerAuth(url) }, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			Eventually(func() bool { return assertBearerAuth(url) }, waitTimeout, pollingInterval).Should(BeTrue())
 		},
 	)
 }
 
 func elasticIndicesCreated() bool {
-	b, _ := gomega.ContainElements(".kibana_1").Match(elastic.ListIndices())
+	b, _ := ContainElements(".kibana_1").Match(elastic.ListIndices())
 	return b
 }
 
@@ -332,10 +351,6 @@ func elasticTLSSecret() bool {
 	return elastic.CheckTLSSecret()
 }
 
-//func elasticCertificate() bool {
-//	return elastic.CheckCertificate()
-//}
-
 func elasticIngress() bool {
 	return elastic.CheckIngress()
 }
@@ -343,40 +358,51 @@ func elasticIngress() bool {
 func assertDashboard(url string) {
 	searchURL := fmt.Sprintf("%sapi/search?query=%s", ingressURLs["vmi-system-grafana"], url)
 	fmt.Println("Grafana URL in browseGrafanaDashboard ", searchURL)
-	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
-	vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
 
 	searchDashboard := func() bool {
+		vmiHTTPClient, err := pkg.GetSystemVmiHTTPClient()
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
+			return false
+		}
+		vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+
 		req, err := retryablehttp.NewRequest("GET", searchURL, nil)
 		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error creating HTTP request: %v", err))
 			return false
 		}
 		req.SetBasicAuth(creds.Username, creds.Password)
 		resp, err := vmiHTTPClient.Do(req)
 		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error making HTTP request: %v", err))
 			return false
 		}
 		if resp.StatusCode != http.StatusOK {
+			pkg.Log(pkg.Error, fmt.Sprintf("Unexpected HTTP status code: %d", resp.StatusCode))
 			return false
 		}
 		// assert that there is a single item in response
 		defer resp.Body.Close()
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			ginkgo.Fail("Unable to read body from response " + err.Error())
+			pkg.Log(pkg.Error, fmt.Sprintf("Unable to read body from response: %v", err))
+			return false
 		}
 		var response []map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &response); err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error unmarshaling response body: %v", err))
 			return false
 		}
 		if len(response) != 1 {
+			pkg.Log(pkg.Error, fmt.Sprintf("Unexpected response length: %d", len(response)))
 			return false
 		}
 		return true
 	}
-	gomega.Eventually(searchDashboard, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+	Eventually(searchDashboard, waitTimeout, pollingInterval).Should(BeTrue())
 }
 
 func assertInstanceInfoURLs() {
@@ -384,13 +410,13 @@ func assertInstanceInfoURLs() {
 	instanceInfo := cr.Status.VerrazzanoInstance
 	switch cr.Spec.Profile {
 	case v1alpha1.ManagedCluster:
-		gomega.Expect(instanceInfo.GrafanaURL).To(gomega.BeNil())
-		gomega.Expect(instanceInfo.ElasticURL).To(gomega.BeNil())
-		gomega.Expect(instanceInfo.KibanaURL).To(gomega.BeNil())
+		Expect(instanceInfo.GrafanaURL).To(BeNil())
+		Expect(instanceInfo.ElasticURL).To(BeNil())
+		Expect(instanceInfo.KibanaURL).To(BeNil())
 	default:
-		gomega.Expect(instanceInfo.GrafanaURL).NotTo(gomega.BeNil())
-		gomega.Expect(instanceInfo.ElasticURL).NotTo(gomega.BeNil())
-		gomega.Expect(instanceInfo.KibanaURL).NotTo(gomega.BeNil())
+		Expect(instanceInfo.GrafanaURL).NotTo(BeNil())
+		Expect(instanceInfo.ElasticURL).NotTo(BeNil())
+		Expect(instanceInfo.KibanaURL).NotTo(BeNil())
 		if instanceInfo.ElasticURL != nil {
 			assertOidcIngress(*instanceInfo.ElasticURL)
 		}
@@ -401,7 +427,7 @@ func assertInstanceInfoURLs() {
 			assertOidcIngress(*instanceInfo.GrafanaURL)
 		}
 	}
-	gomega.Expect(instanceInfo.PrometheusURL).NotTo(gomega.BeNil())
+	Expect(instanceInfo.PrometheusURL).NotTo(BeNil())
 	if instanceInfo.PrometheusURL != nil {
 		assertOidcIngress(*instanceInfo.PrometheusURL)
 	}

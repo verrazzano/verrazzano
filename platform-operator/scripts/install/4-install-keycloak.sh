@@ -768,7 +768,9 @@ if [ $(is_keycloak_enabled) == "true" ]; then
 
   action "Installing Keycloak" install_keycloak || exit 1
 
-  action "patching the prometheus deployment to enable communication with keycloak" patch_prometheus || exit 1
+  if [ $(is_prometheus_console_enabled) == "true" ]; then
+    action "patching the prometheus deployment to enable communication with keycloak" patch_prometheus || exit 1
+  fi
 
 else
   log "Skip Keycloak installation, disabled"

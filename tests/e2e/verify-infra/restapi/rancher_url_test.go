@@ -5,27 +5,27 @@ package restapi
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
-	"github.com/onsi/gomega"
-
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = ginkgo.Describe("rancher url test", func() {
+var _ = Describe("rancher url test", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	ginkgo.Context("Fetching the rancher url using api and test ", func() {
-		ginkgo.It("Fetches rancher url", func() {
+	Context("Fetching the rancher url using api and test ", func() {
+		It("Fetches rancher url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
 				var rancherURL string
 
-				gomega.Eventually(func() error {
+				Eventually(func() error {
 					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 					if err != nil {
 						return err
@@ -37,14 +37,31 @@ var _ = ginkgo.Describe("rancher url test", func() {
 					rancherURL = fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
 					pkg.Log(pkg.Info, fmt.Sprintf("Found ingress URL: %s", rancherURL))
 					return nil
-				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+				}, waitTimeout, pollingInterval).Should(BeNil())
 
-				gomega.Expect(rancherURL).NotTo(gomega.BeEmpty())
-				httpClient := pkg.GetRancherHTTPClient(kubeconfigPath)
+				Expect(rancherURL).NotTo(BeEmpty())
+				var httpResponse *pkg.HTTPResponse
 
-				gomega.Eventually(func() bool {
-					return pkg.MakeHTTPGetRequest(httpClient, rancherURL)
-				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				Eventually(func() bool {
+					httpClient, err := pkg.GetRancherHTTPClient(kubeconfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
+						return false
+					}
+					httpResponse, err = pkg.GetWebPageWithClient(httpClient, rancherURL, "")
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error making get request to url: %s, error: %v", rancherURL, err))
+						return false
+					}
+					if httpResponse.StatusCode != http.StatusOK {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error making get request to url: %s, response: %v", rancherURL, httpResponse))
+						return false
+					}
+					return true
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+
+				Expect(httpResponse).NotTo(BeNil())
+				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
 			}
 		})
 	})

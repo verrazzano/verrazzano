@@ -18,6 +18,13 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// Username - the username of the verrazzano admin user
+	Username               = "verrazzano"
+	realm                  = "verrazzano-system"
+	verrazzanoAPIURLPrefix = "20210501"
+)
+
 // APIEndpoint contains information needed to access an API
 type APIEndpoint struct {
 	AccessToken string `json:"access_token"`
@@ -27,22 +34,35 @@ type APIEndpoint struct {
 
 // GetAPIEndpoint returns the APIEndpoint stub with AccessToken, from the given cluster
 func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
-	ingress, _ := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
+	ingress, err := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	keycloakHTTPClient, err := GetKeycloakHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 	var ingressRules = ingress.Spec.Rules
-	keycloakHTTPClient := GetKeycloakHTTPClient(kubeconfigPath)
 	keycloakURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
 	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), keycloakAPIClientID)
-	status, resp := postWithClient(keycloakURL, "application/x-www-form-urlencoded", strings.NewReader(body), keycloakHTTPClient)
+	resp, err := doReq(keycloakURL, "POST", "application/x-www-form-urlencoded", "", "", "", strings.NewReader(body), keycloakHTTPClient)
+	if err != nil {
+		return nil, err
+	}
 	var api APIEndpoint
-	if status == http.StatusOK {
-		json.Unmarshal([]byte(resp), &api)
+	if resp.StatusCode == http.StatusOK {
+		json.Unmarshal([]byte(resp.Body), &api)
 	} else {
-		msg := fmt.Sprintf("error getting API access token from %s: %d", keycloakURL, status)
+		msg := fmt.Sprintf("error getting API access token from %s: %d", keycloakURL, resp.StatusCode)
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
 	api.APIURL = getAPIURL(kubeconfigPath)
-	api.HTTPClient = GetVerrazzanoHTTPClientForCluster(kubeconfigPath)
+	api.HTTPClient, err = GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+
 	return &api, nil
 }
 
@@ -85,10 +105,10 @@ func (api *APIEndpoint) Request(method, path string, body io.Reader) (*HTTPRespo
 	if err != nil {
 		return nil, err
 	}
-	return ProcHTTPResponse(resp, err), nil
+	return ProcessHTTPResponse(resp)
 }
 
-// ProcHTTPResponse processes the HTTP response by reading and closing the body, then returning
+// ProcessHTTPResponse processes the HTTP response by reading and closing the body, then returning
 // the HTTPResponse object.  This function is used to prevent file descriptor leaks
 // and other problems.
 // See https://github.com/golang/go/blob/master/src/net/http/response.go
@@ -99,28 +119,31 @@ func (api *APIEndpoint) Request(method, path string, body io.Reader) (*HTTPRespo
 // Returns
 //   HttpReponse which has the body and status code.
 //
-func ProcHTTPResponse(resp *http.Response, httpErr error) *HTTPResponse {
-	if httpErr != nil {
-		return &HTTPResponse{}
-	}
-
+func ProcessHTTPResponse(resp *http.Response) (*HTTPResponse, error) {
 	// Must read entire body and close it.  See http.Response.Body doc
 	defer resp.Body.Close()
-	body, bodyErr := ioutil.ReadAll(resp.Body)
-	return &HTTPResponse{
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	processedResponse := &HTTPResponse{
 		StatusCode: resp.StatusCode,
 		Header:     resp.Header,
 		Body:       body,
-		BodyErr:    bodyErr,
 	}
+	return processedResponse, nil
 }
 
 //GetIngress fetches ingress from api
 func (api *APIEndpoint) GetIngress(namespace, name string) (*extensionsv1beta1.Ingress, error) {
 	response, err := api.Get(fmt.Sprintf("apis/extensions/v1beta1/namespaces/%s/ingresses/%s", namespace, name))
-	if err != nil || response.StatusCode != http.StatusOK {
-		Log(Error, fmt.Sprintf("Error fetching ingress %s/%s from api, error: %v, response: %v", namespace, name, err, response))
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error fetching ingress %s/%s from api, error: %v", namespace, name, err))
 		return nil, err
+	}
+	if response.StatusCode != http.StatusOK {
+		Log(Error, fmt.Sprintf("Error fetching ingress %s/%s from api, response: %v", namespace, name, response))
+		return nil, fmt.Errorf("unexpected HTTP status code: %d", response.StatusCode)
 	}
 
 	ingress := extensionsv1beta1.Ingress{}

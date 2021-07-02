@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"net/http"
 	"strings"
 	"time"
 
@@ -35,16 +36,20 @@ func getSystemElasticSearchIngressHost(kubeconfigPath string) string {
 
 // listSystemElasticSearchIndices lists the system Elasticsearch indices in the given cluster
 func listSystemElasticSearchIndices(kubeconfigPath string) []string {
-	url := fmt.Sprintf("https://%s/_all", getSystemElasticSearchIngressHost(kubeconfigPath))
-	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	list := []string{}
-	if status != 200 {
-		Log(Debug, fmt.Sprintf("Error retrieving Elasticsearch indices: url=%s, status=%d", url, status))
+	url := fmt.Sprintf("https://%s/_all", getSystemElasticSearchIngressHost(kubeconfigPath))
+	resp, err := GetWebPageWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting Elasticsearch indices: url=%s, error=%v", url, err))
 		return list
 	}
-	Log(Debug, fmt.Sprintf("indices: %s", body))
+	if resp.StatusCode != http.StatusOK {
+		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch indices: url=%s, status=%d", url, resp.StatusCode))
+		return list
+	}
+	Log(Debug, fmt.Sprintf("indices: %s", resp.Body))
 	var indexMap map[string]interface{}
-	json.Unmarshal([]byte(body), &indexMap)
+	json.Unmarshal(resp.Body, &indexMap)
 	for name := range indexMap {
 		list = append(list, name)
 	}
@@ -62,15 +67,19 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 			query = fmt.Sprintf("%s+AND+%s", query, fieldQuery)
 		}
 	}
-	url := fmt.Sprintf("https://%s/%s/_doc/_search?q=%s", getSystemElasticSearchIngressHost(kubeconfigPath), index, query)
-	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	var result map[string]interface{}
-	if status != 200 {
-		Log(Debug, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, status=%d", url, status))
+	url := fmt.Sprintf("https://%s/%s/_doc/_search?q=%s", getSystemElasticSearchIngressHost(kubeconfigPath), index, query)
+	resp, err := GetWebPageWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, error=%v", url, err))
 		return result
 	}
-	Log(Debug, fmt.Sprintf("records: %s", body))
-	json.Unmarshal([]byte(body), &result)
+	if resp.StatusCode != http.StatusOK {
+		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, status=%d", url, resp.StatusCode))
+		return result
+	}
+	Log(Debug, fmt.Sprintf("records: %s", resp.Body))
+	json.Unmarshal(resp.Body, &result)
 	return result
 }
 
@@ -235,13 +244,17 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 	}
 	Log(Debug, fmt.Sprintf("Search: %v \nQuery: \n%v", url, buffer.String()))
 	configPath := GetKubeConfigPathFromEnv()
-	status, resp := RetryPostWithBasicAuth(url, buffer.String(), "verrazzano", GetVerrazzanoPasswordInCluster(configPath), configPath)
 	var result map[string]interface{}
-	if status != 200 {
-		Log(Debug, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, status=%d", url, status))
+	resp, err := PostWithBasicAuth(url, buffer.String(), "verrazzano", GetVerrazzanoPasswordInCluster(configPath), configPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, error=%s", url, err))
 		return result
 	}
-	json.Unmarshal([]byte(resp), &result)
+	if resp.StatusCode != http.StatusOK {
+		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, status=%d", url, resp.StatusCode))
+		return result
+	}
+	json.Unmarshal(resp.Body, &result)
 	return result
 }
 

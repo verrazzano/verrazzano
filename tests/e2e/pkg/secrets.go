@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,15 +35,7 @@ func GetSecret(namespace string, name string) (*corev1.Secret, error) {
 func GetSecretInCluster(namespace string, name string, kubeconfigPath string) (*corev1.Secret, error) {
 	// Get the kubernetes clientset for the given cluster
 	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
-
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			Log(Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
-		}
-		return nil, err
-	}
-	return secret, nil
+	return clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 // CreateCredentialsSecret creates opaque secret
