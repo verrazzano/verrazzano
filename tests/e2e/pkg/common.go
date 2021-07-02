@@ -49,6 +49,7 @@ func GetVerrazzanoPassword() string {
 func GetVerrazzanoPasswordInCluster(kubeconfigPath string) string {
 	secret, err := GetSecretInCluster("verrazzano-system", "verrazzano", kubeconfigPath)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get verrazzano secret: %v", err))
 		return ""
 	}
 	return string(secret.Data["password"])
@@ -110,6 +111,7 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
 	pods, err := ListPodsInCluster(namespace, clientset)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 		return false
 	}
 	missing := notRunning(pods.Items, namePrefixes...)
@@ -131,6 +133,7 @@ func PodsNotRunning(namespace string, namePrefixes []string) bool {
 	clientset := GetKubernetesClientset()
 	allPods, err := ListPodsInCluster(namespace, clientset)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 		return false
 	}
 	terminatedPods := notRunning(allPods.Items, namePrefixes...)
@@ -140,6 +143,7 @@ func PodsNotRunning(namespace string, namePrefixes []string) bool {
 		time.Sleep(15 * time.Second)
 		pods, err := ListPodsInCluster(namespace, clientset)
 		if err != nil {
+			Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 			return false
 		}
 		terminatedPods = notRunning(pods.Items, namePrefixes...)

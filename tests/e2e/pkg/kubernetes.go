@@ -199,12 +199,7 @@ func GetPodsFromSelector(selector *metav1.LabelSelector, namespace string) ([]co
 
 // ListPodsInCluster returns the list of pods in a given namespace for the cluster
 func ListPodsInCluster(namespace string, clientset *kubernetes.Clientset) (*corev1.PodList, error) {
-	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to list pods in namespace %s with error: %v", namespace, err))
-		return nil, err
-	}
-	return pods, nil
+	return clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 }
 
 // DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
@@ -212,6 +207,7 @@ func DoesPodExist(namespace string, name string) bool {
 	clientset := GetKubernetesClientset()
 	pods, err := ListPodsInCluster(namespace, clientset)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 		return false
 	}
 	for i := range pods.Items {

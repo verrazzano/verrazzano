@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"io/ioutil"
@@ -36,9 +37,14 @@ const (
 // NewKeycloakRESTClient creates a new Keycloak REST client.
 func NewKeycloakAdminRESTClient() (*KeycloakRESTClient, error) {
 	kubeconfigPath := GetKubeConfigPathFromEnv()
-	ingress, _ := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses(keycloakNamespace).Get(context.TODO(), keycloadIngressName, k8smeta.GetOptions{})
-	ingressHost := ingress.Spec.Rules[0].Host
-	httpClient := GetKeycloakHTTPClient(kubeconfigPath)
+	ingress, err := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses(keycloakNamespace).Get(context.TODO(), keycloadIngressName, k8smeta.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	httpClient, err := GetKeycloakHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 
 	secret, err := GetSecret(keycloakNamespace, keycloakAdminUserPasswordSecret)
 	if err != nil {
@@ -46,13 +52,17 @@ func NewKeycloakAdminRESTClient() (*KeycloakRESTClient, error) {
 	}
 	keycloakAdminPassword := strings.TrimSpace(string(secret.Data["password"]))
 
+	ingressHost := ingress.Spec.Rules[0].Host
 	keycloakLoginURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressHost, keycloakAdminUserRealm)
 	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", keycloakAdminUserName, keycloakAdminPassword, keycloakAdminClientID)
-	status, response := PostWithHostHeader(keycloakLoginURL, "application/x-www-form-urlencoded", ingressHost, strings.NewReader(body))
-	if status != 200 {
+	resp, err := PostWithHostHeader(keycloakLoginURL, "application/x-www-form-urlencoded", ingressHost, strings.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to login as admin user")
 	}
-	token := JTq(response, "access_token").(string)
+	token := JTq(string(resp.Body), "access_token").(string)
 	if token == "" {
 		return nil, fmt.Errorf("failed to obtain valid access token")
 	}

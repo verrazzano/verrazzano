@@ -208,7 +208,7 @@ func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace s
 	if strings.HasSuffix(patchFile, ".yaml") {
 		patchBytes, err = utilyaml.ToJSON(patchBytes)
 		if err != nil {
-			return fmt.Errorf("Could not convert patch data to JSON: %w", err)
+			return fmt.Errorf("could not convert patch data to JSON: %w", err)
 		}
 	}
 
@@ -226,7 +226,7 @@ func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, n
 	// Attempt to patch the resource.
 	_, err = client.Resource(gvr).Namespace(namespace).Patch(context.TODO(), name, types.MergePatchType, patchDataJSON, metav1.PatchOptions{})
 	if err != nil {
-		return fmt.Errorf("Failed to patch %s/%v: %w", namespace, gvr, err)
+		return fmt.Errorf("failed to patch %s/%v: %w", namespace, gvr, err)
 	}
 	return nil
 }

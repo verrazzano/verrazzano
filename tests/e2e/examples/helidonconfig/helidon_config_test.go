@@ -154,9 +154,11 @@ func helidonConfigPodsRunning() bool {
 }
 
 func appEndpointAccessible(url string, hostname string) bool {
-	status, webpage := pkg.GetWebPageWithBasicAuth(url, hostname, "", "")
-	gomega.Expect(status).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, status))
-	gomega.Expect(strings.Contains(webpage, "HelloConfig World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT HelloConfig World %v", webpage))
+	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+	resp, err := pkg.GetWebPageWithBasicAuth(url, hostname, "", "", kubeconfigPath)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, resp.StatusCode))
+	gomega.Expect(strings.Contains(string(resp.Body), "HelloConfig World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT HelloConfig World %s", resp.Body))
 	return true
 }
 
