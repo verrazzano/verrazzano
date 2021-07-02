@@ -232,13 +232,13 @@ pipeline {
         }
 
         stage('Image Patch Operator') {
-            // when {
-            //     allOf {
-            //         not { buildingTag() }
-            //         changeset "image-patch-operator/**"
-            //     }
-            // }
-            steps {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    changeset "image-patch-operator/**"
+                }
+            }
+            ps {
                 buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
                 buildWITImage("${DOCKER_IMAGE_TAG}")
             }

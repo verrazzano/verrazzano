@@ -4,7 +4,7 @@ This Dockerfile is used to run WebLogic Image Tool inside a Docker container. <b
 Docker Desktop is needed to run the below example.
 
 ## Create a Image using WIT inside a Docker container
-This example shows how to use this Dockerfile to create a container that supports the WebLogic Image Tool.
+This example shows how to use this Dockerfile to create a local container that supports the WebLogic Image Tool.
 
 First, build the image from the Dockerfile.
 ```bash
