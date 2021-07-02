@@ -157,21 +157,19 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
 			// try to update
-			err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
-			if err == nil {
-				Fail("Update to config map succeeded")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
+			Eventually(func() bool {
+				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
-			err = DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
-			if err == nil {
-				Fail("Delete of config map succeeded")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
+			Eventually(func() bool {
+				err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
 		It("managed cluster can access secret but not modify it", func() {
@@ -179,93 +177,82 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 			// try to update
-			err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update.yaml", &v1.Secret{})
-			if err == nil {
-				Fail("Update to secret succeeded")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
+			Eventually(func() bool {
+				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update.yaml", &v1.Secret{})
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
-			err = DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &v1.Secret{})
-			if err == nil {
-				Fail("Delete of secret succeeded")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
+			Eventually(func() bool {
+				err := DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &v1.Secret{})
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
 		It("managed cluster cannot modify vmc on admin", func() {
 			cluster := vmcv1alpha1.VerrazzanoManagedCluster{}
-			err := getMultiClusterResource("verrazzano-mc", managedClusterName, &cluster)
-			if err != nil {
-				Fail("could not get vmc")
-			}
+			Eventually(func() error {
+				return getMultiClusterResource("verrazzano-mc", managedClusterName, &cluster)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 			// try to update
-			cluster.Spec.Description = "new Description"
-			err = updateObject(&cluster)
-			if err == nil {
-				Fail("Update to vmc succeeded")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
+			Eventually(func() bool {
+				cluster.Spec.Description = "new Description"
+				err := updateObject(&cluster)
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
-			err = deleteObject(&cluster)
-			if err == nil {
-				Fail("Delete of vmc succeeded")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
+			Eventually(func() bool {
+				err := deleteObject(&cluster)
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
 		// VZ-2336: NOT be able to read other resources such as secrets, config maps or deployments in the admin cluster
 		It("managed cluster cannot access resources in other namespaaces", func() {
-			err := listResource("verrazzano-system", &v1.SecretList{})
-			if err == nil {
-				Fail("read access allowed")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
-			err = listResource("verrazzano-system", &v1.ConfigMapList{})
-			if err == nil {
-				Fail("read access allowed")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
-			err = listResource("verrazzano-mc", &v1.SecretList{})
-			if err == nil {
-				Fail("read access allowed")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
-			err = listResource("verrazzano-mc", &v1.ConfigMapList{})
-			if err == nil {
-				Fail("read access allowed")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
-			err = listResource(testNamespace, &v1.SecretList{})
-			if err == nil {
-				Fail("read access allowed")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
-			err = listResource(testNamespace, &v1.ConfigMapList{})
-			if err == nil {
-				Fail("read access allowed")
-			}
-			if !errors.IsForbidden(err) {
-				Fail("Wrong error generated - should be forbidden")
-			}
+			Eventually(func() bool {
+				err := listResource("verrazzano-system", &v1.SecretList{})
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+			Eventually(func() bool {
+				err := listResource("verrazzano-system", &v1.ConfigMapList{})
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+			Eventually(func() bool {
+				err := listResource("verrazzano-mc", &v1.SecretList{})
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+			Eventually(func() bool {
+				err := listResource("verrazzano-mc", &v1.ConfigMapList{})
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+			Eventually(func() bool {
+				err := listResource(testNamespace, &v1.SecretList{})
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+			Eventually(func() bool {
+				err := listResource(testNamespace, &v1.ConfigMapList{})
+				// if we didn't get an error, fail immediately
+				Expect(err).Should(HaveOccurred())
+				return errors.IsForbidden(err)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 	})
 })
@@ -330,10 +317,9 @@ func deployTestResources() {
 
 	// create the test project
 	pkg.Log(pkg.Info, "Creating test project")
-	err := CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
-	}
+	Eventually(func() error {
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// Wait for the namespaces to be created
 	pkg.Log(pkg.Info, "Wait for the project namespaces to be created")
@@ -346,17 +332,15 @@ func deployTestResources() {
 
 	// create a config map
 	pkg.Log(pkg.Info, "Creating MC config map")
-	err = CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
-	}
+	Eventually(func() error {
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a secret
 	pkg.Log(pkg.Info, "Creating MC secret")
-	err = CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
-	}
+	Eventually(func() error {
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 
 // undeployTestResources undeploys the test associated multi cluster resources
@@ -367,25 +351,21 @@ func undeployTestResources() {
 
 	// delete a config map
 	pkg.Log(pkg.Info, "Deleting MC config map")
-	err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
-	}
+	Eventually(func() error {
+		return DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete a secret
 	pkg.Log(pkg.Info, "Deleting MC secret")
-	err = DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
-	}
+	Eventually(func() error {
+		return DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete the test project
 	pkg.Log(pkg.Info, "Deleting test project")
-	err = DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
-	}
-
+	Eventually(func() error {
+		return DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 
 // findSecret finds the secret based on name and namespace

@@ -42,10 +42,9 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 
 		It("admin cluster create VerrazzanoProject", func() {
 			// create a project
-			err := pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
-			if err != nil {
-				Fail(fmt.Sprintf("Failed to create VerrazzanoProject: %v", err))
-			}
+			Eventually(func() error {
+				return pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 			Eventually(func() bool {
 				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))

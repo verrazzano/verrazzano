@@ -37,19 +37,18 @@ var _ = AfterEach(func() {
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = BeforeSuite(func() {
 	// deploy the VerrazzanoProject
-	err := examples.DeployHelloHelidonProject(adminKubeconfig, sourceDir)
-	if err != nil {
-		Fail(err.Error())
-	}
+	Eventually(func() error {
+		return examples.DeployHelloHelidonProject(adminKubeconfig, sourceDir)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
 	// wait for the namespace to be created on the cluster before deploying app
 	Eventually(func() bool {
 		return examples.HelidonNamespaceExists(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
-	err = examples.DeployHelloHelidonApp(adminKubeconfig, sourceDir)
-	if err != nil {
-		Fail(err.Error())
-	}
+	Eventually(func() error {
+		return examples.DeployHelloHelidonApp(adminKubeconfig, sourceDir)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 })
 
 var _ = Describe("Multi-cluster verify delete ns of hello-helidon-ns", func() {
@@ -93,16 +92,15 @@ var _ = Describe("Multi-cluster verify delete ns of hello-helidon-ns", func() {
 
 	Context("Delete resources", func() {
 		It("Delete project on admin cluster", func() {
-			err := deleteProject(adminKubeconfig)
-			if err != nil {
-				Fail(err.Error())
-			}
+			Eventually(func() error {
+				return deleteProject(adminKubeconfig)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		It("Delete test namespace on managed cluster", func() {
-			if err := pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig); err != nil {
-				Fail(fmt.Sprintf("Could not delete %s namespace in managed cluster: %v\n", examples.TestNamespace, err))
-			}
+			Eventually(func() error {
+				return pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		It("Verify deletion on managed cluster", func() {
@@ -112,9 +110,9 @@ var _ = Describe("Multi-cluster verify delete ns of hello-helidon-ns", func() {
 		})
 
 		It("Delete test namespace on admin cluster", func() {
-			if err := pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig); err != nil {
-				Fail(fmt.Sprintf("Could not delete %s namespace in admin cluster: %v\n", examples.TestNamespace, err))
-			}
+			Eventually(func() error {
+				return pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		It("Verify deletion on admin cluster", func() {

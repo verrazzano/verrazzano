@@ -41,19 +41,18 @@ var _ = AfterEach(func() {
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = BeforeSuite(func() {
 	// deploy the VerrazzanoProject
-	err := examples.DeployHelloHelidonProject(adminKubeconfig, sourceDir)
-	if err != nil {
-		Fail(err.Error())
-	}
+	Eventually(func() error {
+		return examples.DeployHelloHelidonProject(adminKubeconfig, sourceDir)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
 	// wait for the namespace to be created on the cluster before deploying app
 	Eventually(func() bool {
 		return examples.HelidonNamespaceExists(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
-	err = examples.DeployHelloHelidonApp(adminKubeconfig, sourceDir)
-	if err != nil {
-		Fail(err.Error())
-	}
+	Eventually(func() error {
+		return examples.DeployHelloHelidonApp(adminKubeconfig, sourceDir)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 })
 
 var _ = Describe("Multi-cluster verify hello-helidon", func() {
@@ -155,17 +154,16 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	Context("Metrics", func() {
 		It("Verify Prometheus metrics exist on admin cluster", func() {
 			Eventually(func() bool {
-				return appMetricsExists(adminKubeconfig)
+				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
 
 	Context("Change Placement of app to Admin Cluster", func() {
 		It("Apply patch to change placement to admin cluster", func() {
-			err := examples.ChangePlacementToAdminCluster(adminKubeconfig)
-			if err != nil {
-				Fail(err.Error())
-			}
+			Eventually(func() error {
+				return examples.ChangePlacementToAdminCluster(adminKubeconfig)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		It("MC Resources should be removed from managed cluster", func() {
@@ -196,10 +194,9 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	// each of the 2 types - admin and managed
 	Context("Return the app to Managed Cluster", func() {
 		It("Apply patch to change placement back to managed cluster", func() {
-			err := examples.ChangePlacementToManagedCluster(adminKubeconfig)
-			if err != nil {
-				Fail(err.Error())
-			}
+			Eventually(func() error {
+				return examples.ChangePlacementToManagedCluster(adminKubeconfig)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		// GIVEN an admin cluster
@@ -223,10 +220,9 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 
 	Context("Delete resources", func() {
 		It("Delete resources on admin cluster", func() {
-			err := cleanUp(adminKubeconfig)
-			if err != nil {
-				Fail(err.Error())
-			}
+			Eventually(func() error {
+				return cleanUp(adminKubeconfig)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		It("Verify deletion on admin cluster", func() {
@@ -242,15 +238,15 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 		})
 
 		It("Delete test namespace on managed cluster", func() {
-			if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig); err != nil {
-				Fail(fmt.Sprintf("Could not delete %s namespace in managed cluster: %v\n", examples.TestNamespace, err))
-			}
+			Eventually(func() error {
+				return pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		It("Delete test namespace on admin cluster", func() {
-			if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig); err != nil {
-				Fail(fmt.Sprintf("Could not delete %s namespace in admin cluster: %v\n", examples.TestNamespace, err))
-			}
+			Eventually(func() error {
+				return pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 	})
 })
@@ -274,8 +270,4 @@ func cleanUp(kubeconfigPath string) error {
 		return fmt.Errorf("failed to delete hello-helidon project resource: %v", err)
 	}
 	return nil
-}
-
-func appMetricsExists(kubeconfigPath string) bool {
-	return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, kubeconfigPath)
 }
