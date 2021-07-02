@@ -777,6 +777,7 @@ else
 fi
 
 rm -rf $TMP_DIR
+kubectl get secret system-tls -n verrazzano-system -o yaml
 
 consoleout
 consoleout "Installation Complete."
