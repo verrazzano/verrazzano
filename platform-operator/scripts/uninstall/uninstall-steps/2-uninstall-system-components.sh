@@ -107,7 +107,6 @@ function delete_rancher() {
   log "Deleting rancher"
   helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n fleet-system \
     || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
-  # Determine whether we need to uninstall fleet-crd
     helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm -n fleet-system uninstall fleet-crd \
     || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
   helm ls -n rancher-operator-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n rancher-operator-system \
@@ -117,10 +116,6 @@ function delete_rancher() {
 
   log "Delete the additional CA secret for Rancher"
   kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
-
-  #curl -LJo $UNINSTALL_DIR/system-tools https://github.com/rancher/system-tools/releases/download/v0.1.1-rc7/system-tools_linux-amd64
-  #chmod +x $UNINSTALL_DIR/system-tools
-  #$UNINSTALL_DIR/system-tools remove --kubeconfig $KUBECONFIG --namespace  cattle-system --force
 
   log "Deleting CRDs from rancher"
 
@@ -174,22 +169,21 @@ function delete_rancher() {
   log "Delete the Rancher service accounts"
   if kubectl get serviceaccount -n cattle-system rancher > /dev/null 2>&1 ; then
     if ! kubectl delete serviceaccount -n cattle-system rancher ; then
-      error "Failed to delete the service account rancher."
+      error "Failed to delete the service account rancher in namespace cattle-system."
     fi
   fi
 
   if kubectl get serviceaccount -n cattle-system rancher-webhook > /dev/null 2>&1 ; then
     if ! kubectl delete serviceaccount -n cattle-system rancher-webhook ; then
-      error "Failed to delete the service account rancher-webhook."
+      error "Failed to delete the service account rancher-webhook in namespace cattle-system."
     fi
   fi
 
   if kubectl get serviceaccount -n cattle-system default > /dev/null 2>&1 ; then
     if ! kubectl delete serviceaccount -n cattle-system default ; then
-      error "Failed to delete the service account default."
+      error "Failed to delete the service account default in namespace cattle-system."
     fi
   fi
-  kubectl delete clusterrolebinding rancher-webhook --ignore-not-found=true
 
   # delete cattle namespaces
   log "Delete rancher namespace"

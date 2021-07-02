@@ -90,7 +90,7 @@ function get_rancher_access_token {
   # Use external retries instead of curl retries, since curl does not retry for all
   # the scenarios we want (e.g. connection errors)
   local retries=0
-  until [ "$retries" -ge 20 ]
+  until [ "$retries" -ge 10 ]
   do
     ARGS=(-k --connect-timeout 30 $(get_rancher_resolve ${rancher_hostname}) \
     -d '{"type":"token", "description":"automation"}' \
@@ -115,7 +115,6 @@ function get_rancher_access_token {
       echo
       echo "Dumping additional detail below"
       dump_rancher_ingress
-      list_certificates_and_pods
       return 1
   fi
 
@@ -127,15 +126,6 @@ function dump_rancher_ingress {
   echo "########  rancher ingress details ##########"
   kubectl get ingress rancher -n cattle-system -o yaml
   echo "########  end rancher ingress details ##########"
-}
-
-function list_certificates_and_pods {
-  echo
-  echo "List all the certificates"
-  kubectl get certificates -A
-  echo "List all the pods"
-  kubectl get pods -A
-  echo
 }
 
 # Check if the optional global registry secret exists
