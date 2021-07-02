@@ -107,7 +107,7 @@ function setup_cluster_issuer() {
     # attempt first kubectl command with retry to ensure that cert-manager webhook is fully initialized
     kubectl_apply_with_retry "
 apiVersion: cert-manager.io/v1
-kind: Issuer
+kind: ClusterIssuer
 metadata:
   name: verrazzano-cluster-issuer
 spec:
