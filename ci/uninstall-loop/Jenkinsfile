@@ -374,6 +374,7 @@ pipeline {
         aborted {
             script {
                 abort = true
+                cleanrun = false
                 sh """
                     echo "Run aborted - ensuring deletion of VZ cluster and operator"
                     # Brute-force delete the VZ instance, and patch out the finalizer if necessary
