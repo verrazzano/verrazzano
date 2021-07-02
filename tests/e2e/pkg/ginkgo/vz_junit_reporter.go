@@ -3,7 +3,7 @@
 
 // Verrazzano JUnit XML Reporter for Ginkgo
 
-package reporters
+package ginkgo
 
 import (
 	"encoding/xml"
