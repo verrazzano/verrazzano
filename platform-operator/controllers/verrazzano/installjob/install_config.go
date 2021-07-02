@@ -176,6 +176,11 @@ type Rancher struct {
 	Enabled string `json:"enabled,omitempty"`
 }
 
+// Fluentd DaemonSet configuration
+type Fluentd struct {
+	FluentdInstallArgs []InstallArg `json:"fluentdInstallArgs,omitempty"`
+}
+
 // InstallConfiguration - Verrazzano installation configuration options
 type InstallConfiguration struct {
 	EnvironmentName string                      `json:"environmentName"`
@@ -185,6 +190,7 @@ type InstallConfiguration struct {
 	Certificates    Certificate                 `json:"certificates"`
 	Keycloak        Keycloak                    `json:"keycloak"`
 	Rancher         Rancher                     `json:"rancher"`
+	Fluentd         Fluentd                     `json:"fluentd"`
 	VzInstallArgs   []InstallArg                `json:"verrazzanoInstallArgs,omitempty"`
 }
 
@@ -208,6 +214,7 @@ func GetInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, er
 		Certificates:    getCertificateConfig(vz),
 		Keycloak:        keycloak,
 		Rancher:         getRancher(vz.Spec.Components.Rancher),
+		Fluentd:         getFluentd(vz.Spec.Components.Fluentd),
 	}, nil
 }
 
@@ -343,6 +350,19 @@ func getRancher(rancher *installv1alpha1.RancherComponent) Rancher {
 func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource) (Keycloak, error) {
 
 	if keycloak == nil {
+		if defaultVolumeSpec != nil && defaultVolumeSpec.EmptyDir != nil {
+			var mySQLArgs []InstallArg
+			mySQLArgs = append(mySQLArgs, InstallArg{
+				Name:  "persistence.enabled",
+				Value: "false",
+			})
+			keycloakConfig := Keycloak{
+				MySQL: MySQL{
+					MySQLInstallArgs: mySQLArgs,
+				},
+			}
+			return keycloakConfig, nil
+		}
 		return Keycloak{}, nil
 	}
 
@@ -407,6 +427,11 @@ func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []instal
 				SetString: true,
 			})
 		}
+		// Enable MySQL persistence
+		mySQLArgs = append(mySQLArgs, InstallArg{
+			Name:  "persistence.enabled",
+			Value: "true",
+		})
 	}
 	// Update the MySQL Install args
 	keycloakConfig.MySQL.MySQLInstallArgs = mySQLArgs
@@ -639,12 +664,26 @@ func validateRoleBindingSubject(subject rbacv1.Subject, name string) error {
 }
 
 func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
+	const helmValuePrefix = "elasticSearch."
 	vmiArgs := []InstallArg{}
 	if vzSpec.Components.Elasticsearch != nil {
 		vmiArgs = append(vmiArgs, InstallArg{
 			Name:  esEnabledValueName,
 			Value: strconv.FormatBool(vzSpec.Components.Elasticsearch.Enabled),
 		})
+		// Add the set of args specified in the yaml, prefixing the elasticSearch string
+		// For example, the following YAML will result in `elasticSearch.nodes.master.replicas`
+		// elasticsearch:
+		//   installArgs:
+		//	   - name: nodes.master.replicas
+		//       value: "2"
+		for _, esArg := range vzSpec.Components.Elasticsearch.ESInstallArgs {
+			vmiArgs = append(vmiArgs, InstallArg{
+				Name:      helmValuePrefix + esArg.Name,
+				Value:     esArg.Value,
+				SetString: esArg.SetString,
+			})
+		}
 	}
 	if vzSpec.Components.Prometheus != nil {
 		vmiArgs = append(vmiArgs, InstallArg{
@@ -675,4 +714,35 @@ func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeC
 		}
 	}
 	return nil, false
+}
+
+func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {
+	fluentd := Fluentd{}
+	if comp == nil {
+		return fluentd
+	}
+	fluentd.FluentdInstallArgs = []InstallArg{}
+	for i, vm := range comp.ExtraVolumeMounts {
+		fluentd.FluentdInstallArgs = append(fluentd.FluentdInstallArgs, InstallArg{
+			Name:  fmt.Sprintf("logging.extraVolumeMounts[%d].source", i),
+			Value: vm.Source,
+		})
+		dest := vm.Source
+		if vm.Destination != "" {
+			dest = vm.Destination
+		}
+		fluentd.FluentdInstallArgs = append(fluentd.FluentdInstallArgs, InstallArg{
+			Name:  fmt.Sprintf("logging.extraVolumeMounts[%d].destination", i),
+			Value: dest,
+		})
+		readOnly := true
+		if vm.ReadOnly != nil {
+			readOnly = *vm.ReadOnly
+		}
+		fluentd.FluentdInstallArgs = append(fluentd.FluentdInstallArgs, InstallArg{
+			Name:  fmt.Sprintf("logging.extraVolumeMounts[%d].readOnly", i),
+			Value: strconv.FormatBool(readOnly),
+		})
+	}
+	return fluentd
 }

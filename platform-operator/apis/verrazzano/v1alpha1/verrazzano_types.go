@@ -235,17 +235,25 @@ type ComponentSpec struct {
 	// Rancher configuration
 	// +optional
 	Rancher *RancherComponent `json:"rancher,omitempty"`
+	// Fluentd configuration
+	// +optional
+	Fluentd *FluentdComponent `json:"fluentd,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
 type MonitoringComponent struct {
 	// +optional
+	// +kubebuilder:default:=true
 	Enabled bool `json:"enabled,omitempty"`
 }
 
 // ElasticsearchComponent specifies the Elasticsearch configuration.
 type ElasticsearchComponent struct {
 	MonitoringComponent `json:",inline"`
+
+	// Arguments for installing Elasticsearch
+	// +optional
+	ESInstallArgs []InstallArgs `json:"installArgs,omitempty"`
 }
 
 // KibanaComponent specifies the Kibana configuration.
@@ -337,6 +345,12 @@ type RancherComponent struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
+// FluentdComponent specifies the Fluentd DaemonSet configuration
+type FluentdComponent struct {
+	// +optional
+	ExtraVolumeMounts []VolumeMount `json:"extraVolumeMounts,omitempty"`
+}
+
 // InstallArgs identifies a name/value or name/value list needed for install.
 // Value and ValueList cannot both be specified.
 type InstallArgs struct {
@@ -351,6 +365,18 @@ type InstallArgs struct {
 	// List of values for named install argument
 	// +optional
 	ValueList []string `json:"valueList,omitempty"`
+}
+
+// VolumeMount defines a hostPath type Volume mount
+type VolumeMount struct {
+	// Source hostPath
+	Source string `json:"source"`
+	// Destination path on the Container, defaults to source hostPath
+	// +optional
+	Destination string `json:"destination,omitempty"`
+	// ReadOnly defaults to true
+	// +optional
+	ReadOnly *bool `json:"readOnly,omitempty"`
 }
 
 // ProviderType identifies Acme provider type.

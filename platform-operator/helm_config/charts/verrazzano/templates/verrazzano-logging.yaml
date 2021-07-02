@@ -484,18 +484,19 @@ spec:
             - mountPath: /var/log
               name: varlog
               readOnly: true
-            - mountPath: /var/lib/docker/containers
-              name: varlibdockercontainers
-              readOnly: true
-            - mountPath: /u01/data/docker/containers
-              name: datadockercontainers
+            - mountPath: /var/lib
+              name: varlib
               readOnly: true
             - mountPath: /run/log/journal
               name: run-log-journal
               readOnly: true
-            - mountPath: /var/lib/dbus
-              name: var-lib-dbus
-              readOnly: true
+{{- if .Values.logging.extraVolumeMounts }}
+{{- range $i, $e := .Values.logging.extraVolumeMounts }}
+            - mountPath: {{ $e.destination }}
+              name: extra-volume-{{ $i }}
+              readOnly: {{ $e.readOnly }}
+{{- end }}
+{{- end }}
       serviceAccount: fluentd
       serviceAccountName: fluentd
       terminationGracePeriodSeconds: 30
@@ -511,21 +512,21 @@ spec:
             type: ""
           name: varlog
         - hostPath:
-            path: /var/lib/docker/containers
+            path: /var/lib
             type: ""
-          name: varlibdockercontainers
-        - hostPath:
-            path: /u01/data/docker/containers
-            type: ""
-          name: datadockercontainers
+          name: varlib
         - hostPath:
             path: /run/log/journal
             type: ""
           name: run-log-journal
+{{- if .Values.logging.extraVolumeMounts }}
+{{- range $i, $e := .Values.logging.extraVolumeMounts }}
         - hostPath:
-            path: /var/lib/dbus
+            path: {{ $e.source }}
             type: ""
-          name: var-lib-dbus
+          name: extra-volume-{{ $i }}
+{{- end }}
+{{- end }}
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1
