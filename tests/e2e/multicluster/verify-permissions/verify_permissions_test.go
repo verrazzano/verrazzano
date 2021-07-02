@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -33,32 +33,32 @@ const anotherTestNamespace = "anothermulticlustertest"
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 
-var _ = ginkgo.BeforeSuite(func() {
+var _ = BeforeSuite(func() {
 	// Do set up for multi cluster tests
 	deployTestResources()
 })
 
-var _ = ginkgo.AfterSuite(func() {
+var _ = AfterSuite(func() {
 	// Do set up for multi cluster tests
 	undeployTestResources()
 })
 
-var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
+var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 	// vZ-2336: Be able to read MultiClusterXXX resources in the admin cluster
 	//			Be able to update the status of MultiClusterXXX resources in the admin cluster
-	ginkgo.Context("Admin Cluster - verify mc resources and their status updates", func() {
-		ginkgo.BeforeEach(func() {
+	Context("Admin Cluster - verify mc resources and their status updates", func() {
+		BeforeEach(func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
-		ginkgo.It("admin cluster - verify mc config map", func() {
-			gomega.Eventually(func() bool {
+		It("admin cluster - verify mc config map", func() {
+			Eventually(func() bool {
 				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc configmap")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
 
 			eventuallyIterations := 0
-			gomega.Eventually(func() bool {
+			Eventually(func() bool {
 				// Verify we have the expected status update
 				configMap := clustersv1alpha1.MultiClusterConfigMap{}
 				err := getMultiClusterResource(testNamespace, "mymcconfigmap", &configMap)
@@ -76,15 +76,15 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				}
 				return err == nil && configMap.Status.State == clustersv1alpha1.Succeeded &&
 					isStatusAsExpected(configMap.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		ginkgo.It("admin cluster - verify mc secret", func() {
-			gomega.Eventually(func() bool {
+		It("admin cluster - verify mc secret", func() {
+			Eventually(func() bool {
 				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc secret")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 
-			gomega.Eventually(func() bool {
+			Eventually(func() bool {
 				// Verify we have the expected status update
 				secret := clustersv1alpha1.MultiClusterSecret{}
 				err := getMultiClusterResource(anotherTestNamespace, "mymcsecret", &secret)
@@ -95,170 +95,176 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				}
 				return err == nil && secret.Status.State == clustersv1alpha1.Succeeded &&
 					isStatusAsExpected(secret.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		// VZ-2336: Be able to update the status of a VerrazzanoManagedCluster resource
-		ginkgo.It("admin cluster vmc status updates", func() {
-			gomega.Eventually(func() bool {
+		It("admin cluster vmc status updates", func() {
+			Eventually(func() bool {
 				// Verify we have the expected status update
 				vmc := vmcv1alpha1.VerrazzanoManagedCluster{}
 				err := getMultiClusterResource("verrazzano-mc", managedClusterName, &vmc)
 				return err == nil && vmc.Status.LastAgentConnectTime.After(time.Now().Add(-30*time.Minute))
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoManagedCluster")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoManagedCluster")
 		})
 
 	})
 
-	ginkgo.Context("Managed Cluster - check for underlying resources", func() {
-		ginkgo.BeforeEach(func() {
+	Context("Managed Cluster - check for underlying resources", func() {
+		BeforeEach(func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
-		ginkgo.It("managed cluster has the expected mc and underlying configmap", func() {
+		It("managed cluster has the expected mc and underlying configmap", func() {
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(findConfigMap(testNamespace, "mymcconfigmap"),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find configmap")
+					Eventually(func() bool {
+						return findConfigMap(testNamespace, "mymcconfigmap")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find configmap")
 				},
 				func() {
-					gomega.Eventually(findMultiClusterConfigMap(testNamespace, "mymcconfigmap"),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc configmap")
+					Eventually(func() bool {
+						return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
 				},
 			)
 		})
 
-		ginkgo.It("managed cluster has the expected mc and underlying secret", func() {
+		It("managed cluster has the expected mc and underlying secret", func() {
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(findSecret(anotherTestNamespace, "mymcsecret"),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
+					Eventually(func() bool {
+						return findSecret(anotherTestNamespace, "mymcsecret")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret")
 				},
 				func() {
-					gomega.Eventually(findMultiClusterSecret(anotherTestNamespace, "mymcsecret"),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc secret")
+					Eventually(func() bool {
+						return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 				},
 			)
 		})
 	})
 
 	// VZ-2336:  NOT be able to update or delete any MultiClusterXXX resources in the admin cluster
-	ginkgo.Context("Managed Cluster - MC object access on admin cluster", func() {
-		ginkgo.BeforeEach(func() {
+	Context("Managed Cluster - MC object access on admin cluster", func() {
+		BeforeEach(func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_ACCESS_KUBECONFIG"))
 		})
 
-		ginkgo.It("managed cluster can access config map but not modify it", func() {
-			gomega.Eventually(findMultiClusterConfigMap(testNamespace, "mymcconfigmap"),
-				waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc configmap")
+		It("managed cluster can access config map but not modify it", func() {
+			Eventually(func() bool {
+				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
 			// try to update
 			err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 			if err == nil {
-				ginkgo.Fail("Update to config map succeeded")
+				Fail("Update to config map succeeded")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 			// try to delete
 			err = DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 			if err == nil {
-				ginkgo.Fail("Delete of config map succeeded")
+				Fail("Delete of config map succeeded")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 		})
 
-		ginkgo.It("managed cluster can access secret but not modify it", func() {
-			gomega.Eventually(findMultiClusterSecret(anotherTestNamespace, "mymcsecret"),
-				waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc secret")
+		It("managed cluster can access secret but not modify it", func() {
+			Eventually(func() bool {
+				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 			// try to update
 			err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update.yaml", &v1.Secret{})
 			if err == nil {
-				ginkgo.Fail("Update to secret succeeded")
+				Fail("Update to secret succeeded")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 			// try to delete
 			err = DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &v1.Secret{})
 			if err == nil {
-				ginkgo.Fail("Delete of secret succeeded")
+				Fail("Delete of secret succeeded")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 		})
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
-		ginkgo.It("managed cluster cannot modify vmc on admin", func() {
+		It("managed cluster cannot modify vmc on admin", func() {
 			cluster := vmcv1alpha1.VerrazzanoManagedCluster{}
 			err := getMultiClusterResource("verrazzano-mc", managedClusterName, &cluster)
 			if err != nil {
-				ginkgo.Fail("could not get vmc")
+				Fail("could not get vmc")
 			}
 			// try to update
 			cluster.Spec.Description = "new Description"
 			err = updateObject(&cluster)
 			if err == nil {
-				ginkgo.Fail("Update to vmc succeeded")
+				Fail("Update to vmc succeeded")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 			// try to delete
 			err = deleteObject(&cluster)
 			if err == nil {
-				ginkgo.Fail("Delete of vmc succeeded")
+				Fail("Delete of vmc succeeded")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 		})
 
 		// VZ-2336: NOT be able to read other resources such as secrets, config maps or deployments in the admin cluster
-		ginkgo.It("managed cluster cannot access resources in other namespaaces", func() {
+		It("managed cluster cannot access resources in other namespaaces", func() {
 			err := listResource("verrazzano-system", &v1.SecretList{})
 			if err == nil {
-				ginkgo.Fail("read access allowed")
+				Fail("read access allowed")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 			err = listResource("verrazzano-system", &v1.ConfigMapList{})
 			if err == nil {
-				ginkgo.Fail("read access allowed")
+				Fail("read access allowed")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 			err = listResource("verrazzano-mc", &v1.SecretList{})
 			if err == nil {
-				ginkgo.Fail("read access allowed")
+				Fail("read access allowed")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 			err = listResource("verrazzano-mc", &v1.ConfigMapList{})
 			if err == nil {
-				ginkgo.Fail("read access allowed")
+				Fail("read access allowed")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 			err = listResource(testNamespace, &v1.SecretList{})
 			if err == nil {
-				ginkgo.Fail("read access allowed")
+				Fail("read access allowed")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 			err = listResource(testNamespace, &v1.ConfigMapList{})
 			if err == nil {
-				ginkgo.Fail("read access allowed")
+				Fail("read access allowed")
 			}
 			if !errors.IsForbidden(err) {
-				ginkgo.Fail("Wrong error generated - should be forbidden")
+				Fail("Wrong error generated - should be forbidden")
 			}
 		})
 	})
@@ -283,12 +289,9 @@ func CreateOrUpdateResourceFromFile(yamlFile string, object runtime.Object) erro
 
 // updateObject updates a resource using the provided object
 func updateObject(object runtime.Object) error {
-	clustersClient, err := getClustersClient()
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
-	}
+	clustersClient := getClustersClient()
 
-	err = clustersClient.Create(context.TODO(), object)
+	err := clustersClient.Create(context.TODO(), object)
 	if err != nil && errors.IsAlreadyExists(err) {
 		err = clustersClient.Update(context.TODO(), object)
 	}
@@ -315,14 +318,8 @@ func DeleteResourceFromFile(yamlFile string, object runtime.Object) error {
 
 // deleteObject deletes the given object
 func deleteObject(object runtime.Object) error {
-	clustersClient, err := getClustersClient()
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
-	}
-
-	err = clustersClient.Delete(context.TODO(), object)
-
-	return err
+	clustersClient := getClustersClient()
+	return clustersClient.Delete(context.TODO(), object)
 }
 
 // deployTestResources deploys the test associated multi cluster resources
@@ -335,30 +332,30 @@ func deployTestResources() {
 	pkg.Log(pkg.Info, "Creating test project")
 	err := CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
+		Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
 	}
 
 	// Wait for the namespaces to be created
 	pkg.Log(pkg.Info, "Wait for the project namespaces to be created")
-	gomega.Eventually(func() (bool, error) {
+	Eventually(func() (bool, error) {
 		return pkg.DoesNamespaceExist(testNamespace)
-	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Expected to find namespace %s", testNamespace))
-	gomega.Eventually(func() (bool, error) {
+	}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find namespace %s", testNamespace))
+	Eventually(func() (bool, error) {
 		return pkg.DoesNamespaceExist(anotherTestNamespace)
-	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Expected to find namespace %s", anotherTestNamespace))
+	}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find namespace %s", anotherTestNamespace))
 
 	// create a config map
 	pkg.Log(pkg.Info, "Creating MC config map")
 	err = CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
+		Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
 	}
 
 	// create a secret
 	pkg.Log(pkg.Info, "Creating MC secret")
 	err = CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
+		Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
 	}
 }
 
@@ -372,36 +369,33 @@ func undeployTestResources() {
 	pkg.Log(pkg.Info, "Deleting MC config map")
 	err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
+		Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
 	}
 
 	// delete a secret
 	pkg.Log(pkg.Info, "Deleting MC secret")
 	err = DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
+		Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
 	}
 
 	// delete the test project
 	pkg.Log(pkg.Info, "Deleting test project")
 	err = DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
+		Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
 	}
 
 }
 
 // findSecret finds the secret based on name and namespace
 func findSecret(namespace, name string) bool {
-	clustersClient, err := getClustersClient()
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
-	}
-
+	clustersClient := getClustersClient()
 	secretList := v1.SecretList{}
-	err = clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
+	err := clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list secrets with error: %v", err))
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list secrets with error: %v", err))
+		return false
 	}
 	for _, item := range secretList.Items {
 		if item.Name == name && item.Namespace == namespace {
@@ -413,15 +407,13 @@ func findSecret(namespace, name string) bool {
 
 // findConfigMap finds the config map based on name and namespace
 func findConfigMap(namespace, name string) bool {
-	clustersClient, err := getClustersClient()
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
-	}
+	clustersClient := getClustersClient()
 
 	configmapList := v1.ConfigMapList{}
-	err = clustersClient.List(context.TODO(), &configmapList, &client.ListOptions{Namespace: namespace})
+	err := clustersClient.List(context.TODO(), &configmapList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list config maps with error: %v", err))
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list config maps with error: %v", err))
+		return false
 	}
 	for _, item := range configmapList.Items {
 		if item.Name == name && item.Namespace == namespace {
@@ -433,37 +425,25 @@ func findConfigMap(namespace, name string) bool {
 
 // listResource returns a list of resources based on the object type and namespace
 func listResource(namespace string, object runtime.Object) error {
-	clustersClient, err := getClustersClient()
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
-	}
-
+	clustersClient := getClustersClient()
 	return clustersClient.List(context.TODO(), object, &client.ListOptions{Namespace: namespace})
 }
 
 // getMultiClusterResource returns a multi cluster resource based the provided multi cluster object's type and namespace
 func getMultiClusterResource(namespace, name string, object runtime.Object) error {
-	clustersClient, err := getClustersClient()
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
-	}
-
-	err = clustersClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, object)
-
-	return err
+	clustersClient := getClustersClient()
+	return clustersClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, object)
 }
 
 // findMultiClusterConfigMap returns true if the config map is found based on name and namespace, false otherwise
 func findMultiClusterConfigMap(namespace, name string) bool {
-	clustersClient, err := getClustersClient()
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
-	}
+	clustersClient := getClustersClient()
 
 	configmapList := clustersv1alpha1.MultiClusterConfigMapList{}
-	err = clustersClient.List(context.TODO(), &configmapList, &client.ListOptions{Namespace: namespace})
+	err := clustersClient.List(context.TODO(), &configmapList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list multi cluster configmaps with error: %v", err))
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list multi cluster configmaps with error: %v", err))
+		return false
 	}
 	for _, item := range configmapList.Items {
 		if item.Name == name && item.Namespace == namespace {
@@ -475,15 +455,13 @@ func findMultiClusterConfigMap(namespace, name string) bool {
 
 // findMultiClusterSecret returns true if the secret is found based on name and namespace, false otherwise
 func findMultiClusterSecret(namespace, name string) bool {
-	clustersClient, err := getClustersClient()
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
-	}
+	clustersClient := getClustersClient()
 
 	secretList := clustersv1alpha1.MultiClusterSecretList{}
-	err = clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
+	err := clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list multi cluster secrets with error: %v", err))
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list multi cluster secrets with error: %v", err))
+		return false
 	}
 	for _, item := range secretList.Items {
 		if item.Name == name && item.Namespace == namespace {
@@ -494,10 +472,10 @@ func findMultiClusterSecret(namespace, name string) bool {
 }
 
 // getClustersClient returns a k8s client
-func getClustersClient() (client.Client, error) {
+func getClustersClient() client.Client {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
+		Fail(fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
 	}
 
 	scheme := runtime.NewScheme()
@@ -508,9 +486,9 @@ func getClustersClient() (client.Client, error) {
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get clusters client with error: %v", err))
+		Fail(fmt.Sprintf("Failed to get clusters client with error: %v", err))
 	}
-	return clustersClient, err
+	return clustersClient
 }
 
 // isStatusAsExpected checks whehter the provided inputs align with the provided status

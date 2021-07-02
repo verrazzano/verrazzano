@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster/examples"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
@@ -33,69 +33,69 @@ var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 // failed indicates whether any of the tests has failed
 var failed = false
 
-var _ = ginkgo.AfterEach(func() {
+var _ = AfterEach(func() {
 	// set failed to true if any of the tests has failed
-	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
+	failed = failed || CurrentGinkgoTestDescription().Failed
 })
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
-var _ = ginkgo.BeforeSuite(func() {
+var _ = BeforeSuite(func() {
 	// deploy the VerrazzanoProject
 	err := examples.DeployHelloHelidonProject(adminKubeconfig, sourceDir)
 	if err != nil {
-		ginkgo.Fail(err.Error())
+		Fail(err.Error())
 	}
 	// wait for the namespace to be created on the cluster before deploying app
-	gomega.Eventually(func() bool {
+	Eventually(func() bool {
 		return examples.HelidonNamespaceExists(adminKubeconfig, sourceDir)
-	}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+	}, waitTimeout, pollingInterval).Should(BeTrue())
 
 	err = examples.DeployHelloHelidonApp(adminKubeconfig, sourceDir)
 	if err != nil {
-		ginkgo.Fail(err.Error())
+		Fail(err.Error())
 	}
 })
 
-var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
-	ginkgo.Context("Admin Cluster", func() {
+var _ = Describe("Multi-cluster verify hello-helidon", func() {
+	Context("Admin Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect that the multi-cluster resources have been created on the admin cluster
-		ginkgo.It("Has multi cluster resources", func() {
-			gomega.Eventually(func() bool {
+		It("Has multi cluster resources", func() {
+			Eventually(func() bool {
 				return examples.VerifyMCResources(adminKubeconfig, true, false, testNamespace)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		// GIVEN an admin cluster
 		// WHEN the multi-cluster example application has been created on admin cluster but not placed there
 		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
-		ginkgo.It("Does not have application placed", func() {
-			gomega.Consistently(func() bool {
+		It("Does not have application placed", func() {
+			Consistently(func() bool {
 				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
-			}, consistentlyDuration, pollingInterval).Should(gomega.BeTrue())
+			}, consistentlyDuration, pollingInterval).Should(BeTrue())
 		})
 	})
 
-	ginkgo.Context("Managed Cluster", func() {
+	Context("Managed Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect that the multi-cluster resources have been created on the managed cluster
-		ginkgo.It("Has multi cluster resources", func() {
-			gomega.Eventually(func() bool {
+		It("Has multi cluster resources", func() {
+			Eventually(func() bool {
 				return examples.VerifyMCResources(managedKubeconfig, false, true, testNamespace)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the multi-cluster example application has been created on admin cluster and placed in managed cluster
 		// THEN expect that the app is deployed to the managed cluster
-		ginkgo.It("Has application placed", func() {
-			gomega.Eventually(func() bool {
+		It("Has application placed", func() {
+			Eventually(func() bool {
 				return examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
-	ginkgo.Context("Remaining Managed Clusters", func() {
+	Context("Remaining Managed Clusters", func() {
 		clusterCountStr := os.Getenv("CLUSTER_COUNT")
 		if clusterCountStr == "" {
 			// skip tests
@@ -110,83 +110,83 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		kubeconfigDir := os.Getenv("KUBECONFIG_DIR")
 		for i := 3; i <= clusterCount; i++ {
 			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
-			ginkgo.It("Does not have multi cluster resources", func() {
-				gomega.Eventually(func() bool {
+			It("Does not have multi cluster resources", func() {
+				Eventually(func() bool {
 					return examples.VerifyMCResources(kubeconfig, false, false, testNamespace)
-				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
-			ginkgo.It("Does not have application placed", func() {
-				gomega.Eventually(func() bool {
+			It("Does not have application placed", func() {
+				Eventually(func() bool {
 					return examples.VerifyHelloHelidonInCluster(kubeconfig, false, false, testProjectName, testNamespace)
-				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		}
 	})
 
-	ginkgo.Context("Logging", func() {
+	Context("Logging", func() {
 		indexName := "verrazzano-namespace-hello-helidon"
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
-		ginkgo.It("Verify Elasticsearch index exists on admin cluster", func() {
-			gomega.Eventually(func() bool {
+		It("Verify Elasticsearch index exists on admin cluster", func() {
+			Eventually(func() bool {
 				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello helidon")
 		})
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect recent Elasticsearch logs for the app exist on the admin cluster Elasticsearch
-		ginkgo.It("Verify recent Elasticsearch log record exists on admin cluster", func() {
-			gomega.Eventually(func() bool {
+		It("Verify recent Elasticsearch log record exists on admin cluster", func() {
+			Eventually(func() bool {
 				return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
 					"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-appconf",
 					"kubernetes.container_name":                 "hello-helidon-container",
 				}, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 		})
 	})
 
 	// GIVEN an admin cluster and at least one managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
-	ginkgo.Context("Metrics", func() {
-		ginkgo.It("Verify Prometheus metrics exist on admin cluster", func() {
-			gomega.Eventually(func() bool {
+	Context("Metrics", func() {
+		It("Verify Prometheus metrics exist on admin cluster", func() {
+			Eventually(func() bool {
 				return appMetricsExists(adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
 
-	ginkgo.Context("Change Placement of app to Admin Cluster", func() {
-		ginkgo.It("Apply patch to change placement to admin cluster", func() {
+	Context("Change Placement of app to Admin Cluster", func() {
+		It("Apply patch to change placement to admin cluster", func() {
 			err := examples.ChangePlacementToAdminCluster(adminKubeconfig)
 			if err != nil {
-				ginkgo.Fail(err.Error())
+				Fail(err.Error())
 			}
 		})
 
-		ginkgo.It("MC Resources should be removed from managed cluster", func() {
-			gomega.Eventually(func() bool {
+		It("MC Resources should be removed from managed cluster", func() {
+			Eventually(func() bool {
 				// app should not be placed in the managed cluster
 				return examples.VerifyMCResources(managedKubeconfig, false, false, testNamespace)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		ginkgo.It("App should be removed from managed cluster", func() {
-			gomega.Eventually(func() bool {
+		It("App should be removed from managed cluster", func() {
+			Eventually(func() bool {
 				// app should not be placed in the managed cluster
 				return examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, false, testProjectName, testNamespace)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		ginkgo.It("App should be placed in admin cluster", func() {
-			gomega.Eventually(func() bool {
+		It("App should be placed in admin cluster", func() {
+			Eventually(func() bool {
 				// app should be placed in the admin cluster
 				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, true, testProjectName, testProjectName)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -194,68 +194,68 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 	// as expected. This is needed because the change of placement to admin cluster and the change of placement to
 	// a managed cluster are different, and we want to ensure we test the case where the destination cluster is
 	// each of the 2 types - admin and managed
-	ginkgo.Context("Return the app to Managed Cluster", func() {
-		ginkgo.It("Apply patch to change placement back to managed cluster", func() {
+	Context("Return the app to Managed Cluster", func() {
+		It("Apply patch to change placement back to managed cluster", func() {
 			err := examples.ChangePlacementToManagedCluster(adminKubeconfig)
 			if err != nil {
-				ginkgo.Fail(err.Error())
+				Fail(err.Error())
 			}
 		})
 
 		// GIVEN an admin cluster
 		// WHEN the multi-cluster example application has changed placement from admin back to managed cluster
 		// THEN expect that the app is not deployed to the admin cluster
-		ginkgo.It("Admin cluster does not have application placed", func() {
-			gomega.Eventually(func() bool {
+		It("Admin cluster does not have application placed", func() {
+			Eventually(func() bool {
 				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		// GIVEN a managed cluster
 		// WHEN the multi-cluster example application has changed placement to this managed cluster
 		// THEN expect that the app is now deployed to the cluster
-		ginkgo.It("Managed cluster again has application placed", func() {
-			gomega.Eventually(func() bool {
+		It("Managed cluster again has application placed", func() {
+			Eventually(func() bool {
 				return examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
-	ginkgo.Context("Delete resources", func() {
-		ginkgo.It("Delete resources on admin cluster", func() {
+	Context("Delete resources", func() {
+		It("Delete resources on admin cluster", func() {
 			err := cleanUp(adminKubeconfig)
 			if err != nil {
-				ginkgo.Fail(err.Error())
+				Fail(err.Error())
 			}
 		})
 
-		ginkgo.It("Verify deletion on admin cluster", func() {
-			gomega.Eventually(func() bool {
+		It("Verify deletion on admin cluster", func() {
+			Eventually(func() bool {
 				return examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		ginkgo.It("Verify automatic deletion on managed cluster", func() {
-			gomega.Eventually(func() bool {
+		It("Verify automatic deletion on managed cluster", func() {
+			Eventually(func() bool {
 				return examples.VerifyHelloHelidonDeletedInManagedCluster(managedKubeconfig, testNamespace, testProjectName)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		ginkgo.It("Delete test namespace on managed cluster", func() {
+		It("Delete test namespace on managed cluster", func() {
 			if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig); err != nil {
-				ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace in managed cluster: %v\n", examples.TestNamespace, err))
+				Fail(fmt.Sprintf("Could not delete %s namespace in managed cluster: %v\n", examples.TestNamespace, err))
 			}
 		})
 
-		ginkgo.It("Delete test namespace on admin cluster", func() {
+		It("Delete test namespace on admin cluster", func() {
 			if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig); err != nil {
-				ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace in admin cluster: %v\n", examples.TestNamespace, err))
+				Fail(fmt.Sprintf("Could not delete %s namespace in admin cluster: %v\n", examples.TestNamespace, err))
 			}
 		})
 	})
 })
 
-var _ = ginkgo.AfterSuite(func() {
+var _ = AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
@@ -263,15 +263,15 @@ var _ = ginkgo.AfterSuite(func() {
 
 func cleanUp(kubeconfigPath string) error {
 	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", kubeconfigPath); err != nil {
-		return fmt.Errorf("Failed to delete multi-cluster hello-helidon application resource: %v", err)
+		return fmt.Errorf("failed to delete multi-cluster hello-helidon application resource: %v", err)
 	}
 
 	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-comp.yaml", kubeconfigPath); err != nil {
-		return fmt.Errorf("Failed to delete multi-cluster hello-helidon component resources: %v", err)
+		return fmt.Errorf("failed to delete multi-cluster hello-helidon component resources: %v", err)
 	}
 
 	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeconfigPath); err != nil {
-		return fmt.Errorf("Failed to delete hello-helidon project resource: %v", err)
+		return fmt.Errorf("failed to delete hello-helidon project resource: %v", err)
 	}
 	return nil
 }
