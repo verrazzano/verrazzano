@@ -82,9 +82,9 @@ function delete_k8s_resources() {
     || err_return $? "$3" || return $? # return on pipefail
 }
 
-# Deletes kubernetes resources of the specified type from all namespaces that have the verrazzano-managed label set to true
+# Deletes kubernetes resources of the specified type from all namespaces that have the verrazzano-managed label set to true.
+# No CRD's are deleted.
 # $1 resource-type - type of the resources being deleted
-# $2 crd-delete-flag - value of "yes" or "no" to also delete crd, default is "yes" for compatibility
 function delete_managed_k8s_resources {
   local res=$1
   local delcrd=$2
