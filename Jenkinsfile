@@ -238,7 +238,7 @@ pipeline {
                     changeset "image-patch-operator/**"
                 }
             }
-            ps {
+            steps {
                 buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
                 buildWITImage("${DOCKER_IMAGE_TAG}")
             }
