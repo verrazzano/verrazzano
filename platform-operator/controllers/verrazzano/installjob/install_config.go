@@ -350,6 +350,19 @@ func getRancher(rancher *installv1alpha1.RancherComponent) Rancher {
 func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource) (Keycloak, error) {
 
 	if keycloak == nil {
+		if defaultVolumeSpec != nil && defaultVolumeSpec.EmptyDir != nil {
+			var mySQLArgs []InstallArg
+			mySQLArgs = append(mySQLArgs, InstallArg{
+				Name:  "persistence.enabled",
+				Value: "false",
+			})
+			keycloakConfig := Keycloak{
+				MySQL: MySQL{
+					MySQLInstallArgs: mySQLArgs,
+				},
+			}
+			return keycloakConfig, nil
+		}
 		return Keycloak{}, nil
 	}
 
@@ -414,6 +427,11 @@ func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []instal
 				SetString: true,
 			})
 		}
+		// Enable MySQL persistence
+		mySQLArgs = append(mySQLArgs, InstallArg{
+			Name:  "persistence.enabled",
+			Value: "true",
+		})
 	}
 	// Update the MySQL Install args
 	keycloakConfig.MySQL.MySQLInstallArgs = mySQLArgs
@@ -646,12 +664,26 @@ func validateRoleBindingSubject(subject rbacv1.Subject, name string) error {
 }
 
 func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
+	const helmValuePrefix = "elasticSearch."
 	vmiArgs := []InstallArg{}
 	if vzSpec.Components.Elasticsearch != nil {
 		vmiArgs = append(vmiArgs, InstallArg{
 			Name:  esEnabledValueName,
 			Value: strconv.FormatBool(vzSpec.Components.Elasticsearch.Enabled),
 		})
+		// Add the set of args specified in the yaml, prefixing the elasticSearch string
+		// For example, the following YAML will result in `elasticSearch.nodes.master.replicas`
+		// elasticsearch:
+		//   installArgs:
+		//	   - name: nodes.master.replicas
+		//       value: "2"
+		for _, esArg := range vzSpec.Components.Elasticsearch.ESInstallArgs {
+			vmiArgs = append(vmiArgs, InstallArg{
+				Name:      helmValuePrefix + esArg.Name,
+				Value:     esArg.Value,
+				SetString: esArg.SetString,
+			})
+		}
 	}
 	if vzSpec.Components.Prometheus != nil {
 		vmiArgs = append(vmiArgs, InstallArg{

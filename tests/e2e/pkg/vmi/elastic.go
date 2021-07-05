@@ -49,7 +49,11 @@ func (e *Elastic) PodsRunning() bool {
 // Connect checks if the elasticsearch cluster can be connected
 func (e *Elastic) Connect() bool {
 	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-	esURL, err := pkg.GetAPIEndpoint(kubeconfigPath).GetElasticURL()
+	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
+	if err != nil {
+		return false
+	}
+	esURL, err := api.GetElasticURL()
 	if err != nil {
 		return false
 	}
@@ -64,7 +68,11 @@ func (e *Elastic) Connect() bool {
 func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string) ([]byte, error) {
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(username, password)
-	client := e.getVmiHTTPClient(kubeconfigPath)
+	client, err := e.getVmiHTTPClient(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
+		return nil, err
+	}
 	client.CheckRetry = pkg.GetRetryPolicy()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -74,7 +82,11 @@ func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string
 	if resp.StatusCode != 200 {
 		pkg.Log(pkg.Info, fmt.Sprintf("Response status code: %d", resp.StatusCode))
 	}
-	httpResp := pkg.ProcHTTPResponse(resp, err)
+	httpResp, err := pkg.ProcessHTTPResponse(resp)
+	if err != nil {
+		pkg.Log(pkg.Info, fmt.Sprintf("Error reading response from GET %v error: %v", url, err))
+		return nil, err
+	}
 	if httpResp.StatusCode == http.StatusNotFound {
 		err = fmt.Errorf("url %s returned not found", url)
 		pkg.Log(pkg.Info, fmt.Sprintf("NotFound %v error: %v", url, err))
@@ -83,11 +95,15 @@ func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string
 	return httpResp.Body, nil
 }
 
-func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) *retryablehttp.Client {
+func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
 	if e.vmiHTTPClient == nil {
-		e.vmiHTTPClient = pkg.GetBindingVmiHTTPClient(e.binding, kubeconfigPath)
+		var err error
+		e.vmiHTTPClient, err = pkg.GetBindingVmiHTTPClient(e.binding, kubeconfigPath)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return e.vmiHTTPClient
+	return e.vmiHTTPClient, nil
 }
 
 // ListIndices lists elasticsearch indices
@@ -102,7 +118,11 @@ func (e *Elastic) ListIndices() []string {
 
 // getIndices gets index metadata (aliases, mappings, and settings) of all elasticsearch indices in the given cluster
 func (e *Elastic) getIndices(kubeconfigPath string) map[string]interface{} {
-	esURL, err := pkg.GetAPIEndpoint(kubeconfigPath).GetElasticURL()
+	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
+	if err != nil {
+		return nil
+	}
+	esURL, err := api.GetElasticURL()
 	if err != nil {
 		return nil
 	}
@@ -142,7 +162,11 @@ func (e *Elastic) CheckTLSSecret() bool {
 
 // CheckIngress checks the Elasticsearch Ingress
 func (e *Elastic) CheckIngress() bool {
-	ingressList, _ := pkg.ListIngresses("verrazzano-system")
+	ingressList, err := pkg.ListIngresses("verrazzano-system")
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not get list of ingresses: %v", err))
+		return false
+	}
 	for _, ingress := range ingressList.Items {
 		if ingress.Name == fmt.Sprintf("vmi-%v-es-ingest", e.binding) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Found Ingress %v for binding %v", ingress.Name, e.binding))

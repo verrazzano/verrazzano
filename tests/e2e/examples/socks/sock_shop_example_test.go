@@ -107,11 +107,11 @@ var _ = Describe("Sock Shop Application", func() {
 	})
 
 	It("SockShop can log in with default user", func() {
-		Eventually(func() bool {
+		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%v/login", hostname)
-			status, _ := pkg.GetWebPageWithBasicAuth(url, hostname, username, password)
-			return status == http.StatusOK
-		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to login to SockShop with default user")
+			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			return pkg.GetWebPageWithBasicAuth(url, hostname, username, password, kubeconfigPath)
+		}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
 
 	})
 
@@ -164,12 +164,10 @@ var _ = Describe("Sock Shop Application", func() {
 	})
 
 	It("Verify '/catalogue' UI endpoint is working.", func() {
-		Eventually(func() bool {
+		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/catalogue", hostname)
-			status, content := pkg.GetWebPageWithCABundle(url, hostname)
-			return Expect(status).To(Equal(200)) &&
-				Expect(content).To(ContainSubstring("For all those leg lovers out there."))
-		}, 3*time.Minute, 15*time.Second).Should(BeTrue())
+			return pkg.GetWebPage(url, hostname)
+		}, 3*time.Minute, 15*time.Second).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("For all those leg lovers out there.")))
 	})
 
 	Describe("Verify Prometheus scraped metrics", func() {

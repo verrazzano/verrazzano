@@ -14,6 +14,8 @@ import (
 	yaml "sigs.k8s.io/yaml"
 )
 
+const dnsSuffix = "example.com"
+
 func getProxyConfigAPIProxyWithParams(providerHost string) OidcProxyConfig {
 	proxyConfig := OidcProxyConfig{}
 
@@ -30,11 +32,11 @@ func getProxyConfigAPIProxyWithParams(providerHost string) OidcProxyConfig {
 }
 
 func getProxyConfigAPIProxy() OidcProxyConfig {
-	return getProxyConfigAPIProxyWithParams("keycloak.default.example.com")
+	return getProxyConfigAPIProxyWithParams("keycloak.default." + dnsSuffix)
 }
 
 // getProxyConfigOidcProxy returns an OidcProxyConfig struct
-func getProxyConfigOidcProxyWithParams(ingressHost, verrazzanoURI, keycloakURL string, backendPort int) OidcProxyConfig {
+func getProxyConfigOidcProxyWithParams(ingressHost, verrazzanoURI, keycloakURL string, backendPort int, SSLEnabled bool) OidcProxyConfig {
 	proxyConfig := OidcProxyConfig{}
 
 	proxyConfig.Mode = ProxyModeOauth
@@ -49,6 +51,7 @@ func getProxyConfigOidcProxyWithParams(ingressHost, verrazzanoURI, keycloakURL s
 
 	proxyConfig.Host = "localhost"
 	proxyConfig.Port = backendPort
+	proxyConfig.SSLEnabled = SSLEnabled
 
 	proxyConfig.Ingress = ingressHost
 
@@ -69,10 +72,11 @@ func getProxyConfigOidcProxyWithParams(ingressHost, verrazzanoURI, keycloakURL s
 
 func getProxyConfigOidcProxy() OidcProxyConfig {
 	return getProxyConfigOidcProxyWithParams(
-		"grafana.vmi.system.will.129.159.240.145.nip.io",
-		"will.129.159.240.145.nip.io",
+		"grafana.vmi.system.default."+dnsSuffix,
+		"default."+dnsSuffix,
 		"",
-		8888,
+		3000,
+		false,
 	)
 }
 
@@ -89,7 +93,7 @@ func generateConfigmapYaml(name, namespace string, labels, configs map[string]st
 	}
 	yaml = fmt.Sprintf("%s\ndata:\n", yaml)
 	for key, value := range configs {
-		yaml = fmt.Sprintf("%s  %s: |\n%s\n", yaml, key, value)
+		yaml = fmt.Sprintf("%s  %s: |\n    %s\n", yaml, key, value)
 	}
 	return yaml
 }

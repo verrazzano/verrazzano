@@ -66,12 +66,12 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 		ginkgo.It("admin cluster has the expected ServiceAccounts and ClusterRoleBindings", func() {
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(func() bool {
+					gomega.Eventually(func() (bool, error) {
 						return pkg.DoesServiceAccountExist(multiclusterNamespace, fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find ServiceAccount")
 				},
 				func() {
-					gomega.Eventually(func() bool {
+					gomega.Eventually(func() (bool, error) {
 						return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find ClusterRoleBinding")
 				},
@@ -193,22 +193,22 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 			namespace := fmt.Sprintf("ns-%s", managedClusterName)
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(func() bool {
+					gomega.Eventually(func() (bool, error) {
 						return pkg.DoesRoleBindingContainSubject(namespace, "verrazzano-project-admin", "User", "test-user")
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding verrazzano-project-admin")
 				},
 				func() {
-					gomega.Eventually(func() bool {
+					gomega.Eventually(func() (bool, error) {
 						return pkg.DoesRoleBindingContainSubject(namespace, "admin", "User", "test-user")
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding admin")
 				},
 				func() {
-					gomega.Eventually(func() bool {
+					gomega.Eventually(func() (bool, error) {
 						return pkg.DoesRoleBindingContainSubject(namespace, "verrazzano-project-monitor", "Group", "test-viewers")
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding verrazzano-project-monitor")
 				},
 				func() {
-					gomega.Eventually(func() bool {
+					gomega.Eventually(func() (bool, error) {
 						return pkg.DoesRoleBindingContainSubject(namespace, "view", "Group", "test-viewers")
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding view")
 				},

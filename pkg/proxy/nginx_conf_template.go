@@ -16,7 +16,7 @@ package proxy
 const OidcNginxConfFilename = "nginx.conf"
 
 // OidcNginxConfFileTemplate is the template of nginx.conf file in OIDC proxy ConfigMap
-const OidcNginxConfFileTemplate = `    #user  nobody;
+const OidcNginxConfFileTemplate = `#user  nobody;
     worker_processes  1;
 
     #error_log  logs/error.log;
@@ -65,8 +65,10 @@ const OidcNginxConfFileTemplate = `    #user  nobody;
         #  cache for JWKs
         lua_shared_dict jwks 1m;
 {{- if eq .Mode "oauth-proxy" }}
+{{- if eq .SSLEnabled true }}
         lua_ssl_verify_depth 2;
         lua_ssl_trusted_certificate /secret/ca-bundle;
+{{- end }}
 
         upstream http_backend {
             server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;

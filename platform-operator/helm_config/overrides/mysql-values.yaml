@@ -8,3 +8,4 @@ imagePullPolicy: IfNotPresent
 
 ssl:
   enabled: false
+

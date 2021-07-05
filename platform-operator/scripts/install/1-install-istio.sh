@@ -193,6 +193,8 @@ spec:
             '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
             server_header_transformation: PASS_THROUGH
 ")
+    log "Waiting for all the pods in istio-system namespace to reach ready state"
+    kubectl wait --for=condition=ready pods --all -n istio-system --timeout=20m
 }
 
 function log_kube_version {
@@ -273,4 +275,3 @@ fi
 
 action "Installing Istio" install_istio || exit 1
 
-kubectl get pods -n istio-system

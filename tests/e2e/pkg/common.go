@@ -47,7 +47,11 @@ func GetVerrazzanoPassword() string {
 }
 
 func GetVerrazzanoPasswordInCluster(kubeconfigPath string) string {
-	secret, _ := GetSecretInCluster("verrazzano-system", "verrazzano", kubeconfigPath)
+	secret, err := GetSecretInCluster("verrazzano-system", "verrazzano", kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get verrazzano secret: %v", err))
+		return ""
+	}
 	return string(secret.Data["password"])
 }
 
@@ -105,7 +109,11 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 // PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
 func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) bool {
 	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
-	pods := ListPodsInCluster(namespace, clientset)
+	pods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+		return false
+	}
 	missing := notRunning(pods.Items, namePrefixes...)
 	if len(missing) > 0 {
 		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
@@ -123,13 +131,21 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 // PodsNotRunning waits for all the pods in namePrefixes to be terminated
 func PodsNotRunning(namespace string, namePrefixes []string) bool {
 	clientset := GetKubernetesClientset()
-	allPods := ListPodsInCluster(namespace, clientset)
+	allPods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+		return false
+	}
 	terminatedPods := notRunning(allPods.Items, namePrefixes...)
 	var i int = 0
 	for len(terminatedPods) != len(namePrefixes) {
 		Log(Info, fmt.Sprintf("Pods %v were TERMINATED in %v", terminatedPods, namespace))
 		time.Sleep(15 * time.Second)
-		pods := ListPodsInCluster(namespace, clientset)
+		pods, err := ListPodsInCluster(namespace, clientset)
+		if err != nil {
+			Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+			return false
+		}
 		terminatedPods = notRunning(pods.Items, namePrefixes...)
 		i++
 		if i > 10 {

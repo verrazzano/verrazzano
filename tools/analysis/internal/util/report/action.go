@@ -40,17 +40,17 @@ const (
 
 // RunbookLinks are known runbook links
 var RunbookLinks = map[string][]string{
-	ImagePullBackOff:          {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/ImagePullBackOffAction.md"},
-	ImagePullRateLimit:        {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/ImagePullRateLimit.md"},
-	ImagePullNotFound:         {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/ImagePullNotFound.md"},
-	ImagePullService:          {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/ImagePullService.md"},
-	InsufficientMemory:        {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/InsufficientMemory.md"},
-	IngressInstallFailure:     {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/IngressInstallFailure.md"},
-	IngressNoLoadBalancerIP:   {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/IngressNoLoadBalancerIP.md"},
-	IngressOciIPLimitExceeded: {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/IngressOciIPLimitExceeded.md"},
-	InstallFailure:            {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/InstallFailure.md"},
-	PendingPods:               {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/PendingPods.md"},
-	PodProblemsNotReported:    {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/PodProblemsNotReported.md"},
+	ImagePullBackOff:          {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullbackoff"},
+	ImagePullRateLimit:        {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullratelimit"},
+	ImagePullNotFound:         {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullnotfound"},
+	ImagePullService:          {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullservice"},
+	InsufficientMemory:        {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/insufficientmemory"},
+	IngressInstallFailure:     {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressinstallfailure"},
+	IngressNoLoadBalancerIP:   {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip"},
+	IngressOciIPLimitExceeded: {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressociiplimitexceeded"},
+	InstallFailure:            {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/installfailure"},
+	PendingPods:               {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/pendingpods"},
+	PodProblemsNotReported:    {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/podproblemsnotreported"},
 }
 
 // KnownActions are Standard Action types

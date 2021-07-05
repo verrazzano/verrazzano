@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/onsi/gomega"
 )
@@ -87,36 +87,39 @@ func (s *SockShop) GetHostHeader() string {
 }
 
 // Post is a wrapper function for HTTP request with cookies POST
-func (s *SockShop) Post(url, contentType string, body io.Reader) (int, string) {
+func (s *SockShop) Post(url, contentType string, body io.Reader) (*pkg.HTTPResponse, error) {
 	return pkg.PostWithHostHeader(url, contentType, s.hostHeader, body)
 }
 
 // Get is a wrapper function for HTTP request with cookies GET
-func (s *SockShop) Get(url string) (int, string) {
-	return pkg.GetWebPageWithCABundle(url, s.hostHeader)
+func (s *SockShop) Get(url string) (*pkg.HTTPResponse, error) {
+	return pkg.GetWebPage(url, s.hostHeader)
 }
 
 // Delete is a wrapper function for HTTP request with cookies DELETE
-func (s *SockShop) Delete(url string) (int, string) {
+func (s *SockShop) Delete(url string) (*pkg.HTTPResponse, error) {
 	return pkg.Delete(url, s.hostHeader)
 }
 
 // RegisterUser interacts with sock shop to create a user
 func (s *SockShop) RegisterUser(body string, hostname string) bool {
 	url := fmt.Sprintf("https://%v/register", hostname)
-	status, register := pkg.PostWithHostHeader(url, "application/json", s.hostHeader, strings.NewReader(body))
-	pkg.Log(Info, fmt.Sprintf("Finished register %v status: %v", register, status))
-	return (status == http.StatusOK) && (strings.Contains(register, "username"))
+	resp, err := pkg.PostWithHostHeader(url, "application/json", s.hostHeader, strings.NewReader(body))
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	pkg.Log(Info, fmt.Sprintf("Finished register %s status: %v", resp.Body, resp.StatusCode))
+	return (resp.StatusCode == http.StatusOK) && (strings.Contains(string(resp.Body), "username"))
 }
 
 // ConnectToCatalog connects to the catalog page
 func (s *SockShop) ConnectToCatalog(hostname string) string {
 	// connect to catalog
-	pkg.Log(Info, fmt.Sprint("Connecting to Catalog"))
-	status, webpage := s.Get("https://" + hostname + "/catalogue")
-	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", hostname, status))
-	gomega.Expect(strings.Contains(webpage, "/catalogue/")).To(gomega.Equal(true), fmt.Sprintf("Webpage found is NOT the Catalog %v", webpage))
-	return webpage
+	pkg.Log(Info, "Connecting to Catalog")
+	url := "https://" + hostname + "/catalogue"
+	resp, err := s.Get(url)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200", hostname, resp.StatusCode))
+	gomega.Expect(strings.Contains(string(resp.Body), "/catalogue/")).To(gomega.Equal(true), fmt.Sprintf("Webpage found is NOT the Catalog %s", resp.Body))
+	return string(resp.Body)
 }
 
 // VerifyCatalogItems gets catalog items and accesses detail page
@@ -124,19 +127,20 @@ func (s *SockShop) VerifyCatalogItems(webpage string) {
 	//ingress := s.Ingress
 	var items []CatalogItem
 	json.Unmarshal([]byte(webpage), &items)
-	gomega.Expect(len(items)).To(gomega.Not(gomega.Equal(0)), fmt.Sprint("Catalog page returned no items"))
+	gomega.Expect(len(items)).To(gomega.Not(gomega.Equal(0)), "Catalog page returned no items")
 }
 
 // GetCatalogItem retrieves the first catalog item
 func (s *SockShop) GetCatalogItem(hostname string) Catalog {
-	pkg.Log(Info, fmt.Sprint("Connecting to Catalog"))
-	status, catalog := s.Get("https://" + hostname + "/catalogue")
-	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", hostname, status))
-	gomega.Expect(strings.Contains(catalog, "/catalogue/")).To(gomega.Equal(true), fmt.Sprintf("Webpage found is NOT the Catalog %v", catalog))
+	pkg.Log(Info, "Connecting to Catalog")
+	url := "https://" + hostname + "/catalogue"
+	resp, err := s.Get(url)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Expect(resp.StatusCode).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", hostname, resp.StatusCode))
+	gomega.Expect(strings.Contains(string(resp.Body), "/catalogue/")).To(gomega.Equal(true), fmt.Sprintf("Webpage found is NOT the Catalog %s", resp.Body))
 	var catalogItems []CatalogItem
-	json.Unmarshal([]byte(catalog), &catalogItems)
-	gomega.Expect(len(catalogItems)).To(gomega.Not(gomega.Equal(0)), fmt.Sprint("Catalog page returned no items"))
-	//return catalogItems[0]
+	json.Unmarshal(resp.Body, &catalogItems)
+	gomega.Expect(len(catalogItems)).To(gomega.Not(gomega.Equal(0)), "Catalog page returned no items")
 	return Catalog{Item: catalogItems}
 }
 
@@ -145,19 +149,21 @@ func (s *SockShop) AddToCart(item CatalogItem, hostname string) {
 	//cartURL := fmt.Sprintf("https://%v/cart", ingress)
 	cartURL := fmt.Sprintf("https://%v/carts/%v/items", hostname, s.username)
 	cartBody := fmt.Sprintf(`{"itemId": "%v","unitPrice": "%v"}`, item.ID, item.Price)
-	status, _ := s.Post(cartURL, "application/json", strings.NewReader(cartBody))
-	pkg.Log(Info, fmt.Sprintf("Finished adding to cart %v status: %v", cartBody, status))
-	gomega.Expect(status).To(gomega.Equal(201), fmt.Sprintf("POST %v failed with status %v", cartURL, status))
+	resp, err := s.Post(cartURL, "application/json", strings.NewReader(cartBody))
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	pkg.Log(Info, fmt.Sprintf("Finished adding to cart %v status: %v", cartBody, resp.StatusCode))
+	gomega.Expect(resp.StatusCode).To(gomega.Equal(201), fmt.Sprintf("POST %v failed with status %v", cartURL, resp.StatusCode))
 }
 
 // CheckCart makes sure that the added item in the cart is present
 func (s *SockShop) CheckCart(item CatalogItem, quantity int, hostname string) {
 	cartURL := fmt.Sprintf("https://%v/carts/%v/items", hostname, s.username)
-	status, cart := s.Get(cartURL)
-	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v failed with status %v", cartURL, status))
-	pkg.Log(Info, fmt.Sprintf("Retreived cart: %v", cart))
+	resp, err := s.Get(cartURL)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Expect(resp.StatusCode).To(gomega.Equal(200), fmt.Sprintf("GET %v failed with status %v", cartURL, resp.StatusCode))
+	pkg.Log(Info, fmt.Sprintf("Retreived cart: %s", resp.Body))
 	var cartItems []CartItem
-	json.Unmarshal([]byte(cart), &cartItems)
+	json.Unmarshal(resp.Body, &cartItems)
 	foundItem := func() bool {
 		for _, cartItem := range cartItems {
 			if cartItem.ItemID == item.ID && cartItem.Quantity == quantity && cartItem.UnitPrice == item.Price {
@@ -171,13 +177,13 @@ func (s *SockShop) CheckCart(item CatalogItem, quantity int, hostname string) {
 
 // GetCartItems gathers all cart items
 func (s *SockShop) GetCartItems(hostname string) []CartItem {
-	pkg.Log(Info, fmt.Sprint("Gathering cart items"))
+	pkg.Log(Info, "Gathering cart items")
 	cartURL := fmt.Sprintf("https://%v/carts/%v/items", hostname, s.username)
-	status, toDelCart := s.Get(cartURL)
-
-	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", cartURL, status))
+	resp, err := s.Get(cartURL)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Expect(resp.StatusCode).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", cartURL, resp.StatusCode))
 	var toDelCartItems []CartItem
-	json.Unmarshal([]byte(toDelCart), &toDelCartItems)
+	json.Unmarshal(resp.Body, &toDelCartItems)
 	return toDelCartItems
 }
 
@@ -186,69 +192,75 @@ func (s *SockShop) DeleteCartItems(items []CartItem, hostname string) {
 	cartURL := fmt.Sprintf("https://%v/carts/%v/items", hostname, s.username)
 	pkg.Log(Info, fmt.Sprintf("Deleting cart items: %v", items))
 	for _, item := range items {
-		status, cartDel := s.Delete(cartURL + "/" + item.ItemID)
-		gomega.Expect(status).To(gomega.Or(gomega.Equal(202)), fmt.Sprintf("Cart item %v not successfully deleted, response: %v status: %v", item.ItemID, cartDel, status))
+		resp, err := s.Delete(cartURL + "/" + item.ItemID)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		gomega.Expect(resp.StatusCode).To(gomega.Equal(202), fmt.Sprintf("Cart item %v not successfully deleted, response: %s status: %v", item.ItemID, resp.Body, resp.StatusCode))
 	}
 }
 
 // CheckCartEmpty checks whether the cart has no items
 func (s *SockShop) CheckCartEmpty(hostname string) {
 	cartURL := fmt.Sprintf("https://%v/carts/%v/items", hostname, s.username)
-	status, cart := s.Get(cartURL)
-	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", cartURL, status))
+	resp, err := s.Get(cartURL)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Expect(resp.StatusCode).To(gomega.Equal(200), fmt.Sprintf("GET %s returns status %v expected 200", resp.Body, resp.StatusCode))
 	var cartItems []CartItem
-	json.Unmarshal([]byte(cart), &cartItems)
-	gomega.Expect(len(cartItems)).To(gomega.Equal(0), fmt.Sprint("Cart page contained lingering items"))
+	json.Unmarshal(resp.Body, &cartItems)
+	gomega.Expect(len(cartItems)).To(gomega.Equal(0), "Cart page contained lingering items")
 }
 
 // AccessPath ensures the given path is accessible
 func (s *SockShop) AccessPath(path, expectedString string, hostname string) {
 	// move to cart page
-	pkg.Log(Info, fmt.Sprint("Moving into the cart page"))
+	pkg.Log(Info, "Moving into the cart page")
 	basketURL := fmt.Sprintf("https://%v/%v", hostname, path)
-	status, basket := s.Get(basketURL)
-	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", basketURL, status))
-	gomega.Expect(basket).To(gomega.ContainSubstring(expectedString), fmt.Sprintf("website found is NOT the shopping cart"))
+	resp, err := s.Get(basketURL)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Expect(resp.StatusCode).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", basketURL, resp.StatusCode))
+	gomega.Expect(string(resp.Body)).To(gomega.ContainSubstring(expectedString), "website found is NOT the shopping cart")
 }
 
 // ChangeAddress changes the address for the provided user
 func (s *SockShop) ChangeAddress(username string, hostname string) {
-	pkg.Log(Info, fmt.Sprint("Attempting to change address to 100 Oracle Pkwy, Redwood City, CA 94065"))
+	pkg.Log(Info, "Attempting to change address to 100 Oracle Pkwy, Redwood City, CA 94065")
 	addressData := fmt.Sprintf(`{"userID": "%v", "number":"100", "street":"Oracle Pkwy", "city":"Redwood City", "postcode":"94065", "country":"USA"}`, username)
 	addressURL := fmt.Sprintf("https://%v/addresses", hostname)
-	status, address := s.Post(addressURL, "application/json", strings.NewReader(addressData))
-	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("POST %v returns status %v expected 200", addressURL, status))
+	resp, err := s.Post(addressURL, "application/json", strings.NewReader(addressData))
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Expect(resp.StatusCode).To(gomega.Equal(200), fmt.Sprintf("POST %v returns status %v expected 200", addressURL, resp.StatusCode))
 	var addressID *ID
-	json.Unmarshal([]byte(address), &addressID)
+	json.Unmarshal(resp.Body, &addressID)
 
 	if addSplit := strings.Split(addressID.id, ":"); len(addSplit) == 2 {
 		gomega.Expect(addSplit[0]).To(gomega.Equal(username), fmt.Sprintf("Incorrect ID expected %v and received %v", username, addSplit[0]))
 		integ, err := strconv.Atoi(addSplit[1])
 		gomega.Expect((integ > 0 && err == nil)).To(gomega.BeTrue(), fmt.Sprintf("Incorrect ID expected a positive integer and received %v", addSplit[1]))
 	}
-	pkg.Log(Info, fmt.Sprintf("Address: %v has been implemented with id", address))
+	pkg.Log(Info, fmt.Sprintf("Address: %s has been implemented with id", resp.Body))
 }
 
 // ChangePayment changes the form of payment
 func (s *SockShop) ChangePayment(hostname string) {
 	// change payment
-	pkg.Log(Info, fmt.Sprint("Attempting to change payment to 0000111122223333"))
+	pkg.Log(Info, "Attempting to change payment to 0000111122223333")
 
 	cardData := fmt.Sprintf(`{"userID": "%v", "longNum":"00001111222223333", "expires":"01/23", "ccv":"123"}`, s.username)
 
 	cardURL := fmt.Sprintf("https://%v/cards", hostname)
-	status, card := s.Post(cardURL, "application/json", strings.NewReader(cardData))
-	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("POST %v returns status %v expected 200", cardURL, status))
-	pkg.Log(Info, fmt.Sprintf("Card with ID: %v has been implemented", card))
+	resp, err := s.Post(cardURL, "application/json", strings.NewReader(cardData))
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Expect(resp.StatusCode).To(gomega.Equal(200), fmt.Sprintf("POST %v returns status %v expected 200", cardURL, resp.StatusCode))
+	pkg.Log(Info, fmt.Sprintf("Card with ID: %s has been implemented", resp.Body))
 }
 
 // GetOrders retrieves the orders
 func (s *SockShop) GetOrders(hostname string) {
-	pkg.Log(Info, fmt.Sprint("Attempting to locate orders"))
+	pkg.Log(Info, "Attempting to locate orders")
 	ordersURL := fmt.Sprintf("https://%v/orders", hostname)
-	status, orders := s.Get(ordersURL)
-	gomega.Expect(status).To(gomega.Equal(201), fmt.Sprintf("Get %v returns status %v expected 201", ordersURL, status))
-	pkg.Log(Info, fmt.Sprintf("Orders: %v have been retrieved", orders))
+	resp, err := s.Get(ordersURL)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Expect(resp.StatusCode).To(gomega.Equal(201), fmt.Sprintf("Get %v returns status %v expected 201", ordersURL, resp.StatusCode))
+	pkg.Log(Info, fmt.Sprintf("Orders: %s have been retrieved", resp.Body))
 }
 
 // undeploySockShopApplication undeploys the sock shop application

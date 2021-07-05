@@ -5,6 +5,7 @@ package keycloak_test
 
 import (
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"path"
 	"strings"
 	"time"
@@ -15,12 +16,15 @@ import (
 )
 
 const (
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 30 * time.Second
+	waitTimeout              = 10 * time.Minute
+	pollingInterval          = 30 * time.Second
+	keycloakNamespace string = "keycloak"
 )
 
+var volumeClaims map[string]*corev1.PersistentVolumeClaim
+
 var _ = ginkgo.Describe("Verify Keycloak configuration", func() {
-	var _ = ginkgo.Describe("Verify password policies", func() {
+	var _ = ginkgo.Context("Verify password policies", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		ginkgo.It("Verify master realm password policy", func() {
 			if !isManagedClusterProfile {
@@ -38,6 +42,38 @@ var _ = ginkgo.Describe("Verify Keycloak configuration", func() {
 				gomega.Eventually(verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 			}
 		})
+	})
+})
+
+var _ = ginkgo.Describe("Verify MySQL Persistent Volumes based on install profile", func() {
+	var _ = ginkgo.Context("Verify Persistent volumes allocated per install profile", func() {
+
+		var err error
+		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
+
+		volumeClaims, err = pkg.GetPersistentVolumes(keycloakNamespace)
+		if err != nil {
+			ginkgo.Fail(fmt.Sprintf("Error retrieving persistent volumes for verrazzano-system: %v", err))
+		}
+
+		if pkg.IsDevProfile() {
+			ginkgo.It("Verify persistent volumes in namespace keycloak based on Dev install profile", func() {
+				// There is no Persistent Volume for MySQL in a dev install
+				gomega.Expect(len(volumeClaims)).To(gomega.Equal(0))
+			})
+		} else if pkg.IsManagedClusterProfile() {
+			ginkgo.It("Verify namespace keycloak doesn't exist based on Managed Cluster install profile", func() {
+				// There is no keycloak namespace in a managed cluster install
+				ns, _ := pkg.GetNamespace(keycloakNamespace)
+				gomega.Expect(ns.Name).To(gomega.BeEmpty())
+			})
+		} else if pkg.IsProdProfile() {
+			ginkgo.It("Verify persistent volumes in namespace keycloak based on Prod install profile", func() {
+				// 50 GB Persistent Volume create for MySQL in a prod install
+				gomega.Expect(len(volumeClaims)).To(gomega.Equal(1))
+				assertPersistentVolume("mysql", size)
+			})
+		}
 	})
 })
 
@@ -101,4 +137,10 @@ func verifyKeycloakRealmPasswordPolicyIsCorrect(realm string) bool {
 		return false
 	}
 	return true
+}
+
+func assertPersistentVolume(key string, size string) {
+	gomega.Expect(volumeClaims).To(gomega.HaveKey(key))
+	pvc := volumeClaims[key]
+	gomega.Expect(pvc.Spec.Resources.Requests.Storage().String()).To(gomega.Equal(size))
 }

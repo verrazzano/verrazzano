@@ -42,9 +42,10 @@ const OidcLogoutCallbackPath = "/_logout"
 type OidcProxyConfig struct {
 	// proxy mode: ProxyModeAPI or ProxyModeOauth
 	Mode string
-	// for nginx.conf (only needed for oauth-proxy backend)
-	Host string
-	Port int
+	// for nginx.conf (only needed for oauth-proxy backend at present)
+	Host       string
+	Port       int
+	SSLEnabled bool
 	// ingress and callback urls (oauth-proxy only)
 	Ingress                string
 	OidcCallbackPath       string

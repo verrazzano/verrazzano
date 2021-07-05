@@ -5,7 +5,7 @@ package springboot
 
 import (
 	"fmt"
-	"strings"
+	"net/http"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -112,19 +112,17 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
 	ginkgo.It("Verify welcome page of Spring Boot application is working.", func() {
-		gomega.Eventually(func() bool {
+		gomega.Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/", host)
-			status, content := pkg.GetWebPageWithCABundle(url, host)
-			return status == 200 && strings.Contains(content, "Greetings from Verrazzano Enterprise Container Platform")
-		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to get welcome page content")
+			return pkg.GetWebPage(url, host)
+		}, longWaitTimeout, longPollingInterval).Should(gomega.And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Greetings from Verrazzano Enterprise Container Platform")))
 	})
 
 	ginkgo.It("Verify Verrazzano facts endpoint is working.", func() {
-		gomega.Eventually(func() bool {
+		gomega.Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/facts", host)
-			status, content := pkg.GetWebPageWithCABundle(url, host)
-			return status == 200 && len(content) > 0
-		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to get a non-empty string returned from /facts endpoint")
+			return pkg.GetWebPage(url, host)
+		}, longWaitTimeout, longPollingInterval).Should(gomega.And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty()))
 	})
 
 	ginkgo.Context("Logging.", func() {

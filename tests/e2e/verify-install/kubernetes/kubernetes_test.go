@@ -49,7 +49,8 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 
 		ginkgo.It("has the expected number of nodes",
 			func() {
-				nodes := pkg.ListNodes()
+				nodes, err := pkg.ListNodes()
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error listing nodes")
 				gomega.Expect(len(nodes.Items)).To(gomega.BeNumerically(">=", 1))
 
 				// dump out node data to file

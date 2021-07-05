@@ -11,19 +11,19 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = ginkgo.Describe("Verrazzano Web UI",
+var _ = Describe("Verrazzano Web UI",
 	func() {
 		ingress, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
 
-		ginkgo.It("ingress exist", func() {
-			gomega.Expect(err).To(gomega.BeNil())
-			gomega.Expect(len(ingress.Spec.Rules)).To(gomega.Equal(1))
+		It("ingress exist", func() {
+			Expect(err).To(BeNil())
+			Expect(len(ingress.Spec.Rules)).To(Equal(1))
 		})
 
 		// Determine if the console UI is configured
@@ -41,17 +41,18 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 
 			pkg.Log(pkg.Info, "The Web UI's URL is "+serverURL)
 
-			ginkgo.It("can be accessed", func() {
-				rc, content := pkg.GetWebPageWithCABundle(serverURL, "")
-				gomega.Expect(rc).To(gomega.Equal(200))
-				gomega.Expect(content).To(gomega.Not(gomega.BeEmpty()))
-				gomega.Expect(content).To(gomega.Not(gomega.ContainSubstring("404")))
+			It("can be accessed", func() {
+				resp, err := pkg.GetWebPage(serverURL, "")
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(resp.StatusCode).To(Equal(200))
+				Expect(resp.Body).To(Not(BeEmpty()))
+				Expect(string(resp.Body)).To(Not(ContainSubstring("404")))
 			})
 
-			ginkgo.It("has the correct SSL certificate",
+			It("has the correct SSL certificate",
 				func() {
 					certs, err := pkg.GetCertificates(serverURL)
-					gomega.Expect(err).To(gomega.BeNil())
+					Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Could not get certs from URL: %s, error: %v", serverURL, err))
 					// There will normally be several certs, but we only need to check the
 					// first one -- might want to refactor the checks out into a pkg.IsCertValid()
 					// function so we can use it from other test suites too??
@@ -59,69 +60,77 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 					pkg.Log(pkg.Debug, "Subject Common Name: "+certs[0].Subject.CommonName)
 					pkg.Log(pkg.Debug, "Not Before: "+certs[0].NotBefore.String())
 					pkg.Log(pkg.Debug, "Not After: "+certs[0].NotAfter.String())
-					gomega.Expect(time.Now().After(certs[0].NotBefore)).To(gomega.BeTrue())
-					gomega.Expect(time.Now().Before(certs[0].NotAfter)).To(gomega.BeTrue())
+					Expect(time.Now().After(certs[0].NotBefore)).To(BeTrue())
+					Expect(time.Now().Before(certs[0].NotAfter)).To(BeTrue())
 				})
 
-			ginkgo.It("should return no Server header",
+			It("should return no Server header",
 				func() {
-					httpClient := pkg.GetVerrazzanoHTTPClient()
+					kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+					httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+					Expect(err).ShouldNot(HaveOccurred())
 					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
-					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					Expect(err).ShouldNot(HaveOccurred())
 					resp, err := httpClient.Do(req)
-					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					Expect(err).ShouldNot(HaveOccurred())
 					ioutil.ReadAll(resp.Body)
 					resp.Body.Close()
 					// HTTP Server headers should never be returned.
 					for headerName, headerValues := range resp.Header {
-						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("server"), fmt.Sprintf("Unexpected Server header %v", headerValues))
+						Expect(strings.ToLower(headerName)).ToNot(Equal("server"), fmt.Sprintf("Unexpected Server header %v", headerValues))
 					}
 				})
 
-			ginkgo.It("should not return CORS Access-Control-Allow-Origin header when no Origin header is provided",
+			It("should not return CORS Access-Control-Allow-Origin header when no Origin header is provided",
 				func() {
-					httpClient := pkg.GetVerrazzanoHTTPClient()
+					kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+					httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+					Expect(err).ShouldNot(HaveOccurred())
 					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
-					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					Expect(err).ShouldNot(HaveOccurred())
 					resp, err := httpClient.Do(req)
-					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					Expect(err).ShouldNot(HaveOccurred())
 					ioutil.ReadAll(resp.Body)
 					resp.Body.Close()
 					// HTTP Access-Control-Allow-Origin header should never be returned.
 					for headerName, headerValues := range resp.Header {
-						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
+						Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
 					}
 				})
 
-			ginkgo.It("should not return CORS Access-Control-Allow-Origin header when Origin: * is provided",
+			It("should not return CORS Access-Control-Allow-Origin header when Origin: * is provided",
 				func() {
-					httpClient := pkg.GetVerrazzanoHTTPClient()
+					kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+					httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+					Expect(err).ShouldNot(HaveOccurred())
 					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 					req.Header.Add("Origin", "*")
-					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					Expect(err).ShouldNot(HaveOccurred())
 					resp, err := httpClient.Do(req)
-					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					Expect(err).ShouldNot(HaveOccurred())
 					ioutil.ReadAll(resp.Body)
 					resp.Body.Close()
 					// HTTP Access-Control-Allow-Origin header should never be returned.
 					for headerName, headerValues := range resp.Header {
-						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
+						Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
 					}
 				})
 
-			ginkgo.It("should not return CORS Access-Control-Allow-Origin header when Origin: null is provided",
+			It("should not return CORS Access-Control-Allow-Origin header when Origin: null is provided",
 				func() {
-					httpClient := pkg.GetVerrazzanoHTTPClient()
+					kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+					httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+					Expect(err).ShouldNot(HaveOccurred())
 					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 					req.Header.Add("Origin", "null")
-					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					Expect(err).ShouldNot(HaveOccurred())
 					resp, err := httpClient.Do(req)
-					gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Unexpected error %v", err))
+					Expect(err).ShouldNot(HaveOccurred())
 					ioutil.ReadAll(resp.Body)
 					resp.Body.Close()
 					// HTTP Access-Control-Allow-Origin header should never be returned.
 					for headerName, headerValues := range resp.Header {
-						gomega.Expect(strings.ToLower(headerName)).ToNot(gomega.Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
+						Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
 					}
 				})
 		}

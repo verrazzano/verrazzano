@@ -20,7 +20,7 @@ package proxy
 const OidcReloadFilename = "reload.sh"
 
 // OidcReloadFileTemplate is the template of reload.sh file in OIDC proxy ConfigMap
-const OidcReloadFileTemplate = `    #!/bin/bash
+const OidcReloadFileTemplate = `#!/bin/bash
 
     adminCABundleMD5=""
     defaultCABundleMD5=""

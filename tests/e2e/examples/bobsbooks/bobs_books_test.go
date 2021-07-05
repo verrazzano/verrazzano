@@ -134,42 +134,30 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// WHEN the roberts-books UI is accessed
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify roberts-books UI endpoint is working.", func() {
-			gomega.Eventually(func() pkg.WebResponse {
+			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s", host)
-				status, content := pkg.GetWebPageWithCABundle(url, host)
-				return pkg.WebResponse{
-					Status:  status,
-					Content: content,
-				}
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HaveStatus(200), pkg.ContainContent("Robert's Books")))
+				return pkg.GetWebPage(url, host)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("Robert's Books")))
 		})
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the bobbys-books UI is accessed
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify bobbys-books UI endpoint is working.", func() {
-			gomega.Eventually(func() pkg.WebResponse {
+			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobbys-front-end/", host)
-				status, content := pkg.GetWebPageWithCABundle(url, host)
-				return pkg.WebResponse{
-					Status:  status,
-					Content: content,
-				}
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HaveStatus(200), pkg.ContainContent("Bobby's Books")))
+				return pkg.GetWebPage(url, host)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
 		})
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the bobs-orders UI is accessed
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify bobs-orders UI endpoint is working.", func() {
-			gomega.Eventually(func() pkg.WebResponse {
+			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/orders", host)
-				status, content := pkg.GetWebPageWithCABundle(url, host)
-				return pkg.WebResponse{
-					Status:  status,
-					Content: content,
-				}
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HaveStatus(200), pkg.ContainContent("Bob's Order Manager")))
+				return pkg.GetWebPage(url, host)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
 	})
 	ginkgo.Context("Metrics.", func() {
@@ -207,6 +195,16 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				func() {
 					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobbys-front-end")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobs-bookstore")
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {

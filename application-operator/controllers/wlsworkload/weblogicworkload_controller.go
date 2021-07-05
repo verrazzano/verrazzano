@@ -5,6 +5,7 @@ package wlsworkload
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -41,6 +42,119 @@ const (
 	destinationRuleKind       = "DestinationRule"
 )
 
+const defaultMonitoringExporterData = `
+  {
+    "configuration": {
+      "domainQualifier": true,
+      "metricsNameSnakeCase": true,
+      "queries": [
+        {
+           "key": "name",
+           "keyName": "location",
+           "prefix": "wls_server_",
+           "applicationRuntimes": {
+              "key": "name",
+              "keyName": "app",
+              "componentRuntimes": {
+                 "prefix": "wls_webapp_config_",
+                 "type": "WebAppComponentRuntime",
+                 "key": "name",
+                 "values": [
+                    "deploymentState",
+                    "contextRoot",
+                    "sourceInfo",
+                    "sessionsOpenedTotalCount",
+                    "openSessionsCurrentCount",
+                    "openSessionsHighCount"
+                 ],
+                 "servlets": {
+                    "prefix": "wls_servlet_",
+                    "key": "servletName"
+                 }
+              }
+           }
+        },
+        {
+           "JVMRuntime": {
+              "prefix": "wls_jvm_",
+              "key": "name"
+           }
+        },
+        {
+           "executeQueueRuntimes": {
+              "prefix": "wls_socketmuxer_",
+              "key": "name",
+              "values": [
+                 "pendingRequestCurrentCount"
+              ]
+           }
+        },
+        {
+           "workManagerRuntimes": {
+              "prefix": "wls_workmanager_",
+              "key": "name",
+              "values": [
+                 "stuckThreadCount",
+                 "pendingRequests",
+                 "completedRequests"
+              ]
+           }
+        },
+        {
+           "threadPoolRuntime": {
+              "prefix": "wls_threadpool_",
+              "key": "name",
+              "values": [
+                 "executeThreadTotalCount",
+                 "queueLength",
+                 "stuckThreadCount",
+                 "hoggingThreadCount"
+              ]
+           }
+        },
+        {
+           "JMSRuntime": {
+              "key": "name",
+              "keyName": "jmsruntime",
+              "prefix": "wls_jmsruntime_",
+              "JMSServers": {
+                 "prefix": "wls_jms_",
+                 "key": "name",
+                 "keyName": "jmsserver",
+                 "destinations": {
+                    "prefix": "wls_jms_dest_",
+                    "key": "name",
+                    "keyName": "destination"
+                 }
+              }
+           }
+        },
+        {
+           "persistentStoreRuntimes": {
+              "prefix": "wls_persistentstore_",
+              "key": "name"
+           }
+        },
+        {
+           "JDBCServiceRuntime": {
+              "JDBCDataSourceRuntimeMBeans": {
+                 "prefix": "wls_datasource_",
+                 "key": "name"
+              }
+           }
+        },
+        {
+           "JTARuntime": {
+              "prefix": "wls_jta_",
+              "key": "name"
+           }
+        }
+      ]
+    },
+    "imagePullPolicy": "IfNotPresent"
+  }
+`
+
 var specServerPodFields = []string{specField, "serverPod"}
 var specServerPodLabelsFields = append(specServerPodFields, "labels")
 var specServerPodContainersFields = append(specServerPodFields, "containers")
@@ -48,6 +162,7 @@ var specServerPodVolumesFields = append(specServerPodFields, "volumes")
 var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts")
 var specConfigurationIstioEnabledFields = []string{specField, "configuration", "istio", "enabled"}
 var specConfigurationRuntimeEncryptionSecret = []string{specField, "configuration", "model", "runtimeEncryptionSecret"}
+var specMonitoringExporterFields = []string{specField, "monitoringExporter"}
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -130,6 +245,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Add the Fluentd sidecar container required for logging to the Domain
 	if err = r.addLogging(ctx, log, workload, upgradeApp, u, &existingDomain); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Add the monitoringExporter to the spec if not already present
+	if err = addDefaultMonitoringExporter(u); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -474,4 +594,30 @@ func genPassword(passSize int) string {
 		b.WriteRune(passwordChars[rand.Intn(len(passwordChars)-1)])
 	}
 	return b.String()
+}
+
+// addDefaultMonitoringExporter adds monitoringExporter to the WebLogic spec if there is not one present
+func addDefaultMonitoringExporter(weblogic *unstructured.Unstructured) error {
+	if _, found, _ := unstructured.NestedFieldNoCopy(weblogic.Object, specMonitoringExporterFields...); !found {
+		defaultMonitoringExporter, err := getDefaultMonitoringExporter()
+		if err != nil {
+			return err
+		}
+		err = unstructured.SetNestedField(weblogic.Object, defaultMonitoringExporter, specMonitoringExporterFields...)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getDefaultMonitoringExporter() (interface{}, error) {
+	bytes := []byte(defaultMonitoringExporterData)
+	var monitoringExporter map[string]interface{}
+	json.Unmarshal(bytes, &monitoringExporter)
+	result, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&monitoringExporter)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

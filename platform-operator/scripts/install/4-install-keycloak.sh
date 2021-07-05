@@ -75,6 +75,14 @@ function install_mysql {
   build_image_overrides mysql oraclelinux
   HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} ${image_args}"
 
+  local PROFILE_VALUES_OVERRIDE=""
+  local profile=$(get_install_profile)
+  if [ "$profile" == "dev" ]; then
+    local PROFILE_VALUES_OVERRIDE=" -f ${VZ_CHARTS_DIR}/verrazzano/mysql.${profile}.yaml"
+  fi
+
+  log "PROFILE VALUES OVERRIDE = ${PROFILE_VALUES_OVERRIDE}"
+
   helm upgrade ${chart_name} ${MYSQL_CHART_DIR} \
       --install \
       --namespace ${KEYCLOAK_NS} \
@@ -83,6 +91,7 @@ function install_mysql {
       -f $VZ_OVERRIDES_DIR/mysql-values.yaml \
       ${HELM_IMAGE_ARGS} \
       ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_MYSQL_ARGUMENTS}
 }
 
@@ -759,7 +768,9 @@ if [ $(is_keycloak_enabled) == "true" ]; then
 
   action "Installing Keycloak" install_keycloak || exit 1
 
-  action "patching the prometheus deployment to enable communication with keycloak" patch_prometheus || exit 1
+  if [ $(is_prometheus_console_enabled) == "true" ]; then
+    action "patching the prometheus deployment to enable communication with keycloak" patch_prometheus || exit 1
+  fi
 
 else
   log "Skip Keycloak installation, disabled"
