@@ -15,7 +15,3 @@ linters:
 issues:
   exclude:
     - stutter
-stylecheck:
-  dot-import-whitelist:
-    - ginkgo
-    - gomega
