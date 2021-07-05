@@ -7,8 +7,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	clientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
+	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/fake"
+	verrazzanoclientset "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
+	v80fake "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,8 +68,10 @@ configmap/verrazzano-admin-cluster created
 )
 
 type TestKubernetes struct {
-	fakeClustersClient clientset.Interface
+	fakeClustersClient clustersclientset.Interface
 	fakek8sClient      kubernetes.Interface
+	fakev8oCleint      verrazzanoclientset.Interface
+	fakeProjectCleint  projectclientset.Interface
 }
 
 // Fake config with fake Host address
@@ -77,8 +82,16 @@ func (o *TestKubernetes) GetKubeConfig() *rest.Config {
 	return config
 }
 
-func (o *TestKubernetes) NewClustersClientSet() (clientset.Interface, error) {
+func (o *TestKubernetes) NewClustersClientSet() (clustersclientset.Interface, error) {
 	return o.fakeClustersClient, nil
+}
+
+func (o *TestKubernetes) NewVerrazzanoClientSet() (verrazzanoclientset.Interface, error) {
+	return o.fakev8oCleint, nil
+}
+
+func (o *TestKubernetes) NewProjectClientSet() (projectclientset.Interface, error) {
+	return o.fakeProjectCleint, nil
 }
 
 func (o *TestKubernetes) NewClientSet() kubernetes.Interface {
@@ -128,6 +141,7 @@ func TestNewCmdClusterList(t *testing.T) {
 	testKubernetes := &TestKubernetes{
 		fakeClustersClient: fake.NewSimpleClientset(),
 		fakek8sClient:      k8sfake.NewSimpleClientset(),
+		fakev8oCleint:      v80fake.NewSimpleClientset(),
 	}
 	testCmd := NewCmdClusterList(streams, testKubernetes)
 
@@ -148,10 +162,10 @@ func TestNewCmdClusterList(t *testing.T) {
 	outBuffer.Reset()
 
 	// There are 3 spaces after the each column(last one as well)
-	expected := `NAME    AGE    STATUS   DESCRIPTION             APISERVER   
-test1   292y             test managed cluster               
-test2   292y             test managed cluster               
-test3   292y             test managed cluster               
+	expected := `NAME    AGE    STATUS   DESCRIPTION             
+test1   292y             test managed cluster   
+test2   292y             test managed cluster   
+test3   292y             test managed cluster   
 
 `
 	err = testCmd.Execute()

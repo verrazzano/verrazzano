@@ -61,10 +61,37 @@ func (o *ClusterListOptions) listClusters(kubernetesInterface helpers.Kubernetes
 		return err
 	}
 
+	// Get the verrazzanoClientSet to get info on the verrazzano resource
+	// for the admin cluster
+	vClientSet, err := kubernetesInterface.NewVerrazzanoClientSet()
+	if err != nil {
+		return err
+	}
+	admin, err := vClientSet.VerrazzanoV1alpha1().Verrazzanos("default").List(context.Background(), v1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Temporary struct to hold the info on the admin cluster
+	// as there is no vmc resource for admin cluster
+	// Note that this object is not being created
+	if len(admin.Items) != 0 {
+		vmcObject := v1alpha1.VerrazzanoManagedCluster{
+			ObjectMeta: v1.ObjectMeta{
+				Name:              "local",
+				CreationTimestamp: admin.Items[0].CreationTimestamp,
+			},
+			Spec: v1alpha1.VerrazzanoManagedClusterSpec{
+				Description: "Admin cluster",
+			},
+		}
+		vmcs.Items = append(vmcs.Items, vmcObject)
+	}
+
 	// check if the list is empty
 	if len(vmcs.Items) == 0 {
-		fmt.Fprintln(o.Out, helpers.NothingFound)
-		return nil
+		_, err := fmt.Fprintln(o.Out, helpers.NothingFound)
+		return err
 	}
 
 	// Output options was specified
@@ -86,7 +113,7 @@ func (o *ClusterListOptions) listClusters(kubernetesInterface helpers.Kubernetes
 	}
 
 	// print out details of the clusters
-	headings := []string{"NAME", "AGE", "STATUS", "DESCRIPTION", "APISERVER"}
+	headings := []string{"NAME", "AGE", "STATUS", "DESCRIPTION"}
 	data := [][]string{}
 	for _, vmc := range vmcs.Items {
 		rowData := []string{
@@ -94,7 +121,6 @@ func (o *ClusterListOptions) listClusters(kubernetesInterface helpers.Kubernetes
 			helpers.Age(vmc.CreationTimestamp),
 			getReadyStatus(vmc.Status),
 			vmc.Spec.Description,
-			vmc.Status.APIUrl,
 		}
 		data = append(data, rowData)
 	}
