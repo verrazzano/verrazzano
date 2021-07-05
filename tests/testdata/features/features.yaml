@@ -2,12 +2,17 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 features:
+  verrazzano:
+    install:
+    permissions:
+    crds:
   metrics:
     prometheus:
       dev:
       prod:
     envoy:
+    weblogic:
+    coherence:
+    helidon:
   logging:
     nodeExporter:
-  permissions:
-    verrazzano:

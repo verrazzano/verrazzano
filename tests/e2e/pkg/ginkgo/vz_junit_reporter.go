@@ -19,9 +19,9 @@ import (
 
 type JUnitTestSuite struct {
 	XMLName   xml.Name        `xml:"testsuite"`
+	Features  []string        `xml:"feature"`
 	TestCases []JUnitTestCase `xml:"testcase"`
 	Name      string          `xml:"name,attr"`
-	Features  string          `xml:"features,attr"`
 	Tests     int             `xml:"tests,attr"`
 	Failures  int             `xml:"failures,attr"`
 	Errors    int             `xml:"errors,attr"`
@@ -140,7 +140,10 @@ func (reporter *JUnitReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
 	reporter.suite.Time = math.Trunc(summary.RunTime.Seconds()*1000) / 1000
 	reporter.suite.Failures = summary.NumberOfFailedSpecs
 	reporter.suite.Errors = 0
-	reporter.suite.Features = "feature1,feature2"
+	reporter.suite.Features = make([]string, len(FeaturesTested.Features))
+	for i, feature := range FeaturesTested.Features {
+		reporter.suite.Features[i] = string(feature)
+	}
 	if reporter.ReporterConfig.ReportFile != "" {
 		reporter.filename = reporter.ReporterConfig.ReportFile
 		fmt.Printf("\nJUnit path was configured: %s\n", reporter.filename)

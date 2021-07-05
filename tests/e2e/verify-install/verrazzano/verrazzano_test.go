@@ -8,10 +8,11 @@ import (
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	vz "github.com/verrazzano/verrazzano/tests/e2e/pkg/ginkgo"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
-var _ = ginkgo.Describe("Verrazzano", func() {
+var _ = vz.VzDescribe("Verrazzano", func() {
 
 	vzInstallReadRule := rbacv1.PolicyRule{
 		Verbs:     []string{"get", "list", "watch"},
@@ -69,33 +70,36 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		Resources: []string{"*", "*/status"},
 	}
 
-	ginkgoExt.DescribeTable("CRD for",
+	vz.VzDescribeTable("CRD for",
 		func(name string) {
 			gomega.Expect(pkg.DoesCRDExist(name)).To(gomega.BeTrue())
 		},
+		"verrazzano.crds",
 		ginkgoExt.Entry("verrazzanos should exist in cluster", "verrazzanos.install.verrazzano.io"),
 		ginkgoExt.Entry("verrazzanomanagedclusters should exist in cluster", "verrazzanomanagedclusters.clusters.verrazzano.io"),
 	)
 
-	ginkgoExt.DescribeTable("ClusterRole",
+	vz.VzDescribeTable("ClusterRole",
 		func(name string) {
 			gomega.Expect(pkg.DoesClusterRoleExist(name)).To(gomega.BeTrue())
 		},
+		"verrazzano.permissions",
 		ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
 		ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
 		ginkgoExt.Entry("verrazzano-project-admin should exist", "verrazzano-project-admin"),
 		ginkgoExt.Entry("verrazzano-project-monitor should exist", "verrazzano-project-monitor"),
 	)
 
-	ginkgoExt.DescribeTable("ClusterRoleBinding",
+	vz.VzDescribeTable("ClusterRoleBinding",
 		func(name string) {
 			gomega.Expect(pkg.DoesClusterRoleBindingExist(name)).To(gomega.BeTrue())
 		},
+		"verrazzano.permissions",
 		ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
 		ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
 	)
 
-	ginkgo.Describe("ClusterRole verrazzano-admin", func() {
+	vz.VzDescribe("ClusterRole verrazzano-admin", func() {
 		cr := pkg.GetClusterRole("verrazzano-admin")
 		rules := cr.Rules
 
@@ -104,10 +108,11 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 				"there should be eleven rules")
 		})
 
-		ginkgoExt.DescribeTable("PolicyRule",
+		vz.VzDescribeTable("PolicyRule",
 			func(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) {
 				gomega.Expect(pkg.SliceContainsPolicyRule(ruleSlice, rule)).To(gomega.BeTrue())
 			},
+			"verrazzano.permissions",
 			ginkgoExt.Entry("vzInstallReadRule should exist", rules, vzInstallReadRule),
 			ginkgoExt.Entry("vzInstallWriteRule should exist", rules, vzInstallWriteRule),
 			ginkgoExt.Entry("vzSystemReadRule should exist", rules, vzSystemReadRule),
@@ -120,9 +125,9 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
 			ginkgoExt.Entry("vzIstioReadRule should exist", rules, vzIstioReadRule),
 		)
-	})
+	}, "verrazzano.permissions")
 
-	ginkgo.Describe("ClusterRole verrazzano-monitor", func() {
+	vz.VzDescribe("ClusterRole verrazzano-monitor", func() {
 		cr := pkg.GetClusterRole("verrazzano-monitor")
 		rules := cr.Rules
 
@@ -131,19 +136,20 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 				"there should be five rules")
 		})
 
-		ginkgoExt.DescribeTable("PolicyRule",
+		vz.VzDescribeTable("PolicyRule",
 			func(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) {
 				gomega.Expect(pkg.SliceContainsPolicyRule(ruleSlice, rule)).To(gomega.BeTrue())
 			},
+			"verrazzano.permissions",
 			ginkgoExt.Entry("vzSystemReadRule should exist", rules, vzSystemReadRule),
 			ginkgoExt.Entry("vzAppReadRule should exist", rules, vzAppReadRule),
 			ginkgoExt.Entry("vzWebLogicReadRule should exist", rules, vzWebLogicReadRule),
 			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
 			ginkgoExt.Entry("vzIstioReadRule should exist", rules, vzIstioReadRule),
 		)
-	})
+	}, "verrazzano.permissions")
 
-	ginkgo.Describe("ClusterRole verrazzano-project-admin", func() {
+	vz.VzDescribe("ClusterRole verrazzano-project-admin", func() {
 		cr := pkg.GetClusterRole("verrazzano-project-admin")
 		rules := cr.Rules
 
@@ -152,10 +158,11 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 				"there should be six rules")
 		})
 
-		ginkgoExt.DescribeTable("PolicyRule",
+		vz.VzDescribeTable("PolicyRule",
 			func(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) {
 				gomega.Expect(pkg.SliceContainsPolicyRule(ruleSlice, rule)).To(gomega.BeTrue())
 			},
+			"verrazzano.permissions",
 			ginkgoExt.Entry("vzAppReadRule should exist", rules, vzAppReadRule),
 			ginkgoExt.Entry("vzAppWriteRule should exist", rules, vzAppWriteRule),
 			ginkgoExt.Entry("vzWebLogicReadRule should exist", rules, vzWebLogicReadRule),
@@ -163,9 +170,9 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
 			ginkgoExt.Entry("vzCoherenceWriteRule should exist", rules, vzCoherenceWriteRule),
 		)
-	})
+	}, "verrazzano.permissions")
 
-	ginkgo.Describe("ClusterRole verrazzano-project-monitor", func() {
+	vz.VzDescribe("ClusterRole verrazzano-project-monitor", func() {
 		cr := pkg.GetClusterRole("verrazzano-project-monitor")
 		rules := cr.Rules
 
@@ -174,17 +181,18 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 				"there should be three rules")
 		})
 
-		ginkgoExt.DescribeTable("PolicyRule",
+		vz.VzDescribeTable("PolicyRule",
 			func(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) {
 				gomega.Expect(pkg.SliceContainsPolicyRule(ruleSlice, rule)).To(gomega.BeTrue())
 			},
+			"verrazzano.permissions",
 			ginkgoExt.Entry("vzAppReadRule should exist", rules, vzAppReadRule),
 			ginkgoExt.Entry("vzWebLogicReadRule should exist", rules, vzWebLogicReadRule),
 			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
 		)
-	})
+	}, "verrazzano.permissions")
 
-	ginkgo.Describe("ClusterRoleBinding verrazzano-admin", func() {
+	vz.VzDescribe("ClusterRoleBinding verrazzano-admin", func() {
 		ginkgo.It("has correct subjects and refs", func() {
 			crb := pkg.GetClusterRoleBinding("verrazzano-admin")
 			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
@@ -204,9 +212,9 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 			gomega.Expect(s.Name == "verrazzano-admins").To(gomega.BeTrue(),
 				"the subject's name should be verrazzano-admins")
 		})
-	})
+	}, "verrazzano.permissions")
 
-	ginkgo.Describe("ClusterRoleBinding verrazzano-admin-k8s", func() {
+	vz.VzDescribe("ClusterRoleBinding verrazzano-admin-k8s", func() {
 		ginkgo.It("has correct subjects and refs", func() {
 			crb := pkg.GetClusterRoleBinding("verrazzano-admin-k8s")
 			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
@@ -226,9 +234,9 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 			gomega.Expect(s.Name == "verrazzano-admins").To(gomega.BeTrue(),
 				"the subject's name should be verrazzano-admins")
 		})
-	})
+	}, "verrazzano.permissions")
 
-	ginkgo.Describe("ClusterRoleBinding verrazzano-monitor", func() {
+	vz.VzDescribe("ClusterRoleBinding verrazzano-monitor", func() {
 		ginkgo.It("has correct subjects and refs", func() {
 			crb := pkg.GetClusterRoleBinding("verrazzano-monitor")
 			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
@@ -248,28 +256,28 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 			gomega.Expect(s.Name == "verrazzano-monitors").To(gomega.BeTrue(),
 				"the subject's name should be verrazzano-monitors")
 		})
+	}, "verrazzano.permissions")
+
+}, "verrazzano.install")
+
+var _ = vz.VzDescribe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
+	ginkgo.It("has correct subjects and refs", func() {
+		crb := pkg.GetClusterRoleBinding("verrazzano-monitor-k8s")
+		gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+			"the roleRef.apiGroup should be rbac.authorization.k8s.io")
+		gomega.Expect(crb.RoleRef.Name == "view").To(gomega.BeTrue(),
+			"the roleRef.name should be view")
+		gomega.Expect(crb.RoleRef.Kind == "ClusterRole").To(gomega.BeTrue(),
+			"the roleRef.kind shoudl be ClusterRole")
+
+		gomega.Expect(len(crb.Subjects) == 1).To(gomega.BeTrue(),
+			"there should be one subject")
+		s := crb.Subjects[0]
+		gomega.Expect(s.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+			"the subject's apiGroup should be rbac.authorization.k8s.io")
+		gomega.Expect(s.Kind == "Group").To(gomega.BeTrue(),
+			"the subject's kind should be Group")
+		gomega.Expect(s.Name == "verrazzano-monitors").To(gomega.BeTrue(),
+			"the subject's name should be verrazzano-monitors")
 	})
-
-	ginkgo.Describe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
-		ginkgo.It("has correct subjects and refs", func() {
-			crb := pkg.GetClusterRoleBinding("verrazzano-monitor-k8s")
-			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
-				"the roleRef.apiGroup should be rbac.authorization.k8s.io")
-			gomega.Expect(crb.RoleRef.Name == "view").To(gomega.BeTrue(),
-				"the roleRef.name should be view")
-			gomega.Expect(crb.RoleRef.Kind == "ClusterRole").To(gomega.BeTrue(),
-				"the roleRef.kind shoudl be ClusterRole")
-
-			gomega.Expect(len(crb.Subjects) == 1).To(gomega.BeTrue(),
-				"there should be one subject")
-			s := crb.Subjects[0]
-			gomega.Expect(s.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
-				"the subject's apiGroup should be rbac.authorization.k8s.io")
-			gomega.Expect(s.Kind == "Group").To(gomega.BeTrue(),
-				"the subject's kind should be Group")
-			gomega.Expect(s.Name == "verrazzano-monitors").To(gomega.BeTrue(),
-				"the subject's name should be verrazzano-monitors")
-		})
-	})
-
-})
+}, "verrazzano.permissions")
