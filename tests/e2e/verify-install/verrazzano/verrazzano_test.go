@@ -118,21 +118,21 @@ var _ = vz.VzDescribe("Verrazzano", func() {
 		})
 
 		vz.VzDescribeTable("PolicyRule",
-			func(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) {
-				gomega.Expect(pkg.SliceContainsPolicyRule(ruleSlice, rule)).To(gomega.BeTrue())
+			func(rule rbacv1.PolicyRule) {
+				gomega.Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(gomega.BeTrue())
 			},
 			"verrazzano.permissions",
-			ginkgoExt.Entry("vzInstallReadRule should exist", rules, vzInstallReadRule),
-			ginkgoExt.Entry("vzInstallWriteRule should exist", rules, vzInstallWriteRule),
-			ginkgoExt.Entry("vzSystemReadRule should exist", rules, vzSystemReadRule),
-			ginkgoExt.Entry("vzSystemWriteRule should exist", rules, vzSystemWriteRule),
-			ginkgoExt.Entry("vzAppReadRule should exist", rules, vzAppReadRule),
-			ginkgoExt.Entry("vzAppWriteRule should exist", rules, vzAppWriteRule),
-			ginkgoExt.Entry("vzWebLogicReadRule should exist", rules, vzWebLogicReadRule),
-			ginkgoExt.Entry("vzWebLogicWriteRule should exist", rules, vzWebLogicWriteRule),
-			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
-			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
-			ginkgoExt.Entry("vzIstioReadRule should exist", rules, vzIstioReadRule),
+			ginkgoExt.Entry("vzInstallReadRule should exist", vzInstallReadRule),
+			ginkgoExt.Entry("vzInstallWriteRule should exist", vzInstallWriteRule),
+			ginkgoExt.Entry("vzSystemReadRule should exist", vzSystemReadRule),
+			ginkgoExt.Entry("vzSystemWriteRule should exist", vzSystemWriteRule),
+			ginkgoExt.Entry("vzAppReadRule should exist", vzAppReadRule),
+			ginkgoExt.Entry("vzAppWriteRule should exist", vzAppWriteRule),
+			ginkgoExt.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
+			ginkgoExt.Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
+			ginkgoExt.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			ginkgoExt.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			ginkgoExt.Entry("vzIstioReadRule should exist", vzIstioReadRule),
 		)
 	}, "verrazzano.permissions")
 
@@ -182,8 +182,8 @@ var _ = vz.VzDescribe("Verrazzano", func() {
 				gomega.Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(gomega.BeTrue())
 			},
 			"verrazzano.permissions",
-			ginkgoExt.Entry("vzAppReadRule should exist", rules, vzAppReadRule),
-			ginkgoExt.Entry("vzAppWriteRule should exist", rules, vzAppWriteRule),
+			ginkgoExt.Entry("vzAppReadRule should exist", vzAppReadRule),
+			ginkgoExt.Entry("vzAppWriteRule should exist", vzAppWriteRule),
 			ginkgoExt.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
 			ginkgoExt.Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
 			ginkgoExt.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
@@ -285,27 +285,26 @@ var _ = vz.VzDescribe("Verrazzano", func() {
 		})
 	}, "verrazzano.permissions")
 
-}, "verrazzano.install")
+	vz.VzDescribe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
+		ginkgo.It("has correct subjects and refs", func() {
+			crb, err := pkg.GetClusterRoleBinding("verrazzano-monitor-k8s")
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role binding")
+			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+				"the roleRef.apiGroup should be rbac.authorization.k8s.io")
+			gomega.Expect(crb.RoleRef.Name == "view").To(gomega.BeTrue(),
+				"the roleRef.name should be view")
+			gomega.Expect(crb.RoleRef.Kind == "ClusterRole").To(gomega.BeTrue(),
+				"the roleRef.kind shoudl be ClusterRole")
 
-var _ = vz.VzDescribe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
-	ginkgo.It("has correct subjects and refs", func() {
-		crb, err := pkg.GetClusterRoleBinding("verrazzano-monitor-k8s")
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role binding")
-		gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
-			"the roleRef.apiGroup should be rbac.authorization.k8s.io")
-		gomega.Expect(crb.RoleRef.Name == "view").To(gomega.BeTrue(),
-			"the roleRef.name should be view")
-		gomega.Expect(crb.RoleRef.Kind == "ClusterRole").To(gomega.BeTrue(),
-			"the roleRef.kind shoudl be ClusterRole")
-
-		gomega.Expect(len(crb.Subjects) == 1).To(gomega.BeTrue(),
-			"there should be one subject")
-		s := crb.Subjects[0]
-		gomega.Expect(s.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
-			"the subject's apiGroup should be rbac.authorization.k8s.io")
-		gomega.Expect(s.Kind == "Group").To(gomega.BeTrue(),
-			"the subject's kind should be Group")
-		gomega.Expect(s.Name == "verrazzano-monitors").To(gomega.BeTrue(),
-			"the subject's name should be verrazzano-monitors")
-	})
-}, "verrazzano.permissions")
+			gomega.Expect(len(crb.Subjects) == 1).To(gomega.BeTrue(),
+				"there should be one subject")
+			s := crb.Subjects[0]
+			gomega.Expect(s.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+				"the subject's apiGroup should be rbac.authorization.k8s.io")
+			gomega.Expect(s.Kind == "Group").To(gomega.BeTrue(),
+				"the subject's kind should be Group")
+			gomega.Expect(s.Name == "verrazzano-monitors").To(gomega.BeTrue(),
+				"the subject's name should be verrazzano-monitors")
+		})
+	}, "verrazzano.permissions")
+})
