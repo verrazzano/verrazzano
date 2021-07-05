@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
 	"sigs.k8s.io/yaml"
 )
 
@@ -38,14 +37,14 @@ type checkerImpl struct {
 func BuildFeatureChecker(yamlPath string, description string) (Checker, error) {
 	data, err := ioutil.ReadFile(yamlPath)
 	if err != nil {
-		fmt.Fprintln(GinkgoWriter, fmt.Sprintf("--- ERROR: failed reading feature file: %s", yamlPath))
+		fmt.Fprintf(os.Stderr, fmt.Sprintf("\n--- ERROR: failed reading feature file: %s", yamlPath))
 		return nil, err
 	}
 	m := make(map[string]interface{})
 
 	err = yaml.Unmarshal(data, &m)
 	if err != nil {
-		fmt.Fprintln(GinkgoWriter, fmt.Sprintf("--- ERROR: failed parsing features file: %s", yamlPath))
+		fmt.Fprintf(os.Stderr, fmt.Sprintf("\n--- ERROR: failed parsing features file: %s", yamlPath))
 		return nil, err
 	}
 

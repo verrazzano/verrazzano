@@ -156,7 +156,7 @@ func (reporter *JUnitReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
 	}
 	file, err := os.Create(filePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create JUnit report file: %s\n\t%s", filePath, err.Error())
+		fmt.Fprintf(os.Stderr, "\nFailed to create JUnit report file: %s\n\t%s", filePath, err.Error())
 	}
 	defer file.Close()
 	file.WriteString(xml.Header)

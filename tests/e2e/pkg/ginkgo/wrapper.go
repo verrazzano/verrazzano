@@ -5,6 +5,7 @@ package ginkgo
 
 import (
 	"fmt"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
@@ -39,8 +40,8 @@ func initBuildFeaureChecker(text string) {
 	var err error
 	checker, err = BuildFeatureChecker("../../../testdata/features/features.yaml", text)
 	if err != nil {
-		msg := fmt.Sprintf("--- ERROR: unable to build feature checker: %v", err)
-		fmt.Fprintln(GinkgoWriter, msg)
+		msg := fmt.Sprintf("\n--- ERROR: unable to build feature checker: %v", err)
+		fmt.Fprintf(os.Stderr, msg)
 		Fail(msg)
 	}
 }
@@ -50,8 +51,8 @@ func checkFeature(features ...Feature) {
 		//		fmt.Fprintln(GinkgoWriter, fmt.Sprintf("Testing feature: %s", feature))
 		found, _ := checker.Check(feature)
 		if !found {
-			msg := fmt.Sprintf("--- ERROR: invalid feature specified: %s", feature)
-			fmt.Fprintln(GinkgoWriter, msg)
+			msg := fmt.Sprintf("\n--- ERROR: invalid feature specified: %s", feature)
+			fmt.Fprintf(os.Stderr, msg)
 			Fail(msg)
 		}
 	}
