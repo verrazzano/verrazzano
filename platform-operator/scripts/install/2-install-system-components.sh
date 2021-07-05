@@ -72,6 +72,8 @@ function install_nginx_ingress_controller()
       log "Patching NGINX service with: ${nginx_svc_patch_spec}"
       kubectl patch service -n ingress-nginx ingress-controller-ingress-nginx-controller -p "${nginx_svc_patch_spec}"
     fi
+    log "Waiting for all the pods in ingress-nginx namespace to reach ready state"
+    kubectl wait --for=condition=ready pods --all -n ${ingress_nginx_ns} --timeout=10m
 }
 
 function setup_cert_manager_crd() {
@@ -217,6 +219,9 @@ function install_cert_manager()
         || return $?
 
     kubectl -n cert-manager rollout status -w deploy/cert-manager
+
+    log "Waiting for all the pods in cert-manager namespace to reach ready state"
+    kubectl wait --for=condition=ready pods --all -n ${cert_manager_ns} --timeout=10m
 
     setup_cluster_issuer
 }
@@ -368,8 +373,9 @@ function install_rancher()
         if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
            [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
           EXTRA_RANCHER_ARGUMENTS="--set privateCA=true"
+          echo "Copy CA certificate which is used by the Rancher Agent to validate the connection to the server."
           kubectl -n $VERRAZZANO_DEFAULT_SECRET_NAMESPACE get secret $VERRAZZANO_DEFAULT_SECRET_NAME -o jsonpath='{.data.ca\.crt}' | base64 --decode > ${TMP_DIR}/cacerts.pem
-          kubectl -n cattle-system create secret generic tls-ca --from-file=${TMP_DIR}/cacerts.pem
+          kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem=${TMP_DIR}/cacerts.pem
         fi
         RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/cluster-issuer\":\"verrazzano-cluster-issuer\"}}}"
       else
@@ -402,6 +408,7 @@ function install_rancher()
         --install --namespace cattle-system \
         --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
         --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+        --set debug=true \
         ${HELM_IMAGE_ARGS} \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
         ${EXTRA_RANCHER_ARGUMENTS}
@@ -444,6 +451,15 @@ function install_rancher()
 
     log "Rollout Rancher"
     kubectl -n cattle-system rollout status -w deploy/rancher || return $?
+
+    log "List pods in cattle-system namespace"
+    kubectl get pods -n cattle-system
+
+    log "Waiting for Rancher TLS cert to reach ready state"
+    kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system
+
+    # Make sure rancher ingress has an IP
+    wait_for_ingress_ip rancher cattle-system || exit 1
 
     reset_rancher_admin_password || return $?
 }

@@ -81,6 +81,8 @@ function get_rancher_access_token {
 
   if [ -z "$rancher_admin_token" ] ; then
       echo "rancher_admin_token is empty! Did you run the scripts to install Istio and system components?"
+      echo "Dumping additional detail below"
+      dump_rancher_ingress
       return 1
   fi
 
@@ -126,6 +128,28 @@ function dump_rancher_ingress {
   echo "########  rancher ingress details ##########"
   kubectl get ingress rancher -n cattle-system -o yaml
   echo "########  end rancher ingress details ##########"
+  dump_additional_details
+}
+
+# Get additional details for debugging, not intended to be included in the source control system.
+function dump_additional_details {
+  echo "Get service ingress-controller-ingress-nginx-controller"
+  kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o yaml
+
+  echo "Describe certificate - tls-rancher-ingress"
+  kubectl describe certificate tls-rancher-ingress -n cattle-system
+
+  echo "Describe certificate - verrazzano-ca-certificate"
+  kubectl describe certificate verrazzano-ca-certificate -n cert-manager
+
+  echo "Get cluster issuer"
+  kubectl describe clusterissuer verrazzano-cluster-issuer
+
+  echo "Describe the secret tls-rancher-ingress"
+  kubectl describe secret tls-rancher-ingress -n cattle-system
+
+  echo "Get service in istio-system namespace"
+  kubectl get service -n istio-system
 }
 
 # Check if the optional global registry secret exists

@@ -116,6 +116,7 @@ function delete_rancher() {
 
   log "Delete the additional CA secret for Rancher"
   kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
+  kubectl -n cattle-system delete secret tls-ca --ignore-not-found=true
 
   log "Deleting CRDs from rancher"
 
