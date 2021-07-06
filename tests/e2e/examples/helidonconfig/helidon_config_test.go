@@ -5,13 +5,12 @@ package helidonconfig
 
 import (
 	"fmt"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -22,36 +21,35 @@ const (
 )
 
 var _ = ginkgo.BeforeSuite(func() {
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	if _, err := pkg.CreateNamespace("helidon-config", nsLabels); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		return pkg.CreateNamespace("helidon-config", nsLabels)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-comp.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create helidon-config component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
-	},
-		shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").Should(gomega.BeNil())
+	}, shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").ShouldNot(gomega.HaveOccurred())
 })
 
 var _ = ginkgo.AfterSuite(func() {
 	// undeploy the application here
-	err := pkg.DeleteResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete helidon-config application resource: %v\n", err.Error()))
-	}
-	err = pkg.DeleteResourceFromFile("examples/helidon-config/helidon-config-comp.yaml")
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete helidon-config component resource: %v\n", err.Error()))
-	}
-	err = pkg.DeleteNamespace("helidon-config")
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete helidon-config namespace: %v\n", err.Error()))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/helidon-config/helidon-config-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.DeleteNamespace("helidon-config")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 })
 
 var (
@@ -96,10 +94,10 @@ var _ = ginkgo.Describe("Verify Helidon Config OAM App.", func() {
 	ginkgo.Describe("Verify Helidon Config app is working.", func() {
 		ginkgo.It("Access /config App Url.", func() {
 			url := fmt.Sprintf("https://%s/config", host)
-			isEndpointAccessible := func() bool {
-				return appEndpointAccessible(url, host)
-			}
-			gomega.Eventually(isEndpointAccessible, 15*time.Second, 1*time.Second).Should(gomega.BeTrue())
+			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
+				return pkg.GetWebPageWithBasicAuth(url, host, "", "", kubeconfigPath)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("HelloConfig World")))
 		})
 	})
 
@@ -151,15 +149,6 @@ var _ = ginkgo.Describe("Verify Helidon Config OAM App.", func() {
 
 func helidonConfigPodsRunning() bool {
 	return pkg.PodsRunning(testNamespace, expectedPodsHelidonConfig)
-}
-
-func appEndpointAccessible(url string, hostname string) bool {
-	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-	resp, err := pkg.GetWebPageWithBasicAuth(url, hostname, "", "", kubeconfigPath)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, resp.StatusCode))
-	gomega.Expect(strings.Contains(string(resp.Body), "HelloConfig World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT HelloConfig World %s", resp.Body))
-	return true
 }
 
 func appMetricsExists() bool {
