@@ -7,8 +7,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// StateType identifies the state of an image built request
+type StateType string
+
+const (
+	// Ready is the state when a ImageBuildRequest resource can perform a build
+	Ready StateType = "Ready"
+
+	// Building is the state when an image is being built
+	Building StateType = "Building"
+
+	// Published is the state after a successful build of an image
+	Published StateType = "Published"
+
+	// Failed is the state when an ImageBuildRequest has failed
+	Failed StateType = "Failed"
+)
 
 // ImageBuildRequestSpec defines the desired state of ImageBuildRequest
 type ImageBuildRequestSpec struct {
@@ -44,8 +58,8 @@ type Image struct {
 
 // ImageBuildRequestStatus defines the observed state of ImageBuildRequest
 type ImageBuildRequestStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// State of the ImageBuildRequest
+	State StateType `json:"state,omitempty"`
 }
 
 //+kubebuilder:object:root=true

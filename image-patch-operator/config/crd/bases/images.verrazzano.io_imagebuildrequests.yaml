@@ -83,6 +83,10 @@ spec:
             type: object
           status:
             description: ImageBuildRequestStatus defines the observed state of ImageBuildRequest
+            properties:
+              state:
+                description: State of the ImageBuildRequest
+                type: string
             type: object
         type: object
     served: true
