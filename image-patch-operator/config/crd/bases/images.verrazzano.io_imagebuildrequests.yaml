@@ -84,6 +84,32 @@ spec:
           status:
             description: ImageBuildRequestStatus defines the observed state of ImageBuildRequest
             properties:
+              conditions:
+                description: The latest available observations of an object's current
+                  state.
+                items:
+                  description: Condition describes current state of an image build
+                    request.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      type: string
+                    message:
+                      description: Human readable message indicating details about
+                        last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
               state:
                 description: State of the ImageBuildRequest
                 type: string

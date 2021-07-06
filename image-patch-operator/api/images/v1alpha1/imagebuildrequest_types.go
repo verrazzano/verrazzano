@@ -4,6 +4,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -23,6 +24,34 @@ const (
 	// Failed is the state when an ImageBuildRequest has failed
 	Failed StateType = "Failed"
 )
+
+// ConditionType identifies the condition of the ImageBuildRequest which can be checked with kubectl wait
+type ConditionType string
+
+const (
+	// BuildStarted means an image build is in progress.
+	BuildStarted ConditionType = "BuildStarted"
+
+	// BuildCompleted means the image build job has completed its execution successfully
+	BuildCompleted ConditionType = "BuildCompleted"
+
+	// BuildFailed means the image build job has failed during execution.
+	BuildFailed ConditionType = "BuildFailed"
+)
+
+// Condition describes current state of an image build request.
+type Condition struct {
+	// Type of condition.
+	Type ConditionType `json:"type"`
+	// Status of the condition, one of True, False, Unknown.
+	Status corev1.ConditionStatus `json:"status"`
+	// Last time the condition transitioned from one status to another.
+	// +optional
+	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
+	// Human readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty"`
+}
 
 // ImageBuildRequestSpec defines the desired state of ImageBuildRequest
 type ImageBuildRequestSpec struct {
@@ -60,6 +89,9 @@ type Image struct {
 type ImageBuildRequestStatus struct {
 	// State of the ImageBuildRequest
 	State StateType `json:"state,omitempty"`
+
+	// The latest available observations of an object's current state.
+	Conditions []Condition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true
