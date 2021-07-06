@@ -33,7 +33,7 @@ func NewCmdLogout(streams genericclioptions.IOStreams) *cobra.Command {
 		Long:  "vz_logout",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := logout(); err != nil {
+			if err := logout(streams); err != nil {
 				return err
 			}
 			return nil
@@ -43,7 +43,7 @@ func NewCmdLogout(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func logout() error {
+func logout(streams genericclioptions.IOStreams) error {
 
 	// Obtain the default kubeconfig's location
 	kubeConfigLoc,err := helpers.GetKubeconfigLocation()
@@ -78,6 +78,6 @@ func logout() error {
 		fmt.Println("Unable to write the new kubconfig to disk")
 		return err
 	}
-	fmt.Println("Logout successful!")
+	fmt.Fprintln(streams.Out, "Logout successful!")
 	return nil
 }
