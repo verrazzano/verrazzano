@@ -249,6 +249,7 @@ pipeline {
                 failure {
                     script {
                         dumpK8sCluster('verrazzano-install-loop-install-failure-cluster-dump')
+                        dumpResourcesOnFailure('install failure')
                         skip_stage = 'true'
                     }
                 }
@@ -532,6 +533,30 @@ def listNamepacesAndPods(customMessage) {
         echo "Listing all the namespaces and pods the namespaces ${customMessage}"
         kubectl get namespaces
         kubectl get all --all-namespaces
+        echo "-----------------------------------------------------"
+    """
+}
+
+def dumpResourcesOnFailure(customMessage) {
+    sh """
+        echo "Listing additional resources after ${customMessage}"
+        echo "Get service ingress-controller-ingress-nginx-controller"
+        kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o yaml
+
+        echo "Describe the certificate tls-rancher-ingress"
+        kubectl describe certificate tls-rancher-ingress -n cattle-system
+
+        echo "Describe the certificate - verrazzano-ca-certificate"
+        kubectl describe certificate verrazzano-ca-certificate -n cert-manager
+
+        echo "Get cluster issuer"
+        kubectl describe clusterissuer verrazzano-cluster-issuer
+
+        echo "Describe the secret tls-rancher-ingress"
+        kubectl describe secret tls-rancher-ingress -n cattle-system
+
+        echo "Get service in istio-system namespace"
+        kubectl get service -n istio-system
         echo "-----------------------------------------------------"
     """
 }
