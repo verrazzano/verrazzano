@@ -11,7 +11,7 @@ First, build the image from the Dockerfile.
 # This command assumes that your current working directory is the directory that contains this README.
 make docker-build
 ```
-Start the container with the following command. Replace `image-id` with the ID corresponding to the newly created `verrazzano-weblogic-image-tool-dev` image, which can be seen by using the `docker images` command. This will start an interactive shell prompt inside the Docker container.
+Start the container with the following command. Replace `image-id` with the ID corresponding to the newly created `verrazzano-weblogic-image-tool-dev` image, which you can view by using the `docker images` command. This will start an interactive shell prompt inside the Docker container.
 ```bash
 docker run -it --privileged --entrypoint /bin/bash image-id
 ```
