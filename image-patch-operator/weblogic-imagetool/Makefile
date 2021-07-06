@@ -50,6 +50,7 @@ ENV_NAME=verrazzano-weblogic-image-tool
 CLUSTER_DUMP_LOCATION ?= weblogic-image-tool-integ-cluster-dump
 
 # for retrieving installers from oci bucket
+OCI_CLI_REGION ?= 'us-phoenix-1'
 BUCKET_NAME ?= build-shared-files
 JDK8_BUNDLE ?= jdk-8u281-linux-x64.tar.gz
 WEBLOGIC_BUNDLE ?= fmw_12.2.1.4.0_wls.jar
@@ -57,6 +58,7 @@ WEBLOGIC_BUNDLE ?= fmw_12.2.1.4.0_wls.jar
 .PHONY: get-installers
 get-installers:
 	cd ./installers; \
+	export OCI_CLI_REGION='us-phoenix-1'; \
 	(test -f "weblogic-deploy.zip" || wget https://github.com/oracle/weblogic-deploy-tooling/releases/download/release-1.9.15/weblogic-deploy.zip); \
 	(test -f ${JDK8_BUNDLE} || oci os object get -bn ${BUCKET_NAME} --file ${JDK8_BUNDLE} --name ${JDK8_BUNDLE}); \
 	(test -f ${WEBLOGIC_BUNDLE} || oci os object get -bn ${BUCKET_NAME} --file ${WEBLOGIC_BUNDLE} --name ${WEBLOGIC_BUNDLE})

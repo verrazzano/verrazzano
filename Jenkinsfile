@@ -95,11 +95,6 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
-        OCI_CLI_REGION = 'us-phoenix-1'
-
-        BUCKET_NAME = "build-shared-files"
-        JDK8_BUNDLE = "jdk-8u281-linux-x64.tar.gz"
-        WEBLOGIC_BUNDLE = "fmw_12.2.1.4.0_wls.jar"
     }
 
     stages {
@@ -581,7 +576,7 @@ def buildImagePatchOperator(dockerImageTag) {
 def buildWITImage(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
-        make docker-push-wit VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME=${DOCKER_WIT_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG} BUCKET_NAME=${BUCKET_NAME} JDK8_BUNDLE=${JDK8_BUNDLE} WEBLOGIC_BUNDLE=${WEBLOGIC_BUNDLE}
+        make docker-push-wit VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME=${DOCKER_WIT_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
     """
 }
 
