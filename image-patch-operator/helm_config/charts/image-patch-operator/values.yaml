@@ -4,3 +4,9 @@ name: verrazzano-image-patch-operator
 namespace: verrazzano-system
 imageToolName: verrazzano-image-tool
 
+global:
+  imagePullSecrets: []
+
+# FIXME: correct image?
+image: verrazzano-image-patch-operator-dev:local-6f41be52
+imagePullPolicy: IfNotPresent
