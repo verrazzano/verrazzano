@@ -47,7 +47,6 @@ func NewCmdClusterRegister(streams genericclioptions.IOStreams, kubernetesInterf
 			return nil
 		},
 	}
-	//o.configFlags.AddFlags(cmd.Flags())
 	cmd.Flags().StringVarP(&o.description, "description", "d", "", "Description of the managed cluster")
 	cmd.Flags().StringVarP(&o.caSecret, "casecret", "c", "", "Name of the CA Secret")
 	return cmd

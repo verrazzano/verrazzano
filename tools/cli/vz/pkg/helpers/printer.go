@@ -25,10 +25,8 @@ func PrintTable(headings []string, data [][]string, w io.Writer) error {
 		return err
 	}
 
-	//fmt.Println(output)
 	_, err = fmt.Fprintln(w, output)
 	return err
-
 }
 
 func formatOutput(headings []string, data [][]string) (string, error) {

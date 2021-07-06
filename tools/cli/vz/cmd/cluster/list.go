@@ -34,9 +34,10 @@ func NewClusterListOptions(streams genericclioptions.IOStreams) *ClusterListOpti
 func NewCmdClusterList(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewClusterListOptions(streams)
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List the clusters",
-		Long:  "List the clusters",
+		Use:     "list",
+		Short:   "List the clusters",
+		Long:    "List the clusters",
+		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			o.args = args
 			if err := o.listClusters(kubernetesInterface); err != nil {
