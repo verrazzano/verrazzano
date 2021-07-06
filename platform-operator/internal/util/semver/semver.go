@@ -147,7 +147,7 @@ func compareVersion(v1 int64, v2 int64) int {
 }
 
 func compareVersionBuild(v1 string, v2 string) int {
-	if strings.Compare(v1,v2) == 0 {
+	if strings.Compare(v1, v2) == 0 {
 		return 0
 	}
 	return 1
