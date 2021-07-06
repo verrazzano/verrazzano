@@ -13,7 +13,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 )
 
 // Constants for log levels
@@ -102,7 +102,7 @@ func (s *SockShop) Delete(url string) (*pkg.HTTPResponse, error) {
 func (s *SockShop) RegisterUser(body string, hostname string) bool {
 	url := fmt.Sprintf("https://%v/register", hostname)
 	resp, err := pkg.PostWithHostHeader(url, "application/json", s.hostHeader, strings.NewReader(body))
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	Expect(err).ShouldNot(HaveOccurred())
 	pkg.Log(Info, fmt.Sprintf("Finished register %s status: %v", resp.Body, resp.StatusCode))
 	return (resp.StatusCode == http.StatusOK) && (strings.Contains(string(resp.Body), "username"))
 }
@@ -130,7 +130,7 @@ func (s *SockShop) CheckCart(cartItems []CartItem, item CatalogItem, quantity in
 			break
 		}
 	}
-	gomega.Expect(found).To(gomega.BeTrue(), fmt.Sprintf("Could not find %v in cart", item.Name))
+	Expect(found).To(BeTrue(), fmt.Sprintf("Could not find %v in cart", item.Name))
 }
 
 // GetCartItems gathers all cart items
@@ -161,9 +161,9 @@ func (s *SockShop) CheckAddress(response *pkg.HTTPResponse, username string) {
 	json.Unmarshal(response.Body, &addressID)
 
 	if addSplit := strings.Split(addressID.id, ":"); len(addSplit) == 2 {
-		gomega.Expect(addSplit[0]).To(gomega.Equal(username), fmt.Sprintf("Incorrect ID expected %v and received %v", username, addSplit[0]))
+		Expect(addSplit[0]).To(Equal(username), fmt.Sprintf("Incorrect ID expected %v and received %v", username, addSplit[0]))
 		integ, err := strconv.Atoi(addSplit[1])
-		gomega.Expect((integ > 0 && err == nil)).To(gomega.BeTrue(), fmt.Sprintf("Incorrect ID expected a positive integer and received %v", addSplit[1]))
+		Expect((integ > 0 && err == nil)).To(BeTrue(), fmt.Sprintf("Incorrect ID expected a positive integer and received %v", addSplit[1]))
 	}
 	pkg.Log(Info, fmt.Sprintf("Address: %s has been implemented with id", response.Body))
 }
@@ -184,7 +184,7 @@ func (s *SockShop) GetOrders(hostname string) {
 	pkg.Log(Info, "Attempting to locate orders")
 	ordersURL := fmt.Sprintf("https://%v/orders", hostname)
 	resp, err := s.Get(ordersURL)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	gomega.Expect(resp.StatusCode).To(gomega.Equal(201), fmt.Sprintf("Get %v returns status %v expected 201", ordersURL, resp.StatusCode))
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(resp.StatusCode).To(Equal(201), fmt.Sprintf("Get %v returns status %v expected 201", ordersURL, resp.StatusCode))
 	pkg.Log(Info, fmt.Sprintf("Orders: %s have been retrieved", resp.Body))
 }
