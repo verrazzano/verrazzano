@@ -4,10 +4,3 @@ name: verrazzano-image-patch-operator
 namespace: verrazzano-system
 imageToolName: verrazzano-image-tool
 
-global:
-  imagePullSecrets: []
-
-# NOTE: The image value gets set in the bill of materials file (verrazzano-bom.json) during the
-# platform operator docker build.
-image:
-imagePullPolicy: IfNotPresent
