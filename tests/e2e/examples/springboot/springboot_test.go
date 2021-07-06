@@ -11,11 +11,11 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const testNamespace string = "springboot"
-const hostHeaderValue string = "springboot.example.com"
 
 var expectedPodsSpringBootApp = []string{"springboot-workload"}
 var waitTimeout = 10 * time.Minute
@@ -45,41 +45,45 @@ func deploySpringBootApplication() {
 	pkg.Log(pkg.Info, "Deploy Spring Boot Application")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	if _, err := pkg.CreateNamespace(testNamespace, nsLabels); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		return pkg.CreateNamespace(testNamespace, nsLabels)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
 	pkg.Log(pkg.Info, "Create component resource")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-comp.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create Spring Boot component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	pkg.Log(pkg.Info, "Create application resource")
 	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeNil(), "Failed to create Spring Boot application resource")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create Spring Boot application resource")
 }
 
 func undeploySpringBootApplication() {
 	pkg.Log(pkg.Info, "Undeploy Spring Boot Application")
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("examples/springboot-app/springboot-app.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the application: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/springboot-app/springboot-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("examples/springboot-app/springboot-comp.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/springboot-app/springboot-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	pkg.Log(pkg.Info, "Delete namespace")
-	if err := pkg.DeleteNamespace(testNamespace); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the namespace: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteNamespace(testNamespace)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	gomega.Eventually(func() bool {
-		ns, err := pkg.GetNamespace(testNamespace)
-		return ns == nil && err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+		_, err := pkg.GetNamespace(testNamespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
 
 var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
