@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"io/ioutil"
 	"reflect"
 
@@ -25,6 +26,7 @@ import (
 var readFileFunction = ioutil.ReadFile
 
 // GetCurrentChartVersion Load the current Chart.yaml into a chartVersion struct
+// Version validation moved to bom file so function may become unused
 func GetCurrentChartVersion() (*semver.SemVersion, error) {
 	chartDir := config.GetHelmVzChartsDir()
 	chartBytes, err := readFileFunction(chartDir + "/Chart.yaml")
@@ -37,6 +39,15 @@ func GetCurrentChartVersion() (*semver.SemVersion, error) {
 		return nil, err
 	}
 	return semver.NewSemVersion(fmt.Sprintf("v%s", chartVersion.Version))
+}
+
+// GetCurrentBomVersion Load the current Chart.yaml into a chartVersion struct
+func GetCurrentBomVersion() (*semver.SemVersion, error) {
+	bom, err := component.NewBom(component.DefaultBomFilePath())
+	if err != nil {
+		return nil, err
+	}
+	return semver.NewSemVersion(fmt.Sprintf("v%s", bom.GetVersion()))
 }
 
 // ValidateVersion check that requestedVersion matches chart requestedVersion
@@ -52,12 +63,12 @@ func ValidateVersion(requestedVersion string) error {
 	if err != nil {
 		return err
 	}
-	chartSemVer, err := GetCurrentChartVersion()
+	bomSemVer, err := GetCurrentBomVersion()
 	if err != nil {
 		return err
 	}
-	if !requestedSemVer.IsEqualTo(chartSemVer) {
-		return fmt.Errorf("Requested version %s does not match chart version %s", requestedVersion, chartSemVer.ToString())
+	if !requestedSemVer.IsEqualTo(bomSemVer) {
+		return fmt.Errorf("Requested version %s does not match BOM version %s", requestedVersion, bomSemVer.ToString())
 	}
 	return nil
 }

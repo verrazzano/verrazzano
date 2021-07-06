@@ -4,7 +4,7 @@
 include ../make/quality.mk
 include ../make/generate.mk
 
-VERRAZZANO_VERSION:=0.17.0-dev-test123
+VERRAZZANO_VERSION:=0.17.0-dev-test234
 
 SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 
