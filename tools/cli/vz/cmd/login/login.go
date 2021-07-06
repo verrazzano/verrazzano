@@ -38,9 +38,9 @@ func NewLoginOptions(streams genericclioptions.IOStreams) *LoginOptions {
 func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewLoginOptions(streams)
 	cmd := &cobra.Command{
-		Use:   "login api_url",
+		Use:   "login Verrazzano API URL",
 		Short: "vz login",
-		Long:  "vz_login",
+		Long:  "vz login",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := login(streams, args, kubernetesInterface); err != nil {
@@ -55,12 +55,32 @@ func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helper
 
 func login(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 
-	var vz_api_url string
+	// Obtain the default kubeconfig's location
+	kubeConfigLoc,err := helpers.GetKubeConfigLocation()
+	if err!=nil {
+		return err
+	}
+
+	// Load the default kubeconfig's configuration into clientcmdapi object
+	mykubeConfig, err := clientcmd.LoadFromFile(kubeConfigLoc)
+
+	// Check if the user is already logged out
+	if strings.Split(mykubeConfig.CurrentContext,"@")[0] == "verrazzano" {
+		fmt.Fprintln(streams.Out, "Already Logged in")
+		return nil
+	}
+
+	if err!=nil {
+		fmt.Println("Unable to load kubeconfig, check permissions")
+		return err
+	}
+
+	var verrazzanoAPIURL string
 
 	// Extract parameters from args
 	for index, element := range args {
 		if index == 0 {
-			vz_api_url = element
+			verrazzanoAPIURL = element
 			continue
 		}
 	}
@@ -80,52 +100,37 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 		return err
 	}
 
-
-	// Obtain the default kubeconfig's location
-	kubeConfigLoc,err := helpers.GetKubeconfigLocation()
-	if err!=nil {
-		return err
-	}
-
-	// Load the default kubeconfig's configuration into clientcmdapi object
-	mykubeConfig, _ := clientcmd.LoadFromFile(kubeConfigLoc)
-
-	if err!=nil {
-		fmt.Println("Unable to load kubeconfig, check permissions")
-		return err
-	}
-
 	// Add the verrazzano cluser into config
 	helpers.SetCluster(mykubeConfig,
-			  "verrazzano",
-			   vz_api_url,
-			   caData,
-			)
+		"verrazzano",
+		verrazzanoAPIURL,
+		caData,
+	)
 
-	// Add the logged-in user with nickname verrazzano
+	// Add the logged-in user with nickname verrazzan
 	helpers.SetUser(mykubeConfig,
-			 "verrazzano",
-			fmt.Sprintf("%v",jwtData["access_token"]),
-			)
+		"verrazzano",
+		fmt.Sprintf("%v",jwtData["access_token"]),
+	)
 
 	// Add new context with name verrazzano@oldcontext
 	// This context uses verrazzano cluster and logged-in user
 	// We need oldcontext to fall back after logout
 	helpers.SetContext(mykubeConfig,
-			  "verrazzano" + "@" + mykubeConfig.CurrentContext,
-			  "verrazzano",
-			  "verrazzano",
-			)
+		"verrazzano" + "@" + mykubeConfig.CurrentContext,
+		"verrazzano",
+		"verrazzano",
+	)
 
 	// Switch over to new context
 	helpers.SetCurrentContext(mykubeConfig,
-				  "verrazzano"+"@"+mykubeConfig.CurrentContext,
-				)
+		"verrazzano"+"@"+mykubeConfig.CurrentContext,
+	)
 
 	// Write the new configuration into the default kubeconfig file
 	err = clientcmd.WriteToFile(*mykubeConfig,
-				    kubeConfigLoc,
-				   )
+		kubeConfigLoc,
+	)
 	if err!=nil {
 		fmt.Println("Unable to write the new kubconfig to disk")
 		return err
@@ -134,7 +139,7 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 	return nil
 }
 
-var auth_code = "" //	Http handle fills this after keycloak authentication
+var authCode = "" //	Http handle fills this after keycloak authentication
 
 // A function to put together all the requirements of authorization grant flow
 // Returns the final jwt token as a map
@@ -144,20 +149,20 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 	listener := getFreePort()
 
 	// Generate random code verifier and code challenge pair
-	code_verifier, code_challenge := helpers.GenerateRandomCodePair()
+	codeVerifier, codeChallenge := helpers.GenerateRandomCodePair()
 
 	// Generate the redirect uri using the port obtained
-	redirect_uri := helpers.GenerateRedirectURI(listener)
+	redirectURI := helpers.GenerateRedirectURI(listener)
 
 	// Generate the login keycloak url by passing the required url parameters
-	login_url := helpers.GenerateKeycloakAPIURL(code_challenge,
-						    redirect_uri,
-						   )
+	loginURL := helpers.GenerateKeycloakAPIURL(codeChallenge,
+		redirectURI,
+	)
 
 	// Busy wait when the authorization code is still not filled by http handle
 	// Close the listener once we obtain it
 	go func() {
-		for auth_code == "" {
+		for authCode == "" {
 
 		}
 		listener.Close()
@@ -167,24 +172,24 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 	time.Sleep(time.Second)
 
 	// Open the generated keycloak login url in the browser
-	err := helpers.OpenUrlInBrowser(login_url)
+	err := helpers.OpenUrlInBrowser(loginURL)
 	if err != nil {
 		fmt.Println("Unable to open browser")
 	}
 
 	// Set the handle function and start the http server
 	http.HandleFunc("/",
-			handle,
-		       )
+		handle,
+	)
 	http.Serve(listener,
-		   nil,
-		  )
+		nil,
+	)
 
-	// Obtain the JWT token by exchanging it with auth_code
-	jwtData, err := requestJWT(redirect_uri,
-				  code_verifier,
-				  caData,
-				  )
+	// Obtain the JWT token by exchanging it with authCode
+	jwtData, err := requestJWT(redirectURI,
+		codeVerifier,
+		caData,
+	)
 	if err != nil {
 		fmt.Println("Unable to obtain the JWT token")
 		return jwtData, err
@@ -200,9 +205,9 @@ func getCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 
 	kclientset := kubernetesInterface.NewClientSet()
 	secret, err := kclientset.CoreV1().Secrets("verrazzano-system").Get(context.Background(),
-									   "system-tls",
-									    metav1.GetOptions{},
-									)
+		"system-tls",
+		metav1.GetOptions{},
+	)
 
 	if err != nil{
 		return cert, err
@@ -217,7 +222,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	u, _ := url.Parse(r.URL.String())
 	m, _ := url.ParseQuery(u.RawQuery)
 	// Set the auth code obtained through redirection
-	auth_code = m["code"][0]
+	authCode = m["code"][0]
 	fmt.Fprintln(w, "<p>You can close this tab now</p>")
 }
 
@@ -233,28 +238,28 @@ func getFreePort() net.Listener {
 
 // Requests the jwt token on our behalf
 // Returns the key-value pairs obtained from server in the form of a map
-func requestJWT(redirect_uri string, code_verifier string, caData []byte) (map[string]interface{}, error) {
+func requestJWT(redirectURI string, codeVerifier string, caData []byte) (map[string]interface{}, error) {
 
 	// The response is going to be filled in this
-	var jsondata map[string]interface{}
+	var jsonData map[string]interface{}
 
 	// Set all the parameters for the POST request
 	grantParams := url.Values{}
 	grantParams.Set("grant_type", "authorization_code")
 	grantParams.Set("client_id", helpers.GetClientId())
-	grantParams.Set("code", auth_code)
-	grantParams.Set("redirect_uri", redirect_uri)
-	grantParams.Set("code_verifier", code_verifier)
+	grantParams.Set("code", authCode)
+	grantParams.Set("redirect_uri", redirectURI)
+	grantParams.Set("code_verifier", codeVerifier)
 	grantParams.Set("scope", "openid")
 
 	// Execute the request
-	jsondata, err := executeRequestForJWT(grantParams, caData)
+	jsonData, err := executeRequestForJWT(grantParams, caData)
 	if err != nil {
 		fmt.Println("Request failed")
-		return jsondata, err
+		return jsonData, err
 	}
 
-	return jsondata, nil
+	return jsonData, nil
 }
 
 // Creates and executes the POST request
@@ -262,10 +267,10 @@ func requestJWT(redirect_uri string, code_verifier string, caData []byte) (map[s
 func executeRequestForJWT(grantParams url.Values, caData []byte) (map[string]interface{}, error) {
 
 	// The response is going to be filled in this
-	var jsondata map[string]interface{}
+	var jsonData map[string]interface{}
 
 	// Get the keycloak url to obtain tokens
-	token_url := helpers.GenerateKeycloakTokenURL()
+	tokenURL := helpers.GenerateKeycloakTokenURL()
 
 	// Create new http POST request to obtain token as response
 	caCertPool := x509.NewCertPool()
@@ -279,27 +284,27 @@ func executeRequestForJWT(grantParams url.Values, caData []byte) (map[string]int
 		},
 	}
 
-	request, err := http.NewRequest(http.MethodPost, token_url, strings.NewReader(grantParams.Encode()))
+	request, err := http.NewRequest(http.MethodPost, tokenURL, strings.NewReader(grantParams.Encode()))
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	if err != nil {
 		fmt.Println("Unable to create POST request")
-		return jsondata, err
+		return jsonData, err
 	}
 
 	// Send the request and get response
 	response, err := client.Do(request)
 	if err != nil {
 		fmt.Println("Error receiving response")
-		return jsondata, err
+		return jsonData, err
 	}
 	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		fmt.Println("Unable to read the response body")
-		return jsondata, err
+		return jsonData, err
 	}
 
 	// Convert the response into a map
-	json.Unmarshal([]byte(responseBody), &jsondata)
+	json.Unmarshal([]byte(responseBody), &jsonData)
 
-	return jsondata, nil
+	return jsonData, nil
 }

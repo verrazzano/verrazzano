@@ -30,9 +30,9 @@ func GenerateRandomCodePair() (string, string) {
 	for i := 0; i < length; i++ {
 		b[i] = byte(r.Intn(255))
 	}
-	code_verifier := encode(b)
+	codeVerifier := encode(b)
 	h := sha256.New()
-	h.Write([]byte(code_verifier))
-	code_challenge := encode(h.Sum(nil))
-	return code_verifier, code_challenge
+	h.Write([]byte(codeVerifier))
+	codeChallenge := encode(h.Sum(nil))
+	return codeVerifier, codeChallenge
 }

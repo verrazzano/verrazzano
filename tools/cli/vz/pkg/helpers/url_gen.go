@@ -42,9 +42,9 @@ func GetClientId() string{
 
 // Returns the keycloak base url
 func GetKeycloakURL() string{
-	url := os.Getenv("VZ_KEYCLOAK_URL")
+	keycloakUrl := os.Getenv("VZ_KEYCLOAK_URL")
 	// Look for the matching environment variable, return default if not found
-	return url
+	return keycloakUrl
 }
 
 // Returns the realm name the oidc client is part of
@@ -56,13 +56,13 @@ func GetVerrazzanoRealm() string{
 
 // Generates the keycloak api url to login
 // Return string of the form `https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/auth?redirect_uri=abc&state=xyz...`
-func GenerateKeycloakAPIURL(code_challenge string, redirect_uri string) string {
+func GenerateKeycloakAPIURL(codeChallenge string, redirectUri string) string {
 	urlParams := map[string]string{
 		"client_id":             GetClientId(),
 		"response_type":         "code",
 		"state":                 "fj8o3n7bdy1op5",
-		"redirect_uri":          redirect_uri,
-		"code_challenge":        code_challenge,
+		"redirect_uri":          redirectUri,
+		"code_challenge":        codeChallenge,
 		"code_challenge_method": "S256",
 	}
 

@@ -11,58 +11,58 @@ import (
 	"path/filepath"
 )
 
-// Helper function to obtain the default kubeconfig location
-func GetKubeconfigLocation() (string,error) {
+// Helper function to obtain the default kubeConfig location
+func GetKubeConfigLocation() (string,error) {
 
-	var kubeconfig string
-	kubeconfigEnvVar := os.Getenv("KUBECONFIG")
+	var kubeConfig string
+	kubeConfigEnvVar := os.Getenv("KUBECONFIG")
 
-	if len(kubeconfigEnvVar) > 0 {
+	if len(kubeConfigEnvVar) > 0 {
 		// Find using environment variables
-		kubeconfig = kubeconfigEnvVar
+		kubeConfig = kubeConfigEnvVar
 	} else if home := homedir.HomeDir(); home != "" {
 		// Find in the ~/.kube/ directory
-		kubeconfig = filepath.Join(home, ".kube", "config")
+		kubeConfig = filepath.Join(home, ".kube", "config")
 	} else {
 		// give up
 		return "", errors.New("Could not find kube config")
 	}
-	return kubeconfig,nil
+	return kubeConfig,nil
 }
 
-func RemoveCluster(kubeconfig *clientcmdapi.Config, name string) {
-	delete(kubeconfig.Clusters, name)
+func RemoveCluster(kubeConfig *clientcmdapi.Config, name string) {
+	delete(kubeConfig.Clusters, name)
 }
 
-func RemoveUser(kubeconfig *clientcmdapi.Config, name string) {
-	delete(kubeconfig.AuthInfos,"verrazzano")
+func RemoveUser(kubeConfig *clientcmdapi.Config, name string) {
+	delete(kubeConfig.AuthInfos,name)
 }
 
-func RemoveContext(kubeconfig *clientcmdapi.Config, name string) {
-	delete(kubeconfig.Contexts,name)
+func RemoveContext(kubeConfig *clientcmdapi.Config, name string) {
+	delete(kubeConfig.Contexts,name)
 }
 
-func SetCurrentContext(kubeconfig *clientcmdapi.Config, name string){
-	kubeconfig.CurrentContext = name
+func SetCurrentContext(kubeConfig *clientcmdapi.Config, name string){
+	kubeConfig.CurrentContext = name
 }
 
-func SetCluster(kubeconfig *clientcmdapi.Config,name string, server_url string, caData []byte) {
-	kubeconfig.Clusters[name] = &clientcmdapi.Cluster{
-	Server: server_url,
-	CertificateAuthorityData: caData,
+func SetCluster(kubeConfig *clientcmdapi.Config,name string, serverUrl string, caData []byte) {
+	kubeConfig.Clusters[name] = &clientcmdapi.Cluster{
+		Server: serverUrl,
+		CertificateAuthorityData: caData,
 	}
 }
 
-func SetUser(kubeconfig *clientcmdapi.Config, name string, token string) {
-	kubeconfig.AuthInfos[name] = &clientcmdapi.AuthInfo{
+func SetUser(kubeConfig *clientcmdapi.Config, name string, token string) {
+	kubeConfig.AuthInfos[name] = &clientcmdapi.AuthInfo{
 		Token: token,
 	}
 }
 
-func SetContext(kubeconfig *clientcmdapi.Config, name string, cluster_name string, user_name string) {
-	kubeconfig.Contexts[name] = &clientcmdapi.Context{
-		Cluster: cluster_name,
-		AuthInfo: user_name,
+func SetContext(kubeConfig *clientcmdapi.Config, name string, clusterName string, userName string) {
+	kubeConfig.Contexts[name] = &clientcmdapi.Context{
+		Cluster: clusterName,
+		AuthInfo: userName,
 	}
 }
 

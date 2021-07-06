@@ -46,16 +46,22 @@ func NewCmdLogout(streams genericclioptions.IOStreams) *cobra.Command {
 func logout(streams genericclioptions.IOStreams) error {
 
 	// Obtain the default kubeconfig's location
-	kubeConfigLoc,err := helpers.GetKubeconfigLocation()
+	kubeConfigLoc,err := helpers.GetKubeConfigLocation()
 	if err!=nil {
 		return err
 	}
 
 	// Load the default kubeconfig's configuration into clientcmdapi object
-	mykubeConfig, _ := clientcmd.LoadFromFile(kubeConfigLoc)
+	mykubeConfig, err := clientcmd.LoadFromFile(kubeConfigLoc)
 	if err!=nil {
 		fmt.Println("Unable to load kubeconfig, check permissions")
 		return err
+	}
+
+	// Check if the user is already logged out
+	if strings.Split(mykubeConfig.CurrentContext,"@")[0] != "verrazzano" {
+		fmt.Fprintln(streams.Out, "Already Logged out")
+		return nil
 	}
 
 	// Remove the cluster with nickname verrazzano

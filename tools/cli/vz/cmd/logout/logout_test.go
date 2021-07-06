@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	tests = []struct {
+	test1 = []struct {
 		args []string
 		output string
 	}{
@@ -23,14 +23,24 @@ var (
 			"Logout successful!\n",
 		},
 	}
+	test2 = []struct {
+		args []string
+		output string
+	}{
+		{
+			[]string{},
+			"Already Logged out\n",
+		},
+	}
 )
 
-func TestNewCmdLogout(t* testing.T) {
+// To test basic logout
+func TestNewCmdLogout(t *testing.T) {
 
 	asserts := assert.New(t)
 
 	// Create a fake clone of kubeconfig
-	originalKubeConfigLocation, err := helpers.GetKubeconfigLocation()
+	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
 	asserts.NoError(err)
 	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
 	asserts.NoError(err)
@@ -84,13 +94,57 @@ func TestNewCmdLogout(t* testing.T) {
 	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
 	testCmd := NewCmdLogout(streams)
 
-	for _, test := range tests {
+	for _, test := range test1 {
 
 		testCmd.SetArgs(test.args)
 		asserts.NoError(testCmd.Execute())
 		asserts.Equal(test.output,outBuffer.String())
 
-		kubeConfigAfterLogout, _ := clientcmd.LoadFromFile("fakekubeconfig")
+		kubeConfigAfterLogout, err := clientcmd.LoadFromFile("fakekubeconfig")
+		asserts.NoError(err)
+		asserts.Equal(kubeConfigAfterLogout, kubeConfigBeforeLogout)
+
+		outBuffer.Reset()
+	}
+
+}
+
+// To test logout with out logging-in
+func TestRepeatedLogout(t *testing.T) {
+
+	asserts := assert.New(t)
+
+	// Create a fake clone of kubeconfig
+	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
+	asserts.NoError(err)
+	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
+	asserts.NoError(err)
+	fakeKubeConfig, err := os.Create("fakekubeconfig")
+	asserts.NoError(err)
+	defer os.Remove("fakekubeconfig")
+	io.Copy(fakeKubeConfig, originalKubeConfig)
+	originalKubeConfig.Close()
+	fakeKubeConfig.Close()
+	currentDirectory , err := os.Getwd()
+	asserts.NoError(err)
+
+	kubeConfigBeforeLogout, err := clientcmd.LoadFromFile("fakekubeconfig")
+	asserts.NoError(err)
+
+	// Set environment variable for kubeconfig
+	os.Setenv("KUBECONFIG",currentDirectory+"/fakekubeconfig")
+
+	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
+	testCmd := NewCmdLogout(streams)
+
+	for _, test := range test2 {
+
+		testCmd.SetArgs(test.args)
+		asserts.NoError(testCmd.Execute())
+		asserts.Equal(test.output,outBuffer.String())
+
+		kubeConfigAfterLogout, err := clientcmd.LoadFromFile("fakekubeconfig")
+		asserts.NoError(err)
 		asserts.Equal(kubeConfigAfterLogout, kubeConfigBeforeLogout)
 
 		outBuffer.Reset()

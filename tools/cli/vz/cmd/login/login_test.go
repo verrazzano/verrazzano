@@ -5,6 +5,8 @@ package login
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
@@ -29,25 +31,32 @@ import (
 )
 
 var (
-	verrazzanoAPIURL = "verrazzano.fake.nip.io/12345"
-	verrazzanoClientID = "fakeclient"
-	verrazzanoRealm = "fakerealm"
+	fakeVerrazzanoAPIURL = "verrazzano.fake.nip.io/12345"
+	fakeVerrazzanoClientID = "fakeclient"
+	fakeVerrazzanoRealm = "fakerealm"
 	fakeAuthCode = "euifgewuhfoieuwhfiuoewhfioewhfoihwfihfgiheriofwerhfiruhgoreihgccccccccccccccccc"
-	tests = []struct {
+	test1 = []struct {
 		args []string
 		output string
 	}{
 		{
-			[]string{verrazzanoAPIURL},
+			[]string{fakeVerrazzanoAPIURL},
 			"Login successful!\n",
+		},
+	}
+	test2 = []struct {
+		args []string
+		output string
+	}{
+		{
+			[]string{fakeVerrazzanoAPIURL},
+			"Already Logged in\n",
 		},
 	}
 )
 
 var status string
-var redirect_uri string
-var code_challenge string
-var code_verifier string
+var codeChallenge string
 
 type TestKubernetes struct {
 	fakeProjectClient  projectclientset.Interface
@@ -77,42 +86,51 @@ func (o *TestKubernetes) NewClientSet() kubernetes.Interface {
 func authHandle(w http.ResponseWriter, r *http.Request) {
 	u, _ := url.Parse(r.URL.String())
 	m, _ := url.ParseQuery(u.RawQuery)
-	if m["client_id"][0] != verrazzanoClientID {
+	if m["client_id"][0] != fakeVerrazzanoClientID {
 		status = "failure"
 	}
-	redirect_uri = m["response_type"][0]
-	code_challenge = m["code_challenge"][0]
-	http.Redirect(w, r, redirect_uri+"?code="+fakeAuthCode, 302)
+	redirectURI := m["response_type"][0]
+	codeChallenge = m["code_challenge"][0]
+	http.Redirect(w, r, redirectURI+"?code="+fakeAuthCode, 302)
+}
+
+func getCodeChallenge(codeVerifier string) string {
+	h := sha256.New()
+	h.Write([]byte(codeVerifier))
+	codeChallenge := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	codeChallenge = strings.Replace(codeChallenge, "+", "-", -1)
+	codeChallenge = strings.Replace(codeChallenge, "/", "_", -1)
+	codeChallenge = strings.Replace(codeChallenge, "=", "", -1)
+	return codeChallenge
 }
 
 type Token struct  {
-	Access_token string `json:"access_token"`
+	AccessToken string `json:"access_token"`
 }
 
 func tokenHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	token := Token{Access_token : "myaccesstokendbufbujfbvndvbfurdfgbvnudjkfvbciudrbferfgrefbvrebgfuireffuerf"}
+	token := Token{AccessToken : "myaccesstokendbufbujfbvndvbfurdfgbvnudjkfvbciudrbferfgrefbvrebgfuireffuerf"}
 	json.NewEncoder(w).Encode(token)
 	r.ParseForm()
-	code_verifier = r.Form.Get("code_verifier")
-	if r.Form.Get("code") != fakeAuthCode {
+	if r.Form.Get("code") != fakeAuthCode && getCodeChallenge(r.Form.Get("code_verifier")) != codeChallenge{
 		status = "failure"
 	} else {
 		status = "success"
 	}
 }
 
-func TestNewCmdLogin(t* testing.T) {
+func TestNewCmdLogin(t *testing.T) {
 
 	asserts := assert.New(t)
 
 	// Create a fake keycloak server at some random available port
 	listener, err := net.Listen("tcp", ":0")
 	asserts.NoError(err)
-	http.HandleFunc("/auth/realms/" + verrazzanoRealm + "/protocol/openid-connect/auth",
+	http.HandleFunc("/auth/realms/" + fakeVerrazzanoRealm + "/protocol/openid-connect/auth",
 		authHandle,
 	)
-	http.HandleFunc("/auth/realms/" + verrazzanoRealm + "/protocol/openid-connect/token",
+	http.HandleFunc("/auth/realms/" + fakeVerrazzanoRealm + "/protocol/openid-connect/token",
 		tokenHandle,
 	)
 	go func() {
@@ -122,23 +140,14 @@ func TestNewCmdLogin(t* testing.T) {
 	}()
 
 	// Create fake kubeconfig
-	originalKubeConfigLocation, err := helpers.GetKubeconfigLocation()
-	asserts.NoError(err)
-	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
-	asserts.NoError(err)
-	fakeKubeConfig, err := os.Create("fakekubeconfig")
-	asserts.NoError(err)
-	defer os.Remove("fakekubeconfig")
-	io.Copy(fakeKubeConfig, originalKubeConfig)
-	originalKubeConfig.Close()
-	fakeKubeConfig.Close()
+	createFakeKubeConfig(asserts)
 	currentDirectory , err := os.Getwd()
 	asserts.NoError(err)
 
 
 	// Create fake environment variables
-	os.Setenv("VZ_CLIENT_ID",verrazzanoClientID)
-	os.Setenv("VZ_REALM",verrazzanoRealm)
+	os.Setenv("VZ_CLIENT_ID",fakeVerrazzanoClientID)
+	os.Setenv("VZ_REALM",fakeVerrazzanoRealm)
 	os.Setenv("VZ_KEYCLOAK_URL","http://localhost:"+strconv.Itoa(listener.Addr().(*net.TCPAddr).Port))
 	os.Setenv("KUBECONFIG",currentDirectory+"/fakekubeconfig")
 
@@ -153,25 +162,100 @@ func TestNewCmdLogin(t* testing.T) {
 	testCmd := NewCmdLogin(streams, fakeKubernetes)
 
 
-	for _, test := range tests {
+	for _, test := range test1 {
 		status = "pending"
 		testCmd.SetArgs(test.args)
 		asserts.NoError(testCmd.Execute())
 		asserts.Equal(status, "success")
 		asserts.Equal(test.output,outBuffer.String())
 
-		kubeconfig, _ := clientcmd.LoadFromFile("fakekubeconfig")
-		_ , ok := kubeconfig.Clusters["verrazzano"]
+		kubeConfig, _ := clientcmd.LoadFromFile("fakekubeconfig")
+		_ , ok := kubeConfig.Clusters["verrazzano"]
 		asserts.Equal(ok, true)
-		_ , ok  = kubeconfig.AuthInfos["verrazzano"]
+		_ , ok  = kubeConfig.AuthInfos["verrazzano"]
 		asserts.Equal(ok, true)
-		_ , ok  = kubeconfig.Contexts[kubeconfig.CurrentContext]
+		_ , ok  = kubeConfig.Contexts[kubeConfig.CurrentContext]
 		asserts.Equal(ok, true)
-		asserts.Equal(strings.Split(kubeconfig.CurrentContext,"@")[0],"verrazzano")
+		asserts.Equal(strings.Split(kubeConfig.CurrentContext,"@")[0],"verrazzano")
 
 		outBuffer.Reset()
 	}
+	os.Remove("fakekubeconfig")
+}
 
+func TestRepeatedLogin(t *testing.T) {
+	asserts := assert.New(t)
+
+	// Create a fake clone of kubeconfig
+	createFakeKubeConfig(asserts)
+	currentDirectory , err := os.Getwd()
+	asserts.NoError(err)
+
+	// Add fake clusters,usernames,contexts..
+	verrazzanoAPIURL := "verrazzano.fake.nip.io/12345"
+	fakeCAData := []byte("LS0tCmFwaVZlcnNpb246IHYxCmRhdGE6CiAgYWRtaW4ta3ViZWNvbmZpZzogWTJ4MWMzUmxjbk02Q2kwZ1kyeDFjM1JsY2pvS0lDQWdJR05sY25ScFptbGpZWFJsTFdGMWRHaHZjbWwwZVMxa1lYUmhPaUJNVXpCMFRGTXhRMUpWWkVwVWFVSkVVbFpL")
+	fakeAccessToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew"
+	kubeconfig, err := clientcmd.LoadFromFile("fakekubeconfig")
+	asserts.NoError(err)
+
+	helpers.SetCluster(kubeconfig,
+		"verrazzano",
+		verrazzanoAPIURL,
+		fakeCAData,
+	)
+
+	helpers.SetUser(kubeconfig,
+		"verrazzano",
+		fakeAccessToken,
+	)
+
+	helpers.SetContext(kubeconfig,
+		"verrazzano" + "@" + kubeconfig.CurrentContext,
+		"verrazzano",
+		"verrazzano",
+	)
+
+	helpers.SetCurrentContext(kubeconfig,
+		"verrazzano"+"@"+ kubeconfig.CurrentContext,
+	)
+	err = clientcmd.WriteToFile(*kubeconfig,
+		"fakekubeconfig",
+	)
+	asserts.NoError(err)
+
+	// Set environment variable for kubeconfig
+	os.Setenv("KUBECONFIG",currentDirectory+"/fakekubeconfig")
+
+	// Create fake kubernetes interface
+	fakeKubernetes := &TestKubernetes{
+		fakeClustersClient: fake.NewSimpleClientset(),
+		fakek8sClient:      k8sfake.NewSimpleClientset(),
+	}
+	asserts.NoError(newFakeSecret(fakeKubernetes.fakek8sClient))
+
+	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
+	testCmd := NewCmdLogin(streams, fakeKubernetes)
+
+	for _, test := range test2 {
+
+		testCmd.SetArgs(test.args)
+		asserts.NoError(testCmd.Execute())
+		asserts.Equal(test.output,outBuffer.String())
+		outBuffer.Reset()
+	}
+	os.Remove("fakekubeconfig")
+}
+
+func createFakeKubeConfig(asserts *assert.Assertions) {
+	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
+	asserts.NoError(err)
+	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
+	asserts.NoError(err)
+	fakeKubeConfig, err := os.Create("fakekubeconfig")
+	asserts.NoError(err)
+	io.Copy(fakeKubeConfig, originalKubeConfig)
+	originalKubeConfig.Close()
+	fakeKubeConfig.Close()
 }
 
 // Create fake certificate authority data
