@@ -10,6 +10,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -46,57 +47,67 @@ func deployBobsBooksExample() {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	if _, err := pkg.CreateNamespace("bobs-books", nsLabels); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		return pkg.CreateNamespace("bobs-books", nsLabels)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+
 	pkg.Log(pkg.Info, "Create Docker repository secret")
-	if _, err := pkg.CreateDockerSecret("bobs-books", "bobs-books-repo-credentials", regServ, regUser, regPass); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create Docker registry secret: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateDockerSecret("bobs-books", "bobs-books-repo-credentials", regServ, regUser, regPass)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+
 	pkg.Log(pkg.Info, "Create Bobbys front end Weblogic credentials secret")
-	if _, err := pkg.CreateCredentialsSecret("bobs-books", "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateCredentialsSecret("bobs-books", "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+
 	pkg.Log(pkg.Info, "Create Bobs Bookstore Weblogic credentials secret")
-	if _, err := pkg.CreateCredentialsSecret("bobs-books", "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateCredentialsSecret("bobs-books", "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+
 	pkg.Log(pkg.Info, "Create database credentials secret")
-	if _, err := pkg.CreateCredentialsSecretFromMap("bobs-books", "mysql-credentials",
-		map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books"}, nil); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Secret, error) {
+		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books"}
+		return pkg.CreateCredentialsSecretFromMap("bobs-books", "mysql-credentials", m, nil)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
 	pkg.Log(pkg.Info, "Create application resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create Bobs Books application resource: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	pkg.Log(pkg.Info, "Create component resources")
-	gomega.Eventually(func() error { return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-comp.yaml") },
-		shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").Should(gomega.BeNil())
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").ShouldNot(gomega.HaveOccurred())
 }
 
 func undeployBobsBooksExample() {
 	pkg.Log(pkg.Info, "Undeploy BobsBooks example")
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-app.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete application: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-comp.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete components: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	pkg.Log(pkg.Info, "Delete namespace")
-	if err := pkg.DeleteNamespace("bobs-books"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete namespace: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteNamespace("bobs-books")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	gomega.Eventually(func() bool {
-		ns, err := pkg.GetNamespace("bobs-books")
-		return ns == nil && err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+		_, err := pkg.GetNamespace("bobs-books")
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
 
 var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
