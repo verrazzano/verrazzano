@@ -43,7 +43,7 @@ func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helper
 		Long:  "vz_login",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := login(args, kubernetesInterface); err != nil {
+			if err := login(streams, args, kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
@@ -53,7 +53,7 @@ func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helper
 	return cmd
 }
 
-func login(args []string, kubernetesInterface helpers.Kubernetes) error {
+func login(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 
 	var vz_api_url string
 
@@ -130,7 +130,7 @@ func login(args []string, kubernetesInterface helpers.Kubernetes) error {
 		fmt.Println("Unable to write the new kubconfig to disk")
 		return err
 	}
-	fmt.Println("Login successful!")
+	fmt.Fprintln(streams.Out, "Login successful!")
 	return nil
 }
 

@@ -65,22 +65,19 @@ func GenerateKeycloakAPIURL(code_challenge string, redirect_uri string) string {
 		"code_challenge":        code_challenge,
 		"code_challenge_method": "S256",
 	}
-	u := &url.URL{
-		Scheme:   "https",
-		Host:     GetKeycloakURL(),
-		Path:     "auth/realms/" + GetVerrazzanoRealm() + "/protocol/openid-connect/auth",
-		RawQuery: ConcatURLParams(urlParams),
-	}
-	return u.String()
+
+	host :=     GetKeycloakURL()
+	path :=     "auth/realms/" + GetVerrazzanoRealm() + "/protocol/openid-connect/auth"
+	rawQuery := ConcatURLParams(urlParams)
+
+	return host + "/" + path + "?" + rawQuery
 }
 
 // Gnerates and returns keycloak server api url to get the jwt token
 // Return string of the form `https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/token
 func GenerateKeycloakTokenURL() string {
-	u := &url.URL{
-		Scheme: "https",
-		Host:   GetKeycloakURL(),
-		Path:   "/auth/realms/" + GetVerrazzanoRealm() + "/protocol/openid-connect/token",
-	}
-	return u.String()
+
+	host :=   GetKeycloakURL()
+	path :=   "auth/realms/" + GetVerrazzanoRealm() + "/protocol/openid-connect/token"
+	return host + "/" + path
 }
