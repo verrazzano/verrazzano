@@ -3,29 +3,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.name }}
+  name: {{ .Values.imagePatchOperator.name }}
   namespace: {{ .Values.namespace }}
   labels:
-    app: {{ .Values.name }}
+    app: {{ .Values.imagePatchOperator.name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ .Values.name }}
+      app: {{ .Values.imagePatchOperator.name }}
   template:
     metadata:
       labels:
-        app: {{ .Values.name }}
+        app: {{ .Values.imagePatchOperator.name }}
     spec:
       containers:
-        - name: {{ .Values.name }}
+        - name: {{ .Values.imagePatchOperator.name }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
-          image: {{ .Values.image }}
+          image: {{ .Values.imagePatchOperator.image }}
           args:
             - --zap-log-level=info
           env:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: {{ .Values.image }}
-      serviceAccountName: {{ .Values.name }}
+              value: {{ .Values.imagePatchOperator.image }}
+      serviceAccountName: {{ .Values.imagePatchOperator.name }}
