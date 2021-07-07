@@ -4,52 +4,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: verrazzano-image-patch-operator-cluster
-rules:
-  - apiGroups:
-      - clusters.verrazzano.io
-    resources:
-      - multiclusterapplicationconfigurations
-      - multiclustercomponents
-      - multiclusterconfigmaps
-      - multiclusterloggingscopes
-      - multiclustersecrets
-      - verrazzanoprojects
-      - verrazzanomanagedclusters
-      - multiclusterapplicationconfigurations/status
-      - multiclustercomponents/status
-      - multiclusterconfigmaps/status
-      - multiclusterloggingscopes/status
-      - multiclustersecrets/status
-      - verrazzanoprojects/status
-      - verrazzanomanagedclusters/status
-    verbs:
-      - get
-      - list
-      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: verrazzano-image-tool-cluster
-rules:
-  - apiGroups:
-      - clusters.verrazzano.io
-    resources:
-      - multiclusterapplicationconfigurations
-      - multiclustercomponents
-      - multiclusterconfigmaps
-      - multiclusterloggingscopes
-      - multiclustersecrets
-      - verrazzanoprojects
-      - verrazzanomanagedclusters
-      - multiclusterapplicationconfigurations/status
-      - multiclustercomponents/status
-      - multiclusterconfigmaps/status
-      - multiclusterloggingscopes/status
-      - multiclustersecrets/status
-      - verrazzanoprojects/status
-      - verrazzanomanagedclusters/status
-    verbs:
-      - get
-      - list
-      - watch
