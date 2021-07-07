@@ -4,8 +4,6 @@
 include ../make/quality.mk
 include ../make/generate.mk
 
-VERRAZZANO_VERSION:=0.17.0-dev-test234
-
 SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 
 NAME:=verrazzano-platform-operator
@@ -38,6 +36,9 @@ endif
 
 DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
+SHORT_COMMIT_HASH ?= $(shell git rev-parse --short=8 HEAD)
+VERRAZZANO_MAJOR_MINOR_PATCH = $(shell grep verrazzano-development-version ../.verrazzano-development-version | sed -e 's/verrazzano-development-version=//')
+VERRAZZANO_VERSION=${VERRAZZANO_MAJOR_MINOR_PATCH}-dev-${SHORT_COMMIT_HASH}
 
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE ?= verrazzano-application-operator-dev
 
