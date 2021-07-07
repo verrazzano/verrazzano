@@ -4,12 +4,12 @@
 package deploymetrics
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -43,34 +43,36 @@ func deployMetricsApplication() {
 	pkg.Log(pkg.Info, "Deploy DeployMetrics Application")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	if _, err := pkg.CreateNamespace(testNamespace, nsLabels); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		return pkg.CreateNamespace(testNamespace, nsLabels)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
 	pkg.Log(pkg.Info, "Create component resource")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create DeployMetrics component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	pkg.Log(pkg.Info, "Create application resource")
 	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeNil(), "Failed to create DeployMetrics application resource")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create DeployMetrics application resource")
 }
 
 func undeployMetricsApplication() {
 	pkg.Log(pkg.Info, "Undeploy DeployMetrics Application")
 
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the application: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	gomega.Eventually(func() bool {
 		return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")
@@ -81,13 +83,14 @@ func undeployMetricsApplication() {
 	}, longWaitTimeout, longPollingInterval).Should(gomega.BeFalse(), "Prometheus scraped metrics for App Config should have been deleted.")
 
 	pkg.Log(pkg.Info, "Delete namespace")
-	if err := pkg.DeleteNamespace(testNamespace); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the namespace: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteNamespace(testNamespace)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	gomega.Eventually(func() bool {
-		ns, err := pkg.GetNamespace(testNamespace)
-		return ns == nil && err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+		_, err := pkg.GetNamespace(testNamespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
 
 var _ = ginkgo.Describe("Verify DeployMetrics Application", func() {
