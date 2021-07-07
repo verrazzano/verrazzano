@@ -5,13 +5,12 @@ package helidon
 
 import (
 	"fmt"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -22,35 +21,35 @@ const (
 )
 
 var _ = ginkgo.BeforeSuite(func() {
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	if _, err := pkg.CreateNamespace("helidon-logging", nsLabels); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		return pkg.CreateNamespace("helidon-logging", nsLabels)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create helidon-logging component resources: %v", err))
-	}
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create helidon-logging application resource: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 })
 
 var _ = ginkgo.AfterSuite(func() {
 	// undeploy the application here
-	err := pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete helidon-logging application resource: %v\n", err.Error()))
-	}
-	err = pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete helidon-logging component resource: %v\n", err.Error()))
-	}
-	err = pkg.DeleteNamespace("helidon-logging")
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete helidon-logging namespace: %v\n", err.Error()))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.DeleteNamespace("helidon-logging")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 })
 
 var (
@@ -92,11 +91,11 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 	// THEN the application endpoint must be accessible
 	ginkgo.Describe("Verify Hello Helidon app is working.", func() {
 		ginkgo.It("Access /greet App Url.", func() {
-			url := fmt.Sprintf("https://%s/greet", host)
-			isEndpointAccessible := func() bool {
-				return appEndpointAccessible(url, host)
-			}
-			gomega.Eventually(isEndpointAccessible, 15*time.Second, 1*time.Second).Should(gomega.BeTrue())
+			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
+				kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+				url := fmt.Sprintf("https://%s/greet", host)
+				return pkg.GetWebPageWithBasicAuth(url, host, "", "", kubeconfigPath)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("Hello World")))
 		})
 	})
 
@@ -141,16 +140,4 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 
 func helloHelidonPodsRunning() bool {
 	return pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
-}
-
-func appEndpointAccessible(url string, hostname string) bool {
-	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-	resp, err := pkg.GetWebPageWithBasicAuth(url, hostname, "", "", kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error fetching web page %s, error: %v", url, err))
-		return false
-	}
-	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, resp.StatusCode))
-	gomega.Expect(strings.Contains(string(resp.Body), "Hello World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT Hello World %s", resp.Body))
-	return true
 }
