@@ -13,6 +13,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -59,29 +60,29 @@ func deployFooApplication() {
 	pkg.Log(pkg.Info, "Deploy Auth Policy Application in foo namespace")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	if _, err := pkg.CreateNamespace(fooNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"}); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Namespace, error) {
+		return pkg.CreateNamespace(fooNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
 	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy application resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Sleep Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy Sleep component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Backend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy BackEnd component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Frontend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy FrontEnd component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 }
 
@@ -89,29 +90,29 @@ func deployBarApplication() {
 	pkg.Log(pkg.Info, "Deploy Auth Policy Application in bar namespace")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	if _, err := pkg.CreateNamespace(barNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"}); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Namespace, error) {
+		return pkg.CreateNamespace(barNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
 	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy application resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Sleep Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy Sleep component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Backend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy BackEnd component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Frontend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy FrontEnd component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 }
 
@@ -119,123 +120,135 @@ func deployNoIstioApplication() {
 	pkg.Log(pkg.Info, "Deploy Auth Policy Application in NoIstio namespace")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	if _, err := pkg.CreateNamespace(noIstioNamespace, map[string]string{"verrazzano-managed": "true"}); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Namespace, error) {
+		return pkg.CreateNamespace(noIstioNamespace, map[string]string{"verrazzano-managed": "true"})
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
 	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy application resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Sleep Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy Sleep component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Backend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy BackEnd component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Frontend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy FrontEnd component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 }
 
 func undeployFooApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in foo namespace")
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the application: %v", err))
-	}
-	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
-	}
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
-	}
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	if noPods := pkg.PodsNotRunning(fooNamespace, expectedPodsFoo); noPods != true {
-		pkg.Log(pkg.Error, fmt.Sprintf("Pods in namespace %s stuck terminating!", fooNamespace))
-	}
+	pkg.Log(pkg.Info, "Delete components")
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	// NOTE: This function does wait for the pods to terminate even though it's not using Eventually
+	notRunning := pkg.PodsNotRunning(fooNamespace, expectedPodsFoo)
+	gomega.Expect(notRunning).Should(gomega.BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", fooNamespace))
 
 	pkg.Log(pkg.Info, "Delete namespace")
-	if err := pkg.DeleteNamespace(fooNamespace); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the namespace: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteNamespace(fooNamespace)
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	gomega.Eventually(func() bool {
-		ns, err := pkg.GetNamespace(fooNamespace)
-		return ns == nil && err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+		_, err := pkg.GetNamespace(fooNamespace)
+		return err != nil && errors.IsNotFound(err)
+	}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
 
 func undeployBarApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in bar namespace")
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the application: %v", err))
-	}
-	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
-	}
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
-	}
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	if noPods := pkg.PodsNotRunning(barNamespace, expectedPodsBar); noPods != true {
-		pkg.Log(pkg.Error, fmt.Sprintf("Pods in namespace %s stuck terminating!", barNamespace))
-	}
+	pkg.Log(pkg.Info, "Delete components")
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	// NOTE: This function does wait for the pods to terminate even though it's not using Eventually
+	notRunning := pkg.PodsNotRunning(barNamespace, expectedPodsBar)
+	gomega.Expect(notRunning).Should(gomega.BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", barNamespace))
 
 	pkg.Log(pkg.Info, "Delete namespace")
-	if err := pkg.DeleteNamespace(barNamespace); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the namespace: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteNamespace(barNamespace)
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	gomega.Eventually(func() bool {
-		ns, err := pkg.GetNamespace(barNamespace)
-		return ns == nil && err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+		_, err := pkg.GetNamespace(barNamespace)
+		return err != nil && errors.IsNotFound(err)
+	}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
 
 func undeployNoIstioApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in noistio namespace")
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the application: %v", err))
-	}
-	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
-	}
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
-	}
-	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	if noPods := pkg.PodsNotRunning(noIstioNamespace, expectedPodsBar); noPods != true {
-		pkg.Log(pkg.Error, fmt.Sprintf("Pods in namespace %s stuck terminating!", noIstioNamespace))
-	}
+	pkg.Log(pkg.Info, "Delete components")
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	// NOTE: This function does wait for the pods to terminate even though it's not using Eventually
+	notRunning := pkg.PodsNotRunning(noIstioNamespace, expectedPodsBar)
+	gomega.Expect(notRunning).Should(gomega.BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", noIstioNamespace))
 
 	pkg.Log(pkg.Info, "Delete namespace")
-	if err := pkg.DeleteNamespace(noIstioNamespace); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the namespace: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteNamespace(noIstioNamespace)
+	}, waitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	gomega.Eventually(func() bool {
-		ns, err := pkg.GetNamespace(noIstioNamespace)
-		return ns == nil && err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+		_, err := pkg.GetNamespace(noIstioNamespace)
+		return err != nil && errors.IsNotFound(err)
+	}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
 
 var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
