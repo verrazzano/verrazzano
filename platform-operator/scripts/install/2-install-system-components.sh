@@ -17,7 +17,6 @@ VERRAZZANO_DEFAULT_SECRET_NAME="verrazzano-ca-certificate-secret"
 
 function install_nginx_ingress_controller()
 {
-
     local ingress_nginx_ns=ingress-nginx
     local chartName=ingress-controller
     local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/ingress-nginx
@@ -223,6 +222,9 @@ function install_cert_manager()
     log "Waiting for all the pods in cert-manager namespace to reach ready state"
     kubectl wait --for=condition=ready pods --all -n ${cert_manager_ns} --timeout=10m
 
+    log "Waiting for cert-manager-webhook to reach ready state"
+    kubectl rollout status deploy/cert-manager-webhook -n ${cert_manager_ns}  --timeout=10m
+
     setup_cluster_issuer
 }
 
@@ -408,7 +410,6 @@ function install_rancher()
         --install --namespace cattle-system \
         --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
         --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
-        --set debug=true \
         ${HELM_IMAGE_ARGS} \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
         ${EXTRA_RANCHER_ARGUMENTS}
@@ -451,9 +452,6 @@ function install_rancher()
 
     log "Rollout Rancher"
     kubectl -n cattle-system rollout status -w deploy/rancher || return $?
-
-    log "List pods in cattle-system namespace"
-    kubectl get pods -n cattle-system
 
     log "Waiting for Rancher TLS cert to reach ready state"
     kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system
@@ -555,16 +553,16 @@ function kubectl_apply_with_retry() {
       echo "kubectl apply failed, waiting for 5 seconds and trying again"
       sleep 5
     else
+      echo "kubectl apply attempt timed out."
       break
     fi
   done
 
   if [ $ret -ne 0 ]; then
-    echo "kubectl apply attempt timed out"
+    echo "kubectl apply failed with non-zero return code."
   else
-    echo "kubectl apply succeeded"
+    echo "kubectl apply succeeded."
   fi
-
   return $ret
 }
 
