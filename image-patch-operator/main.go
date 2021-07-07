@@ -7,6 +7,8 @@ import (
 	"flag"
 	"os"
 
+	"go.uber.org/zap"
+
 	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
 	"github.com/verrazzano/verrazzano/image-patch-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/log"
@@ -46,7 +48,7 @@ func main() {
 	kzap.UseFlagOptions(&opts)
 	log.InitLogs(opts)
 
-	setupLog := ctrl.Log.WithName("operator").WithName("setup")
+	setupLog := zap.S()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -56,23 +58,35 @@ func main() {
 		LeaderElectionID:   "270cac09.verrazzano.io",
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Errorf("unable to start manager: #{err}", "unable to start manager")
 		os.Exit(1)
 	}
 
-	if err = (&controllers.ImageBuildRequestReconciler{
+	//if err = (&controllers.ImageBuildRequestReconciler{
+	//	Client: mgr.GetClient(),
+	//	Scheme: mgr.GetScheme(),
+	//	DryRun: dryRun,
+	//}).SetupWithManager(mgr); err != nil {
+	//	setupLog.Errorf("unable to create controller: %v", err)
+	//	os.Exit(1)
+	//}
+
+	// Setup the reconciler
+	_, dryRun := os.LookupEnv("VZ_DRY_RUN") // If this var is set, the install jobs are no-ops
+	reconciler := controllers.ImageBuildRequestReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("ImageBuildRequest"),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ImageBuildRequest")
+		DryRun: dryRun,
+	}
+	if err = reconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Errorf("unable to create controller: %v", err)
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+		setupLog.Errorf("problem running manager: %v", err)
 		os.Exit(1)
 	}
 }

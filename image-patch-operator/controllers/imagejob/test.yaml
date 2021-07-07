@@ -1,0 +1,14 @@
+apiVersion: images.verrazzano.io/v1alpha1
+kind: ImageBuildRequest
+metadata:
+  name: cluster1
+  namespace: default
+spec:
+  baseImage: A
+  jdkInstaller: B
+  webLogicInstaller: C
+  image:
+    name: D
+    tag: E
+    registry: F
+    repository: Gt
