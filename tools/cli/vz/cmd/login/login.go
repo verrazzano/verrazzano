@@ -56,8 +56,8 @@ func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helper
 func login(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 
 	// Obtain the default kubeconfig's location
-	kubeConfigLoc,err := helpers.GetKubeConfigLocation()
-	if err!=nil {
+	kubeConfigLoc, err := helpers.GetKubeConfigLocation()
+	if err != nil {
 		return err
 	}
 
@@ -65,12 +65,12 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 	mykubeConfig, err := clientcmd.LoadFromFile(kubeConfigLoc)
 
 	// Check if the user is already logged out
-	if strings.Split(mykubeConfig.CurrentContext,"@")[0] == "verrazzano" {
+	if strings.Split(mykubeConfig.CurrentContext, "@")[0] == "verrazzano" {
 		fmt.Fprintln(streams.Out, "Already Logged in")
 		return nil
 	}
 
-	if err!=nil {
+	if err != nil {
 		fmt.Println("Unable to load kubeconfig, check permissions")
 		return err
 	}
@@ -86,7 +86,7 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 	}
 
 	// Obtain the certificate authority data in the form of byte stream
-	caData, err := getCAData( kubernetesInterface)
+	caData, err := getCAData(kubernetesInterface)
 	if err != nil {
 		fmt.Println("Unable to obtain certificate authority data")
 		fmt.Println("Make sure you are in the right context")
@@ -95,7 +95,7 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 
 	// Follow the authorization grant flow to get the json response
 	jwtData, err := authFlowLogin(caData)
-	if err!=nil {
+	if err != nil {
 		fmt.Println("Grant flow failed")
 		return err
 	}
@@ -110,14 +110,14 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 	// Add the logged-in user with nickname verrazzan
 	helpers.SetUser(mykubeConfig,
 		"verrazzano",
-		fmt.Sprintf("%v",jwtData["access_token"]),
+		fmt.Sprintf("%v", jwtData["access_token"]),
 	)
 
 	// Add new context with name verrazzano@oldcontext
 	// This context uses verrazzano cluster and logged-in user
 	// We need oldcontext to fall back after logout
 	helpers.SetContext(mykubeConfig,
-		"verrazzano" + "@" + mykubeConfig.CurrentContext,
+		"verrazzano"+"@"+mykubeConfig.CurrentContext,
 		"verrazzano",
 		"verrazzano",
 	)
@@ -131,7 +131,7 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 	err = clientcmd.WriteToFile(*mykubeConfig,
 		kubeConfigLoc,
 	)
-	if err!=nil {
+	if err != nil {
 		fmt.Println("Unable to write the new kubconfig to disk")
 		return err
 	}
@@ -172,7 +172,7 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 	time.Sleep(time.Second)
 
 	// Open the generated keycloak login url in the browser
-	err := helpers.OpenUrlInBrowser(loginURL)
+	err := helpers.OpenURLInBrowser(loginURL)
 	if err != nil {
 		fmt.Println("Unable to open browser")
 	}
@@ -209,7 +209,7 @@ func getCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 		metav1.GetOptions{},
 	)
 
-	if err != nil{
+	if err != nil {
 		return cert, err
 	}
 	cert = (*secret).Data["ca.crt"]
@@ -246,7 +246,7 @@ func requestJWT(redirectURI string, codeVerifier string, caData []byte) (map[str
 	// Set all the parameters for the POST request
 	grantParams := url.Values{}
 	grantParams.Set("grant_type", "authorization_code")
-	grantParams.Set("client_id", helpers.GetClientId())
+	grantParams.Set("client_id", helpers.GetClientID())
 	grantParams.Set("code", authCode)
 	grantParams.Set("redirect_uri", redirectURI)
 	grantParams.Set("code_verifier", codeVerifier)
@@ -279,7 +279,7 @@ func executeRequestForJWT(grantParams url.Values, caData []byte) (map[string]int
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs:      caCertPool,
+				RootCAs: caCertPool,
 			},
 		},
 	}

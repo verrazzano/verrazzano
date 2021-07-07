@@ -12,7 +12,7 @@ import (
 )
 
 // Helper function to obtain the default kubeConfig location
-func GetKubeConfigLocation() (string,error) {
+func GetKubeConfigLocation() (string, error) {
 
 	var kubeConfig string
 	kubeConfigEnvVar := os.Getenv("KUBECONFIG")
@@ -27,7 +27,7 @@ func GetKubeConfigLocation() (string,error) {
 		// give up
 		return "", errors.New("Could not find kube config")
 	}
-	return kubeConfig,nil
+	return kubeConfig, nil
 }
 
 func RemoveCluster(kubeConfig *clientcmdapi.Config, name string) {
@@ -35,20 +35,20 @@ func RemoveCluster(kubeConfig *clientcmdapi.Config, name string) {
 }
 
 func RemoveUser(kubeConfig *clientcmdapi.Config, name string) {
-	delete(kubeConfig.AuthInfos,name)
+	delete(kubeConfig.AuthInfos, name)
 }
 
 func RemoveContext(kubeConfig *clientcmdapi.Config, name string) {
-	delete(kubeConfig.Contexts,name)
+	delete(kubeConfig.Contexts, name)
 }
 
-func SetCurrentContext(kubeConfig *clientcmdapi.Config, name string){
+func SetCurrentContext(kubeConfig *clientcmdapi.Config, name string) {
 	kubeConfig.CurrentContext = name
 }
 
-func SetCluster(kubeConfig *clientcmdapi.Config,name string, serverUrl string, caData []byte) {
+func SetCluster(kubeConfig *clientcmdapi.Config, name string, serverURL string, caData []byte) {
 	kubeConfig.Clusters[name] = &clientcmdapi.Cluster{
-		Server: serverUrl,
+		Server:                   serverURL,
 		CertificateAuthorityData: caData,
 	}
 }
@@ -61,8 +61,7 @@ func SetUser(kubeConfig *clientcmdapi.Config, name string, token string) {
 
 func SetContext(kubeConfig *clientcmdapi.Config, name string, clusterName string, userName string) {
 	kubeConfig.Contexts[name] = &clientcmdapi.Context{
-		Cluster: clusterName,
+		Cluster:  clusterName,
 		AuthInfo: userName,
 	}
 }
-

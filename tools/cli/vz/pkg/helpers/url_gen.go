@@ -34,21 +34,21 @@ func ConcatURLParams(urlParams map[string]string) string {
 }
 
 // Returns the oidc client id
-func GetClientId() string{
-	clientId := os.Getenv("VZ_CLIENT_ID")
+func GetClientID() string {
+	clientID := os.Getenv("VZ_CLIENT_ID")
 	// Look for the matching environment variable, return default if not found
-	return clientId
+	return clientID
 }
 
 // Returns the keycloak base url
-func GetKeycloakURL() string{
-	keycloakUrl := os.Getenv("VZ_KEYCLOAK_URL")
+func GetKeycloakURL() string {
+	keycloakURL := os.Getenv("VZ_KEYCLOAK_URL")
 	// Look for the matching environment variable, return default if not found
-	return keycloakUrl
+	return keycloakURL
 }
 
 // Returns the realm name the oidc client is part of
-func GetVerrazzanoRealm() string{
+func GetVerrazzanoRealm() string {
 	realmName := os.Getenv("VZ_REALM")
 	// Look for the matching environment variable, return default if not found
 	return realmName
@@ -56,18 +56,18 @@ func GetVerrazzanoRealm() string{
 
 // Generates the keycloak api url to login
 // Return string of the form `https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/auth?redirect_uri=abc&state=xyz...`
-func GenerateKeycloakAPIURL(codeChallenge string, redirectUri string) string {
+func GenerateKeycloakAPIURL(codeChallenge string, redirectURI string) string {
 	urlParams := map[string]string{
-		"client_id":             GetClientId(),
+		"client_id":             GetClientID(),
 		"response_type":         "code",
 		"state":                 "fj8o3n7bdy1op5",
-		"redirect_uri":          redirectUri,
+		"redirect_uri":          redirectURI,
 		"code_challenge":        codeChallenge,
 		"code_challenge_method": "S256",
 	}
 
-	host :=     GetKeycloakURL()
-	path :=     "auth/realms/" + GetVerrazzanoRealm() + "/protocol/openid-connect/auth"
+	host := GetKeycloakURL()
+	path := "auth/realms/" + GetVerrazzanoRealm() + "/protocol/openid-connect/auth"
 	rawQuery := ConcatURLParams(urlParams)
 
 	return host + "/" + path + "?" + rawQuery
@@ -77,7 +77,7 @@ func GenerateKeycloakAPIURL(codeChallenge string, redirectUri string) string {
 // Return string of the form `https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/token
 func GenerateKeycloakTokenURL() string {
 
-	host :=   GetKeycloakURL()
-	path :=   "auth/realms/" + GetVerrazzanoRealm() + "/protocol/openid-connect/token"
+	host := GetKeycloakURL()
+	path := "auth/realms/" + GetVerrazzanoRealm() + "/protocol/openid-connect/token"
 	return host + "/" + path
 }

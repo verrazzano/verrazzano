@@ -31,12 +31,12 @@ import (
 )
 
 var (
-	fakeVerrazzanoAPIURL = "verrazzano.fake.nip.io/12345"
+	fakeVerrazzanoAPIURL   = "verrazzano.fake.nip.io/12345"
 	fakeVerrazzanoClientID = "fakeclient"
-	fakeVerrazzanoRealm = "fakerealm"
-	fakeAuthCode = "euifgewuhfoieuwhfiuoewhfioewhfoihwfihfgiheriofwerhfiruhgoreihgccccccccccccccccc"
-	test1 = []struct {
-		args []string
+	fakeVerrazzanoRealm    = "fakerealm"
+	fakeAuthCode           = "euifgewuhfoieuwhfiuoewhfioewhfoihwfihfgiheriofwerhfiruhgoreihgccccccccccccccccc"
+	test1                  = []struct {
+		args   []string
 		output string
 	}{
 		{
@@ -45,7 +45,7 @@ var (
 		},
 	}
 	test2 = []struct {
-		args []string
+		args   []string
 		output string
 	}{
 		{
@@ -104,16 +104,16 @@ func getCodeChallenge(codeVerifier string) string {
 	return codeChallenge
 }
 
-type Token struct  {
+type Token struct {
 	AccessToken string `json:"access_token"`
 }
 
 func tokenHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	token := Token{AccessToken : "myaccesstokendbufbujfbvndvbfurdfgbvnudjkfvbciudrbferfgrefbvrebgfuireffuerf"}
+	token := Token{AccessToken: "myaccesstokendbufbujfbvndvbfurdfgbvnudjkfvbciudrbferfgrefbvrebgfuireffuerf"}
 	json.NewEncoder(w).Encode(token)
 	r.ParseForm()
-	if r.Form.Get("code") != fakeAuthCode && getCodeChallenge(r.Form.Get("code_verifier")) != codeChallenge{
+	if r.Form.Get("code") != fakeAuthCode && getCodeChallenge(r.Form.Get("code_verifier")) != codeChallenge {
 		status = "failure"
 	} else {
 		status = "success"
@@ -127,10 +127,10 @@ func TestNewCmdLogin(t *testing.T) {
 	// Create a fake keycloak server at some random available port
 	listener, err := net.Listen("tcp", ":0")
 	asserts.NoError(err)
-	http.HandleFunc("/auth/realms/" + fakeVerrazzanoRealm + "/protocol/openid-connect/auth",
+	http.HandleFunc("/auth/realms/"+fakeVerrazzanoRealm+"/protocol/openid-connect/auth",
 		authHandle,
 	)
-	http.HandleFunc("/auth/realms/" + fakeVerrazzanoRealm + "/protocol/openid-connect/token",
+	http.HandleFunc("/auth/realms/"+fakeVerrazzanoRealm+"/protocol/openid-connect/token",
 		tokenHandle,
 	)
 	go func() {
@@ -141,15 +141,14 @@ func TestNewCmdLogin(t *testing.T) {
 
 	// Create fake kubeconfig
 	createFakeKubeConfig(asserts)
-	currentDirectory , err := os.Getwd()
+	currentDirectory, err := os.Getwd()
 	asserts.NoError(err)
 
-
 	// Create fake environment variables
-	os.Setenv("VZ_CLIENT_ID",fakeVerrazzanoClientID)
-	os.Setenv("VZ_REALM",fakeVerrazzanoRealm)
-	os.Setenv("VZ_KEYCLOAK_URL","http://localhost:"+strconv.Itoa(listener.Addr().(*net.TCPAddr).Port))
-	os.Setenv("KUBECONFIG",currentDirectory+"/fakekubeconfig")
+	os.Setenv("VZ_CLIENT_ID", fakeVerrazzanoClientID)
+	os.Setenv("VZ_REALM", fakeVerrazzanoRealm)
+	os.Setenv("VZ_KEYCLOAK_URL", "http://localhost:"+strconv.Itoa(listener.Addr().(*net.TCPAddr).Port))
+	os.Setenv("KUBECONFIG", currentDirectory+"/fakekubeconfig")
 
 	// Create fake kubernetes interface
 	fakeKubernetes := &TestKubernetes{
@@ -161,22 +160,21 @@ func TestNewCmdLogin(t *testing.T) {
 	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
 	testCmd := NewCmdLogin(streams, fakeKubernetes)
 
-
 	for _, test := range test1 {
 		status = "pending"
 		testCmd.SetArgs(test.args)
 		asserts.NoError(testCmd.Execute())
 		asserts.Equal(status, "success")
-		asserts.Equal(test.output,outBuffer.String())
+		asserts.Equal(test.output, outBuffer.String())
 
 		kubeConfig, _ := clientcmd.LoadFromFile("fakekubeconfig")
-		_ , ok := kubeConfig.Clusters["verrazzano"]
+		_, ok := kubeConfig.Clusters["verrazzano"]
 		asserts.Equal(ok, true)
-		_ , ok  = kubeConfig.AuthInfos["verrazzano"]
+		_, ok = kubeConfig.AuthInfos["verrazzano"]
 		asserts.Equal(ok, true)
-		_ , ok  = kubeConfig.Contexts[kubeConfig.CurrentContext]
+		_, ok = kubeConfig.Contexts[kubeConfig.CurrentContext]
 		asserts.Equal(ok, true)
-		asserts.Equal(strings.Split(kubeConfig.CurrentContext,"@")[0],"verrazzano")
+		asserts.Equal(strings.Split(kubeConfig.CurrentContext, "@")[0], "verrazzano")
 
 		outBuffer.Reset()
 	}
@@ -188,7 +186,7 @@ func TestRepeatedLogin(t *testing.T) {
 
 	// Create a fake clone of kubeconfig
 	createFakeKubeConfig(asserts)
-	currentDirectory , err := os.Getwd()
+	currentDirectory, err := os.Getwd()
 	asserts.NoError(err)
 
 	// Add fake clusters,usernames,contexts..
@@ -210,13 +208,13 @@ func TestRepeatedLogin(t *testing.T) {
 	)
 
 	helpers.SetContext(kubeconfig,
-		"verrazzano" + "@" + kubeconfig.CurrentContext,
+		"verrazzano"+"@"+kubeconfig.CurrentContext,
 		"verrazzano",
 		"verrazzano",
 	)
 
 	helpers.SetCurrentContext(kubeconfig,
-		"verrazzano"+"@"+ kubeconfig.CurrentContext,
+		"verrazzano"+"@"+kubeconfig.CurrentContext,
 	)
 	err = clientcmd.WriteToFile(*kubeconfig,
 		"fakekubeconfig",
@@ -224,7 +222,7 @@ func TestRepeatedLogin(t *testing.T) {
 	asserts.NoError(err)
 
 	// Set environment variable for kubeconfig
-	os.Setenv("KUBECONFIG",currentDirectory+"/fakekubeconfig")
+	os.Setenv("KUBECONFIG", currentDirectory+"/fakekubeconfig")
 
 	// Create fake kubernetes interface
 	fakeKubernetes := &TestKubernetes{
@@ -240,7 +238,7 @@ func TestRepeatedLogin(t *testing.T) {
 
 		testCmd.SetArgs(test.args)
 		asserts.NoError(testCmd.Execute())
-		asserts.Equal(test.output,outBuffer.String())
+		asserts.Equal(test.output, outBuffer.String())
 		outBuffer.Reset()
 	}
 	os.Remove("fakekubeconfig")

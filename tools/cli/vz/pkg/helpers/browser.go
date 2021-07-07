@@ -10,7 +10,7 @@ import (
 )
 
 // Non-blocking browser opener function
-func OpenUrlInBrowser(url string) error{
+func OpenURLInBrowser(url string) error {
 	var err error
 	switch runtime.GOOS {
 	case "linux":

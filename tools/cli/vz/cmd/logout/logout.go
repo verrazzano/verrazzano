@@ -46,20 +46,20 @@ func NewCmdLogout(streams genericclioptions.IOStreams) *cobra.Command {
 func logout(streams genericclioptions.IOStreams) error {
 
 	// Obtain the default kubeconfig's location
-	kubeConfigLoc,err := helpers.GetKubeConfigLocation()
-	if err!=nil {
+	kubeConfigLoc, err := helpers.GetKubeConfigLocation()
+	if err != nil {
 		return err
 	}
 
 	// Load the default kubeconfig's configuration into clientcmdapi object
 	mykubeConfig, err := clientcmd.LoadFromFile(kubeConfigLoc)
-	if err!=nil {
+	if err != nil {
 		fmt.Println("Unable to load kubeconfig, check permissions")
 		return err
 	}
 
 	// Check if the user is already logged out
-	if strings.Split(mykubeConfig.CurrentContext,"@")[0] != "verrazzano" {
+	if strings.Split(mykubeConfig.CurrentContext, "@")[0] != "verrazzano" {
 		fmt.Fprintln(streams.Out, "Already Logged out")
 		return nil
 	}
@@ -68,19 +68,19 @@ func logout(streams genericclioptions.IOStreams) error {
 	helpers.RemoveCluster(mykubeConfig, "verrazzano")
 
 	// Remove the user with nickname verrazzano
-	helpers.RemoveUser(mykubeConfig,"verrazzano")
+	helpers.RemoveUser(mykubeConfig, "verrazzano")
 
 	// Remove the currentcontext
 	helpers.RemoveContext(mykubeConfig, mykubeConfig.CurrentContext)
 
 	// Set currentcluster to the cluster before the user logged in
-	helpers.SetCurrentContext(mykubeConfig, strings.Split(mykubeConfig.CurrentContext,"@")[1])
+	helpers.SetCurrentContext(mykubeConfig, strings.Split(mykubeConfig.CurrentContext, "@")[1])
 
 	// Write kubeconfig to file
 	err = clientcmd.WriteToFile(*mykubeConfig,
-				     kubeConfigLoc,
-				  )
-	if err!=nil {
+		kubeConfigLoc,
+	)
+	if err != nil {
 		fmt.Println("Unable to write the new kubconfig to disk")
 		return err
 	}

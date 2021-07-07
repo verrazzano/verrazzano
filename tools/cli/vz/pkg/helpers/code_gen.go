@@ -26,7 +26,7 @@ func encode(msg []byte) string {
 func GenerateRandomCodePair() (string, string) {
 	length := 32
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	b := make([]byte, length, length)
+	b := make([]byte, length)
 	for i := 0; i < length; i++ {
 		b[i] = byte(r.Intn(255))
 	}
