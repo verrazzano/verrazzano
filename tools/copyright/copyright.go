@@ -79,6 +79,9 @@ var (
 		".map",
 		".cov",
 		".iml",
+		".jar",
+		".zip",
+		".gz",
 	}
 
 	// copyrightRegex is the regular expression for recognizing correctly formatted copyright statements

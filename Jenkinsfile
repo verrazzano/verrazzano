@@ -53,6 +53,9 @@ pipeline {
         DOCKER_IMAGE_PATCH_CI_IMAGE_NAME = 'verrazzano-image-patch-operator-jenkins'
         DOCKER_IMAGE_PATCH_PUBLISH_IMAGE_NAME = 'verrazzano-image-patch-operator'
         DOCKER_IMAGE_PATCH_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_IMAGE_PATCH_PUBLISH_IMAGE_NAME : env.DOCKER_IMAGE_PATCH_CI_IMAGE_NAME}"
+        DOCKER_WIT_CI_IMAGE_NAME = 'verrazzano-weblogic-image-tool-jenkins'
+        DOCKER_WIT_PUBLISH_IMAGE_NAME = 'verrazzano-weblogic-image-tool'
+        DOCKER_WIT_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_WIT_PUBLISH_IMAGE_NAME : env.DOCKER_WIT_CI_IMAGE_NAME}"
         DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
         DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
         DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
@@ -232,6 +235,7 @@ pipeline {
             }
             steps {
                 buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
+                buildWITImage("${DOCKER_IMAGE_TAG}")
             }
             post {
                 failure {
@@ -565,6 +569,14 @@ def buildImagePatchOperator(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
         make docker-push-ipo VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_PATCH_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+    """
+}
+
+// Called in Stage Image Patch Operator
+def buildWITImage(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        make docker-push-wit VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME=${DOCKER_WIT_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
     """
 }
 
