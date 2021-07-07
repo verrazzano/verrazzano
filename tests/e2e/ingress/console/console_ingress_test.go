@@ -10,6 +10,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -40,60 +41,69 @@ func deployApplication() {
 
 	// Wait for namespace to finish deletion possibly from a prior run.
 	gomega.Eventually(func() bool {
-		ns, err := pkg.GetNamespace(namespace)
-		return ns == nil && err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+		_, err := pkg.GetNamespace(namespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	if _, err := pkg.CreateNamespace(namespace, nsLabels); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		return pkg.CreateNamespace(namespace, nsLabels)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+
 	pkg.Log(pkg.Info, "Create Docker repository secret")
-	if _, err := pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create Docker registry secret: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+
 	pkg.Log(pkg.Info, "Create WebLogic credentials secret")
-	if _, err := pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+
 	pkg.Log(pkg.Info, "Create database credentials secret")
-	if _, err := pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "cidomain"}); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create JDBC credentials secret: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "cidomain"})
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+
 	pkg.Log(pkg.Info, "Create encryption credentials secret")
-	if _, err := pkg.CreatePasswordSecret(namespace, "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "cidomain"}); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create encryption secret: %v", err))
-	}
+	gomega.Eventually(func() (*v1.Secret, error) {
+		return pkg.CreatePasswordSecret(namespace, "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "cidomain"})
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+
 	pkg.Log(pkg.Info, "Create component resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/components.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create component resources: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/components.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	pkg.Log(pkg.Info, "Create application resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create application resource: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 }
 
 func undeployApplication() {
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("testdata/ingress/console/application.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete application: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/ingress/console/application.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("testdata/ingress/console/components.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete components: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/ingress/console/components.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	pkg.Log(pkg.Info, "Delete namespace")
-	if err := pkg.DeleteNamespace(namespace); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete namespace: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteNamespace(namespace)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	gomega.Eventually(func() bool {
-		ns, err := pkg.GetNamespace(namespace)
-		return ns == nil && err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+		_, err := pkg.GetNamespace(namespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
 
 var _ = ginkgo.Describe("Verify application.", func() {
