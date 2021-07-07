@@ -5,13 +5,20 @@ package registry
 
 import (
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
-	"strings"
+)
+
+const (
+	waitTimeout     = 2 * time.Minute
+	pollingInterval = 10 * time.Second
 )
 
 var registry = os.Getenv("REGISTRY")
@@ -51,10 +58,13 @@ var _ = ginkgo.Describe("Private Registry Verification",
 					imagePrefix += "/" + privateRepo
 				}
 				for i, ns := range listOfNamespaces {
-					pods, err := pkg.ListPods(ns, metav1.ListOptions{})
-					if err != nil {
-						ginkgo.Fail(fmt.Sprintf("Error listing pods in the namespace %s", ns))
-					}
+					var pods *corev1.PodList
+					gomega.Eventually(func() (*corev1.PodList, error) {
+						var err error
+						pods, err = pkg.ListPods(ns, metav1.ListOptions{})
+						return pods, err
+					}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil(), fmt.Sprintf("Error listing pods in the namespace %s", ns))
+
 					for j := range pods.Items {
 						pod = pods.Items[j]
 						pkg.Log(pkg.Info, fmt.Sprintf("%d. Validating the registry url prefix for pod: %s in namespace: %s", i, pod.Name, ns))
