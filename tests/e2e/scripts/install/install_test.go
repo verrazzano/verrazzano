@@ -67,11 +67,10 @@ var _ = ginkgo.Describe("Verify Verrazzano install scripts", func() {
 				for i := 2; i <= clusterCount; i++ {
 					installLogForCluster := filepath.FromSlash(installLogDir + "/cluster-" + strconv.Itoa(i) + "/" + installLog)
 					consoleUrls, err := getConsoleURLsFromLog(installLogForCluster)
-					if err != nil {
-						gomega.Expect(false).To(gomega.BeTrue(), "There is an error getting console URLs from the log file ", err)
-					}
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "There is an error getting console URLs from the log file")
+
 					// By default, install logs of the managed clusters do not contain the console URLs
-					gomega.Expect(len(consoleUrls) == 0).To(gomega.BeTrue())
+					gomega.Expect(consoleUrls).To(gomega.BeEmpty())
 				}
 			})
 		} else {
@@ -105,14 +104,13 @@ func getConsoleURLsFromLog(installLog string) ([]string, error) {
 	var consoleUrls []string
 	if _, err := os.Stat(installLog); err != nil {
 		if os.IsNotExist(err) {
-			fmt.Println("The value set for installLog doesn't exist.")
-			return consoleUrls, err
+			pkg.Log(pkg.Error, "The value set for installLog doesn't exist.")
 		}
+		return consoleUrls, err
 	}
 	inFile, err := os.Open(installLog)
 
 	if err != nil {
-		fmt.Println("Error reading install log file ", err.Error())
 		return consoleUrls, err
 	}
 	defer inFile.Close()
