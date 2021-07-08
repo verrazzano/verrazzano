@@ -5,28 +5,16 @@
 apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
 metadata:
-  name: dev-storage-example
+  name: prod-global-override
 spec:
-  profile: dev
+  profile: prod
   defaultVolumeSource:
     persistentVolumeClaim:
-      claimName: vmi     # set storage for the metrics stack
-  components:
-    keycloak:
-      mysql:
-        volumeSource:
-          persistentVolumeClaim:
-            claimName: mysql  # set storage for keycloak's MySql instance
+      claimName: globalOverride
   volumeClaimSpecTemplates:
     - metadata:
-        name: mysql
+        name: globalOverride
       spec:
         resources:
           requests:
             storage: 100Gi
-    - metadata:
-        name: vmi
-      spec:
-        resources:
-          requests:
-            storage: 200Gi
