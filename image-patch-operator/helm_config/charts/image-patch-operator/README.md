@@ -1,8 +1,8 @@
 # Helm Chart for Image Patch Operator
 
-This helm chart installs the image patch service components into a Verrazzano environment.
+This Helm chart installs the image patch service components into a Verrazzano environment.
 
-## Install Image Patch Operator into Local Minikube Cluster
+## Example: Install Image Patch Operator into Local Minikube Cluster
 First, build the Docker images locally for the Image Patch Operator and WIT.
 ```bash
 # This assumes your starting directory is the root directory of the verrazzano repository.
@@ -39,7 +39,7 @@ kubectl get pods -n verrazzano-system
 kubectl get crd
 ```
 
-To uninstall this helm chart from the cluster, run the following command.
+To uninstall this Helm chart from the cluster, run the following command.
 ```bash
 helm uninstall verrazzano-image-patch-operator -n verrazzano-system
 ```
