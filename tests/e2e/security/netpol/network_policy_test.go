@@ -5,9 +5,10 @@ package netpol
 
 import (
 	"fmt"
-	"github.com/onsi/gomega"
 	"strings"
 	"time"
+
+	"github.com/onsi/gomega"
 
 	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -35,13 +36,14 @@ var (
 )
 
 var _ = ginkgo.BeforeSuite(func() {
-	nsLabels := map[string]string{}
-	if _, err := pkg.CreateNamespace(testNamespace, nsLabels); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/security/network-policies/netpol-test.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create network policy test pod: %v", err))
-	}
+	gomega.Eventually(func() (*corev1.Namespace, error) {
+		nsLabels := map[string]string{}
+		return pkg.CreateNamespace(testNamespace, nsLabels)
+	}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
+	}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
 })
 
 var failed = false
@@ -51,14 +53,14 @@ var _ = ginkgo.AfterEach(func() {
 
 var _ = ginkgo.AfterSuite(func() {
 	// undeploy the application here
-	err := pkg.DeleteResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete network policy test pod: %v\n", err.Error()))
-	}
-	err = pkg.DeleteNamespace(testNamespace)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete namespace: %v\n", err.Error()))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
+	}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	gomega.Eventually(func() error {
+		return pkg.DeleteNamespace(testNamespace)
+	}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	if failed {
 		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
 		if err != nil {
@@ -314,17 +316,22 @@ var _ = ginkgo.Describe("Test Network Policies", func() {
 // testAccess attempts to access a given pod from another pod on a given port and tests for the expected result
 func testAccess(fromSelector metav1.LabelSelector, fromNamespace string, toSelector metav1.LabelSelector, toNamespace string, port int, expectAccess bool) error {
 	// get the FROM pod
-	pods, err := pkg.GetPodsFromSelector(&fromSelector, fromNamespace)
-	if err != nil {
+	var pods []corev1.Pod
+	gomega.Eventually(func() error {
+		var err error
+		pods, err = pkg.GetPodsFromSelector(&fromSelector, fromNamespace)
 		return err
-	}
+	}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	if len(pods) > 0 {
 		fromPod := pods[0]
 		// get the TO pod
-		pods, err = pkg.GetPodsFromSelector(&toSelector, toNamespace)
-		if err != nil {
+		gomega.Eventually(func() error {
+			var err error
+			pods, err = pkg.GetPodsFromSelector(&toSelector, toNamespace)
 			return err
-		}
+		}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
+
 		if len(pods) > 0 {
 			toPod := pods[0]
 			access := attemptConnection(&fromPod, &toPod, port, 10)

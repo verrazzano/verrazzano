@@ -33,9 +33,9 @@ const (
 
 var _ = ginkgo.BeforeSuite(func() {
 	pkg.Log(pkg.Info, "Create namespace")
-	if _, err := pkg.CreateNamespace(rbacTestNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"}); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	gomega.Eventually(func() (*corev1.Namespace, error) {
+		return pkg.CreateNamespace(rbacTestNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
+	}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
 })
 
 var failed = false
@@ -47,14 +47,16 @@ var _ = ginkgo.AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
+
 	pkg.Log(pkg.Info, "Delete namespace")
-	if err := pkg.DeleteNamespace(rbacTestNamespace); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the namespace: %v", err))
-	}
+	gomega.Eventually(func() error {
+		return pkg.DeleteNamespace(rbacTestNamespace)
+	}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
+
 	gomega.Eventually(func() bool {
-		ns, err := pkg.GetNamespace(rbacTestNamespace)
-		return ns == nil && err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+		_, err := pkg.GetNamespace(rbacTestNamespace)
+		return err != nil && errors.IsNotFound(err)
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 })
 
 var _ = ginkgo.Describe("Test RBAC Permission", func() {
@@ -71,8 +73,9 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 
 		ginkgo.It("Create RoleBinding Admin for verrazzano-project-admin", func() {
 			pkg.Log(pkg.Info, "Create RoleBinding Admin for verrazzano-project-admin")
-			err := pkg.CreateRoleBinding(v80ProjectAdmin, rbacTestNamespace, "admin-binding", "admin")
-			gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Admin RoleBinding creation failed: reason = %s", err))
+			gomega.Eventually(func() error {
+				return pkg.CreateRoleBinding(v80ProjectAdmin, rbacTestNamespace, "admin-binding", "admin")
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
 		})
 
 		ginkgo.It("Verify RoleBinding Admin for verrazzano-project-admin", func() {
@@ -135,8 +138,9 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 
 		ginkgo.It("Create RoleBinding verrazzano-project-admin-binding for verrazzano-project-admin", func() {
 			pkg.Log(pkg.Info, "Create RoleBinding verrazzano-project-admin-binding for verrazzano-project-admin")
-			err := pkg.CreateRoleBinding(v80ProjectAdmin, rbacTestNamespace, "verrazzano-project-admin-binding", "verrazzano-project-admin")
-			gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: VerrazzanoProjectAdmin RoleBinding creation failed: reason = %s", err))
+			gomega.Eventually(func() error {
+				return pkg.CreateRoleBinding(v80ProjectAdmin, rbacTestNamespace, "verrazzano-project-admin-binding", "verrazzano-project-admin")
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
 		})
 
 		ginkgo.It("Verify RoleBinding verrazzano-project-admin-binding for verrazzano-project-admin", func() {
@@ -196,8 +200,9 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 
 		ginkgo.It("Create RoleBinding Admin for verrazzano-project-monitor", func() {
 			pkg.Log(pkg.Info, "Create RoleBinding Admin for verrazzano-project-monitor")
-			err := pkg.CreateRoleBinding(v80ProjectMonitor, rbacTestNamespace, "monitor-binding", "admin")
-			gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Admin RoleBinding creation failed: reason = %s", err))
+			gomega.Eventually(func() error {
+				return pkg.CreateRoleBinding(v80ProjectMonitor, rbacTestNamespace, "monitor-binding", "admin")
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
 		})
 
 		ginkgo.It("Verify RoleBinding monitor-binding for verrazzano-project-monitor", func() {
@@ -260,8 +265,9 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 
 		ginkgo.It("Create RoleBinding verrazzano-project-monitor-binding for cluster role verrazzano-project-monitor", func() {
 			pkg.Log(pkg.Info, "Create RoleBinding verrazzano-project-monitor-binding for verrazzano-project-monitor")
-			err := pkg.CreateRoleBinding(v80ProjectMonitor, rbacTestNamespace, "verrazzano-project-monitor-binding", "verrazzano-project-monitor")
-			gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: VerrazzanoProjectAdmin RoleBinding creation failed: reason = %s", err))
+			gomega.Eventually(func() error {
+				return pkg.CreateRoleBinding(v80ProjectMonitor, rbacTestNamespace, "verrazzano-project-monitor-binding", "verrazzano-project-monitor")
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
 		})
 
 		ginkgo.It("Verify RoleBinding verrazzano-project-monitor-binding for verrazzano-project-monitor", func() {
@@ -312,17 +318,24 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 		var serviceAccount *corev1.ServiceAccount
 
 		ginkgo.BeforeEach(func() {
-			var err error
-			serviceAccount, err = pkg.GetServiceAccount(verrazzanoSystemNS, verrazzanoAPI)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), fmt.Sprintf("Failed to get service account %s in namespace %s", verrazzanoAPI, verrazzanoSystemNS))
+			gomega.Eventually(func() (*corev1.ServiceAccount, error) {
+				var err error
+				serviceAccount, err = pkg.GetServiceAccount(verrazzanoSystemNS, verrazzanoAPI)
+				return serviceAccount, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil(), fmt.Sprintf("Failed to get service account %s in namespace %s", verrazzanoAPI, verrazzanoSystemNS))
 		})
 
 		ginkgo.It("Validate the secret of the Service Account of Verrazzano API", func() {
 			// Get secret for the SA
+			var pods *corev1.PodList
 			saSecret := serviceAccount.Secrets[0]
-			clientset := pkg.GetKubernetesClientset()
-			pods, err := pkg.ListPodsInCluster(verrazzanoSystemNS, clientset)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Eventually(func() (*corev1.PodList, error) {
+				var err error
+				clientset := pkg.GetKubernetesClientset()
+				pods, err = pkg.ListPodsInCluster(verrazzanoSystemNS, clientset)
+				return pods, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
 			secretMatched := false
 			for i := range pods.Items {
 				// Get the secret of the API proxy pod
@@ -342,8 +355,13 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 		})
 
 		ginkgo.It("Validate the role binding of the Service Account of Verrazzano API", func() {
-			bindings, err := pkg.ListClusterRoleBindings()
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error listing cluster role bindings")
+			var bindings *v1.ClusterRoleBindingList
+			gomega.Eventually(func() (*v1.ClusterRoleBindingList, error) {
+				var err error
+				bindings, err = pkg.ListClusterRoleBindings()
+				return bindings, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
 			saName := serviceAccount.Name
 			bcount := 0
 			var rbinding v1.ClusterRoleBinding
@@ -369,10 +387,13 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 					rbinding.Subjects[0].Namespace, verrazzanoSystemNS))
 
 			// There should be a single rule with resources - users and groups, and verbs impersonate
-			crole, err := pkg.GetClusterRole(rbinding.RoleRef.Name)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role")
+			var crole *v1.ClusterRole
+			gomega.Eventually(func() (*v1.ClusterRole, error) {
+				return pkg.GetClusterRole(rbinding.RoleRef.Name)
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
 			gomega.Expect(len(crole.Rules) == 1).To(gomega.BeTrue(),
-				fmt.Sprintf("FAIL: The cluster role %s contains more than one rules.", crole))
+				fmt.Sprintf("FAIL: The cluster role %v contains more than one rules.", crole))
 
 			crule := crole.Rules[0]
 			gomega.Expect(len(crule.Resources) == 2).To(gomega.BeTrue(),
@@ -405,7 +426,6 @@ var _ = ginkgo.Describe("Test Verrazzano API Service Account", func() {
 
 func verifyRoleBindingExists(name string) {
 	gomega.Eventually(func() bool {
-		rbExists := pkg.DoesRoleBindingExist(name, rbacTestNamespace)
-		return rbExists
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeTrue())
+		return pkg.DoesRoleBindingExist(name, rbacTestNamespace)
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 }
