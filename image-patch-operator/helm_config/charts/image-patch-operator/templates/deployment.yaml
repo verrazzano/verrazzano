@@ -28,4 +28,6 @@ spec:
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
               value: {{ .Values.imagePatchOperator.image }}
+            - name: WIT_IMAGE
+              value: {{ .Values.imageTool.image }}
       serviceAccountName: {{ .Values.imagePatchOperator.name }}
