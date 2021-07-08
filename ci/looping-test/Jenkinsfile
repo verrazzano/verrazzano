@@ -253,7 +253,7 @@ pipeline {
                     }
                     sh """
                         mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
-                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/dump_resources.log
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/resources.log
                     """
                 }
             }
