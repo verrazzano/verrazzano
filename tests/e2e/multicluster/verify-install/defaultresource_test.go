@@ -8,50 +8,44 @@ import (
 	"os"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var waitTimeout = 30 * time.Minute
-var pollingInterval = 30 * time.Second
+const (
+	waitTimeout     = 5 * time.Minute
+	pollingInterval = 10 * time.Second
+)
 
 var expectedPodsKubeSystem = []string{
 	"coredns",
 	"kube-proxy"}
 
-var _ = ginkgo.AfterSuite(func() {
+var _ = AfterSuite(func() {
 	listPodsInKubeSystem()
 })
 
-var _ = ginkgo.Describe("Multi Cluster Install Validation",
+var _ = Describe("Multi Cluster Install Validation",
 	func() {
-		ginkgo.It("has the expected namespaces", func() {
+		It("has the expected namespaces", func() {
 			kubeConfig := os.Getenv("KUBECONFIG")
-			fmt.Println("Kube config ", kubeConfig)
+			pkg.Log(pkg.Info, fmt.Sprintf("Kube config: %s", kubeConfig))
 			namespaces, err := pkg.ListNamespaces(metav1.ListOptions{})
-			if err != nil {
-				ginkgo.Fail(fmt.Sprintf("Failed to get namespaces with error: %v", err))
-			}
-			gomega.Expect(nsListContains(namespaces.Items, "default")).To(gomega.Equal(true))
-			gomega.Expect(nsListContains(namespaces.Items, "kube-public")).To(gomega.Equal(true))
-			gomega.Expect(nsListContains(namespaces.Items, "kube-system")).To(gomega.Equal(true))
-			gomega.Expect(nsListContains(namespaces.Items, "kube-node-lease")).To(gomega.Equal(true))
-
-			// dump out namespace data to file
-			logData := ""
-			for i := range namespaces.Items {
-				logData = logData + namespaces.Items[i].Name + "\n"
-			}
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(nsListContains(namespaces.Items, "default")).To(Equal(true))
+			Expect(nsListContains(namespaces.Items, "kube-public")).To(Equal(true))
+			Expect(nsListContains(namespaces.Items, "kube-system")).To(Equal(true))
+			Expect(nsListContains(namespaces.Items, "kube-node-lease")).To(Equal(true))
 		})
 
-		ginkgo.Context("Expected pods are running.", func() {
-			ginkgo.It("and waiting for expected pods must be running", func() {
-				gomega.Eventually(func() bool {
+		Context("Expected pods are running.", func() {
+			It("and waiting for expected pods must be running", func() {
+				Eventually(func() bool {
 					return pkg.PodsRunning("kube-system", expectedPodsKubeSystem)
-				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		})
 	})
@@ -70,11 +64,12 @@ func listPodsInKubeSystem() {
 	clientset := pkg.GetKubernetesClientset()
 	pods, err := pkg.ListPodsInCluster("kube-system", clientset)
 	if err != nil {
-		fmt.Printf("Error listing pods: %v", err)
+		pkg.Log(pkg.Error, fmt.Sprintf("Error listing pods: %v", err))
+		return
 	}
 	for _, podInfo := range (*pods).Items {
-		fmt.Printf("pods-name=%v\n", podInfo.Name)
-		fmt.Printf("pods-status=%v\n", podInfo.Status.Phase)
-		fmt.Printf("pods-condition=%v\n", podInfo.Status.Conditions)
+		pkg.Log(pkg.Info, fmt.Sprintf("pods-name=%v\n", podInfo.Name))
+		pkg.Log(pkg.Info, fmt.Sprintf("pods-status=%v\n", podInfo.Status.Phase))
+		pkg.Log(pkg.Info, fmt.Sprintf("pods-condition=%v\n", podInfo.Status.Conditions))
 	}
 }
