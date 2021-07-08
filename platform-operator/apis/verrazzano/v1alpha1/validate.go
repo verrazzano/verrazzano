@@ -41,7 +41,7 @@ func GetCurrentChartVersion() (*semver.SemVersion, error) {
 	return semver.NewSemVersion(fmt.Sprintf("v%s", chartVersion.Version))
 }
 
-// GetCurrentBomVersion Load the current Chart.yaml into a chartVersion struct
+// GetCurrentBomVersion Get the version string from the bom and return it as a semver object
 func GetCurrentBomVersion() (*semver.SemVersion, error) {
 	bom, err := component.NewBom(component.DefaultBomFilePath())
 	if err != nil {
