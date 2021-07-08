@@ -5,6 +5,7 @@ package istio_test
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
@@ -13,12 +14,19 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 )
 
+const (
+	waitTimeout     = 3 * time.Minute
+	pollingInterval = 10 * time.Second
+)
+
 var _ = ginkgo.Describe("Istio", func() {
 	const istioNamespace = "istio-system"
 
 	ginkgoExt.DescribeTable("namespace",
 		func(name string) {
-			gomega.Expect(pkg.DoesNamespaceExist(name)).To(gomega.BeTrue())
+			gomega.Eventually(func() (bool, error) {
+				return pkg.DoesNamespaceExist(name)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		ginkgoExt.Entry(fmt.Sprintf("%s namespace should exist", istioNamespace), istioNamespace),
 	)
@@ -39,14 +47,15 @@ var _ = ginkgo.Describe("Istio", func() {
 				}
 				return deploymentNames
 			}
-			deployments, err := pkg.ListDeployments(namespace)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error listing deployments")
-			gomega.Expect(deployments).Should(
-				gomega.SatisfyAll(
-					gomega.Not(gomega.BeNil()),
-					gomega.WithTransform(deploymentNames, gomega.ContainElements(expectedDeployments)),
-				),
-			)
+
+			var deployments *appsv1.DeploymentList
+			gomega.Eventually(func() (*appsv1.DeploymentList, error) {
+				var err error
+				deployments, err = pkg.ListDeployments(namespace)
+				return deployments, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
+			gomega.Expect(deployments).Should(gomega.WithTransform(deploymentNames, gomega.ContainElements(expectedDeployments)))
 			gomega.Expect(len(deployments.Items)).To(gomega.Equal(len(expectedDeployments)))
 		},
 		ginkgoExt.Entry(fmt.Sprintf("%s namespace should contain expected list of deployments", istioNamespace), istioNamespace),

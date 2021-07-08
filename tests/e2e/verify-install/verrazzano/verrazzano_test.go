@@ -4,11 +4,18 @@
 package verrazzano_test
 
 import (
+	"time"
+
 	"github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	rbacv1 "k8s.io/api/rbac/v1"
+)
+
+const (
+	waitTimeout     = 3 * time.Minute
+	pollingInterval = 5 * time.Second
 )
 
 var _ = ginkgo.Describe("Verrazzano", func() {
@@ -71,9 +78,9 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 
 	ginkgoExt.DescribeTable("CRD for",
 		func(name string) {
-			exists, err := pkg.DoesCRDExist(name)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-			gomega.Expect(exists).To(gomega.BeTrue())
+			gomega.Eventually(func() (bool, error) {
+				return pkg.DoesCRDExist(name)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		ginkgoExt.Entry("verrazzanos should exist in cluster", "verrazzanos.install.verrazzano.io"),
 		ginkgoExt.Entry("verrazzanomanagedclusters should exist in cluster", "verrazzanomanagedclusters.clusters.verrazzano.io"),
@@ -81,7 +88,9 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 
 	ginkgoExt.DescribeTable("ClusterRole",
 		func(name string) {
-			gomega.Expect(pkg.DoesClusterRoleExist(name)).To(gomega.BeTrue())
+			gomega.Eventually(func() (bool, error) {
+				return pkg.DoesClusterRoleExist(name)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
 		ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
@@ -91,9 +100,9 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 
 	ginkgoExt.DescribeTable("ClusterRoleBinding",
 		func(name string) {
-			exists, err := pkg.DoesClusterRoleBindingExist(name)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role binding")
-			gomega.Expect(exists).To(gomega.BeTrue())
+			gomega.Eventually(func() (bool, error) {
+				return pkg.DoesClusterRoleBindingExist(name)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		},
 		ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
 		ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
@@ -103,8 +112,13 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		var rules []rbacv1.PolicyRule
 
 		ginkgo.BeforeEach(func() {
-			cr, err := pkg.GetClusterRole("verrazzano-admin")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role")
+			var cr *rbacv1.ClusterRole
+			gomega.Eventually(func() (*rbacv1.ClusterRole, error) {
+				var err error
+				cr, err = pkg.GetClusterRole("verrazzano-admin")
+				return cr, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
 			rules = cr.Rules
 		})
 
@@ -135,8 +149,13 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		var rules []rbacv1.PolicyRule
 
 		ginkgo.BeforeEach(func() {
-			cr, err := pkg.GetClusterRole("verrazzano-monitor")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role")
+			var cr *rbacv1.ClusterRole
+			gomega.Eventually(func() (*rbacv1.ClusterRole, error) {
+				var err error
+				cr, err = pkg.GetClusterRole("verrazzano-monitor")
+				return cr, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
 			rules = cr.Rules
 		})
 
@@ -161,8 +180,13 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		var rules []rbacv1.PolicyRule
 
 		ginkgo.BeforeEach(func() {
-			cr, err := pkg.GetClusterRole("verrazzano-project-admin")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role")
+			var cr *rbacv1.ClusterRole
+			gomega.Eventually(func() (*rbacv1.ClusterRole, error) {
+				var err error
+				cr, err = pkg.GetClusterRole("verrazzano-project-admin")
+				return cr, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
 			rules = cr.Rules
 		})
 
@@ -188,8 +212,13 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		var rules []rbacv1.PolicyRule
 
 		ginkgo.BeforeEach(func() {
-			cr, err := pkg.GetClusterRole("verrazzano-project-monitor")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role")
+			var cr *rbacv1.ClusterRole
+			gomega.Eventually(func() (*rbacv1.ClusterRole, error) {
+				var err error
+				cr, err = pkg.GetClusterRole("verrazzano-project-monitor")
+				return cr, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
 			rules = cr.Rules
 		})
 
@@ -210,8 +239,13 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 
 	ginkgo.Describe("ClusterRoleBinding verrazzano-admin", func() {
 		ginkgo.It("has correct subjects and refs", func() {
-			crb, err := pkg.GetClusterRoleBinding("verrazzano-admin")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role binding")
+			var crb *rbacv1.ClusterRoleBinding
+			gomega.Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
+				var err error
+				crb, err = pkg.GetClusterRoleBinding("verrazzano-admin")
+				return crb, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
 			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
 				"the roleRef.apiGroup should be rbac.authorization.k8s.io")
 			gomega.Expect(crb.RoleRef.Name == "verrazzano-admin").To(gomega.BeTrue(),
@@ -233,8 +267,13 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 
 	ginkgo.Describe("ClusterRoleBinding verrazzano-admin-k8s", func() {
 		ginkgo.It("has correct subjects and refs", func() {
-			crb, err := pkg.GetClusterRoleBinding("verrazzano-admin-k8s")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role binding")
+			var crb *rbacv1.ClusterRoleBinding
+			gomega.Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
+				var err error
+				crb, err = pkg.GetClusterRoleBinding("verrazzano-admin-k8s")
+				return crb, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
 			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
 				"the roleRef.apiGroup should be rbac.authorization.k8s.io")
 			gomega.Expect(crb.RoleRef.Name == "admin").To(gomega.BeTrue(),
@@ -256,8 +295,13 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 
 	ginkgo.Describe("ClusterRoleBinding verrazzano-monitor", func() {
 		ginkgo.It("has correct subjects and refs", func() {
-			crb, err := pkg.GetClusterRoleBinding("verrazzano-monitor")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role binding")
+			var crb *rbacv1.ClusterRoleBinding
+			gomega.Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
+				var err error
+				crb, err = pkg.GetClusterRoleBinding("verrazzano-monitor")
+				return crb, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
 			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
 				"the roleRef.apiGroup should be rbac.authorization.k8s.io")
 			gomega.Expect(crb.RoleRef.Name == "verrazzano-monitor").To(gomega.BeTrue(),
@@ -279,8 +323,13 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 
 	ginkgo.Describe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
 		ginkgo.It("has correct subjects and refs", func() {
-			crb, err := pkg.GetClusterRoleBinding("verrazzano-monitor-k8s")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role binding")
+			var crb *rbacv1.ClusterRoleBinding
+			gomega.Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
+				var err error
+				crb, err = pkg.GetClusterRoleBinding("verrazzano-monitor-k8s")
+				return crb, err
+			}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+
 			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
 				"the roleRef.apiGroup should be rbac.authorization.k8s.io")
 			gomega.Expect(crb.RoleRef.Name == "view").To(gomega.BeTrue(),
