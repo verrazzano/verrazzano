@@ -389,7 +389,9 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 			// There should be a single rule with resources - users and groups, and verbs impersonate
 			var crole *v1.ClusterRole
 			Eventually(func() (*v1.ClusterRole, error) {
-				return pkg.GetClusterRole(rbinding.RoleRef.Name)
+				var err error
+				crole, err = pkg.GetClusterRole(rbinding.RoleRef.Name)
+				return crole, err
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 			Expect(len(crole.Rules) == 1).To(BeTrue(),

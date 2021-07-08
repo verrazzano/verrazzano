@@ -48,7 +48,8 @@ var _ = Describe("rancher url test", func() {
 						pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
 						return nil, err
 					}
-					return pkg.GetWebPageWithClient(httpClient, rancherURL, "")
+					httpResponse, err = pkg.GetWebPageWithClient(httpClient, rancherURL, "")
+					return httpResponse, err
 				}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
 
 				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
