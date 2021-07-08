@@ -64,10 +64,19 @@ var _ = Describe("VMI urls test", func() {
 
 		It("Accesses VMI endpoints", func() {
 			if !isManagedClusterProfile {
-				api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
-				Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Error retrieving API endpoint: %v", err))
-				vmiCredentials, err := pkg.GetSystemVMICredentials()
-				Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
+				var api *pkg.APIEndpoint
+				Eventually(func() (*pkg.APIEndpoint, error) {
+					var err error
+					api, err = pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+					return api, err
+				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+				var vmiCredentials *pkg.UsernamePassword
+				Eventually(func() (*pkg.UsernamePassword, error) {
+					var err error
+					vmiCredentials, err = pkg.GetSystemVMICredentials()
+					return vmiCredentials, err
+				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 				// Test VMI endpoints
 				var sysVmiHTTPClient *retryablehttp.Client
@@ -108,6 +117,7 @@ var _ = Describe("VMI urls test", func() {
 func verifySystemVMIComponent(api *pkg.APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *pkg.UsernamePassword, ingressName, expectedURLPrefix string) bool {
 	ingress, err := api.GetIngress("verrazzano-system", ingressName)
 	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting ingress from API: %v", err))
 		return false
 	}
 	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])

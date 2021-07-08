@@ -42,25 +42,15 @@ var _ = Describe("rancher url test", func() {
 				Expect(rancherURL).NotTo(BeEmpty())
 				var httpResponse *pkg.HTTPResponse
 
-				Eventually(func() bool {
+				Eventually(func() (*pkg.HTTPResponse, error) {
 					httpClient, err := pkg.GetRancherHTTPClient(kubeconfigPath)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
-						return false
+						return nil, err
 					}
-					httpResponse, err = pkg.GetWebPageWithClient(httpClient, rancherURL, "")
-					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error making get request to url: %s, error: %v", rancherURL, err))
-						return false
-					}
-					if httpResponse.StatusCode != http.StatusOK {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error making get request to url: %s, response: %v", rancherURL, httpResponse))
-						return false
-					}
-					return true
-				}, waitTimeout, pollingInterval).Should(BeTrue())
+					return pkg.GetWebPageWithClient(httpClient, rancherURL, "")
+				}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
 
-				Expect(httpResponse).NotTo(BeNil())
 				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
 			}
 		})
