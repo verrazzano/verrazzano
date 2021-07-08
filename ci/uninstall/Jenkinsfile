@@ -289,7 +289,10 @@ pipeline {
                 failure {
                     script {
                         dumpK8sCluster('verrazzano-install-failure-cluster-dump')
-                        dumpResourcesOnFailure('install failure')
+                        sh """
+                            mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs
+                            ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs
+                        """
                     }
                 }
             }
@@ -423,7 +426,10 @@ pipeline {
                 }
                 failure {
                     dumpK8sCluster('verrazzano-reinstall-failure-cluster-dump')
-                    dumpResourcesOnFailure('reinstall failure')
+                    sh """
+                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/dump_resources.log
+                    """
                 }
             }
         }
@@ -591,28 +597,4 @@ def getEffectiveDumpOnSuccess() {
         echo "Forcing dump on success based on global override setting"
     }
     return effectiveValue
-}
-
-def dumpResourcesOnFailure(customMessage) {
-    sh """
-        echo "Listing additional resources after ${customMessage}"
-        echo "Get service ingress-controller-ingress-nginx-controller"
-        kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o yaml
-
-        echo "Describe the certificate tls-rancher-ingress"
-        kubectl describe certificate tls-rancher-ingress -n cattle-system
-
-        echo "Describe the certificate - verrazzano-ca-certificate"
-        kubectl describe certificate verrazzano-ca-certificate -n cert-manager
-
-        echo "Get cluster issuer"
-        kubectl describe clusterissuer verrazzano-cluster-issuer
-
-        echo "Describe the secret tls-rancher-ingress"
-        kubectl describe secret tls-rancher-ingress -n cattle-system
-
-        echo "Get service in istio-system namespace"
-        kubectl get service -n istio-system
-        echo "-----------------------------------------------------"
-    """
 }

@@ -201,6 +201,8 @@ pipeline {
                                 echo "Verrazzano Installation logs dumped to verrazzano-install.log"
                                 echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                                 echo "------------------------------------------"
+                                # Just for validation
+                                ${TEST_SCRIPTS_DIR}/looping-test/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs
                             """
                         }
                     }
