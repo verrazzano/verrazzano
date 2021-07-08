@@ -426,11 +426,12 @@ pipeline {
                 }
                 failure {
                     dumpK8sCluster('verrazzano-reinstall-failure-cluster-dump')
+                    sh """
+                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/resources.log
+                    """
                 }
-                sh """
-                    mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs
-                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/resources.log
-                """
+
             }
         }
 
