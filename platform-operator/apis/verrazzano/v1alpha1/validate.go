@@ -8,38 +8,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
-	"io/ioutil"
 	"reflect"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
-
-// For unit test purposes
-var readFileFunction = ioutil.ReadFile
-
-// GetCurrentChartVersion Load the current Chart.yaml into a chartVersion struct
-// Version validation moved to bom file so function may become unused
-func GetCurrentChartVersion() (*semver.SemVersion, error) {
-	chartDir := config.GetHelmVzChartsDir()
-	chartBytes, err := readFileFunction(chartDir + "/Chart.yaml")
-	if err != nil {
-		return nil, err
-	}
-	chartVersion := &helm.ChartInfo{}
-	err = yaml.Unmarshal(chartBytes, chartVersion)
-	if err != nil {
-		return nil, err
-	}
-	return semver.NewSemVersion(fmt.Sprintf("v%s", chartVersion.Version))
-}
 
 // GetCurrentBomVersion Get the version string from the bom and return it as a semver object
 func GetCurrentBomVersion() (*semver.SemVersion, error) {

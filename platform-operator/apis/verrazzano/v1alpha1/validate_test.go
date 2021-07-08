@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"errors"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"io/ioutil"
 	"testing"
 
@@ -27,17 +28,16 @@ version: 0.7.0
 appVersion: 0.7.0
 `
 
+const testBomFilePath = "testdata/test_bom.json"
+
 // TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the current version is not specified
 // THEN ensure no error is returned from ValidateUpgradeRequest
-/*func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -47,7 +47,7 @@ appVersion: 0.7.0
 		Profile: "dev",
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
-}*/
+}
 
 // TestValidUpgradeRequestCurrentVersionExists Tests the condition for valid upgrade where versions are specified in both specs
 // GIVEN an edit to update a Verrazzano spec to a new version
