@@ -3,7 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-
+def cleanrun = false
 def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1" ]
@@ -290,6 +290,10 @@ pipeline {
                     script {
                         dumpK8sCluster('verrazzano-install-failure-cluster-dump')
                     }
+                    sh """
+                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/resources.log
+                    """
                 }
             }
         }
@@ -423,6 +427,10 @@ pipeline {
                 failure {
                     dumpK8sCluster('verrazzano-reinstall-failure-cluster-dump')
                 }
+                sh """
+                    mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs
+                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/resources.log
+                """
             }
         }
 
@@ -454,8 +462,14 @@ pipeline {
             archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
         }
+        success {
+            script {
+                cleanrun = true
+            }
+        }
         failure {
             script {
+                cleanrun = false
                 archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
                 mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
                 subject: "Verrazzano: ${env.JOB_NAME} - Failed",
@@ -467,9 +481,27 @@ pipeline {
                 }
             }
         }
+        aborted {
+            script {
+                abort = true
+                cleanrun = false
+            }
+        }
         cleanup {
             sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
             deleteDir()
+            script {
+                if (cleanrun) {
+                    build job: env.JOB_NAME,  // Use the current Job so it stays in-branch
+                        parameters: [
+                            string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
+                            string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
+                            string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                            string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
+                            booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS)
+                        ], wait: false
+                }
+            }
         }
     }
 }
