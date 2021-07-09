@@ -18,16 +18,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//const validChartYAML = `
-//apiVersion: v1
-//description: A Helm chart for Verrazzano
-//name: verrazzano
-//version: 0.7.0
-//appVersion: 0.7.0
-//`
-
 const testBomFilePath = "testdata/test_bom.json"
 const invalidTestBomFilePath = "testdata/invalid_test_bom.json"
+const invalidPathTestBomFilePath = "testdata/invalid_test_bom_path.json"
 
 // TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
 // GIVEN an edit to update a Verrazzano spec to a new version
@@ -392,11 +385,11 @@ func runValidateWithIngressChangeTest() error {
 	return err
 }
 
-// TestGetCurrentChartVersion Tests basic getChartVersion() happy path
-// GIVEN a request for the current VZ Chart version
-// WHEN the version in the chart is available
-// THEN no error is returned and a valid SemVersion representing the Chart version is returned
-func TestGetCurrentChartVersion(t *testing.T) {
+// TestGetCurrentBomVersion Tests basic getBomVersion() happy path
+// GIVEN a request for the current VZ Bom version
+// WHEN the version in the Bom is available
+// THEN no error is returned and a valid SemVersion representing the Bom version is returned
+func TestGetCurrentBomVersion(t *testing.T) {
 	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
 		component.SetUnitTestBomFilePath("")
@@ -409,8 +402,37 @@ func TestGetCurrentChartVersion(t *testing.T) {
 	assert.Equal(t, expectedVersion, version)
 }
 
+// TestGetCurrentBomVersionFileReadError Tests  getBomVersion() when there is an error reading the BOM file
+// GIVEN a request for the current VZ Bom version
+// WHEN an error occurs reading the BOM file from the filesystem
+// THEN an error is returned and nil is returned for the Bom SemVersion
+func TestGetCurrentBomVersionFileReadError(t *testing.T) {
+	component.SetUnitTestBomFilePath(invalidPathTestBomFilePath)
+	defer func() {
+		component.SetUnitTestBomFilePath("")
+	}()
+	version, err := GetCurrentBomVersion()
+	assert.Error(t, err)
+	assert.Nil(t, version)
+}
+
+// TestGetCurrentBomVersionBadYAML Tests  getBomVersion() when the BOM file is invalid
+// GIVEN a request for the current VZ Bom version
+// WHEN an error occurs reading in the BOM file as json
+// THEN an error is returned and nil is returned for the Bom SemVersion
+func TestGetCurrentBomVersionBadYAML(t *testing.T) {
+	component.SetUnitTestBomFilePath(invalidTestBomFilePath)
+	defer func() {
+		component.SetUnitTestBomFilePath("")
+	}()
+	version, err := GetCurrentBomVersion()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unexpected end of JSON input")
+	assert.Nil(t, version)
+}
+
 // TestValidateVersionInvalidVersionCheckingDisabled Tests  ValidateVersion() when version checking is disabled
-// GIVEN a request for the current VZ Chart version
+// GIVEN a request for the current VZ Bom version
 // WHEN the version provided is not valid version and checking is disabled
 // THEN no error is returned
 func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
@@ -420,18 +442,18 @@ func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
 }
 
 // TestValidateVersionInvalidVersion Tests  ValidateVersion() for invalid version
-// GIVEN a request for the current VZ Chart version
+// GIVEN a request for the current VZ Bom version
 // WHEN the version provided is not valid version
 // THEN an error is returned
 func TestValidateVersionInvalidVersion(t *testing.T) {
 	assert.Error(t, ValidateVersion("blah"))
 }
 
-// TestValidateVersionBadChartYAML Tests  ValidateVersion() the chart YAML is bad
-// GIVEN a request for the current VZ Chart version
+// TestValidateVersionBadBomFile Tests  ValidateVersion() the BOM file is bad
+// GIVEN a request for the current VZ Bom version
 // WHEN the version provided is not valid version
-// THEN a YAML parsing error is returned
-func TestValidateVersionBadChartYAML(t *testing.T) {
+// THEN a json parsing error is returned
+func TestValidateVersionBadBomfile(t *testing.T) {
 	component.SetUnitTestBomFilePath(invalidTestBomFilePath)
 	defer func() {
 		component.SetUnitTestBomFilePath("")

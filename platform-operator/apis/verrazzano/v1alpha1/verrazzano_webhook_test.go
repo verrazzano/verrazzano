@@ -100,9 +100,9 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 	return err
 }
 
-// TestUpdateCallbackSuccessWithNewVersion Tests the update callback with valid spec version at the same chart revision
+// TestUpdateCallbackSuccessWithNewVersion Tests the update callback with valid spec version at the same bom revision
 // GIVEN a ValidateUpdate() request
-// WHEN a valid version is provided and is at the same chart value
+// WHEN a valid version is provided and is at the same bom value
 // THEN no error is returned
 func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 	component.SetUnitTestBomFilePath(testBomFilePath)
@@ -173,7 +173,7 @@ func TestUpdateCallbackFailsWithOldGreaterThanNewVersion(t *testing.T) {
 
 // TestUpdateCallbackFailsWithInvalidNewVersion Tests the create callback with invalid new version
 // GIVEN a ValidateUpdate() request
-// WHEN the new version is valid but not the same as the chart version
+// WHEN the new version is valid but not the same as the bom version
 // THEN an error is returned
 func TestUpdateCallbackFailsWithInvalidNewVersion(t *testing.T) {
 	assert.Error(t, runUpdateWithInvalidVersionTest(t))
