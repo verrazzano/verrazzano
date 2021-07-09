@@ -25,12 +25,12 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 	}
 	vzSystemReadRule := rbacv1.PolicyRule{
 		Verbs:     []string{"get", "list", "watch"},
-		APIGroups: []string{"clusters.verrazzano.io"},
+		APIGroups: []string{"clusters.verrazzano.io", "images.verrazzano.io"},
 		Resources: []string{"*", "*/status"},
 	}
 	vzSystemWriteRule := rbacv1.PolicyRule{
 		Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
-		APIGroups: []string{"clusters.verrazzano.io"},
+		APIGroups: []string{"clusters.verrazzano.io", "images.verrazzano.io"},
 		Resources: []string{"*"},
 	}
 	vzAppReadRule := rbacv1.PolicyRule{
