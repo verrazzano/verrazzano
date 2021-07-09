@@ -50,14 +50,15 @@ var _ = Describe("Verify Keycloak configuration", func() {
 var _ = Describe("Verify MySQL Persistent Volumes based on install profile", func() {
 	var _ = Context("Verify Persistent volumes allocated per install profile", func() {
 
-		var err error
-		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
+		const size = "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
 
-		var volumeClaims map[string]*corev1.PersistentVolumeClaim
-		Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
-			volumeClaims, err = pkg.GetPersistentVolumes(keycloakNamespace)
-			return volumeClaims, err
-		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+		It("Verify persistent volumes in namespace keycloak based on Dev install profile", func() {
+			Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
+				var err error
+				volumeClaims, err = pkg.GetPersistentVolumes(keycloakNamespace)
+				return volumeClaims, err
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+		})
 
 		if pkg.IsDevProfile() {
 			It("Verify persistent volumes in namespace keycloak based on Dev install profile", func() {
