@@ -12,7 +12,7 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -359,6 +359,14 @@ pipeline {
                                 runGinkgo('ingress/console')
                             }
                         }
+                        stage ('console') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                            }
+                            steps {
+                                acceptanceTestsConsole()
+                            }
+                        }
                     }
                     post {
                         always {
@@ -541,10 +549,12 @@ def acceptanceTestsConsole() {
         git checkout ${params.CONSOLE_REPO_BRANCH}
 
         # Configure headless browser
-        google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
-        curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-        unzip chromedriver.zip
-        sudo cp chromedriver /usr/local/bin/
+        #google-chrome --version || (curl -o google-chrome.rpm "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-${GOOGLE_CHROME_VERSION}.x86_64.rpm"; sudo yum install -y ./google-chrome.rpm)
+        #curl -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+        #unzip chromedriver.zip
+        #sudo cp chromedriver /usr/local/bin/
+        # Temporary change to pickup the change to Makefile of Console repo
+        git checkout mgianata/add-google-chrome-to-runner
 
         # Run the tests
         make run-ui-tests
