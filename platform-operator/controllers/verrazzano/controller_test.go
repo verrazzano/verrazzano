@@ -185,12 +185,11 @@ func TestSuccessfulInstall(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(mock)
 	result, err := reconciler.Reconcile(request)
 
-
-/*	const testBomFilePath = "testdata/test_bom.json"
-	component.SetUnitTestBomFilePath(testBomFilePath)
-	defer func() {
-		component.SetUnitTestBomFilePath("")
-	}()*/
+	/*	const testBomFilePath = "testdata/test_bom.json"
+		component.SetUnitTestBomFilePath(testBomFilePath)
+		defer func() {
+			component.SetUnitTestBomFilePath("")
+		}()*/
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)

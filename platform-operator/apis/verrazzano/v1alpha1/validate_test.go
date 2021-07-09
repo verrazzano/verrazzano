@@ -29,7 +29,6 @@ import (
 const testBomFilePath = "testdata/test_bom.json"
 const invalidTestBomFilePath = "testdata/invalid_test_bom.json"
 
-
 // TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the current version is not specified
@@ -409,8 +408,6 @@ func TestGetCurrentChartVersion(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, version)
 }
-
-
 
 // TestValidateVersionInvalidVersionCheckingDisabled Tests  ValidateVersion() when version checking is disabled
 // GIVEN a request for the current VZ Chart version
