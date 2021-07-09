@@ -3,7 +3,7 @@
 This Helm chart installs the image patch service components into a Verrazzano environment.
 
 ## Example: Install Image Patch Operator into Local Minikube Cluster
-First, build the Docker images locally for the Image Patch Operator and WIT.
+First, build the Docker images locally for the Image Patch Operator and WebLogic Image Tool.
 ```bash
 # This assumes your starting directory is the root directory of the verrazzano repository.
 cd image-patch-operator
@@ -17,7 +17,7 @@ Next, start up a minikube cluster.
 ```bash
 minikube start
 ```
-Once the cluster created, load the two Docker images into the cluster. Replace the image names and tags according to your `docker-images` output.
+Once the cluster is created, load the two Docker images into the cluster. Replace the image names and tags according to your `docker images` output.
 ```bash
 minikube image load <image-patch-operator-name>:<image-patch-operator-tag>
 minikube image load <image-tool-name>:<image-tool-tag>
