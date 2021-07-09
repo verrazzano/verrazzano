@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
@@ -14,10 +15,9 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
+// For unit testing
 const testBomFilePath = "testdata/test_bom.json"
 const invalidTestBomFilePath = "testdata/invalid_test_bom.json"
 const invalidPathTestBomFilePath = "testdata/invalid_test_bom_path.json"

@@ -146,6 +146,7 @@ func compareVersion(v1 int64, v2 int64) int {
 	return 0
 }
 
+// Returns 0 if the strings are equal, or 1 if not
 func compareVersionBuild(v1 string, v2 string) int {
 	if strings.Compare(v1, v2) == 0 {
 		return 0
