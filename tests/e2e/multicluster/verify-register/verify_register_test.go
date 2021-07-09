@@ -21,10 +21,9 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-
-	"github.com/onsi/ginkgo"
 )
 
 const waitTimeout = 10 * time.Minute
@@ -35,182 +34,181 @@ const verrazzanoSystemNamespace = "verrazzano-system"
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 
-var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
-	ginkgo.Context("Admin Cluster", func() {
-		ginkgo.BeforeEach(func() {
+var _ = Describe("Multi Cluster Verify Register", func() {
+	Context("Admin Cluster", func() {
+		BeforeEach(func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
-		ginkgo.It("admin cluster create VerrazzanoProject", func() {
+		It("admin cluster create VerrazzanoProject", func() {
 			// create a project
-			err := pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
-			if err != nil {
-				ginkgo.Fail(fmt.Sprintf("Failed to create VerrazzanoProject: %v", err))
-			}
+			Eventually(func() error {
+				return pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-			gomega.Eventually(func() bool {
+			Eventually(func() bool {
 				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoProject")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
-		ginkgo.It("admin cluster has the expected VerrazzanoManagedCluster", func() {
-			gomega.Eventually(func() bool {
+		It("admin cluster has the expected VerrazzanoManagedCluster", func() {
+			Eventually(func() bool {
 				vmc, err := pkg.GetVerrazzanoManagedClusterClientset().ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
 				return err == nil &&
 					vmcStatusReady(vmc) &&
 					vmc.Status.LastAgentConnectTime != nil &&
 					vmc.Status.LastAgentConnectTime.After(time.Now().Add(-30*time.Minute))
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoManagedCluster")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoManagedCluster")
 		})
 
-		ginkgo.It("admin cluster has the expected ServiceAccounts and ClusterRoleBindings", func() {
+		It("admin cluster has the expected ServiceAccounts and ClusterRoleBindings", func() {
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(func() (bool, error) {
+					Eventually(func() (bool, error) {
 						return pkg.DoesServiceAccountExist(multiclusterNamespace, fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find ServiceAccount")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find ServiceAccount")
 				},
 				func() {
-					gomega.Eventually(func() (bool, error) {
+					Eventually(func() (bool, error) {
 						return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find ClusterRoleBinding")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find ClusterRoleBinding")
 				},
 			)
 		})
 
-		ginkgo.It("admin cluster has the expected secrets", func() {
+		It("admin cluster has the expected secrets", func() {
 			pkg.Concurrently(
 				func() {
 					secretName := fmt.Sprintf("verrazzano-cluster-%s-manifest", managedClusterName)
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return findSecret(multiclusterNamespace, secretName)
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret "+secretName)
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret "+secretName)
 				},
 				func() {
 					secretName := fmt.Sprintf("verrazzano-cluster-%s-agent", managedClusterName)
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return findSecret(multiclusterNamespace, secretName)
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret "+secretName)
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret "+secretName)
 				},
 				func() {
 					secretName := fmt.Sprintf("verrazzano-cluster-%s-registration", managedClusterName)
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return findSecret(multiclusterNamespace, secretName)
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret "+secretName)
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret "+secretName)
 				},
 			)
 		})
 
-		ginkgo.It("admin cluster has the expected system logs from admin and managed cluster", func() {
+		It("admin cluster has the expected system logs from admin and managed cluster", func() {
 			verrazzanoIndex := "verrazzano-namespace-verrazzano-system"
 			systemdIndex := "verrazzano-systemd-journal"
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return pkg.FindLog(verrazzanoIndex,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
 								{Key: "cluster_name.keyword", Value: constants.DefaultClusterName}},
 							[]pkg.Match{
-								{Key: "cluster_name", Value: "managed1"}})
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
+								{Key: "cluster_name", Value: managedClusterName}})
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 				},
 				func() {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return pkg.FindLog(systemdIndex,
 							[]pkg.Match{
 								{Key: "tag", Value: "systemd"},
 								{Key: "cluster_name.keyword", Value: constants.DefaultClusterName},
 								{Key: "SYSTEMD_UNIT", Value: "kubelet.service"}},
 							[]pkg.Match{
-								{Key: "cluster_name", Value: "managed1"}})
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
+								{Key: "cluster_name", Value: managedClusterName}})
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 				},
 				func() {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return pkg.FindLog(verrazzanoIndex,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
-								{Key: "cluster_name.keyword", Value: "managed1"}},
+								{Key: "cluster_name.keyword", Value: managedClusterName}},
 							[]pkg.Match{
 								{Key: "cluster_name.keyword", Value: constants.DefaultClusterName}})
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 				},
 				func() {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return pkg.FindLog(systemdIndex,
 							[]pkg.Match{
 								{Key: "tag", Value: "systemd"},
-								{Key: "cluster_name", Value: "managed1"},
+								{Key: "cluster_name", Value: managedClusterName},
 								{Key: "SYSTEMD_UNIT.keyword", Value: "kubelet.service"}},
 							[]pkg.Match{
 								{Key: "cluster_name", Value: constants.DefaultClusterName}})
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a systemd log record")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 				},
 			)
 		})
 
-		ginkgo.It("admin cluster has the expected metrics from managed cluster", func() {
-			gomega.Eventually(func() bool {
+		It("admin cluster has the expected metrics from managed cluster", func() {
+			Eventually(func() bool {
 				return pkg.MetricsExist("up", "managed_cluster", managedClusterName)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a metrics from managed cluster")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a metrics from managed cluster")
 		})
 	})
 
-	ginkgo.Context("Managed Cluster", func() {
-		ginkgo.BeforeEach(func() {
+	Context("Managed Cluster", func() {
+		BeforeEach(func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
-		ginkgo.It("managed cluster has the expected secrets", func() {
+		It("managed cluster has the expected secrets", func() {
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return findSecret(verrazzanoSystemNamespace, "verrazzano-cluster-agent")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret verrazzano-cluster-agent")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret verrazzano-cluster-agent")
 				},
 				func() {
-					gomega.Eventually(func() bool {
+					Eventually(func() bool {
 						return findSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret verrazzano-cluster-registration")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret verrazzano-cluster-registration")
 				},
 			)
 		})
 
-		ginkgo.It("managed cluster has the expected VerrazzanoProject", func() {
-			gomega.Eventually(func() bool {
+		It("managed cluster has the expected VerrazzanoProject", func() {
+			Eventually(func() bool {
 				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoProject")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
-		ginkgo.It("managed cluster has the expected namespace", func() {
-			gomega.Eventually(func() bool {
+		It("managed cluster has the expected namespace", func() {
+			Eventually(func() bool {
 				return findNamespace(fmt.Sprintf("ns-%s", managedClusterName))
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find namespace")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find namespace")
 		})
 
-		ginkgo.It("managed cluster has the expected RoleBindings", func() {
+		It("managed cluster has the expected RoleBindings", func() {
 			namespace := fmt.Sprintf("ns-%s", managedClusterName)
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(func() (bool, error) {
+					Eventually(func() (bool, error) {
 						return pkg.DoesRoleBindingContainSubject(namespace, "verrazzano-project-admin", "User", "test-user")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding verrazzano-project-admin")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find role binding verrazzano-project-admin")
 				},
 				func() {
-					gomega.Eventually(func() (bool, error) {
+					Eventually(func() (bool, error) {
 						return pkg.DoesRoleBindingContainSubject(namespace, "admin", "User", "test-user")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding admin")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find role binding admin")
 				},
 				func() {
-					gomega.Eventually(func() (bool, error) {
+					Eventually(func() (bool, error) {
 						return pkg.DoesRoleBindingContainSubject(namespace, "verrazzano-project-monitor", "Group", "test-viewers")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding verrazzano-project-monitor")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find role binding verrazzano-project-monitor")
 				},
 				func() {
-					gomega.Eventually(func() (bool, error) {
+					Eventually(func() (bool, error) {
 						return pkg.DoesRoleBindingContainSubject(namespace, "view", "Group", "test-viewers")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding view")
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find role binding view")
 				},
 			)
 		})
@@ -218,9 +216,9 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 })
 
 func vmcStatusReady(vmc *vmcv1alpha1.VerrazzanoManagedCluster) bool {
-	fmt.Printf("VMC %s has %d status conditions\n", vmc.Name, len(vmc.Status.Conditions))
+	pkg.Log(pkg.Info, fmt.Sprintf("VMC %s has %d status conditions\n", vmc.Name, len(vmc.Status.Conditions)))
 	for _, cond := range vmc.Status.Conditions {
-		fmt.Printf("VMC %s has status condition %s with value %s with message %s\n", vmc.Name, cond.Type, cond.Status, cond.Message)
+		pkg.Log(pkg.Info, fmt.Sprintf("VMC %s has status condition %s with value %s with message %s\n", vmc.Name, cond.Type, cond.Status, cond.Message))
 		if cond.Type == vmcv1alpha1.ConditionReady && cond.Status == v1.ConditionTrue {
 			return true
 		}
@@ -230,14 +228,19 @@ func vmcStatusReady(vmc *vmcv1alpha1.VerrazzanoManagedCluster) bool {
 
 func findSecret(namespace, name string) bool {
 	s, err := pkg.GetSecret(namespace, name)
-	return s != nil && err == nil
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
+		return false
+	}
+	return s != nil
 }
 
 func findNamespace(namespace string) bool {
 	ns, err := pkg.GetNamespace(namespace)
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			ginkgo.Fail(fmt.Sprintf("Failed to get namespace %s with error: %v", namespace, err))
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed to get namespace %s with error: %v", namespace, err))
+			return false
 		}
 		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q is not found", namespace))
 		return false
@@ -257,7 +260,7 @@ func findNamespace(namespace string) bool {
 func findVerrazzanoProject(projectName string) bool {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
+		Fail(fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
 	}
 
 	scheme := runtime.NewScheme()
@@ -266,13 +269,14 @@ func findVerrazzanoProject(projectName string) bool {
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get clusters client with error: %v", err))
+		Fail(fmt.Sprintf("Failed to get clusters client with error: %v", err))
 	}
 
 	projectList := clustersv1alpha1.VerrazzanoProjectList{}
 	err = clustersClient.List(context.TODO(), &projectList, &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list VerrazzanoProject with error: %v", err))
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list VerrazzanoProject with error: %v", err))
+		return false
 	}
 	for _, item := range projectList.Items {
 		if item.Name == projectName && item.Namespace == multiclusterNamespace {

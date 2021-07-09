@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -48,53 +49,60 @@ func deployToDoListExample() {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	if _, err := pkg.CreateNamespace("todo-list", nsLabels); err != nil {
-		Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		return pkg.CreateNamespace("todo-list", nsLabels)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
 	pkg.Log(pkg.Info, "Create Docker repository secret")
-	if _, err := pkg.CreateDockerSecret("todo-list", "tododomain-repo-credentials", regServ, regUser, regPass); err != nil {
-		Fail(fmt.Sprintf("Failed to create Docker registry secret: %v", err))
-	}
+	Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateDockerSecret("todo-list", "tododomain-repo-credentials", regServ, regUser, regPass)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
 	pkg.Log(pkg.Info, "Create WebLogic credentials secret")
-	if _, err := pkg.CreateCredentialsSecret("todo-list", "tododomain-weblogic-credentials", wlsUser, wlsPass, nil); err != nil {
-		Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
-	}
+	Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateCredentialsSecret("todo-list", "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
 	pkg.Log(pkg.Info, "Create database credentials secret")
-	if _, err := pkg.CreateCredentialsSecret("todo-list", "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"}); err != nil {
-		Fail(fmt.Sprintf("Failed to create JDBC credentials secret: %v", err))
-	}
+	Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateCredentialsSecret("todo-list", "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"})
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
 	pkg.Log(pkg.Info, "Create component resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-components.yaml"); err != nil {
-		Fail(fmt.Sprintf("Failed to create ToDo List component resources: %v", err))
-	}
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-components.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
 	pkg.Log(pkg.Info, "Create application resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")
-	},
-		shortWaitTimeout, shortPollingInterval, "Failed to create application resource").Should(BeNil())
+	}, shortWaitTimeout, shortPollingInterval, "Failed to create application resource").ShouldNot(HaveOccurred())
 }
 
 func undeployToDoListExample() {
 	pkg.Log(pkg.Info, "Undeploy ToDoList example")
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("examples/todo-list/todo-list-application.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete application: %v", err))
-	}
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/todo-list/todo-list-application.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
 	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("examples/todo-list/todo-list-components.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete components: %v", err))
-	}
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/todo-list/todo-list-components.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
 	pkg.Log(pkg.Info, "Delete namespace")
-	if err := pkg.DeleteNamespace("todo-list"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete namespace: %v", err))
-	}
+	Eventually(func() error {
+		return pkg.DeleteNamespace("todo-list")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace("todo-list")
 		return err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(BeTrue())
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	// GIVEN the ToDoList app is undeployed
 	// WHEN the app config secret generated to support secure gateways is fetched
@@ -120,10 +128,9 @@ var _ = Describe("Verify ToDo List example application.", func() {
 		// WHEN the app config secret generated to support secure gateways is fetched
 		// THEN the secret should exist
 		It("Verify 'todo-list-todo-appconf-cert-secret' has been created", func() {
-			Eventually(func() bool {
-				s, err := pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
-				return s != nil && err == nil
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			Eventually(func() (*v1.Secret, error) {
+				return pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
+			}, longWaitTimeout, longPollingInterval).ShouldNot(BeNil())
 		})
 		// GIVEN the ToDoList app is deployed
 		// WHEN the servers in the WebLogic domain is ready

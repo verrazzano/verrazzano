@@ -305,20 +305,45 @@ func rootCertPoolInCluster(caData []byte, kubeconfigPath string) *x509.CertPool 
 
 // HasStatus asserts that an HTTPResponse has a given status.
 func HasStatus(expected int) types.GomegaMatcher {
-	return gomega.WithTransform(func(response *HTTPResponse) int { return response.StatusCode }, gomega.Equal(expected))
+	return gomega.WithTransform(func(response *HTTPResponse) int {
+		if response == nil {
+			return 0
+		}
+		return response.StatusCode
+	}, gomega.Equal(expected))
 }
 
 // BodyContains asserts that an HTTPResponse body contains a given substring.
 func BodyContains(expected string) types.GomegaMatcher {
-	return gomega.WithTransform(func(response *HTTPResponse) string { return string(response.Body) }, gomega.ContainSubstring(expected))
+	return gomega.WithTransform(func(response *HTTPResponse) string {
+		if response == nil {
+			return ""
+		}
+		return string(response.Body)
+	}, gomega.ContainSubstring(expected))
+}
+
+// BodyDoesNotContain asserts that an HTTPResponse body does not contain a given substring.
+func BodyDoesNotContain(unexpected string) types.GomegaMatcher {
+	return gomega.WithTransform(func(response *HTTPResponse) string { return string(response.Body) }, gomega.Not(gomega.ContainSubstring(unexpected)))
 }
 
 // BodyEquals asserts that an HTTPResponse body equals a given string.
 func BodyEquals(expected string) types.GomegaMatcher {
-	return gomega.WithTransform(func(response *HTTPResponse) string { return string(response.Body) }, gomega.Equal(expected))
+	return gomega.WithTransform(func(response *HTTPResponse) string {
+		if response == nil {
+			return ""
+		}
+		return string(response.Body)
+	}, gomega.Equal(expected))
 }
 
 // BodyNotEmpty asserts that an HTTPResponse body is not empty.
 func BodyNotEmpty() types.GomegaMatcher {
-	return gomega.WithTransform(func(response *HTTPResponse) []byte { return response.Body }, gomega.Not(gomega.BeEmpty()))
+	return gomega.WithTransform(func(response *HTTPResponse) []byte {
+		if response == nil {
+			return nil
+		}
+		return response.Body
+	}, gomega.Not(gomega.BeEmpty()))
 }

@@ -35,26 +35,17 @@ var _ = Describe("keycloak url test", func() {
 					keycloakURL = fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
 					pkg.Log(pkg.Info, fmt.Sprintf("Found ingress URL: %s", keycloakURL))
 					return nil
-				}, waitTimeout, pollingInterval).Should(BeNil())
+				}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 				Expect(keycloakURL).NotTo(BeEmpty())
 				var httpResponse *pkg.HTTPResponse
 
-				Eventually(func() bool {
+				Eventually(func() (*pkg.HTTPResponse, error) {
 					var err error
 					httpResponse, err = pkg.GetWebPage(keycloakURL, "")
-					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error making get request to url: %s, error: %v", keycloakURL, err))
-						return false
-					}
-					if httpResponse.StatusCode != http.StatusOK {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error making get request to url: %s, response: %v", keycloakURL, httpResponse))
-						return false
-					}
-					return true
-				}, waitTimeout, pollingInterval).Should(BeTrue())
+					return httpResponse, err
+				}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
 
-				Expect(httpResponse).NotTo(BeNil())
 				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
 			}
 		})

@@ -326,6 +326,7 @@ metadata:
 rules:
 - apiGroups:
     - clusters.verrazzano.io
+    - images.verrazzano.io
   resources:
     - "*"
     - "*/status"
@@ -354,6 +355,7 @@ metadata:
 rules:
 - apiGroups:
     - clusters.verrazzano.io
+    - images.verrazzano.io
   resources:
     - "*"
   verbs:

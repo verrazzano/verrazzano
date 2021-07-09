@@ -6,6 +6,7 @@ package socks
 import (
 	"context"
 	b64 "encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -14,6 +15,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -35,15 +38,17 @@ var _ = BeforeSuite(func() {
 	sockShop = NewSockShop(username, password, pkg.Ingress())
 
 	// deploy the application here
-	if _, err := pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"}); err != nil {
-		Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml"); err != nil {
-		Fail(fmt.Sprintf("Failed to create Sock Shop component resources: %v", err))
-	}
+	Eventually(func() (*v1.Namespace, error) {
+		return pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"})
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").Should(BeNil())
+	}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
 })
 
 // the list of expected pods
@@ -71,22 +76,34 @@ var _ = Describe("Sock Shop Application", func() {
 		// checks that all application services are up
 		pkg.Concurrently(
 			func() {
-				Eventually(isSockShopServiceReady("catalogue"), waitTimeout, pollingInterval).Should(BeTrue())
+				Eventually(func() bool {
+					return isSockShopServiceReady("catalogue")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 			},
 			func() {
-				Eventually(isSockShopServiceReady("carts"), waitTimeout, pollingInterval).Should(BeTrue())
+				Eventually(func() bool {
+					return isSockShopServiceReady("carts")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 			},
 			func() {
-				Eventually(isSockShopServiceReady("orders"), waitTimeout, pollingInterval).Should(BeTrue())
+				Eventually(func() bool {
+					return isSockShopServiceReady("orders")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 			},
 			func() {
-				Eventually(isSockShopServiceReady("payment-http"), waitTimeout, pollingInterval).Should(BeTrue())
+				Eventually(func() bool {
+					return isSockShopServiceReady("payment-http")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 			},
 			func() {
-				Eventually(isSockShopServiceReady("shipping-http"), waitTimeout, pollingInterval).Should(BeTrue())
+				Eventually(func() bool {
+					return isSockShopServiceReady("shipping-http")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 			},
 			func() {
-				Eventually(isSockShopServiceReady("user"), waitTimeout, pollingInterval).Should(BeTrue())
+				Eventually(func() bool {
+					return isSockShopServiceReady("user")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 	})
 
@@ -115,59 +132,120 @@ var _ = Describe("Sock Shop Application", func() {
 
 	})
 
-	It("SockShop can access Calatogue and choose item", func() {
-		webpage := sockShop.ConnectToCatalog(hostname)
-		sockShop.VerifyCatalogItems(webpage)
-	})
-
 	It("SockShop can add item to cart", func() {
-		cat := sockShop.GetCatalogItem(hostname)
+		// get the catalog
+		var response *pkg.HTTPResponse
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			var err error
+			response, err = sockShop.GetCatalogItems(hostname)
+			return response, err
+		}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("/catalogue/")))
 
-		sockShop.AddToCart(cat.Item[0], hostname)
-		sockShop.AddToCart(cat.Item[0], hostname)
-		sockShop.AddToCart(cat.Item[0], hostname)
-		sockShop.AddToCart(cat.Item[1], hostname)
-		sockShop.AddToCart(cat.Item[2], hostname)
-		sockShop.AddToCart(cat.Item[2], hostname)
+		var catalogItems []CatalogItem
+		json.Unmarshal(response.Body, &catalogItems)
+		Expect(catalogItems).ShouldNot(BeEmpty(), "Catalog should not be empty")
 
-		sockShop.CheckCart(cat.Item[0], 3, hostname)
-		sockShop.CheckCart(cat.Item[1], 1, hostname)
-		sockShop.CheckCart(cat.Item[2], 2, hostname)
+		// add items to the cart from the catalog
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			return sockShop.AddToCart(catalogItems[0], hostname)
+		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
+
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			return sockShop.AddToCart(catalogItems[0], hostname)
+		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
+
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			return sockShop.AddToCart(catalogItems[0], hostname)
+		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
+
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			return sockShop.AddToCart(catalogItems[1], hostname)
+		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
+
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			return sockShop.AddToCart(catalogItems[2], hostname)
+		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
+
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			return sockShop.AddToCart(catalogItems[2], hostname)
+		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
+
+		// get the cart
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			var err error
+			response, err = sockShop.GetCartItems(hostname)
+			return response, err
+		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(200))
+
+		var cartItems []CartItem
+		json.Unmarshal(response.Body, &cartItems)
+		Expect(cartItems).ShouldNot(BeEmpty(), "Cart should not be empty")
+
+		// make sure the right items and quantities are in the cart
+		sockShop.CheckCart(cartItems, catalogItems[0], 3)
+		sockShop.CheckCart(cartItems, catalogItems[1], 1)
+		sockShop.CheckCart(cartItems, catalogItems[2], 2)
 	})
 
 	It("SockShop can delete all cart items", func() {
-		cartItems := sockShop.GetCartItems(hostname)
-		sockShop.DeleteCartItems(cartItems, hostname)
-		//cartItems = sockShop.GetCartItems()
+		var response *pkg.HTTPResponse
+		// get the cart
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			var err error
+			response, err = sockShop.GetCartItems(hostname)
+			return response, err
+		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(200))
 
-		sockShop.CheckCartEmpty(hostname)
+		var cartItems []CartItem
+		json.Unmarshal(response.Body, &cartItems)
+		Expect(cartItems).ShouldNot(BeEmpty(), "Cart should not be empty")
+
+		// delete each item
+		for _, item := range cartItems {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				return sockShop.DeleteCartItem(item, hostname)
+			}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(202))
+		}
+
+		// get the cart again - this time the cart should be empty
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			var err error
+			response, err = sockShop.GetCartItems(hostname)
+			return response, err
+		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(200))
+
+		json.Unmarshal(response.Body, &cartItems)
+		Expect(cartItems).Should(BeEmpty(), "Cart should be empty")
 	})
 
 	// INFO: Front-End will not allow for complete implementation of this test
 	It("SockShop can change address", func() {
-		sockShop.ChangeAddress(username, hostname)
+		var response *pkg.HTTPResponse
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			var err error
+			response, err = sockShop.ChangeAddress(username, hostname)
+			return response, err
+		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(200))
+
+		sockShop.CheckAddress(response, username)
 	})
 
 	// INFO: Front-End will not allow for complete implementation of this test
 	It("SockShop can change payment", func() {
-		sockShop.ChangePayment(hostname)
+		Eventually(func() (*pkg.HTTPResponse, error) {
+			return sockShop.ChangePayment(hostname)
+		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(200))
 	})
 
-	It("SockShop can retrieve orders", func() {
+	PIt("SockShop can retrieve orders", func() {
 		//https://jira.oraclecorp.com/jira/browse/VZ-1026
-		cat := sockShop.GetCatalogItem(hostname)
-		sockShop.AddToCart(cat.Item[0], hostname)
-		sockShop.AddToCart(cat.Item[0], hostname)
-		sockShop.AddToCart(cat.Item[1], hostname)
-		sockShop.AddToCart(cat.Item[2], hostname)
-		sockShop.AddToCart(cat.Item[2], hostname)
 	})
 
 	It("Verify '/catalogue' UI endpoint is working.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/catalogue", hostname)
 			return pkg.GetWebPage(url, hostname)
-		}, 3*time.Minute, 15*time.Second).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("For all those leg lovers out there.")))
+		}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("For all those leg lovers out there.")))
 	})
 
 	Describe("Verify Prometheus scraped metrics", func() {
@@ -198,10 +276,15 @@ var _ = AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
-	err := undeploySockShopApplication()
-	if err != nil {
-		Fail(fmt.Sprintf("Could not undeploy sock shop application: %v\n", err.Error()))
-	}
+
+	Eventually(func() error {
+		return pkg.DeleteNamespace("sockshop")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() bool {
+		_, err := pkg.GetNamespace("sockshop")
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 })
 
 // isSockShopServiceReady checks if the service is ready
