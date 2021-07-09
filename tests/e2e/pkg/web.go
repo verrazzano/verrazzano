@@ -305,6 +305,7 @@ func rootCertPoolInCluster(caData []byte, kubeconfigPath string) *x509.CertPool 
 
 // HasStatus asserts that an HTTPResponse has a given status.
 func HasStatus(expected int) types.GomegaMatcher {
+<<<<<<< HEAD
 	return gomega.WithTransform(func(response *HTTPResponse) int {
 		if response == nil {
 			return 0
@@ -346,4 +347,22 @@ func BodyNotEmpty() types.GomegaMatcher {
 		}
 		return response.Body
 	}, gomega.Not(gomega.BeEmpty()))
+=======
+	return gomega.WithTransform(func(response *HTTPResponse) int { return response.StatusCode }, gomega.Equal(expected))
+}
+
+// BodyContains asserts that an HTTPResponse body contains a given substring.
+func BodyContains(expected string) types.GomegaMatcher {
+	return gomega.WithTransform(func(response *HTTPResponse) string { return string(response.Body) }, gomega.ContainSubstring(expected))
+}
+
+// BodyEquals asserts that an HTTPResponse body equals a given string.
+func BodyEquals(expected string) types.GomegaMatcher {
+	return gomega.WithTransform(func(response *HTTPResponse) string { return string(response.Body) }, gomega.Equal(expected))
+}
+
+// BodyNotEmpty asserts that an HTTPResponse body is not empty.
+func BodyNotEmpty() types.GomegaMatcher {
+	return gomega.WithTransform(func(response *HTTPResponse) []byte { return response.Body }, gomega.Not(gomega.BeEmpty()))
+>>>>>>> 6ae4e52e... Updated projectCmd
 }

@@ -129,6 +129,11 @@ var _ = Describe("Sock Shop Application", func() {
 			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
 			return pkg.GetWebPageWithBasicAuth(url, hostname, username, password, kubeconfigPath)
 		}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
+<<<<<<< HEAD
+=======
+
+	})
+>>>>>>> 6ae4e52e... Updated projectCmd
 
 	})
 
@@ -245,7 +250,11 @@ var _ = Describe("Sock Shop Application", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/catalogue", hostname)
 			return pkg.GetWebPage(url, hostname)
+<<<<<<< HEAD
 		}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("For all those leg lovers out there.")))
+=======
+		}, 3*time.Minute, 15*time.Second).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("For all those leg lovers out there.")))
+>>>>>>> 6ae4e52e... Updated projectCmd
 	})
 
 	Describe("Verify Prometheus scraped metrics", func() {

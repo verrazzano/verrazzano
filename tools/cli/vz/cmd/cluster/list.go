@@ -51,7 +51,6 @@ func NewCmdClusterList(streams genericclioptions.IOStreams, kubernetesInterface 
 }
 
 func (o *ClusterListOptions) listClusters(kubernetesInterface helpers.Kubernetes) error {
-
 	clientset, err := kubernetesInterface.NewClustersClientSet()
 	if err != nil {
 		return err

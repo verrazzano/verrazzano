@@ -115,6 +115,7 @@ var _ = Describe("Verify Spring Boot Application", func() {
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
+<<<<<<< HEAD
 	It("Verify welcome page of Spring Boot application is working.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/", host)
@@ -127,6 +128,20 @@ var _ = Describe("Verify Spring Boot Application", func() {
 			url := fmt.Sprintf("https://%s/facts", host)
 			return pkg.GetWebPage(url, host)
 		}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty()))
+=======
+	ginkgo.It("Verify welcome page of Spring Boot application is working.", func() {
+		gomega.Eventually(func() (*pkg.HTTPResponse, error) {
+			url := fmt.Sprintf("https://%s/", host)
+			return pkg.GetWebPage(url, host)
+		}, longWaitTimeout, longPollingInterval).Should(gomega.And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Greetings from Verrazzano Enterprise Container Platform")))
+	})
+
+	ginkgo.It("Verify Verrazzano facts endpoint is working.", func() {
+		gomega.Eventually(func() (*pkg.HTTPResponse, error) {
+			url := fmt.Sprintf("https://%s/facts", host)
+			return pkg.GetWebPage(url, host)
+		}, longWaitTimeout, longPollingInterval).Should(gomega.And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty()))
+>>>>>>> 6ae4e52e... Updated projectCmd
 	})
 
 	Context("Logging.", func() {

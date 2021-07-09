@@ -38,11 +38,20 @@ func loadStagingCA(httpClient *http.Client, resURL string, caCertName string) []
 	resp, err := doReq(resURL, "GET", "", "", "", "", nil, newRetryableHTTPClient(httpClient))
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error loading ACME staging CA: %v", err))
+<<<<<<< HEAD
 		return nil
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		Log(Error, fmt.Sprintf("Unable to load ACME %s staging CA, status: %v\n", caCertName, resp.StatusCode))
 		return nil
 	}
+=======
+		return nil
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		Log(Error, fmt.Sprintf("Unable to load ACME %s staging CA, status: %v\n", caCertName, resp.StatusCode))
+		return nil
+	}
+>>>>>>> 6ae4e52e... Updated projectCmd
 	return resp.Body
 }
