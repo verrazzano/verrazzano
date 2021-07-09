@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"io/ioutil"
 	"reflect"
 
@@ -18,11 +19,26 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 // For unit test purposes
 var readFileFunction = ioutil.ReadFile
 
+// GetCurrentChartVersion Load the current Chart.yaml into a chartVersion struct
+func GetCurrentChartVersion() (*semver.SemVersion, error) {
+	chartDir := config.GetHelmVzChartsDir()
+	chartBytes, err := readFileFunction(chartDir + "/Chart.yaml")
+	if err != nil {
+		return nil, err
+	}
+	chartVersion := &helm.ChartInfo{}
+	err = yaml.Unmarshal(chartBytes, chartVersion)
+	if err != nil {
+		return nil, err
+	}
+	return semver.NewSemVersion(fmt.Sprintf("v%s", chartVersion.Version))
+}
 // GetCurrentBomVersion Get the version string from the bom and return it as a semver object
 func GetCurrentBomVersion() (*semver.SemVersion, error) {
 	bom, err := component.NewBom(component.DefaultBomFilePath())
@@ -92,7 +108,7 @@ func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec
 		}
 	}
 
-	// If any other field has changed from the stored spec return false
+	// If any other field has changed from the stored spec return falsec
 	if newSpec.Profile != currentSpec.Profile ||
 		newSpec.EnvironmentName != currentSpec.EnvironmentName ||
 		!reflect.DeepEqual(newSpec.Components, currentSpec.Components) {

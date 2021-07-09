@@ -336,12 +336,14 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 		return err
 	}
 
+	//Not working right now
+	/*
 	// Set the version in the status.  This will be updated when the starting install condition is updated.
 	bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
 	if err != nil {
 		return err
 	}
-	vz.Status.Version = bomSemVer.ToString()
+	vz.Status.Version = bomSemVer.ToString()*/
 
 	err = r.setInstallCondition(log, jobFound, vz)
 
