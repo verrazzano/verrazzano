@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -21,16 +20,16 @@ const (
 	longPollingInterval  = 20 * time.Second
 )
 
-var _ = BeforeSuite(func() {
+var _ = ginkgo.BeforeSuite(func() {
 	deployBobsBooksExample()
 })
 
 var failed = false
-var _ = AfterEach(func() {
-	failed = failed || CurrentGinkgoTestDescription().Failed
+var _ = ginkgo.AfterEach(func() {
+	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
 })
 
-var _ = AfterSuite(func() {
+var _ = ginkgo.AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
@@ -47,72 +46,62 @@ func deployBobsBooksExample() {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	Eventually(func() (*v1.Namespace, error) {
-		nsLabels := map[string]string{
-			"verrazzano-managed": "true",
-			"istio-injection":    "enabled"}
-		return pkg.CreateNamespace("bobs-books", nsLabels)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
+	nsLabels := map[string]string{
+		"verrazzano-managed": "true",
+		"istio-injection":    "enabled"}
+	if _, err := pkg.CreateNamespace("bobs-books", nsLabels); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
+	}
 	pkg.Log(pkg.Info, "Create Docker repository secret")
-	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateDockerSecret("bobs-books", "bobs-books-repo-credentials", regServ, regUser, regPass)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
+	if _, err := pkg.CreateDockerSecret("bobs-books", "bobs-books-repo-credentials", regServ, regUser, regPass); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create Docker registry secret: %v", err))
+	}
 	pkg.Log(pkg.Info, "Create Bobbys front end Weblogic credentials secret")
-	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret("bobs-books", "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
+	if _, err := pkg.CreateCredentialsSecret("bobs-books", "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
+	}
 	pkg.Log(pkg.Info, "Create Bobs Bookstore Weblogic credentials secret")
-	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret("bobs-books", "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
+	if _, err := pkg.CreateCredentialsSecret("bobs-books", "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
+	}
 	pkg.Log(pkg.Info, "Create database credentials secret")
-	Eventually(func() (*v1.Secret, error) {
-		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books"}
-		return pkg.CreateCredentialsSecretFromMap("bobs-books", "mysql-credentials", m, nil)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
+	if _, err := pkg.CreateCredentialsSecretFromMap("bobs-books", "mysql-credentials",
+		map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books"}, nil); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
+	}
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
 	pkg.Log(pkg.Info, "Create application resources")
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
+	if err := pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml"); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create Bobs Books application resource: %v", err))
+	}
 	pkg.Log(pkg.Info, "Create component resources")
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
-	}, shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").ShouldNot(HaveOccurred())
+	gomega.Eventually(func() error { return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-comp.yaml") },
+		shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").Should(gomega.BeNil())
 }
 
 func undeployBobsBooksExample() {
 	pkg.Log(pkg.Info, "Undeploy BobsBooks example")
 	pkg.Log(pkg.Info, "Delete application")
-	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
+	if err := pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-app.yaml"); err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete application: %v", err))
+	}
 	pkg.Log(pkg.Info, "Delete components")
-	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
+	if err := pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-comp.yaml"); err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete components: %v", err))
+	}
 	pkg.Log(pkg.Info, "Delete namespace")
-	Eventually(func() error {
-		return pkg.DeleteNamespace("bobs-books")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() bool {
-		_, err := pkg.GetNamespace("bobs-books")
-		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	if err := pkg.DeleteNamespace("bobs-books"); err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete namespace: %v", err))
+	}
+	gomega.Eventually(func() bool {
+		ns, err := pkg.GetNamespace("bobs-books")
+		return ns == nil && err != nil && errors.IsNotFound(err)
+	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
 }
 
-var _ = Describe("Verify Bobs Books example application.", func() {
-	It("Wait for deployment.", func() {
-		Eventually(func() bool {
+var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
+	ginkgo.It("Wait for deployment.", func() {
+		gomega.Eventually(func() bool {
 			expectedPods := []string{
 				"bobbys-front-end-adminserver",
 				"bobs-bookstore-adminserver",
@@ -124,7 +113,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 				"mysql",
 			}
 			return pkg.PodsRunning("bobs-books", expectedPods)
-		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
+		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Bobs Books Application Failed to Deploy")
 	})
 
 	var host = ""
@@ -133,100 +122,100 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 	// GIVEN the Istio gateway for the bobs-books namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	It("Get host from gateway.", func() {
-		Eventually(func() string {
+	ginkgo.It("Get host from gateway.", func() {
+		gomega.Eventually(func() string {
 			host = pkg.GetHostnameFromGateway("bobs-books", "")
 			return host
-		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+		}, shortWaitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
 	})
-	Context("Ingress.", func() {
+	ginkgo.Context("Ingress.", func() {
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the roberts-books UI is accessed
 		// THEN the expected returned page should contain an expected value.
-		It("Verify roberts-books UI endpoint is working.", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+		ginkgo.It("Verify roberts-books UI endpoint is working.", func() {
+			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Robert's Books")))
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("Robert's Books")))
 		})
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the bobbys-books UI is accessed
 		// THEN the expected returned page should contain an expected value.
-		It("Verify bobbys-books UI endpoint is working.", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+		ginkgo.It("Verify bobbys-books UI endpoint is working.", func() {
+			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobbys-front-end/", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
 		})
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the bobs-orders UI is accessed
 		// THEN the expected returned page should contain an expected value.
-		It("Verify bobs-orders UI endpoint is working.", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+		ginkgo.It("Verify bobs-orders UI endpoint is working.", func() {
+			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/orders", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
 	})
-	Context("Metrics.", func() {
+	ginkgo.Context("Metrics.", func() {
 		// Verify application Prometheus scraped metrics
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that metrics are being collected
-		It("Retrieve application Prometheus scraped metrics", func() {
+		ginkgo.It("Retrieve application Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "bobbys-helidon-stock-application")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "robert-helidon")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "bobby-helidon")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "robert-helidon")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobbys-front-end")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobbys-front-end")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobs-bookstore")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "bobbys-coherence")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "roberts-coherence")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 			)
 		})
@@ -234,95 +223,95 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration is deployed
 		// THEN confirm that Istio metrics are being collected
-		It("Retrieve Istio Prometheus scraped metrics", func() {
+		ginkgo.It("Retrieve Istio Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-helidon-stock-application")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "robert-helidon")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-front-end-adminserver")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-bookstore-adminserver")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("envoy_cluster_ssl_handshake", "pod_name", "bobbys-front-end-adminserver")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("envoy_cluster_ssl_handshake", "pod_name", "bobs-bookstore-adminserver")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 			)
 		})
 	})
-	Context("WebLogic logging.", func() {
+	ginkgo.Context("WebLogic logging.", func() {
 		bobsIndexName := "verrazzano-namespace-bobs-books"
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
-		It("Verify Elasticsearch index exists", func() {
-			Eventually(func() bool {
+		ginkgo.It("Verify Elasticsearch index exists", func() {
+			gomega.Eventually(func() bool {
 				return pkg.LogIndexFound(bobsIndexName)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+bobsIndexName)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+bobsIndexName)
 		})
 		pkg.Concurrently(
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-adminserver stdout is found
 			func() {
-				It("Verify recent bobbys-front-end-adminserver log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
 							"kubernetes.pod_name":                   "bobbys-front-end-adminserver",
 							"kubernetes.container_name":             "weblogic-server",
 						})
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-adminserver log file is found
 			func() {
-				It("Verify recent bobbys-front-end-adminserver log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
 							"kubernetes.pod_name":                   "bobbys-front-end-adminserver",
 							"kubernetes.container_name":             "fluentd-stdout-sidecar",
 						})
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-managed-server stdout is found
 			func() {
-				It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
 							"kubernetes.labels.weblogic_serverName": "managed-server1",
 							"kubernetes.pod_name":                   "bobbys-front-end-managed-server1",
 							"kubernetes.container_name":             "weblogic-server",
 						})
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 
@@ -330,8 +319,8 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-adminserver stdout is found
 			func() {
-				It("Verify recent pattern-matched AdminServer log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent pattern-matched AdminServer log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -340,15 +329,15 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 								{Key: "serverName2.keyword", Value: "AdminServer"},
 								{Key: "message", Value: "standby threads"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-adminserver stdout is found
 			func() {
-				It("Verify recent pattern-matched AdminServer log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent pattern-matched AdminServer log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -357,29 +346,29 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 								{Key: "serverName2", Value: "AdminServer"},
 								{Key: "message", Value: "Self-tuning"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
 			func() {
-				It("Verify recent 'pattern not matched' log records do not exist", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent 'pattern not matched' log records do not exist", func() {
+					gomega.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
 								{Key: "message", Value: "pattern not matched"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Expected to find No pattern not matched log records")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeFalse(), "Expected to find No pattern not matched log records")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-managed-server log file is found
 			func() {
-				It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -390,15 +379,15 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 								{Key: "serverName", Value: "bobbys-front-end-managed-server1"},
 								{Key: "subSystem.keyword", Value: "RJVM"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-managed-server stdout is found
 			func() {
-				It("Verify recent pattern-matched managed-server log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent pattern-matched managed-server log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -407,15 +396,15 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 								{Key: "serverName2.keyword", Value: "managed-server1"},
 								{Key: "message", Value: "standby threads"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-managed-server stdout is found
 			func() {
-				It("Verify recent pattern-matched managed-server log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent pattern-matched managed-server log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -424,7 +413,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 								{Key: "serverName2", Value: "managed-server1"},
 								{Key: "message", Value: "Self-tuning"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 		)
@@ -433,53 +422,53 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-adminserver stdout is found
 			func() {
-				It("Verify recent bobs-bookstore-adminserver log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
 							"kubernetes.pod_name":                   "bobs-bookstore-adminserver",
 							"kubernetes.container_name":             "weblogic-server",
 						})
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-adminserver log file is found
 			func() {
-				It("Verify recent bobs-bookstore-adminserver log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
 							"kubernetes.pod_name":                   "bobs-bookstore-adminserver",
 							"kubernetes.container_name":             "fluentd-stdout-sidecar",
 						})
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-managed-server stdout is found
 			func() {
-				It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
 							"kubernetes.labels.weblogic_serverName": "managed-server1",
 							"kubernetes.pod_name":                   "bobs-bookstore-managed-server1",
 							"kubernetes.container_name":             "weblogic-server",
 						})
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-managed-server log file is found
 			func() {
-				It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -490,43 +479,43 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 								{Key: "serverName", Value: "bobs-bookstore-managed-server1"},
 								{Key: "subSystem.keyword", Value: "RJVM"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 		)
 	})
-	Context("Coherence logging.", func() {
+	ginkgo.Context("Coherence logging.", func() {
 		indexName := "verrazzano-namespace-bobs-books"
 		// GIVEN a Coherence application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
-		It("Verify Elasticsearch index exists", func() {
-			Eventually(func() bool {
+		ginkgo.It("Verify Elasticsearch index exists", func() {
+			gomega.Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+indexName)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+indexName)
 		})
 		pkg.Concurrently(
 			// GIVEN a Coherence application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-0 stdout is found
 			func() {
-				It("Verify recent roberts-coherence-0 log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent roberts-coherence-0 log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.coherenceCluster":                "roberts-coherence",
 							"kubernetes.labels.app_oam_dev\\/component.keyword": "robert-coh",
 							"kubernetes.pod_name":                               "roberts-coherence-0",
 							"kubernetes.container_name.keyword":                 "coherence",
 						})
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 				})
 			},
 			// GIVEN a Coherence application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-0 log file is found
 			func() {
-				It("Verify recent roberts-coherence-0 log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent roberts-coherence-0 log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
 								{Key: "kubernetes.labels.app_oam_dev/component", Value: "robert-coh"},
@@ -536,15 +525,15 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"}},
 							[]pkg.Match{ //MustNot
 								{Key: "kubernetes.container_name", Value: "coherence"}})
-					}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "Expected to find a systemd log record")
+					}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				})
 			},
 			// GIVEN a Coherence application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-1 stdout is found
 			func() {
-				It("Verify recent roberts-coherence-1 log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent roberts-coherence-1 log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
 								{Key: "kubernetes.labels.coherenceCluster", Value: "roberts-coherence"},
@@ -553,7 +542,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 							[]pkg.Match{ //MustNot
 								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"},
 							})
-					}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "Expected to find a systemd log record")
+					}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 
 				})
 			},
@@ -561,8 +550,8 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-1 log file is found
 			func() {
-				It("Verify recent roberts-coherence-1 log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent roberts-coherence-1 log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
 								{Key: "kubernetes.labels.coherenceCluster", Value: "roberts-coherence"},
@@ -570,15 +559,15 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 								{Key: "product", Value: "Oracle Coherence"},
 								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"}},
 							[]pkg.Match{})
-					}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "Expected to find a systemd log record")
+					}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				})
 			},
 			// GIVEN a Coherence application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-coherence log file is found
 			func() {
-				It("Verify recent roberts-coherence-1 log record exists", func() {
-					Eventually(func() bool {
+				ginkgo.It("Verify recent roberts-coherence-1 log record exists", func() {
+					gomega.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
 								{Key: "kubernetes.labels.app_oam_dev/component", Value: "bobby-coh"},
@@ -587,7 +576,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 								{Key: "product", Value: "Oracle Coherence"},
 								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"}},
 							[]pkg.Match{})
-					}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "Expected to find a systemd log record")
+					}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd log record")
 				})
 			},
 		)
