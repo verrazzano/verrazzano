@@ -363,10 +363,6 @@ pipeline {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
                             }
-                            script {
-                                echo "GOOGLE_CHROME_VERSION ${env.GOOGLE_CHROME_VERSION}"
-                                echo "CHROMEDRIVER_VERSION ${env.CHROMEDRIVER_VERSION}"
-                            }
                             steps {
                                 acceptanceTestsConsole()
                             }
@@ -546,6 +542,8 @@ def getEffectiveDumpOnSuccess() {
 // Called in parallel Stage console of Stage Run Acceptance Tests
 def acceptanceTestsConsole() {
     sh """
+        echo "GOOGLE_CHROME_VERSION: ${GOOGLE_CHROME_VERSION}"
+        echo "CHROMEDRIVER_VERSION: ${CHROMEDRIVER_VERSION}"
         # Temporarily clone the console repo until it is moved to the verrazzano repo
         cd ${GO_REPO_PATH}
         git clone https://${DOCKER_CREDS_USR}:${DOCKER_CREDS_PSW}@github.com/verrazzano/console.git
