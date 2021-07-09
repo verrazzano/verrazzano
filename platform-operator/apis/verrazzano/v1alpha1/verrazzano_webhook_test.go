@@ -4,8 +4,8 @@
 package v1alpha1
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,25 +13,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const webhookTestValidChartYAML = `
-apiVersion: v1
-description: A Helm chart for Verrazzano
-name: verrazzano
-version: 0.6.0
-appVersion: 0.6.0
-`
-
 // TestCreateCallbackSuccessWithVersion Tests the create callback with valid spec version
 // GIVEN a ValidateCreate() request with a valid version
 // WHEN the version provided is a valid version
 // THEN no error is returned
-/*func TestCreateCallbackSuccessWithVersion(t *testing.T) {
-	chartYaml := webhookTestValidChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+func TestCreateCallbackSuccessWithVersion(t *testing.T) {
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 
 	getControllerRuntimeClient = func() (client.Client, error) {
@@ -41,24 +30,21 @@ appVersion: 0.6.0
 
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.6.0",
+			Version: "v0.17.0",
 			Profile: "dev",
 		},
 	}
 	assert.NoError(t, currentSpec.ValidateCreate())
-}*/
+}
 
 // TestCreateCallbackSuccessWithoutVersion Tests the create callback with no spec version
 // GIVEN a ValidateCreate() request with a valid version
 // WHEN no version is provided
 // THEN no error is returned
 func TestCreateCallbackSuccessWithoutVersion(t *testing.T) {
-	chartYaml := webhookTestValidChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 
 	getControllerRuntimeClient = func() (client.Client, error) {
@@ -94,12 +80,9 @@ func TestCreateCallbackWithInvalidVersionValidationDisabled(t *testing.T) {
 
 // runCreateCallbackWithInvalidVersion Shared test impl for cases with/without validation enbabled
 func runCreateCallbackWithInvalidVersion(t *testing.T) error {
-	chartYaml := webhookTestValidChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 
 	getControllerRuntimeClient = func() (client.Client, error) {
@@ -109,7 +92,7 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.7.0",
+			Version: "v0.18.0",
 			Profile: "dev",
 		},
 	}
@@ -121,13 +104,10 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 // GIVEN a ValidateUpdate() request
 // WHEN a valid version is provided and is at the same chart value
 // THEN no error is returned
-/*func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
-	chartYaml := webhookTestValidChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -136,61 +116,55 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.6.0",
+			Version: "v0.17.0",
 			Profile: "dev",
 		},
 	}
 	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
-}*/
+}
 
 // TestUpdateCallbackSuccessWithNewVersion Tests the create callback with valid spec versions in both
 // GIVEN a ValidateUpdate() request
 // WHEN valid versions exist in both specs, and the new version > old version
 // THEN no error is returned
-/*func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
-	chartYaml := webhookTestValidChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.5.0",
+			Version: "v0.16.0",
 			Profile: "dev",
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.6.0",
+			Version: "v0.17.0",
 			Profile: "dev",
 		},
 	}
 	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
-}*/
+}
 
 // TestUpdateCallbackFailsWithOldGreaterThanNewVersion Tests the create callback with old version > new
 // GIVEN a ValidateUpdate() request
 // WHEN valid versions exist in both specs, and the new old > new version
 // THEN an error is returned
 func TestUpdateCallbackFailsWithOldGreaterThanNewVersion(t *testing.T) {
-	chartYaml := webhookTestValidChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.8.0",
+			Version: "v0.18.0",
 			Profile: "dev",
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.6.0",
+			Version: "v0.17.0",
 			Profile: "dev",
 		},
 	}
@@ -217,12 +191,9 @@ func TestUpdateCallbackWithInvalidNewVersionValidationDisabled(t *testing.T) {
 
 // runUpdateWithInvalidVersionTest Shared test logic for update with invalid version
 func runUpdateWithInvalidVersionTest(t *testing.T) error {
-	chartYaml := webhookTestValidChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -231,7 +202,7 @@ func runUpdateWithInvalidVersionTest(t *testing.T) error {
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.7.0",
+			Version: "v0.18.0",
 			Profile: "dev",
 		},
 	}
@@ -258,12 +229,9 @@ func TestUpdateCallbackChangeProfileValidationDisabled(t *testing.T) {
 
 // runUpdateCallbackChangedProfileTest Shared test logic for update with changed profile
 func runUpdateCallbackChangedProfileTest() error {
-	chartYaml := webhookTestValidChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -301,7 +269,7 @@ func TestDeleteCallbackDisabled(t *testing.T) {
 func runDeleteCallbackTest() error {
 	deletedSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.6.0",
+			Version: "v0.17.0",
 			Profile: "dev",
 		},
 	}

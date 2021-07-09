@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
+	"io/ioutil"
 	"reflect"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -18,6 +19,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// For unit test purposes
+var readFileFunction = ioutil.ReadFile
 
 // GetCurrentBomVersion Get the version string from the bom and return it as a semver object
 func GetCurrentBomVersion() (*semver.SemVersion, error) {
