@@ -151,18 +151,6 @@ func helidonConfigPodsRunning() bool {
 	return pkg.PodsRunning(testNamespace, expectedPodsHelidonConfig)
 }
 
-<<<<<<< HEAD
-=======
-func appEndpointAccessible(url string, hostname string) bool {
-	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-	resp, err := pkg.GetWebPageWithBasicAuth(url, hostname, "", "", kubeconfigPath)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, resp.StatusCode))
-	gomega.Expect(strings.Contains(string(resp.Body), "HelloConfig World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT HelloConfig World %s", resp.Body))
-	return true
-}
-
->>>>>>> 6ae4e52e... Updated projectCmd
 func appMetricsExists() bool {
 	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "helidon-config")
 }
