@@ -25,27 +25,27 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
-var _ = Describe("Verrazzano Web UI", func() {
-	var ingress *v1beta1.Ingress
-	var consoleUIConfigured bool = false
+var ingress *v1beta1.Ingress
+var consoleUIConfigured bool = false
 
-	It("ingress exist", func() {
-		Eventually(func() (*v1beta1.Ingress, error) {
-			var err error
-			ingress, err = pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
-			return ingress, err
-		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+var _ = BeforeSuite(func() {
+	Eventually(func() (*v1beta1.Ingress, error) {
+		var err error
+		ingress, err = pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
+		return ingress, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-		Expect(len(ingress.Spec.Rules)).To(Equal(1))
+	Expect(len(ingress.Spec.Rules)).To(Equal(1))
 
-		// Determine if the console UI is configured
-		for _, path := range ingress.Spec.Rules[0].HTTP.Paths {
-			if path.Backend.ServiceName == "verrazzano-console" {
-				consoleUIConfigured = true
-			}
+	// Determine if the console UI is configured
+	for _, path := range ingress.Spec.Rules[0].HTTP.Paths {
+		if path.Backend.ServiceName == "verrazzano-console" {
+			consoleUIConfigured = true
 		}
-	})
+	}
+})
 
+var _ = Describe("Verrazzano Web UI", func() {
 	When("the console UI is configured", func() {
 		var serverURL string
 
