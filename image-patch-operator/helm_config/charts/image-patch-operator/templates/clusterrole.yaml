@@ -13,6 +13,15 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - get
+      - list
+      - watch
+      - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
