@@ -40,14 +40,14 @@ if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
   CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
 fi
 
-# Set an empty string for ca.crt for publicly available/accessible CA
-# This should be based on the the environment variable ACME_ENVIRONMENT, fix this.
-if [ -z "${CA_CERT}" ]; then
-  CA_CERT=""
-fi
-
 if [ ! -z "${CA_CERT}" ] ; then
-   kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
+  echo "Creating CA_SECRET_FILE"
+  kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
+else
+  # Set an empty string for ca.crt for publicly available/accessible CA
+  # This should be based on the the environment variable ACME_ENVIRONMENT, fix this.
+  echo "Setting an empty string to CA_CERT"
+  kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
 fi
 
 # create managed cluster ca secret on admin
