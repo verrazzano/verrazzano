@@ -9,22 +9,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 const shortWaitTimeout = 3 * time.Minute
 const shortPollInterval = 5 * time.Second
 
-var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
-	ginkgo.Context("Admin Cluster", func() {
-		ginkgo.BeforeEach(func() {
+var _ = Describe("Multi Cluster Verify Resources", func() {
+	Context("Admin Cluster", func() {
+		BeforeEach(func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
-		ginkgo.It("Create VerrazzanoProject with invalid content", func() {
-			gomega.Eventually(func() bool {
+		It("Create VerrazzanoProject with invalid content", func() {
+			Eventually(func() bool {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-placement-clusters-invalid.yaml")
 				if err == nil {
 					pkg.Log(pkg.Error, "Expected an error creating invalid VerrazzanoProject")
@@ -35,11 +35,11 @@ var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 					return false
 				}
 				return true
-			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected VerrazzanoProject validation error")
+			}, shortWaitTimeout, shortPollInterval).Should(BeTrue(), "Expected VerrazzanoProject validation error")
 		})
 
-		ginkgo.It("Create MultiClusterSecret with invalid content", func() {
-			gomega.Eventually(func() bool {
+		It("Create MultiClusterSecret with invalid content", func() {
+			Eventually(func() bool {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_placement_clusters_invalid.yaml")
 				if err == nil {
 					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
@@ -50,11 +50,11 @@ var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 					return false
 				}
 				return true
-			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected a resource validation error")
+			}, shortWaitTimeout, shortPollInterval).Should(BeTrue(), "Expected a resource validation error")
 		})
 
-		ginkgo.It("Create MultiClusterConfigmap with invalid content", func() {
-			gomega.Eventually(func() bool {
+		It("Create MultiClusterConfigmap with invalid content", func() {
+			Eventually(func() bool {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_placement_clusters_invalid.yaml")
 				if err == nil {
 					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
@@ -65,11 +65,11 @@ var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 					return false
 				}
 				return true
-			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected a resource validation error")
+			}, shortWaitTimeout, shortPollInterval).Should(BeTrue(), "Expected a resource validation error")
 		})
 
-		ginkgo.It("Create MultiClusterComponent with invalid content", func() {
-			gomega.Eventually(func() bool {
+		It("Create MultiClusterComponent with invalid content", func() {
+			Eventually(func() bool {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_component_placement_clusters_invalid.yaml")
 				if err == nil {
 					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
@@ -80,11 +80,11 @@ var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 					return false
 				}
 				return true
-			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected a resource validation error")
+			}, shortWaitTimeout, shortPollInterval).Should(BeTrue(), "Expected a resource validation error")
 		})
 
-		ginkgo.It("Create MultiClusterApplicationConfiguration with invalid content", func() {
-			gomega.Eventually(func() bool {
+		It("Create MultiClusterApplicationConfiguration with invalid content", func() {
+			Eventually(func() bool {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_appconf_placement_clusters_invalid.yaml")
 				if err == nil {
 					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
@@ -95,7 +95,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Resources", func() {
 					return false
 				}
 				return true
-			}, shortWaitTimeout, shortPollInterval).Should(gomega.BeTrue(), "Expected a resource validation error")
+			}, shortWaitTimeout, shortPollInterval).Should(BeTrue(), "Expected a resource validation error")
 		})
 
 	})

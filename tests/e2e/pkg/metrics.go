@@ -5,8 +5,8 @@ package pkg
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"net/http"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,15 +14,15 @@ import (
 // QueryMetric queries a metric from the Prometheus host, derived from the kubeconfig
 func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
 	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(kubeconfigPath), metricsName)
-	status, content := GetWebPageWithBasicAuthForCluster(metricsURL, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
-	if status != 200 {
-		Log(Error, fmt.Sprintf("Error retrieving metric %s, status %d", metricsName, status))
-		// do not call ginkgo.Fail() here - this method is called in Eventually funcs, so if you call Fail()
-		// you essentially limit all of those to only one attempt, which defeats the purpose
-		return "", errors.New("no content")
+	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
+	if err != nil {
+		return "", err
 	}
-	Log(Info, fmt.Sprintf("metric: %s", content))
-	return content, nil
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("error retrieving metric %s, status %d", metricsName, resp.StatusCode)
+	}
+	Log(Info, fmt.Sprintf("metric: %s", resp.Body))
+	return string(resp.Body), nil
 }
 
 // getPrometheusIngressHost gest the host used for ingress to the system Prometheus in the given cluster

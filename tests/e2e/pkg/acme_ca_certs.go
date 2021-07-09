@@ -16,13 +16,10 @@ type ACMEStagingCerts struct {
 	letsEncryptStagingIntE1CA []byte
 }
 
-var stagingCerts = ACMEStagingCerts{
-	letsEncryptStagingIntE1CA: loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntE1, "E1"),
-	letsEncryptStagingIntR3CA: loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntR3, "R3"),
-}
-
 func getACMEStagingCAs() [][]byte {
-	return [][]byte{stagingCerts.letsEncryptStagingIntE1CA, stagingCerts.letsEncryptStagingIntR3CA}
+	letsEncryptStagingIntE1CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntE1, "E1")
+	letsEncryptStagingIntR3CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntR3, "R3")
+	return [][]byte{letsEncryptStagingIntE1CA, letsEncryptStagingIntR3CA}
 }
 
 func newSimpleHTTPClient() *http.Client {
@@ -38,10 +35,14 @@ func newSimpleHTTPClient() *http.Client {
 }
 
 func loadStagingCA(httpClient *http.Client, resURL string, caCertName string) []byte {
-	status, pemData := doGetWebPage(resURL, "", newRetryableHTTPClient(httpClient), "", "")
-	if status < 200 || status > 299 {
-		fmt.Printf("Unable to load ACME %s staging CA, status: %v\n", caCertName, status)
+	resp, err := doReq(resURL, "GET", "", "", "", "", nil, newRetryableHTTPClient(httpClient))
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error loading ACME staging CA: %v", err))
 		return nil
 	}
-	return []byte(pemData)
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		Log(Error, fmt.Sprintf("Unable to load ACME %s staging CA, status: %v\n", caCertName, resp.StatusCode))
+		return nil
+	}
+	return resp.Body
 }

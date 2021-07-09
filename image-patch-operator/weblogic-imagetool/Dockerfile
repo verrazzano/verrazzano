@@ -1,7 +1,7 @@
 # Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-ARG JDK_BINARY="${JDK_BINARY:-installers/jdk-8u291-linux-x64.tar.gz}"
+ARG JDK_BINARY="${JDK_BINARY:-installers/jdk-8u281-linux-x64.tar.gz}"
 
 # Build stage for required software installation
 FROM ghcr.io/oracle/oraclelinux:8-slim AS build_base
@@ -19,7 +19,7 @@ RUN wget https://github.com/oracle/weblogic-image-tool/releases/download/release
 # Setup for JDK installation
 ENV JAVA_HOME=/usr/java
 COPY ${JDK_BINARY} ./${JDK_BINARY}
-ENV JDK_DOWNLOAD_SHA256=c5052d2e1dd9621a44658ef06be145c5cdfcd7ea956c0c9d655ccd64e79c8613
+ENV JDK_DOWNLOAD_SHA256=85e8c7da7248c7450fb105567a78841d0973597850776c24a527feb02ef3e586
 
 # Install JDK
 RUN set -eux \
@@ -33,7 +33,7 @@ RUN set -eux \
 # Final image for deploying WebLogic Image Tool
 FROM ghcr.io/oracle/oraclelinux:8-slim
 
-# Install the builder for WIT and dependencies
+# Install the podman for WIT and dependencies
 RUN microdnf update -y \
     && microdnf install -y podman \
     && microdnf reinstall -y shadow-utils \
@@ -42,7 +42,7 @@ RUN microdnf update -y \
 WORKDIR /home/verrazzano
 
 ARG JDK_BINARY
-ARG WLS_BINARY="${WLS_BINARY:-installers/fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip}"
+ARG WLS_BINARY="${WLS_BINARY:-installers/fmw_12.2.1.4.0_wls.jar}"
 ARG WDT_BINARY="${WDT_BINARY:-installers/weblogic-deploy.zip}"
 
 RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
@@ -66,7 +66,10 @@ COPY --chown=verrazzano:verrazzano ./${JDK_BINARY} ./${WLS_BINARY} ./${WDT_BINAR
 # Add installers to WIT
 ENV WLSIMG_CACHEDIR="/home/verrazzano/cache"
 RUN ./imagetool/bin/imagetool.sh cache addInstaller --type wls --version 12.2.1.4.0 --path ./${WLS_BINARY} \
-    && ./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version 8u291 --path ./${JDK_BINARY}
+    && ./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version 8u281 --path ./${JDK_BINARY} \
+    && ./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version latest --path ./${WDT_BINARY}
+
+COPY THIRD_PARTY_LICENSES.txt /licenses/
 
 USER 1000
 

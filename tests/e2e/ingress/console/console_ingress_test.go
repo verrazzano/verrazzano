@@ -127,14 +127,10 @@ var _ = ginkgo.Describe("Verify application.", func() {
 		// WHEN the console endpoint is accessed
 		// THEN the expected results should be returned
 		ginkgo.It("Verify '/console' endpoint is working.", func() {
-			gomega.Eventually(func() pkg.WebResponse {
+			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/console/login/LoginForm.jsp", host)
-				status, content := pkg.GetWebPageWithCABundle(url, host)
-				return pkg.WebResponse{
-					Status:  status,
-					Content: content,
-				}
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HaveStatus(200), pkg.ContainContent("Oracle WebLogic Server Administration Console")))
+				return pkg.GetWebPage(url, host)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("Oracle WebLogic Server Administration Console")))
 		})
 
 		// Verify the application REST endpoint is working.
@@ -142,15 +138,10 @@ var _ = ginkgo.Describe("Verify application.", func() {
 		// WHEN the REST endpoint is accessed
 		// THEN the expected results should be returned
 		ginkgo.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
-			gomega.Eventually(func() pkg.WebResponse {
+			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
-				status, content := pkg.GetWebPageWithCABundle(url, host)
-				return pkg.WebResponse{
-					Status:  status,
-					Content: content,
-				}
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HaveStatus(200), pkg.ContainContent("["), pkg.ContainContent("]")))
+				return pkg.GetWebPage(url, host)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("["), pkg.BodyContains("]")))
 		})
 	})
-
 })

@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,128 +21,122 @@ import (
 )
 
 const (
-	// DefaultEnvName - default environment name
-	DefaultEnvName = "default"
-
-	// Username - the username of the verrazzano admin user
-	Username               = "verrazzano"
-	realm                  = "verrazzano-system"
-	verrazzanoAPIURLPrefix = "20210501"
-	teapot                 = 418
+	// defaultEnvName - default environment name
+	defaultEnvName = "default"
 )
 
-// HTTPResponse represents an HTTP response
+// HTTPResponse represents an HTTP response including the read body
 type HTTPResponse struct {
 	StatusCode int
 	Header     http.Header
 	Body       []byte
-	BodyErr    error
 }
 
-// GetWebPageWithCABundle - same as GetWebPage, but with additional caData
-func GetWebPageWithCABundle(url string, hostHeader string) (int, string) {
-	return doGetWebPage(url, hostHeader, GetVerrazzanoHTTPClient(), "", "")
+// GetWebPage makes an HTTP GET request using a retryable client configured with the Verrazzano cert bundle
+func GetWebPage(url string, hostHeader string) (*HTTPResponse, error) {
+	kubeconfigPath := GetKubeConfigPathFromEnv()
+	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return GetWebPageWithClient(client, url, hostHeader)
+}
+
+// GetWebPageWithClient submits a GET request using the specified client.
+func GetWebPageWithClient(httpClient *retryablehttp.Client, url string, hostHeader string) (*HTTPResponse, error) {
+	return doReq(url, "GET", "", hostHeader, "", "", nil, httpClient)
+}
+
+// GetWebPageWithBasicAuth gets a web page using basic auth, using a given kubeconfig
+func GetWebPageWithBasicAuth(url string, hostHeader string, username string, password string, kubeconfigPath string) (*HTTPResponse, error) {
+	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return doReq(url, "GET", "", hostHeader, username, password, nil, client)
 }
 
 // GetCertificates will return the server SSL certificates for the given URL.
 func GetCertificates(url string) ([]*x509.Certificate, error) {
-	resp, err := GetVerrazzanoHTTPClient().Get(url)
+	kubeconfigPath := GetKubeConfigPathFromEnv()
+	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Could not get web page at URL: %s, error: %v", url, err))
+		return nil, err
+	}
+	resp, err := client.Get(url)
+	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 	return resp.TLS.PeerCertificates, nil
 }
 
-// GetWebPageWithBasicAuth gets a web page using basic auth
-func GetWebPageWithBasicAuth(url string, hostHeader string, username string, password string) (int, string) {
-	return doGetWebPage(url, hostHeader, GetVerrazzanoHTTPClient(), username, password)
-}
-
-// GetWebPageWithBasicAuthForCluster gets a web page using basic auth, using a given kubeconfig
-func GetWebPageWithBasicAuthForCluster(url string, hostHeader string, username string, password string, kubeconfig string) (int, string) {
-	return doGetWebPage(url, hostHeader, GetVerrazzanoHTTPClientForCluster(kubeconfig), username, password)
-}
-
-// RetryGetWithBasicAuth retries getting a web page using basic auth
-func RetryGetWithBasicAuth(url string, hostHeader string, username string, password string, kubeconfigPath string) (int, string) {
-	client := GetVerrazzanoHTTPClientForCluster(kubeconfigPath)
-	client.CheckRetry = GetRetryPolicy()
-	return doGetWebPage(url, hostHeader, client, username, password)
-}
-
-// RetryPostWithBasicAuth retries POST using basic auth
-func RetryPostWithBasicAuth(url, body, username, password, kubeconfigPath string) (int, string) {
-	client := GetVerrazzanoHTTPClientForCluster(kubeconfigPath)
-	client.CheckRetry = GetRetryPolicy()
+// PostWithBasicAuth retries POST using basic auth
+func PostWithBasicAuth(url, body, username, password, kubeconfigPath string) (*HTTPResponse, error) {
+	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 	return doReq(url, "POST", "application/json", "", username, password, strings.NewReader(body), client)
-	//return doGetWebPage(url, hostHeader, client, username, password)
 }
 
-// doGetWebPage retries a web page
-func doGetWebPage(url string, hostHeader string, httpClient *retryablehttp.Client, username string, password string) (int, string) {
-	return doReq(url, "GET", "", hostHeader, username, password, nil, httpClient)
+// PostWithHostHeader posts a request with a specified Host header
+func PostWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
+	kubeconfigPath := GetKubeConfigPathFromEnv()
+	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return doReq(url, "POST", contentType, hostHeader, "", "", body, client)
 }
 
 // Delete executes an HTTP DELETE
-func Delete(url string, hostHeader string) (int, string) {
-	return doReq(url, "DELETE", "", hostHeader, "", "", nil, GetVerrazzanoHTTPClient())
+func Delete(url string, hostHeader string) (*HTTPResponse, error) {
+	kubeconfigPath := GetKubeConfigPathFromEnv()
+	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return doReq(url, "DELETE", "", hostHeader, "", "", nil, client)
 }
 
 // GetVerrazzanoNoRetryHTTPClient returns an Http client configured with the verrazzano CA cert
-func GetVerrazzanoNoRetryHTTPClient() *http.Client {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
-	return getHTTPClientWithCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
-}
-
-// GetVerrazzanoHTTPClient returns an Http client configured with the verrazzano CA cert
-func GetVerrazzanoHTTPClient() *retryablehttp.Client {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
-	rawClient := getHTTPClientWithCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
-	return newRetryableHTTPClient(rawClient)
-}
-
-// GetVerrazzanoHTTPClient returns an Http client configured with the verrazzano CA cert
-func GetVerrazzanoHTTPClientForCluster(kubeconfigPath string) *retryablehttp.Client {
-	rawClient := getHTTPClientWithCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
-	return newRetryableHTTPClient(rawClient)
-}
-
-// GetRancherHTTPClient returns an Http client configured with the Rancher CA cert
-func GetRancherHTTPClient(kubeconfigPath string) *retryablehttp.Client {
-	rawClient := getHTTPClientWithCABundle(getRancherCACert(kubeconfigPath), kubeconfigPath)
-	return newRetryableHTTPClient(rawClient)
-}
-
-// GetKeycloakHTTPClient returns the Keycloak Http client
-func GetKeycloakHTTPClient(kubeconfigPath string) *retryablehttp.Client {
-	keycloakRawClient := getHTTPClientWithCABundle(getKeycloakCACert(kubeconfigPath), kubeconfigPath)
-	client := newRetryableHTTPClient(keycloakRawClient)
-	client.CheckRetry = GetRetryPolicy()
-	return client
-}
-
-// IsHTTPStatusOk validates that this is no error and a that the status is 200
-func IsHTTPStatusOk(resp *HTTPResponse, err error, msg string) bool {
-	return CheckHTTPStatus(http.StatusOK, resp, err, msg)
-}
-
-// CheckHTTPStatus validates that this is no error and a that the status matchs
-func CheckHTTPStatus(status int, resp *HTTPResponse, err error, msg string) bool {
+func GetVerrazzanoNoRetryHTTPClient(kubeconfigPath string) (*http.Client, error) {
+	caCert, err := getVerrazzanoCACert(kubeconfigPath)
 	if err != nil {
-		return false
+		return nil, err
 	}
+	return getHTTPClientWithCABundle(caCert, kubeconfigPath), nil
+}
 
-	if resp.StatusCode != status {
-		if len(resp.Body) > 0 {
-			msg = msg + "\n" + string(resp.Body)
-		}
-		Log(Error, msg)
-		return false
+// GetVerrazzanoHTTPClient returns a retryable Http client configured with the verrazzano CA cert
+func GetVerrazzanoHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
+	client, err := GetVerrazzanoNoRetryHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
 	}
+	retryableClient := newRetryableHTTPClient(client)
+	return retryableClient, nil
+}
 
-	return true
+// GetRancherHTTPClient returns a retryable Http client configured with the Rancher CA cert
+func GetRancherHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
+	caCert, err := getRancherCACert(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	rawClient := getHTTPClientWithCABundle(caCert, kubeconfigPath)
+	return newRetryableHTTPClient(rawClient), nil
+}
+
+// GetKeycloakHTTPClient returns a retryable Http client configured with the Keycloak CA cert
+func GetKeycloakHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
+	caCert, err := getKeycloakCACert(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	keycloakRawClient := getHTTPClientWithCABundle(caCert, kubeconfigPath)
+	return newRetryableHTTPClient(keycloakRawClient), nil
 }
 
 // CheckNoServerHeader validates that the response does not include a Server header.
@@ -159,59 +152,33 @@ func CheckNoServerHeader(resp *HTTPResponse) bool {
 	return true
 }
 
-// MakeHTTPGetRequest submits a GET request and expect a status 200 response
-func MakeHTTPGetRequest(httpClient *retryablehttp.Client, url string) bool {
-	resp, err := httpClient.Get(url)
-	httpResp := ProcHTTPResponse(resp, err)
-	ok := IsHTTPStatusOk(httpResp, err, "Error doing http(s) get from "+url)
-	if !ok {
-		return false
-	}
-	return CheckNoServerHeader(httpResp)
-}
-
-// GetSystemVmiHTTPClient returns an HTTP client configured with the system vmi CA cert
-func GetSystemVmiHTTPClient() *retryablehttp.Client {
+// GetSystemVmiHTTPClient returns a retryable HTTP client configured with the system vmi CA cert
+func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
 	kubeconfigPath := GetKubeConfigPathFromEnv()
-	vmiRawClient := getHTTPClientWithCABundle(getSystemVMICACert(kubeconfigPath), kubeconfigPath)
-	client := newRetryableHTTPClient(vmiRawClient)
-	client.CheckRetry = GetRetryPolicy()
-	return client
-}
-
-// PostWithHostHeader posts a request with a specified Host header
-func PostWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (int, string) {
-	return doPost(url, contentType, hostHeader, body, GetVerrazzanoHTTPClient())
-}
-
-// postWithClient posts a request using the specified HTTP client
-func postWithClient(url, contentType string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
-	return doPost(url, contentType, "", body, httpClient)
-}
-
-// doPost executes a POST request
-func doPost(url, contentType string, hostHeader string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
-	return doReq(url, "POST", contentType, hostHeader, "", "", body, httpClient)
+	caCert, err := getSystemVMICACert(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	vmiRawClient := getHTTPClientWithCABundle(caCert, kubeconfigPath)
+	return newRetryableHTTPClient(vmiRawClient), nil
 }
 
 // PutWithHostHeader PUTs a request with a specified Host header
-func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (int, string) {
-	return doPut(url, contentType, hostHeader, body, GetVerrazzanoHTTPClient())
-}
-
-// doPut executes a PUT request
-func doPut(url, contentType string, hostHeader string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
-	return doReq(url, "PUT", contentType, hostHeader, "", "", body, httpClient)
+func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
+	kubeconfigPath := GetKubeConfigPathFromEnv()
+	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return doReq(url, "PUT", contentType, hostHeader, "", "", body, client)
 }
 
 // doReq executes an HTTP request with the specified method (GET, POST, DELETE, etc)
 func doReq(url, method string, contentType string, hostHeader string, username string, password string,
-	body io.Reader, httpClient *retryablehttp.Client) (int, string) {
+	body io.Reader, httpClient *retryablehttp.Client) (*HTTPResponse, error) {
 	req, err := retryablehttp.NewRequest(method, url, body)
 	if err != nil {
-		Log(Error, err.Error())
-		// See comment below about not calling Fail() here - there are cases where this should be retried
-		return teapot, ""
+		return nil, err
 	}
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
@@ -224,22 +191,9 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		Log(Error, err.Error())
-		// Do not call Fail() here - this is not necessarily a permanent failure and
-		// we should not call Fail() inside a func that is called from an Eventually()
-		// a later retry may be successful - for example the endpoint may not be available
-		// since the pod has not reached ready state yet.
-		// We cannot return status code, because the resp is likely nil, so instead
-		// return a valid HTTP status code which nonetheless communicates some kind of failure :)
-		return teapot, ""
+		return nil, err
 	}
-	defer resp.Body.Close()
-	html, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		Log(Error, err.Error())
-		return teapot, ""
-	}
-	return resp.StatusCode, string(html)
+	return ProcessHTTPResponse(resp)
 }
 
 // getHTTPClientWithCABundle returns an HTTP client configured with the provided CA cert
@@ -262,28 +216,28 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 func getEnvName(kubeconfigPath string) string {
 	installedEnvName := GetVerrazzanoInstallResourceInCluster(kubeconfigPath).Spec.EnvironmentName
 	if len(installedEnvName) == 0 {
-		return DefaultEnvName
+		return defaultEnvName
 	}
 	return installedEnvName
 }
 
 // getVerrazzanoCACert returns the verrazzano CA cert in the specified cluster
-func getVerrazzanoCACert(kubeconfigPath string) []byte {
+func getVerrazzanoCACert(kubeconfigPath string) ([]byte, error) {
 	return doGetCACertFromSecret(getEnvName(kubeconfigPath)+"-secret", "verrazzano-system", kubeconfigPath)
 }
 
 // getRancherCACert returns the Rancher CA cert
-func getRancherCACert(kubeconfigPath string) []byte {
+func getRancherCACert(kubeconfigPath string) ([]byte, error) {
 	return doGetCACertFromSecret("tls-rancher-ingress", "cattle-system", kubeconfigPath)
 }
 
 // getKeycloakCACert returns the keycloak CA cert
-func getKeycloakCACert(kubeconfigPath string) []byte {
+func getKeycloakCACert(kubeconfigPath string) ([]byte, error) {
 	return doGetCACertFromSecret(getEnvName(kubeconfigPath)+"-secret", "keycloak", kubeconfigPath)
 }
 
 // getSystemVMICACert returns the system vmi CA cert
-func getSystemVMICACert(kubeconfigPath string) []byte {
+func getSystemVMICACert(kubeconfigPath string) ([]byte, error) {
 	return doGetCACertFromSecret("system-tls", "verrazzano-system", kubeconfigPath)
 }
 
@@ -305,19 +259,23 @@ func getProxyURL() string {
 }
 
 // doGetCACertFromSecret returns the CA cert from the specified kubernetes secret in the given cluster
-func doGetCACertFromSecret(secretName string, namespace string, kubeconfigPath string) []byte {
+func doGetCACertFromSecret(secretName string, namespace string, kubeconfigPath string) ([]byte, error) {
 	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
-	certSecret, _ := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
-	return certSecret.Data["ca.crt"]
+	certSecret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return certSecret.Data["ca.crt"], nil
 }
 
 // newRetryableHTTPClient returns a new instance of a retryable HTTP client
 func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
-	retryableClient := retryablehttp.NewClient() //default of 4 retries is sufficient for us
+	retryableClient := retryablehttp.NewClient()
 	retryableClient.RetryMax = NumRetries
 	retryableClient.RetryWaitMin = RetryWaitMin
 	retryableClient.RetryWaitMax = RetryWaitMax
 	retryableClient.HTTPClient = client
+	retryableClient.CheckRetry = GetRetryPolicy()
 	return retryableClient
 }
 
@@ -345,18 +303,42 @@ func rootCertPoolInCluster(caData []byte, kubeconfigPath string) *x509.CertPool 
 	return certPool
 }
 
-// WebResponse contains the response from a web request
-type WebResponse struct {
-	Status  int
-	Content string
+// HasStatus asserts that an HTTPResponse has a given status.
+func HasStatus(expected int) types.GomegaMatcher {
+	return gomega.WithTransform(func(response *HTTPResponse) int {
+		if response == nil {
+			return 0
+		}
+		return response.StatusCode
+	}, gomega.Equal(expected))
 }
 
-// HaveStatus asserts that a WebResponse has a given status.
-func HaveStatus(expected int) types.GomegaMatcher {
-	return gomega.WithTransform(func(response WebResponse) int { return response.Status }, gomega.Equal(expected))
+// BodyContains asserts that an HTTPResponse body contains a given substring.
+func BodyContains(expected string) types.GomegaMatcher {
+	return gomega.WithTransform(func(response *HTTPResponse) string {
+		if response == nil {
+			return ""
+		}
+		return string(response.Body)
+	}, gomega.ContainSubstring(expected))
 }
 
-// ContainContent asserts that a WebResponse contains a given substring.
-func ContainContent(expected string) types.GomegaMatcher {
-	return gomega.WithTransform(func(response WebResponse) string { return response.Content }, gomega.ContainSubstring(expected))
+// BodyEquals asserts that an HTTPResponse body equals a given string.
+func BodyEquals(expected string) types.GomegaMatcher {
+	return gomega.WithTransform(func(response *HTTPResponse) string {
+		if response == nil {
+			return ""
+		}
+		return string(response.Body)
+	}, gomega.Equal(expected))
+}
+
+// BodyNotEmpty asserts that an HTTPResponse body is not empty.
+func BodyNotEmpty() types.GomegaMatcher {
+	return gomega.WithTransform(func(response *HTTPResponse) []byte {
+		if response == nil {
+			return nil
+		}
+		return response.Body
+	}, gomega.Not(gomega.BeEmpty()))
 }
