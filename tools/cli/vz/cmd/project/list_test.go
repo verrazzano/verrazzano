@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package project
@@ -72,7 +72,13 @@ func TestNewCmdProjectList_Output(t *testing.T) {
 		outBuffer.Reset()
 	}
 
-	expected := "NAME       AGE    CLUSTERS   NAMESPACES   \nproject1   292y   local      project1     \nproject2   292y   local      project1     \nproject3   292y   local      project1     \n\n"
+	expected := `NAME       AGE    CLUSTERS   NAMESPACES   
+project1   292y   local      project1     
+project2   292y   local      project1     
+project3   292y   local      project1     
+
+`
+
 	testCmd.SetArgs(nil)
 	err := testCmd.Execute()
 	asserts.NoError(err)
