@@ -363,6 +363,10 @@ pipeline {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
                             }
+                            script {
+                                echo "GOOGLE_CHROME_VERSION ${env.GOOGLE_CHROME_VERSION}"
+                                echo "CHROMEDRIVER_VERSION ${env.CHROMEDRIVER_VERSION}"
+                            }
                             steps {
                                 acceptanceTestsConsole()
                             }
