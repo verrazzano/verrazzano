@@ -51,7 +51,6 @@ func (o *TestKubernetes) NewVerrazzanoClientSet() (verrazzanoclientset.Interface
 	return o.fakev8oClient, nil
 }
 
-
 // Fake config with fake Host address
 func (o *TestKubernetes) GetKubeConfig() *rest.Config {
 	config := &rest.Config{
