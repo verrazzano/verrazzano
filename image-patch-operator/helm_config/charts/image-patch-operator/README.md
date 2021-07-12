@@ -17,13 +17,13 @@ Next, start up a minikube cluster.
 ```bash
 minikube start
 ```
-Once the cluster is created, load the two Docker images into the cluster. Replace the image names and tags according to your `docker images` output.
+After the cluster is created, load the two Docker images into the cluster. Replace the image names and tags according to your `docker images` output.
 ```bash
 minikube image load <image-patch-operator-name>:<image-patch-operator-tag>
 minikube image load <image-tool-name>:<image-tool-tag>
 ```
 
-Install this helm chart.
+Install this Helm chart.
 ```bash
 # This assumes your current working directory is the root directory of the verrazzano repository.
 # Defining this environment variable is just for convenience.
