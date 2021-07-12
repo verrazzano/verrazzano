@@ -197,7 +197,9 @@ func newAppDefaultNetworkPolicy(appConfig *oamv1.ApplicationConfiguration) netv1
 // Allow egress to the Istio egress gateway
 func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) netv1.NetworkPolicySpec {
 	tcpProtocol := corev1.ProtocolTCP
+	udpProtocol := corev1.ProtocolUDP
 	istiodPort := intstr.FromInt(istiodTLSPort)
+	dnsPort := intstr.FromInt(53)
 	// TODO how to get app ports and metrics ports from app config
 
 	return netv1.NetworkPolicySpec{
@@ -211,12 +213,6 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 		Ingress: []netv1.NetworkPolicyIngressRule{
 			{
 				// Istio Ingress Gateway access to the pods
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						// absent Port means all port names and numbers
-					},
-				},
 				From: []netv1.NetworkPolicyPeer{
 					{
 						NamespaceSelector: &metav1.LabelSelector{
@@ -230,12 +226,6 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 			},
 			{
 				// all pods in the application to all other pods in the app on all ports
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						// absent Port means all port names and numbers
-					},
-				},
 				From: []netv1.NetworkPolicyPeer{
 					{
 						NamespaceSelector: &metav1.LabelSelector{
@@ -249,12 +239,6 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 			},
 			{
 				// Prometheus access to the metrics port
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						// absent Port means all port names and numbers
-					},
-				},
 				From: []netv1.NetworkPolicyPeer{
 					{
 						NamespaceSelector: &metav1.LabelSelector{
@@ -268,12 +252,6 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 			},
 			{
 				// Coherence operator access to ports for Coherence clusters
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						// absent Port means all port names and numbers
-					},
-				},
 				From: []netv1.NetworkPolicyPeer{
 					{
 						NamespaceSelector: &metav1.LabelSelector{
@@ -287,12 +265,6 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 			},
 			{
 				// WebLogic operator access to ports for WebLogic domains
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						// absent Port means all port names and numbers
-					},
-				},
 				From: []netv1.NetworkPolicyPeer{
 					{
 						NamespaceSelector: &metav1.LabelSelector{
@@ -327,12 +299,6 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 			},
 			{
 				// egress to Istio egress gateway
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						// absent Port means all port names and numbers
-					},
-				},
 				To: []netv1.NetworkPolicyPeer{
 					{
 						NamespaceSelector: &metav1.LabelSelector{
@@ -340,6 +306,42 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 						},
 						PodSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{"app": "istio-egressgateway"},
+						},
+					},
+				},
+			},
+			{
+				// egress to coredns
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						Port: &dnsPort,
+					},
+					{
+						Protocol: &udpProtocol,
+						Port: &dnsPort,
+					},
+				},
+				To: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: "kube-system"},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"k8s-app": "kube-dns"},
+						},
+					},
+				},
+			},
+			{
+				// all pods in the application to all other pods in the app on all ports
+				To: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: appConfig.Namespace},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app.oam.dev/name": appConfig.Name},
 						},
 					},
 				},
