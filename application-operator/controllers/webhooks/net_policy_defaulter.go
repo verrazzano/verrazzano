@@ -19,6 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const istiodTLSPort = 15012
+
 var logger = ctrl.Log.WithName("webhooks.network.policy")
 
 type NetPolicyDefaulter struct {
@@ -50,17 +52,31 @@ func (n *NetPolicyDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, 
 			return err
 		}
 
-		// create/update the network policy
+		// create/update the istiod network policy
 		logger.Info("Ensuring Istio network policy exists", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
-		netpol := newNetworkPolicy(appConfig)
+		netpol := newIstiodNetworkPolicy(appConfig)
 
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), n.Client, &netpol, func() error {
-			netpol.Spec = newNetworkPolicySpec(appConfig.Namespace)
+			netpol.Spec = newIstiodNetworkPolicySpec(appConfig.Namespace)
 			return nil
 		})
 
 		if err != nil {
-			logger.Error(err, "Unable to create or update network policy", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
+			logger.Error(err, "Unable to create or update istiod network policy", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
+			return err
+		}
+
+		// create/update the app default network policy
+		logger.Info("Ensuring app default network policy exists", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
+		netpol = newAppDefaultNetworkPolicy(appConfig)
+
+		_, err = controllerutil.CreateOrUpdate(context.TODO(), n.Client, &netpol, func() error {
+			netpol.Spec = newAppDefaultNetworkPolicySpec(appConfig.Namespace)
+			return nil
+		})
+
+		if err != nil {
+			logger.Error(err, "Unable to create or update app default network policy", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
 			return err
 		}
 	}
@@ -71,13 +87,21 @@ func (n *NetPolicyDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, 
 // Cleanup deletes the Istio network policy associated with the app config.
 func (n *NetPolicyDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool) error {
 	if !dryRun {
-		// delete the network policy
-		logger.Info("Deleting Istio network policy", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
-		netpol := newNetworkPolicy(appConfig)
+		// delete the istiod network policy
+		logger.Info("Deleting Istiod network policy", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
+		netpol := newIstiodNetworkPolicy(appConfig)
 		err := n.Client.Delete(context.TODO(), &netpol, &client.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			// log the error but don't return it so we continue processing
-			logger.Error(err, "Unable to delete network policy, ignoring")
+			logger.Error(err, "Unable to delete istiod network policy, ignoring")
+		}
+		// delete the app default network policy
+		logger.Info("Deleting app default network policy", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
+		netpol = newAppDefaultNetworkPolicy(appConfig)
+		err = n.Client.Delete(context.TODO(), &netpol, &client.DeleteOptions{})
+		if err != nil && !k8serrors.IsNotFound(err) {
+			// log the error but don't return it so we continue processing
+			logger.Error(err, "Unable to delete the app default network policy, ignoring")
 		}
 	}
 
@@ -112,8 +136,8 @@ func (n *NetPolicyDefaulter) ensureNamespaceLabel(namespace string) error {
 	return nil
 }
 
-// newNetworkPolicy returns a NetworkPolicy struct populated with the namespace and name.
-func newNetworkPolicy(appConfig *oamv1.ApplicationConfiguration) netv1.NetworkPolicy {
+// newIstiodNetworkPolicy returns a NetworkPolicy for accessing istiod, populated with the istio namespace and policy name.
+func newIstiodNetworkPolicy(appConfig *oamv1.ApplicationConfiguration) netv1.NetworkPolicy {
 	return netv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.IstioSystemNamespace,
@@ -122,11 +146,9 @@ func newNetworkPolicy(appConfig *oamv1.ApplicationConfiguration) netv1.NetworkPo
 	}
 }
 
-// newNetworkPolicySpec returns a NetworkPolicySpec struct populated with the istiod
+// newIstiodNetworkPolicySpec returns a NetworkPolicySpec for accessing istiod, populated with the istiod
 // ingress rule that allows ingress to istiod from the application namespace.
-func newNetworkPolicySpec(namespace string) netv1.NetworkPolicySpec {
-	const istiodTLSPort = 15012
-
+func newIstiodNetworkPolicySpec(namespace string) netv1.NetworkPolicySpec {
 	tcpProtocol := corev1.ProtocolTCP
 	istiodPort := intstr.FromInt(istiodTLSPort)
 
@@ -147,6 +169,56 @@ func newNetworkPolicySpec(namespace string) netv1.NetworkPolicySpec {
 					{
 						NamespaceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: namespace},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// newAppDefaultNetworkPolicy returns a default NetworkPolicy for app, populated with the app namespace and policy name.
+func newAppDefaultNetworkPolicy(appConfig *oamv1.ApplicationConfiguration) netv1.NetworkPolicy {
+	return netv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: appConfig.Namespace,
+			Name:      appConfig.Namespace + "-" + appConfig.Name,
+		},
+	}
+}
+
+// newAppDefaultNetworkPolicySpec returns a default NetworkPolicySpec for app that
+// Allow Istio Ingress Gateway access to the pods as specified in the IngressTrait.
+// Allow all pods in the application ingress to all other pods in the app on all ports
+// Allow Prometheus access to the metrics port.
+// Allow Coherence operator access to the port for Coherence clusters
+// Allow WebLogic operator access to all ports for WebLogic domains
+// Allow egress to Istiod for Envoy sidecar
+// Allow egress to the Istio egress gateway
+func newAppDefaultNetworkPolicySpec(namespace string) netv1.NetworkPolicySpec {
+	tcpProtocol := corev1.ProtocolTCP
+	istiodPort := intstr.FromInt(istiodTLSPort)
+
+	return netv1.NetworkPolicySpec{
+		PolicyTypes: []netv1.PolicyType{
+			netv1.PolicyTypeIngress,
+		},
+		Egress: []netv1.NetworkPolicyEgressRule{
+			{
+				// ingress from app namespace to istiod
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						Port:     &istiodPort,
+					},
+				},
+				To: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: "istio-system"},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "istiod"},
 						},
 					},
 				},

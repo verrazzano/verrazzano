@@ -113,7 +113,7 @@ func TestDeleteNetworkPolicy(t *testing.T) {
 	defaulter := &NetPolicyDefaulter{Client: fakeClient}
 
 	// create a network policy so the defaulter can delete it
-	netPol := newNetworkPolicy(appConfig)
+	netPol := newIstiodNetworkPolicy(appConfig)
 	err := fakeClient.Create(context.TODO(), &netPol, &client.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating network policy")
 
@@ -179,7 +179,7 @@ func assertNetworkPolicy(t *testing.T, client client.Client) {
 	netPolicy, err := fetchNetworkPolicy(t, client)
 
 	assert.NoError(t, err, "Unexpected error fetching network policy")
-	assert.Equal(t, newNetworkPolicySpec(testNamespace), netPolicy.Spec)
+	assert.Equal(t, newIstiodNetworkPolicySpec(testNamespace), netPolicy.Spec)
 }
 
 // assertNoNetworkPolicy asserts that the network policy does not exist
