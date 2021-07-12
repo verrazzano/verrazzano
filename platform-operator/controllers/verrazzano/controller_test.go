@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"testing"
 	"time"
 
@@ -34,6 +35,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
+
+// For unit testing
+const testBomFilePath = "testdata/test_bom.json"
+
 
 // Generate mocks for the Kerberos Client and StatusWriter interfaces for use in tests.
 //go:generate mockgen -destination=../mocks/controller_mock.go -package=mocks -copyright_file=../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
@@ -117,6 +122,12 @@ func TestSuccessfulInstall(t *testing.T) {
 		Name:      name,
 		Labels:    labels}
 	verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
+
+	// Sample bom file for version validation functions
+	component.SetUnitTestBomFilePath(testBomFilePath)
+	defer func() {
+		component.SetUnitTestBomFilePath("")
+	}()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -215,6 +226,12 @@ func TestCreateVerrazzano(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
+
+	// Sample bom file for version validation functions
+	component.SetUnitTestBomFilePath(testBomFilePath)
+	defer func() {
+		component.SetUnitTestBomFilePath("")
+	}()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
@@ -352,6 +369,12 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			DNSZoneName:            "test-dns-zone-name",
 		},
 	}
+
+	// Sample bom file for version validation functions
+	component.SetUnitTestBomFilePath(testBomFilePath)
+	defer func() {
+		component.SetUnitTestBomFilePath("")
+	}()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
