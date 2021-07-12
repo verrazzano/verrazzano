@@ -16,13 +16,10 @@ type ACMEStagingCerts struct {
 	letsEncryptStagingIntE1CA []byte
 }
 
-var stagingCerts = ACMEStagingCerts{
-	letsEncryptStagingIntE1CA: loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntE1, "E1"),
-	letsEncryptStagingIntR3CA: loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntR3, "R3"),
-}
-
 func getACMEStagingCAs() [][]byte {
-	return [][]byte{stagingCerts.letsEncryptStagingIntE1CA, stagingCerts.letsEncryptStagingIntR3CA}
+	letsEncryptStagingIntE1CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntE1, "E1")
+	letsEncryptStagingIntR3CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntR3, "R3")
+	return [][]byte{letsEncryptStagingIntE1CA, letsEncryptStagingIntR3CA}
 }
 
 func newSimpleHTTPClient() *http.Client {
