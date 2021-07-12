@@ -5,6 +5,7 @@ package cluster
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
@@ -21,14 +22,17 @@ func NewClusterOptions(streams genericclioptions.IOStreams) *ClusterOptions {
 	}
 }
 
-func NewCmdCluster(streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewClusterOptions(streams)
+func NewCmdCluster(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cluster",
 		Short: "Information about clusters",
 		Long:  "Information about clusters",
 	}
-	o.configFlags.AddFlags(cmd.Flags())
-	cmd.AddCommand(NewCmdClusterList(streams))
+
+	cmd.AddCommand(NewCmdClusterList(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdClusterGet(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdClusterRegister(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdClusterDeregister(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdClusterManifest(streams, kubernetesInterface))
 	return cmd
 }

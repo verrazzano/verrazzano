@@ -9,10 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-
-	"github.com/onsi/ginkgo"
 )
 
 const (
@@ -77,13 +76,13 @@ var excludePodsIstio = []string{
 	"istiod",
 }
 
-var _ = ginkgo.BeforeSuite(func() {
+var _ = BeforeSuite(func() {
 	present := false
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
 	isManagedClusterProfile = pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
 		if !present {
-			ginkgo.Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
+			Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
 		}
 	} else {
 		// Include the namespace keycloak for the validation for admin cluster and single cluster installation
@@ -92,66 +91,66 @@ var _ = ginkgo.BeforeSuite(func() {
 	}
 })
 
-var _ = ginkgo.Describe("Prometheus Metrics", func() {
+var _ = Describe("Prometheus Metrics", func() {
 	// Query Prometheus for the sample metrics from the default scraping jobs
-	var _ = ginkgo.Describe("for the system components", func() {
-		ginkgo.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
-			gomega.Eventually(func() bool {
+	var _ = Describe("for the system components", func() {
+		It("Verify sample NGINX metrics can be queried from Prometheus", func() {
+			Eventually(func() bool {
 				kv := map[string]string{
 					controllerNamespace: ingressNginxNamespace,
 					appK8SIOInstance:    ingressController,
 				}
 				return metricsContainLabels(ingressControllerSuccess, kv)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		ginkgo.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
-			gomega.Eventually(func() bool {
+		It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
+			Eventually(func() bool {
 				return metricsContainLabels(containerStartTimeSeconds, map[string]string{})
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		ginkgo.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
-			gomega.Eventually(func() bool {
+		It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
+			Eventually(func() bool {
 				kv := map[string]string{
 					job: nodeExporter,
 				}
 				return metricsContainLabels(cpuSecondsTotal, kv)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		ginkgo.It("Verify sample mesh metrics can be queried from Prometheus", func() {
-			gomega.Eventually(func() bool {
+		It("Verify sample mesh metrics can be queried from Prometheus", func() {
+			Eventually(func() bool {
 				kv := map[string]string{
 					namespace: verrazzanoSystemNamespace,
 				}
 				return metricsContainLabels(totolTCPConnectionsOpened, kv)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		ginkgo.It("Verify sample istiod metrics can be queried from Prometheus", func() {
-			gomega.Eventually(func() bool {
+		It("Verify sample istiod metrics can be queried from Prometheus", func() {
+			Eventually(func() bool {
 				kv := map[string]string{
 					app: istiod,
 					job: pilot,
 				}
 				return metricsContainLabels(sidecarInjectionRequests, kv)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		ginkgo.It("Verify sample metrics can be queried from Prometheus", func() {
-			gomega.Eventually(func() bool {
+		It("Verify sample metrics can be queried from Prometheus", func() {
+			Eventually(func() bool {
 				kv := map[string]string{
 					job: prometheus,
 				}
 				return metricsContainLabels(prometheusTargetIntervalLength, kv)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		ginkgo.It("Verify envoy stats", func() {
-			gomega.Eventually(func() bool {
+		It("Verify envoy stats", func() {
+			Eventually(func() bool {
 				return verifyEnvoyStats(envoyStatsRecentLookups)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
 })

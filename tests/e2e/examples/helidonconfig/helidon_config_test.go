@@ -5,13 +5,12 @@ package helidonconfig
 
 import (
 	"fmt"
-	"net/http"
-	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -21,37 +20,36 @@ const (
 	shortWaitTimeout     = 5 * time.Minute
 )
 
-var _ = ginkgo.BeforeSuite(func() {
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	if _, err := pkg.CreateNamespace("helidon-config", nsLabels); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+var _ = BeforeSuite(func() {
+	Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		return pkg.CreateNamespace("helidon-config", nsLabels)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-comp.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create helidon-config component resources: %v", err))
-	}
-	gomega.Eventually(func() error {
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
-	},
-		shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").Should(gomega.BeNil())
+	}, shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").ShouldNot(HaveOccurred())
 })
 
-var _ = ginkgo.AfterSuite(func() {
+var _ = AfterSuite(func() {
 	// undeploy the application here
-	err := pkg.DeleteResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete helidon-config application resource: %v\n", err.Error()))
-	}
-	err = pkg.DeleteResourceFromFile("examples/helidon-config/helidon-config-comp.yaml")
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete helidon-config component resource: %v\n", err.Error()))
-	}
-	err = pkg.DeleteNamespace("helidon-config")
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete helidon-config namespace: %v\n", err.Error()))
-	}
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/helidon-config/helidon-config-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() error {
+		return pkg.DeleteNamespace("helidon-config")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 })
 
 var (
@@ -66,14 +64,14 @@ const (
 	ingressServiceName = "istio-ingressgateway"
 )
 
-var _ = ginkgo.Describe("Verify Helidon Config OAM App.", func() {
+var _ = Describe("Verify Helidon Config OAM App.", func() {
 	// Verify helidon-config-deployment pod is running
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	ginkgo.Describe("Verify helidon-config-deployment pod is running.", func() {
-		ginkgo.It("and waiting for expected pods must be running", func() {
-			gomega.Eventually(helidonConfigPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+	Describe("Verify helidon-config-deployment pod is running.", func() {
+		It("and waiting for expected pods must be running", func() {
+			Eventually(helidonConfigPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -82,24 +80,24 @@ var _ = ginkgo.Describe("Verify Helidon Config OAM App.", func() {
 	// GIVEN the Istio gateway for the helidon-config namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	ginkgo.It("Get host from gateway.", func() {
-		gomega.Eventually(func() string {
+	It("Get host from gateway.", func() {
+		Eventually(func() string {
 			host = pkg.GetHostnameFromGateway(testNamespace, "")
 			return host
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
 
 	// Verify Helidon Config app is working
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	ginkgo.Describe("Verify Helidon Config app is working.", func() {
-		ginkgo.It("Access /config App Url.", func() {
+	Describe("Verify Helidon Config app is working.", func() {
+		It("Access /config App Url.", func() {
 			url := fmt.Sprintf("https://%s/config", host)
-			isEndpointAccessible := func() bool {
-				return appEndpointAccessible(url, host)
-			}
-			gomega.Eventually(isEndpointAccessible, 15*time.Second, 1*time.Second).Should(gomega.BeTrue())
+			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				return pkg.GetWebPageWithBasicAuth(url, host, "", "", kubeconfigPath)
+			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("HelloConfig World")))
 		})
 	})
 
@@ -107,59 +105,50 @@ var _ = ginkgo.Describe("Verify Helidon Config OAM App.", func() {
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application metrics must be accessible
-	ginkgo.Describe("Verify Prometheus scraped metrics", func() {
-		ginkgo.It("Retrieve Prometheus scraped metrics", func() {
+	Describe("Verify Prometheus scraped metrics", func() {
+		It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					gomega.Eventually(appComponentMetricsExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+					Eventually(appComponentMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					gomega.Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+					Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 			)
 		})
 	})
 
-	ginkgo.Context("Logging.", func() {
+	Context("Logging.", func() {
 		indexName := "verrazzano-namespace-helidon-config"
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
-		ginkgo.It("Verify Elasticsearch index exists", func() {
-			gomega.Eventually(func() bool {
+		It("Verify Elasticsearch index exists", func() {
+			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for helidon config")
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for helidon config")
 		})
 
 		// GIVEN an application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
-		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
-			gomega.Eventually(func() bool {
+		It("Verify recent Elasticsearch log record exists", func() {
+			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "helidon-config-component",
 					"kubernetes.labels.app_oam_dev\\/name":      "helidon-config-appconf",
 					"kubernetes.container_name":                 "helidon-config-container",
 				})
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 		})
 	})
 })
 
 func helidonConfigPodsRunning() bool {
 	return pkg.PodsRunning(testNamespace, expectedPodsHelidonConfig)
-}
-
-func appEndpointAccessible(url string, hostname string) bool {
-	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-	resp, err := pkg.GetWebPageWithBasicAuth(url, hostname, "", "", kubeconfigPath)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, resp.StatusCode))
-	gomega.Expect(strings.Contains(string(resp.Body), "HelloConfig World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT HelloConfig World %s", resp.Body))
-	return true
 }
 
 func appMetricsExists() bool {

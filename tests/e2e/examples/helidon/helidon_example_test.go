@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -24,35 +25,35 @@ const (
 )
 
 var _ = BeforeSuite(func() {
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	if _, err := pkg.CreateNamespace("hello-helidon", nsLabels); err != nil {
-		Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		return pkg.CreateNamespace("hello-helidon", nsLabels)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml"); err != nil {
-		Fail(fmt.Sprintf("Failed to create hello-helidon component resources: %v", err))
-	}
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Failed to create hello-helidon application resource")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
 })
 
 var _ = AfterSuite(func() {
 	// undeploy the application here
-	err := pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
-	if err != nil {
-		Fail(fmt.Sprintf("Could not delete hello-helidon application resource: %v\n", err.Error()))
-	}
-	err = pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
-	if err != nil {
-		Fail(fmt.Sprintf("Could not delete hello-helidon component resource: %v\n", err.Error()))
-	}
-	err = pkg.DeleteNamespace("hello-helidon")
-	if err != nil {
-		Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err.Error()))
-	}
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() error {
+		return pkg.DeleteNamespace("hello-helidon")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 })
 
 var (

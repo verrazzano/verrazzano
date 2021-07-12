@@ -119,6 +119,7 @@ func GetComponents() []Component {
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
+			appendOverridesFunc:     appendApplicationOperatorOverrides,
 		},
 		helmComponent{
 			releaseName:             "mysql",

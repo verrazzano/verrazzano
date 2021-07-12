@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -21,11 +22,11 @@ const (
 	namespace            = "console-ingress"
 )
 
-var _ = ginkgo.BeforeSuite(func() {
+var _ = BeforeSuite(func() {
 	deployApplication()
 })
 
-var _ = ginkgo.AfterSuite(func() {
+var _ = AfterSuite(func() {
 	undeployApplication()
 })
 
@@ -39,109 +40,118 @@ func deployApplication() {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	// Wait for namespace to finish deletion possibly from a prior run.
-	gomega.Eventually(func() bool {
-		ns, err := pkg.GetNamespace(namespace)
-		return ns == nil && err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+	Eventually(func() bool {
+		_, err := pkg.GetNamespace(namespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	if _, err := pkg.CreateNamespace(namespace, nsLabels); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
+	Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		return pkg.CreateNamespace(namespace, nsLabels)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
 	pkg.Log(pkg.Info, "Create Docker repository secret")
-	if _, err := pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create Docker registry secret: %v", err))
-	}
+	Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
 	pkg.Log(pkg.Info, "Create WebLogic credentials secret")
-	if _, err := pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
-	}
+	Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
 	pkg.Log(pkg.Info, "Create database credentials secret")
-	if _, err := pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "cidomain"}); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create JDBC credentials secret: %v", err))
-	}
+	Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "cidomain"})
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
 	pkg.Log(pkg.Info, "Create encryption credentials secret")
-	if _, err := pkg.CreatePasswordSecret(namespace, "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "cidomain"}); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create encryption secret: %v", err))
-	}
+	Eventually(func() (*v1.Secret, error) {
+		return pkg.CreatePasswordSecret(namespace, "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "cidomain"})
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
 	pkg.Log(pkg.Info, "Create component resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/components.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create component resources: %v", err))
-	}
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/components.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
 	pkg.Log(pkg.Info, "Create application resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create application resource: %v", err))
-	}
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 }
 
 func undeployApplication() {
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("testdata/ingress/console/application.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete application: %v", err))
-	}
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/ingress/console/application.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
 	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("testdata/ingress/console/components.yaml"); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete components: %v", err))
-	}
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/ingress/console/components.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
 	pkg.Log(pkg.Info, "Delete namespace")
-	if err := pkg.DeleteNamespace(namespace); err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete namespace: %v", err))
-	}
-	gomega.Eventually(func() bool {
-		ns, err := pkg.GetNamespace(namespace)
-		return ns == nil && err != nil && errors.IsNotFound(err)
-	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+	Eventually(func() error {
+		return pkg.DeleteNamespace(namespace)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() bool {
+		_, err := pkg.GetNamespace(namespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 }
 
-var _ = ginkgo.Describe("Verify application.", func() {
+var _ = Describe("Verify application.", func() {
 
-	ginkgo.Context("Deployment.", func() {
+	Context("Deployment.", func() {
 		// GIVEN the app is deployed
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
-		ginkgo.It("Verify 'cidomain-adminserver' and 'mysql' pods are running", func() {
-			gomega.Eventually(func() bool {
+		It("Verify 'cidomain-adminserver' and 'mysql' pods are running", func() {
+			Eventually(func() bool {
 				return pkg.PodsRunning(namespace, []string{"mysql", "cidomain-adminserver"})
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
 
-	ginkgo.Context("Ingress.", func() {
+	Context("Ingress.", func() {
 		var host = ""
 		// Get the host from the Istio gateway resource.
 		// GIVEN the Istio gateway for the test namespace
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
-		ginkgo.It("Get host from gateway.", func() {
-			gomega.Eventually(func() string {
+		It("Get host from gateway.", func() {
+			Eventually(func() string {
 				host = pkg.GetHostnameFromGateway(namespace, "")
 				return host
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+			}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 		})
 
 		// Verify the console endpoint is working.
 		// GIVEN the app is deployed
 		// WHEN the console endpoint is accessed
 		// THEN the expected results should be returned
-		ginkgo.It("Verify '/console' endpoint is working.", func() {
-			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
+		It("Verify '/console' endpoint is working.", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/console/login/LoginForm.jsp", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("Oracle WebLogic Server Administration Console")))
+			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Oracle WebLogic Server Administration Console")))
 		})
 
 		// Verify the application REST endpoint is working.
 		// GIVEN the app is deployed
 		// WHEN the REST endpoint is accessed
 		// THEN the expected results should be returned
-		ginkgo.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
-			gomega.Eventually(func() (*pkg.HTTPResponse, error) {
+		It("Verify '/todo/rest/items' REST endpoint is working.", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HasStatus(200), pkg.BodyContains("["), pkg.BodyContains("]")))
+			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("["), pkg.BodyContains("]")))
 		})
 	})
 })
