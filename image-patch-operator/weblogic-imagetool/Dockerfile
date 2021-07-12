@@ -57,21 +57,23 @@ ENV JAVA_HOME=/usr/java
 ENV PATH $JAVA_HOME/bin:$PATH
 COPY --from=build_base --chown=verrazzano:verrazzano ${JAVA_HOME} ${JAVA_HOME}
 
-# Copy over WebLogic Image Tool installation
+# Copy over WebLogic Image Tool installation and wrapper script
 COPY --from=build_base --chown=verrazzano:verrazzano /imagetool ./imagetool
+COPY --chown=verrazzano:verrazzano ./v8o-imagetool.sh .
 
 # Copy over installers
 COPY --chown=verrazzano:verrazzano ./${JDK_BINARY} ./${WLS_BINARY} ./${WDT_BINARY} ./installers/
 
-# Add installers to WIT
+# Add installers to WIT and make wrapper script executable
 ENV WLSIMG_CACHEDIR="/home/verrazzano/cache"
 RUN ./imagetool/bin/imagetool.sh cache addInstaller --type wls --version 12.2.1.4.0 --path ./${WLS_BINARY} \
     && ./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version 8u281 --path ./${JDK_BINARY} \
-    && ./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version latest --path ./${WDT_BINARY}
+    && ./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version latest --path ./${WDT_BINARY} \
+    && chmod +x ./v8o-imagetool.sh
 
 COPY THIRD_PARTY_LICENSES.txt /licenses/
 
 USER 1000
 
-ENTRYPOINT ["imagetool/bin/imagetool.sh"]
+ENTRYPOINT ["./v8o-imagetool.sh"]
 
