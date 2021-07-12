@@ -39,7 +39,6 @@ import (
 // For unit testing
 const testBomFilePath = "testdata/test_bom.json"
 
-
 // Generate mocks for the Kerberos Client and StatusWriter interfaces for use in tests.
 //go:generate mockgen -destination=../mocks/controller_mock.go -package=mocks -copyright_file=../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
 
