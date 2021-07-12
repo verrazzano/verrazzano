@@ -5,5 +5,4 @@
 // +groupName=install.verrazzano.io
 package v1alpha1
 
-
 // Needed to generate correct API group for the clients
