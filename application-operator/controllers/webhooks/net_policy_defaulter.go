@@ -71,7 +71,7 @@ func (n *NetPolicyDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, 
 		netpol = newAppDefaultNetworkPolicy(appConfig)
 
 		_, err = controllerutil.CreateOrUpdate(context.TODO(), n.Client, &netpol, func() error {
-			netpol.Spec = newAppDefaultNetworkPolicySpec(appConfig.Namespace)
+			netpol.Spec = newAppDefaultNetworkPolicySpec(appConfig)
 			return nil
 		})
 
@@ -195,17 +195,119 @@ func newAppDefaultNetworkPolicy(appConfig *oamv1.ApplicationConfiguration) netv1
 // Allow WebLogic operator access to all ports for WebLogic domains
 // Allow egress to Istiod for Envoy sidecar
 // Allow egress to the Istio egress gateway
-func newAppDefaultNetworkPolicySpec(namespace string) netv1.NetworkPolicySpec {
+func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) netv1.NetworkPolicySpec {
 	tcpProtocol := corev1.ProtocolTCP
 	istiodPort := intstr.FromInt(istiodTLSPort)
+	// TODO how to get app ports and metrics ports from app config
 
 	return netv1.NetworkPolicySpec{
+		PodSelector: metav1.LabelSelector{
+			MatchLabels: map[string]string{"app.oam.dev/name": appConfig.Name},
+		},
 		PolicyTypes: []netv1.PolicyType{
 			netv1.PolicyTypeIngress,
+			netv1.PolicyTypeEgress,
+		},
+		Ingress: []netv1.NetworkPolicyIngressRule{
+			{
+				// Istio Ingress Gateway access to the pods
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						// absent Port means all port names and numbers
+					},
+				},
+				From: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: "istio-system"},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "istio-ingressgateway"},
+						},
+					},
+				},
+			},
+			{
+				// all pods in the application to all other pods in the app on all ports
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						// absent Port means all port names and numbers
+					},
+				},
+				From: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: appConfig.Namespace},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app.oam.dev/name": appConfig.Name},
+						},
+					},
+				},
+			},
+			{
+				// Prometheus access to the metrics port
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						// absent Port means all port names and numbers
+					},
+				},
+				From: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: "verrazzano-system"},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "system-prometheus"},
+						},
+					},
+				},
+			},
+			{
+				// Coherence operator access to ports for Coherence clusters
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						// absent Port means all port names and numbers
+					},
+				},
+				From: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: "verrazzano-system"},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "coherence-operator"},
+						},
+					},
+				},
+			},
+			{
+				// WebLogic operator access to ports for WebLogic domains
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						// absent Port means all port names and numbers
+					},
+				},
+				From: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: "verrazzano-system"},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "weblogic-operator"},
+						},
+					},
+				},
+			},
 		},
 		Egress: []netv1.NetworkPolicyEgressRule{
 			{
-				// ingress from app namespace to istiod
+				// egress to istiod
 				Ports: []netv1.NetworkPolicyPort{
 					{
 						Protocol: &tcpProtocol,
@@ -219,6 +321,25 @@ func newAppDefaultNetworkPolicySpec(namespace string) netv1.NetworkPolicySpec {
 						},
 						PodSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{"app": "istiod"},
+						},
+					},
+				},
+			},
+			{
+				// egress to Istio egress gateway
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						// absent Port means all port names and numbers
+					},
+				},
+				To: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: "istio-system"},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "istio-egressgateway"},
 						},
 					},
 				},
