@@ -24,8 +24,9 @@ func NewCmdNamespace(streams genericclioptions.IOStreams, kubernetesInterface he
 		Long:  "Work with namespaces",
 		// TODO : Description needs to be rewritten
 	}
-	//cmd.AddCommand(NewCmdNamespaceAdd(streams,kubernetesInterface))
+	cmd.AddCommand(NewCmdNamespaceAdd(streams, kubernetesInterface))
 	//cmd.AddCommand(NewCmdNamespaceList(streams,kubernetesInterface))
 	//cmd.AddCommand(NewCmdNamespaceMove(streams,kubernetesInterface))
+	//cmd.AddCommand(NewCmdNamespaceDelete(streams,kubernetesInterface))
 	return cmd
 }
