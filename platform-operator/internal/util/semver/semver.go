@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap"
 	"regexp"
 	"strconv"
-	"strings"
 )
 
 const semverRegex = "^[v|V](0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
@@ -104,9 +103,8 @@ func (v *SemVersion) CompareTo(from *SemVersion) int {
 	var result int
 	if result = compareVersion(from.Major, v.Major); result == 0 {
 		if result = compareVersion(from.Minor, v.Minor); result == 0 {
-			if result = compareVersion(from.Patch, v.Patch); result == 0 {
-				result = compareVersionBuild(from.Build, v.Build)
-			}
+			result = compareVersion(from.Patch, v.Patch)
+			// Ignore pre-release/buildver fields for now
 		}
 	}
 	return result
@@ -144,12 +142,4 @@ func compareVersion(v1 int64, v2 int64) int {
 		return -1
 	}
 	return 0
-}
-
-// Returns 0 if the strings are equal, or 1 if not
-func compareVersionBuild(v1 string, v2 string) int {
-	if strings.Compare(v1, v2) == 0 {
-		return 0
-	}
-	return 1
 }
