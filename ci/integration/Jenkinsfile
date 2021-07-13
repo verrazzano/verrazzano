@@ -25,6 +25,10 @@ pipeline {
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
                 choices: [ "1.18", "1.19", "1.20", "1.17" ])
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                        defaultValue: 'NONE',
+                        description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the latest operator.yaml published to the Verrazzano Object Store will be used',
+                        trim: true)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
@@ -59,7 +63,7 @@ pipeline {
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
-        VERRAZZANO_OPERATOR_IMAGE = "NONE"
+        VERRAZZANO_OPERATOR_IMAGE = "${WORKSPACE}/integration-test-operator.yaml"
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
@@ -192,7 +196,16 @@ pipeline {
             }
             steps {
                 sh """
+                    echo "Platform Operator Configuration"
                     cd ${GO_REPO_PATH}/verrazzano
+                    if [ "NONE" = "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                        echo "Using the latest master branch operator.yaml from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/integration-test-operator.yaml
+                    else
+                        echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
+                        env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/integration-test-operator.yaml
+                    fi
                     ci/scripts/prepare_jenkins_at_environment.sh false ${params.WILDCARD_DNS_DOMAIN}
                 """
             }
