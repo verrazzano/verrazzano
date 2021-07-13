@@ -213,6 +213,14 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 buildImages("${DOCKER_IMAGE_TAG}")
+
+                publishHTML(target : [allowMissing: false,
+                  alwaysLinkToLastBuild: true,
+                  keepAll: true,
+                  reportDir: 'reports',
+                  reportFiles: 'TestResult.html',
+                  reportName: 'My Reports',
+                  reportTitles: 'The Report'])
             }
             post {
                 failure {

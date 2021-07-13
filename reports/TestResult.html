@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <title>Test</title>
+  <script>
+    async function getBuild() {
+      const url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+        }
+      });
+      const resJson = await res.json();
+      //console.log(resJson);
+      return resJson;
+    };
+    var json = getBuild()
+    var jstr = JSON.stringify(json);
+    console.log(jstr);
+    //document.body.innerHTML += jstr
+  </script>
+</head>
+
+<body>
+  <script>
+    async function getBuild() {
+      const url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+        }
+      });
+      const resJson = await res.json();
+      console.log(resJson);
+      var jstr = resJson['lastBuild']['number']
+      console.log(jstr);
+      document.body.innerHTML += "lastBuild: " + jstr
+      return resJson;
+    };
+    const build = getBuild();
+  </script>
+</body>
+
+</html>
