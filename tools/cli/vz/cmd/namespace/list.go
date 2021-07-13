@@ -28,7 +28,7 @@ func NewCmdNamespaceList(streams genericclioptions.IOStreams, kubernetesInterfac
 		Aliases: []string{"ls"},
 		Args:    cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := listNamespaces(o, streams, args, kubernetesInterface); err != nil {
+			if err := listNamespace(o, streams, args, kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
@@ -38,7 +38,7 @@ func NewCmdNamespaceList(streams genericclioptions.IOStreams, kubernetesInterfac
 	return cmd
 }
 
-func listNamespaces(o *NamespaceListOptions, streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
+func listNamespace(o *NamespaceListOptions, streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 	// business logic comes here
 	return nil
 }
