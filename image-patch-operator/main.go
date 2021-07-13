@@ -7,6 +7,10 @@ import (
 	"flag"
 	"os"
 
+	batchv1 "k8s.io/api/batch/v1"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
 	"go.uber.org/zap"
 
 	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
@@ -82,6 +86,16 @@ func main() {
 		setupLog.Errorf("unable to create controller: %v", err)
 		os.Exit(1)
 	}
+
+	setupLog.Infof("reconciler Controller: %+v", reconciler.Controller)
+
+	// Watch for the secondary resource (Job).
+	if err := reconciler.Controller.Watch(&source.Kind{Type: &batchv1.Job{}},
+		&handler.EnqueueRequestForOwner{OwnerType: &imagesv1alpha1.ImageBuildRequest{}, IsController: true}); err != nil {
+		setupLog.Errorf("unable to set watch for Job resource: %v", err)
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

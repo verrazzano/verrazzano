@@ -21,7 +21,12 @@ spec:
     singular: imagebuildrequest
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The current status of the ImageBuildRequest
+      jsonPath: .status.conditions[-1:].type
+      name: Status
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: ImageBuildRequest is the Schema for the imagebuildrequests API
