@@ -5,54 +5,60 @@ package project
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
-	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 type ProjectListOptions struct {
-	configFlags *genericclioptions.ConfigFlags
-	args        []string
+	args []string
 	genericclioptions.IOStreams
+	PrintFlags *helpers.PrintFlags
 }
 
 func NewProjectListOptions(streams genericclioptions.IOStreams) *ProjectListOptions {
 	return &ProjectListOptions{
-		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams:   streams,
+		IOStreams:  streams,
+		PrintFlags: helpers.NewGetPrintFlags(),
 	}
 }
 
-func NewCmdProjectList(streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdProjectList(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewProjectListOptions(streams)
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List projects",
-		Long:  "List projects",
+		Use:     "list",
+		Short:   "List projects",
+		Long:    "List projects",
+		Aliases: []string{"ls"},
+		Args:    cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := listProjects(cmd, args); err != nil {
+			if err := listProjects(o, streams, args, kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
 		},
 	}
-	o.configFlags.AddFlags(cmd.Flags())
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
-func listProjects(cmd *cobra.Command, args []string) error {
-	config := pkg.GetKubeConfig()
-	clientset, err := clustersclient.NewForConfig(config)
+func listProjects(o *ProjectListOptions, streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
+
+	if len(args) != 0 {
+		return errors.New("Got unexpected number of arguments, expected 0")
+	}
+
+	clientset2, err := kubernetesInterface.NewProjectClientSet()
 	if err != nil {
-		fmt.Print("could not get the clientset")
+		fmt.Fprintln(streams.ErrOut, err)
 	}
 
 	// get a list of the projects
-	projects, err := clientset.VerrazzanoProjects("verrazzano-mc").List(context.Background(), metav1.ListOptions{})
+	projects, err := clientset2.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -61,6 +67,25 @@ func listProjects(cmd *cobra.Command, args []string) error {
 	if len(projects.Items) == 0 {
 		fmt.Println(helpers.NothingFound)
 		return nil
+	}
+
+	// Output options was specified
+	if len(*o.PrintFlags.OutputFormat) != 0 {
+		// Set the Version and Kind before passing it as runtime object
+		projects.GetObjectKind().SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   "clusters.verrazzano.io",
+			Version: "v1alpha1",
+			Kind:    "VerrazzanoProject",
+		})
+
+		printer, err := o.PrintFlags.ToPrinter()
+		if err != nil {
+			fmt.Fprintln(streams.ErrOut, "Did not get a printer object")
+			return err
+		}
+		err = printer.PrintObj(projects, o.Out)
+
+		return err
 	}
 
 	// print out details of the projects
@@ -89,6 +114,6 @@ func listProjects(cmd *cobra.Command, args []string) error {
 	}
 
 	// print out the data
-	helpers.PrintTable(headings, data, cmd.OutOrStdout())
+	helpers.PrintTable(headings, data, streams.Out)
 	return nil
 }
