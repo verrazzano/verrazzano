@@ -17,7 +17,7 @@ func NewNamespaceDeleteOptions(streams genericclioptions.IOStreams) *NamespaceDe
 	}
 }
 
-func NewNamespaceDelete(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
+func NewCmdNamespaceDelete(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete",
 		Short: "delete namespace",
