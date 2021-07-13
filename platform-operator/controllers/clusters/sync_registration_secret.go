@@ -59,7 +59,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	if err != nil {
 		return err
 	}
-	tlsSecret, err := r.getTLSSecret()
+	caBundle, err := getRancherTLSRootCA(r)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	secret.Data = map[string][]byte{
 		ManagedClusterNameKey: []byte(manageClusterName),
 		ESURLKey:              []byte(url),
-		CaBundleKey:           tlsSecret.Data[CaCrtKey],
+		CaBundleKey:           caBundle,
 		UsernameKey:           vzSecret.Data[UsernameKey],
 		PasswordKey:           vzSecret.Data[PasswordKey],
 		KeycloakURLKey:        []byte(keycloakURL),
@@ -148,7 +148,7 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESSecret() (corev1.Secret, err
 }
 
 // Get the system-tls secret
-func (r *VerrazzanoManagedClusterReconciler) getTLSSecret() (corev1.Secret, error) {
+func (r *VerrazzanoManagedClusterReconciler) getSystemTLSSecret() (corev1.Secret, error) {
 	var secret corev1.Secret
 	nsn := types.NamespacedName{
 		Namespace: constants.VerrazzanoSystemNamespace,

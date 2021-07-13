@@ -37,12 +37,18 @@ CA_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
 TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"')
 if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
   CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
+else
+  # For Let's Encrypt staging, we need to use the ACME staging CAs
+  ACME_SECRET=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"')
+  if [ ! -z "${ACME_SECRET%%*( )}" ] && [ "null" != "${ACME_SECRET}" ] ; then
+    CA_CERT=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n cattle-system get secret tls-ca-additional -o json | jq -r '.data."ca-additional.pem"' | base64 --decode)
+  fi
 fi
 if [ ! -z "${CA_CERT}" ] ; then
    kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
 fi
 
-# create managed cluster ca secret on admin
+# create managed cluster ca secret on admin.
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f ${CA_SECRET_FILE}
 
 # create VerrazzanoManagedCluster on admin

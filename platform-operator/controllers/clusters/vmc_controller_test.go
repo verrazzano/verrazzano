@@ -692,7 +692,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 
 	// Expect a call to get the secret with the Rancher root CA cert but the call fails
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSSecret}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSCaSecret}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
 			return errors.NewResourceExpired("something bad happened")
 		})
@@ -1213,10 +1213,10 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 
 	// Expect a call to get the system-tls secret, return the secret with the fields set
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.SystemTLS}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSCaSecret}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				CaCrtKey: []byte(caData),
+				tlsCaSecretKey: []byte(caData),
 			}
 			return nil
 		})
@@ -1422,7 +1422,7 @@ func expectRegisterClusterWithRancherK8sCalls(t *testing.T, k8sMock *mocks.MockC
 
 	// Expect a call to get the secret with the Rancher root CA cert
 	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSSecret}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSCaSecret}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				"ca.crt": {},

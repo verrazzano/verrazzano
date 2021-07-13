@@ -90,7 +90,7 @@ function validate_certificates_section() {
       fail "The value .certificates.acme.provider must be set"
     fi
     if [ "$provider" != "letsEncrypt" ]; then
-      fail "The only .certificates.acme.provider spported is letsEncrypt"
+      fail "The only .certificates.acme.provider supported is letsEncrypt"
     fi
     local email=$(get_config_value ".certificates.acme.emailAddress")
     if [ -z "$email" ]; then
@@ -181,7 +181,7 @@ function get_verrazzano_ingress_ip {
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
     ingress_ip=$(kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
     # In case of OLCNE, it would return null
-    if [ ${ingress_ip} == "null" ]; then
+    if [ "${ingress_ip}" == "null" ]; then
       ingress_ip=$(kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
     fi
   fi
