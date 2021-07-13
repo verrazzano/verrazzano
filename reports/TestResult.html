@@ -31,7 +31,8 @@
       const res = await fetch(url, {
         method: "GET",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          // "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
         }
       });
       const resJson = await res.json();
