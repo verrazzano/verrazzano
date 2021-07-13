@@ -320,7 +320,7 @@ type KeycloakComponent struct {
 	// +optional
 	MySQL MySQLComponent `json:"mysql,omitempty"`
 	// +optional
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // MySQLComponent specifies the MySQL configuration

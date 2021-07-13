@@ -2,9 +2,6 @@
   "rancher": {
     "enabled": true
   },
-  "keycloak": {
-    "enabled": true
-  },
   "consolesEnabled": {
     "grafana": true,
     "kibana": true,
