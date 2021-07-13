@@ -19,9 +19,10 @@ func NewNamespaceOptions(streams genericclioptions.IOStreams) *NamespaceOptions 
 
 func NewCmdNamespace(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "namespace",
-		Short: "Work with namespaces",
-		Long:  "Work with namespaces",
+		Use:     "namespace",
+		Short:   "Work with namespaces",
+		Long:    "Work with namespaces",
+		Aliases: []string{"ns"},
 		// TODO : Description needs to be rewritten
 	}
 	cmd.AddCommand(NewCmdNamespaceAdd(streams, kubernetesInterface))
