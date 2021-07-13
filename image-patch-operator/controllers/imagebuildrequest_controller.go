@@ -78,7 +78,7 @@ func (r *ImageBuildRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, 
 	}
 
 	if !ibr.ObjectMeta.DeletionTimestamp.IsZero() {
-		// Cancel any running install jobs before installing
+		// Cancel any running image jobs before starting a new image job
 		if err := r.cancelImageJob(log, ibr); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -113,7 +113,7 @@ func (r *ImageBuildRequestReconciler) createImageJob(ctx context.Context, log *z
 	if err := controllerutil.SetControllerReference(ibr, job, r.Scheme); err != nil {
 		return err
 	}
-	// Check if the job for running the install scripts exist
+	// Check if the image job exist
 	jobFound := &batchv1.Job{}
 	log.Infof("Checking if image job %s exist", buildImageJobName(ibr.Name))
 	err := r.Get(ctx, types.NamespacedName{Name: buildImageJobName(ibr.Name), Namespace: ibr.Namespace}, jobFound)
@@ -236,7 +236,7 @@ func (r *ImageBuildRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return err
 }
 
-// buildImageJobName returns the name of an image job based on verrazzano resource name.
+// buildImageJobName returns the name of an image job based on ImageBuildRequest resource name.
 func buildImageJobName(name string) string {
 	return fmt.Sprintf("verrazzano-images-%s", name)
 }
@@ -251,7 +251,7 @@ func containsString(slice []string, s string) bool {
 	return false
 }
 
-// buildConfigMapName returns the name of a config map for an install job based on verrazzano resource name.
+// buildConfigMapName returns the name of a config map for an image job based on ImageBuildRequest resource name.
 func buildConfigMapName(name string) string {
 	return fmt.Sprintf("verrazzano-images-%s", name)
 }
