@@ -105,7 +105,9 @@ func (v *SemVersion) CompareTo(from *SemVersion) int {
 	if result = compareVersion(from.Major, v.Major); result == 0 {
 		if result = compareVersion(from.Minor, v.Minor); result == 0 {
 			if result = compareVersion(from.Patch, v.Patch); result == 0 {
-				result = compareVersionBuild(from.Build, v.Build)
+				if result = compareVersionSubstring(from.Prerelease, v.Prerelease); result == 0 {
+					result = compareVersionSubstring(from.Build, v.Build)
+				}
 			}
 		}
 	}
@@ -128,8 +130,15 @@ func (v *SemVersion) IsLessThan(from *SemVersion) bool {
 }
 
 // ToString Convert to a valid semver string representation
+// TODO: unit test this
 func (v *SemVersion) ToString() string {
-	return fmt.Sprintf("%v.%v.%v", v.Major, v.Minor, v.Patch)
+	if v.Build != "" {
+		return fmt.Sprintf("%v.%v.%v-%v-%v", v.Major, v.Minor, v.Patch, v.Prerelease, v.Build)
+	} else if v.Prerelease != "" {
+		return fmt.Sprintf("%v.%v.%v-%v", v.Major, v.Minor, v.Patch, v.Prerelease)
+	} else {
+		return fmt.Sprintf("%v.%v.%v", v.Major, v.Minor, v.Patch)
+	}
 }
 
 // Returns
@@ -147,7 +156,7 @@ func compareVersion(v1 int64, v2 int64) int {
 }
 
 // Returns 0 if the strings are equal, or 1 if not
-func compareVersionBuild(v1 string, v2 string) int {
+func compareVersionSubstring(v1 string, v2 string) int {
 	if strings.Compare(v1, v2) == 0 {
 		return 0
 	}

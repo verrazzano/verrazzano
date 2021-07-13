@@ -41,7 +41,9 @@ func TestValidSemver(t *testing.T) {
 		version, err := NewSemVersion(verString)
 		assert.NoError(t, err)
 		assert.NotNil(t, version)
-		assert.Equal(t, fmt.Sprintf("%s.%s.%s", verComponents[0], verComponents[1], verComponents[2]), version.ToString())
+		if !hasPreRelease && !hasBuild {
+			assert.Equal(t, fmt.Sprintf("%s.%s.%s", verComponents[0], verComponents[1], verComponents[2]), version.ToString())
+		}
 		expectedMajor, _ := strconv.ParseInt(verComponents[0], 10, 64)
 		assert.Equal(t, expectedMajor, version.Major)
 		expectedMinor, _ := strconv.ParseInt(verComponents[1], 10, 64)
@@ -114,6 +116,19 @@ func TestCompareTo(t *testing.T) {
 	v0_0_9, _ := NewSemVersion("v0.0.9")
 	v0_0_10, _ := NewSemVersion("v0.0.10")
 	assert.Equal(t, 1, v0_0_10.CompareTo(v0_0_9))
+
+	v010deva, _ := NewSemVersion("v0.1.0-dev-aaaaaaaa")
+	v010deva_2, _ := NewSemVersion("v0.1.0-dev-aaaaaaaa")
+	v010devb, _ := NewSemVersion("v0.1.0-dev-bbbbbbbb")
+	v010proda, _ := NewSemVersion("v0.1.0-prod-aaaaaaaa")
+	v020deva, _ := NewSemVersion("v0.2.0-dev-aaaaaaaa")
+	v020devb, _ := NewSemVersion("v0.2.0-dev-bbbbbbbb")
+
+	assert.Equal(t, 0, v010deva.CompareTo(v010deva_2))
+	assert.Equal(t, 1, v010deva.CompareTo(v010devb))
+	assert.Equal(t, 1, v010deva.CompareTo(v010proda))
+	assert.Equal(t, -1, v010deva.CompareTo(v020deva))
+	assert.Equal(t, -1, v010deva.CompareTo(v020devb))
 
 	V100, err := NewSemVersion("V1.0.0")
 	assert.NoError(t, err)

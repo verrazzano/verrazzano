@@ -28,7 +28,7 @@ func GetCurrentBomVersion() (*semver.SemVersion, error) {
 	return semver.NewSemVersion(fmt.Sprintf("v%s", bom.GetVersion()))
 }
 
-// ValidateVersion check that requestedVersion matches chart requestedVersion
+// ValidateVersion check that requestedVersion matches BOM requestedVersion
 func ValidateVersion(requestedVersion string) error {
 	if !config.Get().VersionCheckEnabled {
 		zap.S().Infof("Version validation disabled")
@@ -46,7 +46,7 @@ func ValidateVersion(requestedVersion string) error {
 		return err
 	}
 	if !requestedSemVer.IsEqualTo(bomSemVer) {
-		return fmt.Errorf("Requested version %s does not match BOM version %s", requestedVersion, bomSemVer.ToString())
+		return fmt.Errorf("Requested version %s does not match BOM version %s", requestedSemVer.ToString(), bomSemVer.ToString())
 	}
 	return nil
 }
