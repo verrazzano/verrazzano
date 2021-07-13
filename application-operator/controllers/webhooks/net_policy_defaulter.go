@@ -200,6 +200,7 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 	udpProtocol := corev1.ProtocolUDP
 	istiodPort := intstr.FromInt(istiodTLSPort)
 	dnsPort := intstr.FromInt(53)
+	coherencePort := intstr.FromInt(8000)
 	// TODO how to get app ports and metrics ports from app config
 
 	return netv1.NetworkPolicySpec{
@@ -212,19 +213,6 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 		},
 		Ingress: []netv1.NetworkPolicyIngressRule{
 			{
-				// Istio Ingress Gateway access to the pods
-				From: []netv1.NetworkPolicyPeer{
-					{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: "istio-system"},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"app": "istio-ingressgateway"},
-						},
-					},
-				},
-			},
-			{
 				// all pods in the application to all other pods in the app on all ports
 				From: []netv1.NetworkPolicyPeer{
 					{
@@ -233,6 +221,19 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 						},
 						PodSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{"app.oam.dev/name": appConfig.Name},
+						},
+					},
+				},
+			},
+			{
+				// Istio Ingress Gateway access to the pods
+				From: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: "istio-system"},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "istio-ingressgateway"},
 						},
 					},
 				},
@@ -278,6 +279,19 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 			},
 		},
 		Egress: []netv1.NetworkPolicyEgressRule{
+			{
+				// all pods in the application to all other pods in the app on all ports
+				To: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: appConfig.Namespace},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app.oam.dev/name": appConfig.Name},
+						},
+					},
+				},
+			},
 			{
 				// egress to istiod
 				Ports: []netv1.NetworkPolicyPort{
@@ -334,14 +348,20 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 				},
 			},
 			{
-				// all pods in the application to all other pods in the app on all ports
+				// egress to coherence operator
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						Port:     &coherencePort,
+					},
+				},
 				To: []netv1.NetworkPolicyPeer{
 					{
 						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: appConfig.Namespace},
+							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: "verrazzano-system"},
 						},
 						PodSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"app.oam.dev/name": appConfig.Name},
+							MatchLabels: map[string]string{"app": "coherence-operator"},
 						},
 					},
 				},
