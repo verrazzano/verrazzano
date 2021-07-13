@@ -32,14 +32,28 @@
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          // "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+          //"Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
         }
       });
       const resJson = await res.json();
       console.log(resJson);
       var jstr = resJson['lastBuild']['number']
       console.log(jstr);
-      document.body.innerHTML += "lastBuild: " + jstr
+      document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
+      for(var i = 0; i < 10; i++) {
+          var build = resJson.builds[i];
+          console.log(build.number);
+          const bRes = await fetch(build.url+"/api/json", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+            }
+          });
+          const buildJson = await bRes.json();
+          document.body.innerHTML += "<p> Build: " + build.number + " " + buildJson.result + "</p> "
+      }
+      document.body.innerHTML += "<p> lastBuild: " + jstr + "</p> "
       return resJson;
     };
     const build = getBuild();
