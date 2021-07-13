@@ -315,11 +315,11 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 				Ports: []netv1.NetworkPolicyPort{
 					{
 						Protocol: &tcpProtocol,
-						Port: &dnsPort,
+						Port:     &dnsPort,
 					},
 					{
 						Protocol: &udpProtocol,
-						Port: &dnsPort,
+						Port:     &dnsPort,
 					},
 				},
 				To: []netv1.NetworkPolicyPeer{
