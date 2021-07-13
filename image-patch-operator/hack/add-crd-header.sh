@@ -10,6 +10,6 @@ set -o nounset
 set -o pipefail
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-GENERATED_CRDS_DIR=${SCRIPT_DIR}/../../image-patch-operator/config/crd/bases
+GENERATED_CRDS_DIR=${SCRIPT_DIR}/../../image-patch-operator/helm_config/charts/image-patch-operator/crds
 
 go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go $GENERATED_CRDS_DIR

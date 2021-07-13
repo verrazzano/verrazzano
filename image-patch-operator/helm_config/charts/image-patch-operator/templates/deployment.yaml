@@ -1,0 +1,31 @@
+# Copyright (C) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.imagePatchOperator.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.imagePatchOperator.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.imagePatchOperator.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.imagePatchOperator.name }}
+    spec:
+      containers:
+        - name: {{ .Values.imagePatchOperator.name }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.imagePatchOperator.image }}
+          args:
+            - --zap-log-level=info
+          env:
+            - name: VZ_INSTALL_IMAGE
+              value: {{ .Values.imagePatchOperator.image }}
+            - name: WIT_IMAGE
+              value: {{ .Values.imageTool.image }}
+      serviceAccountName: {{ .Values.imagePatchOperator.name }}
