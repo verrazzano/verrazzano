@@ -12,14 +12,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// JobConfig Defines the parameters for an install job
+// JobConfig Defines the parameters for an image job
 type JobConfig struct {
 	k8s.JobConfigCommon // Extending the base job config
 
-	ConfigMapName string // Name of the install configmap used by the scripts
+	ConfigMapName string // Name of the image configmap used by the image job
 }
 
-// NewJob returns a job resource for installing ImageBuildRequest
+// NewJob returns a job resource for building an ImageBuildRequest
 func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	var annotations map[string]string = nil
 	var backoffLimit int32 = 0
@@ -57,27 +57,9 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								Value: "1",
 							},
 						},
-						//VolumeMounts: []corev1.VolumeMount{
-						//	{
-						//		Name:      "config-volume",
-						//		MountPath: "/config",
-						//	},
-						//},
 					}},
 					RestartPolicy:      corev1.RestartPolicyNever,
 					ServiceAccountName: jobConfig.ServiceAccountName,
-					//Volumes: []corev1.Volume{
-					//	{
-					//		Name: "config-volume",
-					//		VolumeSource: corev1.VolumeSource{
-					//			ConfigMap: &corev1.ConfigMapVolumeSource{
-					//				LocalObjectReference: corev1.LocalObjectReference{
-					//					Name: jobConfig.ConfigMapName,
-					//				},
-					//			},
-					//		},
-					//	},
-					//},
 				},
 			},
 		},
