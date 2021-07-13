@@ -6,8 +6,8 @@ package oam
 import (
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -22,16 +22,16 @@ const (
 	verrazzanoSystemNS = "verrazzano-system"
 )
 
-var _ = ginkgo.Describe("Verify OAM Infra.", func() {
-	ginkgo.Describe("Verify verrazzano-application-operator pod is running.", func() {
-		ginkgo.It("and waiting for expected pods must be running", func() {
-			gomega.Eventually(applicationOperatorPodRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+var _ = Describe("Verify OAM Infra.", func() {
+	Describe("Verify verrazzano-application-operator pod is running.", func() {
+		It("and waiting for expected pods must be running", func() {
+			Eventually(applicationOperatorPodRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
-	ginkgo.Describe("Verify oam-kubernetes-runtime pod is running.", func() {
-		ginkgo.It("and waiting for expected pods must be running", func() {
-			gomega.Eventually(kubernetesRuntimePodRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+	Describe("Verify oam-kubernetes-runtime pod is running.", func() {
+		It("and waiting for expected pods must be running", func() {
+			Eventually(kubernetesRuntimePodRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 })

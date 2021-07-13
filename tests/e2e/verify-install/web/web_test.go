@@ -5,8 +5,10 @@ package web_test
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -14,124 +16,137 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"k8s.io/api/extensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Verrazzano Web UI",
-	func() {
-		ingress, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
+const (
+	waitTimeout     = 3 * time.Minute
+	pollingInterval = 5 * time.Second
+)
 
-		It("ingress exist", func() {
-			Expect(err).To(BeNil())
-			Expect(len(ingress.Spec.Rules)).To(Equal(1))
+var ingress *v1beta1.Ingress
+var consoleUIConfigured bool = false
+
+var _ = BeforeSuite(func() {
+	Eventually(func() (*v1beta1.Ingress, error) {
+		var err error
+		ingress, err = pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
+		return ingress, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	Expect(len(ingress.Spec.Rules)).To(Equal(1))
+
+	// Determine if the console UI is configured
+	for _, path := range ingress.Spec.Rules[0].HTTP.Paths {
+		if path.Backend.ServiceName == "verrazzano-console" {
+			consoleUIConfigured = true
+		}
+	}
+})
+
+var _ = Describe("Verrazzano Web UI", func() {
+	When("the console UI is configured", func() {
+		var serverURL string
+
+		BeforeEach(func() {
+			if !consoleUIConfigured {
+				Skip("Skipping spec since console UI is not configured")
+			}
+
+			ingressRules := ingress.Spec.Rules
+			serverURL = fmt.Sprintf("https://%s/", ingressRules[0].Host)
 		})
 
-		// Determine if the console UI is configured
-		consoleUIConfigured := false
-		for _, path := range ingress.Spec.Rules[0].HTTP.Paths {
-			if path.Backend.ServiceName == "verrazzano-console" {
-				consoleUIConfigured = true
+		It("can be accessed", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				return pkg.GetWebPage(serverURL, "")
+			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty(), pkg.BodyDoesNotContain("404")))
+		})
+
+		It("has the correct SSL certificate", func() {
+			var certs []*x509.Certificate
+			Eventually(func() ([]*x509.Certificate, error) {
+				var err error
+				certs, err = pkg.GetCertificates(serverURL)
+				return certs, err
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+			// There will normally be several certs, but we only need to check the
+			// first one -- might want to refactor the checks out into a pkg.IsCertValid()
+			// function so we can use it from other test suites too??
+			pkg.Log(pkg.Debug, "Issuer Common Name: "+certs[0].Issuer.CommonName)
+			pkg.Log(pkg.Debug, "Subject Common Name: "+certs[0].Subject.CommonName)
+			pkg.Log(pkg.Debug, "Not Before: "+certs[0].NotBefore.String())
+			pkg.Log(pkg.Debug, "Not After: "+certs[0].NotAfter.String())
+			Expect(time.Now().After(certs[0].NotBefore)).To(BeTrue())
+			Expect(time.Now().Before(certs[0].NotAfter)).To(BeTrue())
+		})
+
+		It("should return no Server header", func() {
+			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+			Expect(err).ShouldNot(HaveOccurred())
+			req, err := retryablehttp.NewRequest("GET", serverURL, nil)
+			Expect(err).ShouldNot(HaveOccurred())
+			resp, err := httpClient.Do(req)
+			Expect(err).ShouldNot(HaveOccurred())
+			ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			// HTTP Server headers should never be returned.
+			for headerName, headerValues := range resp.Header {
+				Expect(strings.ToLower(headerName)).ToNot(Equal("server"), fmt.Sprintf("Unexpected Server header %v", headerValues))
 			}
-		}
+		})
 
-		if consoleUIConfigured {
+		It("should not return CORS Access-Control-Allow-Origin header when no Origin header is provided", func() {
+			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+			Expect(err).ShouldNot(HaveOccurred())
+			req, err := retryablehttp.NewRequest("GET", serverURL, nil)
+			Expect(err).ShouldNot(HaveOccurred())
+			resp, err := httpClient.Do(req)
+			Expect(err).ShouldNot(HaveOccurred())
+			ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			// HTTP Access-Control-Allow-Origin header should never be returned.
+			for headerName, headerValues := range resp.Header {
+				Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
+			}
+		})
 
-			var ingressRules = ingress.Spec.Rules
-			serverURL := fmt.Sprintf("https://%s/", ingressRules[0].Host)
+		It("should not return CORS Access-Control-Allow-Origin header when Origin: * is provided", func() {
+			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+			Expect(err).ShouldNot(HaveOccurred())
+			req, err := retryablehttp.NewRequest("GET", serverURL, nil)
+			req.Header.Add("Origin", "*")
+			Expect(err).ShouldNot(HaveOccurred())
+			resp, err := httpClient.Do(req)
+			Expect(err).ShouldNot(HaveOccurred())
+			ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			// HTTP Access-Control-Allow-Origin header should never be returned.
+			for headerName, headerValues := range resp.Header {
+				Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
+			}
+		})
 
-			pkg.Log(pkg.Info, "The Web UI's URL is "+serverURL)
-
-			It("can be accessed", func() {
-				resp, err := pkg.GetWebPage(serverURL, "")
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(resp.StatusCode).To(Equal(200))
-				Expect(resp.Body).To(Not(BeEmpty()))
-				Expect(string(resp.Body)).To(Not(ContainSubstring("404")))
-			})
-
-			It("has the correct SSL certificate",
-				func() {
-					certs, err := pkg.GetCertificates(serverURL)
-					Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Could not get certs from URL: %s, error: %v", serverURL, err))
-					// There will normally be several certs, but we only need to check the
-					// first one -- might want to refactor the checks out into a pkg.IsCertValid()
-					// function so we can use it from other test suites too??
-					pkg.Log(pkg.Debug, "Issuer Common Name: "+certs[0].Issuer.CommonName)
-					pkg.Log(pkg.Debug, "Subject Common Name: "+certs[0].Subject.CommonName)
-					pkg.Log(pkg.Debug, "Not Before: "+certs[0].NotBefore.String())
-					pkg.Log(pkg.Debug, "Not After: "+certs[0].NotAfter.String())
-					Expect(time.Now().After(certs[0].NotBefore)).To(BeTrue())
-					Expect(time.Now().Before(certs[0].NotAfter)).To(BeTrue())
-				})
-
-			It("should return no Server header",
-				func() {
-					kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-					httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
-					Expect(err).ShouldNot(HaveOccurred())
-					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
-					Expect(err).ShouldNot(HaveOccurred())
-					resp, err := httpClient.Do(req)
-					Expect(err).ShouldNot(HaveOccurred())
-					ioutil.ReadAll(resp.Body)
-					resp.Body.Close()
-					// HTTP Server headers should never be returned.
-					for headerName, headerValues := range resp.Header {
-						Expect(strings.ToLower(headerName)).ToNot(Equal("server"), fmt.Sprintf("Unexpected Server header %v", headerValues))
-					}
-				})
-
-			It("should not return CORS Access-Control-Allow-Origin header when no Origin header is provided",
-				func() {
-					kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-					httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
-					Expect(err).ShouldNot(HaveOccurred())
-					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
-					Expect(err).ShouldNot(HaveOccurred())
-					resp, err := httpClient.Do(req)
-					Expect(err).ShouldNot(HaveOccurred())
-					ioutil.ReadAll(resp.Body)
-					resp.Body.Close()
-					// HTTP Access-Control-Allow-Origin header should never be returned.
-					for headerName, headerValues := range resp.Header {
-						Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
-					}
-				})
-
-			It("should not return CORS Access-Control-Allow-Origin header when Origin: * is provided",
-				func() {
-					kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-					httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
-					Expect(err).ShouldNot(HaveOccurred())
-					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
-					req.Header.Add("Origin", "*")
-					Expect(err).ShouldNot(HaveOccurred())
-					resp, err := httpClient.Do(req)
-					Expect(err).ShouldNot(HaveOccurred())
-					ioutil.ReadAll(resp.Body)
-					resp.Body.Close()
-					// HTTP Access-Control-Allow-Origin header should never be returned.
-					for headerName, headerValues := range resp.Header {
-						Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
-					}
-				})
-
-			It("should not return CORS Access-Control-Allow-Origin header when Origin: null is provided",
-				func() {
-					kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
-					httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
-					Expect(err).ShouldNot(HaveOccurred())
-					req, err := retryablehttp.NewRequest("GET", serverURL, nil)
-					req.Header.Add("Origin", "null")
-					Expect(err).ShouldNot(HaveOccurred())
-					resp, err := httpClient.Do(req)
-					Expect(err).ShouldNot(HaveOccurred())
-					ioutil.ReadAll(resp.Body)
-					resp.Body.Close()
-					// HTTP Access-Control-Allow-Origin header should never be returned.
-					for headerName, headerValues := range resp.Header {
-						Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
-					}
-				})
-		}
+		It("should not return CORS Access-Control-Allow-Origin header when Origin: null is provided", func() {
+			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+			Expect(err).ShouldNot(HaveOccurred())
+			req, err := retryablehttp.NewRequest("GET", serverURL, nil)
+			req.Header.Add("Origin", "null")
+			Expect(err).ShouldNot(HaveOccurred())
+			resp, err := httpClient.Do(req)
+			Expect(err).ShouldNot(HaveOccurred())
+			ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			// HTTP Access-Control-Allow-Origin header should never be returned.
+			for headerName, headerValues := range resp.Header {
+				Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
+			}
+		})
 	})
+})
