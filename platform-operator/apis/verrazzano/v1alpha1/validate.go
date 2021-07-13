@@ -88,7 +88,7 @@ func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec
 		}
 	}
 
-	// If any other field has changed from the stored spec return falsec
+	// If any other field has changed from the stored spec return false
 	if newSpec.Profile != currentSpec.Profile ||
 		newSpec.EnvironmentName != currentSpec.EnvironmentName ||
 		!reflect.DeepEqual(newSpec.Components, currentSpec.Components) {
