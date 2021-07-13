@@ -66,15 +66,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	//if err = (&controllers.ImageBuildRequestReconciler{
-	//	Client: mgr.GetClient(),
-	//	Scheme: mgr.GetScheme(),
-	//	DryRun: dryRun,
-	//}).SetupWithManager(mgr); err != nil {
-	//	setupLog.Errorf("unable to create controller: %v", err)
-	//	os.Exit(1)
-	//}
-
 	// Setup the reconciler
 	_, dryRun := os.LookupEnv("VZ_DRY_RUN") // If this var is set, the install jobs are no-ops
 	reconciler := controllers.ImageBuildRequestReconciler{
@@ -86,8 +77,6 @@ func main() {
 		setupLog.Errorf("unable to create controller: %v", err)
 		os.Exit(1)
 	}
-
-	setupLog.Infof("reconciler Controller: %+v", reconciler.Controller)
 
 	// Watch for the secondary resource (Job).
 	if err := reconciler.Controller.Watch(&source.Kind{Type: &batchv1.Job{}},
