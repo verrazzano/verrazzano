@@ -1,0 +1,291 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+def DOCKER_IMAGE_TAG
+
+def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "${agentLabel}"
+        }
+    }
+
+    parameters {
+        booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
+        booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
+        choice (name: 'WILDCARD_DNS_DOMAIN',
+                description: 'Wildcard DNS Domain',
+                // 1st choice is the default value
+                choices: [ "nip.io", "sslip.io"])
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: 'master',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
+    }
+
+    environment {
+        DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
+        DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
+        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
+        GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_EMAIL = credentials('github-packages-email')
+        DOCKER_REPO = 'ghcr.io'
+        DOCKER_NAMESPACE = 'verrazzano'
+        NETRC_FILE = credentials('netrc')
+        GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
+        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
+        GITHUB_RELEASE_USERID = credentials('github-userid-release')
+        GITHUB_RELEASE_EMAIL = credentials('github-email-release')
+        SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+        DEFAULT_FLUENTD_IMAGE = "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6"
+
+        CLUSTER_NAME = 'verrazzano'
+        KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
+        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        OCR_REPO = 'container-registry.oracle.com'
+        IMAGE_PULL_SECRET = 'verrazzano-container-registry'
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        INSTALL_PROFILE = "dev"
+        VZ_ENVIRONMENT_NAME = "default"
+        TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
+        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+
+
+        JENKINS_READ = credentials('jenkins-auditor')
+
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
+        OCI_OS_BUCKET="verrazzano-builds"
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
+
+                script {
+                    def scmInfo = checkout scm
+                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+                sh """
+                    cp -f "${NETRC_FILE}" $HOME/.netrc
+                    chmod 600 $HOME/.netrc
+                """
+
+                script {
+                    try {
+                        sh """
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            """
+                        }
+                    }
+                }
+                script {
+                    try {
+                        sh """
+                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "OCR docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                            """
+                        }
+                    }
+                }
+                moveContentToGoRepoPath()
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                    // update the description with some meaningful info
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
+                    def currentCommitHash = env.GIT_COMMIT
+                }
+            }
+        }
+
+        stage('Quality and Compliance Checks') {
+            when { not { buildingTag() } }
+            steps {
+                qualityCheck()
+                thirdpartyCheck()
+            }
+        }
+
+        stage('Unit Tests') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano
+                    make -B coverage
+                """
+            }
+            post {
+                always {
+                    sh """
+                        cd ${GO_REPO_PATH}/verrazzano
+                        cp coverage.html ${WORKSPACE}
+                        cp coverage.xml ${WORKSPACE}
+                        build/copy-junit-output.sh ${WORKSPACE}
+                    """
+                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    cobertura(coberturaReportFile: 'coverage.xml',
+                      enableNewApi: true,
+                      autoUpdateHealth: false,
+                      autoUpdateStability: false,
+                      failUnstable: true,
+                      failUnhealthy: true,
+                      failNoReports: true,
+                      onlyStable: false,
+                      fileCoverageTargets: '100, 0, 0',
+                      lineCoverageTargets: '75, 75, 75',
+                      packageCoverageTargets: '100, 0, 0',
+                    )
+                }
+            }
+        }
+
+        stage('Installation') {
+            environment {
+                KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+            }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ci/scripts/prepare_jenkins_at_environment.sh false ${params.WILDCARD_DNS_DOMAIN}
+                """
+            }
+            post {
+                always {
+                    sh """
+                        ## dump out install logs
+                        mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
+                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install.log --tail -1
+                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
+                        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+                        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+                        echo "------------------------------------------"
+                    """
+                }
+            }
+        }
+
+        stage('Integration Tests') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    kubectl delete validatingwebhookconfigurations verrazzano-application-ingresstrait-validator
+                    kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter
+                    kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter
+                    kubectl delete validatingwebhookconfigurations verrazzano-application-verrazzanoproject
+                    kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
+                """
+                integrationTests("${DOCKER_IMAGE_TAG}")
+            }
+            post {
+                always {
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+        }
+        failure {
+            sh """
+                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
+            """
+            archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
+            sh """
+                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
+                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
+                rm archive.zip
+            """
+            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
+            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
+            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+            script {
+                if (env.JOB_NAME == "verrazzano-integration-tests/master") {
+                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                }
+            }
+        }
+        cleanup {
+            deleteDir()
+        }
+    }
+}
+
+// Called in Stage Clean workspace and checkout steps
+def moveContentToGoRepoPath() {
+    sh """
+        rm -rf ${GO_REPO_PATH}/verrazzano
+        mkdir -p ${GO_REPO_PATH}/verrazzano
+        tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+    """
+}
+
+// Called in Stage Integration Tests steps
+def integrationTests(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/application-operator
+        ginkgo -v -keepGoing --noColor test/integration/...
+        ../build/copy-junit-output.sh ${WORKSPACE}
+        make cleanup-cluster
+    """
+}
+
+// Called in Stage Quality and Compliance Checks steps
+// Makes target check to run all linters
+def qualityCheck() {
+    sh """
+        echo "run all linters"
+        cd ${GO_REPO_PATH}/verrazzano
+        make check
+
+        echo "copyright scan"
+        time make copyright-check
+
+        echo "Third party license check"
+    """
+}
+
+
