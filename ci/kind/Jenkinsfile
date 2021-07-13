@@ -362,8 +362,6 @@ pipeline {
                         stage ('console') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                                GOOGLE_CHROME_VERSION="90.0.4430.93-1"
-                                CHROMEDRIVER_VERSION="90.0.4430.24"
                             }
                             steps {
                                 acceptanceTestsConsole()
@@ -551,7 +549,7 @@ def acceptanceTestsConsole() {
         git checkout ${params.CONSOLE_REPO_BRANCH}
 
         # Temporary change to pickup the change to Makefile of Console repo
-        git checkout mgianata/add-google-chrome-to-runner
+        git checkout pabhat/vz-2956
 
         # Run the tests
         make run-ui-tests
