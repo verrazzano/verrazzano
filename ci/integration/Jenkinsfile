@@ -52,8 +52,10 @@ pipeline {
         DEFAULT_FLUENTD_IMAGE = "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6"
 
         CLUSTER_NAME = 'verrazzano'
+        TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        VERRAZZANO_OPERATOR_IMAGE = "NONE"
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
@@ -182,6 +184,7 @@ pipeline {
         stage('Installation') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
                 sh """
