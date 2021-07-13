@@ -36,6 +36,7 @@ type JUnitTestCase struct {
 	Skipped        *JUnitSkipped        `xml:"skipped,omitempty"`
 	Time           float64              `xml:"time,attr"`
 	SystemOut      string               `xml:"system-out,omitempty"`
+	Features  []string        `xml:"feature"`
 }
 
 type JUnitPassedMessage struct {
@@ -110,6 +111,10 @@ func (reporter *JUnitReporter) SpecDidComplete(specSummary *types.SpecSummary) {
 	testCase := JUnitTestCase{
 		Name:      strings.Join(specSummary.ComponentTexts[1:], " "),
 		ClassName: reporter.testSuiteName,
+		Features:  make([]string, len(FeaturesTested.Features)),
+	}
+	for i, feature := range FeaturesTested.Features {
+		testCase.Features[i] = string(feature)
 	}
 	if reporter.ReporterConfig.ReportPassed && specSummary.State == types.SpecStatePassed {
 		testCase.PassedMessage = &JUnitPassedMessage{

@@ -286,7 +286,7 @@ var _ = vz.VzDescribe("Verrazzano", func() {
 	}, "verrazzano.permissions")
 
 	vz.VzDescribe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
-		ginkgo.It("has correct subjects and refs", func() {
+		vz.VzIt("has correct subjects and refs", func() {
 			crb, err := pkg.GetClusterRoleBinding("verrazzano-monitor-k8s")
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Error getting cluster role binding")
 			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
@@ -303,8 +303,8 @@ var _ = vz.VzDescribe("Verrazzano", func() {
 				"the subject's apiGroup should be rbac.authorization.k8s.io")
 			gomega.Expect(s.Kind == "Group").To(gomega.BeTrue(),
 				"the subject's kind should be Group")
-			gomega.Expect(s.Name == "verrazzano-monitors").To(gomega.BeTrue(),
+			gomega.Expect(s.Name == "verrazzano-monitors111").To(gomega.BeTrue(),
 				"the subject's name should be verrazzano-monitors")
-		})
+		}, "verrazzano.mark")
 	}, "verrazzano.permissions")
 })

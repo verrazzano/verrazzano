@@ -6,6 +6,7 @@ features:
     install:
     permissions:
     crds:
+    mark:
   metrics:
     prometheus:
       dev:

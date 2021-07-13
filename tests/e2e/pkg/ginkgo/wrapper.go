@@ -21,6 +21,12 @@ func VZRunSpecsWithDefaultAndCustomReporters(t ginkgo.GinkgoTestingT, descriptio
 	return ginkgo.RunSpecsWithDefaultAndCustomReporters(t, description, specReporters)
 }
 
+func VzIt(text string, body func(), features ...Feature) bool {
+	initBuildFeaureChecker(text)
+	checkFeature(features...)
+	return ginkgo.It(text, body)
+}
+
 func VzDescribe(text string, body func(), features ...Feature) bool {
 	initBuildFeaureChecker(text)
 	checkFeature(features...)
