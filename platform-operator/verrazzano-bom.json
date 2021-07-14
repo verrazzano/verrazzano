@@ -433,7 +433,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "00.18.0-20210714164820-ee16ab2"
+              "tag": "0.18.0-20210714164820-ee16ab2"
             }
           ]
         }
