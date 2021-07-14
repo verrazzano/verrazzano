@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 global:
-  hub: ghcr.io/verrazzano
+  hub: docker.io/istio
   tag: 1.7.3
   arch:
     amd64: 2
