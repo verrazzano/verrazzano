@@ -13,25 +13,25 @@ import (
 var projectID = []string{""}
 var description []string
 
-type NamespaceAddOptions struct {
+type NamespaceCreateOptions struct {
 	args []string
 	genericclioptions.IOStreams
 }
 
-func NewNamespaceAddOptions(streams genericclioptions.IOStreams) *NamespaceAddOptions {
-	return &NamespaceAddOptions{
+func NewNamespaceCreateOptions(streams genericclioptions.IOStreams) *NamespaceCreateOptions {
+	return &NamespaceCreateOptions{
 		IOStreams: streams,
 	}
 }
 
-func NewCmdNamespaceAdd(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
+func NewCmdNamespaceCreate(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add namespace",
-		Short: "Add a namespace",
-		Long:  "Add a namespace",
+		Use:   "create namespace",
+		Short: "create a namespace",
+		Long:  "Create a namespace",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := AddNamespace(streams, args, kubernetesInterface); err != nil {
+			if err := createNamespace(streams, args, kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
@@ -39,23 +39,15 @@ func NewCmdNamespaceAdd(streams genericclioptions.IOStreams, kubernetesInterface
 	}
 	cmd.Flags().StringSliceVar(&description, "description", []string{}, "description about the namespace")
 	cmd.Flags().StringSliceVarP(&projectID, "project-id", "p", []string{}, "ID of project this namespace belongs to")
-	// TODO : Confirm if project flag is mandatory. Make the project flag mandatory
-	// throw an error if project is not specified
-	/*if len(projectID[0])==0{
-		fmt.Fprintln(streams.ErrOut,"project flag is mandatory")
-	}*/
+	// TODO : Throw a more graceful error when project flag is not specified.
 	return cmd
 }
 
-func AddNamespace(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
-	/*if len(projectID[0])==0{
-		//fmt.Fprintln(streams.ErrOut,"project flag is mandatory")
-		return errors.New("project flag is mandatory")
-	}*/
+func createNamespace(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 	nsName := args[0]
 
 	//preparing namespace resource
-	// TODO : Should i implement creation timestamp? it's empty when viewed through project command.
+	// TODO : Isolate error in project about createTimeStamp, or pass it here.
 	namespace := v1alpha1.NamespaceTemplate{
 		Metadata: metav1.ObjectMeta{
 			Name: nsName,

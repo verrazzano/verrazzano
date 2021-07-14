@@ -36,5 +36,6 @@ func NewCmdNamespaceMove(streams genericclioptions.IOStreams, kubernetesInterfac
 
 func moveNamespace(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 	// business logic
+	// vz namespace move <projectname> <namespace anem>
 	return nil
 }
