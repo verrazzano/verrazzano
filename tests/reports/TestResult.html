@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <title>Test</title>
+</head>
+<body>
+  <script>
+    function tableRow(c0, c1, c2, link, c3) {
+        var row = document.createElement("tr");
+        var col0 = document.createElement("td");
+        col0.appendChild(document.createTextNode(c0));
+        var col1 = document.createElement("td");
+        col1.appendChild(document.createTextNode(c1));
+        row.appendChild(col0);
+        row.appendChild(col1);
+        var col2 = document.createElement("td");
+        if (new String(link).valueOf() == new String("").valueOf()) {
+            col2.appendChild(document.createTextNode(c2));
+        } else {
+            var a = document.createElement("a");
+            a.appendChild(document.createTextNode(c2));
+            a.title = c2;
+            a.href = link;
+            col2.appendChild(a);
+        }
+        var col3 = document.createElement("td");
+        col3.appendChild(document.createTextNode(c3));
+        row.appendChild(col2);
+        row.appendChild(col3);
+        return row
+    }
+
+    function get(url) {
+          return fetch(url, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              // "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+            }
+          });
+      }
+
+    async function showResults() {
+      const body = document.getElementsByTagName("body")[0];
+      const table = document.createElement("table");
+      const tableBody = document.createElement("tableBody");
+      const url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
+      const res = await get(url)
+      const resJson = await res.json();
+      console.log(resJson);
+      tableBody.appendChild(tableRow("build#", "commit message", "main", "", "multiClusterAT"));
+
+      for(var i = 0; i < 10; i++) {
+        const build = resJson.builds[i];
+        const bRes = await get( build.url+"/api/json")
+        const buildJson = await bRes.json();
+        tableBody.appendChild(tableRow(build.number, "todo (####)", buildJson.result, build.url, "TODO"));
+      }
+
+      document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
+      table.setAttribute("border", "1");
+      table.appendChild(tableBody);
+      body.appendChild(table);
+    };
+    showResults();
+  </script>
+</body>
+
+</html>
