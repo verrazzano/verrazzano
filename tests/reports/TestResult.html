@@ -1,9 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <title>Test</title>
-</head>
-<body>
   <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/">
   <script>
     function tableRow(c0, c1, c2, link, c3) {
@@ -137,13 +134,12 @@
           return await res.json();
     }
 
-    const body = document.getElementsByTagName("body")[0];
     const table = document.createElement("table");
     const tableBody = document.createElement("tableBody");
     const triggerNumbers = new Map(); // masterBuild# : triggerNumber
     const mcatJobs = new Map();
 
-    async function showResults() {
+    async function showResults(body) {
       var url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
       const masterJobs = await get(url);
 console.log(masterJobs);
@@ -198,7 +194,14 @@ console.log(masterJobs);
       console.log(mtrcs);
       document.body.innerHTML += "<p> metrics prometheus_build_info: "+mtrcs.status
     };
-    showResults();
+    //showResults();
+  </script>
+  <title>Test</title>
+</head>
+<body>
+  <script>
+      const body = document.getElementsByTagName("body")[0];
+    showResults(body);
   </script>
 </body>
 
