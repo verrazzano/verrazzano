@@ -149,89 +149,95 @@ pipeline {
             }
         }
 
-        stage('Quality and Compliance Checks') {
-            when { not { buildingTag() } }
-            steps {
-                qualityCheck()
-                thirdpartyCheck()
-            }
-        }
+        parallel {
+            stage ('Unit Testing') {
+                stage('Quality and Compliance Checks') {
+                    when { not { buildingTag() } }
+                    steps {
+                        qualityCheck()
+                        thirdpartyCheck()
+                    }
+                }
 
-        stage('Unit Tests') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make -B coverage
-                """
-            }
-            post {
-                always {
-                    sh """
-                        cd ${GO_REPO_PATH}/verrazzano
-                        cp coverage.html ${WORKSPACE}
-                        cp coverage.xml ${WORKSPACE}
-                        build/copy-junit-output.sh ${WORKSPACE}
-                    """
-                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    cobertura(coberturaReportFile: 'coverage.xml',
-                      enableNewApi: true,
-                      autoUpdateHealth: false,
-                      autoUpdateStability: false,
-                      failUnstable: true,
-                      failUnhealthy: true,
-                      failNoReports: true,
-                      onlyStable: false,
-                      fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '75, 75, 75',
-                      packageCoverageTargets: '100, 0, 0',
-                    )
+                stage('Unit Tests') {
+                    when { not { buildingTag() } }
+                    steps {
+                        sh """
+                            cd ${GO_REPO_PATH}/verrazzano
+                            make -B coverage
+                        """
+                    }
+                    post {
+                        always {
+                            sh """
+                                cd ${GO_REPO_PATH}/verrazzano
+                                cp coverage.html ${WORKSPACE}
+                                cp coverage.xml ${WORKSPACE}
+                                build/copy-junit-output.sh ${WORKSPACE}
+                            """
+                            archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                            cobertura(coberturaReportFile: 'coverage.xml',
+                              enableNewApi: true,
+                              autoUpdateHealth: false,
+                              autoUpdateStability: false,
+                              failUnstable: true,
+                              failUnhealthy: true,
+                              failNoReports: true,
+                              onlyStable: false,
+                              fileCoverageTargets: '100, 0, 0',
+                              lineCoverageTargets: '75, 75, 75',
+                              packageCoverageTargets: '100, 0, 0',
+                            )
+                        }
+                    }
                 }
             }
-        }
 
-        stage('Installation') {
-            environment {
-                KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
-            }
-            steps {
-                sh """
-                    ci/scripts/prepare_jenkins_at_environment.sh false ${params.WILDCARD_DNS_DOMAIN}
-                """
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: "integration-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                    sh """
-                        ## dump out install logs
-                        mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
-                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install.log --tail -1
-                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
-                        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                        echo "------------------------------------------"
-                    """
+            stage ('Integration Testing') {
+                stage('Installation') {
+                    environment {
+                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                        OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                    }
+                    steps {
+                        sh """
+                            ci/scripts/prepare_jenkins_at_environment.sh false ${params.WILDCARD_DNS_DOMAIN}
+                        """
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: "integration-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                            sh """
+                                ## dump out install logs
+                                mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
+                                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install.log --tail -1
+                                kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
+                                echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+                                echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+                                echo "------------------------------------------"
+                            """
+                        }
+                    }
                 }
-            }
-        }
 
-        stage('Integration Tests') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    kubectl delete validatingwebhookconfigurations verrazzano-application-ingresstrait-validator
-                    kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter
-                    kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter
-                    kubectl delete validatingwebhookconfigurations verrazzano-application-verrazzanoproject
-                    kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
-                """
-                integrationTests("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                always {
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                stage('Integration Tests') {
+                    when { not { buildingTag() } }
+                    steps {
+                        sh """
+                            kubectl delete validatingwebhookconfigurations verrazzano-application-ingresstrait-validator
+                            kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter
+                            kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter
+                            kubectl delete validatingwebhookconfigurations verrazzano-application-verrazzanoproject
+                            kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
+                        """
+                        integrationTests("${DOCKER_IMAGE_TAG}")
+                    }
+                    post {
+                        always {
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
                 }
             }
         }
