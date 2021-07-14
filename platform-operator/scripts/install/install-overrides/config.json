@@ -5,7 +5,7 @@
   "consolesEnabled": {
     "grafana": true,
     "kibana": true,
-    "elasticsearch": true,
+    "elasticSearch": true,
     "prometheus": true,
     "console": true
   }
