@@ -80,6 +80,12 @@ pipeline {
 
     stages {
         stage('Clean workspace and checkout') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    changeset "tests/reports/**"
+                }
+            }
             steps {
                 sh """
                     echo "${NODE_LABELS}"
@@ -148,7 +154,12 @@ pipeline {
         }
 
         stage('Build') {
-            when { not { buildingTag() } }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    changeset "tests/reports/**"
+                }
+            }
             steps {
                 archiveArtifacts artifacts: 'tests/reports/*.html', allowEmptyArchive: true
                 publishHTML(target : [allowMissing: false,
@@ -173,6 +184,12 @@ pipeline {
     }
 
     post {
+        when {
+            allOf {
+                not { buildingTag() }
+                changeset "tests/reports/**"
+            }
+        }
         failure {
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
