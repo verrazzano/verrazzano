@@ -34,7 +34,7 @@ func TestNipIoInstallDefaults(t *testing.T) {
 	assert.Equalf(t, 0, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
 	assert.Equalf(t, 0, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mySqlInstallArgs length did not match")
 	assert.Equalf(t, "true", config.Keycloak.Enabled, "Expected keycloak enabled did not match")
-	assert.Equalf(t, "", config.Rancher.Enabled, "Expected rancher enabled did not match")
+	assert.Equalf(t, "true", config.Rancher.Enabled, "Expected rancher enabled did not match")
 }
 
 // TestNipIoInstallNonDefaults tests the creation of an nip.io install non-default configuration
@@ -88,7 +88,7 @@ func TestNipIoInstallNonDefaults(t *testing.T) {
 					},
 				},
 				Rancher: &installv1alpha1.RancherComponent{
-					Enabled: true,
+					Enabled: &enabled,
 				},
 				Keycloak: &installv1alpha1.KeycloakComponent{
 					KeycloakInstallArgs: []installv1alpha1.InstallArgs{

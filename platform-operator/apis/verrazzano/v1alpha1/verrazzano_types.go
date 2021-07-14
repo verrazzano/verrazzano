@@ -342,7 +342,7 @@ type ConsoleComponent struct {
 
 type RancherComponent struct {
 	// +optional
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // FluentdComponent specifies the Fluentd DaemonSet configuration

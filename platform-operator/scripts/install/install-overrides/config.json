@@ -1,7 +1,4 @@
 {
-  "rancher": {
-    "enabled": true
-  },
   "consolesEnabled": {
     "grafana": true,
     "kibana": true,

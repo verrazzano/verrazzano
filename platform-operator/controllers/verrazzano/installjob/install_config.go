@@ -338,12 +338,16 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 
 func getRancher(rancher *installv1alpha1.RancherComponent) Rancher {
 	if rancher == nil {
-		return Rancher{}
+		return Rancher{Enabled: "true"}
 	}
-	rancherConfig := Rancher{
-		Enabled: strconv.FormatBool(rancher.Enabled),
+
+	var enabled string
+	if rancher.Enabled != nil {
+		enabled = strconv.FormatBool(*rancher.Enabled)
+	} else {
+		enabled = "true"
 	}
-	return rancherConfig
+	return Rancher{Enabled: enabled}
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
