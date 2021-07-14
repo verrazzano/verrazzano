@@ -173,8 +173,6 @@ pipeline {
     }
 
     post {
-        always {
-        }
         failure {
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
@@ -243,7 +241,6 @@ def storePipelineArtifacts() {
         fi
     """
 }
-
 
 
 // Called in Stage Clean workspace and checkout steps
