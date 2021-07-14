@@ -7,58 +7,55 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/cobra"
-	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 type ProjectDeleteOptions struct {
-	configFlags *genericclioptions.ConfigFlags
-	args        []string
+	args []string
 	genericclioptions.IOStreams
 }
 
 func NewProjectDeleteOptions(streams genericclioptions.IOStreams) *ProjectDeleteOptions {
 	return &ProjectDeleteOptions{
-		configFlags: genericclioptions.NewConfigFlags(true),
-		IOStreams:   streams,
+		IOStreams: streams,
 	}
 }
 
-func NewCmdProjectDelete(streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewProjectDeleteOptions(streams)
+// preserving this structure for any future flags.
+
+func NewCmdProjectDelete(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete name",
 		Short: "Delete a project",
 		Long:  "Delete a project",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := deleteProject(args); err != nil {
+			if err := deleteProject(streams, args, kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
 		},
 	}
-	o.configFlags.AddFlags(cmd.Flags())
 	return cmd
 }
 
-func deleteProject(args []string) error {
+func deleteProject(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 	projectName := args[0]
 
 	// connect to the cluster
-	config := pkg.GetKubeConfig()
-	clientset, err := clustersclient.NewForConfig(config)
+	clientset, err := kubernetesInterface.NewProjectClientSet()
 	if err != nil {
-		fmt.Print("could not get the clientset")
+		fmt.Fprintln(streams.ErrOut, err)
 	}
 
 	// delete the project
-	err = clientset.VerrazzanoProjects("verrazzano-mc").Delete(context.Background(), projectName, metav1.DeleteOptions{})
+	err = clientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Delete(context.Background(), projectName, metav1.DeleteOptions{})
 	if err != nil {
+		fmt.Fprintln(streams.ErrOut, err)
 		return err
 	}
-	fmt.Println("project deleted")
+	fmt.Fprintln(streams.Out, "project/"+projectName+" deleted")
 	return nil
 }
