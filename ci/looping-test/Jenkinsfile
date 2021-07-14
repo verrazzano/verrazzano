@@ -251,6 +251,10 @@ pipeline {
                         dumpK8sCluster('verrazzano-install-loop-install-failure-cluster-dump')
                         skip_stage = 'true'
                     }
+                    sh """
+                        mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/resources.log
+                    """
                 }
             }
         }
@@ -535,3 +539,4 @@ def listNamepacesAndPods(customMessage) {
         echo "-----------------------------------------------------"
     """
 }
+
