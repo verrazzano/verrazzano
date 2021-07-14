@@ -8,6 +8,7 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 pipeline {
     options {
         skipDefaultCheckout true
+        timestamps ()
     }
 
     agent {
@@ -202,7 +203,7 @@ pipeline {
                         stage('Installation') {
                             environment {
                                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                                OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                                OCI_OS_LOCATION="master"
                             }
                             steps {
                                 sh """
