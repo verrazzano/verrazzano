@@ -6,13 +6,21 @@
 </head>
 <body>
   <script>
-    function tableRow(a, b) {
+    function tableRow(c1, c2, link) {
         var row = document.createElement("tr");
         var col1 = document.createElement("td");
-        col1.appendChild(document.createTextNode(""+a));
+        col1.appendChild(document.createTextNode(""+c1));
         row.appendChild(col1);
         var col2 = document.createElement("td");
-        col2.appendChild(document.createTextNode(b));
+        if (new String(link).valueOf() == new String("").valueOf()) {
+            col2.appendChild(document.createTextNode(c2));
+        } else {
+            var a = document.createElement("a");
+            a.appendChild(document.createTextNode(c2));
+            a.title = c2;
+            a.href = link;
+            col2.appendChild(a);
+        }
         row.appendChild(col2);
         return row
     }
@@ -35,17 +43,16 @@
       const res = await get(url)
       const resJson = await res.json();
       console.log(resJson);
-      tableBody.appendChild(tableRow("build#", "status"));
+      tableBody.appendChild(tableRow("build#", "status", ""));
 
       for(var i = 0; i < 10; i++) {
         const build = resJson.builds[i];
-        const bRes = await get(build.url+"/api/json")
+        const bRes = await get( build.url+"/api/json")
         const buildJson = await bRes.json();
-        tableBody.appendChild(tableRow(build.number, buildJson.result));
+        tableBody.appendChild(tableRow(build.number, buildJson.result, build.url));
       }
 
       document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
-
       table.setAttribute("border", "1");
       table.appendChild(tableBody);
       body.appendChild(table);
