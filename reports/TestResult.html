@@ -6,9 +6,27 @@
 </head>
 <body>
   <script>
-    function row(x, y) {
-
+    function tableRow(a, b) {
+        var row = document.createElement("tr");
+        var cell1 = document.createElement("td");
+        cell1.appendChild(document.createTextNode("#"+a));
+        row.appendChild(cell1);
+        var cell2 = document.createElement("td");
+        cell2.appendChild(document.createTextNode(b));
+        row.appendChild(cell2);
+        return row
     }
+
+    function restGet(url) {
+          return fetch(url, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+            }
+          });
+      }
+
     async function showResults() {
       //body reference
   var body = document.getElementsByTagName("body")[0];
@@ -17,52 +35,36 @@
   var tbl = document.createElement("table");
   var tblBody = document.createElement("tbody");
 
-  // var hrow = document.createElement("tr");
-  // var hcel = document.createElement("td");
-  // var htxt = document.createTextNode("https://build.verrazzano.io/job/verrazzano/job/master/");
-  // hcel.appendChild(htxt);
-  // hrow.appendChild(hcel);
-  // tblBody.appendChild(hrow);
 
       const url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
-      const res = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
-        }
-      });
+      // const res = await fetch(url, {
+      //   method: "GET",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+      //   }
+      // });
+      const res = await restGet(url)
       const resJson = await res.json();
       console.log(resJson);
 
+      tblBody.appendChild(tableRow("buildNumber", "status"));
   // cells creation
 for(var i = 0; i < 10; i++) {
     var build = resJson.builds[i];
     console.log(build.number);
-    const bRes = await fetch(build.url+"/api/json", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
-      }
-    });
+    // const bRes = await fetch(build.url+"/api/json", {
+    //   method: "GET",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //     "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+    //   }
+    // });
+    const bRes = await restGet(build.url+"/api/json")
     const buildJson = await bRes.json();
-
-    // table row creation
-    var row = document.createElement("tr");
-
-    var cell1 = document.createElement("td");
-    var cell1Text = document.createTextNode(build.number);
-    cell1.appendChild(cell1Text);
-    row.appendChild(cell1);
-
-        var cell2 = document.createElement("td");
-        var cell2Text = document.createTextNode(buildJson.result);
-        cell2.appendChild(cell2Text);
-        row.appendChild(cell2);
-
+    // tableRow(build.number, buildJson.result)
     //row added to end of table body
-    tblBody.appendChild(row);
+    tblBody.appendChild(tableRow(build.number, buildJson.result));
   }
 
         document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
@@ -71,7 +73,7 @@ for(var i = 0; i < 10; i++) {
   // put <table> in the <body>
   body.appendChild(tbl);
   // tbl border attribute to
-  tbl.setAttribute("border", "2");
+  tbl.setAttribute("border", "1");
 
       // //document.body.innerHTML += "<table>"
       // for(var i = 0; i < 10; i++) {
