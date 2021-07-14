@@ -25,7 +25,7 @@ func NewCmdNamespace(streams genericclioptions.IOStreams, kubernetesInterface he
 		Aliases: []string{"ns"},
 		// TODO : Description needs to be rewritten
 	}
-	cmd.AddCommand(NewCmdNamespaceAdd(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdNamespaceCreate(streams, kubernetesInterface))
 	//cmd.AddCommand(NewCmdNamespaceList(streams,kubernetesInterface))
 	//cmd.AddCommand(NewCmdNamespaceMove(streams,kubernetesInterface))
 	//cmd.AddCommand(NewCmdNamespaceDelete(streams,kubernetesInterface))
