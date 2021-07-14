@@ -31,37 +31,165 @@
         return row
     }
 
-    function get(url) {
-          return fetch(url, {
+    function findUpstreamBuild(job) {
+      // var upstreamBuild = null
+        for (var i = 0; i < job.actions.length; i++) {
+// console.log(job.actions[i]);
+// console.log(job.actions[i]._class);
+            if (job.actions[i]._class == "hudson.model.CauseAction") {
+              for (var j = 0; j < job.actions[i].causes.length; j++) {
+                if (job.actions[i].causes[j].upstreamProject == "verrazzano/master" &&
+                    job.actions[i].causes[j].upstreamBuild != null) {
+                  return job.actions[i].causes[j].upstreamBuild
+                }
+              }
+            }
+        }
+        // console.log("~~upstreamBuild~~"+upstreamBuild);
+        return null
+    }
+
+    function findCommitMsg(job) {
+      // var upstreamBuild = null
+        for (var i = 0; i < job.changeSets.length; i++) {
+// console.log(job.actions[i]);
+// console.log(job.actions[i]._class);
+            if (job.changeSets[i]._class == "hudson.plugins.git.GitChangeSetList") {
+              for (var j = 0; j < job.changeSets[i].items.length; j++) {
+                if (job.changeSets[i].items[j].msg != null) {
+                  return job.changeSets[i].items[j].msg
+                }
+              }
+            }
+        }
+        // console.log("~~upstreamBuild~~"+upstreamBuild);
+        return null
+    }
+
+    function findCauseUser(job) {
+        for (var i = 0; i < job.actions.length; i++) {
+            if (job.actions[i]._class == "hudson.model.CauseAction") {
+              for (var j = 0; j < job.actions[i].causes.length; j++) {
+                if (job.actions[i].causes[j].userName != null) {
+                  return job.actions[i].causes[j].userName
+                }
+              }
+            }
+        }
+        return null
+    }
+
+    function findChangeInfo(job) {
+        var info = findCauseUser(job)
+        if (info == null) {
+            info = findCommitMsg(job)
+        }
+        return info
+    }
+
+    async function getTrigger(buildNum) {
+        var trigger = triggerNumbers.get(buildNum)
+// console.log("~~getTrigger#~~"+trigger);
+        if (trigger != null) {
+            return trigger
+        }
+        url = "https://build.verrazzano.io/job/verrazzano-push-triggered-acceptance-tests/job/master/api/json"
+        const triggerJs = await get(url);
+        for(var i = 0; i < 20; i++) {
+          const triggerBuild = triggerJs.builds[i];
+          const triggerJob = await get(triggerBuild.url+"/api/json");
+// console.log(triggerJob);
+          const upNumber = findUpstreamBuild(triggerJob)
+          if (upNumber != null) {
+            triggerNumbers.set(upNumber, triggerJob.number);
+          }
+        }
+        return triggerNumbers.get(buildNum)
+    }
+
+    async function get(url) {
+          const res = await fetch(url, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              // "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+              "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
             }
           });
-      }
+          return await res.json();
+    }
+
+
+    async function metrics(name) {
+          const res = await fetch("https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/api/v1/query?query="+name, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              // "Authorization": "Basic dmVycmF6emFubzpVZnRva0htRVNCQWk4YkRSQ3RxQQ=="// + btoa("verrazzano:UftokHmESBAi8bDRCtqA")
+            }
+          });
+          return await res.json();
+    }
+
+    const body = document.getElementsByTagName("body")[0];
+    const table = document.createElement("table");
+    const tableBody = document.createElement("tableBody");
+    const triggerNumbers = new Map(); // masterBuild# : triggerNumber
+    const mcatJobs = new Map();
 
     async function showResults() {
-      const body = document.getElementsByTagName("body")[0];
-      const table = document.createElement("table");
-      const tableBody = document.createElement("tableBody");
-      const url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
-      const res = await get(url)
-      const resJson = await res.json();
-      console.log(resJson);
-      tableBody.appendChild(tableRow("build#", "commit message", "main", "", "multiClusterAT"));
+      var url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
+      const masterJobs = await get(url);
+console.log(masterJobs);
+      tableBody.appendChild(tableRow("build~", "commit message", "main", "", "multiClusterAT"));
+
+//       url = "https://build.verrazzano.io/job/verrazzano-push-triggered-acceptance-tests/job/master/api/json"
+//       const triggerJs = await get(url);
+//       var found = false
+//       for(var i = 0; i < 10 && !found; i++) {
+//         const triggerBuild = triggerJs.builds[i];
+//         const triggerJob = await get(triggerBuild.url+"/api/json");
+// // console.log(triggerJob);
+//         const upNumber = findUpstreamBuild(triggerJob)
+//         if (upNumber != null) {
+//           triggerNumbers.set(upNumber, triggerJob.number);
+//         }
+//       }
+// console.log(triggerNumbers);
+
+//       url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
+//       const mcjs = await get(url);
+//       console.log(mcjs);
+//       var found = false
+//       for(var i = 0; i < 10 && !found; i++) {
+//         const mcBuild = mcjs.builds[i];
+//         // const bRes = await get( build.url+"/api/json")
+//         // const buildJson = await bRes.json();
+//         const mcJob = await get(mcBuild.url+"/api/json");
+// console.log(mcJob);
+//         mcatJobs.set(mcJob.number, mcJob);
+//         if (mcJob.number == 464) {
+//           found = true;
+//         }
+//       }
+// console.log(mcatJobs);
 
       for(var i = 0; i < 10; i++) {
-        const build = resJson.builds[i];
-        const bRes = await get( build.url+"/api/json")
-        const buildJson = await bRes.json();
-        tableBody.appendChild(tableRow(build.number, "todo (####)", buildJson.result, build.url, "TODO"));
+        const build = masterJobs.builds[i];
+        const job = await get(build.url+"/api/json");
+        var trigger = await getTrigger(build.number)
+        console.log("~~trigger##"+trigger);
+
+        tableBody.appendChild(tableRow(build.number, findChangeInfo(job), job.result, build.url, "TODO"));
       }
 
       document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
       table.setAttribute("border", "1");
       table.appendChild(tableBody);
       body.appendChild(table);
+      var mtrcs = await metrics("prometheus_build_info")
+      console.log("~~metrics.prometheus_build_info");
+      console.log(mtrcs);
+      document.body.innerHTML += "<p> metrics prometheus_build_info: "+mtrcs.status
     };
     showResults();
   </script>
