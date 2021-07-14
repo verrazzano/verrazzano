@@ -83,6 +83,9 @@ pipeline {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
+                    curl -i -u verrazzano:UftokHmESBAi8bDRCtqA "https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/api/v1/query?query=prometheus_build_info"
+                    curl -u verrazzano:UftokHmESBAi8bDRCtqA "https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/api/v1/query?query=prometheus_build_info" > prom.json
+                    cat prom.json
                 """
 
                 script {
