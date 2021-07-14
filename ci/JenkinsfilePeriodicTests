@@ -124,7 +124,7 @@ pipeline {
                                 ], wait: true
                         }
                     }
-                }
+                }*/
                 stage('Private registry tests') {
                     steps {
                         script {
@@ -134,7 +134,7 @@ pipeline {
                                 ], wait: true
                         }
                     }
-                }*/
+                }
             }
         }
     }
