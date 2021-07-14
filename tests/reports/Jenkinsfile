@@ -24,25 +24,6 @@ pipeline {
         }
     }
 
-    parameters {
-        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
-        booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
-        booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
-        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
-        booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
-        booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
-        booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
-        booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
-        choice (name: 'WILDCARD_DNS_DOMAIN',
-                description: 'Wildcard DNS Domain',
-                // 1st choice is the default value
-                choices: [ "nip.io", "sslip.io"])
-        string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: 'master',
-                description: 'The branch to check out after cloning the console repository.',
-                trim: true)
-    }
-
     environment {
         DOCKER_ANALYSIS_CI_IMAGE_NAME = 'verrazzano-analysis-jenkins'
         DOCKER_ANALYSIS_PUBLISH_IMAGE_NAME = 'verrazzano-analysis'
@@ -166,60 +147,17 @@ pipeline {
             }
         }
 
-        stage('Analysis Tool') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf {
-                        branch 'master';
-                        branch 'release-*';
-                        expression {params.GENERATE_TOOL == true};
-                    }
-                }
-            }
-            steps {
-                buildAnalysisTool("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                always {
-                    archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
-                }
-            }
-        }
-
-        stage('Generate operator.yaml') {
-            when { not { buildingTag() } }
-            steps {
-                generateOperatorYaml("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                success {
-                    archiveArtifacts artifacts: "generated-operator.yaml", allowEmptyArchive: true
-                }
-            }
-        }
-
         stage('Build') {
             when { not { buildingTag() } }
             steps {
-                archiveArtifacts artifacts: 'reports/*.html', allowEmptyArchive: true
+                archiveArtifacts artifacts: 'tests/reports/*.html', allowEmptyArchive: true
                 publishHTML(target : [allowMissing: false,
                   alwaysLinkToLastBuild: true,
                   keepAll: true,
-                  reportDir: 'reports',
+                  reportDir: 'tests/reports',
                   reportFiles: 'TestResult.html',
-                  reportName: 'My Reports',
-                  reportTitles: 'The Report'])
+                  reportName: 'Reports',
+                  reportTitles: 'Test Report'])
             }
             post {
                 failure {
