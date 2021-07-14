@@ -3,6 +3,7 @@
 <head>
   <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/">
   <script>
+    const metrics1 = 'METRICS_01'
     function tableRow(c0, c1, c2, link, c3) {
         var row = document.createElement("tr");
         var col0 = document.createElement("td");
@@ -141,28 +142,29 @@
     const mcatJobs = new Map();
 
     async function showResults(body) {
-//       var url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
-//       const masterJobs = await get(url);
-// console.log(masterJobs);
-//       tableBody.appendChild(tableRow("build~", "commit message", "main", "", "multiClusterAT"));
-//
-//       for(var i = 0; i < 10; i++) {
-//         const build = masterJobs.builds[i];
-//         const job = await get(build.url+"/api/json");
-//         var trigger = await getTrigger(build.number)
-//         console.log("~~trigger##"+trigger);
-//
-//         tableBody.appendChild(tableRow(build.number, findChangeInfo(job), job.result, build.url, "TODO"));
-//       }
-//
-//       document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
-//       table.setAttribute("border", "1");
-//       table.appendChild(tableBody);
-//       body.appendChild(table);
-      var mtrcs = await metrics("prometheus_build_info")
-      console.log("~~metrics.prometheus_build_info");
-      console.log(mtrcs);
-      document.body.innerHTML += "<p> metrics prometheus_build_info: "+mtrcs.status
+      var url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
+      const masterJobs = await get(url);
+console.log(masterJobs);
+      tableBody.appendChild(tableRow("build~", "commit message", "main", "", "multiClusterAT"));
+
+      for(var i = 0; i < 10; i++) {
+        const build = masterJobs.builds[i];
+        const job = await get(build.url+"/api/json");
+        var trigger = await getTrigger(build.number)
+        console.log("~~trigger##"+trigger);
+
+        tableBody.appendChild(tableRow(build.number, findChangeInfo(job), job.result, build.url, "TODO"));
+      }
+
+      document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
+      table.setAttribute("border", "1");
+      table.appendChild(tableBody);
+      body.appendChild(table);
+
+      // var metrics1 = await metrics("prometheus_build_info")
+      console.log("~~metrics1.prometheus_build_info");
+      console.log(metrics1);
+      document.body.innerHTML += "<p> metrics prometheus_build_info: "+metrics1.status
     };
     //showResults();
   </script>
