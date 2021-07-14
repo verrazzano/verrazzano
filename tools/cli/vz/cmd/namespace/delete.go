@@ -35,5 +35,16 @@ func NewCmdNamespaceDelete(streams genericclioptions.IOStreams, kubernetesInterf
 
 func deleteNamespace(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 	// business logic here
+	/*
+	nsName := args[0]
+
+	// preparing namespace resource
+	namespace := v1alpha1.NamespaceTemplate{
+		Metadata: metav1.ObjectMeta{
+			Name: nsName,
+		},
+	}
+	*/
+
 	return nil
 }
