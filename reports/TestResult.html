@@ -8,16 +8,16 @@
   <script>
     function tableRow(a, b) {
         var row = document.createElement("tr");
-        var cell1 = document.createElement("td");
-        cell1.appendChild(document.createTextNode("#"+a));
-        row.appendChild(cell1);
-        var cell2 = document.createElement("td");
-        cell2.appendChild(document.createTextNode(b));
-        row.appendChild(cell2);
+        var col1 = document.createElement("td");
+        col1.appendChild(document.createTextNode(""+a));
+        row.appendChild(col1);
+        var col2 = document.createElement("td");
+        col2.appendChild(document.createTextNode(b));
+        row.appendChild(col2);
         return row
     }
 
-    function restGet(url) {
+    function get(url) {
           return fetch(url, {
             method: "GET",
             headers: {
@@ -28,70 +28,27 @@
       }
 
     async function showResults() {
-      //body reference
-  var body = document.getElementsByTagName("body")[0];
-
-  // create elements <table> and a <tbody>
-  var tbl = document.createElement("table");
-  var tblBody = document.createElement("tbody");
-
-
+      const body = document.getElementsByTagName("body")[0];
+      const table = document.createElement("table");
+      const tableBody = document.createElement("tableBody");
       const url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
-      // const res = await fetch(url, {
-      //   method: "GET",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
-      //   }
-      // });
-      const res = await restGet(url)
+      const res = await get(url)
       const resJson = await res.json();
       console.log(resJson);
+      tableBody.appendChild(tableRow("build#", "status"));
 
-      tblBody.appendChild(tableRow("buildNumber", "status"));
-  // cells creation
-for(var i = 0; i < 10; i++) {
-    var build = resJson.builds[i];
-    console.log(build.number);
-    // const bRes = await fetch(build.url+"/api/json", {
-    //   method: "GET",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //     "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
-    //   }
-    // });
-    const bRes = await restGet(build.url+"/api/json")
-    const buildJson = await bRes.json();
-    // tableRow(build.number, buildJson.result)
-    //row added to end of table body
-    tblBody.appendChild(tableRow(build.number, buildJson.result));
-  }
+      for(var i = 0; i < 10; i++) {
+        const build = resJson.builds[i];
+        const bRes = await get(build.url+"/api/json")
+        const buildJson = await bRes.json();
+        tableBody.appendChild(tableRow(build.number, buildJson.result));
+      }
 
-        document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
-  // append the <tbody> inside the <table>
-  tbl.appendChild(tblBody);
-  // put <table> in the <body>
-  body.appendChild(tbl);
-  // tbl border attribute to
-  tbl.setAttribute("border", "1");
+      document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
 
-      // //document.body.innerHTML += "<table>"
-      // for(var i = 0; i < 10; i++) {
-      //     var build = resJson.builds[i];
-      //     console.log(build.number);
-      //     const bRes = await fetch(build.url+"/api/json", {
-      //       method: "GET",
-      //       headers: {
-      //         "Content-Type": "application/json",
-      //         "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
-      //       }
-      //     });
-      //     const buildJson = await bRes.json();
-      //     document.body.innerHTML += "<table><tr><td>Build: " + build.number + "</td> <td>" + buildJson.result + "</td></tr></table>"
-      // }
-      // //document.body.innerHTML += "</table><p> lastBuild: " + jstr + "</p> "
-      //
-      // return resJson;
+      table.setAttribute("border", "1");
+      table.appendChild(tableBody);
+      body.appendChild(table);
     };
     showResults();
   </script>
