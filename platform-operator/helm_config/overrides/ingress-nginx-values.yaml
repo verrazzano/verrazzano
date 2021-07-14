@@ -23,6 +23,8 @@ controller:
     traffic.sidecar.istio.io/excludeInboundPorts: "80,443"
     traffic.sidecar.istio.io/includeInboundPorts: ""
     sidecar.istio.io/rewriteAppHTTPProbers: "true"
+  extraArgs:
+    - "--v=5"
 defaultBackend:
   # NOTE: The image you're looking for isn't here. The nginx-ingress-default-backend image now comes from
   # the bill of materials file (verrazzano-bom.json).
