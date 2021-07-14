@@ -80,12 +80,6 @@ pipeline {
 
     stages {
         stage('Clean workspace and checkout') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    changeset "tests/reports/**"
-                }
-            }
             steps {
                 sh """
                     echo "${NODE_LABELS}"
