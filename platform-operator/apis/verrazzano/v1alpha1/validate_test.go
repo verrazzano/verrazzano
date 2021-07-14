@@ -18,9 +18,9 @@ import (
 )
 
 // For unit testing
-const testBomFilePath = "testdata/test_bom.json"
-const invalidTestBomFilePath = "testdata/invalid_test_bom.json"
-const invalidPathTestBomFilePath = "testdata/invalid_test_bom_path.json"
+const testBomFilePath = "../../../controllers//verrazzano/testdata/test_bom.json"
+const invalidTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom.json"
+const invalidPathTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom_path.json"
 
 // TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
 // GIVEN an edit to update a Verrazzano spec to a new version
