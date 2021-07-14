@@ -33,7 +33,7 @@ func TestNipIoInstallDefaults(t *testing.T) {
 	assert.Equalf(t, "verrazzano-ca-certificate-secret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 	assert.Equalf(t, 0, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
 	assert.Equalf(t, 0, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mySqlInstallArgs length did not match")
-	assert.Equalf(t, "", config.Keycloak.Enabled, "Expected keycloak enabled did not match")
+	assert.Equalf(t, "true", config.Keycloak.Enabled, "Expected keycloak enabled did not match")
 	assert.Equalf(t, "", config.Rancher.Enabled, "Expected rancher enabled did not match")
 }
 
@@ -42,6 +42,7 @@ func TestNipIoInstallDefaults(t *testing.T) {
 //  WHEN I call GetInstallConfig
 //  THEN the nip.io install configuration is created and verified
 func TestNipIoInstallNonDefaults(t *testing.T) {
+	enabled := true
 	vz := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Profile:         "dev",
@@ -104,7 +105,7 @@ func TestNipIoInstallNonDefaults(t *testing.T) {
 							},
 						},
 					},
-					Enabled: true,
+					Enabled: &enabled,
 				},
 			},
 		},
