@@ -22,10 +22,15 @@ if [ -z "${MANAGED_KUBECONFIG}" ] ; then
     echo "MANAGED_KUBECONFIG env var must be set!'"
     exit 1
 fi
+
+if [ -z "${ACME_ENVIRONMENT}" ] ; then
+  ACME_ENVIRONMENT="staging"
+fi
+
 echo ADMIN_KUBECONFIG: ${ADMIN_KUBECONFIG}
 echo MANAGED_CLUSTER_NAME: ${MANAGED_CLUSTER_NAME}
 echo MANAGED_KUBECONFIG: ${MANAGED_KUBECONFIG}
-echo "ACME_ENVIRONMENT: ${ACME_ENVIRONMENT}"
+echo ACME_ENVIRONMENT: ${ACME_ENVIRONMENT}
 
 # create configmap "verrazzano-admin-cluster" on admin
 if ! kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get configmap verrazzano-admin-cluster ; then
@@ -41,13 +46,12 @@ if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
 fi
 
 if [ ! -z "${CA_CERT}" ] ; then
-  echo "Creating CA_SECRET_FILE"
   kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
 else
-  # Set an empty string for ca.crt for publicly available/accessible CA
-  # This should be based on the the environment variable ACME_ENVIRONMENT, fix this.
-  echo "Setting an empty string to CA_CERT"
-  kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
+  # When the CA is publicly available/accessible, ca.crt would be empty in system-tls on the admin cluster. So, set an empty string for cacrt
+  if [ "production" == "${ACME_ENVIRONMENT}" ] ; then
+    kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
+  fi
 fi
 
 # create managed cluster ca secret on admin
