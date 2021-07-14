@@ -61,7 +61,7 @@ func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
 		Long:  "Verrazzano CLI",
 	}
 
-	cmd.AddCommand(project.NewCmdProject(streams))
+	cmd.AddCommand(project.NewCmdProject(streams, o))
 	cmd.AddCommand(cluster.NewCmdCluster(streams, o))
 	cmd.AddCommand(app.NewCmdApp(streams))
 	return cmd
