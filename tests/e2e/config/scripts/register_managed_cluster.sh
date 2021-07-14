@@ -51,6 +51,9 @@ else
   # When the CA is publicly available/accessible, ca.crt would be empty in system-tls on the admin cluster. So, set an empty string for cacrt
   if [ "production" == "${ACME_ENVIRONMENT}" ] ; then
     kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
+  else
+    echo "Failed to create CA secret file, required to create a secret on the admin cluster containing the certificate for the managed cluster."
+    exit 1
   fi
 fi
 
