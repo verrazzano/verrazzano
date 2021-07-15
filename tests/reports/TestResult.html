@@ -201,17 +201,21 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
         obj.jobs = new Map(); //buildNum -> Job
         obj.list = null;
         obj.maxLookback = maxLookback
-        obj.getJob = async function(buildNum) {
+        obj.getJob = async function(buildNum, parameters) {
             var trigger = await getTrigger(buildNum)
             if (trigger == null) {
                 return null;//not running yet
             }
     console.log("==== Pipeline: "+obj.url );
     console.log("==== Pipeline buildNum:"+buildNum+" trigger:"+trigger);
-            var testNum = obj.nums.get(trigger)
-    console.log("==== Pipeline buildNum:"+buildNum+" trigger:"+trigger+" testNum:"+testNum);
-            if (testNum != null && obj.jobs.has(testNum)) {
-                return obj.jobs.get(testNum)
+            var jobs = obj.nums.get(trigger)
+    console.log("==== Pipeline buildNum:"+buildNum+" trigger:"+trigger+" jobs:"+jobs);
+            if (jobs) {
+                if (parameters) {
+
+                } else {
+                    return jobs.values().next().value
+                }
             }
     // url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
             // const tests = await get(obj.url);
@@ -226,7 +230,9 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
                     const upNumber = getUpstreamBuild('verrazzano-push-triggered-acceptance-tests/master', testJob)
     console.log("==== Pipeline testJob.number:"+testJob.number+" upNumber:"+upNumber);
                     if (upNumber != null) {
-                        obj.nums.set(upNumber, testJob.number)
+                        nums = obj.nums.has(upNumber) ? obj.nums.get(upNumber) : new Map()
+                        nums.set(testJob.number, testJob)
+                        obj.nums.set(upNumber, nums)
                         if (upNumber == trigger) {
                             return testJob;
                         }
