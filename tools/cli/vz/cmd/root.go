@@ -62,7 +62,10 @@ func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
 		Short: "Verrazzano CLI",
 		Long:  "Verrazzano CLI",
 	}
-
+	err := login.RefreshToken()
+	if err!=nil {
+		panic("Unable to refresh")
+	}
 	cmd.AddCommand(project.NewCmdProject(streams))
 	cmd.AddCommand(cluster.NewCmdCluster(streams, o))
 	cmd.AddCommand(app.NewCmdApp(streams))

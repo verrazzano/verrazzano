@@ -14,10 +14,10 @@ import (
 	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/tools/clientcmd"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 )
@@ -55,24 +55,10 @@ func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helper
 
 func login(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 
-	// Obtain the default kubeconfig's location
-	kubeConfigLoc, err := helpers.GetKubeConfigLocation()
-	if err != nil {
-		return err
-	}
-
-	// Load the default kubeconfig's configuration into clientcmdapi object
-	mykubeConfig, err := clientcmd.LoadFromFile(kubeConfigLoc)
-
 	// Check if the user is already logged out
-	if strings.Split(mykubeConfig.CurrentContext, "@")[0] == "verrazzano" {
+	if helpers.LoggedIn() ==true {
 		fmt.Fprintln(streams.Out, "Already Logged in")
 		return nil
-	}
-
-	if err != nil {
-		fmt.Println("Unable to load kubeconfig, check permissions")
-		return err
 	}
 
 	var verrazzanoAPIURL string
@@ -101,40 +87,34 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 	}
 
 	// Add the verrazzano cluser into config
-	helpers.SetCluster(mykubeConfig,
-		"verrazzano",
+	helpers.SetClusterInKubeConfig("verrazzano",
 		verrazzanoAPIURL,
 		caData,
 	)
 
-	// Add the logged-in user with nickname verrazzan
-	helpers.SetUser(mykubeConfig,
-		"verrazzano",
+	// Add the logged-in user with nickname verrazzano
+	helpers.SetUserInKubeConfig("verrazzano",
 		fmt.Sprintf("%v", jwtData["access_token"]),
 	)
 
 	// Add new context with name verrazzano@oldcontext
 	// This context uses verrazzano cluster and logged-in user
 	// We need oldcontext to fall back after logout
-	helpers.SetContext(mykubeConfig,
-		"verrazzano"+"@"+mykubeConfig.CurrentContext,
+	helpers.SetContextInKubeConfig("verrazzano"+"@"+helpers.GetCurrentContextFromKubeConfig(),
 		"verrazzano",
 		"verrazzano",
 	)
 
 	// Switch over to new context
-	helpers.SetCurrentContext(mykubeConfig,
-		"verrazzano"+"@"+mykubeConfig.CurrentContext,
-	)
+	helpers.SetCurrentContextInKubeConfig("verrazzano"+"@"+helpers.GetCurrentContextFromKubeConfig())
 
-	// Write the new configuration into the default kubeconfig file
-	err = clientcmd.WriteToFile(*mykubeConfig,
-		kubeConfigLoc,
-	)
-	if err != nil {
-		fmt.Println("Unable to write the new kubconfig to disk")
-		return err
-	}
+	// Set new values in vz config
+	helpers.SetAccessTokenExpTime(int64(jwtData["expires_in"].(float64)) + time.Now().Unix() - 10)
+	helpers.SetRefreshTokenExpTime(int64(jwtData["refresh_expires_in"].(float64)) + time.Now().Unix() - 10)
+	helpers.SetAccessToken(fmt.Sprintf("%v",jwtData["access_token"]))
+	helpers.SetRefreshToken(fmt.Sprintf("%v",jwtData["refresh_token"]))
+	helpers.SetCAData(string(caData))
+
 	fmt.Fprintln(streams.Out, "Login successful!")
 	return nil
 }
@@ -194,6 +174,7 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 		fmt.Println("Unable to obtain the JWT token")
 		return jwtData, err
 	}
+
 	return jwtData, nil
 }
 
@@ -307,4 +288,69 @@ func executeRequestForJWT(grantParams url.Values, caData []byte) (map[string]int
 	json.Unmarshal([]byte(responseBody), &jsonData)
 
 	return jsonData, nil
+}
+
+func RefreshToken() error {
+
+	vzConfigLoc, err := helpers.GetVZConfigLocation()
+	if err!=nil {
+		return err
+	}
+
+	// Create a vz config file if it does not exist
+	if _, err := os.Stat(vzConfigLoc); os.IsNotExist(err) {
+		vzConfig, err := os.Create(vzConfigLoc)
+		if err != nil {
+			return err
+		}
+		vzConfig.Close()
+		return nil
+	}
+
+	// Nothing to do when the user is not logged in
+	if helpers.LoggedIn() == false {
+		return nil
+	}
+
+	accessTokenExpTime := helpers.GetAccessTokenExpTime()
+
+	// If the access token is still valid
+	if time.Now().Unix()+10 < accessTokenExpTime {
+		return nil
+	}
+
+	refreshTokenExpTime := helpers.GetRefreshTokenExpTime()
+
+	// If the refresh token has expired, delete all auth data
+	if time.Now().Unix() > refreshTokenExpTime {
+		helpers.RemoveAllAuthData()
+		return nil
+	}
+
+	grantParams := url.Values{}
+	grantParams.Set("grant_type", "refresh_token")
+	grantParams.Set("client_id", helpers.GetClientID())
+	grantParams.Set("refresh_token", helpers.GetRefreshToken())
+	grantParams.Set("redirect_uri", "http://localhost:8080")
+	grantParams.Set("scope", "openid")
+
+	caData := helpers.GetCAData()
+	// Execute the request
+	jwtData, err := executeRequestForJWT(grantParams, caData)
+	if err != nil {
+		fmt.Println("Request failed")
+	}
+
+	// Set new values in vz config
+	helpers.SetAccessTokenExpTime(int64(jwtData["expires_in"].(float64)) + time.Now().Unix() - 10)
+	helpers.SetRefreshTokenExpTime(int64(jwtData["refresh_expires_in"].(float64)) + time.Now().Unix() - 10)
+	helpers.SetAccessToken(fmt.Sprintf("%v",jwtData["access_token"]))
+	helpers.SetRefreshToken(fmt.Sprintf("%v",jwtData["refresh_token"]))
+
+	// Update the access token in kubeconfig
+	helpers.SetUserInKubeConfig("verrazzano",
+		fmt.Sprintf("%v", jwtData["access_token"]),
+	)
+
+	return nil
 }
