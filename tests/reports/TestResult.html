@@ -194,12 +194,13 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     //     return await getTriggeredTest(odnsUrl, buildNum, odnsNums, odnsJobs)
     // }
 
-    function Pipeline(name, branch) {
+    function Pipeline(name, branch, maxLookback) {
         const obj = {}
         obj.url = 'https://build.verrazzano.io/job/'+name+'/job/'+branch+'/api/json'
-        obj.Nums = new Map(); //trigger -> [buildNum, ...]
-        obj.Jobs = new Map(); //buildNum -> Job
+        obj.nums = new Map(); //trigger -> [buildNum, ...]
+        obj.jobs = new Map(); //buildNum -> Job
         obj.list = null;
+        obj.maxLookback = maxLookback
         obj.getJob = async function(buildNum) {
             var trigger = await getTrigger(buildNum)
             if (trigger == null) {
@@ -207,39 +208,39 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
             }
     console.log("==== Pipeline: "+obj.url );
     console.log("==== Pipeline buildNum:"+buildNum+" trigger:"+trigger);
-            var testNum = obj.Nums.get(trigger)
+            var testNum = obj.nums.get(trigger)
     console.log("==== Pipeline buildNum:"+buildNum+" trigger:"+trigger+" testNum:"+testNum);
-            if (testNum != null && obj.Jobs.has(testNum)) {
-                return obj.Jobs.get(testNum)
+            if (testNum != null && obj.jobs.has(testNum)) {
+                return obj.jobs.get(testNum)
             }
     // url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
             // const tests = await get(obj.url);
             if (!obj.list) {
                 obj.list = await get(obj.url);
             }
-            for(var i = 0; i < (LookBack+20); i++) {
+            for(var i = 0; i < obj.maxLookback; i++) {
                 const testBuild = obj.list.builds[i];
-                if (!obj.Jobs.has(testBuild.number)) {
+                if (!obj.jobs.has(testBuild.number)) {
                     const testJob = await get(testBuild.url+"/api/json");
-                    obj.Jobs.set(testJob.number, testJob)
+                    obj.jobs.set(testJob.number, testJob)
                     const upNumber = getUpstreamBuild('verrazzano-push-triggered-acceptance-tests/master', testJob)
     console.log("==== Pipeline testJob.number:"+testJob.number+" upNumber:"+upNumber);
                     if (upNumber != null) {
-                        obj.Nums.set(upNumber, testJob.number)
+                        obj.nums.set(upNumber, testJob.number)
                         if (upNumber == trigger) {
                             return testJob;
                         }
                     }
                 }
             }
-            return obj.Jobs.get(obj.Nums.get(trigger))
+            return obj.jobs.get(obj.nums.get(trigger))
         }
         return obj
     }
 
-    const mcatPipe = Pipeline('verrazzano-multi-cluster-acceptance-tests', 'master')
-    const uninPipe = Pipeline('verrazzano-uninstall-test', 'master')
-    const odnsPipe = Pipeline('verrazzano-new-oci-dns-acceptance-tests', 'master')
+    const mcatPipe = Pipeline('verrazzano-multi-cluster-acceptance-tests', 'master', 50)
+    const uninPipe = Pipeline('verrazzano-uninstall-test', 'master', 50)
+    const odnsPipe = Pipeline('verrazzano-new-oci-dns-acceptance-tests', 'master', 50)
 
     // const mcatPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json')
     // const uninPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-uninstall-test/job/master/api/json')
