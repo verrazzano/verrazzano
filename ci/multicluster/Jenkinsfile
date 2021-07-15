@@ -19,6 +19,7 @@ installerFileName = "install-verrazzano.yaml"
 pipeline {
     options {
         skipDefaultCheckout true
+        timestamps ()
     }
 
     agent {
