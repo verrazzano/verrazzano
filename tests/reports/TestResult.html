@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/">
+  <script>
+    const metrics1 = {"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"prometheus_build_info","branch":"HEAD","endpoint":"prometheus","exported_instance":"10.244.0.164:9090","exported_job":"sauron-dev-verrazzano-prometheus-1","goversion":"go1.14.3","instance":"sauron-dev-verrazzano-sauron-exporter:8085","job":"MySauronExporter","k8s_node":"10.0.14.73","mysauron":"dev-verrazzano","namespace":"dev-verrazzano","pod":"sauron-dev-verrazzano-prometheus-1-7d547c9544-thqgm","revision":"683f8d0fa386b62918703ce47d867421e2d25476","version":"2.20.0"},"value":[1626297657.52,"1"]},{"metric":{"__name__":"prometheus_build_info","branch":"HEAD","endpoint":"prometheus","exported_instance":"10.244.10.158:9090","exported_job":"sauron-dev-verrazzano-prometheus-0","goversion":"go1.14.3","instance":"sauron-dev-verrazzano-sauron-exporter:8085","job":"MySauronExporter","k8s_node":"10.0.15.45","mysauron":"dev-verrazzano","namespace":"dev-verrazzano","pod":"sauron-dev-verrazzano-prometheus-0-84c4b6c94-fhczt","revision":"683f8d0fa386b62918703ce47d867421e2d25476","version":"2.20.0"},"value":[1626297657.52,"1"]}]}}
+
+    const LookBack = 10 //number of builds look back
+
+    function td(text, link, color) {
+        var col = document.createElement("td");
+        // if (new String(link).valueOf() == new String("").valueOf()) {
+        if (!link) {
+            col.appendChild(document.createTextNode(text));
+        } else {
+            var a = document.createElement("a");
+            a.appendChild(document.createTextNode(text));
+            a.title = text;
+            a.href = link;
+            col.appendChild(a);
+            // col.style.backgroundColor = '#7FFFD4';
+        }
+        if (color) {
+            col.style.backgroundColor = color;
+        }
+        return col
+    }
+
+    function tdTxt(text) {
+        return td(text, null, null)
+    }
+
+    function tdJob(job) {
+        var text = 'None';
+        var link = null;
+        var color = null;
+        if (job) {
+            text = job.result
+            var color = null
+            if (job.result === 'SUCCESS') {
+                color = '#7FFFD4'
+            } else if (job.result === 'FAILURE') {
+                color = '#FF0000'
+            }
+            link = job.url
+        }
+        return td(text, link, color)
+    }
+
+    function tableRow(td0, td1, td2, td3) {
+        var row = document.createElement("tr");
+        // var col0 = document.createElement("td");
+        // col0.appendChild(document.createTextNode(c0));
+        // var col1 = document.createElement("td");
+        // col1.appendChild(document.createTextNode(c1));
+        // row.appendChild(col0);
+        // row.appendChild(col1);
+        // var col2 = document.createElement("td");
+        // if (new String(link).valueOf() == new String("").valueOf()) {
+        //     col2.appendChild(document.createTextNode(c2));
+        // } else {
+        //     var a = document.createElement("a");
+        //     a.appendChild(document.createTextNode(c2));
+        //     a.title = c2;
+        //     a.href = link;
+        //     col2.appendChild(a);
+        // }
+        // var col3 = document.createElement("td");
+        // col3.appendChild(document.createTextNode(c3));
+        // row.appendChild(td(c2, link, '#7FFFD4'))
+        row.appendChild(td0)
+        row.appendChild(td1)
+        row.appendChild(td2)
+        row.appendChild(td3);
+        return row
+    }
+
+    function getUpstreamBuild(upstreamName, job) {
+      // var upstreamBuild = null
+        for (var i = 0; i < job.actions.length; i++) {
+// console.log(job.actions[i]);
+// console.log(job.actions[i]._class);
+            if (job.actions[i]._class == "hudson.model.CauseAction") {
+              for (var j = 0; j < job.actions[i].causes.length; j++) {
+                if (job.actions[i].causes[j].upstreamProject == upstreamName &&
+                    job.actions[i].causes[j].upstreamBuild != null) {
+                  return job.actions[i].causes[j].upstreamBuild
+                }
+              }
+            }
+        }
+        // console.log("~~upstreamBuild~~"+upstreamBuild);
+        return null
+    }
+
+    function findCommitMsg(job) {
+      // var upstreamBuild = null
+        for (var i = 0; i < job.changeSets.length; i++) {
+// console.log(job.actions[i]);
+// console.log(job.actions[i]._class);
+            if (job.changeSets[i]._class == "hudson.plugins.git.GitChangeSetList") {
+              for (var j = 0; j < job.changeSets[i].items.length; j++) {
+                if (job.changeSets[i].items[j].msg != null) {
+                  return job.changeSets[i].items[j].msg
+                }
+              }
+            }
+        }
+        // console.log("~~upstreamBuild~~"+upstreamBuild);
+        return null
+    }
+
+    function findCauseUser(job) {
+        for (var i = 0; i < job.actions.length; i++) {
+            if (job.actions[i]._class == "hudson.model.CauseAction") {
+              for (var j = 0; j < job.actions[i].causes.length; j++) {
+                if (job.actions[i].causes[j].userName != null) {
+                  return job.actions[i].causes[j].userName
+                }
+              }
+            }
+        }
+        return null
+    }
+
+    function findChangeInfo(job) {
+        var info = findCauseUser(job)
+        if (info == null) {
+            info = findCommitMsg(job)
+            if (info!=null) {
+              //trim to 10
+              var end = info.lastIndexOf("(")
+              const num = info.substring(end, info.lastIndexOf(")")+1)+ ' '
+              const msg = (end > 20)?info.substring(0,20)+ '...' : info.substring(0,end)
+              info = num + msg
+            }
+        }
+        return info
+    }
+
+    const triggerNums = new Map(); // masterBuild# : triggerNumber
+    async function getTrigger(buildNum) {
+        var trigger = triggerNums.get(buildNum)
+// console.log("==== getTrigger buildNum:"+buildNum+" trigger:"+trigger);
+        if (trigger != null) {
+            return trigger
+        }
+        url = "https://build.verrazzano.io/job/verrazzano-push-triggered-acceptance-tests/job/master/api/json"
+        const triggerJs = await get(url);
+        for(var i = 0; i < (LookBack+5); i++) {
+          const triggerBuild = triggerJs.builds[i];
+          const triggerJob = await get(triggerBuild.url+"/api/json");
+// console.log("==== getTrigger buildNum:"+buildNum+" triggerBuild.number:"+triggerBuild.number);
+// console.log(triggerJob);
+          const upNumber = getUpstreamBuild('verrazzano/master', triggerJob)
+          if (upNumber != null) {
+            triggerNums.set(upNumber, triggerJob.number);
+          }
+        }
+        return triggerNums.get(buildNum)
+    }
+
+    const mcatNums = new Map(); //trigger -> mcatNum
+    const mcatJobs = new Map(); //mcatNum -> mcatJob
+
+    async function getMcatJob(buildNum) {
+        var trigger = await getTrigger(buildNum)
+        if (trigger == null) {
+            return null;//not running yet
+        }
+console.log("==== getMcatJob buildNum:"+buildNum+" trigger:"+trigger);
+        var mcatNum = mcatNums.get(trigger)
+console.log("==== getMcatJob buildNum:"+buildNum+" trigger:"+trigger+" mcatNum:"+mcatNum);
+        if (mcatNum != null && mcatJobs.has(mcatNum)) {
+            return mcatJobs.get(mcatNum)
+        }
+        url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
+        const mcat = await get(url);
+        for(var i = 0; i < (LookBack+5); i++) {
+            const mcatBuild = mcat.builds[i];
+            if (!mcatJobs.has(mcatBuild.number)) {
+                const mcatJob = await get(mcatBuild.url+"/api/json");
+                mcatJobs.set(mcatJob.number, mcatJob)
+                const upNumber = getUpstreamBuild('verrazzano-push-triggered-acceptance-tests/master', mcatJob)
+console.log("==== getMcatJob mcatJob.number:"+mcatJob.number+" upNumber:"+upNumber);
+                if (upNumber != null) {
+                    mcatNums.set(upNumber, mcatJob.number)
+                }
+            }
+        }
+console.log(mcatNums);
+console.log(mcatJobs);
+console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
+        return mcatJobs.get(mcatNums.get(trigger))
+    }
+
+    async function get(url) {
+          const res = await fetch(url, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+            }
+          });
+          return await res.json();
+    }
+
+
+    async function metrics(name) {
+          const res = await fetch("https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/api/v1/query?query="+name, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+              "Authorization": "Basic dmVycmF6emFubzpVZnRva0htRVNCQWk4YkRSQ3RxQQ=="// + btoa("verrazzano:UftokHmESBAi8bDRCtqA")
+            }
+          });
+          return await res.json();
+    }
+
+    const table = document.createElement("table");
+    const tableBody = document.createElement("tableBody");
+
+    async function showResults(body) {
+      var url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
+      const masterJobs = await get(url);
+console.log(masterJobs);
+      tableBody.appendChild(tableRow(tdTxt('build#'), tdTxt('startedBy'), tdTxt('build'), tdTxt('multiClusterAT')));
+
+      for(var i = 0; i < LookBack; i++) {
+        const job = masterJobs.builds[i];
+        const build = await get(job.url+"/api/json");
+        // const trigger = await getTrigger(build.number)
+        // console.log("~~trigger##"+trigger);
+        const mcat = await getMcatJob(build.number)
+        // const mcatStatus = (mcat!=null)? mcat.result : "" //job.result, build.url,
+        tableBody.appendChild(tableRow(tdTxt(build.number), tdTxt(findChangeInfo(build)), tdJob(build), tdJob(mcat)));
+      }
+
+      document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
+      table.setAttribute("border", "1");
+      table.appendChild(tableBody);
+      body.appendChild(table);
+
+      // var metrics1 = await metrics("prometheus_build_info")
+      console.log("~~metrics1.prometheus_build_info");
+      console.log(metrics1);
+      document.body.innerHTML += "<p> metrics prometheus_build_info: "+metrics1.status
+    };
+    //showResults();
+  </script>
+  <title>Test</title>
+</head>
+<body>
+  <script>
+      const body = document.getElementsByTagName("body")[0];
+      showResults(body);
+  </script>
+</body>
+
+</html>
