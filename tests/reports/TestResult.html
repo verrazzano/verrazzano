@@ -34,14 +34,12 @@
         var link = null;
         var color = null;
         if (job) {
-            text = job.result
-            color = colorOf(job.result)
-            //  color = null
-            // if (job.result === 'SUCCESS') {
-            //     color = '#7FFFD4'
-            // } else if (job.result === 'FAILURE') {
-            //     color = '#FF0000'
-            // }
+            if (job.result) {
+                text = job.result
+                color = colorOf(job.result)
+            } else {
+                text = 'Running'
+            }
             link = job.url
         }
         return td(text, link, color)
@@ -196,6 +194,17 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
         return await getTriggeredTest(odnsUrl, buildNum, odnsNums, odnsJobs)
     }
 
+    function TestSuite(url) {
+        const obj = {}
+        obj.Nums = new Map();
+        obj.Jobs = new Map();
+        obj.getJob = async function(buildNum) {
+            return await getTriggeredTest(url, buildNum, obj.Nums, obj.Jobs)
+        }
+        return obj
+    }
+    const odnsPipe = TestSuite('https://build.verrazzano.io/job/verrazzano-new-oci-dns-acceptance-tests/job/master/api/json')
+
     async function gggetMcatJob(buildNum) {
         var trigger = await getTrigger(buildNum)
         if (trigger == null) {
@@ -257,10 +266,12 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     function rowStatus(jobs) {
         var status = null
         for (var i = 0; i < jobs.length; i++) {
-            if (!status) {
-                status = jobs[i].result
-            } else if (status != jobs[i].result) {
-                return 'YELLOW'//#FFFF00
+            if (jobs[i]) {
+                if (!status) {
+                    status = jobs[i].result
+                } else if (status != jobs[i].result) {
+                    return 'YELLOW'//#FFFF00
+                }
             }
         }
         return status
@@ -273,12 +284,6 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
         for (var i = 0; i < cells.length; i++) {
             row.appendChild(cells[i])
         }
-        // row.appendChild(td0)
-        //    .appendChild(td1)
-        //    .appendChild(td2)
-        //    .appendChild(td3)
-        //    .appendChild(td4)
-        //    .appendChild(td5);
         return row
     }
 
@@ -297,10 +302,11 @@ console.log(masterJobs);
         const job = masterJobs.builds[i];
         const build = await get(job.url+"/api/json");
         // const trigger = await getTrigger(build.number)
-        // console.log("~~trigger##"+trigger);
         const mcat = await getMcatJob(build.number)
         const unin = await getUninstall(build.number)
-        const odns = await getOciDns(build.number)
+        // const odns = await getOciDns(build.number)
+// console.log("==== build "+build.number+ " "+build+ " "+mcat+ " "+unin+ " "+odns+ " ");
+        const odns = await odnsPipe.getJob(build.number)
         const color = colorOf(rowStatus([build,mcat,unin,odns]))
         // const mcatStatus = (mcat!=null)? mcat.result : "" //job.result, build.url,
         tableBody.appendChild(rowOf([td(build.number,null,color), td(findChangeInfo(build),null,color),
