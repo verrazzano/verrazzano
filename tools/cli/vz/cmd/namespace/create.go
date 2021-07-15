@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -27,7 +28,7 @@ func NewNamespaceCreateOptions(streams genericclioptions.IOStreams) *NamespaceCr
 func NewCmdNamespaceCreate(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create namespace",
-		Short: "create a namespace",
+		Short: "Create a namespace",
 		Long:  "Create a namespace",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -37,34 +38,46 @@ func NewCmdNamespaceCreate(streams genericclioptions.IOStreams, kubernetesInterf
 			return nil
 		},
 	}
-	cmd.Flags().StringSliceVar(&description, "description", []string{}, "description about the namespace")
+	cmd.Flags().StringSliceVar(&description, "description", []string{}, "Description about the namespace")
 	cmd.Flags().StringSliceVarP(&projectID, "project-id", "p", []string{}, "ID of project this namespace belongs to")
-	// TODO : Throw a more graceful error when project flag is not specified.
+	// TODO : Throw a more graceful error when project flag is not specified - give a default project?
 	return cmd
 }
 
 func createNamespace(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 	nsName := args[0]
 
-	//preparing namespace resource
+	//preparing namespace resources
 	// TODO : Isolate error in project about createTimeStamp, or pass it here.
-	namespace := v1alpha1.NamespaceTemplate{
+	
+	// old namespace
+	oldNamespace := v1alpha1.NamespaceTemplate{
 		Metadata: metav1.ObjectMeta{
 			Name: nsName,
 		},
 	}
-
-	// fetching the clientset
-	clientset, err := kubernetesInterface.NewProjectClientSet()
-	if err != nil {
-		fmt.Fprintln(streams.ErrOut, err)
+	
+	newNamespace := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nsName,
+		},
 	}
-
+	// fetching the clientsets
+	projectClientset, err := kubernetesInterface.NewProjectClientSet()
+	if err!=nil{
+		fmt.Fprintln(streams.ErrOut,err)
+	}
+	clustersClientset:= kubernetesInterface.NewClientSet()
+	newns, err := clustersClientset.CoreV1().Namespaces().Create(context.Background(),&newNamespace,metav1.CreateOptions{})
+	
 	// fetching the project
-	project, err := clientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Get(context.Background(), projectID[0], metav1.GetOptions{})
+	project, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Get(context.Background(), projectID[0], metav1.GetOptions{})
+	//project, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Update(context.Background(),projectID[0],metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
+
+	project.Spec.Template.Namespaces = append(project.Spec.Template.Namespaces,newNamespace.Spec.)
 
 	// appending the namespace to the project
 	var isDuplicate bool
@@ -79,10 +92,10 @@ func createNamespace(streams genericclioptions.IOStreams, args []string, kuberne
 	// if the project doesn't already contain the namespace
 	if !isDuplicate {
 		// adding the namespace to the project
-		project.Spec.Template.Namespaces = append(project.Spec.Template.Namespaces, namespace)
+		project.Spec.Template.Namespaces = append(project.Spec.Template.Namespaces, oldNamespace)
 
 		// updating the project
-		if _, err := clientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Update(context.Background(), project, metav1.UpdateOptions{}); err != nil {
+		if _, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Update(context.Background(), project, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
