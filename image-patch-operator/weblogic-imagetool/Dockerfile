@@ -1,12 +1,12 @@
 # Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-ARG JDK_BINARY="${JDK_BINARY:-installers/jdk-8u281-linux-x64.tar.gz}"
+ARG JDK_INSTALLER_BINARY="${JDK_INSTALLER_BINARY:-jdk-8u281-linux-x64.tar.gz}"
 
 # Build stage for required software installation
 FROM ghcr.io/oracle/oraclelinux:8-slim AS build_base
 
-ARG JDK_BINARY
+ARG JDK_INSTALLER_BINARY
 
 RUN microdnf update -y \
     && microdnf install -y unzip wget tar gzip \
@@ -18,17 +18,17 @@ RUN wget https://github.com/oracle/weblogic-image-tool/releases/download/release
 
 # Setup for JDK installation
 ENV JAVA_HOME=/usr/java
-COPY ${JDK_BINARY} ./${JDK_BINARY}
+COPY ./installers/${JDK_INSTALLER_BINARY} ./installers/${JDK_INSTALLER_BINARY}
 ENV JDK_DOWNLOAD_SHA256=85e8c7da7248c7450fb105567a78841d0973597850776c24a527feb02ef3e586
 
 # Install JDK
 RUN set -eux \
     echo "Checking JDK hash"; \
-    echo "${JDK_DOWNLOAD_SHA256} ${JDK_BINARY}" | sha256sum --check -; \
+    echo "${JDK_DOWNLOAD_SHA256} installers/${JDK_INSTALLER_BINARY}" | sha256sum --check -; \
     echo "Installing JDK"; \
     mkdir -p "$JAVA_HOME"; \
-    tar xzf ${JDK_BINARY} --directory "${JAVA_HOME}" --strip-components=1; \
-    rm -f ${JDK_BINARY}
+    tar xzf installers/${JDK_INSTALLER_BINARY} --directory "${JAVA_HOME}" --strip-components=1; \
+    rm -f installers/${JDK_INSTALLER_BINARY}
 
 # Final image for deploying WebLogic Image Tool
 FROM ghcr.io/oracle/oraclelinux:8-slim
@@ -41,9 +41,9 @@ RUN microdnf update -y \
 
 WORKDIR /home/verrazzano
 
-ARG JDK_BINARY
-ARG WLS_BINARY="${WLS_BINARY:-installers/fmw_12.2.1.4.0_wls.jar}"
-ARG WDT_BINARY="${WDT_BINARY:-installers/weblogic-deploy.zip}"
+ARG JDK_INSTALLER_BINARY
+ARG WEBLOGIC_INSTALLER_BINARY="${WEBLOGIC_INSTALLER_BINARY:-fmw_12.2.1.4.0_wls.jar}"
+ARG WDT_INSTALLER_BINARY="${WDT_INSTALLER_BINARY:-weblogic-deploy.zip}"
 
 RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
     && mkdir -p /home/verrazzano/cache \
@@ -63,7 +63,11 @@ COPY --chown=verrazzano:verrazzano ./v8o-imagetool.sh .
 RUN chmod +x ./v8o-imagetool.sh
 
 # Copy over installers
-COPY --chown=verrazzano:verrazzano ./${JDK_BINARY} ./${WLS_BINARY} ./${WDT_BINARY} ./installers/
+COPY --chown=verrazzano:verrazzano \
+    ./installers/${JDK_INSTALLER_BINARY} \
+    ./installers/${WEBLOGIC_INSTALLER_BINARY} \
+    ./installers/${WDT_INSTALLER_BINARY} \
+    ./installers/
 
 COPY THIRD_PARTY_LICENSES.txt /licenses/
 
