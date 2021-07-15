@@ -195,7 +195,7 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     // }
 
     function containsParam(parameters, name, value) {
-        for (var i = 0; i < parameters.length; j++) {
+        for (var i = 0; i < parameters.length; i++) {
             if (parameters[i].name == name && parameters[i].value == value) {
                 return true
             }
@@ -203,8 +203,10 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
         return false
     }
     function findJob(map, parameters) {
+        if (!map) {
+            return null
+        }
         for (let [num, job] of map) {
-            // console.log(key + " = " + value);
             if (parameters) {
                 for (var i = 0; i < job.actions.length; i++) {
                     if (job.actions[i]._class == "hudson.model.ParametersAction") {
@@ -240,12 +242,14 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
             if (trigger == null) {
                 return null;//not running yet
             }
-    console.log("==== Pipeline buildNum:"+buildNum+" trigger:"+trigger);
             var jobs = obj.maps.get(trigger)
     console.log("==== Pipeline buildNum:"+buildNum+" trigger:"+trigger+" jobs:"+jobs);
             if (jobs) {
                 if (parameters) {
-
+                    const job = findJob(jobs, parameters)
+                    if (job) {
+                        return job
+                    }
                 } else {
                     return jobs.values().next().value
                 }
@@ -253,7 +257,6 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     // url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
             // const tests = await get(obj.url);
             if (!obj.list) {
-console.log("!!!! Pipeline: "+obj.url );
                 obj.list = await get(obj.url);
             }
             for(var i = 0; i < obj.maxLookback; i++) {
@@ -262,18 +265,23 @@ console.log("!!!! Pipeline: "+obj.url );
                     const testJob = await get(testBuild.url+"/api/json");
                     obj.jobs.set(testJob.number, testJob)
                     const upNumber = getUpstreamBuild('verrazzano-push-triggered-acceptance-tests/master', testJob)
-    console.log("==== Pipeline testJob.number:"+testJob.number+" upNumber:"+upNumber);
                     if (upNumber != null) {
-                        nums = obj.maps.has(upNumber) ? obj.maps.get(upNumber) : new Map()
-                        nums.set(testJob.number, testJob)
-                        obj.maps.set(upNumber, nums)
+                        const map = obj.maps.has(upNumber) ? obj.maps.get(upNumber) : new Map()
+                        map.set(testJob.number, testJob)
+                        obj.maps.set(upNumber, map)
                         if (upNumber == trigger) {
-                            return testJob;
+                            const job = findJob(map, parameters)
+                            if (job) {
+                                return job
+                            }
                         }
                     }
+                } else {
+        console.log("!!! cached: "+obj.jobs.get(testBuild.number));
                 }
             }
-            return obj.jobs.get(obj.maps.get(trigger))
+            return findJob(obj.maps.get(trigger), parameters)
+            // return obj.jobs.get(obj.maps.get(trigger))
         }
         return obj
     }
@@ -369,13 +377,20 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
         }
         return row
     }
+    function mapOf(k, v) {
+        const map = new Map()
+        map.set(k, v)
+        return map
+    }
 
+    const K8S_VER = 'KUBERNETES_CLUSTER_VERSION'
     async function showResults(body) {
         var url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
         const masterJobs = await get(url);
 console.log(masterJobs);
         tableBody.appendChild(rowOf([tdTxt('build#'), tdTxt('startedBy'),
-            tdTxt('build'), tdTxt('multiClusterAT'),tdTxt('Uninstall'), tdTxt('OCI-DNS')]));
+            tdTxt('Build'), tdTxt('MultiClusterAT'),tdTxt('Uninstall'), tdTxt('OCI-DNS'),
+            tdTxt('Kind-1.17'), tdTxt('Kind-1.19'), tdTxt('Kind-1.20')]));
         document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
         table.setAttribute("border", "1");
         table.appendChild(tableBody);
@@ -392,10 +407,14 @@ console.log(masterJobs);
         const mcat = await mcatPipe.getJob(build.number)
         const unin = await uninPipe.getJob(build.number)
         const odns = await odnsPipe.getJob(build.number)
-        const color = colorOf(rowStatus([build,mcat,unin,odns]))
+        const k117 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.17'));
+        const k119 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.19'));
+        const k120 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.20'));
+        // const k120 = await kindPipe.getJob(build.number, {'KUBERNETES_CLUSTER_VERSION':'1.20'})
+        const color = colorOf(rowStatus([build,mcat,unin,odns,k117]))
         // const mcatStatus = (mcat!=null)? mcat.result : "" //job.result, build.url,
-        tableBody.appendChild(rowOf([td(build.number,null,color), td(findChangeInfo(build),null,color),
-            tdJob(build), tdJob(mcat), tdJob(unin), tdJob(odns)]));
+        tableBody.appendChild(rowOf([td(build.number,null,color), td(findChangeInfo(build),null,color), tdJob(build),
+            tdJob(mcat), tdJob(unin), tdJob(odns), tdJob(k117), tdJob(k119), tdJob(k120)]));
       }
 
       // document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
@@ -408,7 +427,6 @@ console.log(masterJobs);
       // console.log(metrics1);
       // document.body.innerHTML += "<p> metrics prometheus_build_info: "+metrics1.status
     };
-    //showResults();
   </script>
   <title>Test</title>
 </head>
