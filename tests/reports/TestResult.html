@@ -155,7 +155,7 @@ console.log("==== getTriggeredTest buildNum:"+buildNum+" trigger:"+trigger+" tes
         }
 // url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
         const tests = await get(url);
-        for(var i = 0; i < (LookBack+5); i++) {
+        for(var i = 0; i < (LookBack+20); i++) {
             const testBuild = tests.builds[i];
             if (!jobs.has(testBuild.number)) {
                 const testJob = await get(testBuild.url+"/api/json");
@@ -194,16 +194,25 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
         return await getTriggeredTest(odnsUrl, buildNum, odnsNums, odnsJobs)
     }
 
-    function TestSuite(url) {
+    function Pipeline(name, branch) {
         const obj = {}
+        obj.url = 'https://build.verrazzano.io/job/'+name+'/job/'+branch+'/api/json'
         obj.Nums = new Map();
         obj.Jobs = new Map();
         obj.getJob = async function(buildNum) {
-            return await getTriggeredTest(url, buildNum, obj.Nums, obj.Jobs)
+            return await getTriggeredTest(obj.url, buildNum, obj.Nums, obj.Jobs)
         }
         return obj
     }
-    const odnsPipe = TestSuite('https://build.verrazzano.io/job/verrazzano-new-oci-dns-acceptance-tests/job/master/api/json')
+
+    const mcatPipe = Pipeline('verrazzano-multi-cluster-acceptance-tests', 'master')
+    const uninPipe = Pipeline('verrazzano-uninstall-test', 'master')
+    const odnsPipe = Pipeline('verrazzano-new-oci-dns-acceptance-tests', 'master')
+
+    // const mcatPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json')
+    // const uninPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-uninstall-test/job/master/api/json')
+    // const odnsPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-new-oci-dns-acceptance-tests/job/master/api/json')
+    // const k117Pipe = Pipeline('https://build.verrazzano.io/job/verrazzano-new-kind-acceptance-tests/job/master/')
 
     async function gggetMcatJob(buildNum) {
         var trigger = await getTrigger(buildNum)
@@ -302,10 +311,12 @@ console.log(masterJobs);
         const job = masterJobs.builds[i];
         const build = await get(job.url+"/api/json");
         // const trigger = await getTrigger(build.number)
-        const mcat = await getMcatJob(build.number)
-        const unin = await getUninstall(build.number)
+        // const mcat = await getMcatJob(build.number)
+        // const unin = await getUninstall(build.number)
         // const odns = await getOciDns(build.number)
-// console.log("==== build "+build.number+ " "+build+ " "+mcat+ " "+unin+ " "+odns+ " ");
+// console.log("==== build "+build.number+ " "+build+ " "+mcat+ " "+unin+ " "+odns+ " ");ber)
+        const mcat = await mcatPipe.getJob(build.number)
+        const unin = await uninPipe.getJob(build.number)
         const odns = await odnsPipe.getJob(build.number)
         const color = colorOf(rowStatus([build,mcat,unin,odns]))
         // const mcatStatus = (mcat!=null)? mcat.result : "" //job.result, build.url,
