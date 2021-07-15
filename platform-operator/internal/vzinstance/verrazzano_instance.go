@@ -32,7 +32,7 @@ func GetInstanceInfo(client client.Client, cr *v1alpha1.Verrazzano) *v1alpha1.In
 
 	// Console ingress always exist. Only show console URL if the console was enabled during install.
 	var consoleURL *string
-	if *cr.Spec.Components.Console.Enabled == true {
+	if cr.Spec.Components.Console == nil || *cr.Spec.Components.Console.Enabled {
 		consoleURL = getSystemIngressURL(client, ingressList.Items, systemNamespace, constants.VzConsoleIngress)
 	} else {
 		consoleURL = nil

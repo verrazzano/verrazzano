@@ -15,7 +15,7 @@ spec:
   profile: dev
   components:
     elasticsearch:
-      enabled: false
+      enabled: true
     kibana:
       enabled: false
     prometheus:
@@ -25,6 +25,6 @@ spec:
     console:
       enabled: false
     keycloak:
-      enabled: false
+      enabled: true
     rancher:
       enabled: false
