@@ -526,23 +526,20 @@ pipeline {
                     }
                 }
                 stage ('CLI Tests') {
-                    stages {
-                        stage ('Run commands') {
-                            steps {
-                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                    script {
-                                        int count = params.TOTAL_CLUSTERS.toInteger()
-                                        sh """
-                                            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                                            export MANAGED_CLUSTER_DIR="${KUBECONFIG_DIR}/${count}"
-                                            export MANAGED_CLUSTER_NAME="managed${count-1}"
-                                            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                            cd ${GO_REPO_PATH}/verrazzano
-                                            make cli
-                                            ./tools/cli/scripts/cli_test.sh
-                                        """
-                                    }
-                                }
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            script {
+                                // Running the CLI tests for only one managed cluster for now
+                                int count = params.TOTAL_CLUSTERS.toInteger()
+                                sh """
+                                    export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                                    export MANAGED_CLUSTER_DIR="${KUBECONFIG_DIR}/${count}"
+                                    export MANAGED_CLUSTER_NAME="managed${count-1}"
+                                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                    cd ${GO_REPO_PATH}/verrazzano
+                                    make cli
+                                    ./tools/cli/scripts/cli_test.sh
+                                """
                             }
                         }
                     }
