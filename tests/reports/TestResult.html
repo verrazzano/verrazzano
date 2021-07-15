@@ -160,10 +160,46 @@
         return triggerNums.get(buildNum)
     }
 
+    async function getTriggeredTest(url, buildNum, nums, jobs) {
+        var trigger = await getTrigger(buildNum)
+        if (trigger == null) {
+            return null;//not running yet
+        }
+console.log("==== getTriggeredTest: "+url);
+console.log("==== getTriggeredTest buildNum:"+buildNum+" trigger:"+trigger);
+        var testNum = nums.get(trigger)
+console.log("==== getTriggeredTest buildNum:"+buildNum+" trigger:"+trigger+" testNum:"+testNum);
+        if (testNum != null && jobs.has(testNum)) {
+            return jobs.get(testNum)
+        }
+// url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
+        const tests = await get(url);
+        for(var i = 0; i < (LookBack+5); i++) {
+            const testBuild = tests.builds[i];
+            if (!jobs.has(testBuild.number)) {
+                const testJob = await get(testBuild.url+"/api/json");
+                jobs.set(testJob.number, testJob)
+                const upNumber = getUpstreamBuild('verrazzano-push-triggered-acceptance-tests/master', testJob)
+console.log("==== getTriggeredTest testJob.number:"+testJob.number+" upNumber:"+upNumber);
+                if (upNumber != null) {
+                    nums.set(upNumber, testJob.number)
+                }
+            }
+        }
+console.log(mcatNums);
+console.log(mcatJobs);
+console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
+        return mcatJobs.get(mcatNums.get(trigger))
+    }
+
     const mcatNums = new Map(); //trigger -> mcatNum
     const mcatJobs = new Map(); //mcatNum -> mcatJob
-
     async function getMcatJob(buildNum) {
+        const url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
+        return await getTriggeredTest(url, buildNum, mcatNums, mcatJobs)
+    }
+
+    async function gggetMcatJob(buildNum) {
         var trigger = await getTrigger(buildNum)
         if (trigger == null) {
             return null;//not running yet
