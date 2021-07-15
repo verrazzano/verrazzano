@@ -155,10 +155,6 @@ pipeline {
                 }
             }
             steps {
-                sh """
-                    tests/reports/metrics.sh verrazzano:UftokHmESBAi8bDRCtqA
-                """
-
                 archiveArtifacts artifacts: 'tests/reports/*.html', allowEmptyArchive: true
                 publishHTML(target : [allowMissing: false,
                   alwaysLinkToLastBuild: true,

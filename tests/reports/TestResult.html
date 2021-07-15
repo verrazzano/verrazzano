@@ -3,9 +3,8 @@
 <head>
   <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/">
   <script>
-    const metrics1 = {"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"prometheus_build_info","branch":"HEAD","endpoint":"prometheus","exported_instance":"10.244.0.164:9090","exported_job":"sauron-dev-verrazzano-prometheus-1","goversion":"go1.14.3","instance":"sauron-dev-verrazzano-sauron-exporter:8085","job":"MySauronExporter","k8s_node":"10.0.14.73","mysauron":"dev-verrazzano","namespace":"dev-verrazzano","pod":"sauron-dev-verrazzano-prometheus-1-7d547c9544-thqgm","revision":"683f8d0fa386b62918703ce47d867421e2d25476","version":"2.20.0"},"value":[1626297657.52,"1"]},{"metric":{"__name__":"prometheus_build_info","branch":"HEAD","endpoint":"prometheus","exported_instance":"10.244.10.158:9090","exported_job":"sauron-dev-verrazzano-prometheus-0","goversion":"go1.14.3","instance":"sauron-dev-verrazzano-sauron-exporter:8085","job":"MySauronExporter","k8s_node":"10.0.15.45","mysauron":"dev-verrazzano","namespace":"dev-verrazzano","pod":"sauron-dev-verrazzano-prometheus-0-84c4b6c94-fhczt","revision":"683f8d0fa386b62918703ce47d867421e2d25476","version":"2.20.0"},"value":[1626297657.52,"1"]}]}}
-
-    const LookBack = 10 //number of builds look back
+    const metrics1 = 'METRICS_01'
+    const LookBack = 20 //number of builds look back
 
     function td(text, link, color) {
         var col = document.createElement("td");
@@ -36,43 +35,27 @@
         var color = null;
         if (job) {
             text = job.result
-            var color = null
-            if (job.result === 'SUCCESS') {
-                color = '#7FFFD4'
-            } else if (job.result === 'FAILURE') {
-                color = '#FF0000'
-            }
+            color = colorOf(job.result)
+            //  color = null
+            // if (job.result === 'SUCCESS') {
+            //     color = '#7FFFD4'
+            // } else if (job.result === 'FAILURE') {
+            //     color = '#FF0000'
+            // }
             link = job.url
         }
         return td(text, link, color)
     }
 
-    function tableRow(td0, td1, td2, td3) {
-        var row = document.createElement("tr");
-        // var col0 = document.createElement("td");
-        // col0.appendChild(document.createTextNode(c0));
-        // var col1 = document.createElement("td");
-        // col1.appendChild(document.createTextNode(c1));
-        // row.appendChild(col0);
-        // row.appendChild(col1);
-        // var col2 = document.createElement("td");
-        // if (new String(link).valueOf() == new String("").valueOf()) {
-        //     col2.appendChild(document.createTextNode(c2));
-        // } else {
-        //     var a = document.createElement("a");
-        //     a.appendChild(document.createTextNode(c2));
-        //     a.title = c2;
-        //     a.href = link;
-        //     col2.appendChild(a);
-        // }
-        // var col3 = document.createElement("td");
-        // col3.appendChild(document.createTextNode(c3));
-        // row.appendChild(td(c2, link, '#7FFFD4'))
-        row.appendChild(td0)
-        row.appendChild(td1)
-        row.appendChild(td2)
-        row.appendChild(td3);
-        return row
+    function colorOf(status) {
+        if (status === 'SUCCESS') {
+            return '#7FFFD4' //green
+        } else if (status === 'FAILURE') {
+            return '#FF0000' //red
+        } else if (status === 'YELLOW') {
+            return '#FFFF00' //yellow
+        }
+        return null
     }
 
     function getUpstreamBuild(upstreamName, job) {
@@ -194,9 +177,23 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
 
     const mcatNums = new Map(); //trigger -> mcatNum
     const mcatJobs = new Map(); //mcatNum -> mcatJob
+    const mcatUrl = 'https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json'
     async function getMcatJob(buildNum) {
-        const url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
-        return await getTriggeredTest(url, buildNum, mcatNums, mcatJobs)
+        return await getTriggeredTest(mcatUrl, buildNum, mcatNums, mcatJobs)
+    }
+
+    const uninNums =  new Map();
+    const uninJobs = new Map();
+    const uninUrl = 'https://build.verrazzano.io/job/verrazzano-uninstall-test/job/master/api/json'
+    async function getUninstall(buildNum) {
+        return await getTriggeredTest(uninUrl, buildNum, uninNums, uninJobs)
+    }
+
+    const odnsNums =  new Map();
+    const odnsJobs = new Map();
+    const odnsUrl = 'https://build.verrazzano.io/job/verrazzano-new-oci-dns-acceptance-tests/job/master/api/json'
+    async function getOciDns(buildNum) {
+        return await getTriggeredTest(odnsUrl, buildNum, odnsNums, odnsJobs)
     }
 
     async function gggetMcatJob(buildNum) {
@@ -235,7 +232,7 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+              // "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
             }
           });
           return await res.json();
@@ -248,7 +245,7 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
             headers: {
               "Content-Type": "application/json",
               "Access-Control-Allow-Origin": "*",
-              "Authorization": "Basic dmVycmF6emFubzpVZnRva0htRVNCQWk4YkRSQ3RxQQ=="// + btoa("verrazzano:UftokHmESBAi8bDRCtqA")
+              // "Authorization": "Basic dmVycmF6emFubzpVZnRva0htRVNCQWk4YkRSQ3RxQQ=="// + btoa("verrazzano:UftokHmESBAi8bDRCtqA")
             }
           });
           return await res.json();
@@ -257,11 +254,40 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     const table = document.createElement("table");
     const tableBody = document.createElement("tableBody");
 
+    function rowStatus(jobs) {
+        var status = null
+        for (var i = 0; i < jobs.length; i++) {
+            if (!status) {
+                status = jobs[i].result
+            } else if (status != jobs[i].result) {
+                return 'YELLOW'//#FFFF00
+            }
+        }
+        return status
+    }
+
+
+    // function rowOf(td0, td1, td2, td3, td4) {
+    function rowOf(cells) {
+        var row = document.createElement("tr")
+        for (var i = 0; i < cells.length; i++) {
+            row.appendChild(cells[i])
+        }
+        // row.appendChild(td0)
+        //    .appendChild(td1)
+        //    .appendChild(td2)
+        //    .appendChild(td3)
+        //    .appendChild(td4)
+        //    .appendChild(td5);
+        return row
+    }
+
     async function showResults(body) {
       var url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
       const masterJobs = await get(url);
 console.log(masterJobs);
-      tableBody.appendChild(tableRow(tdTxt('build#'), tdTxt('startedBy'), tdTxt('build'), tdTxt('multiClusterAT')));
+      tableBody.appendChild(rowOf([tdTxt('build#'), tdTxt('startedBy'),
+          tdTxt('build'), tdTxt('multiClusterAT'),tdTxt('Uninstall'), tdTxt('OCI-DNS')]));
 
       for(var i = 0; i < LookBack; i++) {
         const job = masterJobs.builds[i];
@@ -269,8 +295,12 @@ console.log(masterJobs);
         // const trigger = await getTrigger(build.number)
         // console.log("~~trigger##"+trigger);
         const mcat = await getMcatJob(build.number)
+        const unin = await getUninstall(build.number)
+        const odns = await getOciDns(build.number)
+        const color = colorOf(rowStatus([build,mcat,unin,odns]))
         // const mcatStatus = (mcat!=null)? mcat.result : "" //job.result, build.url,
-        tableBody.appendChild(tableRow(tdTxt(build.number), tdTxt(findChangeInfo(build)), tdJob(build), tdJob(mcat)));
+        tableBody.appendChild(rowOf([td(build.number,null,color), td(findChangeInfo(build),null,color),
+            tdJob(build), tdJob(mcat), tdJob(unin), tdJob(odns)]));
       }
 
       document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
@@ -279,9 +309,9 @@ console.log(masterJobs);
       body.appendChild(table);
 
       // var metrics1 = await metrics("prometheus_build_info")
-      console.log("~~metrics1.prometheus_build_info");
-      console.log(metrics1);
-      document.body.innerHTML += "<p> metrics prometheus_build_info: "+metrics1.status
+      // console.log("~~metrics1.prometheus_build_info");
+      // console.log(metrics1);
+      // document.body.innerHTML += "<p> metrics prometheus_build_info: "+metrics1.status
     };
     //showResults();
   </script>
