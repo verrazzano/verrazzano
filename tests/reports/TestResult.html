@@ -194,10 +194,44 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     //     return await getTriggeredTest(odnsUrl, buildNum, odnsNums, odnsJobs)
     // }
 
+    function containsParam(parameters, name, value) {
+        for (var i = 0; i < parameters.length; j++) {
+            if (parameters[i].name == name && parameters[i].value == value) {
+                return true
+            }
+        }
+        return false
+    }
+    function findJob(map, parameters) {
+        for (let [num, job] of map) {
+            // console.log(key + " = " + value);
+            if (parameters) {
+                for (var i = 0; i < job.actions.length; i++) {
+                    if (job.actions[i]._class == "hudson.model.ParametersAction") {
+                        var matched = true
+                        for (let [name, value] of parameters) {
+                            matched = matched && containsParam(job.actions[i].parameters, name, value)
+                        }
+                        if (matched) {
+                            return job
+                        }
+                    }
+                }
+            } else {
+                return job
+            }
+        }
+        // if (parameters) {
+        //
+        // } else {
+        //     return jobs.values().next().value
+        // }
+    }
+
     function Pipeline(name, branch, maxLookback) {
         const obj = {}
         obj.url = 'https://build.verrazzano.io/job/'+name+'/job/'+branch+'/api/json'
-        obj.nums = new Map(); //trigger -> [buildNum, ...]
+        obj.maps = new Map(); //trigger -> [buildNum, ...]
         obj.jobs = new Map(); //buildNum -> Job
         obj.list = null;
         obj.maxLookback = maxLookback
@@ -206,9 +240,8 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
             if (trigger == null) {
                 return null;//not running yet
             }
-    console.log("==== Pipeline: "+obj.url );
     console.log("==== Pipeline buildNum:"+buildNum+" trigger:"+trigger);
-            var jobs = obj.nums.get(trigger)
+            var jobs = obj.maps.get(trigger)
     console.log("==== Pipeline buildNum:"+buildNum+" trigger:"+trigger+" jobs:"+jobs);
             if (jobs) {
                 if (parameters) {
@@ -220,6 +253,7 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     // url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
             // const tests = await get(obj.url);
             if (!obj.list) {
+console.log("!!!! Pipeline: "+obj.url );
                 obj.list = await get(obj.url);
             }
             for(var i = 0; i < obj.maxLookback; i++) {
@@ -230,16 +264,16 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
                     const upNumber = getUpstreamBuild('verrazzano-push-triggered-acceptance-tests/master', testJob)
     console.log("==== Pipeline testJob.number:"+testJob.number+" upNumber:"+upNumber);
                     if (upNumber != null) {
-                        nums = obj.nums.has(upNumber) ? obj.nums.get(upNumber) : new Map()
+                        nums = obj.maps.has(upNumber) ? obj.maps.get(upNumber) : new Map()
                         nums.set(testJob.number, testJob)
-                        obj.nums.set(upNumber, nums)
+                        obj.maps.set(upNumber, nums)
                         if (upNumber == trigger) {
                             return testJob;
                         }
                     }
                 }
             }
-            return obj.jobs.get(obj.nums.get(trigger))
+            return obj.jobs.get(obj.maps.get(trigger))
         }
         return obj
     }
@@ -247,6 +281,7 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     const mcatPipe = Pipeline('verrazzano-multi-cluster-acceptance-tests', 'master', 50)
     const uninPipe = Pipeline('verrazzano-uninstall-test', 'master', 50)
     const odnsPipe = Pipeline('verrazzano-new-oci-dns-acceptance-tests', 'master', 50)
+    const kindPipe = Pipeline('verrazzano-new-kind-acceptance-tests', 'master', 200)
 
     // const mcatPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json')
     // const uninPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-uninstall-test/job/master/api/json')
