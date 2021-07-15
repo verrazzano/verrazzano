@@ -105,12 +105,13 @@ func TestGetInstanceInfo(t *testing.T) {
 			return nil
 		})
 
+	enabled := true
 	vz := &v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				Console: &v1alpha1.ConsoleComponent{
 					MonitoringComponent: v1alpha1.MonitoringComponent{
-						Enabled: true,
+						Enabled: &enabled,
 					},
 				},
 			},
@@ -243,12 +244,13 @@ func TestGetInstanceInfoNoIngresses(t *testing.T) {
 			return nil
 		})
 
+	enabled := false
 	vz := &v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				Console: &v1alpha1.ConsoleComponent{
 					MonitoringComponent: v1alpha1.MonitoringComponent{
-						Enabled: false,
+						Enabled: &enabled,
 					},
 				},
 			},
