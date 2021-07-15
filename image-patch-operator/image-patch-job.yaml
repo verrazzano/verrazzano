@@ -40,13 +40,11 @@ spec:
           value: 12.2.1.4.0
         - name: WDT_INSTALLER_BINARY
           value: weblogic-deploy.zip
-        image: wit:4
+        image: wit:1
         imagePullPolicy: IfNotPresent
         name: image-build-request
         securityContext:
-          allowPrivilegeEscalation: true
-          privileged: false
-          readOnlyRootFilesystem: false
+          privileged: true
         volumeMounts:
         - name: registry-creds
           mountPath: "/registry-creds"
