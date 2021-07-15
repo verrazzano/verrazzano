@@ -42,7 +42,7 @@ func TestNipIoInstallDefaults(t *testing.T) {
 //  WHEN I call GetInstallConfig
 //  THEN the nip.io install configuration is created and verified
 func TestNipIoInstallNonDefaults(t *testing.T) {
-	enabled := true
+	enabled := false
 	vz := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Profile:         "dev",
@@ -136,7 +136,7 @@ func TestNipIoInstallNonDefaults(t *testing.T) {
 	assert.Equalf(t, "customNamespace", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
 	assert.Equalf(t, "customSecret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 
-	assert.Equalf(t, "true", config.Rancher.Enabled, "Expected rancher enabled did not match")
+	assert.Equalf(t, "false", config.Rancher.Enabled, "Expected rancher enabled did not match")
 
 	assert.Equalf(t, 1, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
 	assert.Equalf(t, "keycloak-name", config.Keycloak.KeycloakInstallArgs[0].Name, "Expected keycloakInstallArgs name did not match")
@@ -144,7 +144,7 @@ func TestNipIoInstallNonDefaults(t *testing.T) {
 	assert.Equalf(t, 1, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mysqlInstallArgs length did not match")
 	assert.Equalf(t, "mysql-name", config.Keycloak.MySQL.MySQLInstallArgs[0].Name, "Expected mysqlInstallArgs name did not match")
 	assert.Equalf(t, "mysql-value", config.Keycloak.MySQL.MySQLInstallArgs[0].Value, "Expected mysqlInstallArgs value did not match")
-	assert.Equalf(t, "true", config.Keycloak.Enabled, "Expected keycloak enabled did not match")
+	assert.Equalf(t, "false", config.Keycloak.Enabled, "Expected keycloak enabled did not match")
 }
 
 // TestExternalInstall tests the creation of an external install configuration

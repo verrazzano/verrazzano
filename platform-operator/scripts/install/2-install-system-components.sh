@@ -583,10 +583,8 @@ DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
-# Create the cattle-system namespace if rancher if enabled so we can create network policies
-if [ $(is_rancher_enabled) == "true" ]; then
-  action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1
-fi
+# Always create the cattle-system namespace so we can create network policies
+action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1
 
 # Copy the optional global registry secret to the cattle-system namespace for pulling images from a private registry
 if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
