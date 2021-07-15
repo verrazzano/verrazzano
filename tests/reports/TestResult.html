@@ -232,7 +232,7 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              // "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
+              "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
             }
           });
           return await res.json();
@@ -283,11 +283,15 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     }
 
     async function showResults(body) {
-      var url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
-      const masterJobs = await get(url);
+        var url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
+        const masterJobs = await get(url);
 console.log(masterJobs);
-      tableBody.appendChild(rowOf([tdTxt('build#'), tdTxt('startedBy'),
-          tdTxt('build'), tdTxt('multiClusterAT'),tdTxt('Uninstall'), tdTxt('OCI-DNS')]));
+        tableBody.appendChild(rowOf([tdTxt('build#'), tdTxt('startedBy'),
+            tdTxt('build'), tdTxt('multiClusterAT'),tdTxt('Uninstall'), tdTxt('OCI-DNS')]));
+        document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
+        table.setAttribute("border", "1");
+        table.appendChild(tableBody);
+        body.appendChild(table);
 
       for(var i = 0; i < LookBack; i++) {
         const job = masterJobs.builds[i];
@@ -303,10 +307,10 @@ console.log(masterJobs);
             tdJob(build), tdJob(mcat), tdJob(unin), tdJob(odns)]));
       }
 
-      document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
-      table.setAttribute("border", "1");
-      table.appendChild(tableBody);
-      body.appendChild(table);
+      // document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
+      // table.setAttribute("border", "1");
+      // table.appendChild(tableBody);
+      // body.appendChild(table);
 
       // var metrics1 = await metrics("prometheus_build_info")
       // console.log("~~metrics1.prometheus_build_info");
