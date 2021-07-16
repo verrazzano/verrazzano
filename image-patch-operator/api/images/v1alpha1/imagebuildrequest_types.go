@@ -104,8 +104,10 @@ type ImageBuildRequest struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ImageBuildRequestSpec   `json:"spec,omitempty"`
-	Status ImageBuildRequestStatus `json:"status,omitempty"`
+	Spec                     ImageBuildRequestSpec   `json:"spec,omitempty"`
+	Status                   ImageBuildRequestStatus `json:"status,omitempty"`
+	JdkInstallerVersion      string                  `json:"jdkInstallerVersion,omitempty"`
+	WebLogicInstallerVersion string                  `json:"webLogicInstallerVersion,omitempty"`
 }
 
 //+kubebuilder:object:root=true
