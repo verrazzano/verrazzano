@@ -11,11 +11,6 @@
         if (!link) {
             col.appendChild(doc.createTextNode(text));
         } else {
-            // var a = doc.createElement("a");
-            // a.appendChild(doc.createTextNode(text));
-            // a.title = text;
-            // a.href = link;
-            // a.target='_blank';
             col.appendChild(anchor(text, link));
         }
         if (color) {
@@ -60,11 +55,7 @@
     }
 
     function blueOceanLink(link) {
-   //https://build.verrazzano.io/job/verrazzano/job/master/982/
-   //https://build.verrazzano.io/blue/organizations/jenkins/verrazzano/detail/master/982/pipeline
-        return link.replace('.io/job/',
-                            '.io/blue/organizations/jenkins/')
-                   .replace('/job/','/detail/')
+        return link.replace('.io/job/','.io/blue/organizations/jenkins/').replace('/job/','/detail/')
     }
 
     function colorOf(status) {
@@ -79,10 +70,7 @@
     }
 
     function getUpstreamBuild(upstreamName, job) {
-      // var upstreamBuild = null
         for (var i = 0; i < job.actions.length; i++) {
-// console.log(job.actions[i]);
-// console.log(job.actions[i]._class);
             if (job.actions[i]._class == "hudson.model.CauseAction") {
               for (var j = 0; j < job.actions[i].causes.length; j++) {
                 if (job.actions[i].causes[j].upstreamProject == upstreamName &&
@@ -92,12 +80,10 @@
               }
             }
         }
-        // console.log("~~upstreamBuild~~"+upstreamBuild);
         return null
     }
 
     function findCommitMsg(job) {
-      // var upstreamBuild = null
         for (var i = 0; i < job.changeSets.length; i++) {
 // console.log(job.actions[i]);
 // console.log(job.actions[i]._class);
@@ -169,7 +155,6 @@
 // console.log("==== getTrigger buildNum:"+buildNum+" triggerBuild.number:"+triggerBuild.number);
 // console.log(triggerJob);
           const upNumber = getUpstreamBuild('verrazzano/master', triggerJob)
-console.log("!!!! getTrigger buildNum:"+buildNum+" triggerBuild.number:"+triggerBuild.number+" upNumber"+upNumber);
           if (upNumber != null) {
             triggerNums.set(upNumber, triggerJob.number);
           }
@@ -206,11 +191,6 @@ console.log("!!!! getTrigger buildNum:"+buildNum+" triggerBuild.number:"+trigger
                 return job
             }
         }
-        // if (parameters) {
-        //
-        // } else {
-        //     return jobs.values().next().value
-        // }
     }
 
     function Pipeline(name, branch, maxLookback) {
@@ -226,7 +206,6 @@ console.log("!!!! getTrigger buildNum:"+buildNum+" triggerBuild.number:"+trigger
                 return null;//not running yet
             }
             var jobs = obj.maps.get(trigger)
-    console.log("==== Pipeline buildNum:"+buildNum+" trigger:"+trigger+" jobs:"+jobs);
             if (jobs) {
                 if (parameters) {
                     const job = findJob(jobs, parameters)
@@ -369,11 +348,6 @@ console.log(masterJobs);
         row.appendChild(td(build.number,null,null))
         tableBody.appendChild(row)
         row.appendChild(tdJob(build))
-        // const trigger = await getTrigger(build.number)
-        // const mcat = await getMcatJob(build.number)
-        // const unin = await getUninstall(build.number)
-        // const odns = await getOciDns(build.number)
-// console.log("==== build "+build.number+ " "+build+ " "+mcat+ " "+unin+ " "+odns+ " ");ber)
         const mcat = await mcatPipe.getJob(build.number)
         row.appendChild(tdJob(mcat))
         const unin = await uninPipe.getJob(build.number)
