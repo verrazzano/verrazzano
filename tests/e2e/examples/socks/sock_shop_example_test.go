@@ -289,12 +289,25 @@ var _ = AfterSuite(func() {
 		return pkg.DeleteNamespace("sockshop")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	// occassionally the namespace fails to delete, so adding extra debug information here to
+	// capture a cluster dump and hopefully we can figure out what is keeping the namespace
+	// from going away
 	pkg.Log(pkg.Info, "Waiting for namespace to be deleted")
-	Eventually(func() bool {
+	for i := 0; i < 10; i++ {
 		_, err := pkg.GetNamespace("sockshop")
-		return err != nil && errors.IsNotFound(err)
-	}, waitTimeout, pollingInterval).Should(BeTrue())
-	pkg.Log(pkg.Info, "Namespace deleted")
+		if err != nil && errors.IsNotFound(err) {
+			pkg.Log(pkg.Info, "Namespace deleted")
+			return
+		}
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error attempting to get namespace: %v", err))
+		}
+		time.Sleep(pollingInterval)
+	}
+
+	pkg.Log(pkg.Error, "Namespace could not be deleted, dumping cluster")
+	pkg.ExecuteClusterDumpWithEnvVarConfig()
+	Fail("Unable to delete namespace")
 })
 
 // isSockShopServiceReady checks if the service is ready
