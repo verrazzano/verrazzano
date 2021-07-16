@@ -22,13 +22,14 @@ if [ -z "${MANAGED_KUBECONFIG}" ]; then
   echo "MANAGED_KUBECONFIG env var must be set!'"
   exit 1
 fi
+
 echo ADMIN_KUBECONFIG: ${ADMIN_KUBECONFIG}
 echo MANAGED_CLUSTER_NAME: ${MANAGED_CLUSTER_NAME}
 echo MANAGED_KUBECONFIG: ${MANAGED_KUBECONFIG}
 
 # check whether vz is built or not
 if ! vz; then
-  echo "CLI not built"
+  echo "CLI is not built, exiting ..."
   exit 1
 fi
 
@@ -43,22 +44,21 @@ vz cluster register ${MANAGED_CLUSTER_NAME} -d "VerrazzanoManagedCluster object 
 # wait for VMC to be ready - that means the manifest has been created
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=60s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
 if [ $? -ne 0 ]; then
-  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 60 seconds. Registration failed."
+  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 60 seconds, registration failed."
   exit 1
 fi
 
 #export manifest on admin
 rm register-${MANAGED_CLUSTER_NAME}.yaml
 echo "vz cluster get-registration-manifest ${MANAGED_CLUSTER_NAME}"
-vz cluster get-registration-manifest ${MANAGED_CLUSTER_NAME} >register-${MANAGED_CLUSTER_NAME}.yaml
+vz cluster get-registration-manifest ${MANAGED_CLUSTER_NAME} > register-${MANAGED_CLUSTER_NAME}.yaml
 
 # obtain permission-constrained version of kubeconfig to be used by managed cluster
 rm ${MANAGED_CLUSTER_DIR}/managed_kube_config
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-agent -n verrazzano-mc -o jsonpath={.data.admin\-kubeconfig} | base64 --decode >${MANAGED_CLUSTER_DIR}/managed_kube_config
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-agent -n verrazzano-mc -o jsonpath={.data.admin\-kubeconfig} | base64 --decode > ${MANAGED_CLUSTER_DIR}/managed_kube_config
 
-echo "----------BEGIN register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
+echo "---------- register-${MANAGED_CLUSTER_NAME}.yaml ----------"
 cat register-${MANAGED_CLUSTER_NAME}.yaml
-echo "----------END register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
 
 echo "Applying register-${MANAGED_CLUSTER_NAME}.yaml"
 # register using the manifest on managed
