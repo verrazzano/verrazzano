@@ -113,20 +113,16 @@
             return null
         }
 
-        const msgSize = 100
         function findChangeInfo(job) {
             let info = findCauseUser(job)
             if (info == null) {
                 info = findCommitMsg(job)
                 if (info!=null) {
-                    //trim long message
                     let end = info.lastIndexOf("(")
                     if (end > -1) {
                         const num = info.substring(end, info.lastIndexOf(")")+1)+ ' '
-                        const msg = (end > msgSize)?info.substring(0,msgSize)+ '...' : info.substring(0,end)
+                        const msg = info.substring(0,end)
                         info = num + msg
-                    } else {
-                        info = (info.length > msgSize+7)?info.substring(0,msgSize+7)+ '...' : info
                     }
                 }
             }
