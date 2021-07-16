@@ -21,6 +21,12 @@ While inside the container's shell prompt, use the imagetool to create a sample 
 # Creates an alias for the `imagetool.sh` shell script for convenience
 alias imagetool=/home/verrazzano/imagetool/bin/imagetool.sh
 
+# Add the installers needed to create the image
+imagetool cache addInstaller --type wls --version 12.2.1.4.0 --path ./installers/fmw_12.2.1.4.0_wls.jar
+imagetool cache addInstaller --type jdk --version 8u281  --path ./installers/jdk-8u281-linux-x64.tar.gz
+imagetool cache addInstaller --type wdt --version latest --path ./installers/weblogic-deploy.zip
+
+# Creates the image
 imagetool create --tag testimage:1 --builder podman --jdkVersion 8u281 --version 12.2.1.4.0 --dryRun
 ```
 Because of the `--dryRun` flag that was passed in, the Dockerfile for the new image is dumped to standard output, but no image is actually created.
@@ -31,15 +37,4 @@ imagetool create --tag testimage:1 --builder podman --jdkVersion 8u281 --version
 ```
 After creating an image this way, we can verify that it exists by running `podman images`, whose output should include an image called "testimage" with a tag of 1.
 
-
-As an alternative to entering the container's shell prompt, the same `imagetool create` commands can be used as inputs to `docker run`. The following commands should result in a similar output to the above instructions.
-```bash
-# This command assumes that your current working directory is the directory that contains this README.
-make docker-build
-
-docker run --privileged image-id create --tag testimage:1 --builder podman --jdkVersion 8u281 --version 12.2.1.4.0 --dryRun
-
-# Without --dryRun, this actually creates the image, but the container shuts down afterward anyway.
-docker run --privileged image-id create --tag testimage:1 --builder podman --jdkVersion 8u281 --version 12.2.1.4.0
-```
 
