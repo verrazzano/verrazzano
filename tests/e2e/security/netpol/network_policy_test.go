@@ -338,7 +338,7 @@ func testAccess(fromSelector metav1.LabelSelector, fromNamespace string, toSelec
 			if expectAccess {
 				Eventually(func() bool {
 					return attemptConnection(&fromPod, &toPod, port, 10)
-				}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Should be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
+				}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Should be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
 			} else {
 				Consistently(func() bool {
 					return attemptConnection(&fromPod, &toPod, port, 10)
