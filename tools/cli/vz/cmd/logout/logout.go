@@ -43,7 +43,7 @@ func NewCmdLogout(streams genericclioptions.IOStreams) *cobra.Command {
 
 func logout(streams genericclioptions.IOStreams) error {
 	// Check if the user is already logged out
-	if helpers.LoggedOut() ==true {
+	if helpers.LoggedOut() {
 		fmt.Fprintln(streams.Out, "Already Logged out")
 		return nil
 	}

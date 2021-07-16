@@ -8,17 +8,11 @@ import (
 )
 
 func LoggedIn() bool {
-	if strings.Split(GetCurrentContextFromKubeConfig(), "@")[0] == "verrazzano" {
-		return true
-	}
-	return false
+	return strings.Split(GetCurrentContextFromKubeConfig(), "@")[0] == "verrazzano"
 }
 
 func LoggedOut() bool {
-	if strings.Split(GetCurrentContextFromKubeConfig(), "@")[0] != "verrazzano" {
-		return true
-	}
-	return false
+	return strings.Split(GetCurrentContextFromKubeConfig(), "@")[0] != "verrazzano"
 }
 
 func RemoveAllAuthData() {
@@ -29,8 +23,9 @@ func RemoveAllAuthData() {
 	RemoveUserFromKubeConfig("verrazzano")
 
 	// Remove the currentcontext
-	RemoveUserFromKubeConfig(GetCurrentContextFromKubeConfig())
+	RemoveContextFromKubeConfig(GetCurrentContextFromKubeConfig())
 
 	// Set currentcluster to the cluster before the user logged in
 	SetCurrentContextInKubeConfig(strings.Split(GetCurrentContextFromKubeConfig(), "@")[1])
+
 }

@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
 	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
@@ -14,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/login"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/logout"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/project"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -63,8 +65,9 @@ func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
 		Long:  "Verrazzano CLI",
 	}
 	err := login.RefreshToken()
-	if err!=nil {
-		panic("Unable to refresh")
+	if err != nil {
+		helpers.RemoveAllAuthData()
+		fmt.Fprintln(streams.Out, "Logged out, Please login again")
 	}
 	cmd.AddCommand(project.NewCmdProject(streams))
 	cmd.AddCommand(cluster.NewCmdCluster(streams, o))

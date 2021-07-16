@@ -40,8 +40,7 @@ func TestNewCmdLogout(t *testing.T) {
 	asserts := assert.New(t)
 
 	// Create a fake clone of kubeconfig
-	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
-	asserts.NoError(err)
+	originalKubeConfigLocation := helpers.GetKubeConfigLocation()
 	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
 	asserts.NoError(err)
 	fakeKubeConfig, err := os.Create("fakekubeconfig")
@@ -57,39 +56,33 @@ func TestNewCmdLogout(t *testing.T) {
 	asserts.NoError(err)
 
 	// Add fake clusters,usernames,contexts..
-	verrazzanoAPIURL := "verrazzano.fake.nip.io/12345"
+	fakeVerrazzanoAPIURL := "verrazzano.fake.nip.io/12345"
 	fakeCAData := []byte("LS0tCmFwaVZlcnNpb246IHYxCmRhdGE6CiAgYWRtaW4ta3ViZWNvbmZpZzogWTJ4MWMzUmxjbk02Q2kwZ1kyeDFjM1JsY2pvS0lDQWdJR05sY25ScFptbGpZWFJsTFdGMWRHaHZjbWwwZVMxa1lYUmhPaUJNVXpCMFRGTXhRMUpWWkVwVWFVSkVVbFpL")
 	fakeAccessToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew"
-	kubeconfig, err := clientcmd.LoadFromFile("fakekubeconfig")
-	asserts.NoError(err)
-
-	helpers.SetCluster(kubeconfig,
-		"verrazzano",
-		verrazzanoAPIURL,
-		fakeCAData,
-	)
-
-	helpers.SetUser(kubeconfig,
-		"verrazzano",
-		fakeAccessToken,
-	)
-
-	helpers.SetContext(kubeconfig,
-		"verrazzano"+"@"+kubeconfig.CurrentContext,
-		"verrazzano",
-		"verrazzano",
-	)
-
-	helpers.SetCurrentContext(kubeconfig,
-		"verrazzano"+"@"+kubeconfig.CurrentContext,
-	)
-	err = clientcmd.WriteToFile(*kubeconfig,
-		"fakekubeconfig",
-	)
-	asserts.NoError(err)
+	fakeRefreshToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew"
 
 	// Set environment variable for kubeconfig
 	os.Setenv("KUBECONFIG", currentDirectory+"/fakekubeconfig")
+
+	helpers.SetClusterInKubeConfig("verrazzano",
+		fakeVerrazzanoAPIURL,
+		fakeCAData,
+	)
+
+	helpers.SetUserInKubeConfig("verrazzano",
+		fakeAccessToken,
+		fakeRefreshToken,
+		9999999999,
+		9999999999,
+	)
+
+	helpers.SetContextInKubeConfig(
+		"verrazzano"+"@"+helpers.GetCurrentContextFromKubeConfig(),
+		"verrazzano",
+		"verrazzano",
+	)
+
+	helpers.SetCurrentContextInKubeConfig("verrazzano" + "@" + helpers.GetCurrentContextFromKubeConfig())
 
 	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
 	testCmd := NewCmdLogout(streams)
@@ -115,8 +108,7 @@ func TestRepeatedLogout(t *testing.T) {
 	asserts := assert.New(t)
 
 	// Create a fake clone of kubeconfig
-	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
-	asserts.NoError(err)
+	originalKubeConfigLocation := helpers.GetKubeConfigLocation()
 	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
 	asserts.NoError(err)
 	fakeKubeConfig, err := os.Create("fakekubeconfig")
