@@ -19,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
+
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -337,12 +338,12 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 	}
 
 	// Set the version in the status.  This will be updated when the starting install condition is updated.
-	chartSemVer, err := installv1alpha1.GetCurrentChartVersion()
+	bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
 	if err != nil {
 		return err
 	}
-	vz.Status.Version = chartSemVer.ToString()
 
+	vz.Status.Version = bomSemVer.ToString()
 	err = r.setInstallCondition(log, jobFound, vz)
 
 	return err
