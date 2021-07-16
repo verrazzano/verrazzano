@@ -113,6 +113,7 @@
             return null
         }
 
+        const msgSize = 100
         function findChangeInfo(job) {
             let info = findCauseUser(job)
             if (info == null) {
@@ -122,10 +123,10 @@
                     let end = info.lastIndexOf("(")
                     if (end > -1) {
                         const num = info.substring(end, info.lastIndexOf(")")+1)+ ' '
-                        const msg = (end > 20)?info.substring(0,20)+ '...' : info.substring(0,end)
+                        const msg = (end > msgSize)?info.substring(0,msgSize)+ '...' : info.substring(0,end)
                         info = num + msg
                     } else {
-                        info = (info.length > 27)?info.substring(0,27)+ '...' : info
+                        info = (info.length > msgSize+7)?info.substring(0,msgSize+7)+ '...' : info
                     }
                 }
             }
@@ -249,7 +250,8 @@
             const res = await fetch(url, {
                 method: "GET",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
                 }
             });
             return await res.json();
