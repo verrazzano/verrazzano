@@ -4,20 +4,19 @@
   <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/">
   <script>
     const metrics1 = 'METRICS_01'
-    const LookBack = 20 //number of builds look back
+    const LookBack = 10 //number of builds look back
 
     function td(text, link, color) {
-        var col = doc.createElement("td");
-        // if (new String(link).valueOf() == new String("").valueOf()) {
+        let col = doc.createElement("td");
         if (!link) {
             col.appendChild(doc.createTextNode(text));
         } else {
-            var a = doc.createElement("a");
-            a.appendChild(doc.createTextNode(text));
-            a.title = text;
-            a.href = link;
-            col.appendChild(a);
-            // col.style.backgroundColor = '#7FFFD4';
+            // var a = doc.createElement("a");
+            // a.appendChild(doc.createTextNode(text));
+            // a.title = text;
+            // a.href = link;
+            // a.target='_blank';
+            col.appendChild(anchor(text, link));
         }
         if (color) {
             col.style.backgroundColor = color;
@@ -27,6 +26,15 @@
 
     function tdTxt(text) {
         return td(text, null, null)
+    }
+
+    function anchor(text, link) {
+        let a = doc.createElement("a");
+        a.appendChild(doc.createTextNode(text));
+        a.title = text;
+        a.href = link;
+        a.target='_blank';
+        return a
     }
 
     function tdJob(job) {
@@ -40,9 +48,23 @@
             } else {
                 text = 'Running'
             }
-            link = job.url
+            // link = blueOceanLink(job.url)
+            let col = doc.createElement("td");
+            col.style.backgroundColor = color;
+            col.appendChild(anchor(text, job.url));
+            col.appendChild(doc.createTextNode(' '));
+            col.appendChild(anchor('Blue', blueOceanLink(job.url)));
+            return col;
         }
         return td(text, link, color)
+    }
+
+    function blueOceanLink(link) {
+   //https://build.verrazzano.io/job/verrazzano/job/master/982/
+   //https://build.verrazzano.io/blue/organizations/jenkins/verrazzano/detail/master/982/pipeline
+        return link.replace('.io/job/',
+                            '.io/blue/organizations/jenkins/')
+                   .replace('/job/','/detail/')
     }
 
     function colorOf(status) {
@@ -256,7 +278,8 @@ console.log("!!!! getTrigger buildNum:"+buildNum+" triggerBuild.number:"+trigger
           const res = await fetch(url, {
             method: "GET",
             headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
+              "Authorization": "Basic " + btoa("shih-chang.chen@oracle.com:114e1b047c379bed4c5034a6241c4c69a6")
             }
           });
           return await res.json();
