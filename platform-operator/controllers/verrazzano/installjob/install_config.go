@@ -338,43 +338,49 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 
 func getRancher(rancher *installv1alpha1.RancherComponent) Rancher {
 	if rancher == nil {
-		return Rancher{}
+		return Rancher{Enabled: "true"}
 	}
-	rancherConfig := Rancher{
-		Enabled: strconv.FormatBool(rancher.Enabled),
+
+	var enabled string
+	if rancher.Enabled != nil {
+		enabled = strconv.FormatBool(*rancher.Enabled)
+	} else {
+		enabled = "true"
 	}
-	return rancherConfig
+	return Rancher{Enabled: enabled}
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
 func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource) (Keycloak, error) {
-
+	// keycloak was not specified in CR so return defaults
 	if keycloak == nil {
+		keycloakConfig := Keycloak{Enabled: "true"}
 		if defaultVolumeSpec != nil && defaultVolumeSpec.EmptyDir != nil {
 			var mySQLArgs []InstallArg
 			mySQLArgs = append(mySQLArgs, InstallArg{
 				Name:  "persistence.enabled",
 				Value: "false",
 			})
-			keycloakConfig := Keycloak{
-				MySQL: MySQL{
-					MySQLInstallArgs: mySQLArgs,
-				},
-			}
-			return keycloakConfig, nil
+			keycloakConfig.MySQL.MySQLInstallArgs = mySQLArgs
 		}
-		return Keycloak{}, nil
+		return keycloakConfig, nil
 	}
 
 	// Get the explicit helm args for MySQL
 	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
 
+	var enabled string
+	if keycloak.Enabled != nil {
+		enabled = strconv.FormatBool(*keycloak.Enabled)
+	} else {
+		enabled = "true"
+	}
 	keycloakConfig := Keycloak{
 		KeycloakInstallArgs: getInstallArgs(keycloak.KeycloakInstallArgs),
 		MySQL: MySQL{
 			MySQLInstallArgs: mySQLArgs,
 		},
-		Enabled: strconv.FormatBool(keycloak.Enabled),
+		Enabled: enabled,
 	}
 
 	// Use a volume source specified in the Keycloak config, otherwise use the default spec
