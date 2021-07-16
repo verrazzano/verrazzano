@@ -278,13 +278,23 @@ var _ = AfterSuite(func() {
 	}
 
 	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("examples/sock-shop/sock-shop-comp.yaml")
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() error {
 		return pkg.DeleteNamespace("sockshop")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	pkg.Log(pkg.Info, "Waiting for namespace to be deleted")
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace("sockshop")
 		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+	pkg.Log(pkg.Info, "Namespace deleted")
 })
 
 // isSockShopServiceReady checks if the service is ready
