@@ -4,9 +4,9 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 export WLSIMG_CACHEDIR="/home/verrazzano/cache"
-./imagetool/bin/imagetool.sh cache addInstaller --type wls --version 12.2.1.4.0 --path ./installers/${WEBLOGIC_INSTALLER_BINARY}
-./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version 8u281 --path ./installers/${JDK_INSTALLER_BINARY}
-./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version latest --path ./installers/${WDT_INSTALLER_BINARY}
+./imagetool/bin/imagetool.sh cache addInstaller --type wls --version ${WEBLOGIC_INSTALLER_VERSION} --path ./installers/${WEBLOGIC_INSTALLER_BINARY}
+./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version ${JDK_INSTALLER_VERSION} --path ./installers/${JDK_INSTALLER_BINARY}
+./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version ${WDT_INSTALLER_VERSION} --path ./installers/${WDT_INSTALLER_BINARY}
 
 ./imagetool/bin/imagetool.sh create --tag ${IMAGE_NAME}:${IMAGE_TAG} --builder podman --jdkVersion ${JDK_INSTALLER_VERSION} --version ${WEBLOGIC_INSTALLER_VERSION}
 
