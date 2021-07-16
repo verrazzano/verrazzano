@@ -29,9 +29,11 @@ const (
 )
 
 var (
-	expectedPods    = []string{"netpol-test"}
-	waitTimeout     = 3 * time.Minute
-	pollingInterval = 30 * time.Second
+	expectedPods         = []string{"netpol-test"}
+	waitTimeout          = 3 * time.Minute
+	pollingInterval      = 30 * time.Second
+	shortWaitTimeout     = 30 * time.Second
+	shortPollingInterval = 10 * time.Second
 )
 
 var _ = BeforeSuite(func() {
@@ -333,11 +335,14 @@ func testAccess(fromSelector metav1.LabelSelector, fromNamespace string, toSelec
 
 		if len(pods) > 0 {
 			toPod := pods[0]
-			access := attemptConnection(&fromPod, &toPod, port, 10)
-			if access && !expectAccess {
-				return fmt.Errorf(fmt.Sprintf("Should NOT be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
-			} else if !access && expectAccess {
-				return fmt.Errorf(fmt.Sprintf("Should be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
+			if expectAccess {
+				Eventually(func() bool {
+					return attemptConnection(&fromPod, &toPod, port, 10)
+				}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Should be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
+			} else {
+				Consistently(func() bool {
+					return attemptConnection(&fromPod, &toPod, port, 10)
+				}, shortWaitTimeout, shortPollingInterval).Should(BeFalse(), fmt.Sprintf("Should NOT be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
 			}
 		}
 	}
