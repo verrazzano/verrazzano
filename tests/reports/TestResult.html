@@ -4,7 +4,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/">
     <script>
         const metrics1 = 'METRICS_01'
-        const LookBack = 5 //number of builds look back
+        const LookBack = 20 //number of builds look back
 
         function td(text, link, color) {
             let col = doc.createElement("td");
@@ -246,13 +246,13 @@
         const kindPipe = Pipeline('verrazzano-new-kind-acceptance-tests', 'master', 100)
 
         async function get(url) {
-              const res = await fetch(url, {
+            const res = await fetch(url, {
                 method: "GET",
                 headers: {
-                  "Content-Type": "application/json"
+                    "Content-Type": "application/json"
                 }
-              });
-              return await res.json();
+            });
+            return await res.json();
         }
 
         function rowStatus(jobs) {
@@ -274,10 +274,12 @@
             return running ? null : status
         }
 
-        function rowOf(cells) {
+        function thRow(cells) {
             let r = doc.createElement("tr")
             for (let i = 0; i < cells.length; i++) {
-                r.appendChild(cells[i])
+                let th = doc.createElement("th")
+                th.appendChild(doc.createTextNode(cells[i]));
+                r.appendChild(th)
             }
             return r
         }
@@ -343,11 +345,10 @@
             }
             let url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
             const masterJobs = await get(url);
-            tableBody.appendChild(rowOf([tdTxt('build#'),
-                tdTxt('Build'), tdTxt('MultiClusterAT'),tdTxt('Uninstall'), tdTxt('OCI-DNS'),
-                tdTxt('Kind-1.17'), tdTxt('Kind-1.19'), tdTxt('Kind-1.20'), tdTxt('startedBy')]));
+            tableBody.appendChild(thRow(['Build#',
+                'Build', 'MultiClusterAT', 'Uninstall', 'OCI-DNS',
+                'Kind-1.17', 'Kind-1.19', 'Kind-1.20', 'Started by']));
             body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
-            table.setAttribute("border", "1");
             table.appendChild(tableBody);
             body.appendChild(table);
 
@@ -403,9 +404,24 @@
     <title>Verrazzano Tests Status</title>
 </head>
 <body>
-  <script>
-      showResults(document);
-  </script>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        th {
+            padding-top: 8px;
+            padding-bottom: 8px;
+            background-color: #cceeff;
+            color: black;
+        }
+        th, td {
+            border: 1px solid #ddd;
+        }
+        tr:nth-child(even) {background-color: #f2f2f2;}
+    </style>
+    <script>
+        showResults(document);
+    </script>
 </body>
 
 </html>
