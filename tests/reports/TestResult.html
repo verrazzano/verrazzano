@@ -4,7 +4,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/">
   <script>
     const metrics1 = 'METRICS_01'
-    const LookBack = 10 //number of builds look back
+    const LookBack = 20 //number of builds look back
 
     function td(text, link, color) {
         var col = doc.createElement("td");
@@ -252,42 +252,6 @@ console.log("!!!! getTrigger buildNum:"+buildNum+" triggerBuild.number:"+trigger
     const odnsPipe = Pipeline('verrazzano-new-oci-dns-acceptance-tests', 'master', 50)
     const kindPipe = Pipeline('verrazzano-new-kind-acceptance-tests', 'master', 100)
 
-    // const mcatPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json')
-    // const uninPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-uninstall-test/job/master/api/json')
-    // const odnsPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-new-oci-dns-acceptance-tests/job/master/api/json')
-    // const k117Pipe = Pipeline('https://build.verrazzano.io/job/verrazzano-new-kind-acceptance-tests/job/master/')
-
-    async function gggetMcatJob(buildNum) {
-        var trigger = await getTrigger(buildNum)
-        if (trigger == null) {
-            return null;//not running yet
-        }
-console.log("==== getMcatJob buildNum:"+buildNum+" trigger:"+trigger);
-        var mcatNum = mcatNums.get(trigger)
-console.log("==== getMcatJob buildNum:"+buildNum+" trigger:"+trigger+" mcatNum:"+mcatNum);
-        if (mcatNum != null && mcatJobs.has(mcatNum)) {
-            return mcatJobs.get(mcatNum)
-        }
-        url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
-        const mcat = await get(url);
-        for(var i = 0; i < (LookBack+5); i++) {
-            const mcatBuild = mcat.builds[i];
-            if (!mcatJobs.has(mcatBuild.number)) {
-                const mcatJob = await get(mcatBuild.url+"/api/json");
-                mcatJobs.set(mcatJob.number, mcatJob)
-                const upNumber = getUpstreamBuild('verrazzano-push-triggered-acceptance-tests/master', mcatJob)
-console.log("==== getMcatJob mcatJob.number:"+mcatJob.number+" upNumber:"+upNumber);
-                if (upNumber != null) {
-                    mcatNums.set(upNumber, mcatJob.number)
-                }
-            }
-        }
-console.log(mcatNums);
-console.log(mcatJobs);
-console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
-        return mcatJobs.get(mcatNums.get(trigger))
-    }
-
     async function get(url) {
         console.log("!!! !!!! !!!! get " + url);
           const res = await fetch(url, {
@@ -382,6 +346,7 @@ console.log(masterJobs);
         const job = masterJobs.builds[i];
         const build = await get(job.url+"/api/json");
         row.appendChild(td(build.number,null,null))
+        tableBody.appendChild(row)
         row.appendChild(tdJob(build))
         // const trigger = await getTrigger(build.number)
         // const mcat = await getMcatJob(build.number)
@@ -403,7 +368,7 @@ console.log(masterJobs);
         // const k120 = await kindPipe.getJob(build.number, {'KUBERNETES_CLUSTER_VERSION':'1.20'})
         const color = colorOf(rowStatus([build,mcat,unin,odns,k117,k119,k120]))
         row.appendChild(td(findChangeInfo(build),null,color))
-        tableBody.appendChild(row)
+        table.appendChild(tableBody);
         // const mcatStatus = (mcat!=null)? mcat.result : "" //job.result, build.url,
         // tableBody.appendChild(rowOf([td(build.number,null,color), td(findChangeInfo(build),null,color), tdJob(build),
         //     tdJob(mcat), tdJob(unin), tdJob(odns), tdJob(k117), tdJob(k119), tdJob(k120)]));
@@ -411,7 +376,7 @@ console.log(masterJobs);
 
       //Loading problem
       // table.setAttribute("border", "1");
-      table.appendChild(tableBody);
+      // table.appendChild(tableBody);
       // body.appendChild(table);
     };
   </script>
