@@ -16,13 +16,13 @@ import (
 
 // JobConfigCommon Common configuration for install/uninstall jobs
 type JobConfigCommon struct {
-	JobName            string            // Name of the job
-	Namespace          string            // Namespace for the job
-	Labels             map[string]string // Container labels for the job
-	ServiceAccountName string            // Service account name to execute the job as
-	JobImage           string            // Image name/tag for the job
-	DryRun             bool              // Perform the job as a dry-run/no-op, for testing purposes
-	IBR                *imagesv1alpha1.ImageBuildRequest
+	JobName            string                            // Name of the job
+	Namespace          string                            // Namespace for the job
+	Labels             map[string]string                 // Container labels for the job
+	ServiceAccountName string                            // Service account name to execute the job as
+	JobImage           string                            // Image name/tag for the job
+	DryRun             bool                              // Perform the job as a dry-run/no-op, for testing purposes
+	IBR                *imagesv1alpha1.ImageBuildRequest // ImageBuildRequest carrying job environmental variables
 }
 
 // NoOpMode value for MODE variable for no-op (test) jobs
