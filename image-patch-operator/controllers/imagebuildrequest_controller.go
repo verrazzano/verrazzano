@@ -104,6 +104,7 @@ func (r *ImageBuildRequestReconciler) createImageJob(ctx context.Context, log *z
 				ServiceAccountName: serviceAccountName,
 				JobImage:           "busybox",
 				DryRun:             r.DryRun,
+				IBR:                ibr,
 			},
 			ConfigMapName: configMapName,
 		})
