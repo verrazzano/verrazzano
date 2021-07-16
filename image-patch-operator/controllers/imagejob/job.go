@@ -56,6 +56,54 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								Name:  "DEBUG",
 								Value: "1",
 							},
+							{
+								Name:  "IMAGE_NAME",
+								Value: jobConfig.IBR.Spec.Image.Name,
+							},
+							{
+								Name:  "IMAGE_TAG",
+								Value: jobConfig.IBR.Spec.Image.Tag,
+							},
+							{
+								Name:  "IMAGE_REGISTRY",
+								Value: jobConfig.IBR.Spec.Image.Registry,
+							},
+							{
+								Name:  "IMAGE_TENANCY",
+								Value: "mytenancy",
+							},
+							{
+								Name:  "IMAGE_REPOSITORY",
+								Value: jobConfig.IBR.Spec.Image.Repository,
+							},
+							{
+								Name:  "BASE_IMAGE",
+								Value: jobConfig.IBR.Spec.BaseImage,
+							},
+							{
+								Name:  "JDK_INSTALLER_BINARY",
+								Value: jobConfig.IBR.Spec.JDKInstaller,
+							},
+							{
+								Name:  "JDK_INSTALLER_VERSION",
+								Value: "8u281",
+							},
+							{
+								Name:  "WEBLOGIC_INSTALLER_BINARY",
+								Value: jobConfig.IBR.Spec.WebLogicInstaller,
+							},
+							{
+								Name:  "WEBLOGIC_INSTALLER_VERSION",
+								Value: "12.2.1.4.0",
+							},
+							{
+								Name:  "WDT_INSTALLER_BINARY",
+								Value: "weblogic-deploy.zip",
+							},
+							{
+								Name:  "WDT_INSTALLER_VERSION",
+								Value: "latest",
+							},
 						},
 					}},
 					RestartPolicy:      corev1.RestartPolicyNever,

@@ -6,6 +6,8 @@ package k8s
 import (
 	"context"
 
+	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
+
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,6 +22,7 @@ type JobConfigCommon struct {
 	ServiceAccountName string            // Service account name to execute the job as
 	JobImage           string            // Image name/tag for the job
 	DryRun             bool              // Perform the job as a dry-run/no-op, for testing purposes
+	IBR                *imagesv1alpha1.ImageBuildRequest
 }
 
 // NoOpMode value for MODE variable for no-op (test) jobs
