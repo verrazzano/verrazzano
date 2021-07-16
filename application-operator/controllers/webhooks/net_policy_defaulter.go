@@ -213,19 +213,6 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 		},
 		Ingress: []netv1.NetworkPolicyIngressRule{
 			{
-				// all pods in the application to all other pods in the app on all ports
-				From: []netv1.NetworkPolicyPeer{
-					{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: appConfig.Namespace},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"app.oam.dev/name": appConfig.Name},
-						},
-					},
-				},
-			},
-			{
 				// Istio Ingress Gateway access to the pods
 				From: []netv1.NetworkPolicyPeer{
 					{
@@ -280,19 +267,6 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 		},
 		Egress: []netv1.NetworkPolicyEgressRule{
 			{
-				// all pods in the application to all other pods in the app on all ports
-				To: []netv1.NetworkPolicyPeer{
-					{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: appConfig.Namespace},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"app.oam.dev/name": appConfig.Name},
-						},
-					},
-				},
-			},
-			{
 				// egress to istiod
 				Ports: []netv1.NetworkPolicyPort{
 					{
@@ -340,9 +314,6 @@ func newAppDefaultNetworkPolicySpec(appConfig *oamv1.ApplicationConfiguration) n
 					{
 						NamespaceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{constants.LabelVerrazzanoNamespace: "kube-system"},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"k8s-app": "kube-dns"},
 						},
 					},
 				},
