@@ -4,16 +4,16 @@
   <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/">
   <script>
     const metrics1 = 'METRICS_01'
-    const LookBack = 20 //number of builds look back
+    const LookBack = 10 //number of builds look back
 
     function td(text, link, color) {
-        var col = document.createElement("td");
+        var col = doc.createElement("td");
         // if (new String(link).valueOf() == new String("").valueOf()) {
         if (!link) {
-            col.appendChild(document.createTextNode(text));
+            col.appendChild(doc.createTextNode(text));
         } else {
-            var a = document.createElement("a");
-            a.appendChild(document.createTextNode(text));
+            var a = doc.createElement("a");
+            a.appendChild(doc.createTextNode(text));
             a.title = text;
             a.href = link;
             col.appendChild(a);
@@ -81,8 +81,12 @@
 // console.log(job.actions[i]._class);
             if (job.changeSets[i]._class == "hudson.plugins.git.GitChangeSetList") {
               for (var j = 0; j < job.changeSets[i].items.length; j++) {
-                if (job.changeSets[i].items[j].msg != null) {
+                if (job.changeSets[i].items[j].msg) {
                   return job.changeSets[i].items[j].msg
+                }
+               if (job.changeSets[i].items[j].authorEmail &&
+                        (job.changeSets[i].items[j].authorEmail != 'noreply@github.com')) {
+                 return job.changeSets[i].items[j].authorEmail
                 }
               }
             }
@@ -111,15 +115,20 @@
             if (info!=null) {
               //trim to 10
               var end = info.lastIndexOf("(")
-              const num = info.substring(end, info.lastIndexOf(")")+1)+ ' '
-              const msg = (end > 20)?info.substring(0,20)+ '...' : info.substring(0,end)
-              info = num + msg
+              if (end > -1) {
+                  const num = info.substring(end, info.lastIndexOf(")")+1)+ ' '
+                  const msg = (end > 20)?info.substring(0,20)+ '...' : info.substring(0,end)
+                  info = num + msg
+              } else {
+                  info = (info.length > 27)?info.substring(0,27)+ '...' : info
+              }
             }
         }
         return info
     }
 
     const triggerNums = new Map(); // masterBuild# : triggerNumber
+    const triggerJobs = new Map(); // masterBuild# : triggerNumber
     async function getTrigger(buildNum) {
         var trigger = triggerNums.get(buildNum)
 // console.log("==== getTrigger buildNum:"+buildNum+" trigger:"+trigger);
@@ -130,69 +139,21 @@
         const triggerJs = await get(url);
         for(var i = 0; i < (LookBack+5); i++) {
           const triggerBuild = triggerJs.builds[i];
-          const triggerJob = await get(triggerBuild.url+"/api/json");
+          var triggerJob = triggerJobs.get(triggerBuild.number);
+          if (!triggerJob) {
+              triggerJob = await get(triggerBuild.url+"/api/json");
+              triggerJobs.set(triggerJob.number, triggerJob)
+          }
 // console.log("==== getTrigger buildNum:"+buildNum+" triggerBuild.number:"+triggerBuild.number);
 // console.log(triggerJob);
           const upNumber = getUpstreamBuild('verrazzano/master', triggerJob)
+console.log("!!!! getTrigger buildNum:"+buildNum+" triggerBuild.number:"+triggerBuild.number+" upNumber"+upNumber);
           if (upNumber != null) {
             triggerNums.set(upNumber, triggerJob.number);
           }
         }
         return triggerNums.get(buildNum)
     }
-
-    async function getTriggeredTest(url, buildNum, nums, jobs) {
-        var trigger = await getTrigger(buildNum)
-        if (trigger == null) {
-            return null;//not running yet
-        }
-console.log("==== getTriggeredTest: "+url);
-console.log("==== getTriggeredTest buildNum:"+buildNum+" trigger:"+trigger);
-        var testNum = nums.get(trigger)
-console.log("==== getTriggeredTest buildNum:"+buildNum+" trigger:"+trigger+" testNum:"+testNum);
-        if (testNum != null && jobs.has(testNum)) {
-            return jobs.get(testNum)
-        }
-// url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
-        const tests = await get(url);
-        for(var i = 0; i < (LookBack+20); i++) {
-            const testBuild = tests.builds[i];
-            if (!jobs.has(testBuild.number)) {
-                const testJob = await get(testBuild.url+"/api/json");
-                jobs.set(testJob.number, testJob)
-                const upNumber = getUpstreamBuild('verrazzano-push-triggered-acceptance-tests/master', testJob)
-console.log("==== getTriggeredTest testJob.number:"+testJob.number+" upNumber:"+upNumber);
-                if (upNumber != null) {
-                    nums.set(upNumber, testJob.number)
-                }
-            }
-        }
-console.log(mcatNums);
-console.log(mcatJobs);
-console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
-        return mcatJobs.get(mcatNums.get(trigger))
-    }
-
-    // const mcatNums = new Map();
-    // const mcatJobs = new Map(); //mcatNum -> mcatJob
-    // const mcatUrl = 'https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json'
-    // async function getMcatJob(buildNum) {
-    //     return await getTriggeredTest(mcatUrl, buildNum, mcatNums, mcatJobs)
-    // }
-    //
-    // const uninNums =  new Map();
-    // const uninJobs = new Map();
-    // const uninUrl = 'https://build.verrazzano.io/job/verrazzano-uninstall-test/job/master/api/json'
-    // async function getUninstall(buildNum) {
-    //     return await getTriggeredTest(uninUrl, buildNum, uninNums, uninJobs)
-    // }
-    //
-    // const odnsNums =  new Map();
-    // const odnsJobs = new Map();
-    // const odnsUrl = 'https://build.verrazzano.io/job/verrazzano-new-oci-dns-acceptance-tests/job/master/api/json'
-    // async function getOciDns(buildNum) {
-    //     return await getTriggeredTest(odnsUrl, buildNum, odnsNums, odnsJobs)
-    // }
 
     function containsParam(parameters, name, value) {
         for (var i = 0; i < parameters.length; i++) {
@@ -289,7 +250,7 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     const mcatPipe = Pipeline('verrazzano-multi-cluster-acceptance-tests', 'master', 50)
     const uninPipe = Pipeline('verrazzano-uninstall-test', 'master', 50)
     const odnsPipe = Pipeline('verrazzano-new-oci-dns-acceptance-tests', 'master', 50)
-    const kindPipe = Pipeline('verrazzano-new-kind-acceptance-tests', 'master', 200)
+    const kindPipe = Pipeline('verrazzano-new-kind-acceptance-tests', 'master', 100)
 
     // const mcatPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json')
     // const uninPipe = Pipeline('https://build.verrazzano.io/job/verrazzano-uninstall-test/job/master/api/json')
@@ -328,6 +289,7 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     }
 
     async function get(url) {
+        console.log("!!! !!!! !!!! get " + url);
           const res = await fetch(url, {
             method: "GET",
             headers: {
@@ -351,32 +313,35 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
           return await res.json();
     }
 
-    const table = document.createElement("table");
-    const tableBody = document.createElement("tableBody");
-
     function rowStatus(jobs) {
         var status = null
+        var running = false
         for (var i = 0; i < jobs.length; i++) {
-            if (jobs[i]) {
+            if (jobs[i] && jobs[i].result) {
                 if (!status) {
                     status = jobs[i].result
                 } else if (status != jobs[i].result) {
                     return 'YELLOW'//#FFFF00
                 }
+            } else {
+                if (jobs[i]) {
+                    running = true
+                }
             }
         }
-        return status
+        return running ? null : status
     }
 
 
     // function rowOf(td0, td1, td2, td3, td4) {
     function rowOf(cells) {
-        var row = document.createElement("tr")
+        var r = doc.createElement("tr")
         for (var i = 0; i < cells.length; i++) {
-            row.appendChild(cells[i])
+            r.appendChild(cells[i])
         }
-        return row
+        return r
     }
+
     function mapOf(k, v) {
         const map = new Map()
         map.set(k, v)
@@ -384,56 +349,77 @@ console.log("==== getMcatJob mcatNums.get(trigger):"+mcatNums.get(trigger));
     }
 
     const K8S_VER = 'KUBERNETES_CLUSTER_VERSION'
-    async function showResults(body) {
+    var doc = null
+    var tableBody = null
+    async function showResults(myDoc) {
+        if (doc == null) {
+            doc = myDoc
+        }
+        const body = doc.getElementsByTagName("body")[0]
+        const table = doc.createElement("table");
+        if (tableBody == null) {
+            tableBody = doc.createElement("tableBody");
+        }
+
+        // table.setAttribute("border", "1");
+        // table.appendChild(tableBody);
+        // body.appendChild(table);
+
         var url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
         const masterJobs = await get(url);
 console.log(masterJobs);
-        tableBody.appendChild(rowOf([tdTxt('build#'), tdTxt('startedBy'),
+        tableBody.appendChild(rowOf([tdTxt('build#'),
             tdTxt('Build'), tdTxt('MultiClusterAT'),tdTxt('Uninstall'), tdTxt('OCI-DNS'),
-            tdTxt('Kind-1.17'), tdTxt('Kind-1.19'), tdTxt('Kind-1.20')]));
-        document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
+            tdTxt('Kind-1.17'), tdTxt('Kind-1.19'), tdTxt('Kind-1.20'), tdTxt('startedBy')]));
+        body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
+        //Loading problem
         table.setAttribute("border", "1");
         table.appendChild(tableBody);
         body.appendChild(table);
 
       for(var i = 0; i < LookBack; i++) {
+        const row = doc.createElement("tr")
         const job = masterJobs.builds[i];
         const build = await get(job.url+"/api/json");
+        row.appendChild(td(build.number,null,null))
+        row.appendChild(tdJob(build))
         // const trigger = await getTrigger(build.number)
         // const mcat = await getMcatJob(build.number)
         // const unin = await getUninstall(build.number)
         // const odns = await getOciDns(build.number)
 // console.log("==== build "+build.number+ " "+build+ " "+mcat+ " "+unin+ " "+odns+ " ");ber)
         const mcat = await mcatPipe.getJob(build.number)
+        row.appendChild(tdJob(mcat))
         const unin = await uninPipe.getJob(build.number)
+        row.appendChild(tdJob(unin))
         const odns = await odnsPipe.getJob(build.number)
+        row.appendChild(tdJob(odns))
         const k117 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.17'));
+        row.appendChild(tdJob(k117))
         const k119 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.19'));
+        row.appendChild(tdJob(k119))
         const k120 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.20'));
+        row.appendChild(tdJob(k120))
         // const k120 = await kindPipe.getJob(build.number, {'KUBERNETES_CLUSTER_VERSION':'1.20'})
-        const color = colorOf(rowStatus([build,mcat,unin,odns,k117]))
+        const color = colorOf(rowStatus([build,mcat,unin,odns,k117,k119,k120]))
+        row.appendChild(td(findChangeInfo(build),null,color))
+        tableBody.appendChild(row)
         // const mcatStatus = (mcat!=null)? mcat.result : "" //job.result, build.url,
-        tableBody.appendChild(rowOf([td(build.number,null,color), td(findChangeInfo(build),null,color), tdJob(build),
-            tdJob(mcat), tdJob(unin), tdJob(odns), tdJob(k117), tdJob(k119), tdJob(k120)]));
+        // tableBody.appendChild(rowOf([td(build.number,null,color), td(findChangeInfo(build),null,color), tdJob(build),
+        //     tdJob(mcat), tdJob(unin), tdJob(odns), tdJob(k117), tdJob(k119), tdJob(k120)]));
       }
 
-      // document.body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
+      //Loading problem
       // table.setAttribute("border", "1");
-      // table.appendChild(tableBody);
+      table.appendChild(tableBody);
       // body.appendChild(table);
-
-      // var metrics1 = await metrics("prometheus_build_info")
-      // console.log("~~metrics1.prometheus_build_info");
-      // console.log(metrics1);
-      // document.body.innerHTML += "<p> metrics prometheus_build_info: "+metrics1.status
     };
   </script>
   <title>Test</title>
 </head>
 <body>
   <script>
-      const body = document.getElementsByTagName("body")[0];
-      showResults(body);
+      showResults(document);
   </script>
 </body>
 
