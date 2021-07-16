@@ -38,6 +38,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// TestReconcilerSetupWithManager tests the creation and setup of a new reconciler
+// GIVEN a controller implementation
+// WHEN the controller is created
+// THEN verify no error is returned
 func TestReconcilerSetupWithManager(t *testing.T) {
 	assert := asserts.New(t)
 
@@ -64,6 +68,11 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	assert.NoError(err)
 }
 
+// TestNewImageBuildRequest tests the Reconcile method for the following:
+// GIVEN an ImageBuildRequest is applied
+// WHEN the ImageJob is created
+// THEN verify that the status of the ImageBuildRequest reflects that the build is in progress
+// AND verify that the IBR environmental variables are passed to the ImageJob correctly
 func TestNewImageBuildRequest(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewFakeClientWithScheme(newScheme())
@@ -77,6 +86,7 @@ func TestNewImageBuildRequest(t *testing.T) {
 		"IMAGE_REPOSITORY":   "myrepo/verrazzano",
 	}
 
+	// Creating an ImageBuildRequest resource
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/imagebuildrequest_instance.yaml", params))
 
 	request := newRequest("default", "cluster1")
@@ -84,18 +94,24 @@ func TestNewImageBuildRequest(t *testing.T) {
 	_, err := reconciler.Reconcile(request)
 	assert.NoError(err)
 
-	// Testing if ImageBuildRequest exists in cluster
-
 	ibr := &imagesv1alpha1.ImageBuildRequest{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
+
+	// Ensure that IBR resource exists
 	assert.NoError(err)
+
+	// The status, condition, and message of the IBR should reflect that the ImageJob is in progress
 	assert.Equal(ibr.Status.State, imagesv1alpha1.StateType("Building"))
 	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("BuildStarted"))
 	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest build in progress")
 
 	jb := &batchv1.Job{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
+
+	// Ensure that a Kubernetres job is created when an IBR is created
 	assert.NoError(err)
+
+	// Testing that the spec fields of the IBR propagate to the environmental variables of the ImageJob
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[1].Value, "test-build")
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[2].Value, "test-tag")
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[3].Value, "phx.ocir.io")
@@ -107,6 +123,10 @@ func TestNewImageBuildRequest(t *testing.T) {
 
 }
 
+// TestIBRJobSucceeded tests the Reconcile method for the following:
+// GIVEN an ImageBuildRequest is applied
+// WHEN the ImageJob is completed
+// THEN verify that the status of the ImageBuildRequest reflects the build is completed
 func TestIBRJobSucceeded(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewFakeClientWithScheme(newScheme())
@@ -135,6 +155,10 @@ func TestIBRJobSucceeded(t *testing.T) {
 	assert.Equal(jb.Status.Succeeded, int32(1))
 }
 
+// TestIBRJobFailed tests the Reconcile method for the following:
+// GIVEN an ImageBuildRequest is applied
+// WHEN the ImageJob fails
+// THEN verify that the status of the ImageBuildRequest reflects the build failed
 func TestIBRJobFailed(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewFakeClientWithScheme(newScheme())
