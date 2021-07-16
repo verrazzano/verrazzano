@@ -1,447 +1,406 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/">
-  <script>
-    const metrics1 = 'METRICS_01'
-    const LookBack = 20 //number of builds look back
+    <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/">
+    <script>
+        const metrics1 = 'METRICS_01'
+        const LookBack = 5 //number of builds look back
 
-    function td(text, link, color) {
-        let col = doc.createElement("td");
-        if (!link) {
-            col.appendChild(doc.createTextNode(text));
-        } else {
-            col.appendChild(anchor(text, link));
-        }
-        if (color) {
-            col.style.backgroundColor = color;
-        }
-        return col
-    }
-
-    function tdTxt(text) {
-        return td(text, null, null)
-    }
-
-    function anchor(text, link) {
-        let a = doc.createElement("a");
-        a.appendChild(doc.createTextNode(text));
-        a.title = text;
-        a.href = link;
-        a.target='_blank';
-        return a
-    }
-
-    function tdJob(job) {
-        var text = 'None';
-        var link = null;
-        var color = null;
-        if (job) {
-            if (job.result) {
-                text = job.result
-                color = colorOf(job.result)
-            } else {
-                text = 'Running'
-            }
-            // link = blueOceanLink(job.url)
+        function td(text, link, color) {
             let col = doc.createElement("td");
-            col.style.backgroundColor = color;
-            col.appendChild(anchor(text, job.url));
-            col.appendChild(doc.createTextNode(' '));
-            col.appendChild(anchor('Blue', blueOceanLink(job.url)));
-            return col;
+            if (!link) {
+                col.appendChild(doc.createTextNode(text));
+            } else {
+                col.appendChild(anchor(text, link));
+            }
+            if (color) {
+                col.style.backgroundColor = color;
+            }
+            return col
         }
-        return td(text, link, color)
-    }
 
-    function blueOceanLink(link) {
-        return link.replace('.io/job/','.io/blue/organizations/jenkins/').replace('/job/','/detail/')
-    }
-
-    function colorOf(status) {
-        if (status === 'SUCCESS') {
-            return '#7FFFD4' //green
-        } else if (status === 'FAILURE') {
-            return '#FF0000' //red
-        } else if (status === 'YELLOW') {
-            return '#FFFF00' //yellow
+        function tdTxt(text) {
+            return td(text, null, null)
         }
-        return null
-    }
 
-    function getUpstreamBuild(upstreamName, job) {
-        for (var i = 0; i < job.actions.length; i++) {
-            if (job.actions[i]._class == "hudson.model.CauseAction") {
-              for (var j = 0; j < job.actions[i].causes.length; j++) {
-                if (job.actions[i].causes[j].upstreamProject == upstreamName &&
-                    job.actions[i].causes[j].upstreamBuild != null) {
-                  return job.actions[i].causes[j].upstreamBuild
+        function anchor(text, link) {
+            let a = doc.createElement("a");
+            a.appendChild(doc.createTextNode(text));
+            a.title = text;
+            a.href = link;
+            a.target='_blank';
+            return a
+        }
+
+        function tdJob(job) {
+            let text = 'None';
+            let link = null;
+            let color = null;
+            if (job) {
+                if (job.result) {
+                    text = job.result
+                    color = colorOf(job.result)
+                } else {
+                    text = 'Running'
                 }
-              }
+                let col = doc.createElement("td");
+                col.style.backgroundColor = color;
+                col.appendChild(anchor(text, job.url));
+                col.appendChild(doc.createTextNode(' '));
+                col.appendChild(anchor('Blue', blueOceanLink(job.url)));
+                return col;
             }
+            return td(text, link, color)
         }
-        return null
-    }
 
-    function findCommitMsg(job) {
-        for (var i = 0; i < job.changeSets.length; i++) {
-// console.log(job.actions[i]);
-// console.log(job.actions[i]._class);
-            if (job.changeSets[i]._class == "hudson.plugins.git.GitChangeSetList") {
-              for (var j = 0; j < job.changeSets[i].items.length; j++) {
-                if (job.changeSets[i].items[j].msg) {
-                  return job.changeSets[i].items[j].msg
-                }
-               if (job.changeSets[i].items[j].authorEmail &&
-                        (job.changeSets[i].items[j].authorEmail != 'noreply@github.com')) {
-                 return job.changeSets[i].items[j].authorEmail
-                }
-              }
+        function blueOceanLink(link) {
+            return link.replace('.io/job/','.io/blue/organizations/jenkins/')
+                .replace('/job/','/detail/')
+        }
+
+        function colorOf(status) {
+            if (status === 'SUCCESS') {
+                return '#7FFFD4' //green
+            } else if (status === 'FAILURE') {
+                return '#FF0000' //red
+            } else if (status === 'YELLOW') {
+                return '#FFFF00' //yellow
             }
-        }
-        // console.log("~~upstreamBuild~~"+upstreamBuild);
-        return null
-    }
-
-    function findCauseUser(job) {
-        for (var i = 0; i < job.actions.length; i++) {
-            if (job.actions[i]._class == "hudson.model.CauseAction") {
-              for (var j = 0; j < job.actions[i].causes.length; j++) {
-                if (job.actions[i].causes[j].userName != null) {
-                  return job.actions[i].causes[j].userName
-                }
-              }
-            }
-        }
-        return null
-    }
-
-    function findChangeInfo(job) {
-        var info = findCauseUser(job)
-        if (info == null) {
-            info = findCommitMsg(job)
-            if (info!=null) {
-              //trim to 10
-              var end = info.lastIndexOf("(")
-              if (end > -1) {
-                  const num = info.substring(end, info.lastIndexOf(")")+1)+ ' '
-                  const msg = (end > 20)?info.substring(0,20)+ '...' : info.substring(0,end)
-                  info = num + msg
-              } else {
-                  info = (info.length > 27)?info.substring(0,27)+ '...' : info
-              }
-            }
-        }
-        return info
-    }
-
-    const triggerNums = new Map(); // masterBuild# : triggerNumber
-    const triggerJobs = new Map(); // masterBuild# : triggerNumber
-    async function getTrigger(buildNum) {
-        var trigger = triggerNums.get(buildNum)
-// console.log("==== getTrigger buildNum:"+buildNum+" trigger:"+trigger);
-        if (trigger != null) {
-            return trigger
-        }
-        url = "https://build.verrazzano.io/job/verrazzano-push-triggered-acceptance-tests/job/master/api/json"
-        const triggerJs = await get(url);
-        for(var i = 0; i < (LookBack+5); i++) {
-          const triggerBuild = triggerJs.builds[i];
-          var triggerJob = triggerJobs.get(triggerBuild.number);
-          if (!triggerJob) {
-              triggerJob = await get(triggerBuild.url+"/api/json");
-              triggerJobs.set(triggerJob.number, triggerJob)
-          }
-// console.log("==== getTrigger buildNum:"+buildNum+" triggerBuild.number:"+triggerBuild.number);
-// console.log(triggerJob);
-          const upNumber = getUpstreamBuild('verrazzano/master', triggerJob)
-          if (upNumber != null) {
-            triggerNums.set(upNumber, triggerJob.number);
-          }
-        }
-        return triggerNums.get(buildNum)
-    }
-
-    function containsParam(parameters, name, value) {
-        for (var i = 0; i < parameters.length; i++) {
-            if (parameters[i].name == name && parameters[i].value == value) {
-                return true
-            }
-        }
-        return false
-    }
-    function findJob(map, parameters) {
-        if (!map) {
             return null
         }
-        for (let [num, job] of map) {
-            if (parameters) {
-                for (var i = 0; i < job.actions.length; i++) {
-                    if (job.actions[i]._class == "hudson.model.ParametersAction") {
-                        var matched = true
-                        for (let [name, value] of parameters) {
-                            matched = matched && containsParam(job.actions[i].parameters, name, value)
-                        }
-                        if (matched) {
-                            return job
-                        }
-                    }
-                }
-            } else {
-                return job
-            }
-        }
-    }
 
-    function Pipeline(name, branch, maxLookback) {
-        const obj = {}
-        obj.url = 'https://build.verrazzano.io/job/'+name+'/job/'+branch+'/api/json'
-        obj.maps = new Map(); //trigger -> [buildNum, ...]
-        obj.jobs = new Map(); //buildNum -> Job
-        obj.list = null;
-        obj.maxLookback = maxLookback
-        obj.getJob = async function(buildNum, parameters) {
-            var trigger = await getTrigger(buildNum)
-            if (trigger == null) {
-                return null;//not running yet
-            }
-            var jobs = obj.maps.get(trigger)
-            if (jobs) {
-                if (parameters) {
-                    const job = findJob(jobs, parameters)
-                    if (job) {
-                        return job
+        function getUpstreamBuild(upstreamName, job) {
+            for (let i = 0; i < job.actions.length; i++) {
+                if (job.actions[i]._class == "hudson.model.CauseAction") {
+                  for (let j = 0; j < job.actions[i].causes.length; j++) {
+                    if (job.actions[i].causes[j].upstreamProject == upstreamName &&
+                        job.actions[i].causes[j].upstreamBuild != null) {
+                      return job.actions[i].causes[j].upstreamBuild
                     }
-                } else {
-                    return jobs.values().next().value
+                  }
                 }
             }
-    // url = "https://build.verrazzano.io/job/verrazzano-multi-cluster-acceptance-tests/job/master/api/json"
-            // const tests = await get(obj.url);
-            if (!obj.list) {
-                obj.list = await get(obj.url);
+            return null
+        }
+
+        function findCommitMsg(job) {
+            for (let i = 0; i < job.changeSets.length; i++) {
+                if (job.changeSets[i]._class == "hudson.plugins.git.GitChangeSetList") {
+                  for (let j = 0; j < job.changeSets[i].items.length; j++) {
+                    if (job.changeSets[i].items[j].msg) {
+                      return job.changeSets[i].items[j].msg
+                    }
+                   if (job.changeSets[i].items[j].authorEmail &&
+                            (job.changeSets[i].items[j].authorEmail != 'noreply@github.com')) {
+                     return job.changeSets[i].items[j].authorEmail
+                    }
+                  }
+                }
             }
-            for(var i = 0; i < obj.maxLookback; i++) {
-                const testBuild = obj.list.builds[i];
-                if (!obj.jobs.has(testBuild.number)) {
-                    const testJob = await get(testBuild.url+"/api/json");
-                    obj.jobs.set(testJob.number, testJob)
-                    const upNumber = getUpstreamBuild('verrazzano-push-triggered-acceptance-tests/master', testJob)
-                    if (upNumber != null) {
-                        const map = obj.maps.has(upNumber) ? obj.maps.get(upNumber) : new Map()
-                        map.set(testJob.number, testJob)
-                        obj.maps.set(upNumber, map)
-                        if (upNumber == trigger) {
-                            const job = findJob(map, parameters)
-                            if (job) {
+            return null
+        }
+
+        function findCauseUser(job) {
+            for (let i = 0; i < job.actions.length; i++) {
+                if (job.actions[i]._class == "hudson.model.CauseAction") {
+                  for (let j = 0; j < job.actions[i].causes.length; j++) {
+                    if (job.actions[i].causes[j].userName != null) {
+                      return job.actions[i].causes[j].userName
+                    }
+                  }
+                }
+            }
+            return null
+        }
+
+        function findChangeInfo(job) {
+            let info = findCauseUser(job)
+            if (info == null) {
+                info = findCommitMsg(job)
+                if (info!=null) {
+                    //trim long message
+                    let end = info.lastIndexOf("(")
+                    if (end > -1) {
+                        const num = info.substring(end, info.lastIndexOf(")")+1)+ ' '
+                        const msg = (end > 20)?info.substring(0,20)+ '...' : info.substring(0,end)
+                        info = num + msg
+                    } else {
+                        info = (info.length > 27)?info.substring(0,27)+ '...' : info
+                    }
+                }
+            }
+            return info
+        }
+
+        const triggerNums = new Map(); // masterBuild# : triggerNumber
+        const triggerJobs = new Map(); // triggerBuild# : triggerJob
+
+        async function getTrigger(buildNum) {
+            let trigger = triggerNums.get(buildNum)
+            if (trigger != null) {
+                return trigger
+            }
+            let triggerUrl =
+                "https://build.verrazzano.io/job/verrazzano-push-triggered-acceptance-tests/job/master/api/json"
+            const triggerJs = await get(triggerUrl);
+            for(let i = 0; i < (LookBack+5); i++) {
+                const triggerBuild = triggerJs.builds[i];
+                let triggerJob = triggerJobs.get(triggerBuild.number);
+                if (!triggerJob) {
+                    triggerJob = await get(triggerBuild.url+"/api/json");
+                    triggerJobs.set(triggerJob.number, triggerJob)
+                }
+                const upNumber = getUpstreamBuild('verrazzano/master', triggerJob)
+                if (upNumber != null) {
+                    triggerNums.set(upNumber, triggerJob.number);
+                }
+             }
+            return triggerNums.get(buildNum)
+        }
+
+        function containsParam(parameters, name, value) {
+            for (let i = 0; i < parameters.length; i++) {
+                if (parameters[i].name == name && parameters[i].value == value) {
+                    return true
+                }
+            }
+            return false
+        }
+
+        function findJob(map, parameters) {
+            if (!map) {
+                return null
+            }
+            for (let [num, job] of map) {
+                if (parameters) {
+                    for (let i = 0; i < job.actions.length; i++) {
+                        if (job.actions[i]._class == "hudson.model.ParametersAction") {
+                            let matched = true
+                            for (let [name, value] of parameters) {
+                                matched = matched && containsParam(job.actions[i].parameters, name, value)
+                            }
+                            if (matched) {
                                 return job
                             }
                         }
                     }
                 } else {
-        // console.log("!!! cached: "+obj.jobs.get(testBuild.number));
-                }
-            }
-            return findJob(obj.maps.get(trigger), parameters)
-            // return obj.jobs.get(obj.maps.get(trigger))
-        }
-        return obj
-    }
-
-    const mcatPipe = Pipeline('verrazzano-multi-cluster-acceptance-tests', 'master', 50)
-    const uninPipe = Pipeline('verrazzano-uninstall-test', 'master', 50)
-    const odnsPipe = Pipeline('verrazzano-new-oci-dns-acceptance-tests', 'master', 50)
-    const kindPipe = Pipeline('verrazzano-new-kind-acceptance-tests', 'master', 100)
-
-    async function get(url) {
-          const res = await fetch(url, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json"
-            }
-          });
-          return await res.json();
-    }
-
-    function rowStatus(jobs) {
-        var status = null
-        var running = false
-        for (var i = 0; i < jobs.length; i++) {
-            if (jobs[i] && jobs[i].result) {
-                if (!status) {
-                    status = jobs[i].result
-                } else if (status != jobs[i].result) {
-                    return 'YELLOW'//#FFFF00
-                }
-            } else {
-                if (jobs[i]) {
-                    running = true
+                    return job
                 }
             }
         }
-        return running ? null : status
-    }
 
-
-    // function rowOf(td0, td1, td2, td3, td4) {
-    function rowOf(cells) {
-        var r = doc.createElement("tr")
-        for (var i = 0; i < cells.length; i++) {
-            r.appendChild(cells[i])
-        }
-        return r
-    }
-
-    function mapOf(k, v) {
-        const map = new Map()
-        map.set(k, v)
-        return map
-    }
-
-    function findStage(stages, name) {
-        for (const stage of stages) {
-            if (stage.name == name) {
-                console.log("==== findStage :"+name+" href:"+stage._links.self.href)
-                return 'https://build.verrazzano.io'+stage._links.self.href
+        function Pipeline(name, branch, maxLookback) {
+            const obj = {}
+            obj.url = 'https://build.verrazzano.io/job/'+name+'/job/'+branch+'/api/json'
+            obj.maps = new Map(); //trigger -> [buildNum, ...]
+            obj.jobs = new Map(); //buildNum -> Job
+            obj.list = null;
+            obj.maxLookback = maxLookback
+            obj.getJob = async function(buildNum, parameters) {
+                let trigger = await getTrigger(buildNum)
+                if (trigger == null) {
+                    return null;//not running yet
+                }
+                let jobs = obj.maps.get(trigger)
+                if (jobs) {
+                    if (parameters) {
+                        const job = findJob(jobs, parameters)
+                        if (job) {
+                            return job
+                        }
+                    } else {
+                        return jobs.values().next().value
+                    }
+                }
+                if (!obj.list) {
+                    obj.list = await get(obj.url);
+                }
+                for (let i = 0; i < obj.maxLookback; i++) {
+                    const testBuild = obj.list.builds[i];
+                    if (!obj.jobs.has(testBuild.number)) {
+                        const testJob = await get(testBuild.url+"/api/json");
+                        obj.jobs.set(testJob.number, testJob)
+                        const upNumber = getUpstreamBuild('verrazzano-push-triggered-acceptance-tests/master', testJob)
+                        if (upNumber != null) {
+                            const map = obj.maps.has(upNumber) ? obj.maps.get(upNumber) : new Map()
+                            map.set(testJob.number, testJob)
+                            obj.maps.set(upNumber, map)
+                            if (upNumber == trigger) {
+                                const job = findJob(map, parameters)
+                                if (job) {
+                                    return job
+                                }
+                            }
+                        }
+                    }
+                }
+                return findJob(obj.maps.get(trigger), parameters)
             }
+            return obj
         }
-        return null;
-    }
 
-    async function downStreamLink(wf, stageName, nodeName) {
-        if (wf && wf.stages) {
-            const trigHref = findStage(wf.stages, stageName)
-console.log("==== !!! trigHref: "+trigHref)
-            let trigWf = null
-            if (trigHref) {
-                trigWf = await get(trigHref);
-            }
-            if (trigWf && trigWf.stageFlowNodes) {
-                for (const fnode of trigWf.stageFlowNodes) {
-                    if (fnode.name.includes(nodeName)) {
-                        console.log("==== !!! log href:"+fnode._links.log.href)
-                        let logHref = 'https://build.verrazzano.io'+fnode._links.log.href
-                        const trigLog = await get(logHref);
-                        console.log("==== !!! trigLog:"+trigLog.text)
-                        console.log("==== !!! trigLog:"+trigLog.text.substring(trigLog.text.lastIndexOf('#'),trigLog.text.lastIndexOf('</a>')))
-                        console.log("==== !!! trigLog:"+trigLog.text.substring(trigLog.text.lastIndexOf("href='")+6,trigLog.text.lastIndexOf("' ")))
-                        return 'https://build.verrazzano.io'+trigLog.text.substring(trigLog.text.lastIndexOf("href='")+6,trigLog.text.lastIndexOf("' "))
+        const mcatPipe = Pipeline('verrazzano-multi-cluster-acceptance-tests', 'master', 50)
+        const uninPipe = Pipeline('verrazzano-uninstall-test', 'master', 50)
+        const odnsPipe = Pipeline('verrazzano-new-oci-dns-acceptance-tests', 'master', 50)
+        const kindPipe = Pipeline('verrazzano-new-kind-acceptance-tests', 'master', 100)
+
+        async function get(url) {
+              const res = await fetch(url, {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json"
+                }
+              });
+              return await res.json();
+        }
+
+        function rowStatus(jobs) {
+            let status = null
+            let running = false
+            for (let i = 0; i < jobs.length; i++) {
+                if (jobs[i] && jobs[i].result) {
+                    if (!status) {
+                        status = jobs[i].result
+                    } else if (status != jobs[i].result) {
+                        return 'YELLOW'//#FFFF00
+                    }
+                } else {
+                    if (jobs[i]) {
+                        running = true
                     }
                 }
             }
+            return running ? null : status
         }
-        return null
-    }
 
-    async function downStreamJob(wf, stageName, nodeName) {
-        const link = await downStreamLink(wf, stageName, nodeName)
-//console.log("==== !!! mcatUrl:"+mcatUrl)
-        if (link) {
-            return await get(link+"/api/json")
-        } else {
+        function rowOf(cells) {
+            let r = doc.createElement("tr")
+            for (let i = 0; i < cells.length; i++) {
+                r.appendChild(cells[i])
+            }
+            return r
+        }
+
+        function mapOf(k, v) {
+            const map = new Map()
+            map.set(k, v)
+            return map
+        }
+
+        function findStage(stages, name) {
+            for (const stage of stages) {
+                if (stage.name == name) {
+                    return 'https://build.verrazzano.io'+stage._links.self.href
+                }
+            }
+            return null;
+        }
+
+        async function downStreamLink(wf, stageName, nodeName) {
+            if (wf && wf.stages) {
+                const trigHref = findStage(wf.stages, stageName)
+                let trigWf = null
+                if (trigHref) {
+                    trigWf = await get(trigHref);
+                }
+                if (trigWf && trigWf.stageFlowNodes) {
+                    for (const fnode of trigWf.stageFlowNodes) {
+                        if (fnode.name.includes(nodeName)) {
+                            let logHref = 'https://build.verrazzano.io'+fnode._links.log.href
+                            const trigLog = await get(logHref)
+                            return 'https://build.verrazzano.io'+
+                                trigLog.text.substring(trigLog.text.lastIndexOf("href='")+6,trigLog.text.lastIndexOf("' "))
+                        }
+                    }
+                }
+            }
             return null
         }
-        // const job = await get(link+"/api/json")
-        // return job
-//console.log(mcatJob)
-    }
 
-    const K8S_VER = 'KUBERNETES_CLUSTER_VERSION'
-    var doc = null
-    var tableBody = null
-    async function showResults(myDoc) {
-const start = Date.now();
-console.log('starting timer...' + start);
-        if (doc == null) {
-            doc = myDoc
-        }
-        const body = doc.getElementsByTagName("body")[0]
-        const table = doc.createElement("table");
-        if (tableBody == null) {
-            tableBody = doc.createElement("tableBody");
+        async function downStreamJob(wf, stageName, nodeName) {
+            const link = await downStreamLink(wf, stageName, nodeName)
+            if (link) {
+                return await get(link+"/api/json")
+            } else {
+                return null
+            }
         }
 
-        // table.setAttribute("border", "1");
-        // table.appendChild(tableBody);
-        // body.appendChild(table);
+        const K8S_VER = 'KUBERNETES_CLUSTER_VERSION'
+        let doc = null
+        let tableBody = null
+        let useWfApi = false
 
-        var url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
-        const masterJobs = await get(url);
-// console.log(masterJobs);
-        tableBody.appendChild(rowOf([tdTxt('build#'),
-            tdTxt('Build'), tdTxt('MultiClusterAT'),tdTxt('Uninstall'), tdTxt('OCI-DNS'),
-            tdTxt('Kind-1.17'), tdTxt('Kind-1.19'), tdTxt('Kind-1.20'), tdTxt('startedBy')]));
-        body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
-        //Loading problem
-        table.setAttribute("border", "1");
-        table.appendChild(tableBody);
-        body.appendChild(table);
+        async function showResults(myDoc) {
+            if (doc == null) {
+                doc = myDoc
+            }
+            const body = doc.getElementsByTagName("body")[0]
+            const table = doc.createElement("table");
+            if (tableBody == null) {
+                tableBody = doc.createElement("tableBody");
+            }
+            let url = "https://build.verrazzano.io/job/verrazzano/job/master/api/json"
+            const masterJobs = await get(url);
+            tableBody.appendChild(rowOf([tdTxt('build#'),
+                tdTxt('Build'), tdTxt('MultiClusterAT'),tdTxt('Uninstall'), tdTxt('OCI-DNS'),
+                tdTxt('Kind-1.17'), tdTxt('Kind-1.19'), tdTxt('Kind-1.20'), tdTxt('startedBy')]));
+            body.innerHTML += "<p> https://build.verrazzano.io/job/verrazzano/job/master/ </p>"
+            table.setAttribute("border", "1");
+            table.appendChild(tableBody);
+            body.appendChild(table);
 
-      for(var i = 0; i < LookBack; i++) {
-        const row = doc.createElement("tr")
-        const job = masterJobs.builds[i];
-        const build = await get(job.url+"api/json");
-        row.appendChild(td(build.number,null,null))
-        tableBody.appendChild(row)
-        row.appendChild(tdJob(build))
-
-
-        const wf = await get(job.url+"wfapi");
-console.log("==== !!! === wf:"+job.url+"wfapi")
-console.log(wf)
-        const triggerUrl = await downStreamLink(wf, 'Triggered Tests', 'verrazzano-push-triggered-acceptance-tests')
-console.log("==== !!! === triggerUrl:"+triggerUrl)
-let triggerWf = null;
-        if (triggerUrl) {
-            triggerWf = await get(triggerUrl+"/wfapi");
-        }
-
-        const mcat = await downStreamJob(triggerWf, 'Multi Cluster Tests', 'verrazzano-multi-cluster-acceptance-tests')
-        row.appendChild(tdJob(mcat))
-        const unin = await downStreamJob(triggerWf, 'Uninstall Tests', 'verrazzano-uninstall-test')
-        row.appendChild(tdJob(unin))
-        const odns = await downStreamJob(triggerWf, 'OCI DNS tests', 'verrazzano-new-oci-dns-acceptance-tests')
-        row.appendChild(tdJob(odns))
-        const k117 = await downStreamJob(triggerWf, 'Kind Acceptance Tests on 1.17', 'verrazzano-new-kind-acceptance-tests')
-        row.appendChild(tdJob(k117))
-        const k119 = await downStreamJob(triggerWf, 'Kind Acceptance Tests on 1.19', 'verrazzano-new-kind-acceptance-tests')
-        row.appendChild(tdJob(k119))
-        const k120 = await downStreamJob(triggerWf, 'Kind Acceptance Tests on 1.20', 'verrazzano-new-kind-acceptance-tests')
-        row.appendChild(tdJob(k120))
-        const color = colorOf(rowStatus([build,mcat,unin,odns,k117,k119,k120]))
-        row.appendChild(td(findChangeInfo(build),null,color))
-        table.appendChild(tableBody);
-
-
-
-        // const mcat = await mcatPipe.getJob(build.number)
-        // row.appendChild(tdJob(mcat))
-        // const unin = await uninPipe.getJob(build.number)
-        // row.appendChild(tdJob(unin))
-        // const odns = await odnsPipe.getJob(build.number)
-        // row.appendChild(tdJob(odns))
-        // const k117 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.17'));
-        // row.appendChild(tdJob(k117))
-        // const k119 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.19'));
-        // row.appendChild(tdJob(k119))
-        // const k120 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.20'));
-        // row.appendChild(tdJob(k120))
-        // const color = colorOf(rowStatus([build,mcat,unin,odns,k117,k119,k120]))
-        // row.appendChild(td(findChangeInfo(build),null,color))
-        // table.appendChild(tableBody);
-
-      }
-  const end = Date.now();
-  console.log('!!!!!!' + (end));
-  console.log('!!!!!!' + (end - start));
-
-      //Loading problem
-      // table.setAttribute("border", "1");
-      // table.appendChild(tableBody);
-      // body.appendChild(table);
-    };
-  </script>
-  <title>Test</title>
+            for (let i = 0; i < LookBack; i++) {
+                const row = doc.createElement("tr")
+                const job = masterJobs.builds[i];
+                const build = await get(job.url+"api/json");
+                row.appendChild(td(build.number,null,null))
+                tableBody.appendChild(row)
+                row.appendChild(tdJob(build))
+                if (useWfApi) {
+                    const wf = await get(job.url+"wfapi");
+                    const triggerUrl = await downStreamLink(wf, 'Triggered Tests', 'verrazzano-push-triggered-acceptance-tests')
+                    let triggerWf = null;
+                    if (triggerUrl) {
+                        triggerWf = await get(triggerUrl+"/wfapi");
+                    }
+                    const mcat = await downStreamJob(triggerWf, 'Multi Cluster Tests', 'verrazzano-multi-cluster-acceptance-tests')
+                    row.appendChild(tdJob(mcat))
+                    const unin = await downStreamJob(triggerWf, 'Uninstall Tests', 'verrazzano-uninstall-test')
+                    row.appendChild(tdJob(unin))
+                    const odns = await downStreamJob(triggerWf, 'OCI DNS tests', 'verrazzano-new-oci-dns-acceptance-tests')
+                    row.appendChild(tdJob(odns))
+                    const k117 = await downStreamJob(triggerWf, 'Kind Acceptance Tests on 1.17', 'verrazzano-new-kind-acceptance-tests')
+                    row.appendChild(tdJob(k117))
+                    const k119 = await downStreamJob(triggerWf, 'Kind Acceptance Tests on 1.19', 'verrazzano-new-kind-acceptance-tests')
+                    row.appendChild(tdJob(k119))
+                    const k120 = await downStreamJob(triggerWf, 'Kind Acceptance Tests on 1.20', 'verrazzano-new-kind-acceptance-tests')
+                    row.appendChild(tdJob(k120))
+                    const color = colorOf(rowStatus([build,mcat,unin,odns,k117,k119,k120]))
+                    row.appendChild(td(findChangeInfo(build),null,color))
+                    table.appendChild(tableBody);
+                } else {
+                    const mcat = await mcatPipe.getJob(build.number)
+                    row.appendChild(tdJob(mcat))
+                    const unin = await uninPipe.getJob(build.number)
+                    row.appendChild(tdJob(unin))
+                    const odns = await odnsPipe.getJob(build.number)
+                    row.appendChild(tdJob(odns))
+                    const k117 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.17'));
+                    row.appendChild(tdJob(k117))
+                    const k119 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.19'));
+                    row.appendChild(tdJob(k119))
+                    const k120 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.20'));
+                    row.appendChild(tdJob(k120))
+                    const color = colorOf(rowStatus([build,mcat,unin,odns,k117,k119,k120]))
+                    row.appendChild(td(findChangeInfo(build),null,color))
+                    table.appendChild(tableBody);
+                }
+            }
+        };
+    </script>
+    <title>Verrazzano Tests Status</title>
 </head>
 <body>
   <script>
