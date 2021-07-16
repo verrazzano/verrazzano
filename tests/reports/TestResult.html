@@ -4,7 +4,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://prometheus.dev.verrazzano.sauron.us-ashburn-1.oracledx.com/">
   <script>
     const metrics1 = 'METRICS_01'
-    const LookBack = 10 //number of builds look back
+    const LookBack = 5 //number of builds look back
 
     function td(text, link, color) {
         let col = doc.createElement("td");
@@ -312,10 +312,51 @@
         return map
     }
 
+    function findStage(stages, name) {
+        for (const stage of stages) {
+            if (stage.name == name) {
+                console.log("==== findStage :"+name+" href:"+stage._links.self.href)
+                return 'https://build.verrazzano.io'+stage._links.self.href
+            }
+        }
+        return null;
+    }
+
+    async function downStreamLink(wf, stageName, nodeName) {
+        if (wf && wf.stages) {
+            const trigHref = findStage(wf.stages, stageName)
+            const trigWf = await get(trigHref);
+            if (trigWf && trigWf.stageFlowNodes) {
+                for (const fnode of trigWf.stageFlowNodes) {
+                    if (fnode.name.includes(nodeName)) {
+                        console.log("==== !!! log href:"+fnode._links.log.href)
+                        let logHref = 'https://build.verrazzano.io'+fnode._links.log.href
+                        const trigLog = await get(logHref);
+                        console.log("==== !!! trigLog:"+trigLog.text)
+                        console.log("==== !!! trigLog:"+trigLog.text.substring(trigLog.text.lastIndexOf('#'),trigLog.text.lastIndexOf('</a>')))
+                        console.log("==== !!! trigLog:"+trigLog.text.substring(trigLog.text.lastIndexOf("href='")+6,trigLog.text.lastIndexOf("' ")))
+                        return 'https://build.verrazzano.io'+trigLog.text.substring(trigLog.text.lastIndexOf("href='")+6,trigLog.text.lastIndexOf("' "))
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    async function downStreamJob(wf, stageName, nodeName) {
+        const link = await downStreamLink(wf, stageName, nodeName)
+//console.log("==== !!! mcatUrl:"+mcatUrl)
+        const job = await get(link+"/api/json")
+        return job
+//console.log(mcatJob)
+    }
+
     const K8S_VER = 'KUBERNETES_CLUSTER_VERSION'
     var doc = null
     var tableBody = null
     async function showResults(myDoc) {
+const start = Date.now();
+console.log('starting timer...' + start);
         if (doc == null) {
             doc = myDoc
         }
@@ -344,21 +385,62 @@ console.log(masterJobs);
       for(var i = 0; i < LookBack; i++) {
         const row = doc.createElement("tr")
         const job = masterJobs.builds[i];
+
+
+        const wf = await get(job.url+"/wfapi");
+        const triggerUrl = await downStreamLink(wf, 'Triggered Tests', 'verrazzano-push-triggered-acceptance-tests')
+console.log("==== !!! === triggerUrl:"+triggerUrl)
+        const triggerWf = await get(triggerUrl+"/wfapi");
+
+//         const mcatUrl = await downStreamJob(triggerWf, 'Multi Cluster Tests', 'verrazzano-multi-cluster-acceptance-tests')
+// console.log("==== !!! mcatUrl:"+mcatUrl)
+//         const mcatJob = await get(mcatUrl+"/api/json")
+// console.log(mcatJob)
+// console.log(triggerFlow)
+// if (triggerFlow && triggerFlow.stages) {
+//     const trigHref = findStage(triggerFlow.stages, 'Multi Cluster Tests')
+//     const trigWf = await get(trigHref);
+//     if (trigWf && trigWf.stageFlowNodes) {
+//         for (const fnode of trigWf.stageFlowNodes) {
+//             if (fnode.name.includes('verrazzano-multi-cluster-acceptance-tests')) {
+//                 console.log("==== !!! mcat href:"+fnode._links.log.href)
+//                 let logHref = 'https://build.verrazzano.io'+fnode._links.log.href
+//                 const trigLog = await get(logHref);
+//                 console.log("==== !!! mcat:"+trigLog.text)
+//                 console.log("==== !!! mcat:"+trigLog.text.substring(trigLog.text.lastIndexOf('#'),trigLog.text.lastIndexOf('</a>')))
+//                 console.log("==== !!! mcat:"+trigLog.text.substring(trigLog.text.lastIndexOf("href='")+6,trigLog.text.lastIndexOf("' ")))
+//                 let mcatlink = 'https://build.verrazzano.io'+trigLog.text.substring(trigLog.text.lastIndexOf("href='")+6,trigLog.text.lastIndexOf("' "))
+//
+//                 console.log("==== !!! mcat:"+mcatlink)
+//             }
+//         }
+//     }
+// }
+
         const build = await get(job.url+"/api/json");
         row.appendChild(td(build.number,null,null))
         tableBody.appendChild(row)
         row.appendChild(tdJob(build))
-        const mcat = await mcatPipe.getJob(build.number)
+        // const mcat = await mcatPipe.getJob(build.number)
+        const mcat = await downStreamJob(triggerWf, 'Multi Cluster Tests', 'verrazzano-multi-cluster-acceptance-tests')
+    console.log(mcat)
         row.appendChild(tdJob(mcat))
-        const unin = await uninPipe.getJob(build.number)
+
+        // const unin = await uninPipe.getJob(build.number)
+        const unin = await downStreamJob(triggerWf, 'Uninstall Tests', 'verrazzano-uninstall-test')
         row.appendChild(tdJob(unin))
-        const odns = await odnsPipe.getJob(build.number)
+
+        // const odns = await odnsPipe.getJob(build.number)
+        const odns = await downStreamJob(triggerWf, 'OCI DNS tests', 'verrazzano-new-oci-dns-acceptance-tests')
         row.appendChild(tdJob(odns))
-        const k117 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.17'));
+        // const k117 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.17'));
+        const k117 = await downStreamJob(triggerWf, 'Kind Acceptance Tests on 1.17', 'verrazzano-new-kind-acceptance-tests')
         row.appendChild(tdJob(k117))
-        const k119 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.19'));
+        // const k119 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.19'));
+        const k119 = await downStreamJob(triggerWf, 'Kind Acceptance Tests on 1.19', 'verrazzano-new-kind-acceptance-tests')
         row.appendChild(tdJob(k119))
-        const k120 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.20'));
+        // const k120 = await kindPipe.getJob(build.number, mapOf(K8S_VER, '1.20'));
+        const k120 = await downStreamJob(triggerWf, 'Kind Acceptance Tests on 1.20', 'verrazzano-new-kind-acceptance-tests')
         row.appendChild(tdJob(k120))
         // const k120 = await kindPipe.getJob(build.number, {'KUBERNETES_CLUSTER_VERSION':'1.20'})
         const color = colorOf(rowStatus([build,mcat,unin,odns,k117,k119,k120]))
@@ -368,6 +450,9 @@ console.log(masterJobs);
         // tableBody.appendChild(rowOf([td(build.number,null,color), td(findChangeInfo(build),null,color), tdJob(build),
         //     tdJob(mcat), tdJob(unin), tdJob(odns), tdJob(k117), tdJob(k119), tdJob(k120)]));
       }
+  const end = Date.now();
+  console.log('!!!!!!' + (end));
+  console.log('!!!!!!' + (end - start));
 
       //Loading problem
       // table.setAttribute("border", "1");
