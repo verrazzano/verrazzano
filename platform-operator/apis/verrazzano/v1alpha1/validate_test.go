@@ -5,13 +5,13 @@ package v1alpha1
 
 import (
 	"context"
-	"errors"
-	"io/ioutil"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
+
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,31 +19,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const validChartYAML = `
-apiVersion: v1
-description: A Helm chart for Verrazzano
-name: verrazzano
-version: 0.7.0
-appVersion: 0.7.0
-`
+// For unit testing
+const testBomFilePath = "../../../controllers//verrazzano/testdata/test_bom.json"
+const invalidTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom.json"
+const invalidPathTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom_path.json"
 
 // TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the current version is not specified
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.7.0",
+		Version: "v0.17.0",
 		Profile: "dev",
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -54,19 +48,16 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 // WHEN the new version is valid and the current version is less than the current version
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
-		Version: "v0.6.0",
+		Version: "v0.16.0",
 		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.7.0",
+		Version: "v0.17.0",
 		Profile: "dev",
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -77,19 +68,16 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 // WHEN the new version and the current version are at the latest version
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeNotNecessary(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
-		Version: "v0.7.0",
+		Version: "v0.17.0",
 		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.7.0",
+		Version: "v0.17.0",
 		Profile: "dev",
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -100,19 +88,16 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 // WHEN the current version is not valid but the new version is
 // THEN ensure an error is returned from ValidateUpgradeRequest
 func TestValidateUpgradeBadOldVersion(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Version: "blah",
 		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.7.0",
+		Version: "v0.17.0",
 		Profile: "dev",
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -123,15 +108,12 @@ func TestValidateUpgradeBadOldVersion(t *testing.T) {
 // WHEN the current version is there and valid valid but the new version is not
 // THEN ensure an error is returned from ValidateUpgradeRequest
 func TestValidateUpgradeBadNewVersion(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
-		Version: "v0.6.0",
+		Version: "v0.16.0",
 		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
@@ -146,12 +128,9 @@ func TestValidateUpgradeBadNewVersion(t *testing.T) {
 // WHEN the new version and the current version are not specified
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestNoVersionsSpecified(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -167,18 +146,15 @@ func TestNoVersionsSpecified(t *testing.T) {
 // WHEN the new version is valid and the profile field is changed
 // THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithProfileChange(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.7.0",
+		Version: "v0.17.0",
 		Profile: "prod",
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -189,12 +165,9 @@ func TestValidVersionWithProfileChange(t *testing.T) {
 // WHEN only the profile has changed
 // THEN no error is returned from ValidateUpgradeRequest
 func TestProfileChangeOnlyNoVersions(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -210,16 +183,13 @@ func TestProfileChangeOnlyNoVersions(t *testing.T) {
 // WHEN the old spec specifies a version but the new one does not
 // THEN an error is returned from ValidateUpgradeRequest
 func TestProfileChangeOnlyNoNewVersionString(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
-		Version: "v0.6.0",
+		Version: "v0.16.0",
 	}
 	newSpec := &VerrazzanoSpec{
 		Profile: "prod",
@@ -234,18 +204,15 @@ func TestProfileChangeOnlyNoNewVersionString(t *testing.T) {
 // WHEN the new version is valid and the EnvironmentName field is changed
 // THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithEnvNameChange(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
-		Version:         "v0.7.0",
+		Version:         "v0.17.0",
 		Profile:         "dev",
 		EnvironmentName: "newEnv",
 	}
@@ -257,12 +224,9 @@ func TestValidVersionWithEnvNameChange(t *testing.T) {
 // WHEN the new version is valid and the CertManagerComponent field is changed
 // THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithCertManagerChange(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -279,7 +243,7 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 		},
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.7.0",
+		Version: "v0.17.0",
 		Profile: "dev",
 		Components: ComponentSpec{
 			CertManager: &CertManagerComponent{
@@ -301,12 +265,9 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 // WHEN the new version is valid and the DNS component is added
 // THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithNewDNS(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -323,7 +284,7 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 		},
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.7.0",
+		Version: "v0.17.0",
 		Profile: "dev",
 		Components: ComponentSpec{
 			CertManager: &CertManagerComponent{
@@ -368,12 +329,9 @@ func TestValidVersionWithIngressChangeVersionCheckDisabled(t *testing.T) {
 
 // runValidateWithIngressChangeTest Shared test logic for ingress change validation
 func runValidateWithIngressChangeTest() error {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -398,7 +356,7 @@ func runValidateWithIngressChangeTest() error {
 		},
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.7.0",
+		Version: "v0.17.0",
 		Profile: "dev",
 		Components: ComponentSpec{
 			Ingress: &IngressNginxComponent{
@@ -429,62 +387,54 @@ func runValidateWithIngressChangeTest() error {
 	return err
 }
 
-// TestGetCurrentChartVersion Tests basic getChartVersion() happy path
-// GIVEN a request for the current VZ Chart version
-// WHEN the version in the chart is available
-// THEN no error is returned and a valid SemVersion representing the Chart version is returned
-func TestGetCurrentChartVersion(t *testing.T) {
-	chartYaml := validChartYAML
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(chartYaml), nil
-	}
+// TestGetCurrentBomVersion Tests basic getBomVersion() happy path
+// GIVEN a request for the current VZ Bom version
+// WHEN the version in the Bom is available
+// THEN no error is returned and a valid SemVersion representing the Bom version is returned
+func TestGetCurrentBomVersion(t *testing.T) {
+	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
-	expectedVersion, err := semver.NewSemVersion("v0.7.0")
+	expectedVersion, err := semver.NewSemVersion("v0.17.0")
 	assert.NoError(t, err)
 
-	version, err := GetCurrentChartVersion()
+	version, err := GetCurrentBomVersion()
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, version)
 }
 
-// TestGetCurrentChartVersionFileReadError Tests  getChartVersion() when there is an error reading the Chart YAML
-// GIVEN a request for the current VZ Chart version
-// WHEN an error occurs reading the Chart.yaml file from the filesystem
-// THEN an error is returned and nil is returned for the chart SemVersion
-func TestGetCurrentChartVersionFileReadError(t *testing.T) {
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte{}, errors.New("unexpected file read error")
-	}
+// TestGetCurrentBomVersionFileReadError Tests  getBomVersion() when there is an error reading the BOM file
+// GIVEN a request for the current VZ Bom version
+// WHEN an error occurs reading the BOM file from the filesystem
+// THEN an error is returned and nil is returned for the Bom SemVersion
+func TestGetCurrentBomVersionFileReadError(t *testing.T) {
+	component.SetUnitTestBomFilePath(invalidPathTestBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
-	version, err := GetCurrentChartVersion()
+	version, err := GetCurrentBomVersion()
 	assert.Error(t, err)
 	assert.Nil(t, version)
 }
 
-// TestGetCurrentChartVersionBadYAML Tests  getChartVersion() when the Chart YAML is invalid
-// GIVEN a request for the current VZ Chart version
-// WHEN an error occurs unmarshalling the Chart.yaml bytes
-// THEN an error is returned and nil is returned for the chart SemVersion
-func TestGetCurrentChartVersionBadYAML(t *testing.T) {
-	const invalidChartYAML = "{"
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(invalidChartYAML), nil
-	}
+// TestGetCurrentBomVersionBadYAML Tests  getBomVersion() when the BOM file is invalid
+// GIVEN a request for the current VZ Bom version
+// WHEN an error occurs reading in the BOM file as json
+// THEN an error is returned and nil is returned for the Bom SemVersion
+func TestGetCurrentBomVersionBadYAML(t *testing.T) {
+	component.SetUnitTestBomFilePath(invalidTestBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
-	version, err := GetCurrentChartVersion()
+	version, err := GetCurrentBomVersion()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "error converting YAML to JSON")
+	assert.Contains(t, err.Error(), "unexpected end of JSON input")
 	assert.Nil(t, version)
 }
 
 // TestValidateVersionInvalidVersionCheckingDisabled Tests  ValidateVersion() when version checking is disabled
-// GIVEN a request for the current VZ Chart version
+// GIVEN a request for the current VZ Bom version
 // WHEN the version provided is not valid version and checking is disabled
 // THEN no error is returned
 func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
@@ -494,28 +444,25 @@ func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
 }
 
 // TestValidateVersionInvalidVersion Tests  ValidateVersion() for invalid version
-// GIVEN a request for the current VZ Chart version
+// GIVEN a request for the current VZ Bom version
 // WHEN the version provided is not valid version
 // THEN an error is returned
 func TestValidateVersionInvalidVersion(t *testing.T) {
 	assert.Error(t, ValidateVersion("blah"))
 }
 
-// TestValidateVersionBadChartYAML Tests  ValidateVersion() the chart YAML is bad
-// GIVEN a request for the current VZ Chart version
+// TestValidateVersionBadBomFile Tests  ValidateVersion() the BOM file is bad
+// GIVEN a request for the current VZ Bom version
 // WHEN the version provided is not valid version
-// THEN a YAML parsing error is returned
-func TestValidateVersionBadChartYAML(t *testing.T) {
-	const invalidChartYAML = "{"
-	readFileFunction = func(string) ([]byte, error) {
-		return []byte(invalidChartYAML), nil
-	}
+// THEN a json parsing error is returned
+func TestValidateVersionBadBomfile(t *testing.T) {
+	component.SetUnitTestBomFilePath(invalidTestBomFilePath)
 	defer func() {
-		readFileFunction = ioutil.ReadFile
+		component.SetUnitTestBomFilePath("")
 	}()
-	err := ValidateVersion("v0.7.0")
+	err := ValidateVersion("v0.17.0")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "error converting YAML to JSON")
+	assert.Contains(t, err.Error(), "unexpected end of JSON input")
 }
 
 // TestValidateActiveInstall tests that there is no Verrazzano installs active
