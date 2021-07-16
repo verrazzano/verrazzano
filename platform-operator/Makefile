@@ -36,6 +36,8 @@ endif
 
 DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
+VERRAZZANO_MAJOR_MINOR_PATCH = $(shell grep verrazzano-development-version ../.verrazzano-development-version | sed -e 's/verrazzano-development-version=//')
+VERRAZZANO_VERSION=${VERRAZZANO_MAJOR_MINOR_PATCH}
 
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE ?= verrazzano-application-operator-dev
 
@@ -218,5 +220,5 @@ generate-bom:
 	@echo Generating BOM verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	@echo                verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
 	mkdir out || true
-	../tools/scripts/generate_bom.sh verrazzano-bom.json ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG} out/generated-verrazzano-bom.json
+	../tools/scripts/generate_bom.sh verrazzano-bom.json ${VERRAZZANO_VERSION} ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG} out/generated-verrazzano-bom.json
 

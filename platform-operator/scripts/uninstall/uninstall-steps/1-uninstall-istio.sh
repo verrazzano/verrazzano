@@ -85,6 +85,14 @@ function finalize() {
       | xargsr -I name helm repo remove name \
       || err_return $? "Could delete Helm Repos" || return $? # return on pipefail
   fi
+
+  log "Deleting configmap istio-ca-root-cert from all namespaces"
+  IFS=$'\n' read -r -d '' -a namespaces < <( kubectl get namespaces --no-headers -o custom-columns=":metadata.name" && printf '\0' )
+  for ns in "${namespaces[@]}" ; do
+    if kubectl get configmap istio-ca-root-cert > /dev/null 2>&1 ; then
+      kubectl delete configmap istio-ca-root-cert --namespace ${ns} --ignore-not-found=true
+    fi
+  done
 }
 
 action "Deleting Istio Components" uninstall_istio || exit 1

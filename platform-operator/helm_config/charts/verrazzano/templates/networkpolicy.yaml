@@ -37,6 +37,7 @@ spec:
       ports:
         - port: 15090
           protocol: TCP
+{{- if .Values.console.enabled }}
 ---
 # Network policy for Verrazzano console
 # Ingress: allow nginx-ingress-controller to connect to port 8000
@@ -74,6 +75,7 @@ spec:
       ports:
         - port: 15090
           protocol: TCP
+{{- end }}
 ---
 # Network policy for Verrazzano operator
 # Ingress: deny all

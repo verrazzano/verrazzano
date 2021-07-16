@@ -17,7 +17,7 @@ import (
 const systemNamespace = "verrazzano-system"
 
 // GetInstanceInfo returns the instance info for the local install.
-func GetInstanceInfo(client client.Client) *v1alpha1.InstanceInfo {
+func GetInstanceInfo(client client.Client, cr *v1alpha1.Verrazzano) *v1alpha1.InstanceInfo {
 
 	ingressList := &extv1beta1.IngressList{}
 	err := client.List(context.TODO(), ingressList)
@@ -30,8 +30,15 @@ func GetInstanceInfo(client client.Client) *v1alpha1.InstanceInfo {
 		return nil
 	}
 
+	// Console ingress always exist. Only show console URL if the console was enabled during install.
+	var consoleURL *string
+	if cr.Spec.Components.Console == nil || cr.Spec.Components.Console.Enabled {
+		consoleURL = getSystemIngressURL(client, ingressList.Items, systemNamespace, constants.VzConsoleIngress)
+	} else {
+		consoleURL = new(string)
+	}
 	instanceInfo := &v1alpha1.InstanceInfo{
-		ConsoleURL:    getSystemIngressURL(client, ingressList.Items, systemNamespace, constants.VzConsoleIngress),
+		ConsoleURL:    consoleURL,
 		RancherURL:    getSystemIngressURL(client, ingressList.Items, "cattle-system", "rancher"),
 		KeyCloakURL:   getSystemIngressURL(client, ingressList.Items, "keycloak", "keycloak"),
 		ElasticURL:    getSystemIngressURL(client, ingressList.Items, systemNamespace, "vmi-system-es-ingest"),

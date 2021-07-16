@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -104,7 +105,19 @@ func TestGetInstanceInfo(t *testing.T) {
 			return nil
 		})
 
-	instanceInfo := GetInstanceInfo(mock)
+	vz := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Console: &v1alpha1.ConsoleComponent{
+					MonitoringComponent: v1alpha1.MonitoringComponent{
+						Enabled: true,
+					},
+				},
+			},
+		},
+	}
+
+	instanceInfo := GetInstanceInfo(mock, vz)
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
@@ -176,7 +189,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 			return nil
 		})
 
-	instanceInfo := GetInstanceInfo(mock)
+	instanceInfo := GetInstanceInfo(mock, &v1alpha1.Verrazzano{})
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
@@ -206,7 +219,7 @@ func TestGetInstanceInfoGetError(t *testing.T) {
 			return fmt.Errorf("Test error")
 		})
 
-	info := GetInstanceInfo(mock)
+	info := GetInstanceInfo(mock, &v1alpha1.Verrazzano{})
 	mocker.Finish()
 	assert.Nil(t, info)
 }
@@ -230,7 +243,19 @@ func TestGetInstanceInfoNoIngresses(t *testing.T) {
 			return nil
 		})
 
-	instanceInfo := GetInstanceInfo(mock)
+	vz := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Console: &v1alpha1.ConsoleComponent{
+					MonitoringComponent: v1alpha1.MonitoringComponent{
+						Enabled: false,
+					},
+				},
+			},
+		},
+	}
+
+	instanceInfo := GetInstanceInfo(mock, vz)
 	mocker.Finish()
 	assert.Nil(t, instanceInfo)
 }

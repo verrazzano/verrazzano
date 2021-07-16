@@ -18,7 +18,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	const defNs = constants.VerrazzanoSystemNamespace
 	assert := assert.New(t)
 
-	SetUnitTestBomFilePath(sampleTestBomFilePath)
+	SetUnitTestBomFilePath(testBomFilePath)
 	kvs, err := appendKeycloakOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "appendKeycloakOverrides returned an error ")
 	assert.Len(kvs, 1, "appendKeycloakOverrides returned wrong number of key:value pairs")

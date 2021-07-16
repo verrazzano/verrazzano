@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"

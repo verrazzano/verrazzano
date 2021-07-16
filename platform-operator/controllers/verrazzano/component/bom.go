@@ -46,6 +46,9 @@ type BomDoc struct {
 	// An example is ghcr.io
 	Registry string `json:"registry"`
 
+	// Version is the verrazzano version corresponding to the build
+	Version string `json:"version"`
+
 	// Components is the array of component boms
 	Components []BomComponent `json:"components"`
 }
@@ -151,6 +154,10 @@ func (b *Bom) init(jsonBom string) error {
 		}
 	}
 	return nil
+}
+
+func (b *Bom) GetVersion() string {
+	return b.bomDoc.Version
 }
 
 // GetSubcomponent gets the bom subcomponent

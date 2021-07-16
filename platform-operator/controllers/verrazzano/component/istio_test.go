@@ -18,7 +18,7 @@ import (
 func TestAppendIstioOverrides(t *testing.T) {
 	assert := assert.New(t)
 
-	SetUnitTestBomFilePath(sampleTestBomFilePath)
+	SetUnitTestBomFilePath(testBomFilePath)
 
 	os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
 	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
@@ -45,7 +45,7 @@ func TestAppendIstioOverrides(t *testing.T) {
 func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
 	assert := assert.New(t)
 
-	SetUnitTestBomFilePath(sampleTestBomFilePath)
+	SetUnitTestBomFilePath(testBomFilePath)
 
 	kvs, err := appendIstioOverrides(nil, "istiod", "", "", nil)
 	assert.NoError(err, "appendIstioOverrides returned an error ")

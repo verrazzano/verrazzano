@@ -27,7 +27,7 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 	os.Setenv(constants.VerrazzanoAppOperatorImageEnvVar, customImage)
 	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
 
-	SetUnitTestBomFilePath(sampleTestBomFilePath)
+	SetUnitTestBomFilePath(testBomFilePath)
 	kvs, err = appendApplicationOperatorOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "appendApplicationOperatorOverrides returned an error ")
 	assert.Len(kvs, 1, "appendApplicationOperatorOverrides returned wrong number of key:value pairs")

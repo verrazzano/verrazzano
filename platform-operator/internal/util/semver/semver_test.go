@@ -5,9 +5,10 @@ package semver
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestValidSemver Tests the SemVersion parser for valid version strings
