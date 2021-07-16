@@ -879,10 +879,7 @@ def createKindClusters() {
 
         // Can these for now, but eventually we should be able to build this based on
         // inspecting the Docker bridge network CIDR and splitting up a range based on
-        // the cluster count
-
-        // Create an extra cluster for CLI Tests
-        // This cluster will be deleted at the post action stage along with other clusters
+        // the cluster count.
 
         def addressRanges = [ "172.18.0.231-172.18.0.238", "172.18.0.239-172.18.0.246", "172.18.0.247-172.18.0.254"]
         def clusterInstallStages = [:]
@@ -1059,7 +1056,6 @@ def dumpVerrazzanoApiLogs() {
     }
 }
 
-// Also dump install logs for cluster used in CLI tests
 def dumpInstallLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
