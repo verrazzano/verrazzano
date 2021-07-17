@@ -47,17 +47,18 @@ if [ $OPERATION == "create" ]; then
   sudo yum -y install patch >/dev/null 2>&1
   zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY | jq -r ".data | .[\"id\"]")
   status_code=$?
-  if [ $? -ne 0 ]; then
+  if [ ${status_code} -ne 0 ]; then
     echo "Failed creating zone, attempting to fetch zone to see if it already exists"
     oci dns zone get --zone-name-or-id ${ZONE_NAME}
   fi
 elif [ $OPERATION == "delete" ]; then
   oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
-  if [ $? -ne 0 ]; then
+  status_code=$?
+  if [ ${status_code} -ne 0 ]; then
     echo "DNS zone deletion failed on first try. Retrying once."
     oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
+    status_code=$?
   fi
-  status_code=$?
 else
   echo "Unknown operation: ${OPERATION}"
   usage
