@@ -120,6 +120,13 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 					Volumes: []corev1.Volume{
 						{
 							Name: "registry-creds",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: jobConfig.ConfigMapName,
+									},
+								},
+							},
 						},
 					},
 				},
