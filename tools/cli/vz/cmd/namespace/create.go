@@ -81,7 +81,7 @@ func createNamespace(streams genericclioptions.IOStreams, args []string, kuberne
 
 		// checking if project already contains the namespace.
 		for _, projectNamespaces := range project.Spec.Template.Namespaces {
-			if projectNamespaces.Metadata.Name == projectID[0] {
+			if projectNamespaces.Metadata.Name == nsName {
 				isDuplicate = true
 			}
 		}

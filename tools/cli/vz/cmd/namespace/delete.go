@@ -2,6 +2,7 @@ package namespace
 
 import (
 	"context"
+	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,10 +41,32 @@ func deleteNamespace(streams genericclioptions.IOStreams, args []string, kuberne
 
 	// getting the clientset
 	clientset := kubernetesInterface.NewClientSet()
-	err2 := clientset.CoreV1().Namespaces().Delete(context.Background(), nsName, metav1.DeleteOptions{})
+	err := clientset.CoreV1().Namespaces().Delete(context.Background(), nsName, metav1.DeleteOptions{})
+	if err != nil {
+		fmt.Fprintln(streams.ErrOut, err)
+		return err
+	}
+	projectClientset, err2 := kubernetesInterface.NewProjectClientSet()
 	if err2 != nil {
+		fmt.Fprintln(streams.ErrOut, err2)
 		return err2
 	}
+
+	projects, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").List(context.Background(), metav1.ListOptions{})
+	for _, project := range projects.Items {
+		for i, namespace := range project.Spec.Template.Namespaces {
+			if namespace.Metadata.Name == nsName {
+				project.Spec.Template.Namespaces = append(project.Spec.Template.Namespaces[:i], project.Spec.Template.Namespaces[i+1:]...)
+			}
+		}
+
+		_, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Update(context.Background(), &project, metav1.UpdateOptions{})
+		if err != nil {
+			fmt.Fprintln(streams.ErrOut, err)
+			return err
+		}
+	}
+	fmt.Fprintln(streams.Out, "namepspace "+`"`+nsName+`"`+" deleted")
 	return nil
 
 }
