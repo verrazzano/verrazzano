@@ -73,14 +73,16 @@ func listNamespace(o *NamespaceListOptions, streams genericclioptions.IOStreams,
 	}
 
 	// how to get description
-	headings := []string{"NAME", "STATE", "AGE"}
+	headings := []string{"NAME", "STATE", "PROJECT", "AGE"}
 	data := [][]string{}
 	for _, ns := range collection.Items {
+		var projectName string
 		isVzns := false
 		labels := ns.GetLabels()
 		for s, s2 := range labels {
 			if s == "verrazzano-managed" && s2 == "true" {
 				isVzns = true
+				projectName = labels["verrazzano/projectName"]
 			}
 
 		}
@@ -89,6 +91,7 @@ func listNamespace(o *NamespaceListOptions, streams genericclioptions.IOStreams,
 			rowData := []string{
 				ns.Name,
 				string(ns.Status.Phase),
+				projectName,
 				helpers.Age(ns.CreationTimestamp),
 			}
 			data = append(data, rowData)

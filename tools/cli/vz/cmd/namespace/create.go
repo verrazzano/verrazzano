@@ -87,10 +87,12 @@ func createNamespace(streams genericclioptions.IOStreams, args []string, kuberne
 		}
 		if !isDuplicate {
 			// adding the namespace to the project
+			vzLabel["verrazzano/projectName"] = projectID[0]
 			newNsTemplate := v1alpha1.NamespaceTemplate{
 				Metadata: metav1.ObjectMeta{
 					Name:              newNamespace.GetName(),
 					CreationTimestamp: newNamespace.GetCreationTimestamp(),
+					Labels:            vzLabel,
 				},
 			}
 			project.Spec.Template.Namespaces = append(project.Spec.Template.Namespaces, newNsTemplate)
@@ -101,6 +103,7 @@ func createNamespace(streams genericclioptions.IOStreams, args []string, kuberne
 			}
 		}
 	}
+
 	fmt.Fprintln(streams.Out, "namespace/"+nsName+" created")
 	return nil
 }
