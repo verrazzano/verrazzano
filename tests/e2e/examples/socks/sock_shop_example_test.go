@@ -278,14 +278,6 @@ var _ = AfterSuite(func() {
 	}
 
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/sock-shop/sock-shop-comp.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() error {
 		return pkg.DeleteNamespace("sockshop")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
