@@ -4,22 +4,43 @@ This document goes through the steps of building, deploying, and testing the ima
 ### Build the Required Docker Images
 First, build the Docker image for the image patch operator.
 ```bash
-cd <path-to-verrazzano-repo>/image-patch-operator
 make docker-build
 ```
 Build the Docker image for the WebLogic Image Tool.
 ```bash
-cd <path-to-verrazzano-repo>/image-patch-operator/weblogic-imagetool
+cd weblogic-imagetool
 make docker-build
 ```
 Next, verify that the two images have been created. This will show the names and tags for each image.
 ```bash
 docker images
 ```
-At this point, load these two images into your Kubernetes cluster. For example, if you are using a minikube cluster, run the following commands.
+Your output should be similar to
+```
+REPOSITORY                            TAG              IMAGE ID       CREATED             SIZE
+verrazzano-weblogic-image-tool-dev    local-00c6bd61   c3a7bfc12230   About an hour ago   1.64GB
+verrazzano-image-patch-operator-dev   local-d86959a5   a0865a3d3e16   5 days ago          187MB
+```
+At this point, create a Kubernetes cluster, and load these two images into your cluster. For example, if you are using a Kind cluster, run the following commands.
 ```bash
-minikube image load <image-patch-operator-name>:<image-patch-operator-tag>
-minikube image load <image-tool-name>:<image-tool-tag>
+kind create cluster --config - <<EOF
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            "service-account-issuer": "kubernetes.default.svc"
+            "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
+EOF
+
+# Load the images
+```
+kind load docker-image --name kind verrazzano-image-patch-operator-dev:local-2b27f37c
+kind load docker-image --name kind verrazzano-weblogic-image-tool-dev:local-d86959a5
 ```
 
 ### Install the Helm Chart
@@ -34,16 +55,9 @@ After installing the Helm Chart, the ImageBuildRequest custom resource definitio
 
 ### Create a Secret with Credentials for Pushing the Image
 The Secret can be manually created using `kubectl`.<br>
-First, create three local files containing your credentials and the registry you would like to push the WebLogic ImageTool image to.
-```bash
-echo <your-username> > username.txt
-echo <your-password> > password.txt
-echo <container-registry-name> > registry.txt
-```
-The following command will create the Secret.
 ```bash
 kubectl create secret generic verrazzano-imagetool -n verrazzano-system \
-  --from-file=username=./username.txt \
-  --from-file=password=./password.txt \
-  --from-file=registry=./registry.txt
+  --from-literal=username=<your-username> \
+  --from-literal=password=<your-password> \
+  --from-literal=registry=<container-registry-name>
 ```
