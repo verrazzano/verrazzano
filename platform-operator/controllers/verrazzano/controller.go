@@ -19,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
+
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -474,7 +475,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 	case installv1alpha1.UpgradeStarted:
 		cr.Status.State = installv1alpha1.Upgrading
 	case installv1alpha1.InstallComplete:
-		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client)
+		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, cr)
 		fallthrough
 	case installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
 		cr.Status.State = installv1alpha1.Ready

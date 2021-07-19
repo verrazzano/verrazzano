@@ -5,22 +5,24 @@ package v1alpha1
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
+
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 // For unit testing
-const testBomFilePath = "testdata/test_bom.json"
-const invalidTestBomFilePath = "testdata/invalid_test_bom.json"
-const invalidPathTestBomFilePath = "testdata/invalid_test_bom_path.json"
+const testBomFilePath = "../../../controllers//verrazzano/testdata/test_bom.json"
+const invalidTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom.json"
+const invalidPathTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom_path.json"
 
 // TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
 // GIVEN an edit to update a Verrazzano spec to a new version

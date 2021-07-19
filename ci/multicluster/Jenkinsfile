@@ -19,6 +19,7 @@ installerFileName = "install-verrazzano.yaml"
 pipeline {
     options {
         skipDefaultCheckout true
+        timestamps ()
     }
 
     agent {
@@ -288,7 +289,7 @@ pipeline {
                                     }
                                     steps {
                                         script {
-                                            int clusterCount = params.TOTAL_CLUSTERS.toInteger() + 1
+                                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
                                             for(int count=1; count<=clusterCount; count++) {
                                                 sh """
                                                     export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
@@ -355,7 +356,7 @@ pipeline {
                             // - the first one will always be the Admin cluster
                             // - clusters 2-max are managed clusters
                             def verrazzanoInstallStages = [:]
-                            int clusterCount = params.TOTAL_CLUSTERS.toInteger() + 1
+                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
                             for(int count=1; count<=clusterCount; count++) {
                                 def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
                                 def key = "vz-mgd-${count-1}"
@@ -412,42 +413,6 @@ pipeline {
                         always {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-                stage ('CLI Tests') {
-                    stages {
-                        stage ('Verify Install') {
-                            steps {
-                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                    script {
-                                        int count = params.TOTAL_CLUSTERS.toInteger() + 1
-                                        sh """
-                                            export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor verify-install/...
-                                        """
-                                    }
-                                }
-                            }
-                        }
-                        stage ('Run commands') {
-                            steps {
-                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                    script {
-                                        int count = params.TOTAL_CLUSTERS.toInteger() + 1
-                                        sh """
-                                            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                                            export MANAGED_CLUSTER_DIR="${KUBECONFIG_DIR}/${count}"
-                                            export MANAGED_CLUSTER_NAME="managed${count-1}"
-                                            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                            cd ${GO_REPO_PATH}/verrazzano
-                                            make cli
-                                            ./tools/cli/scripts/cli_test.sh
-                                        """
-                                    }
-                                }
-                            }
                         }
                     }
                 }
@@ -560,6 +525,25 @@ pipeline {
                         }
                     }
                 }
+                stage ('CLI Tests') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            script {
+                                // Running the CLI tests for only one managed cluster for now
+                                int count = params.TOTAL_CLUSTERS.toInteger()
+                                sh """
+                                    export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                                    export MANAGED_CLUSTER_DIR="${KUBECONFIG_DIR}/${count}"
+                                    export MANAGED_CLUSTER_NAME="managed${count-1}"
+                                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                    cd ${GO_REPO_PATH}/verrazzano
+                                    make cli
+                                    ./tools/cli/scripts/cli_test.sh
+                                """
+                            }
+                        }
+                    }
+                }
                 stage ('Uninstall Verrazzano') {
                     steps {
                         script {
@@ -641,7 +625,7 @@ pipeline {
             archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger() + 1
+                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
                 if (env.TEST_ENV == "kind") {
                     for(int count=1; count<=clusterCount; count++) {
                         sh """
@@ -857,7 +841,7 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
         String allArgs = ""
         extraArgs.each { allArgs += it + " " }
 
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger() + 1
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
             def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${installerFileName}"
             def installProfile = env.MANAGED_CLUSTER_PROFILE
@@ -895,16 +879,13 @@ def createKindClusters() {
 
         // Can these for now, but eventually we should be able to build this based on
         // inspecting the Docker bridge network CIDR and splitting up a range based on
-        // the cluster count
+        // the cluster count.
 
-        // Create an extra cluster for CLI Tests
-        // This cluster will be deleted at the post action stage along with other clusters
-
-        def addressRanges = [ "172.18.0.231-172.18.0.238", "172.18.0.239-172.18.0.246", "172.18.0.247-172.18.0.254", "172.18.0.255-172.18.0.262" ]
+        def addressRanges = [ "172.18.0.231-172.18.0.238", "172.18.0.239-172.18.0.246", "172.18.0.247-172.18.0.254"]
         def clusterInstallStages = [:]
         boolean cleanupKindContainers = true
         boolean connectJenkinsRunnerToNetwork = true
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger() + 1
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
             string metallbAddressRange = addressRanges.get(count-1)
             def deployStep = "cluster-${count}"
@@ -921,13 +902,12 @@ def createKindClusters() {
 }
 
 // Invoke the OKE cluster creation script for the desired number of clusters
-// One extra cluster for CLI Test
 def createOKEClusters(clusterPrefix) {
     script {
         sh """
             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
         """
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger() + 1
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         sh """
             mkdir -p ${KUBECONFIG_DIR}
             echo "Create OKE cluster"
@@ -1076,10 +1056,9 @@ def dumpVerrazzanoApiLogs() {
     }
 }
 
-// Also dump install logs for cluster used in CLI tests
 def dumpInstallLogs() {
     script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger() + 1
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
             LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
             sh """
