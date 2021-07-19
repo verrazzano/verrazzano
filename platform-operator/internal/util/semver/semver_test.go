@@ -119,13 +119,13 @@ func TestCompareTo(t *testing.T) {
 	assert.Equal(t, 1, v0_0_10.CompareTo(v0_0_9))
 
 	v010deva, _ := NewSemVersion("v0.1.0-dev-aaaaaaaa")
-	v010deva_2, _ := NewSemVersion("v0.1.0-dev-aaaaaaaa")
+	v010deva2, _ := NewSemVersion("v0.1.0-dev-aaaaaaaa")
 	v010devb, _ := NewSemVersion("v0.1.0-dev-bbbbbbbb")
 	v010proda, _ := NewSemVersion("v0.1.0-prod-aaaaaaaa")
 	v020deva, _ := NewSemVersion("v0.2.0-dev-aaaaaaaa")
 	v020devb, _ := NewSemVersion("v0.2.0-dev-bbbbbbbb")
 
-	assert.Equal(t, 0, v010deva.CompareTo(v010deva_2))
+	assert.Equal(t, 0, v010deva.CompareTo(v010deva2))
 	assert.Equal(t, 1, v010deva.CompareTo(v010devb))
 	assert.Equal(t, 1, v010deva.CompareTo(v010proda))
 	assert.Equal(t, -1, v010deva.CompareTo(v020deva))
