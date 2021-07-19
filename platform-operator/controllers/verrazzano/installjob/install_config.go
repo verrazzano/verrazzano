@@ -636,12 +636,13 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 	args = append(args, getVMIInstallArgs(vzSpec)...)
 
 	// Console
-	if vzSpec.Components.Console != nil {
+	if vzSpec.Components.Console != nil && vzSpec.Components.Console.Enabled != nil {
 		args = append(args, InstallArg{
 			Name:  consoleEnabledValueName,
-			Value: strconv.FormatBool(vzSpec.Components.Console.Enabled),
+			Value: strconv.FormatBool(*vzSpec.Components.Console.Enabled),
 		})
 	}
+
 	return args, nil
 }
 
@@ -673,10 +674,12 @@ func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
 	const helmValuePrefix = "elasticSearch."
 	vmiArgs := []InstallArg{}
 	if vzSpec.Components.Elasticsearch != nil {
-		vmiArgs = append(vmiArgs, InstallArg{
-			Name:  esEnabledValueName,
-			Value: strconv.FormatBool(vzSpec.Components.Elasticsearch.Enabled),
-		})
+		if vzSpec.Components.Elasticsearch.Enabled != nil {
+			vmiArgs = append(vmiArgs, InstallArg{
+				Name:  esEnabledValueName,
+				Value: strconv.FormatBool(*vzSpec.Components.Elasticsearch.Enabled),
+			})
+		}
 		// Add the set of args specified in the yaml, prefixing the elasticSearch string
 		// For example, the following YAML will result in `elasticSearch.nodes.master.replicas`
 		// elasticsearch:
@@ -691,24 +694,27 @@ func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
 			})
 		}
 	}
-	if vzSpec.Components.Prometheus != nil {
+	if vzSpec.Components.Prometheus != nil && vzSpec.Components.Prometheus.Enabled != nil {
 		vmiArgs = append(vmiArgs, InstallArg{
 			Name:  promEnabledValueName,
-			Value: strconv.FormatBool(vzSpec.Components.Prometheus.Enabled),
+			Value: strconv.FormatBool(*vzSpec.Components.Prometheus.Enabled),
 		})
 	}
-	if vzSpec.Components.Kibana != nil {
+
+	if vzSpec.Components.Kibana != nil && vzSpec.Components.Kibana.Enabled != nil {
 		vmiArgs = append(vmiArgs, InstallArg{
 			Name:  kibanaEnabledValueName,
-			Value: strconv.FormatBool(vzSpec.Components.Kibana.Enabled),
+			Value: strconv.FormatBool(*vzSpec.Components.Kibana.Enabled),
 		})
 	}
-	if vzSpec.Components.Grafana != nil {
+
+	if vzSpec.Components.Grafana != nil && vzSpec.Components.Grafana.Enabled != nil {
 		vmiArgs = append(vmiArgs, InstallArg{
 			Name:  grafanaEnabledValueName,
-			Value: strconv.FormatBool(vzSpec.Components.Grafana.Enabled),
+			Value: strconv.FormatBool(*vzSpec.Components.Grafana.Enabled),
 		})
 	}
+
 	return vmiArgs
 }
 

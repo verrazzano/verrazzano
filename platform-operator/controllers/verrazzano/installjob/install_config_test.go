@@ -715,12 +715,13 @@ func TestGetVerrazzanoInstallArgsWithSecurityAndPVCVolumeSource(t *testing.T) {
 // THEN the correct set of InstallArg objects are returned and set to "true"
 func TestGetVMIInstallArgsAllEnabled(t *testing.T) {
 
+	enabled := true
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
-			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
-			Prometheus:    &installv1alpha1.PrometheusComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
-			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
+			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Prometheus:    &installv1alpha1.PrometheusComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
 		},
 	}
 	vmiInstallArgs := getVMIInstallArgs(&vzSpec)
@@ -754,12 +755,13 @@ func TestGetVMIInstallArgsAllEnabled(t *testing.T) {
 // THEN the correct set of InstallArg objects are returned and set to "false"
 func TestGetVMIInstallArgsNoneEnabled(t *testing.T) {
 
+	enabled := false
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
-			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
-			Prometheus:    &installv1alpha1.PrometheusComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
-			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Prometheus:    &installv1alpha1.PrometheusComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
 		},
 	}
 	vmiInstallArgs := getVMIInstallArgs(&vzSpec)
@@ -793,11 +795,12 @@ func TestGetVMIInstallArgsNoneEnabled(t *testing.T) {
 // THEN the correct set of InstallArg objects are returned and set to "false", minus the Prometheus setting
 func TestGetVMIInstallArgsSomeDisabled(t *testing.T) {
 	// Simulates the managed-cluster settings
+	enabled := false
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
-			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
-			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
 		},
 	}
 	vmiInstallArgs := getVMIInstallArgs(&vzSpec)
@@ -854,12 +857,13 @@ func TestGetVerrazzanoInstallArgsNoArgs(t *testing.T) {
 // THEN the correct set of InstallArg objects are returned and set to "true", minus the Prometheus setting
 func TestGetVerrazzanoInstallArgsSomeEnabled(t *testing.T) {
 	// Simulates the managed-cluster settings
+	enabled := true
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
-			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
-			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
-			Console:       &installv1alpha1.ConsoleComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
+			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Console:       &installv1alpha1.ConsoleComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
 		},
 	}
 	installArgs, err := getVerrazzanoInstallArgs(&vzSpec)
@@ -894,12 +898,13 @@ func TestGetVerrazzanoInstallArgsSomeEnabled(t *testing.T) {
 // THEN the correct set of InstallArg objects are returned and set to "false", minus the Prometheus setting
 func TestGetVerrazzanoInstallArgsSomeVMIDisabled(t *testing.T) {
 	// Simulates the managed-cluster settings
+	enabled := false
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
-			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
-			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
-			Console:       &installv1alpha1.ConsoleComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
+			Console:       &installv1alpha1.ConsoleComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: &enabled}},
 		},
 	}
 	installArgs, err := getVerrazzanoInstallArgs(&vzSpec)
