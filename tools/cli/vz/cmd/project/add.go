@@ -67,7 +67,8 @@ func addProject(streams genericclioptions.IOStreams, args []string, kubernetesIn
 					for _, v := range projectNamespaces {
 						namespaces = append(namespaces, v1alpha1.NamespaceTemplate{
 							Metadata: metav1.ObjectMeta{
-								Name: v,
+								Name:              v,
+								CreationTimestamp: metav1.Now(),
 							},
 						})
 					}
