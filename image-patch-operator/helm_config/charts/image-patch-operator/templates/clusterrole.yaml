@@ -9,10 +9,12 @@ rules:
       - images.verrazzano.io
     resources:
       - imagebuildrequests
+      - imagebuildrequests/status
     verbs:
       - get
       - list
       - watch
+      - update
   - apiGroups:
       - batch
     resources:
