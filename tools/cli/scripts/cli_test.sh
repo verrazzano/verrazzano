@@ -22,47 +22,20 @@ if [ -z "${MANAGED_KUBECONFIG}" ]; then
   echo "MANAGED_KUBECONFIG env var must be set!'"
   exit 1
 fi
-if [ -z "${ACME_ENVIRONMENT}" ] ; then
-  ACME_ENVIRONMENT="staging"
-fi
 
 echo ADMIN_KUBECONFIG: ${ADMIN_KUBECONFIG}
 echo MANAGED_CLUSTER_NAME: ${MANAGED_CLUSTER_NAME}
 echo MANAGED_KUBECONFIG: ${MANAGED_KUBECONFIG}
-echo ACME_ENVIRONMENT: ${ACME_ENVIRONMENT}
-
-# create configmap "verrazzano-admin-cluster" on admin
-if ! kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get configmap verrazzano-admin-cluster; then
-  export ADMIN_K8S_SERVER_ADDRESS=$(cat ${ADMIN_KUBECONFIG} | grep "server:" | awk '{ print $2 }')
-  kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc create configmap verrazzano-admin-cluster --from-literal=server=${ADMIN_K8S_SERVER_ADDRESS}
-fi
-
-# create managed cluster ca secret yaml on managed
-CA_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
-TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"')
-if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ]; then
-  CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
-fi
-if [ ! -z "${CA_CERT}" ]; then
-  kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >>${CA_SECRET_FILE}
-else
-  # When the CA is publicly available/accessible, ca.crt would be empty in system-tls on the admin cluster. So, set an empty string for cacrt
-  if [ "production" == "${ACME_ENVIRONMENT}" ] ; then
-    kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
-  else
-    echo "Failed to create CA secret file, required to create a secret on the admin cluster containing the certificate for the managed cluster."
-    exit 1
-  fi
-fi
-
-# create managed cluster ca secret on admin
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f ${CA_SECRET_FILE}
 
 # check whether vz is built or not
 if ! vz; then
-  echo "CLI not built"
+  echo "CLI is not built, exiting ..."
   exit 1
 fi
+
+# deregister managed cluster
+echo "vz cluster deregister ${MANAGED_CLUSTER_NAME}"
+vz cluster deregister ${MANAGED_CLUSTER_NAME}
 
 #create VerrazzanoMangedCLuster on admin
 echo "vz cluster register ${MANAGED_CLUSTER_NAME}"
@@ -71,20 +44,21 @@ vz cluster register ${MANAGED_CLUSTER_NAME} -d "VerrazzanoManagedCluster object 
 # wait for VMC to be ready - that means the manifest has been created
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=60s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
 if [ $? -ne 0 ]; then
-  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 60 seconds. Registration failed."
+  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 60 seconds, registration failed."
   exit 1
 fi
 
 #export manifest on admin
+rm register-${MANAGED_CLUSTER_NAME}.yaml
 echo "vz cluster get-registration-manifest ${MANAGED_CLUSTER_NAME}"
-vz cluster get-registration-manifest ${MANAGED_CLUSTER_NAME} >register-${MANAGED_CLUSTER_NAME}.yaml
+vz cluster get-registration-manifest ${MANAGED_CLUSTER_NAME} > register-${MANAGED_CLUSTER_NAME}.yaml
 
 # obtain permission-constrained version of kubeconfig to be used by managed cluster
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-agent -n verrazzano-mc -o jsonpath={.data.admin\-kubeconfig} | base64 --decode >${MANAGED_CLUSTER_DIR}/managed_kube_config
+rm ${MANAGED_CLUSTER_DIR}/managed_kube_config
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-agent -n verrazzano-mc -o jsonpath={.data.admin\-kubeconfig} | base64 --decode > ${MANAGED_CLUSTER_DIR}/managed_kube_config
 
-echo "----------BEGIN register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
+echo "---------- register-${MANAGED_CLUSTER_NAME}.yaml ----------"
 cat register-${MANAGED_CLUSTER_NAME}.yaml
-echo "----------END register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
 
 echo "Applying register-${MANAGED_CLUSTER_NAME}.yaml"
 # register using the manifest on managed
