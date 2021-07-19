@@ -132,6 +132,7 @@ func TestIBRJobSucceeded(t *testing.T) {
 	cli := fake.NewFakeClientWithScheme(newScheme())
 	params := map[string]string{}
 
+	// Creating an ImageBuildRequest resource and Kubernetes job in completed state
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/imagebuildrequest_instance.yaml", params))
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/job_succeeded.yaml", params))
 
@@ -140,8 +141,7 @@ func TestIBRJobSucceeded(t *testing.T) {
 	_, err := reconciler.Reconcile(request)
 	assert.NoError(err)
 
-	// Testing if ImageBuildRequest exists in cluster
-
+	// Testing if ImageBuildRequest status reflects that ImageJob is complete
 	ibr := &imagesv1alpha1.ImageBuildRequest{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
 	assert.NoError(err)
@@ -164,6 +164,7 @@ func TestIBRJobFailed(t *testing.T) {
 	cli := fake.NewFakeClientWithScheme(newScheme())
 	params := map[string]string{}
 
+	// Creating an ImageBuildRequest resource and Kubernetes job in failed state
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/imagebuildrequest_instance.yaml", params))
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/job_failed.yaml", params))
 
@@ -172,8 +173,7 @@ func TestIBRJobFailed(t *testing.T) {
 	_, err := reconciler.Reconcile(request)
 	assert.NoError(err)
 
-	// Testing if ImageBuildRequest exists in cluster
-
+	// Testing if ImageBuildRequest status reflects that ImageJob failed
 	ibr := &imagesv1alpha1.ImageBuildRequest{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
 	assert.NoError(err)
