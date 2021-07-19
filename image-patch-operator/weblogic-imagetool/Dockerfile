@@ -35,7 +35,7 @@ FROM ghcr.io/oracle/oraclelinux:8-slim
 
 # Install the podman for WIT and dependencies
 RUN microdnf update -y \
-    && microdnf install -y podman fuse-overlayfs \
+    && microdnf install -y buildah fuse-overlayfs \
     && microdnf reinstall -y shadow-utils \
     && microdnf clean all
 
