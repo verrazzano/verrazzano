@@ -1,0 +1,143 @@
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+package imagejob
+
+import (
+	"strconv"
+
+	"github.com/verrazzano/verrazzano/image-patch-operator/internal/k8s"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// JobConfig Defines the parameters for an image job
+type JobConfig struct {
+	k8s.JobConfigCommon // Extending the base job config
+
+	ConfigMapName string // Name of the image configmap used by the image job
+}
+
+// NewJob returns a job resource for building an ImageBuildRequest
+func NewJob(jobConfig *JobConfig) *batchv1.Job {
+	var annotations map[string]string = nil
+	var backoffLimit int32 = 0
+	if jobConfig.DryRun {
+		annotations = make(map[string]string, 1)
+		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        jobConfig.JobName,
+			Namespace:   jobConfig.Namespace,
+			Labels:      jobConfig.Labels,
+			Annotations: annotations,
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit: &backoffLimit,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        jobConfig.JobName,
+					Namespace:   jobConfig.Namespace,
+					Labels:      jobConfig.Labels,
+					Annotations: annotations,
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:            "image-build-request",
+						Image:           jobConfig.JobImage,
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						// WARNING a Privileged SecurityContext is being used !!
+						SecurityContext: newPrivilegedSecurityContext(),
+						VolumeMounts: []corev1.VolumeMount{
+							{
+								Name:      "registry-creds",
+								MountPath: "/registry-creds",
+								ReadOnly:  true,
+							},
+						},
+						Env: []corev1.EnvVar{
+							{
+								// DEBUG property set to value 1 will direct more detailed output to stdout and
+								// will thus provide more insight when the installer pod logs are retrieved
+								Name:  "DEBUG",
+								Value: "1",
+							},
+							{
+								Name:  "IMAGE_NAME",
+								Value: jobConfig.IBR.Spec.Image.Name,
+							},
+							{
+								Name:  "IMAGE_TAG",
+								Value: jobConfig.IBR.Spec.Image.Tag,
+							},
+							{
+								Name:  "IMAGE_REGISTRY",
+								Value: jobConfig.IBR.Spec.Image.Registry,
+							},
+							{
+								Name:  "IMAGE_TENANCY",
+								Value: "mytenancy",
+							},
+							{
+								Name:  "IMAGE_REPOSITORY",
+								Value: jobConfig.IBR.Spec.Image.Repository,
+							},
+							{
+								Name:  "BASE_IMAGE",
+								Value: jobConfig.IBR.Spec.BaseImage,
+							},
+							{
+								Name:  "JDK_INSTALLER_BINARY",
+								Value: jobConfig.IBR.Spec.JDKInstaller,
+							},
+							{
+								Name:  "JDK_INSTALLER_VERSION",
+								Value: "8u281",
+							},
+							{
+								Name:  "WEBLOGIC_INSTALLER_BINARY",
+								Value: jobConfig.IBR.Spec.WebLogicInstaller,
+							},
+							{
+								Name:  "WEBLOGIC_INSTALLER_VERSION",
+								Value: "12.2.1.4.0",
+							},
+							{
+								Name:  "WDT_INSTALLER_BINARY",
+								Value: "weblogic-deploy.zip",
+							},
+							{
+								Name:  "WDT_INSTALLER_VERSION",
+								Value: "latest",
+							},
+						},
+					}},
+					RestartPolicy:      corev1.RestartPolicyNever,
+					ServiceAccountName: jobConfig.ServiceAccountName,
+					Volumes: []corev1.Volume{
+						{
+							Name: "registry-creds",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "verrazzano-imagetool",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return job
+}
+
+// newPrivilegedSecurityContext returns a new Security Context with the Privileged flag set to true
+func newPrivilegedSecurityContext() *corev1.SecurityContext {
+	trueFlag := true
+	securityContext := corev1.SecurityContext{Privileged: &trueFlag}
+	return &securityContext
+}
