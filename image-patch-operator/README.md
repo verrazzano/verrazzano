@@ -16,10 +16,10 @@ Next, verify that the two images have been created. This will show the names and
 docker images
 ```
 Your output should be similar to
-```
-REPOSITORY                            TAG              IMAGE ID       CREATED             SIZE
-verrazzano-weblogic-image-tool-dev    local-00c6bd61   c3a7bfc12230   About an hour ago   1.64GB
-verrazzano-image-patch-operator-dev   local-d86959a5   a0865a3d3e16   5 days ago          187MB
+```plaintext
+REPOSITORY                            TAG              IMAGE ID       CREATED         SIZE
+verrazzano-weblogic-image-tool-dev    local-00bf9bd7   d975a2f4b85a   4 minutes ago   1.64GB
+verrazzano-image-patch-operator-dev   local-00bf9bd7   a0865a3d3e16   5 days ago      187MB
 ```
 At this point, create a Kubernetes cluster, and load these two images into your cluster. For example, if you are using a Kind cluster, run the following commands.
 ```bash
@@ -45,18 +45,19 @@ kind load docker-image --name kind <imagetool-image-name>:<imagetool-image-tag>
 
 ### Install the Helm Chart
 ```bash
+# This command assumes that your current working directory is the directory containing this README.
 # Defining this environment variable is just for convenience.
 export IPO_CHART=$(pwd)/helm_config/charts/image-patch-operator
 
 # Performs the install.
-helm install verrazzano-image-patch-operator $IPO_CHART --create-namespace --namespace verrazzano-system --set-string imagePatchOperator.image=<image-patch-operator-name>:<image-patch-operator-tag> --set-string imageTool.image=<image-tool-name>:<image-tool-tag>
+helm install verrazzano-image-patch-operator $IPO_CHART --create-namespace --namespace verrazzano-system --set-string imagePatchOperator.image=<operator-image-name>:<operator-image-tag> --set-string imageTool.image=<imagetool-image-name>:<imagetool-image-tag>
 ```
 Verify that the ImageBuildRequest custom resource definition has been created.
 ```bash
 kubectl get crd imagebuildrequests.images.verrazzano.io
 ```
 This should show an output similar to
-```
+```plaintext
 NAME                                      CREATED AT
 imagebuildrequests.images.verrazzano.io   2021-07-19T15:32:26Z
 ```
@@ -65,7 +66,7 @@ Verify that the image patch operator is running.
 kubectl get pods -n verrazzano-system
 ```
 This should show an output similar to
-```
+```plaintext
 NAME                                               READY   STATUS         RESTARTS   AGE
 verrazzano-image-patch-operator-7477f65ccf-rjmsc   1/1     Running        0          6m42s
 ```
