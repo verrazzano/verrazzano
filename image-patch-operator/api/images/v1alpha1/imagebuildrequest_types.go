@@ -69,9 +69,11 @@ type ImageBuildRequestSpec struct {
 	// An Image struct that provides more information about the created image
 	Image Image `json:"image"`
 
-	// The versions for JDK and WebLogic needed by the WebLogic Image Tool
-	JdkInstallerVersion      string `json:"jdkInstallerVersion,omitempty"`
-	WebLogicInstallerVersion string `json:"webLogicInstallerVersion,omitempty"`
+	// The version for JDK needed by the WebLogic Image Tool
+	JdkInstallerVersion string `json:"jdkInstallerVersion"`
+
+	// The version for WebLogic needed by the WebLogic Image Tool
+	WebLogicInstallerVersion string `json:"webLogicInstallerVersion"`
 }
 
 // Image provides more configuration information to the ImageBuildRequestSpec
