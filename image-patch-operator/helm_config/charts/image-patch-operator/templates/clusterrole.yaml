@@ -9,6 +9,13 @@ rules:
       - images.verrazzano.io
     resources:
       - imagebuildrequests
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - images.verrazzano.io
+    resources:
       - imagebuildrequests/status
     verbs:
       - get
