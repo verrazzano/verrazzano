@@ -6,6 +6,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -102,7 +103,7 @@ func (r *ImageBuildRequestReconciler) createImageJob(ctx context.Context, log *z
 				Namespace:          ibr.Namespace,
 				Labels:             ibr.Labels,
 				ServiceAccountName: serviceAccountName,
-				JobImage:           "busybox",
+				JobImage:           os.Getenv("WIT_IMAGE"),
 				DryRun:             r.DryRun,
 				IBR:                ibr,
 			},

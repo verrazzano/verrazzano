@@ -108,7 +108,7 @@ func TestNewImageBuildRequest(t *testing.T) {
 	jb := &batchv1.Job{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
 
-	// Ensure that a Kubernetres job is created when an IBR is created
+	// Ensure that a Kubernetes job is created when an IBR is created
 	assert.NoError(err)
 
 	// Testing that the spec fields of the IBR propagate to the environmental variables of the ImageJob
