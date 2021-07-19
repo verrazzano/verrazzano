@@ -285,8 +285,10 @@ var _ = AfterSuite(func() {
 	// capture a cluster dump and hopefully we can figure out what is keeping the namespace
 	// from going away
 	pkg.Log(pkg.Info, "Waiting for namespace to be deleted")
+	var ns *v1.Namespace
+	var err error
 	for i := 0; i < 10; i++ {
-		_, err := pkg.GetNamespace("sockshop")
+		ns, err = pkg.GetNamespace("sockshop")
 		if err != nil && errors.IsNotFound(err) {
 			pkg.Log(pkg.Info, "Namespace deleted")
 			return
@@ -298,6 +300,11 @@ var _ = AfterSuite(func() {
 	}
 
 	pkg.Log(pkg.Error, "Namespace could not be deleted, dumping cluster")
+	if ns != nil {
+		if b, err := json.Marshal(ns); err == nil {
+			pkg.Log(pkg.Info, string(b))
+		}
+	}
 	pkg.ExecuteClusterDumpWithEnvVarConfig()
 	Fail("Unable to delete namespace")
 })
