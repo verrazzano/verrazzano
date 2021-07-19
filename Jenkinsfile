@@ -7,7 +7,7 @@ def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
 def SCAN_IMAGE_PATCH_OPERATOR = false
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "phxlargeexperimental"
+def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "largeexperimental"
 
 pipeline {
     options {
