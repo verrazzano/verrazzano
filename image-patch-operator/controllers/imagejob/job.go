@@ -121,10 +121,8 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 						{
 							Name: "registry-creds",
 							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: jobConfig.ConfigMapName,
-									},
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "verrazzano-imagetool",
 								},
 							},
 						},
