@@ -79,3 +79,55 @@ kubectl create secret generic verrazzano-imagetool -n verrazzano-system \
   --from-literal=password=<your-password> \
   --from-literal=registry=<container-registry-name>
 ```
+Verify that the secret has been created.
+```bash
+kubectl get secret -n verrazzano-system
+```
+The output should be similar to
+```plaintext
+NAME                                                    TYPE                                  DATA   AGE
+...                                                     ...                                   ...    ...
+verrazzano-imagetool                                    Opaque                                3      4s
+```
+
+### Create the ImageBuildRequest
+The following command will create the ImageBuildRequest.
+```bash
+kubectl apply -f - <<-EOF
+apiVersion: images.verrazzano.io/v1alpha1
+kind: ImageBuildRequest
+metadata:
+  name: cluster1
+  namespace: verrazzano-system
+spec:
+  baseImage: ghcr.io/oracle/oraclelinux:8-slim
+  jdkInstaller: jdk-8u281-linux-x64.tar.gz
+  webLogicInstaller: fmw_12.2.1.4.0_wls.jar
+  image:
+    name: <your-image-name>
+    tag: <your-image-tag>
+    registry: <container-registry>
+    repository: <your-repository>
+EOF
+```
+Verify the status of the ImageBuildRequest.
+```bash
+kubectl get ImageBuidRequest -A
+```
+This should show an output similar to the below block. The "STATUS" section will update accordingly.
+```plaintext
+NAMESPACE           NAME       STATUS
+verrazzano-system   cluster1   BuildStarted
+```
+
+### Check the Status of the Image
+After creating the ImageBuildRequest, the image created by WebLogic ImageTool should be in the process of building and being pushed.
+In order to track this progress, find the name of the pod that was created as a result of the ImageBuildRequest.
+```bash
+kubectl get pods -n verrazzano-system
+```
+This should show a pod with a name in the format of `verrazzano-images-cluster1-XXXXX`.<br>
+To track the progress of your WebLogic ImageTool image, check the logs of this pod.
+```bash
+kubectl logs -f -n verrazzano-system verrazzano-images-cluster1-XXXXX
+```
