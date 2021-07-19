@@ -123,7 +123,7 @@ func TestNewCmdClusterRegister(t *testing.T) {
 	// Creation of vmc with name that already exists should raise an error
 	testCmd.SetArgs(tests[0].args)
 	err := testCmd.Execute()
-	asserts.EqualError(err, `verrazzanomanagedclusters.clusters "test1" already exists`)
+	asserts.EqualError(err, `verrazzanomanagedclusters.clusters.verrazzano.io "test1" already exists`)
 
 	// Creation of vmc without specifying caSecret should raise an error
 	// Create new cmd to reset flags
@@ -186,7 +186,7 @@ func TestNewCmdClusterDeregister(t *testing.T) {
 	// Trying to deregister a cluster which doesn't exists should raise an error
 	testCmd.SetArgs([]string{"test"})
 	err := testCmd.Execute()
-	asserts.EqualError(err, `verrazzanomanagedclusters.clusters "test" not found`)
+	asserts.EqualError(err, `verrazzanomanagedclusters.clusters.verrazzano.io "test" not found`)
 
 	// Register a vmc and then deregister it
 	testCmdRegister := NewCmdClusterRegister(streams, testKubernetes)
@@ -213,7 +213,7 @@ func TestNewCmdClusterManifest(t *testing.T) {
 	// Trying to get manifest secret for non existing cluster raises an error
 	testCmd.SetArgs([]string{"test"})
 	err := testCmd.Execute()
-	asserts.EqualError(err, `verrazzanomanagedclusters.clusters "test" not found`)
+	asserts.EqualError(err, `verrazzanomanagedclusters.clusters.verrazzano.io "test" not found`)
 
 	// Create a vmc resource
 	testCmdRegister := NewCmdClusterRegister(streams, testKubernetes)

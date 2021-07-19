@@ -16,7 +16,7 @@ type ClustersV1alpha1Interface interface {
 	VerrazzanoManagedClustersGetter
 }
 
-// ClustersV1alpha1Client is used to interact with features provided by the clusters group.
+// ClustersV1alpha1Client is used to interact with features provided by the clusters.verrazzano.io group.
 type ClustersV1alpha1Client struct {
 	restClient rest.Interface
 }

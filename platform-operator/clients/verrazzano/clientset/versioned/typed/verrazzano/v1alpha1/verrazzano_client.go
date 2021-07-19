@@ -16,7 +16,7 @@ type VerrazzanoV1alpha1Interface interface {
 	VerrazzanosGetter
 }
 
-// VerrazzanoV1alpha1Client is used to interact with features provided by the verrazzano group.
+// VerrazzanoV1alpha1Client is used to interact with features provided by the install.verrazzano.io group.
 type VerrazzanoV1alpha1Client struct {
 	restClient rest.Interface
 }
