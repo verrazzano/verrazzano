@@ -49,6 +49,15 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 						Name:            "image-build-request",
 						Image:           jobConfig.JobImage,
 						ImagePullPolicy: corev1.PullIfNotPresent,
+						// WARNING a Privileged SecurityContext is being used !!
+						SecurityContext: newPrivilegedSecurityContext(),
+						VolumeMounts: []corev1.VolumeMount{
+							{
+								Name:      "registry-creds",
+								MountPath: "/registry-creds",
+								ReadOnly:  true,
+							},
+						},
 						Env: []corev1.EnvVar{
 							{
 								// DEBUG property set to value 1 will direct more detailed output to stdout and
@@ -108,10 +117,22 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 					}},
 					RestartPolicy:      corev1.RestartPolicyNever,
 					ServiceAccountName: jobConfig.ServiceAccountName,
+					Volumes: []corev1.Volume{
+						{
+							Name: "registry-creds",
+						},
+					},
 				},
 			},
 		},
 	}
 
 	return job
+}
+
+// newPrivilegedSecurityContext returns a new Security Context with the Privileged flag set to true
+func newPrivilegedSecurityContext() *corev1.SecurityContext {
+	trueFlag := true
+	securityContext := corev1.SecurityContext{Privileged: &trueFlag}
+	return &securityContext
 }
