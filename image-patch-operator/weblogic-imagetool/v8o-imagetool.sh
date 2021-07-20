@@ -4,7 +4,10 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # Log into the registry
-cat /registry-creds/password | podman login $(cat /registry-creds/registry) --username $(cat /registry-creds/username) --password-stdin
+if ! (cat /registry-creds/password | podman login $(cat /registry-creds/registry) --username $(cat /registry-creds/username) --password-stdin); then
+  echo "Podman login failed."
+  exit 1
+fi
 
 # Add installers to the imagetool cache
 export WLSIMG_CACHEDIR="/home/verrazzano/cache"
