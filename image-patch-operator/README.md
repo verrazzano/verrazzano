@@ -15,7 +15,7 @@ Next, verify that the two images have been created. The following command will d
 ```bash
 $ docker images
 ```
-Your output should be similar to the following:
+Your output will be similar to the following:
 ```plaintext
 REPOSITORY                            TAG              IMAGE ID       CREATED         SIZE
 verrazzano-weblogic-image-tool-dev    local-00bf9bd7   d975a2f4b85a   4 minutes ago   1.64GB
@@ -56,7 +56,7 @@ Verify that the ImageBuildRequest custom resource definition has been created.
 ```bash
 $ kubectl get crd imagebuildrequests.images.verrazzano.io
 ```
-This should show an output similar to the following:
+This will show an output similar to the following:
 ```plaintext
 NAME                                      CREATED AT
 imagebuildrequests.images.verrazzano.io   2021-07-19T15:32:26Z
@@ -65,7 +65,7 @@ Verify that the image patch operator is running.
 ```bash
 $ kubectl get pods -n verrazzano-system
 ```
-This should show an output similar to the following:
+This will show an output similar to the following:
 ```plaintext
 NAME                                               READY   STATUS         RESTARTS   AGE
 verrazzano-image-patch-operator-7477f65ccf-rjmsc   1/1     Running        0          6m42s
@@ -83,7 +83,7 @@ Verify that the secret has been created.
 ```bash
 $ kubectl get secret -n verrazzano-system
 ```
-The output should be similar to the following:
+The output will be similar to the following:
 ```plaintext
 NAME                                                    TYPE                                  DATA   AGE
 ...                                                     ...                                   ...    ...
@@ -116,7 +116,7 @@ Verify the status of the ImageBuildRequest.
 ```bash
 $ kubectl get ImageBuidRequest -A
 ```
-This should show an output similar to the below block. The `STATUS` section will update accordingly.
+This will show an output similar to the below block. The `STATUS` section will update accordingly.
 ```plaintext
 NAMESPACE           NAME       STATUS
 verrazzano-system   cluster1   BuildStarted
