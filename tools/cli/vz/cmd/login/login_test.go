@@ -100,7 +100,8 @@ func authHandle(w http.ResponseWriter, r *http.Request) {
 			}
 			redirectURI := m["response_type"][0]
 			codeChallenge = m["code_challenge"][0]
-			http.Redirect(w, r, redirectURI+"?code="+fakeAuthCode, 302)
+			state := m["state"][0]
+			http.Redirect(w, r, redirectURI+"?code="+fakeAuthCode+"&state="+state, 302)
 		}
 	}
 	if err!=nil {
