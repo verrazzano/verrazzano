@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package imagejob
@@ -61,12 +61,6 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							},
 						},
 						Env: []corev1.EnvVar{
-							{
-								// DEBUG property set to value 1 will direct more detailed output to stdout and
-								// will thus provide more insight when the installer pod logs are retrieved
-								Name:  "DEBUG",
-								Value: "1",
-							},
 							{
 								Name:  "IMAGE_NAME",
 								Value: jobConfig.IBR.Spec.Image.Name,
