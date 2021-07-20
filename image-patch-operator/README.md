@@ -114,7 +114,7 @@ EOF
 ```
 Verify the status of the ImageBuildRequest.
 ```bash
-$ kubectl get ImageBuidRequest -A
+$ kubectl get ImageBuildRequest -A
 ```
 This will show an output similar to the below block. The `STATUS` section will update accordingly.
 ```plaintext
