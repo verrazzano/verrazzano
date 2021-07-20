@@ -29,7 +29,9 @@ spec:
             - name: WIT_IMAGE
               value: {{ .Values.imageTool.image }}
             - name: WDT_INSTALLER_BINARY
-              value: { { .Values.weblogicDeployTool.binary } }
+              value: {{ .Values.weblogicDeployTool.binary }}
             - name: WDT_INSTALLER_VERSION
-              value: { { .Values.weblogicDeployTool.version } }
+              value: {{ .Values.weblogicDeployTool.version }}
+            - name: IMAGE_TOOL_NAME
+              value: {{ .Values.imageTool.name }}
       serviceAccountName: {{ .Values.imagePatchOperator.name }}
