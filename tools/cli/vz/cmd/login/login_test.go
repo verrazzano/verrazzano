@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
@@ -90,14 +91,21 @@ func (o *TestKubernetes) NewClientSet() kubernetes.Interface {
 }
 
 func authHandle(w http.ResponseWriter, r *http.Request) {
-	u, _ := url.Parse(r.URL.String())
-	m, _ := url.ParseQuery(u.RawQuery)
-	if m["client_id"][0] != fakeVerrazzanoClientID {
+	u, err := url.Parse(r.URL.String())
+	if err==nil {
+		m, err := url.ParseQuery(u.RawQuery)
+		if err == nil {
+			if m["client_id"][0] != fakeVerrazzanoClientID {
+				status = "failure"
+			}
+			redirectURI := m["response_type"][0]
+			codeChallenge = m["code_challenge"][0]
+			http.Redirect(w, r, redirectURI+"?code="+fakeAuthCode, 302)
+		}
+	}
+	if err!=nil {
 		status = "failure"
 	}
-	redirectURI := m["response_type"][0]
-	codeChallenge = m["code_challenge"][0]
-	http.Redirect(w, r, redirectURI+"?code="+fakeAuthCode, 302)
 }
 
 func getCodeChallenge(codeVerifier string) string {
@@ -124,12 +132,19 @@ func tokenHandle(w http.ResponseWriter, r *http.Request) {
 		AccessTokenExpTime:  60,
 		RefreshTokenExpTime: 1800,
 	}
-	json.NewEncoder(w).Encode(token)
-	r.ParseForm()
-	if r.Form.Get("code") != fakeAuthCode && getCodeChallenge(r.Form.Get("code_verifier")) != codeChallenge {
+	err := json.NewEncoder(w).Encode(token)
+	if err== nil {
+		err = r.ParseForm()
+		if err==nil {
+			if r.Form.Get("code") != fakeAuthCode && getCodeChallenge(r.Form.Get("code_verifier")) != codeChallenge {
+				status = "failure"
+			} else {
+				status = "success"
+			}
+		}
+	}
+	if err!=nil {
 		status = "failure"
-	} else {
-		status = "success"
 	}
 }
 
@@ -158,10 +173,14 @@ func TestNewCmdLogin(t *testing.T) {
 	asserts.NoError(err)
 
 	// Create fake environment variables
-	os.Setenv("VZ_CLIENT_ID", fakeVerrazzanoClientID)
-	os.Setenv("VZ_REALM", fakeVerrazzanoRealm)
-	os.Setenv("VZ_KEYCLOAK_URL", "http://localhost:"+strconv.Itoa(listener.Addr().(*net.TCPAddr).Port))
-	os.Setenv("KUBECONFIG", currentDirectory+"/fakekubeconfig")
+	err = os.Setenv("VZ_CLIENT_ID", fakeVerrazzanoClientID)
+	asserts.NoError(err)
+	err = os.Setenv("VZ_REALM", fakeVerrazzanoRealm)
+	asserts.NoError(err)
+	err = os.Setenv("VZ_KEYCLOAK_URL", "http://localhost:"+strconv.Itoa(listener.Addr().(*net.TCPAddr).Port))
+	asserts.NoError(err)
+	err = os.Setenv("KUBECONFIG", currentDirectory+"/fakekubeconfig")
+	asserts.NoError(err)
 
 	// Create fake kubernetes interface
 	fakeKubernetes := &TestKubernetes{
@@ -191,7 +210,8 @@ func TestNewCmdLogin(t *testing.T) {
 
 		outBuffer.Reset()
 	}
-	os.Remove("fakekubeconfig")
+	err = os.Remove("fakekubeconfig")
+	asserts.NoError(err)
 }
 
 func TestRepeatedLogin(t *testing.T) {
@@ -209,27 +229,37 @@ func TestRepeatedLogin(t *testing.T) {
 	fakeRefreshToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew"
 
 	// Set environment variable for kubeconfig
-	os.Setenv("KUBECONFIG", currentDirectory+"/fakekubeconfig")
+	err = os.Setenv("KUBECONFIG", currentDirectory+"/fakekubeconfig")
+	asserts.NoError(err)
 
-	helpers.SetClusterInKubeConfig("verrazzano",
+	err = helpers.SetClusterInKubeConfig("verrazzano",
 		fakeVerrazzanoAPIURL,
 		fakeCAData,
 	)
+	asserts.NoError(err)
 
-	helpers.SetUserInKubeConfig("verrazzano",
-		fakeAccessToken,
-		fakeRefreshToken,
-		9999999999,
-		9999999999,
+	err = helpers.SetUserInKubeConfig("verrazzano",
+		helpers.AuthDetails{
+			9999999999,
+			9999999999,
+			fakeAccessToken,
+			fakeRefreshToken,
+		},
 	)
+	asserts.NoError(err)
 
-	helpers.SetContextInKubeConfig(
-		"verrazzano"+"@"+helpers.GetCurrentContextFromKubeConfig(),
-		"verrazzano",
-		"verrazzano",
+	currentContext,err := helpers.GetCurrentContextFromKubeConfig()
+	asserts.NoError(err)
+
+	err = helpers.SetContextInKubeConfig(
+		fmt.Sprintf("%v@%v",helpers.Verrazzano,currentContext),
+		helpers.Verrazzano,
+		helpers.Verrazzano,
 	)
+	asserts.NoError(err)
 
-	helpers.SetCurrentContextInKubeConfig("verrazzano" + "@" + helpers.GetCurrentContextFromKubeConfig())
+	err = helpers.SetCurrentContextInKubeConfig(fmt.Sprintf("%v@%v",helpers.Verrazzano,currentContext))
+	asserts.NoError(err)
 
 	// Create fake kubernetes interface
 	fakeKubernetes := &TestKubernetes{
@@ -248,18 +278,23 @@ func TestRepeatedLogin(t *testing.T) {
 		asserts.Equal(test.output, outBuffer.String())
 		outBuffer.Reset()
 	}
-	os.Remove("fakekubeconfig")
+	err = os.Remove("fakekubeconfig")
+	asserts.NoError(err)
 }
 
 func createFakeKubeConfig(asserts *assert.Assertions) {
-	originalKubeConfigLocation := helpers.GetKubeConfigLocation()
+	originalKubeConfigLocation,err := helpers.GetKubeConfigLocation()
+	asserts.NoError(err)
 	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
 	asserts.NoError(err)
 	fakeKubeConfig, err := os.Create("fakekubeconfig")
 	asserts.NoError(err)
-	io.Copy(fakeKubeConfig, originalKubeConfig)
-	originalKubeConfig.Close()
-	fakeKubeConfig.Close()
+	_ , err = io.Copy(fakeKubeConfig, originalKubeConfig)
+	asserts.NoError(err)
+	err = originalKubeConfig.Close()
+	asserts.NoError(err)
+	err = fakeKubeConfig.Close()
+	asserts.NoError(err)
 }
 
 // Create fake certificate authority data

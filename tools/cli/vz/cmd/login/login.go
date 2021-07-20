@@ -236,9 +236,9 @@ func extractCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 // The server page's html,js,etc code is embedded here.
 func handle(w http.ResponseWriter, r *http.Request) {
 	u, serverErr := url.Parse(r.URL.String())
-	if serverErr != nil {
+	if serverErr == nil {
 		m, serverErr := url.ParseQuery(u.RawQuery)
-		if serverErr != nil {
+		if serverErr == nil {
 			// Set the auth code obtained through redirection
 			authCode = m["code"][0]
 			fmt.Fprintln(w, "<p>You can close this tab now</p>")
