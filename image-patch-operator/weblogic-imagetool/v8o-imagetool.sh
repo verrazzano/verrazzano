@@ -7,10 +7,7 @@
 set -e
 
 # Log into the registry
-if ! (cat /registry-creds/password | podman login $(cat /registry-creds/registry) --username $(cat /registry-creds/username) --password-stdin); then
-  echo "Podman login failed."
-  exit 1
-fi
+cat /registry-creds/password | podman login $(cat /registry-creds/registry) --username $(cat /registry-creds/username) --password-stdin
 
 # Add installers to the imagetool cache
 export WLSIMG_CACHEDIR="/home/verrazzano/cache"
