@@ -347,6 +347,8 @@ type RancherComponent struct {
 // FluentdComponent specifies the Fluentd DaemonSet configuration
 type FluentdComponent struct {
 	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// +optional
 	ExtraVolumeMounts []VolumeMount `json:"extraVolumeMounts,omitempty"`
 }
 

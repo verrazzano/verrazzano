@@ -176,8 +176,9 @@ type Rancher struct {
 	Enabled string `json:"enabled,omitempty"`
 }
 
-// Fluentd DaemonSet configuration
+// Fluentd configuration
 type Fluentd struct {
+	Enabled            string       `json:"enabled,omitempty"`
 	FluentdInstallArgs []InstallArg `json:"fluentdInstallArgs,omitempty"`
 }
 
