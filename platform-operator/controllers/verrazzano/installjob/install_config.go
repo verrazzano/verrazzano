@@ -342,11 +342,9 @@ func getRancher(rancher *installv1alpha1.RancherComponent) Rancher {
 		return Rancher{Enabled: "true"}
 	}
 
-	var enabled string
+	var enabled = "true"
 	if rancher.Enabled != nil {
 		enabled = strconv.FormatBool(*rancher.Enabled)
-	} else {
-		enabled = "true"
 	}
 	return Rancher{Enabled: enabled}
 }
