@@ -95,7 +95,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							},
 							{
 								Name:  "JDK_INSTALLER_VERSION",
-								Value: "8u281",
+								Value: jobConfig.IBR.Spec.JdkInstallerVersion,
 							},
 							{
 								Name:  "WEBLOGIC_INSTALLER_BINARY",
@@ -103,7 +103,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							},
 							{
 								Name:  "WEBLOGIC_INSTALLER_VERSION",
-								Value: "12.2.1.4.0",
+								Value: jobConfig.IBR.Spec.WebLogicInstallerVersion,
 							},
 							{
 								Name:  "WDT_INSTALLER_BINARY",
