@@ -207,7 +207,7 @@
             {
               "image": "local-path-provisioner",
               "tag": "v0.0.14"
-            },
+            }
           ]
         }
       ]
