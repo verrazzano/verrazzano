@@ -3,7 +3,7 @@
 apiVersion: images.verrazzano.io/v1alpha1
 kind: ImageBuildRequest
 metadata:
-  name: cluster1
+  name: {{.IBR_NAME}}
   namespace: default
 spec:
   baseImage: {{.BASE_IMAGE}}

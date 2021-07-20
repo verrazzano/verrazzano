@@ -86,6 +86,7 @@ func TestNewImageBuildRequest(t *testing.T) {
 		"IMAGE_REPOSITORY":      "myrepo/verrazzano",
 		"JDK_INSTALLER_VERSION": "8u281",
 		"WLS_INSTALLER_VERSION": "12.2.1.4.0",
+		"IBR_NAME":              "cluster1",
 	}
 
 	// Creating an ImageBuildRequest resource
@@ -133,7 +134,9 @@ func TestNewImageBuildRequest(t *testing.T) {
 func TestIBRJobSucceeded(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewFakeClientWithScheme(newScheme())
-	params := map[string]string{}
+	params := map[string]string{
+		"IBR_NAME": "cluster1",
+	}
 
 	// Creating an ImageBuildRequest resource and Kubernetes job in completed state
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/imagebuildrequest_instance.yaml", params))
@@ -165,7 +168,9 @@ func TestIBRJobSucceeded(t *testing.T) {
 func TestIBRJobFailed(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewFakeClientWithScheme(newScheme())
-	params := map[string]string{}
+	params := map[string]string{
+		"IBR_NAME": "cluster1",
+	}
 
 	// Creating an ImageBuildRequest resource and Kubernetes job in failed state
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/imagebuildrequest_instance.yaml", params))
