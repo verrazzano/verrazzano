@@ -71,15 +71,24 @@ spec:
                 description: The JDK installer that will be used by the WebLogic Image
                   Tool
                 type: string
+              jdkInstallerVersion:
+                description: The version for JDK needed by the WebLogic Image Tool
+                type: string
               webLogicInstaller:
                 description: The WebLogic Installer that will be used by the WebLogic
                   Image Tool
+                type: string
+              webLogicInstallerVersion:
+                description: The version for WebLogic needed by the WebLogic Image
+                  Tool
                 type: string
             required:
             - baseImage
             - image
             - jdkInstaller
+            - jdkInstallerVersion
             - webLogicInstaller
+            - webLogicInstallerVersion
             type: object
           status:
             description: ImageBuildRequestStatus defines the observed state of ImageBuildRequest
