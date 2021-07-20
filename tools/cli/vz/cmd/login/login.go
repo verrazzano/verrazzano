@@ -55,7 +55,6 @@ func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helper
 }
 
 func login(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
-
 	// Check if the user is already logged out
 	loggedIn,  err := helpers.LoggedIn()
 	if err!=nil {
@@ -149,6 +148,8 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 
 var authCode = "" //	Http handle fills this after keycloak authentication
 var serverErr error = nil	// Http handle fills this
+var stateFromKeycloak = ""  // Http handle fills the state obtained through redirection
+
 // A function to put together all the requirements of authorization grant flow
 // Returns the final jwt token as a map
 func authFlowLogin(caData []byte) (map[string]interface{}, error) {
@@ -162,6 +163,7 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 
 	// Generate random code verifier and code challenge pair
 	codeVerifier, codeChallenge := helpers.GenerateRandomCodePair()
+	state := helpers.GenerateRandomState()
 
 	// Generate the redirect uri using the port obtained
 	redirectURI := helpers.GenerateRedirectURI(listener)
@@ -169,6 +171,7 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 	// Generate the login keycloak url by passing the required url parameters
 	loginURL := helpers.GenerateKeycloakAPIURL(codeChallenge,
 		redirectURI,
+		state,
 	)
 
 	// Busy wait when the authorization code is still not filled by http handle
@@ -196,6 +199,10 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 	http.Serve(listener,
 		nil,
 	)
+
+	if stateFromKeycloak!=state {
+		return jwtData, errors.New("State mismatch")
+	}
 
 	if serverErr != nil {
 		return jwtData, err
@@ -241,6 +248,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		if serverErr == nil {
 			// Set the auth code obtained through redirection
 			authCode = m["code"][0]
+			stateFromKeycloak = m["state"][0]
 			fmt.Fprintln(w, "<p>You can close this tab now</p>")
 		}
 	}

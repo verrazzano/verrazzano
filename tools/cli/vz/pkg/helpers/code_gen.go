@@ -36,3 +36,14 @@ func GenerateRandomCodePair() (string, string) {
 	codeChallenge := encode(h.Sum(nil))
 	return codeVerifier, codeChallenge
 }
+
+// Generates a random string which is used as the state
+func GenerateRandomState() string {
+	length := 14
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	b := make([]byte, length)
+	for i := 0; i < length; i++ {
+		b[i] = byte(r.Intn(255))
+	}
+	return encode(b)
+}

@@ -73,6 +73,7 @@ func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
 			fmt.Fprintln(streams.Out, "Logged out, Please login again")
 		}
 	}
+
 	cmd.AddCommand(project.NewCmdProject(streams))
 	cmd.AddCommand(cluster.NewCmdCluster(streams, o))
 	cmd.AddCommand(app.NewCmdApp(streams))

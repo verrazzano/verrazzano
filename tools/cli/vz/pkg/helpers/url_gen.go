@@ -57,11 +57,11 @@ func GetVerrazzanoRealm() string {
 
 // Generates the keycloak api url to login
 // Return string of the form `https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/auth?redirect_uri=abc&state=xyz...`
-func GenerateKeycloakAPIURL(codeChallenge string, redirectURI string) string {
+func GenerateKeycloakAPIURL(codeChallenge string, redirectURI string, state string) string {
 	urlParams := map[string]string{
 		"client_id":             GetClientID(),
 		"response_type":         "code",
-		"state":                 "fj8o3n7bdy1op5",
+		"state":                 state,
 		"redirect_uri":          redirectURI,
 		"code_challenge":        codeChallenge,
 		"code_challenge_method": "S256",
