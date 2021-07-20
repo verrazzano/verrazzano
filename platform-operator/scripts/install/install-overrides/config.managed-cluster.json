@@ -5,6 +5,9 @@
   "keycloak": {
     "enabled": false
   },
+  "fluentd": {
+    "enabled": true
+  },
   "consolesEnabled": {
     "grafana": false,
     "kibana": false,
