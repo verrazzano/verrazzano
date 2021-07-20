@@ -32,6 +32,7 @@ func GetKubeConfigLocation() (string,error) {
 	return kubeConfig,nil
 }
 
+// Removes a context with given name from kubeconfig
 func RemoveContextFromKubeConfig(name string) error {
 	kubeConfig,err := ReadKubeConfig()
 	if err!=nil {
@@ -51,6 +52,7 @@ func RemoveContextFromKubeConfig(name string) error {
 	return err
 }
 
+// Removes a cluster with given name from kubeconfig
 func RemoveClusterFromKubeConfig(name string) error {
 	kubeConfig,err := ReadKubeConfig()
 	if err!=nil {
@@ -70,6 +72,7 @@ func RemoveClusterFromKubeConfig(name string) error {
 	return err
 }
 
+// Removes a user with given name from kubeconfig
 func RemoveUserFromKubeConfig(name string) error {
 	kubeConfig,err := ReadKubeConfig()
 	if err!=nil {
@@ -89,6 +92,7 @@ func RemoveUserFromKubeConfig(name string) error {
 	return err
 }
 
+// Changes current cluster to given cluster in kubeconfig
 func SetCurrentContextInKubeConfig(name string) error {
 	kubeConfig,err := ReadKubeConfig()
 	if err!=nil {
@@ -99,6 +103,7 @@ func SetCurrentContextInKubeConfig(name string) error {
 	return err
 }
 
+// Adds a cluster to kubeconfig
 func SetClusterInKubeConfig(name string, serverURL string, caData []byte) error {
 	err := RemoveClusterFromKubeConfig(name)
 	if err!=nil {
@@ -119,6 +124,7 @@ func SetClusterInKubeConfig(name string, serverURL string, caData []byte) error 
 	return err
 }
 
+// Adds a user to kubeconfig
 func SetUserInKubeConfig(name string, authDetails AuthDetails) error {
 	err := RemoveUserFromKubeConfig(name)
 	if err!=nil {
@@ -141,6 +147,7 @@ func SetUserInKubeConfig(name string, authDetails AuthDetails) error {
 	return err
 }
 
+// Adds a new context to kubeconfig
 func SetContextInKubeConfig(name string, clusterName string, userName string) error {
 	err := RemoveContextFromKubeConfig(name)
 	if err!=nil {
@@ -161,6 +168,7 @@ func SetContextInKubeConfig(name string, clusterName string, userName string) er
 	return err
 }
 
+// Reads the kubeconfig into a interface map
 func ReadKubeConfig() (map[string]interface{},error) {
 	// Obtain the default kubeconfig's location
 	var kubeConfig map[string]interface{}
@@ -181,6 +189,7 @@ func ReadKubeConfig() (map[string]interface{},error) {
 	return kubeConfig, nil
 }
 
+// Writes the given interface map to kubeconfig
 func WriteToKubeConfig(kubeConfig map[string]interface{}) error {
 	// Write the new configuration into the default kubeconfig file
 	kubeConfigLoc,err := GetKubeConfigLocation()
@@ -198,6 +207,7 @@ func WriteToKubeConfig(kubeConfig map[string]interface{}) error {
 	return nil
 }
 
+// Returns the current context in kubeconfig
 func GetCurrentContextFromKubeConfig() (string,error) {
 	var currentContext string
 	kubeConfig, err := ReadKubeConfig()
@@ -208,6 +218,7 @@ func GetCurrentContextFromKubeConfig() (string,error) {
 	return currentContext, nil
 }
 
+// Struct to store user's authentication data
 type AuthDetails struct{
 	AccessTokenExpTime int64
 	RefreshTokenExpTime int64

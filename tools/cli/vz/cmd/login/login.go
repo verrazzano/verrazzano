@@ -23,12 +23,14 @@ import (
 	"time"
 )
 
+// Struct to store Login-command related data. eg.flags,streams,args..
 type LoginOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	args        []string
 	genericclioptions.IOStreams
 }
 
+// Creates a LoginOptions struct to run the login command
 func NewLoginOptions(streams genericclioptions.IOStreams) *LoginOptions {
 	return &LoginOptions{
 		configFlags: genericclioptions.NewConfigFlags(true),
@@ -36,6 +38,8 @@ func NewLoginOptions(streams genericclioptions.IOStreams) *LoginOptions {
 	}
 }
 
+// root.go returns this function for login
+// Calls the login function to complete login
 func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewLoginOptions(streams)
 	cmd := &cobra.Command{
