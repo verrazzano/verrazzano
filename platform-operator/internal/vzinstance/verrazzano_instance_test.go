@@ -38,7 +38,6 @@ func TestGetInstanceInfo(t *testing.T) {
 	const kibanaURL = "kibana." + dnsDomain
 	const rancherURL = "rancher." + dnsDomain
 	const consoleURL = "verrazzano." + dnsDomain
-	const apiURL = "api." + dnsDomain
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
@@ -105,12 +104,13 @@ func TestGetInstanceInfo(t *testing.T) {
 			return nil
 		})
 
+	enabled := true
 	vz := &v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				Console: &v1alpha1.ConsoleComponent{
 					MonitoringComponent: v1alpha1.MonitoringComponent{
-						Enabled: true,
+						Enabled: &enabled,
 					},
 				},
 			},
@@ -146,7 +146,6 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 	const promURL = "prometheus." + dnsDomain
 	const rancherURL = "rancher." + dnsDomain
 	const consoleURL = "verrazzano." + dnsDomain
-	const apiURL = "api." + dnsDomain
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
@@ -216,7 +215,7 @@ func TestGetInstanceInfoGetError(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ingressList *extv1beta1.IngressList) error {
-			return fmt.Errorf("Test error")
+			return fmt.Errorf("test error")
 		})
 
 	info := GetInstanceInfo(mock, &v1alpha1.Verrazzano{})
@@ -243,12 +242,13 @@ func TestGetInstanceInfoNoIngresses(t *testing.T) {
 			return nil
 		})
 
+	enabled := false
 	vz := &v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				Console: &v1alpha1.ConsoleComponent{
 					MonitoringComponent: v1alpha1.MonitoringComponent{
-						Enabled: false,
+						Enabled: &enabled,
 					},
 				},
 			},
