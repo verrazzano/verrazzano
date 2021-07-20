@@ -23,9 +23,9 @@ type FakeVerrazzanoHelidonWorkloads struct {
 	ns   string
 }
 
-var verrazzanohelidonworkloadsResource = schema.GroupVersionResource{Group: "oam", Version: "v1alpha1", Resource: "verrazzanohelidonworkloads"}
+var verrazzanohelidonworkloadsResource = schema.GroupVersionResource{Group: "oam.verrazzano.io", Version: "v1alpha1", Resource: "verrazzanohelidonworkloads"}
 
-var verrazzanohelidonworkloadsKind = schema.GroupVersionKind{Group: "oam", Version: "v1alpha1", Kind: "VerrazzanoHelidonWorkload"}
+var verrazzanohelidonworkloadsKind = schema.GroupVersionKind{Group: "oam.verrazzano.io", Version: "v1alpha1", Kind: "VerrazzanoHelidonWorkload"}
 
 // Get takes name of the verrazzanoHelidonWorkload, and returns the corresponding verrazzanoHelidonWorkload object, and an error if there is any.
 func (c *FakeVerrazzanoHelidonWorkloads) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.VerrazzanoHelidonWorkload, err error) {
