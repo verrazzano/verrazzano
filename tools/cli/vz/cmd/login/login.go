@@ -112,8 +112,8 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 
 	err = helpers.SetUserInKubeConfig(helpers.Verrazzano,
 		helpers.AuthDetails{
-			int64(accessTokenExpTime.(float64)) + time.Now().Unix() - helpers.Buffer,
-			int64(refreshTokenExpTime.(float64)) + time.Now().Unix() - helpers.Buffer,
+			int64(accessTokenExpTime.(float64)) + time.Now().Unix() - helpers.BufferTime,
+			int64(refreshTokenExpTime.(float64)) + time.Now().Unix() - helpers.BufferTime,
 			accessToken.(string),
 			refreshToken.(string),
 		},
@@ -148,7 +148,7 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 }
 
 var authCode = "" //	Http handle fills this after keycloak authentication
-
+var serverErr error = nil	// Http handle fills this
 // A function to put together all the requirements of authorization grant flow
 // Returns the final jwt token as a map
 func authFlowLogin(caData []byte) (map[string]interface{}, error) {
@@ -174,7 +174,7 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 	// Busy wait when the authorization code is still not filled by http handle
 	// Close the listener once we obtain it
 	go func() {
-		for authCode == "" {
+		for authCode == "" && serverErr==nil {
 
 		}
 		listener.Close()
@@ -196,6 +196,10 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 	http.Serve(listener,
 		nil,
 	)
+
+	if serverErr != nil {
+		return jwtData, err
+	}
 
 	// Obtain the JWT token by exchanging it with authCode
 	jwtData, err = requestJWT(redirectURI,
@@ -231,11 +235,18 @@ func extractCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 // Handler function for http server
 // The server page's html,js,etc code is embedded here.
 func handle(w http.ResponseWriter, r *http.Request) {
-	u, _ := url.Parse(r.URL.String())
-	m, _ := url.ParseQuery(u.RawQuery)
-	// Set the auth code obtained through redirection
-	authCode = m["code"][0]
-	fmt.Fprintln(w, "<p>You can close this tab now</p>")
+	u, serverErr := url.Parse(r.URL.String())
+	if serverErr != nil {
+		m, serverErr := url.ParseQuery(u.RawQuery)
+		if serverErr != nil {
+			// Set the auth code obtained through redirection
+			authCode = m["code"][0]
+			fmt.Fprintln(w, "<p>You can close this tab now</p>")
+		}
+	}
+	if serverErr != nil{
+		fmt.Fprintln(w, "<p>Authentication failed, Please try again</p>")
+	}
 }
 
 // Fetch an available port
@@ -314,6 +325,7 @@ func executeRequestForJWT(grantParams url.Values, caData []byte) (map[string]int
 	return jwtData, err
 }
 
+// Function that refreshes the access token if required when logged in
 func RefreshToken() error {
 
 	// Nothing to do when the user is not logged in
@@ -331,12 +343,12 @@ func RefreshToken() error {
 	}
 
 	// If the access token is still valid
-	if time.Now().Unix()+helpers.Buffer < authDetails.AccessTokenExpTime {
+	if time.Now().Unix()+helpers.BufferTime < authDetails.AccessTokenExpTime {
 		return nil
 	}
 
 	// If the refresh token has expired, delete all auth data
-	if time.Now().Unix()-helpers.Buffer > authDetails.RefreshTokenExpTime {
+	if time.Now().Unix()-helpers.BufferTime > authDetails.RefreshTokenExpTime {
 		err := helpers.RemoveAllAuthData()
 		return err
 	}
@@ -383,8 +395,8 @@ func RefreshToken() error {
 
 	err = helpers.SetUserInKubeConfig(helpers.Verrazzano,
 		helpers.AuthDetails{
-			int64(accessTokenExpTime.(float64)) + time.Now().Unix() - helpers.Buffer,
-			int64(refreshTokenExpTime.(float64)) + time.Now().Unix() - helpers.Buffer,
+			int64(accessTokenExpTime.(float64)) + time.Now().Unix() - helpers.BufferTime,
+			int64(refreshTokenExpTime.(float64)) + time.Now().Unix() - helpers.BufferTime,
 			accessToken.(string),
 			refreshToken.(string),
 		},

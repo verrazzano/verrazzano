@@ -11,7 +11,7 @@ import (
 const Verrazzano = "verrazzano"
 
 // Assuming that the api call will take place within Buffer seconds from checking validity of token
-const Buffer = 10
+const BufferTime = 10
 
 // Helper function to find if the user is logged in
 func LoggedIn() (bool,error) {
