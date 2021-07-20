@@ -14,3 +14,5 @@ spec:
     tag: {{.IMAGE_TAG}}
     registry: {{.IMAGE_REGISTRY}}
     repository: {{.IMAGE_REPOSITORY}}
+  jdkInstallerVersion: {{.JDK_INSTALLER_VERSION}}
+  webLogicInstallerVersion: {{.WLS_INSTALLER_VERSION}}

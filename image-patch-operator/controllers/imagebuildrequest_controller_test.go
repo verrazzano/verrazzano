@@ -77,13 +77,15 @@ func TestNewImageBuildRequest(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewFakeClientWithScheme(newScheme())
 	params := map[string]string{
-		"BASE_IMAGE":         "ghcr.io/oracle/oraclelinux:8-slim",
-		"JDK_INSTALLER":      "jdk-8u281-linux-x64.tar.gz",
-		"WEBLOGIC_INSTALLER": "fmw_12.2.1.4.0_wls.jar",
-		"IMAGE_NAME":         "test-build",
-		"IMAGE_TAG":          "test-tag",
-		"IMAGE_REGISTRY":     "phx.ocir.io",
-		"IMAGE_REPOSITORY":   "myrepo/verrazzano",
+		"BASE_IMAGE":            "ghcr.io/oracle/oraclelinux:8-slim",
+		"JDK_INSTALLER":         "jdk-8u281-linux-x64.tar.gz",
+		"WEBLOGIC_INSTALLER":    "fmw_12.2.1.4.0_wls.jar",
+		"IMAGE_NAME":            "test-build",
+		"IMAGE_TAG":             "test-tag",
+		"IMAGE_REGISTRY":        "phx.ocir.io",
+		"IMAGE_REPOSITORY":      "myrepo/verrazzano",
+		"JDK_INSTALLER_VERSION": "8u281",
+		"WLS_INSTALLER_VERSION": "12.2.1.4.0",
 	}
 
 	// Creating an ImageBuildRequest resource
@@ -115,11 +117,12 @@ func TestNewImageBuildRequest(t *testing.T) {
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[1].Value, "test-build")
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[2].Value, "test-tag")
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[3].Value, "phx.ocir.io")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[4].Value, "mytenancy")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[5].Value, "myrepo/verrazzano")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[6].Value, "ghcr.io/oracle/oraclelinux:8-slim")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[7].Value, "jdk-8u281-linux-x64.tar.gz")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[9].Value, "fmw_12.2.1.4.0_wls.jar")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[4].Value, "myrepo/verrazzano")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[5].Value, "ghcr.io/oracle/oraclelinux:8-slim")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[6].Value, "jdk-8u281-linux-x64.tar.gz")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[7].Value, "8u281")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[8].Value, "fmw_12.2.1.4.0_wls.jar")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[9].Value, "12.2.1.4.0")
 
 }
 
