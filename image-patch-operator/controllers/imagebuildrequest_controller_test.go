@@ -110,15 +110,15 @@ func TestNewImageBuildRequest(t *testing.T) {
 	assert.NoError(err)
 
 	// Testing that the spec fields of the IBR propagate to the environmental variables of the ImageJob
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[1].Value, "test-build")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[2].Value, "test-tag")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[3].Value, "phx.ocir.io")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[4].Value, "myrepo/verrazzano")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[5].Value, "ghcr.io/oracle/oraclelinux:8-slim")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[6].Value, "jdk-8u281-linux-x64.tar.gz")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[7].Value, "8u281")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[8].Value, "fmw_12.2.1.4.0_wls.jar")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[9].Value, "12.2.1.4.0")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[0].Value, "test-build")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[1].Value, "test-tag")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[2].Value, "phx.ocir.io")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[3].Value, "myrepo/verrazzano")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[4].Value, "ghcr.io/oracle/oraclelinux:8-slim")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[5].Value, "jdk-8u281-linux-x64.tar.gz")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[6].Value, "8u281")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[7].Value, "fmw_12.2.1.4.0_wls.jar")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[8].Value, "12.2.1.4.0")
 
 }
 
