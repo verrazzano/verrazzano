@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/verrazzano/verrazzano/image-patch-operator/constants"
 	"github.com/verrazzano/verrazzano/image-patch-operator/internal/k8s"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -119,7 +120,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							Name: "registry-creds",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: "verrazzano-imagetool",
+									SecretName: constants.ImageJobSecretName,
 								},
 							},
 						},

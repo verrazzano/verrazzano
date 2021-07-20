@@ -11,31 +11,26 @@ import (
 	"testing"
 	"text/template"
 
-	batchv1 "k8s.io/api/batch/v1"
-
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/yaml"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
-	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	k8sapps "k8s.io/api/apps/v1"
-	k8score "k8s.io/api/core/v1"
-	k8net "k8s.io/api/networking/v1beta1"
-
 	"github.com/golang/mock/gomock"
+	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	asserts "github.com/stretchr/testify/assert"
-
 	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
 	"github.com/verrazzano/verrazzano/image-patch-operator/mocks"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	k8sapps "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	k8score "k8s.io/api/core/v1"
+	k8net "k8s.io/api/networking/v1beta1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/yaml"
 )
 
 // TestReconcilerSetupWithManager tests the creation and setup of a new reconciler

@@ -9,30 +9,22 @@ import (
 	"os"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	corev1 "k8s.io/api/core/v1"
-
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-
-	batchv1 "k8s.io/api/batch/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/verrazzano/verrazzano/image-patch-operator/internal/k8s"
-
+	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
 	"github.com/verrazzano/verrazzano/image-patch-operator/controllers/imagejob"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
+	"github.com/verrazzano/verrazzano/image-patch-operator/internal/k8s"
+	stringslice "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
-
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // ImageBuildRequestReconciler reconciles a ImageBuildRequest object
@@ -124,7 +116,7 @@ func (r *ImageBuildRequestReconciler) createImageJob(ctx context.Context, log *z
 		}
 
 		// Add our finalizer if not already added
-		if !containsString(ibr.ObjectMeta.Finalizers, finalizerName) {
+		if !stringslice.SliceContainsString(ibr.ObjectMeta.Finalizers, finalizerName) {
 			log.Infof("Adding finalizer %s", finalizerName)
 			ibr.ObjectMeta.Finalizers = append(ibr.ObjectMeta.Finalizers, finalizerName)
 			if err := r.Update(ctx, ibr); err != nil {
@@ -238,16 +230,6 @@ func (r *ImageBuildRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // buildImageJobName returns the name of an image job based on ImageBuildRequest resource name.
 func buildImageJobName(name string) string {
 	return fmt.Sprintf("verrazzano-images-%s", name)
-}
-
-// containsString checks for a string in a slice of strings
-func containsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
 }
 
 // buildConfigMapName returns the name of a config map for an image job based on ImageBuildRequest resource name.
