@@ -3,21 +3,5 @@
 
 package constants
 
-// VerrazzanoSystemNamespace is the system namespace for verrazzano
-const VerrazzanoSystemNamespace = "verrazzano-system"
-
-// Verrazzano is the name of the verrazzano secret in the Verrazzano system namespace
-const Verrazzano = "verrazzano"
-
-// VerrazzanoMultiClusterNamespace is the multi-cluster namespace for verrazzano
-const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
-
-// MCRegistrationSecret contains information which related to the managed cluster itself, such as the
-// managed cluster name.
-const MCRegistrationSecret = "verrazzano-cluster-registration"
-
-// AdminClusterConfigMapName is the name of the configmap that contains admin cluster server address
-const AdminClusterConfigMapName = "verrazzano-admin-cluster"
-
-// ServerDataKey is the key into ConfigMap data for cluster server address
-const ServerDataKey = "server"
+// ImageJobSecretName is the name of the secret to be used in the ImageJob Spec
+const ImageJobSecretName = "verrazzano-imagetool"
