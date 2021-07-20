@@ -7,25 +7,62 @@ import (
 	"strings"
 )
 
-func LoggedIn() bool {
-	return strings.Split(GetCurrentContextFromKubeConfig(), "@")[0] == "verrazzano"
+// To be used as nick name for verrazzano related clusters,contexts,users,etc in kubeconfig
+const Verrazzano = "verrazzano"
+
+// Assuming that the api call will take place within Buffer seconds from checking validity of token
+const Buffer = 10
+
+// Helper function to find if the user is logged in
+func LoggedIn() (bool,error) {
+	var loggedIn bool
+	currentContext,err := GetCurrentContextFromKubeConfig()
+	if err!=nil {
+		return loggedIn,err
+	}
+	loggedIn = strings.Split(currentContext,"@")[0] == Verrazzano
+	return loggedIn,nil
 }
 
-func LoggedOut() bool {
-	return strings.Split(GetCurrentContextFromKubeConfig(), "@")[0] != "verrazzano"
+// Helper function to find if the user is logged out
+func LoggedOut() (bool,error) {
+	var loggedOut bool
+	currentContext,err := GetCurrentContextFromKubeConfig()
+	if err!=nil {
+		return loggedOut,err
+	}
+	loggedOut = strings.Split(currentContext,"@")[0] != Verrazzano
+	return loggedOut,nil
 }
 
-func RemoveAllAuthData() {
+// Helper function that removes all the user details from kubeconfig
+func RemoveAllAuthData() error {
 	// Remove the cluster with nickname verrazzano
-	RemoveClusterFromKubeConfig("verrazzano")
+	err := RemoveClusterFromKubeConfig("verrazzano")
+	if err!=nil {
+		return err
+	}
 
 	// Remove the user with nickname verrazzano
-	RemoveUserFromKubeConfig("verrazzano")
+	err = RemoveUserFromKubeConfig("verrazzano")
+	if err!=nil {
+		return err
+	}
 
+	currentContext,err := GetCurrentContextFromKubeConfig()
+	if err!=nil {
+		return err
+	}
 	// Remove the currentcontext
-	RemoveContextFromKubeConfig(GetCurrentContextFromKubeConfig())
+	err = RemoveContextFromKubeConfig(currentContext)
+	if err!=nil {
+		return err
+	}
 
 	// Set currentcluster to the cluster before the user logged in
-	SetCurrentContextInKubeConfig(strings.Split(GetCurrentContextFromKubeConfig(), "@")[1])
-
+	err = SetCurrentContextInKubeConfig(strings.Split(currentContext, "@")[1])
+	if err!=nil {
+		return err
+	}
+	return nil
 }

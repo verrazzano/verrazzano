@@ -5,6 +5,7 @@ package helpers
 
 import (
 	"encoding/base64"
+	"errors"
 	"io/ioutil"
 	"k8s.io/client-go/util/homedir"
 	"os"
@@ -13,7 +14,7 @@ import (
 )
 
 // Helper function to obtain the default kubeConfig location
-func GetKubeConfigLocation() string {
+func GetKubeConfigLocation() (string,error) {
 
 	var kubeConfig string
 	kubeConfigEnvVar := os.Getenv("KUBECONFIG")
@@ -26,13 +27,16 @@ func GetKubeConfigLocation() string {
 		kubeConfig = filepath.Join(home, ".kube", "config")
 	} else {
 		// give up
-		panic("Unable to find kubeconfig")
+		return kubeConfig,errors.New("Unable to find kubeconfig")
 	}
-	return kubeConfig
+	return kubeConfig,nil
 }
 
-func RemoveContextFromKubeConfig(name string) {
-	kubeConfig := ReadKubeConfig()
+func RemoveContextFromKubeConfig(name string) error {
+	kubeConfig,err := ReadKubeConfig()
+	if err!=nil {
+		return err
+	}
 	pos := -1
 	for i := 0; i < len(kubeConfig["contexts"].([]interface{})); i++ {
 		if kubeConfig["contexts"].([]interface{})[i].(map[string]interface{})["name"] == name {
@@ -43,11 +47,15 @@ func RemoveContextFromKubeConfig(name string) {
 	if pos != -1 {
 		kubeConfig["contexts"] = append(kubeConfig["contexts"].([]interface{})[:pos], kubeConfig["contexts"].([]interface{})[pos+1:]...)
 	}
-	WriteToKubeConfig(kubeConfig)
+	err = WriteToKubeConfig(kubeConfig)
+	return err
 }
 
-func RemoveClusterFromKubeConfig(name string) {
-	kubeConfig := ReadKubeConfig()
+func RemoveClusterFromKubeConfig(name string) error {
+	kubeConfig,err := ReadKubeConfig()
+	if err!=nil {
+		return err
+	}
 	pos := -1
 	for i := 0; i < len(kubeConfig["clusters"].([]interface{})); i++ {
 		if kubeConfig["clusters"].([]interface{})[i].(map[string]interface{})["name"] == name {
@@ -58,11 +66,15 @@ func RemoveClusterFromKubeConfig(name string) {
 	if pos != -1 {
 		kubeConfig["clusters"] = append(kubeConfig["clusters"].([]interface{})[:pos], kubeConfig["clusters"].([]interface{})[pos+1:]...)
 	}
-	WriteToKubeConfig(kubeConfig)
+	err = WriteToKubeConfig(kubeConfig)
+	return err
 }
 
-func RemoveUserFromKubeConfig(name string) {
-	kubeConfig := ReadKubeConfig()
+func RemoveUserFromKubeConfig(name string) error {
+	kubeConfig,err := ReadKubeConfig()
+	if err!=nil {
+		return err
+	}
 	pos := -1
 	for i := 0; i < len(kubeConfig["users"].([]interface{})); i++ {
 		if kubeConfig["users"].([]interface{})[i].(map[string]interface{})["name"] == name {
@@ -73,18 +85,29 @@ func RemoveUserFromKubeConfig(name string) {
 	if pos != -1 {
 		kubeConfig["users"] = append(kubeConfig["users"].([]interface{})[:pos], kubeConfig["users"].([]interface{})[pos+1:]...)
 	}
-	WriteToKubeConfig(kubeConfig)
+	err = WriteToKubeConfig(kubeConfig)
+	return err
 }
 
-func SetCurrentContextInKubeConfig(name string) {
-	kubeConfig := ReadKubeConfig()
+func SetCurrentContextInKubeConfig(name string) error {
+	kubeConfig,err := ReadKubeConfig()
+	if err!=nil {
+		return err
+	}
 	kubeConfig["current-context"] = name
-	WriteToKubeConfig(kubeConfig)
+	err = WriteToKubeConfig(kubeConfig)
+	return err
 }
 
-func SetClusterInKubeConfig(name string, serverURL string, caData []byte) {
-	RemoveClusterFromKubeConfig(name)
-	kubeConfig := ReadKubeConfig()
+func SetClusterInKubeConfig(name string, serverURL string, caData []byte) error {
+	err := RemoveClusterFromKubeConfig(name)
+	if err!=nil {
+		return err
+	}
+	kubeConfig,err := ReadKubeConfig()
+	if err!=nil {
+		return err
+	}
 	currentCluster := make(map[string]interface{})
 	currentCluster["name"] = name
 	currentClusterInfo := make(map[string]interface{})
@@ -92,27 +115,41 @@ func SetClusterInKubeConfig(name string, serverURL string, caData []byte) {
 	currentClusterInfo["certificate-authority-data"] = base64.StdEncoding.EncodeToString(caData)
 	currentCluster["cluster"] = currentClusterInfo
 	kubeConfig["clusters"] = append(kubeConfig["clusters"].([]interface{}), currentCluster)
-	WriteToKubeConfig(kubeConfig)
+	err = WriteToKubeConfig(kubeConfig)
+	return err
 }
 
-func SetUserInKubeConfig(name string, accessToken string, refreshToken string, accessTokenExpTime int64, refreshTokenExpTime int64) {
-	RemoveUserFromKubeConfig(name)
-	kubeConfig := ReadKubeConfig()
+func SetUserInKubeConfig(name string, authDetails AuthDetails) error {
+	err := RemoveUserFromKubeConfig(name)
+	if err!=nil {
+		return err
+	}
+	kubeConfig,err := ReadKubeConfig()
+	if err!=nil {
+		return err
+	}
 	currentUser := make(map[string]interface{})
 	currentUser["name"] = name
 	currentUserInfo := make(map[string]interface{})
-	currentUserInfo["token"] = accessToken
-	currentUserInfo["refreshToken"] = refreshToken
-	currentUserInfo["accessTokenExpTime"] = accessTokenExpTime
-	currentUserInfo["refreshTokenExpTime"] = refreshTokenExpTime
+	currentUserInfo["token"] = authDetails.AccessToken
+	currentUserInfo["refreshToken"] = authDetails.RefreshToken
+	currentUserInfo["accessTokenExpTime"] = authDetails.AccessTokenExpTime
+	currentUserInfo["refreshTokenExpTime"] = authDetails.RefreshTokenExpTime
 	currentUser["user"] = currentUserInfo
 	kubeConfig["users"] = append(kubeConfig["users"].([]interface{}), currentUser)
-	WriteToKubeConfig(kubeConfig)
+	err = WriteToKubeConfig(kubeConfig)
+	return err
 }
 
-func SetContextInKubeConfig(name string, clusterName string, userName string) {
-	RemoveContextFromKubeConfig(name)
-	kubeConfig := ReadKubeConfig()
+func SetContextInKubeConfig(name string, clusterName string, userName string) error {
+	err := RemoveContextFromKubeConfig(name)
+	if err!=nil {
+		return err
+	}
+	kubeConfig,err := ReadKubeConfig()
+	if err!=nil {
+		return err
+	}
 	currentContext := make(map[string]interface{})
 	currentContext["name"] = name
 	currentContextInfo := make(map[string]interface{})
@@ -120,71 +157,123 @@ func SetContextInKubeConfig(name string, clusterName string, userName string) {
 	currentContextInfo["user"] = userName
 	currentContext["context"] = currentContextInfo
 	kubeConfig["contexts"] = append(kubeConfig["contexts"].([]interface{}), currentContext)
-	WriteToKubeConfig(kubeConfig)
+	err = WriteToKubeConfig(kubeConfig)
+	return err
 }
 
-func ReadKubeConfig() map[string]interface{} {
+func ReadKubeConfig() (map[string]interface{},error) {
 	// Obtain the default kubeconfig's location
-	kubeConfigLoc := GetKubeConfigLocation()
+	var kubeConfig map[string]interface{}
+	kubeConfigLoc,err := GetKubeConfigLocation()
+	if err!=nil {
+		return kubeConfig, err
+	}
 	byteSliceKubeconfig, err := ioutil.ReadFile(kubeConfigLoc)
 	if err != nil {
-		panic("Unable to read kubeconfig")
+		return kubeConfig, err
 	}
-	kubeConfig := make(map[string]interface{})
+	kubeConfig = make(map[string]interface{})
 	// Load the default kubeconfig's configuration into clientcmdapi object
 	err = yaml.Unmarshal(byteSliceKubeconfig, &kubeConfig)
 	if err != nil {
-		panic("Unable to unmarshall kubeconfig")
+		return kubeConfig, err
 	}
-	return kubeConfig
+	return kubeConfig, nil
 }
 
-func WriteToKubeConfig(kubeConfig map[string]interface{}) {
+func WriteToKubeConfig(kubeConfig map[string]interface{}) error {
 	// Write the new configuration into the default kubeconfig file
-	kubeConfigLoc := GetKubeConfigLocation()
+	kubeConfigLoc,err := GetKubeConfigLocation()
+	if err!=nil {
+		return err
+	}
 	byteSliceKubeConfig, err := yaml.Marshal(kubeConfig)
 	if err != nil {
-		panic("Unable to marshall kubeconfig")
+		return err
 	}
 	err = ioutil.WriteFile(kubeConfigLoc, byteSliceKubeConfig, 0644)
 	if err != nil {
-		panic("Unable to write to kubeconfig")
+		return err
 	}
+	return nil
 }
 
-func GetCurrentContextFromKubeConfig() string {
-	kubeConfig := ReadKubeConfig()
-	return kubeConfig["current-context"].(string)
+func GetCurrentContextFromKubeConfig() (string,error) {
+	var currentContext string
+	kubeConfig, err := ReadKubeConfig()
+	if err!=nil {
+		return currentContext, err
+	}
+	currentContext = kubeConfig["current-context"].(string)
+	return currentContext, nil
 }
 
-func GetAuthDetails() (int64, int64, string, string) {
-	kubeConfig := ReadKubeConfig()
+type AuthDetails struct{
+	AccessTokenExpTime int64
+	RefreshTokenExpTime int64
+	AccessToken string
+	RefreshToken string
+}
+
+// Returns tokens and expiration times wrapped up in a struct
+func GetAuthDetails() (AuthDetails,error) {
+	var authDetails AuthDetails
+	kubeConfig,err := ReadKubeConfig()
+	if err!=nil {
+		return authDetails, err
+	}
 	pos := -1
 	for i := 0; i < len(kubeConfig["users"].([]interface{})); i++ {
-		if kubeConfig["users"].([]interface{})[i].(map[string]interface{})["name"] == "verrazzano" {
+		if kubeConfig["users"].([]interface{})[i].(map[string]interface{})["name"] == Verrazzano {
 			pos = i
 			break
 		}
 	}
 	if pos == -1 {
-		panic("No user with nickname verrazzano")
+		return authDetails,errors.New("No user with nickname verrazzano")
 	}
 	currentUserInfo := kubeConfig["users"].([]interface{})[pos].(map[string]interface{})["user"].(map[string]interface{})
-	return int64(currentUserInfo["accessTokenExpTime"].(float64)), int64(currentUserInfo["refreshTokenExpTime"].(float64)), currentUserInfo["token"].(string), currentUserInfo["refreshToken"].(string)
+	accesToken,ok := currentUserInfo["token"]
+	if !ok {
+		return authDetails,errors.New("Access Token not found in kubeconfig")
+	}
+	refreshToken, ok := currentUserInfo["refreshToken"]
+	if !ok {
+		return authDetails,errors.New("Refresh Token not found in kubeconfig")
+	}
+	accesTokenExpTime,ok := currentUserInfo["accessTokenExpTime"]
+	if !ok {
+		return authDetails,errors.New("Access Token Expiration Time not found in kubeconfig")
+	}
+	refreshTokenExpTime, ok := currentUserInfo["refreshTokenExpTime"]
+	if !ok{
+		return authDetails,errors.New("Refresh Token Expiration Time not found in kubeconfig")
+	}
+	authDetails.AccessToken = accesToken.(string)
+	authDetails.RefreshToken = refreshToken.(string)
+	authDetails.AccessTokenExpTime = int64(accesTokenExpTime.(float64))
+	authDetails.RefreshTokenExpTime = int64(refreshTokenExpTime.(float64))
+	return authDetails, nil
 }
 
-func GetCAData() string {
-	kubeConfig := ReadKubeConfig()
+// Returns the certificate authority data already present in kubeconfig
+func GetCAData() (string,error) {
+	var caData string
+	kubeConfig,err := ReadKubeConfig()
+	if err!=nil {
+		return caData,err
+	}
 	pos := -1
 	for i := 0; i < len(kubeConfig["clusters"].([]interface{})); i++ {
-		if kubeConfig["clusters"].([]interface{})[i].(map[string]interface{})["name"] == "verrazzano" {
+		if kubeConfig["clusters"].([]interface{})[i].(map[string]interface{})["name"] == Verrazzano {
 			pos = i
 			break
 		}
 	}
 	if pos == -1 {
-		panic("No user with nickname verrazzano")
+		return caData,errors.New("Unable to find cluster with nick name verrazzano")
 	}
 	currentUserInfo := kubeConfig["clusters"].([]interface{})[pos].(map[string]interface{})["cluster"].(map[string]interface{})
-	return currentUserInfo["certificate-authority-data"].(string)
+	caData = currentUserInfo["certificate-authority-data"].(string)
+	return caData, nil
 }

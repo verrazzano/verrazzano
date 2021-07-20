@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
@@ -38,9 +39,9 @@ func NewLoginOptions(streams genericclioptions.IOStreams) *LoginOptions {
 func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewLoginOptions(streams)
 	cmd := &cobra.Command{
-		Use:   "login Verrazzano API URL",
-		Short: "vz login",
-		Long:  "vz login",
+		Use:   "login verrazzanoAPIURL",
+		Short: "vz login verrazzanoAPIURL",
+		Long:  "vz login verrazzanoAPIURL",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := login(streams, args, kubernetesInterface); err != nil {
@@ -56,63 +57,94 @@ func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helper
 func login(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 
 	// Check if the user is already logged out
-	if helpers.LoggedIn() {
-		fmt.Fprintln(streams.Out, "Already Logged in")
-		return nil
+	loggedIn,  err := helpers.LoggedIn()
+	if err!=nil {
+		return err
 	}
-
-	var verrazzanoAPIURL string
+	if loggedIn {
+		_ , err := fmt.Fprintln(streams.Out, "Already Logged in")
+		return err
+	}
 
 	// Extract parameters from args
-	for index, element := range args {
-		if index == 0 {
-			verrazzanoAPIURL = element
-			continue
-		}
-	}
+	verrazzanoAPIURL := args[0]
 
 	// Obtain the certificate authority data in the form of byte stream
 	caData, err := extractCAData(kubernetesInterface)
 	if err != nil {
-		fmt.Println("Unable to obtain certificate authority data")
-		fmt.Println("Make sure you are in the right context")
 		return err
 	}
 
 	// Follow the authorization grant flow to get the json response
 	jwtData, err := authFlowLogin(caData)
 	if err != nil {
-		fmt.Println("Grant flow failed")
 		return err
 	}
 
 	// Add the verrazzano cluser into config
-	helpers.SetClusterInKubeConfig("verrazzano",
+	err = helpers.SetClusterInKubeConfig(helpers.Verrazzano,
 		verrazzanoAPIURL,
 		caData,
 	)
+	if err!=nil {
+		return err
+	}
 
 	// Add the logged-in user with nickname verrazzano
-	helpers.SetUserInKubeConfig("verrazzano",
-		jwtData["access_token"].(string),
-		jwtData["refresh_token"].(string),
-		int64(jwtData["expires_in"].(float64))+time.Now().Unix()-10,
-		int64(jwtData["refresh_expires_in"].(float64))+time.Now().Unix()-10,
+	accessToken,ok := jwtData["access_token"]
+	if !ok {
+		return errors.New("Access Token not found in jwtData")
+	}
+	refreshToken,ok := jwtData["refresh_token"]
+	if !ok {
+		return errors.New("Refresh Token not found in jwtData")
+	}
+	accessTokenExpTime,ok := jwtData["expires_in"]
+	if !ok {
+		return errors.New("Access Token Expiration Time not found in jwtData")
+	}
+	refreshTokenExpTime,ok := jwtData["refresh_expires_in"]
+	if !ok {
+		return errors.New("Refresh Token Expiration Time not found in jwtData")
+	}
+
+
+
+	err = helpers.SetUserInKubeConfig(helpers.Verrazzano,
+		helpers.AuthDetails{
+			int64(accessTokenExpTime.(float64)) + time.Now().Unix() - helpers.Buffer,
+			int64(refreshTokenExpTime.(float64)) + time.Now().Unix() - helpers.Buffer,
+			accessToken.(string),
+			refreshToken.(string),
+		},
 	)
+	if err!=nil {
+		return err
+	}
 
 	// Add new context with name verrazzano@oldcontext
 	// This context uses verrazzano cluster and logged-in user
 	// We need oldcontext to fall back after logout
-	helpers.SetContextInKubeConfig("verrazzano"+"@"+helpers.GetCurrentContextFromKubeConfig(),
-		"verrazzano",
-		"verrazzano",
+	currentContext, err := helpers.GetCurrentContextFromKubeConfig()
+	if err!=nil {
+		return err
+	}
+	err = helpers.SetContextInKubeConfig(fmt.Sprintf("%v@%v",helpers.Verrazzano,currentContext),
+		helpers.Verrazzano,
+		helpers.Verrazzano,
 	)
+	if err!=nil {
+		return err
+	}
 
 	// Switch over to new context
-	helpers.SetCurrentContextInKubeConfig("verrazzano" + "@" + helpers.GetCurrentContextFromKubeConfig())
+	err = helpers.SetCurrentContextInKubeConfig(fmt.Sprintf("%v@%v",helpers.Verrazzano,currentContext))
+	if err!=nil {
+		return err
+	}
 
-	fmt.Fprintln(streams.Out, "Login successful!")
-	return nil
+	_, err = fmt.Fprintln(streams.Out, "Login successful!")
+	return err
 }
 
 var authCode = "" //	Http handle fills this after keycloak authentication
@@ -121,8 +153,12 @@ var authCode = "" //	Http handle fills this after keycloak authentication
 // Returns the final jwt token as a map
 func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 
+	var jwtData map[string]interface{}
 	// Obtain a available port in non-well known port range
-	listener := getFreePort()
+	listener,err := getFreePort()
+	if err!=nil {
+		return jwtData,err
+	}
 
 	// Generate random code verifier and code challenge pair
 	codeVerifier, codeChallenge := helpers.GenerateRandomCodePair()
@@ -148,9 +184,9 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 	time.Sleep(time.Second)
 
 	// Open the generated keycloak login url in the browser
-	err := helpers.OpenURLInBrowser(loginURL)
+	err = helpers.OpenURLInBrowser(loginURL)
 	if err != nil {
-		fmt.Println("Unable to open browser")
+		return jwtData, err
 	}
 
 	// Set the handle function and start the http server
@@ -162,12 +198,11 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 	)
 
 	// Obtain the JWT token by exchanging it with authCode
-	jwtData, err := requestJWT(redirectURI,
+	jwtData, err = requestJWT(redirectURI,
 		codeVerifier,
 		caData,
 	)
 	if err != nil {
-		fmt.Println("Unable to obtain the JWT token")
 		return jwtData, err
 	}
 
@@ -205,12 +240,9 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 // Fetch an available port
 // Return in the form of listener
-func getFreePort() net.Listener {
+func getFreePort() (net.Listener,error) {
 	listener, err := net.Listen("tcp", ":0")
-	if err != nil {
-		panic(err)
-	}
-	return listener
+	return listener,err
 }
 
 // Requests the jwt token on our behalf
@@ -218,7 +250,7 @@ func getFreePort() net.Listener {
 func requestJWT(redirectURI string, codeVerifier string, caData []byte) (map[string]interface{}, error) {
 
 	// The response is going to be filled in this
-	var jsonData map[string]interface{}
+	var jwtData map[string]interface{}
 
 	// Set all the parameters for the POST request
 	grantParams := url.Values{}
@@ -230,13 +262,12 @@ func requestJWT(redirectURI string, codeVerifier string, caData []byte) (map[str
 	grantParams.Set("scope", "openid")
 
 	// Execute the request
-	jsonData, err := executeRequestForJWT(grantParams, caData)
+	jwtData, err := executeRequestForJWT(grantParams, caData)
 	if err != nil {
-		fmt.Println("Request failed")
-		return jsonData, err
+		return jwtData, err
 	}
 
-	return jsonData, nil
+	return jwtData, nil
 }
 
 // Creates and executes the POST request
@@ -244,7 +275,7 @@ func requestJWT(redirectURI string, codeVerifier string, caData []byte) (map[str
 func executeRequestForJWT(grantParams url.Values, caData []byte) (map[string]interface{}, error) {
 
 	// The response is going to be filled in this
-	var jsonData map[string]interface{}
+	var jwtData map[string]interface{}
 
 	// Get the keycloak url to obtain tokens
 	tokenURL := helpers.GenerateKeycloakTokenURL()
@@ -262,58 +293,66 @@ func executeRequestForJWT(grantParams url.Values, caData []byte) (map[string]int
 	}
 
 	request, err := http.NewRequest(http.MethodPost, tokenURL, strings.NewReader(grantParams.Encode()))
-	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	if err != nil {
-		fmt.Println("Unable to create POST request")
-		return jsonData, err
+		return jwtData, err
 	}
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	// Send the request and get response
 	response, err := client.Do(request)
 	if err != nil {
-		fmt.Println("Error receiving response")
-		return jsonData, err
+		return jwtData, err
 	}
 	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("Unable to read the response body")
-		return jsonData, err
+		return jwtData, err
 	}
 
 	// Convert the response into a map
-	json.Unmarshal([]byte(responseBody), &jsonData)
+	err = json.Unmarshal([]byte(responseBody), &jwtData)
 
-	return jsonData, nil
+	return jwtData, err
 }
 
 func RefreshToken() error {
 
 	// Nothing to do when the user is not logged in
-	if !helpers.LoggedIn() {
+	loggedOut,err := helpers.LoggedOut()
+	if err!=nil {
+		return err
+	}
+	if loggedOut {
 		return nil
 	}
 
-	accessTokenExpTime, refreshTokenExpTime, _, refreshToken := helpers.GetAuthDetails()
+	authDetails,err := helpers.GetAuthDetails()
+	if err!=nil {
+		return err
+	}
 
 	// If the access token is still valid
-	if time.Now().Unix()+10 < accessTokenExpTime {
+	if time.Now().Unix()+helpers.Buffer < authDetails.AccessTokenExpTime {
 		return nil
 	}
 
 	// If the refresh token has expired, delete all auth data
-	if time.Now().Unix()-10 > refreshTokenExpTime {
-		helpers.RemoveAllAuthData()
-		return nil
+	if time.Now().Unix()-helpers.Buffer > authDetails.RefreshTokenExpTime {
+		err := helpers.RemoveAllAuthData()
+		return err
 	}
 
 	grantParams := url.Values{}
 	grantParams.Set("grant_type", "refresh_token")
 	grantParams.Set("client_id", helpers.GetClientID())
-	grantParams.Set("refresh_token", refreshToken)
+	grantParams.Set("refresh_token", authDetails.RefreshToken)
 	grantParams.Set("redirect_uri", "http://localhost:8080")
 	grantParams.Set("scope", "openid")
 
-	caData, err := base64.StdEncoding.DecodeString(string(helpers.GetCAData()))
+	caDataEncoded,err  := helpers.GetCAData()
+	if err!=nil {
+		return err
+	}
+	caData, err := base64.StdEncoding.DecodeString(caDataEncoded)
 	if err != nil {
 		return err
 	}
@@ -321,16 +360,35 @@ func RefreshToken() error {
 	// Execute the request
 	jwtData, err := executeRequestForJWT(grantParams, []byte(caData))
 	if err != nil {
-		fmt.Println("Request failed")
+		return err
 	}
 
 	// Set new auth details in kubeconfig
-	helpers.SetUserInKubeConfig("verrazzano",
-		jwtData["access_token"].(string),
-		jwtData["refresh_token"].(string),
-		int64(jwtData["expires_in"].(float64))+time.Now().Unix()-10,
-		int64(jwtData["refresh_expires_in"].(float64))+time.Now().Unix()-10,
+	accessToken,ok := jwtData["access_token"]
+	if !ok {
+		return errors.New("Access Token not found in jwtData")
+	}
+	refreshToken,ok := jwtData["refresh_token"]
+	if !ok {
+		return errors.New("Refresh Token not found in jwtData")
+	}
+	accessTokenExpTime,ok := jwtData["expires_in"]
+	if !ok {
+		return errors.New("Access Token Expiration Time not found in jwtData")
+	}
+	refreshTokenExpTime,ok := jwtData["refresh_expires_in"]
+	if !ok {
+		return errors.New("Refresh Token Expiration Time not found in jwtData")
+	}
+
+	err = helpers.SetUserInKubeConfig(helpers.Verrazzano,
+		helpers.AuthDetails{
+			int64(accessTokenExpTime.(float64)) + time.Now().Unix() - helpers.Buffer,
+			int64(refreshTokenExpTime.(float64)) + time.Now().Unix() - helpers.Buffer,
+			accessToken.(string),
+			refreshToken.(string),
+		},
 	)
 
-	return nil
+	return err
 }
