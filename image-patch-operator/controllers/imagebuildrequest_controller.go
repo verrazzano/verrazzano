@@ -46,9 +46,6 @@ type ImageBuildRequestReconciler struct {
 // Name of finalizer
 const finalizerName = "images.verrazzano.io"
 
-// Name of ServiceAccount
-const serviceAccountName = "verrazzano-image-build-job"
-
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
@@ -102,7 +99,7 @@ func (r *ImageBuildRequestReconciler) createImageJob(ctx context.Context, log *z
 				JobName:            buildImageJobName(ibr.Name),
 				Namespace:          ibr.Namespace,
 				Labels:             ibr.Labels,
-				ServiceAccountName: serviceAccountName,
+				ServiceAccountName: os.Getenv("IMAGE_TOOL_NAME"),
 				JobImage:           os.Getenv("WIT_IMAGE"),
 				DryRun:             r.DryRun,
 				IBR:                ibr,
