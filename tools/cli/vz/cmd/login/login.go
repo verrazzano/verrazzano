@@ -74,8 +74,8 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 
 	// Obtain the certificate authority data in the form of byte stream
 	caData, err := extractCAData(kubernetesInterface)
-	if err != nil {
-		return err
+	if err != nil{
+		// Assuming well-known authority and proceeding
 	}
 
 	// Follow the authorization grant flow to get the json response
@@ -239,7 +239,10 @@ func extractCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 	if err != nil {
 		return cert, err
 	}
-	cert = (*secret).Data["ca.crt"]
+	cert,ok := (*secret).Data["ca.crt"]
+	if !ok {
+		return cert, errors.New("ca.crt not found")
+	}
 	return cert, nil
 }
 
@@ -304,15 +307,22 @@ func executeRequestForJWT(grantParams url.Values, caData []byte) (map[string]int
 	tokenURL := helpers.GenerateKeycloakTokenURL()
 
 	// Create new http POST request to obtain token as response
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caData)
+	var client *http.Client
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: caCertPool,
+	// When the caData is empty, assume trusted certificate data authority
+	if len(caData)==0 {
+		client = &http.Client{}
+	} else {
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caData)
+
+		client = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: caCertPool,
+				},
 			},
-		},
+		}
 	}
 
 	request, err := http.NewRequest(http.MethodPost, tokenURL, strings.NewReader(grantParams.Encode()))
