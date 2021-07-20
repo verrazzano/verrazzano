@@ -16,7 +16,7 @@ type OamV1alpha1Interface interface {
 	VerrazzanoHelidonWorkloadsGetter
 }
 
-// OamV1alpha1Client is used to interact with features provided by the oam group.
+// OamV1alpha1Client is used to interact with features provided by the oam.verrazzano.io group.
 type OamV1alpha1Client struct {
 	restClient rest.Interface
 }
