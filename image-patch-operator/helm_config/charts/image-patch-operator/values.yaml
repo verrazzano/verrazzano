@@ -13,8 +13,8 @@ imageTool:
   image:
 
 weblogicDeployTool:
-  binary: WDT_INSTALLER_BINARY
-  version: WDT_INSTALLER_VERSION
+  binary: weblogic-deploy.zip
+  version: latest
 
 global:
   imagePullSecrets: []
