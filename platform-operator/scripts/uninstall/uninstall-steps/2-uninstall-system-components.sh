@@ -118,6 +118,9 @@ function delete_rancher() {
   kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
   kubectl -n cattle-system delete secret tls-ca --ignore-not-found=true
 
+  echo "Delete the rancher-admin-secret"
+  kubectl -n cattle-system delete secret rancher-admin-secret --ignore-not-found=true
+
   log "Deleting CRDs from rancher"
 
   local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
