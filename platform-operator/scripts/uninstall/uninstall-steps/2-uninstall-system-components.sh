@@ -152,6 +152,8 @@ function delete_rancher() {
   do
     delete_k8s_resources rolebinding ":metadata.name" "Could not delete RoleBindings from Rancher in namespace ${namespace}" '/clusterrolebinding-/' "${namespace}" \
       || return $? # return on pipefail
+    delete_k8s_resources rolebinding ":metadata.name" "Could not delete RoleBindings from Rancher in namespace ${namespace}" '/^rb-/' "${namespace}" \
+      || return $? # return on pipefail
   done
 
   # delete configmap in kube-system
@@ -185,6 +187,10 @@ function delete_rancher() {
     | awk '/controller.cattle.io/ {print $1}' \
     | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
     || err_return $? "Could not remove Rancher finalizers from all namespaces" || return $? # return on pipefail
+
+  log "Removing Rancher MutatingWebhookConfiguration"
+  kubectl delete mutatingwebhookconfigurations.admissionregistration.k8s.io rancher.cattle.io --ignore-not-found \
+    || err_return $? "Failed to delete MutatingWebhookConfiguration rancher.cattle.io"
 }
 
 action "Deleting Rancher Components" delete_rancher || exit 1
