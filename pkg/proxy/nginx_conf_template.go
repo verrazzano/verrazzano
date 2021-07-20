@@ -109,7 +109,7 @@ const OidcNginxConfFileTemplate = `#user  nobody;
                     if h and h ~= "*" and  h ~= "null" then
                         ngx.header["Access-Control-Allow-Origin"] = h
                     end
-                    ngx.header["Access-Control-Allow-Headers"] = "authorization"
+                    ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
                 }
 {{- end }}
             }
