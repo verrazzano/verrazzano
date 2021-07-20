@@ -28,4 +28,8 @@ spec:
               value: {{ .Values.imagePatchOperator.image }}
             - name: WIT_IMAGE
               value: {{ .Values.imageTool.image }}
+            - name: WDT_INSTALLER_BINARY
+              value: { { .Values.weblogicDeployTool.binary } }
+            - name: WDT_INSTALLER_VERSION
+              value: { { .Values.weblogicDeployTool.version } }
       serviceAccountName: {{ .Values.imagePatchOperator.name }}

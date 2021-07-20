@@ -4,6 +4,7 @@
 package imagejob
 
 import (
+	"os"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/image-patch-operator/internal/k8s"
@@ -78,10 +79,6 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								Value: jobConfig.IBR.Spec.Image.Registry,
 							},
 							{
-								Name:  "IMAGE_TENANCY",
-								Value: "mytenancy",
-							},
-							{
 								Name:  "IMAGE_REPOSITORY",
 								Value: jobConfig.IBR.Spec.Image.Repository,
 							},
@@ -107,11 +104,11 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							},
 							{
 								Name:  "WDT_INSTALLER_BINARY",
-								Value: "weblogic-deploy.zip",
+								Value: os.Getenv("WDT_INSTALLER_BINARY"),
 							},
 							{
 								Name:  "WDT_INSTALLER_VERSION",
-								Value: "latest",
+								Value: os.Getenv("WDT_INSTALLER_VERSION"),
 							},
 						},
 					}},
