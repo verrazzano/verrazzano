@@ -103,6 +103,8 @@ spec:
   baseImage: ghcr.io/oracle/oraclelinux:8-slim
   jdkInstaller: jdk-8u281-linux-x64.tar.gz
   webLogicInstaller: fmw_12.2.1.4.0_wls.jar
+  jdkInstallerVersion: 8u281
+  webLogicInstallerVersion: 12.2.1.4.0
   image:
     name: <your-image-name>
     tag: <your-image-tag>
