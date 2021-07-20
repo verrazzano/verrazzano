@@ -117,7 +117,9 @@ func SetClusterInKubeConfig(name string, serverURL string, caData []byte) error 
 	currentCluster["name"] = name
 	currentClusterInfo := make(map[string]interface{})
 	currentClusterInfo["server"] = serverURL
-	currentClusterInfo["certificate-authority-data"] = base64.StdEncoding.EncodeToString(caData)
+	if len(caData)!=0 {
+		currentClusterInfo["certificate-authority-data"] = base64.StdEncoding.EncodeToString(caData)
+	}
 	currentCluster["cluster"] = currentClusterInfo
 	kubeConfig["clusters"] = append(kubeConfig["clusters"].([]interface{}), currentCluster)
 	err = WriteToKubeConfig(kubeConfig)
@@ -285,6 +287,7 @@ func GetCAData() (string,error) {
 		return caData,errors.New("Unable to find cluster with nick name verrazzano")
 	}
 	currentUserInfo := kubeConfig["clusters"].([]interface{})[pos].(map[string]interface{})["cluster"].(map[string]interface{})
+	// If caData is not present, it will return a empty string
 	caData = currentUserInfo["certificate-authority-data"].(string)
 	return caData, nil
 }

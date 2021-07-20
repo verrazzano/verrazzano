@@ -386,9 +386,12 @@ func RefreshToken() error {
 	if err!=nil {
 		return err
 	}
-	caData, err := base64.StdEncoding.DecodeString(caDataEncoded)
-	if err != nil {
-		return err
+	var caData []byte
+	if len(caDataEncoded)!=0 {
+		caData, err = base64.StdEncoding.DecodeString(caDataEncoded)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Execute the request
