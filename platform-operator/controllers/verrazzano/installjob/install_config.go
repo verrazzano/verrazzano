@@ -730,10 +730,10 @@ func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeC
 }
 
 func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {
-	fluentd := Fluentd{}
 	if comp == nil {
-		return fluentd
+		return Fluentd{Enabled: "true"}
 	}
+	fluentd := Fluentd{}
 	fluentd.FluentdInstallArgs = []InstallArg{}
 	for i, vm := range comp.ExtraVolumeMounts {
 		fluentd.FluentdInstallArgs = append(fluentd.FluentdInstallArgs, InstallArg{
@@ -757,5 +757,14 @@ func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {
 			Value: strconv.FormatBool(readOnly),
 		})
 	}
+
+	var enabled string
+	if comp.Enabled != nil {
+		enabled = strconv.FormatBool(*comp.Enabled)
+	} else {
+		enabled = "true"
+	}
+	fluentd.Enabled = enabled
+
 	return fluentd
 }
