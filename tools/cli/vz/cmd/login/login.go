@@ -59,7 +59,7 @@ func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helper
 
 func login(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 	// Check if the user is already logged out
-	isLoggedIn, err := helpers.LoggedIn()
+	isLoggedIn, err := helpers.IsLoggedIn()
 	if err != nil {
 		return err
 	}
@@ -381,7 +381,7 @@ func executeRequestForJWT(grantParams url.Values, caData []byte) (map[string]int
 func RefreshToken() error {
 
 	// Nothing to do when the user is not logged in
-	isLoggedOut, err := helpers.LoggedOut()
+	isLoggedOut, err := helpers.IsLoggedOut()
 	if err != nil {
 		return err
 	}

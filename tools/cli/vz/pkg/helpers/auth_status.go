@@ -14,7 +14,7 @@ const NickNameInKubeConfig = "verrazzano"
 const BufferTime = 10
 
 // Helper function to find if the user is logged in
-func LoggedIn() (bool, error) {
+func IsLoggedIn() (bool, error) {
 	var isLoggedIn bool
 	currentContext, err := GetCurrentContextFromKubeConfig()
 	if err != nil {
@@ -25,7 +25,7 @@ func LoggedIn() (bool, error) {
 }
 
 // Helper function to find if the user is logged out
-func LoggedOut() (bool, error) {
+func IsLoggedOut() (bool, error) {
 	var isLoggedOut bool
 	currentContext, err := GetCurrentContextFromKubeConfig()
 	if err != nil {
