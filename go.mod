@@ -23,7 +23,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	go.uber.org/zap v1.16.0
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
-	gopkg.in/yaml.v2 v2.3.0
 	istio.io/api v0.0.0-20200911191701-0dc35ad5c478
 	istio.io/client-go v0.0.0-20200807182027-d287a5abb594
 	k8s.io/api v0.21.1
