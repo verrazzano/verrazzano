@@ -323,6 +323,11 @@ func BodyContains(expected string) types.GomegaMatcher {
 	}, gomega.ContainSubstring(expected))
 }
 
+// BodyDoesNotContain asserts that an HTTPResponse body does not contain a given substring.
+func BodyDoesNotContain(unexpected string) types.GomegaMatcher {
+	return gomega.WithTransform(func(response *HTTPResponse) string { return string(response.Body) }, gomega.Not(gomega.ContainSubstring(unexpected)))
+}
+
 // BodyEquals asserts that an HTTPResponse body equals a given string.
 func BodyEquals(expected string) types.GomegaMatcher {
 	return gomega.WithTransform(func(response *HTTPResponse) string {

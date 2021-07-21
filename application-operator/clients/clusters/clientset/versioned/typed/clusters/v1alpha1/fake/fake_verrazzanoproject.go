@@ -23,9 +23,9 @@ type FakeVerrazzanoProjects struct {
 	ns   string
 }
 
-var verrazzanoprojectsResource = schema.GroupVersionResource{Group: "clusters", Version: "v1alpha1", Resource: "verrazzanoprojects"}
+var verrazzanoprojectsResource = schema.GroupVersionResource{Group: "clusters.verrazzano.io", Version: "v1alpha1", Resource: "verrazzanoprojects"}
 
-var verrazzanoprojectsKind = schema.GroupVersionKind{Group: "clusters", Version: "v1alpha1", Kind: "VerrazzanoProject"}
+var verrazzanoprojectsKind = schema.GroupVersionKind{Group: "clusters.verrazzano.io", Version: "v1alpha1", Kind: "VerrazzanoProject"}
 
 // Get takes name of the verrazzanoProject, and returns the corresponding verrazzanoProject object, and an error if there is any.
 func (c *FakeVerrazzanoProjects) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.VerrazzanoProject, err error) {

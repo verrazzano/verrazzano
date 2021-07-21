@@ -78,30 +78,31 @@ var (
 var _ = BeforeSuite(func() {
 	var err error
 
-	vzCRD, err = verrazzanoInstallerCRD()
-	if err != nil {
-		Fail(fmt.Sprintf("Error retrieving Verrazzano Installer CRD: %v", err))
-	}
+	Eventually(func() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
+		vzCRD, err = verrazzanoInstallerCRD()
+		return vzCRD, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-	ingressURLs, err = vmiIngressURLs()
-	if err != nil {
-		Fail(fmt.Sprintf("Error retrieving system VMI ingress URLs: %v", err))
-	}
+	Eventually(func() (map[string]string, error) {
+		ingressURLs, err = vmiIngressURLs()
+		return ingressURLs, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeEmpty())
 
-	volumeClaims, err = pkg.GetPersistentVolumes(verrazzanoNamespace)
-	if err != nil {
-		Fail(fmt.Sprintf("Error retrieving persistent volumes for verrazzano-system: %v", err))
-	}
+	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
+		volumeClaims, err = pkg.GetPersistentVolumes(verrazzanoNamespace)
+		return volumeClaims, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-	vmiCRD, err = verrazzanoMonitoringInstanceCRD()
-	if err != nil {
-		Fail(fmt.Sprintf("Error retrieving system VMI CRD: %v", err))
-	}
+	Eventually(func() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
+		vmiCRD, err = verrazzanoMonitoringInstanceCRD()
+		return vmiCRD, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-	creds, err = pkg.GetSystemVMICredentials()
-	if err != nil {
-		Fail(fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
-	}
+	Eventually(func() (*pkg.UsernamePassword, error) {
+		creds, err = pkg.GetSystemVMICredentials()
+		return creds, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
 	elastic = vmi.GetElastic("system")
 })
 

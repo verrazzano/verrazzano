@@ -1,5 +1,6 @@
 {
   "registry": "ghcr.io",
+  "version": "VERRAZZANO_VERSION",
   "components": [
     {
       "name": "verrazzano-platform-operator",
@@ -164,13 +165,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.5.7-20210407205410-1c7b39d0c",
+              "tag": "v2.5.9-20210716224636-3e2504adb",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.5.7-20210407205410-1c7b39d0c"
+              "tag": "v2.5.9-20210716224636-3e2504adb"
             }
           ]
         },
@@ -185,23 +186,27 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.1.0-beta9"
+              "tag": "v0.1.1"
             },
             {
               "image": "fleet-agent",
-              "tag": "v0.3.4"
+              "tag": "v0.3.5"
             },
             {
               "image": "fleet",
-              "tag": "v0.3.4"
+              "tag": "v0.3.5"
             },
             {
               "image": "gitjob",
-              "tag": "v0.1.13"
+              "tag": "v0.1.15"
             },
             {
               "image": "rancher-operator",
-              "tag": "v0.1.3"
+              "tag": "v0.1.4"
+            },
+            {
+              "image": "local-path-provisioner",
+              "tag": "v0.0.14"
             }
           ]
         }
@@ -216,7 +221,7 @@
           "images": [
             {
               "image": "verrazzano-operator",
-              "tag": "0.17.0-20210629214033-a3b63ac",
+              "tag": "0.18.0-20210714165126-60b7891",
               "helmFullImageKey": "verrazzanoOperator.imageName",
               "helmTagKey": "verrazzanoOperator.imageVersion"
             },
@@ -227,7 +232,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "0.17.0-20210701165333-7d6ab12",
+              "tag": "0.18.0-20210714164928-efb8283",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -278,7 +283,7 @@
             },
             {
               "image": "console",
-              "tag": "0.17.0-20210629214513-a686730",
+              "tag": "0.18.0-20210719182118-dcb00cd",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -433,7 +438,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "0.17.0-20210629213930-e0de69d"
+              "tag": "0.18.0-20210714164820-ee16ab2"
             }
           ]
         }

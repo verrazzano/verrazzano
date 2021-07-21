@@ -450,7 +450,7 @@ function get_console_enabled() {
 
 # Return whether Elasticsearch console is enabled
 function is_elasticsearch_console_enabled() {
-  local es_enabled=$(get_console_enabled 'elasticsearch')
+  local es_enabled=$(get_console_enabled 'elasticSearch')
   echo ${es_enabled}
 }
 

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -43,42 +43,41 @@ var installLog = os.Getenv("VERRAZZANO_INSTALL_LOG")
 var kubeConfigFromEnv = os.Getenv("KUBECONFIG")
 var totalClusters, present = os.LookupEnv("CLUSTER_COUNT")
 
-var _ = ginkgo.BeforeSuite(func() {
+var _ = BeforeSuite(func() {
 	if len(installLogDir) < 1 {
-		ginkgo.Fail("Specify the directory containing the install logs using environment variable VERRAZZANO_INSTALL_LOGS_DIR")
+		Fail("Specify the directory containing the install logs using environment variable VERRAZZANO_INSTALL_LOGS_DIR")
 	}
 	if len(installLog) < 1 {
-		ginkgo.Fail("Specify the install log file using environment variable VERRAZZANO_INSTALL_LOG")
+		Fail("Specify the install log file using environment variable VERRAZZANO_INSTALL_LOG")
 	}
 })
 
-var _ = ginkgo.Describe("Verify Verrazzano install scripts", func() {
+var _ = Describe("Verify Verrazzano install scripts", func() {
 
-	ginkgo.Context("Verify Console URLs in the install log", func() {
+	Context("Verify Console URLs in the install log", func() {
 		clusterCount, _ := strconv.Atoi(totalClusters)
 		if present && clusterCount > 0 {
-			ginkgo.It("Verify the expected console URLs are there in the install logs for the managed cluster(s)", func() {
+			It("Verify the expected console URLs are there in the install logs for the managed cluster(s)", func() {
 				// Validation for admin cluster
-				gomega.Eventually(func() bool {
+				Eventually(func() bool {
 					return validateConsoleUrlsCluster(kubeConfigFromEnv, "cluster-1")
-				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 
 				// Validation for managed clusters
 				for i := 2; i <= clusterCount; i++ {
 					installLogForCluster := filepath.FromSlash(installLogDir + "/cluster-" + strconv.Itoa(i) + "/" + installLog)
 					consoleUrls, err := getConsoleURLsFromLog(installLogForCluster)
-					if err != nil {
-						gomega.Expect(false).To(gomega.BeTrue(), "There is an error getting console URLs from the log file ", err)
-					}
+					Expect(err).ShouldNot(HaveOccurred(), "There is an error getting console URLs from the log file")
+
 					// By default, install logs of the managed clusters do not contain the console URLs
-					gomega.Expect(len(consoleUrls) == 0).To(gomega.BeTrue())
+					Expect(consoleUrls).To(BeEmpty())
 				}
 			})
 		} else {
-			ginkgo.It("Verify the expected console URLs are there in the install log", func() {
-				gomega.Eventually(func() bool {
+			It("Verify the expected console URLs are there in the install log", func() {
+				Eventually(func() bool {
 					return validateConsoleUrlsCluster(kubeConfigFromEnv, "")
-				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		}
 	})
@@ -105,14 +104,13 @@ func getConsoleURLsFromLog(installLog string) ([]string, error) {
 	var consoleUrls []string
 	if _, err := os.Stat(installLog); err != nil {
 		if os.IsNotExist(err) {
-			fmt.Println("The value set for installLog doesn't exist.")
-			return consoleUrls, err
+			pkg.Log(pkg.Error, "The value set for installLog doesn't exist.")
 		}
+		return consoleUrls, err
 	}
 	inFile, err := os.Open(installLog)
 
 	if err != nil {
-		fmt.Println("Error reading install log file ", err.Error())
 		return consoleUrls, err
 	}
 	defer inFile.Close()
