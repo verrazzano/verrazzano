@@ -243,8 +243,7 @@ type ComponentSpec struct {
 // MonitoringComponent Common configuration for monitoring components
 type MonitoringComponent struct {
 	// +optional
-	// +kubebuilder:default:=true
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // ElasticsearchComponent specifies the Elasticsearch configuration.
