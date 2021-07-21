@@ -142,11 +142,6 @@ func ListNamespaces(opts metav1.ListOptions) (*corev1.NamespaceList, error) {
 	return GetKubernetesClientset().CoreV1().Namespaces().List(context.TODO(), opts)
 }
 
-// ListNamespaces returns a namespace list for the given list options in the specified cluster
-func ListNamespacesInCluster(opts metav1.ListOptions, kubeconfigPath string) (*corev1.NamespaceList, error) {
-	return GetKubernetesClientsetForCluster(kubeconfigPath).CoreV1().Namespaces().List(context.TODO(), opts)
-}
-
 // ListPods returns a pod list for the given namespace and list options
 func ListPods(namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
 	return GetKubernetesClientset().CoreV1().Pods(namespace).List(context.TODO(), opts)
@@ -218,20 +213,6 @@ func DoesPodExist(namespace string, name string) bool {
 	return false
 }
 
-// DoesServiceExist returns whether a service with the given name and namespace exists for the cluster
-func DoesServiceExist(namespace string, name string) bool {
-	services, err := ListServices(namespace)
-	if err != nil {
-		return false
-	}
-	for i := range services.Items {
-		if strings.HasPrefix(services.Items[i].Name, name) {
-			return true
-		}
-	}
-	return false
-}
-
 // GetKubernetesClientset returns the Kubernetes clientset for the cluster set in the environment
 func GetKubernetesClientset() *kubernetes.Clientset {
 	// use the current context in the kubeconfig
@@ -293,46 +274,48 @@ func getPlatformOperatorClientsetForCluster(kubeconfigPath string) *vpoClient.Cl
 
 // GetVerrazzanoInstallResourceInCluster returns the installed Verrazzano CR in the given cluster
 // (there should only be 1 per cluster)
-func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) *v1alpha1.Verrazzano {
+func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Verrazzano, error) {
 	vzClient := getPlatformOperatorClientsetForCluster(kubeconfigPath).VerrazzanoV1alpha1().Verrazzanos("")
 	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
 
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Error listing out Verrazzano instances: %v", err))
+		return nil, errors.New(fmt.Sprintf("error listing out Verrazzano instances: %v", err))
 	}
 	numVzs := len(vzList.Items)
 	if numVzs == 0 {
-		ginkgo.Fail("Did not find installed verrazzano instance")
-	}
-	if numVzs > 1 {
-		ginkgo.Fail(fmt.Sprintf("Found more than one Verrazzano instance installed: %v", numVzs))
+		return nil, errors.New("did not find installed Verrazzano instance")
 	}
 	vz := vzList.Items[0]
-	return &vz
+	return &vz, nil
 }
 
-// IsDevProfile returns true if the deployed resource is a Dev profile
-func IsDevProfile() bool {
-	return GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv()).Spec.Profile == v1alpha1.Dev
-}
-
-// IsProdProfile returns true if the deployed resource is a 'prod' profile
-func IsProdProfile() bool {
-	return GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv()).Spec.Profile == v1alpha1.Prod
+func GetVerrazzanoProfile() (*v1alpha1.ProfileType, error) {
+	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
+	if err != nil {
+		return nil, err
+	}
+	return &vz.Spec.Profile, nil
 }
 
 // IsManagedClusterProfile returns true if the deployed resource is a 'managed-cluster' profile
-func IsManagedClusterProfile() bool {
-	return GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv()).Spec.Profile == v1alpha1.ManagedCluster
+func IsManagedClusterProfile() (bool, error) {
+	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
+	if err != nil {
+		return false, err
+	}
+	return vz.Spec.Profile == v1alpha1.ManagedCluster, nil
 }
 
 // IsACMEStagingEnabledInCluster returns true if the ACME staging environment is configured
-func IsACMEStagingEnabledInCluster(kubeconfigPath string) bool {
-	vz := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
-	if vz.Spec.Components.CertManager == nil {
-		return false
+func IsACMEStagingEnabledInCluster(kubeconfigPath string) (bool, error) {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return false, err
 	}
-	return vz.Spec.Components.CertManager.Certificate.Acme.Environment == "staging"
+	if vz.Spec.Components.CertManager == nil {
+		return false, nil
+	}
+	return vz.Spec.Components.CertManager.Certificate.Acme.Environment == "staging", nil
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
