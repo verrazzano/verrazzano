@@ -215,6 +215,7 @@ function install_cert_manager()
         ${HELM_IMAGE_ARGS} \
         ${EXTRA_CERT_MANAGER_ARGUMENTS} \
         --wait \
+        --timeout 10m0s \
         || return $?
 
     kubectl -n cert-manager rollout status -w deploy/cert-manager
