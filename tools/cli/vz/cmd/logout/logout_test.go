@@ -41,7 +41,7 @@ func TestNewCmdLogout(t *testing.T) {
 	asserts := assert.New(t)
 
 	// Create a fake clone of kubeconfig
-	originalKubeConfigLocation,err := helpers.GetKubeConfigLocation()
+	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
 	asserts.NoError(err)
 	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
 	asserts.NoError(err)
@@ -78,25 +78,25 @@ func TestNewCmdLogout(t *testing.T) {
 
 	err = helpers.SetUserInKubeConfig("verrazzano",
 		helpers.AuthDetails{
-			9999999999,
-			9999999999,
-			fakeAccessToken,
-			fakeRefreshToken,
+			AccessTokenExpTime:  9999999999,
+			RefreshTokenExpTime: 9999999999,
+			AccessToken:         fakeAccessToken,
+			RefreshToken:        fakeRefreshToken,
 		},
 	)
 	asserts.NoError(err)
 
-	currentContext,err := helpers.GetCurrentContextFromKubeConfig()
+	currentContext, err := helpers.GetCurrentContextFromKubeConfig()
 	asserts.NoError(err)
 
 	err = helpers.SetContextInKubeConfig(
-		fmt.Sprintf("%v@%v",helpers.Verrazzano,currentContext),
+		fmt.Sprintf("%v@%v", helpers.Verrazzano, currentContext),
 		helpers.Verrazzano,
 		helpers.Verrazzano,
 	)
 	asserts.NoError(err)
 
-	err = helpers.SetCurrentContextInKubeConfig(fmt.Sprintf("%v@%v",helpers.Verrazzano,currentContext))
+	err = helpers.SetCurrentContextInKubeConfig(fmt.Sprintf("%v@%v", helpers.Verrazzano, currentContext))
 	asserts.NoError(err)
 
 	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
@@ -123,7 +123,7 @@ func TestRepeatedLogout(t *testing.T) {
 	asserts := assert.New(t)
 
 	// Create a fake clone of kubeconfig
-	originalKubeConfigLocation,err := helpers.GetKubeConfigLocation()
+	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
 	asserts.NoError(err)
 	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
 	asserts.NoError(err)
@@ -131,6 +131,7 @@ func TestRepeatedLogout(t *testing.T) {
 	asserts.NoError(err)
 	defer os.Remove("fakekubeconfig")
 	_, err = io.Copy(fakeKubeConfig, originalKubeConfig)
+	asserts.NoError(err)
 	err = originalKubeConfig.Close()
 	asserts.NoError(err)
 	err = fakeKubeConfig.Close()

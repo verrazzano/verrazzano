@@ -14,54 +14,54 @@ const Verrazzano = "verrazzano"
 const BufferTime = 10
 
 // Helper function to find if the user is logged in
-func LoggedIn() (bool,error) {
+func LoggedIn() (bool, error) {
 	var loggedIn bool
-	currentContext,err := GetCurrentContextFromKubeConfig()
-	if err!=nil {
-		return loggedIn,err
+	currentContext, err := GetCurrentContextFromKubeConfig()
+	if err != nil {
+		return loggedIn, err
 	}
-	loggedIn = strings.Split(currentContext,"@")[0] == Verrazzano
-	return loggedIn,nil
+	loggedIn = strings.Split(currentContext, "@")[0] == Verrazzano
+	return loggedIn, nil
 }
 
 // Helper function to find if the user is logged out
-func LoggedOut() (bool,error) {
+func LoggedOut() (bool, error) {
 	var loggedOut bool
-	currentContext,err := GetCurrentContextFromKubeConfig()
-	if err!=nil {
-		return loggedOut,err
+	currentContext, err := GetCurrentContextFromKubeConfig()
+	if err != nil {
+		return loggedOut, err
 	}
-	loggedOut = strings.Split(currentContext,"@")[0] != Verrazzano
-	return loggedOut,nil
+	loggedOut = strings.Split(currentContext, "@")[0] != Verrazzano
+	return loggedOut, nil
 }
 
 // Helper function that removes all the user details from kubeconfig
 func RemoveAllAuthData() error {
 	// Remove the cluster with nickname verrazzano
 	err := RemoveClusterFromKubeConfig("verrazzano")
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 
 	// Remove the user with nickname verrazzano
 	err = RemoveUserFromKubeConfig("verrazzano")
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 
-	currentContext,err := GetCurrentContextFromKubeConfig()
-	if err!=nil {
+	currentContext, err := GetCurrentContextFromKubeConfig()
+	if err != nil {
 		return err
 	}
 	// Remove the currentcontext
 	err = RemoveContextFromKubeConfig(currentContext)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 
 	// Set currentcluster to the cluster before the user logged in
 	err = SetCurrentContextInKubeConfig(strings.Split(currentContext, "@")[1])
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	return nil

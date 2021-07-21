@@ -18,7 +18,7 @@ func GenerateRedirectURI(listener net.Listener) string {
 	port := listener.Addr().(*net.TCPAddr).Port
 	u := &url.URL{
 		Scheme: "http",
-		Host:   fmt.Sprintf("localhost:%v",strconv.Itoa(port)),
+		Host:   fmt.Sprintf("localhost:%v", strconv.Itoa(port)),
 	}
 	return u.String()
 }
@@ -68,10 +68,10 @@ func GenerateKeycloakAPIURL(codeChallenge string, redirectURI string, state stri
 	}
 
 	host := GetKeycloakURL()
-	path := fmt.Sprintf("auth/realms/%v/protocol/openid-connect/auth",GetVerrazzanoRealm())
+	path := fmt.Sprintf("auth/realms/%v/protocol/openid-connect/auth", GetVerrazzanoRealm())
 	rawQuery := ConcatURLParams(urlParams)
 
-	return fmt.Sprintf("%v/%v?%v",host,path,rawQuery)
+	return fmt.Sprintf("%v/%v?%v", host, path, rawQuery)
 }
 
 // Gnerates and returns keycloak server api url to get the jwt token
@@ -79,6 +79,6 @@ func GenerateKeycloakAPIURL(codeChallenge string, redirectURI string, state stri
 func GenerateKeycloakTokenURL() string {
 
 	host := GetKeycloakURL()
-	path := fmt.Sprintf("auth/realms/%v/protocol/openid-connect/token",GetVerrazzanoRealm())
-	return fmt.Sprintf("%v/%v",host ,path)
+	path := fmt.Sprintf("auth/realms/%v/protocol/openid-connect/token", GetVerrazzanoRealm())
+	return fmt.Sprintf("%v/%v", host, path)
 }

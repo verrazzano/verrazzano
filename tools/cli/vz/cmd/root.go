@@ -67,8 +67,8 @@ func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
 	err := login.RefreshToken()
 	if err != nil {
 		err := helpers.RemoveAllAuthData()
-		if err != nil{
-			fmt.Fprintln(streams.Out,"Trouble Logging out")
+		if err != nil {
+			fmt.Fprintln(streams.Out, "Trouble Logging out")
 		} else {
 			fmt.Fprintln(streams.Out, "Logged out, Please login again")
 		}
