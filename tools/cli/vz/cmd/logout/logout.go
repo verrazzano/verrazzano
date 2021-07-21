@@ -51,8 +51,8 @@ func logout(streams genericclioptions.IOStreams) error {
 		return err
 	}
 	if isLoggedOut {
-		_, err := fmt.Fprintln(streams.Out, "Already Logged out")
-		return err
+		fmt.Fprintln(streams.Out, "Already Logged out")
+		return nil
 	}
 
 	// Remove all the stored auth data

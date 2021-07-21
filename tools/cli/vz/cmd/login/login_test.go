@@ -240,10 +240,10 @@ func TestRepeatedLogin(t *testing.T) {
 	asserts.NoError(err)
 
 	err = helpers.SetUserInKubeConfig("verrazzano",
+		fakeAccessToken,
 		helpers.AuthDetails{
 			AccessTokenExpTime:  9999999999,
 			RefreshTokenExpTime: 9999999999,
-			AccessToken:         fakeAccessToken,
 			RefreshToken:        fakeRefreshToken,
 		},
 	)
@@ -253,13 +253,13 @@ func TestRepeatedLogin(t *testing.T) {
 	asserts.NoError(err)
 
 	err = helpers.SetContextInKubeConfig(
-		fmt.Sprintf("%v@%v", helpers.NickNameInKubeConfig, currentContext),
-		helpers.NickNameInKubeConfig,
-		helpers.NickNameInKubeConfig,
+		fmt.Sprintf("%v@%v", helpers.KubeConfigKeywordVerrazzano, currentContext),
+		helpers.KubeConfigKeywordVerrazzano,
+		helpers.KubeConfigKeywordVerrazzano,
 	)
 	asserts.NoError(err)
 
-	err = helpers.SetCurrentContextInKubeConfig(fmt.Sprintf("%v@%v", helpers.NickNameInKubeConfig, currentContext))
+	err = helpers.SetCurrentContextInKubeConfig(fmt.Sprintf("%v@%v", helpers.KubeConfigKeywordVerrazzano, currentContext))
 	asserts.NoError(err)
 
 	// Create fake kubernetes interface

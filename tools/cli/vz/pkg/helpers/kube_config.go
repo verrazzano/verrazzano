@@ -4,14 +4,38 @@
 package helpers
 
 import (
-	"encoding/base64"
 	"errors"
 	"io/ioutil"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api/v1"
 	"k8s.io/client-go/util/homedir"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 )
+
+type TokenInfo struct {
+	// Refresh token is a jwt token used to refresh the access token
+	// +optional
+	RefreshToken string `json:"refreshToken"`
+	// Time until which access token will be alive
+	// +optional
+	AccessTokenExpTime int64 `json:"accessTokenExpTime"`
+	// Time intil which refresh token will be alive
+	// +optional
+	RefreshTokenExpTime int64 `json:"refreshTokenExpTime"`
+}
+
+type NamedKeycloakTokenInfo struct {
+	// Name is the nickname for this user
+	Name string `json:"name"`
+	// TokenInfo holds the token information
+	TokenInfo TokenInfo `json:"tokenInfo"`
+}
+
+type Config struct {
+	*clientcmdapi.Config `json:",inline"`
+	KeycloakTokenInfos   []NamedKeycloakTokenInfo `json:"keycloakTokenInfo,omitempty"`
+}
 
 // Helper function to obtain the default kubeConfig location
 func GetKubeConfigLocation() (string, error) {
@@ -79,6 +103,16 @@ func RemoveUserFromKubeConfig(name string) error {
 		return err
 	}
 	pos := -1
+	for i := 0; i < len(kubeConfig.KeycloakTokenInfos); i++ {
+		if kubeConfig.KeycloakTokenInfos[i].Name == name {
+			pos = i
+			break
+		}
+	}
+	if pos != -1 {
+		kubeConfig.KeycloakTokenInfos = append(kubeConfig.KeycloakTokenInfos[:pos], kubeConfig.KeycloakTokenInfos[pos+1:]...)
+	}
+	pos = -1
 	for i := 0; i < len(kubeConfig.AuthInfos); i++ {
 		if kubeConfig.AuthInfos[i].Name == name {
 			pos = i
@@ -113,20 +147,20 @@ func SetClusterInKubeConfig(name string, serverURL string, caData []byte) error 
 	if err != nil {
 		return err
 	}
-	var currentCluster NamedCluster
+	var currentCluster clientcmdapi.NamedCluster
 	if len(caData) == 0 {
-		currentCluster = NamedCluster{
+		currentCluster = clientcmdapi.NamedCluster{
 			Name: name,
-			Cluster: Cluster{
+			Cluster: clientcmdapi.Cluster{
 				Server: serverURL,
 			},
 		}
 	} else {
-		currentCluster = NamedCluster{
+		currentCluster = clientcmdapi.NamedCluster{
 			Name: name,
-			Cluster: Cluster{
+			Cluster: clientcmdapi.Cluster{
 				Server:                   serverURL,
-				CertificateAuthorityData: base64.StdEncoding.EncodeToString(caData),
+				CertificateAuthorityData: caData,
 			},
 		}
 	}
@@ -136,7 +170,7 @@ func SetClusterInKubeConfig(name string, serverURL string, caData []byte) error 
 }
 
 // Adds a user to kubeconfig
-func SetUserInKubeConfig(name string, authDetails AuthDetails) error {
+func SetUserInKubeConfig(name string, accessToken string, authDetails AuthDetails) error {
 	err := RemoveUserFromKubeConfig(name)
 	if err != nil {
 		return err
@@ -145,16 +179,23 @@ func SetUserInKubeConfig(name string, authDetails AuthDetails) error {
 	if err != nil {
 		return err
 	}
-	currentUser := NamedAuthInfo{
+	currentUser := clientcmdapi.NamedAuthInfo{
 		Name: name,
-		AuthInfo: AuthInfo{
-			Token:               authDetails.AccessToken,
+		AuthInfo: clientcmdapi.AuthInfo{
+			Token: accessToken,
+		},
+	}
+	kubeConfig.AuthInfos = append(kubeConfig.AuthInfos, currentUser)
+
+	currentTokenInfo := NamedKeycloakTokenInfo{
+		Name: name,
+		TokenInfo: TokenInfo{
 			RefreshToken:        authDetails.RefreshToken,
 			AccessTokenExpTime:  authDetails.AccessTokenExpTime,
 			RefreshTokenExpTime: authDetails.RefreshTokenExpTime,
 		},
 	}
-	kubeConfig.AuthInfos = append(kubeConfig.AuthInfos, currentUser)
+	kubeConfig.KeycloakTokenInfos = append(kubeConfig.KeycloakTokenInfos, currentTokenInfo)
 	err = WriteToKubeConfig(kubeConfig)
 	return err
 }
@@ -169,9 +210,9 @@ func SetContextInKubeConfig(name string, clusterName string, userName string) er
 	if err != nil {
 		return err
 	}
-	currentContext := NamedContext{
+	currentContext := clientcmdapi.NamedContext{
 		Name: name,
-		Context: Context{
+		Context: clientcmdapi.Context{
 			AuthInfo: userName,
 			Cluster:  clusterName,
 		},
@@ -232,9 +273,8 @@ func GetCurrentContextFromKubeConfig() (string, error) {
 
 // Struct to store user's authentication data
 type AuthDetails struct {
-	AccessTokenExpTime  int64
 	RefreshTokenExpTime int64
-	AccessToken         string
+	AccessTokenExpTime  int64
 	RefreshToken        string
 }
 
@@ -245,9 +285,10 @@ func GetAuthDetails(name string) (AuthDetails, error) {
 	if err != nil {
 		return authDetails, err
 	}
+
 	pos := -1
-	for i := 0; i < len(kubeConfig.AuthInfos); i++ {
-		if kubeConfig.AuthInfos[i].Name == name {
+	for i := 0; i < len(kubeConfig.KeycloakTokenInfos); i++ {
+		if kubeConfig.KeycloakTokenInfos[i].Name == name {
 			pos = i
 			break
 		}
@@ -255,23 +296,19 @@ func GetAuthDetails(name string) (AuthDetails, error) {
 	if pos == -1 {
 		return authDetails, errors.New("No user with nickname verrazzano")
 	}
-	accesToken := kubeConfig.AuthInfos[pos].AuthInfo.Token
-	if len(accesToken) == 0 {
-		return authDetails, errors.New("Access Token not found in kubeconfig")
-	}
-	refreshToken := kubeConfig.AuthInfos[pos].AuthInfo.RefreshToken
+
+	refreshToken := kubeConfig.KeycloakTokenInfos[pos].TokenInfo.RefreshToken
 	if len(refreshToken) == 0 {
 		return authDetails, errors.New("Refresh Token not found in kubeconfig")
 	}
-	accesTokenExpTime := kubeConfig.AuthInfos[pos].AuthInfo.AccessTokenExpTime
+	accesTokenExpTime := kubeConfig.KeycloakTokenInfos[pos].TokenInfo.AccessTokenExpTime
 	if accesTokenExpTime == 0 {
 		return authDetails, errors.New("Access Token Expiration Time not found in kubeconfig")
 	}
-	refreshTokenExpTime := kubeConfig.AuthInfos[pos].AuthInfo.RefreshTokenExpTime
+	refreshTokenExpTime := kubeConfig.KeycloakTokenInfos[pos].TokenInfo.RefreshTokenExpTime
 	if refreshTokenExpTime == 0 {
 		return authDetails, errors.New("Refresh Token Expiration Time not found in kubeconfig")
 	}
-	authDetails.AccessToken = accesToken
 	authDetails.RefreshToken = refreshToken
 	authDetails.AccessTokenExpTime = accesTokenExpTime
 	authDetails.RefreshTokenExpTime = refreshTokenExpTime
@@ -279,8 +316,8 @@ func GetAuthDetails(name string) (AuthDetails, error) {
 }
 
 // Returns the certificate authority data already present in kubeconfig
-func GetCAData(name string) (string, error) {
-	var caData string
+func GetCAData(name string) ([]byte, error) {
+	var caData []byte
 	kubeConfig, err := ReadKubeConfig()
 	if err != nil {
 		return caData, err

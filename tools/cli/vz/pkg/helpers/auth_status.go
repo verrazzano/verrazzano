@@ -8,7 +8,7 @@ import (
 )
 
 // To be used as nick name for verrazzano related clusters,contexts,users,etc in kubeconfig
-const NickNameInKubeConfig = "verrazzano"
+const KubeConfigKeywordVerrazzano = "verrazzano"
 
 // Assuming that the api call will take place within Buffer seconds from checking validity of token
 const BufferTime = 10
@@ -20,7 +20,7 @@ func IsLoggedIn() (bool, error) {
 	if err != nil {
 		return isLoggedIn, err
 	}
-	isLoggedIn = strings.Split(currentContext, "@")[0] == NickNameInKubeConfig
+	isLoggedIn = strings.Split(currentContext, "@")[0] == KubeConfigKeywordVerrazzano
 	return isLoggedIn, nil
 }
 
@@ -31,7 +31,7 @@ func IsLoggedOut() (bool, error) {
 	if err != nil {
 		return isLoggedOut, err
 	}
-	isLoggedOut = strings.Split(currentContext, "@")[0] != NickNameInKubeConfig
+	isLoggedOut = strings.Split(currentContext, "@")[0] != KubeConfigKeywordVerrazzano
 	return isLoggedOut, nil
 }
 
