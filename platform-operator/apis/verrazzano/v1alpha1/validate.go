@@ -7,36 +7,26 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"reflect"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
+
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
-// For unit test purposes
-var readFileFunction = ioutil.ReadFile
-
-// GetCurrentChartVersion Load the current Chart.yaml into a chartVersion struct
-func GetCurrentChartVersion() (*semver.SemVersion, error) {
-	chartDir := config.GetHelmVzChartsDir()
-	chartBytes, err := readFileFunction(chartDir + "/Chart.yaml")
+// GetCurrentBomVersion Get the version string from the bom and return it as a semver object
+func GetCurrentBomVersion() (*semver.SemVersion, error) {
+	bom, err := component.NewBom(component.DefaultBomFilePath())
 	if err != nil {
 		return nil, err
 	}
-	chartVersion := &helm.ChartInfo{}
-	err = yaml.Unmarshal(chartBytes, chartVersion)
-	if err != nil {
-		return nil, err
-	}
-	return semver.NewSemVersion(fmt.Sprintf("v%s", chartVersion.Version))
+	return semver.NewSemVersion(fmt.Sprintf("v%s", bom.GetVersion()))
 }
 
 // ValidateVersion check that requestedVersion matches chart requestedVersion
@@ -52,12 +42,12 @@ func ValidateVersion(requestedVersion string) error {
 	if err != nil {
 		return err
 	}
-	chartSemVer, err := GetCurrentChartVersion()
+	bomSemVer, err := GetCurrentBomVersion()
 	if err != nil {
 		return err
 	}
-	if !requestedSemVer.IsEqualTo(chartSemVer) {
-		return fmt.Errorf("Requested version %s does not match chart version %s", requestedVersion, chartSemVer.ToString())
+	if !requestedSemVer.IsEqualTo(bomSemVer) {
+		return fmt.Errorf("Requested version %s does not match BOM version %s", requestedVersion, bomSemVer.ToString())
 	}
 	return nil
 }
