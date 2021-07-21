@@ -315,8 +315,6 @@ function reset_rancher_admin_password() {
   local STDERROR_FILE="${TMP_DIR}/rancher_resetpwd.err"
   local max_retries=5
   local retries=0
-  local ADMIN_PW=""
-  local std_error_file=""
   while true ; do
     RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>$STDERROR_FILE)
     ADMIN_PW=$(echo -n $RANCHER_DATA | awk 'END{ print $NF }')
@@ -329,16 +327,13 @@ function reset_rancher_admin_password() {
     ((retries+=1))
     if [ "$retries" -ge "$max_retries" ] ; then
       error "ERROR: Failed to reset Rancher password"
-      std_error_file=$(cat $STDERROR_FILE)
+      local std_error_file=$(cat $STDERROR_FILE)
       log "${std_error_file}"
       rm "$STDERROR_FILE"
       return 1
     fi
     log "Retry Rancher admin password reset..."
   done
-  std_error_file=$(cat $STDERROR_FILE)
-  log "${std_error_file}"
-  echo "Rancher admin password $ADMIN_PW"
   update_secret_from_literal rancher-admin-secret cattle-system "$ADMIN_PW"
   echo "Describe the Rancher admin token"
   kubectl get secret rancher-admin-secret -n cattle-system
@@ -553,18 +548,18 @@ function patch_rancher_agents() {
 function kubectl_apply_with_retry() {
   local count=0
   local ret=0
+  local max_retries=60
   while true ; do
     kubectl apply -f <(echo "$1") "${@:2}"
 	  ret=$?
 	  if [ $ret -ne 0 ]; then
-      echo "kubectl apply failed, waiting for 5 seconds and trying again"
+      echo "kubectl apply failed, waiting for 5 seconds before trying again ..."
       sleep 5
 	  else
-	    log "kubectl apply succeeded ..."
 	    break
 	  fi
 	  count=$((count+1))
-	  if [ "$count" -ge 60 ] ; then
+	  if [ "$count" -ge "$max_retries" ] ; then
 	    echo "kubectl apply attempt timed out."
 	    break
 	  fi
