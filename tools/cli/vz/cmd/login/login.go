@@ -72,7 +72,7 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 
 	// Obtain the certificate authority data in the form of byte stream
 	caData, err := extractCAData(kubernetesInterface)
-	if err != nil && err.Error() == "ca.crt not found" {
+	if err != nil && err.Error() != "secrets \"system-tls\" not found" {
 		return err
 	}
 
@@ -178,10 +178,10 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 		)
 	}()
 
-	keycloakRedirectionURLParams := <-urlParamChannel
-	authCode := keycloakRedirectionURLParams.authCode
-	stateFromKeycloak := keycloakRedirectionURLParams.state
-	err = keycloakRedirectionURLParams.err
+	keycloakRedirectionInfo := <-urlParamChannel
+	authCode := keycloakRedirectionInfo.authCode
+	stateFromKeycloak := keycloakRedirectionInfo.state
+	err = keycloakRedirectionInfo.err
 
 	if err != nil {
 		return jwtData, err

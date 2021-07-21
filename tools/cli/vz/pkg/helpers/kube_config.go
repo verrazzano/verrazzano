@@ -330,7 +330,7 @@ func GetCAData(name string) ([]byte, error) {
 		}
 	}
 	if pos == -1 {
-		return caData, errors.New("Unable to find cluster with nick name verrazzano")
+		return caData, errors.New("Unable to find cluster with nickname verrazzano")
 	}
 	// If caData is not present, it will return a empty string
 	caData = kubeConfig.Clusters[pos].Cluster.CertificateAuthorityData
