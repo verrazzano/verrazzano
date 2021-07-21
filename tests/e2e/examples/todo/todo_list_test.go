@@ -105,6 +105,14 @@ func undeployToDoListExample() {
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	// GIVEN the ToDoList app is undeployed
+	// WHEN the app config certificate generated to support secure gateways is fetched
+	// THEN the certificate should have been cleaned up
+	Eventually(func() bool {
+		_, err := pkg.GetCertificate("istio-system", "todo-list-todo-appconf-cert")
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+	// GIVEN the ToDoList app is undeployed
 	// WHEN the app config secret generated to support secure gateways is fetched
 	// THEN the secret should have been cleaned up
 	Eventually(func() bool {

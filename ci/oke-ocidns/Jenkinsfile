@@ -18,7 +18,9 @@ def acmeEnvironments = [ "staging", "production" ]
 def certIssuers = [ "self-signed", "acme" ]
 def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
-def availableRegions = [  "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
+// pulling "ap-hyderabad-1" from the test regions given discovery of image pull issues
+// see https://build.verrazzano.io/job/verrazzano-new-oci-dns-acceptance-tests/job/master/520/ for example
+def availableRegions = [  "us-ashburn-1", "ap-chuncheon-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1" ]
 Collections.shuffle(availableRegions)
