@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package logout
@@ -25,7 +25,6 @@ func NewLogoutOptions(streams genericclioptions.IOStreams) *LogoutOptions {
 	}
 }
 
-// root.go returns this function for logout
 // Calls the logout function to complete logout
 func NewCmdLogout(streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewLogoutOptions(streams)
@@ -47,11 +46,11 @@ func NewCmdLogout(streams genericclioptions.IOStreams) *cobra.Command {
 
 func logout(streams genericclioptions.IOStreams) error {
 	// Check if the user is already logged out
-	loggedOut, err := helpers.LoggedOut()
+	isLoggedOut, err := helpers.LoggedOut()
 	if err != nil {
 		return err
 	}
-	if loggedOut {
+	if isLoggedOut {
 		_, err := fmt.Fprintln(streams.Out, "Already Logged out")
 		return err
 	}

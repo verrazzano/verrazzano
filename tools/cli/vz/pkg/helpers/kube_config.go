@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -113,12 +113,22 @@ func SetClusterInKubeConfig(name string, serverURL string, caData []byte) error 
 	if err != nil {
 		return err
 	}
-	currentCluster := NamedCluster{
-		Name: name,
-		Cluster: Cluster{
-			Server:                   serverURL,
-			CertificateAuthorityData: base64.StdEncoding.EncodeToString(caData),
-		},
+	var currentCluster NamedCluster
+	if len(caData) == 0 {
+		currentCluster = NamedCluster{
+			Name: name,
+			Cluster: Cluster{
+				Server: serverURL,
+			},
+		}
+	} else {
+		currentCluster = NamedCluster{
+			Name: name,
+			Cluster: Cluster{
+				Server:                   serverURL,
+				CertificateAuthorityData: base64.StdEncoding.EncodeToString(caData),
+			},
+		}
 	}
 	kubeConfig.Clusters = append(kubeConfig.Clusters, currentCluster)
 	err = WriteToKubeConfig(kubeConfig)
@@ -229,7 +239,7 @@ type AuthDetails struct {
 }
 
 // Returns tokens and expiration times wrapped up in a struct
-func GetAuthDetails() (AuthDetails, error) {
+func GetAuthDetails(name string) (AuthDetails, error) {
 	var authDetails AuthDetails
 	kubeConfig, err := ReadKubeConfig()
 	if err != nil {
@@ -237,7 +247,7 @@ func GetAuthDetails() (AuthDetails, error) {
 	}
 	pos := -1
 	for i := 0; i < len(kubeConfig.AuthInfos); i++ {
-		if kubeConfig.AuthInfos[i].Name == Verrazzano {
+		if kubeConfig.AuthInfos[i].Name == name {
 			pos = i
 			break
 		}
@@ -269,7 +279,7 @@ func GetAuthDetails() (AuthDetails, error) {
 }
 
 // Returns the certificate authority data already present in kubeconfig
-func GetCAData() (string, error) {
+func GetCAData(name string) (string, error) {
 	var caData string
 	kubeConfig, err := ReadKubeConfig()
 	if err != nil {
@@ -277,7 +287,7 @@ func GetCAData() (string, error) {
 	}
 	pos := -1
 	for i := 0; i < len(kubeConfig.Clusters); i++ {
-		if kubeConfig.Clusters[i].Name == Verrazzano {
+		if kubeConfig.Clusters[i].Name == name {
 			pos = i
 			break
 		}

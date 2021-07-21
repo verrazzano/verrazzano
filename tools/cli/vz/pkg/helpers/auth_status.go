@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -8,31 +8,31 @@ import (
 )
 
 // To be used as nick name for verrazzano related clusters,contexts,users,etc in kubeconfig
-const Verrazzano = "verrazzano"
+const NickNameInKubeConfig = "verrazzano"
 
 // Assuming that the api call will take place within Buffer seconds from checking validity of token
 const BufferTime = 10
 
 // Helper function to find if the user is logged in
 func LoggedIn() (bool, error) {
-	var loggedIn bool
+	var isLoggedIn bool
 	currentContext, err := GetCurrentContextFromKubeConfig()
 	if err != nil {
-		return loggedIn, err
+		return isLoggedIn, err
 	}
-	loggedIn = strings.Split(currentContext, "@")[0] == Verrazzano
-	return loggedIn, nil
+	isLoggedIn = strings.Split(currentContext, "@")[0] == NickNameInKubeConfig
+	return isLoggedIn, nil
 }
 
 // Helper function to find if the user is logged out
 func LoggedOut() (bool, error) {
-	var loggedOut bool
+	var isLoggedOut bool
 	currentContext, err := GetCurrentContextFromKubeConfig()
 	if err != nil {
-		return loggedOut, err
+		return isLoggedOut, err
 	}
-	loggedOut = strings.Split(currentContext, "@")[0] != Verrazzano
-	return loggedOut, nil
+	isLoggedOut = strings.Split(currentContext, "@")[0] != NickNameInKubeConfig
+	return isLoggedOut, nil
 }
 
 // Helper function that removes all the user details from kubeconfig

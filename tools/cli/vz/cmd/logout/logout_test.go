@@ -70,7 +70,7 @@ func TestNewCmdLogout(t *testing.T) {
 	err = os.Setenv("KUBECONFIG", currentDirectory+"/fakekubeconfig")
 	asserts.NoError(err)
 
-	err = helpers.SetClusterInKubeConfig(helpers.Verrazzano,
+	err = helpers.SetClusterInKubeConfig(helpers.NickNameInKubeConfig,
 		fakeVerrazzanoAPIURL,
 		fakeCAData,
 	)
@@ -90,13 +90,13 @@ func TestNewCmdLogout(t *testing.T) {
 	asserts.NoError(err)
 
 	err = helpers.SetContextInKubeConfig(
-		fmt.Sprintf("%v@%v", helpers.Verrazzano, currentContext),
-		helpers.Verrazzano,
-		helpers.Verrazzano,
+		fmt.Sprintf("%v@%v", helpers.NickNameInKubeConfig, currentContext),
+		helpers.NickNameInKubeConfig,
+		helpers.NickNameInKubeConfig,
 	)
 	asserts.NoError(err)
 
-	err = helpers.SetCurrentContextInKubeConfig(fmt.Sprintf("%v@%v", helpers.Verrazzano, currentContext))
+	err = helpers.SetCurrentContextInKubeConfig(fmt.Sprintf("%v@%v", helpers.NickNameInKubeConfig, currentContext))
 	asserts.NoError(err)
 
 	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
