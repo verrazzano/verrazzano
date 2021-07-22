@@ -9,21 +9,19 @@ import (
 	"os"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"k8s.io/apimachinery/pkg/api/errors"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 const waitTimeout = 10 * time.Minute
@@ -52,8 +50,13 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 		})
 
 		It("admin cluster has the expected VerrazzanoManagedCluster", func() {
+			var client *vmcClient.Clientset
+			Eventually(func() (*vmcClient.Clientset, error) {
+				client, err := pkg.GetVerrazzanoManagedClusterClientset()
+				return client, err
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 			Eventually(func() bool {
-				vmc, err := pkg.GetVerrazzanoManagedClusterClientset().ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
+				vmc, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
 				return err == nil &&
 					vmcStatusReady(vmc) &&
 					vmc.Status.LastAgentConnectTime != nil &&
