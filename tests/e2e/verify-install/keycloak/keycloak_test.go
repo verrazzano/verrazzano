@@ -36,7 +36,9 @@ var _ = BeforeSuite(func() {
 var _ = Describe("Verify Keycloak configuration", func() {
 	var _ = Context("Verify password policies", func() {
 		profile, err := pkg.GetVerrazzanoProfile()
-		Expect(err).To(BeNil())
+		It("Get the Verrazzano install profile", func() {
+			Expect(err).To(BeNil())
+		})
 		It("Verify master realm password policy", func() {
 			if *profile != v1alpha1.ManagedCluster {
 				// GIVEN the password policy setup for the master realm during installation
@@ -62,7 +64,9 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 		const size = "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
 
 		profile, err := pkg.GetVerrazzanoProfile()
-		Expect(err).To(BeNil())
+		It("Get the Verrazzano install profile", func() {
+			Expect(err).To(BeNil())
+		})
 		if *profile == v1alpha1.Dev {
 			It("Verify persistent volumes in namespace keycloak based on Dev install profile", func() {
 				// There is no Persistent Volume for MySQL in a dev install

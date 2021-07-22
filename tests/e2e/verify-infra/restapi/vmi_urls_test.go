@@ -31,8 +31,9 @@ var _ = Describe("VMI urls test", func() {
 		var isGrafanaEnabled = false
 
 		profile, err := pkg.GetVerrazzanoProfile()
-		Expect(err).To(BeNil())
-
+		It("Get the Verrazzano install profile", func() {
+			Expect(err).To(BeNil())
+		})
 		It("Fetches VMI", func() {
 			if *profile != v1alpha1.ManagedCluster {
 				Eventually(func() bool {

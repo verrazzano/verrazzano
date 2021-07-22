@@ -242,12 +242,8 @@ func createClientset(config *restclient.Config) *kubernetes.Clientset {
 }
 
 // GetVerrazzanoManagedClusterClientset returns the Kubernetes clientset for the VerrazzanoManagedCluster
-func GetVerrazzanoManagedClusterClientset() *vmcClient.Clientset {
-	client, err := vmcClient.NewForConfig(GetKubeConfig())
-	if err != nil {
-		ginkgo.Fail("Could not get Verrazzano Platform Operator clientset")
-	}
-	return client
+func GetVerrazzanoManagedClusterClientset() (*vmcClient.Clientset, error) {
+	return vmcClient.NewForConfig(GetKubeConfig())
 }
 
 // GetDynamicClient returns a dynamic client needed to access Unstructured data
@@ -263,19 +259,14 @@ func GetDynamicClient() dynamic.Interface {
 	return client
 }
 
-// getPlatformOperatorClientsetForCluster returns the Kubernetes clientset for the Verrazzano Platform Operator
-func getPlatformOperatorClientsetForCluster(kubeconfigPath string) *vpoClient.Clientset {
-	client, err := vpoClient.NewForConfig(GetKubeConfigGivenPath(kubeconfigPath))
-	if err != nil {
-		ginkgo.Fail("Could not get Verrazzano Platform Operator clientset")
-	}
-	return client
-}
-
 // GetVerrazzanoInstallResourceInCluster returns the installed Verrazzano CR in the given cluster
 // (there should only be 1 per cluster)
 func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Verrazzano, error) {
-	vzClient := getPlatformOperatorClientsetForCluster(kubeconfigPath).VerrazzanoV1alpha1().Verrazzanos("")
+	client, err := vpoClient.NewForConfig(GetKubeConfigGivenPath(kubeconfigPath))
+	if err != nil {
+		return nil, err
+	}
+	vzClient := client.VerrazzanoV1alpha1().Verrazzanos("")
 	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
 
 	if err != nil {

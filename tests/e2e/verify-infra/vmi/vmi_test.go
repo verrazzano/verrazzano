@@ -109,7 +109,9 @@ var _ = BeforeSuite(func() {
 var _ = Describe("VMI", func() {
 
 	profile, err := pkg.GetVerrazzanoProfile()
-	Expect(err).To(BeNil())
+	It("Get the Verrazzano install profile", func() {
+		Expect(err).To(BeNil())
+	})
 	if *profile == v1alpha1.ManagedCluster {
 		It("Elasticsearch should NOT be present", func() {
 			// Verify ES not present
@@ -222,16 +224,12 @@ var _ = Describe("VMI", func() {
 	}
 
 	It("Verify the instance info endpoint URLs", func() {
-		profile, err := pkg.GetVerrazzanoProfile()
-		Expect(err).To(BeNil())
 		if *profile != v1alpha1.ManagedCluster {
 			assertInstanceInfoURLs()
 		}
 	})
 
 	size := "50Gi"
-	profile, err = pkg.GetVerrazzanoProfile()
-	Expect(err).To(BeNil())
 	if *profile == v1alpha1.Dev {
 		It("Check persistent volumes for dev profile", func() {
 			Expect(len(volumeClaims)).To(Equal(0))

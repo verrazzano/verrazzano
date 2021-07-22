@@ -45,8 +45,9 @@ var expectedNonVMIPodsVerrazzanoSystem = []string{
 var _ = Describe("Kubernetes Cluster",
 	func() {
 		profile, err := pkg.GetVerrazzanoProfile()
-		Expect(err).To(BeNil())
-
+		It("Get the Verrazzano install profile", func() {
+			Expect(err).To(BeNil())
+		})
 		It("has the expected number of nodes", func() {
 			Eventually(func() (bool, error) {
 				nodes, err := pkg.ListNodes()
