@@ -744,7 +744,6 @@ const OidcAuthLuaFileTemplate = `local me = {}
         end
 
         local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
-        args.cluster = nil
         ngx.req.set_uri_args(args)
         ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
 
@@ -759,7 +758,7 @@ const OidcAuthLuaFileTemplate = `local me = {}
         end
 
         local secret = me.getSecret(vmc.spec.caSecret)
-        if not(secret) or not(secret.data) or not(secret.data["cacrt"]) then
+        if not(secret) or not(secret.data) or not(secret.data["cacrt"]) or secret.data["cacrt"] == "" then
             me.logJson(ngx.INFO, "Unable to fetch ca secret for vmc, assuming well known CA certificate exists for managed cluster " .. args.cluster)
             do return end
         end
@@ -771,6 +770,7 @@ const OidcAuthLuaFileTemplate = `local me = {}
             ngx.exit(ngx.HTTP_UNAUTHORIZED)
         end
 
+        args.cluster = nil
         local startIndex, _ = string.find(decodedSecret, "-----BEGIN CERTIFICATE-----")
         local _, endIndex = string.find(decodedSecret, "-----END CERTIFICATE-----")
         if startIndex >= 1 and endIndex > startIndex then
