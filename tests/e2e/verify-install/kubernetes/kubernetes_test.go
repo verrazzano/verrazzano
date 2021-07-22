@@ -92,7 +92,7 @@ var _ = Describe("Kubernetes Cluster",
 
 		ginkgoExt.DescribeTable("deployed Verrazzano components",
 			func(name string, expected bool) {
-				Eventually(func() bool {
+				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
@@ -106,7 +106,7 @@ var _ = Describe("Kubernetes Cluster",
 
 		ginkgoExt.DescribeTable("deployed cert-manager components",
 			func(name string, expected bool) {
-				Eventually(func() bool {
+				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "cert-manager")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
@@ -116,7 +116,7 @@ var _ = Describe("Kubernetes Cluster",
 
 		ginkgoExt.DescribeTable("deployed ingress components",
 			func(name string, expected bool) {
-				Eventually(func() bool {
+				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "ingress-nginx")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
@@ -125,7 +125,7 @@ var _ = Describe("Kubernetes Cluster",
 
 		ginkgoExt.DescribeTable("keycloak components are not deployed",
 			func(name string, expected bool) {
-				Eventually(func() bool {
+				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "keycloak")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
@@ -135,7 +135,7 @@ var _ = Describe("Kubernetes Cluster",
 		if *profile == v1alpha1.ManagedCluster {
 			ginkgoExt.DescribeTable("rancher components are not deployed",
 				func(name string, expected bool) {
-					Eventually(func() bool {
+					Eventually(func() (bool, error) {
 						return vzComponentPresent(name, "cattle-system")
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
@@ -144,7 +144,7 @@ var _ = Describe("Kubernetes Cluster",
 		} else {
 			ginkgoExt.DescribeTable("deployed rancher components",
 				func(name string, expected bool) {
-					Eventually(func() bool {
+					Eventually(func() (bool, error) {
 						return vzComponentPresent(name, "cattle-system")
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
@@ -154,7 +154,7 @@ var _ = Describe("Kubernetes Cluster",
 
 		ginkgoExt.DescribeTable("deployed VMI components",
 			func(name string, expected bool) {
-				Eventually(func() bool {
+				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
@@ -209,6 +209,6 @@ func nsListContains(list []v1.Namespace, target string) bool {
 	return false
 }
 
-func vzComponentPresent(name string, namespace string) bool {
+func vzComponentPresent(name string, namespace string) (bool, error) {
 	return pkg.DoesPodExist(namespace, name)
 }

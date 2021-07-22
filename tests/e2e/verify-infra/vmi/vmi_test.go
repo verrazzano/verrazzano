@@ -47,7 +47,11 @@ func vmiIngressURLs() (map[string]string, error) {
 }
 
 func verrazzanoMonitoringInstanceCRD() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
-	crd, err := pkg.APIExtensionsClientSet().CustomResourceDefinitions().Get(context.TODO(), "verrazzanomonitoringinstances.verrazzano.io", v1.GetOptions{})
+	client, err := pkg.APIExtensionsClientSet()
+	if err != nil {
+		return nil, err
+	}
+	crd, err := client.CustomResourceDefinitions().Get(context.TODO(), "verrazzanomonitoringinstances.verrazzano.io", v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +59,11 @@ func verrazzanoMonitoringInstanceCRD() (*apiextensionsv1beta1.CustomResourceDefi
 }
 
 func verrazzanoInstallerCRD() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
-	crd, err := pkg.APIExtensionsClientSet().CustomResourceDefinitions().Get(context.TODO(), "verrazzanos.install.verrazzano.io", v1.GetOptions{})
+	client, err := pkg.APIExtensionsClientSet()
+	if err != nil {
+		return nil, err
+	}
+	crd, err := client.CustomResourceDefinitions().Get(context.TODO(), "verrazzanos.install.verrazzano.io", v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -288,7 +288,10 @@ func getProxyURL() string {
 
 // doGetCACertFromSecret returns the CA cert from the specified kubernetes secret in the given cluster
 func doGetCACertFromSecret(secretName string, namespace string, kubeconfigPath string) ([]byte, error) {
-	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 	certSecret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err

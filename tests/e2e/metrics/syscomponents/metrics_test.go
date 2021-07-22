@@ -150,7 +150,7 @@ var _ = Describe("Prometheus Metrics", func() {
 		})
 
 		It("Verify envoy stats", func() {
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				return verifyEnvoyStats(envoyStatsRecentLookups)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
@@ -158,17 +158,20 @@ var _ = Describe("Prometheus Metrics", func() {
 })
 
 // Validate the Istio envoy stats for the pods in the namespaces defined in envoyStatsNamespaces
-func verifyEnvoyStats(metricName string) bool {
+func verifyEnvoyStats(metricName string) (bool, error) {
 	envoyStatsMetric, err := pkg.QueryMetric(metricName, adminKubeConfig)
 	if err != nil {
-		return false
+		return false, err
 	}
-	clientset := pkg.GetKubernetesClientsetForCluster(kubeConfig)
+	clientset, err := pkg.GetKubernetesClientsetForCluster(kubeConfig)
+	if err != nil {
+		return false, err
+	}
 	for _, ns := range envoyStatsNamespaces {
 		pods, err := pkg.ListPodsInCluster(ns, clientset)
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
-			return false
+			return false, err
 		}
 		for _, pod := range pods.Items {
 			var retValue bool
@@ -189,11 +192,11 @@ func verifyEnvoyStats(metricName string) bool {
 				retValue = verifyLabels(envoyStatsMetric, ns, pod.Name)
 			}
 			if !retValue {
-				return false
+				return false, nil
 			}
 		}
 	}
-	return true
+	return true, nil
 }
 
 // Assert the existence of labels for namespace and pod in the envoyStatsMetric
