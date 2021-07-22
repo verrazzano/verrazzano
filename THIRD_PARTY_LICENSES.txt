@@ -1912,6 +1912,38 @@ shall terminate as of the date such litigation is filed.
 
 
 -------- Dependency
+golang.org/x/mod
+-------- Copyrights
+Copyright (c) 2009 The Go Authors. All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.
+Copyright 2018 The Go Authors. All rights reserved.
+Copyright 2020 The Go Authors. All rights reserved.
+-------- Patents
+Additional IP Rights Grant (Patents)
+
+"This implementation" means the copyrightable works distributed by
+Google as part of the Go project.
+
+Google hereby grants to You a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except as stated in this section)
+patent license to make, have made, use, offer to sell, sell, import,
+transfer and otherwise run, modify and propagate the contents of this
+implementation of Go, where such license applies only to those patent
+claims, both currently owned or controlled by Google and acquired in
+the future, licensable by Google that are necessarily infringed by this
+implementation of Go.  This grant does not include claims that would be
+infringed only as a consequence of further modification of this
+implementation.  If you or your agent or exclusive licensee institute or
+order or agree to the institution of patent litigation against any
+entity (including a cross-claim or counterclaim in a lawsuit) alleging
+that this implementation of Go or any code incorporated within this
+implementation of Go constitutes direct or contributory patent
+infringement, or inducement of patent infringement, then any patent
+rights granted to you under this License for this implementation of Go
+shall terminate as of the date such litigation is filed.
+
+
+-------- Dependency
 golang.org/x/net
 -------- Copyrights
 Copyright (c) 2009 The Go Authors. All rights reserved.
@@ -2079,6 +2111,61 @@ shall terminate as of the date such litigation is filed.
 
 
 -------- Dependency
+golang.org/x/tools
+-------- Copyrights
+Copyright (c) 2009 The Go Authors. All rights reserved.
+Copyright 2014 The Go Authors. All rights reserved.
+Copyright 2009 The Go Authors.  All rights reserved.
+Copyright 2013 The Go Authors.  All rights reserved.
+Copyright 2018 The Go Authors. All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.
+Copyright 2015 The Go Authors. All rights reserved.
+Copyright 2015 The Go Authors.  All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
+Copyright (c) 2017 The Go Authors. All rights reserved.
+Copyright 2017 The Go Authors. All rights reserved.
+Copyright 2009 The Go Authors. All rights reserved.
+Copyright 2010 The Go Authors. All rights reserved.
+Copyright 2016 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
+Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
+Portions Copyright © 1995-1997 C H Forsyth (forsyth@terzarima.net)
+Portions Copyright © 1997-1999 Vita Nuova Limited
+Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com)
+Portions Copyright © 2004,2006 Bruce Ellis
+Portions Copyright © 2005-2007 C H Forsyth (forsyth@terzarima.net)
+Revisions Copyright © 2000-2007 Lucent Technologies Inc. and others
+Portions Copyright © 2009 The Go Authors. All rights reserved.
+Copyright 2012 The Go Authors. All rights reserved.
+Copyright 2012 The Go Authors.  All rights reserved.
+Copyright 2020 The Go Authors. All rights reserved.
+const license = `// Copyright 2013 The Go Authors. All rights reserved.
+-------- Patents
+Additional IP Rights Grant (Patents)
+
+"This implementation" means the copyrightable works distributed by
+Google as part of the Go project.
+
+Google hereby grants to You a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except as stated in this section)
+patent license to make, have made, use, offer to sell, sell, import,
+transfer and otherwise run, modify and propagate the contents of this
+implementation of Go, where such license applies only to those patent
+claims, both currently owned or controlled by Google and acquired in
+the future, licensable by Google that are necessarily infringed by this
+implementation of Go.  This grant does not include claims that would be
+infringed only as a consequence of further modification of this
+implementation.  If you or your agent or exclusive licensee institute or
+order or agree to the institution of patent litigation against any
+entity (including a cross-claim or counterclaim in a lawsuit) alleging
+that this implementation of Go or any code incorporated within this
+implementation of Go constitutes direct or contributory patent
+infringement, or inducement of patent infringement, then any patent
+rights granted to you under this License for this implementation of Go
+shall terminate as of the date such litigation is filed.
+
+
+-------- Dependency
 golang.org/x/xerrors
 -------- Copyrights
 Copyright (c) 2019 The Go Authors. All rights reserved.
@@ -2162,11 +2249,13 @@ github.com/imdario/mergo
 github.com/liggitt/tabwriter
 github.com/spf13/pflag
 golang.org/x/crypto
+golang.org/x/mod
 golang.org/x/net
 golang.org/x/oauth2
 golang.org/x/sys
 golang.org/x/text
 golang.org/x/time
+golang.org/x/tools
 golang.org/x/xerrors
 google.golang.org/protobuf
 gopkg.in/inf.v0
@@ -2496,4 +2585,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: a91634d9e30946768f6696a3b14d23ed
+License file based on go.mod with md5 sum: 875e563f2b867b895a80b2625fcf1828
