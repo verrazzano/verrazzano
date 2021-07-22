@@ -279,11 +279,11 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
 
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("error listing out Verrazzano instances: %v", err))
+		return nil, fmt.Errorf("error listing out Verrazzano instances: %v", err)
 	}
 	numVzs := len(vzList.Items)
 	if numVzs == 0 {
-		return nil, errors.New("did not find installed Verrazzano instance")
+		return nil, fmt.Errorf("did not find installed Verrazzano instance")
 	}
 	vz := vzList.Items[0]
 	return &vz, nil
