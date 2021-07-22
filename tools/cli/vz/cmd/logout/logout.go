@@ -12,7 +12,6 @@ import (
 
 // Struct to store Logout-command related data. eg.flags,streams,args..
 type LogoutOptions struct {
-	configFlags *genericclioptions.ConfigFlags
 	args        []string
 	genericclioptions.IOStreams
 }
@@ -20,14 +19,13 @@ type LogoutOptions struct {
 // Creates a LogoutOptions struct to run the logout command
 func NewLogoutOptions(streams genericclioptions.IOStreams) *LogoutOptions {
 	return &LogoutOptions{
-		configFlags: genericclioptions.NewConfigFlags(true),
 		IOStreams:   streams,
 	}
 }
 
 // Calls the logout function to complete logout
 func NewCmdLogout(streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewLogoutOptions(streams)
+	_ = NewLogoutOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "logout",
 		Short: "Logout of Verrazzano",
@@ -40,7 +38,6 @@ func NewCmdLogout(streams genericclioptions.IOStreams) *cobra.Command {
 			return nil
 		},
 	}
-	o.configFlags.AddFlags(cmd.Flags())
 	return cmd
 }
 
