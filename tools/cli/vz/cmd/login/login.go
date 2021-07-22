@@ -24,7 +24,6 @@ import (
 
 // Struct to store Login-command related data. eg.flags,streams,args..
 type LoginOptions struct {
-	configFlags *genericclioptions.ConfigFlags
 	args        []string
 	genericclioptions.IOStreams
 }
@@ -32,18 +31,16 @@ type LoginOptions struct {
 // Creates a LoginOptions struct to run the login command
 func NewLoginOptions(streams genericclioptions.IOStreams) *LoginOptions {
 	return &LoginOptions{
-		configFlags: genericclioptions.NewConfigFlags(true),
 		IOStreams:   streams,
 	}
 }
 
 // Calls the login function to complete login
 func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
-	o := NewLoginOptions(streams)
 	cmd := &cobra.Command{
-		Use:   "login verrazzanoAPIURL",
-		Short: "vz login verrazzanoAPIURL",
-		Long:  "vz login verrazzanoAPIURL",
+		Use:   "login <verrazzano-api-url> \n  Eg.vz login https://verrazzano.xyz.nip.io",
+		Short: "Login to Verrazzano",
+		Long:  "Login to Verrazzano using the api-url \nMake sure that you have exported VZ_CLIENT_ID, VZ_KEYCLOAK_URL and VZ_REALM",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := login(streams, args, kubernetesInterface); err != nil {
@@ -52,7 +49,6 @@ func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helper
 			return nil
 		},
 	}
-	o.configFlags.AddFlags(cmd.Flags())
 	return cmd
 }
 
@@ -77,7 +73,9 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 	}
 
 	// Follow the authorization grant flow to get the json response
-	jwtData, err := authFlowLogin(caData)
+	jwtData, err := authFlowLogin(caData,
+		verrazzanoAPIURL,
+	)
 	if err != nil {
 		return err
 	}
@@ -139,7 +137,7 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 // We open the browser with a url which contains the redirect-uri as a url-param
 // Upon successful authentication, it will redirect the authentication code as parameter to our redirect-uri
 // We will be hosting a server on the redirect-uri and extract the authentication code and pass it to the authFlowLogin using a channel
-func authFlowLogin(caData []byte) (map[string]interface{}, error) {
+func authFlowLogin(caData []byte,verrazzanoAPIURL string) (map[string]interface{}, error) {
 
 	var jwtData map[string]interface{}
 	// Obtain a available port in non-well known port range
@@ -156,10 +154,14 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 	redirectURI := helpers.GenerateRedirectURI(listener)
 
 	// Generate the login keycloak url by passing the required url parameters
-	loginURL := helpers.GenerateKeycloakAPIURL(codeChallenge,
+	loginURL,err := helpers.GenerateKeycloakAPIURL(codeChallenge,
 		redirectURI,
 		state,
+		verrazzanoAPIURL,
 	)
+	if err!=nil {
+		return jwtData,err
+	}
 	// Make sure the go routine is running
 	time.Sleep(time.Second)
 
@@ -199,6 +201,7 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 		codeVerifier,
 		caData,
 		authCode,
+		verrazzanoAPIURL,
 	)
 	if err != nil {
 		return jwtData, err
@@ -291,7 +294,7 @@ func getFreePort() (net.Listener, error) {
 
 // Requests the jwt token on our behalf
 // Returns the key-value pairs obtained from server in the form of a map
-func requestJWT(redirectURI string, codeVerifier string, caData []byte, authCode string) (map[string]interface{}, error) {
+func requestJWT(redirectURI string, codeVerifier string, caData []byte, authCode string, verrazzanoAPIURL string) (map[string]interface{}, error) {
 
 	// The response is going to be filled in this
 	var jwtData map[string]interface{}
@@ -306,7 +309,7 @@ func requestJWT(redirectURI string, codeVerifier string, caData []byte, authCode
 	grantParams.Set("scope", "openid")
 
 	// Execute the request
-	jwtData, err := executeRequestForJWT(grantParams, caData)
+	jwtData, err := executeRequestForJWT(grantParams, caData, verrazzanoAPIURL)
 	if err != nil {
 		return jwtData, err
 	}
@@ -316,12 +319,15 @@ func requestJWT(redirectURI string, codeVerifier string, caData []byte, authCode
 
 // Creates and executes the POST request
 // Returns the key-value pairs obtained from server in the form of a map
-func executeRequestForJWT(grantParams url.Values, caData []byte) (map[string]interface{}, error) {
+func executeRequestForJWT(grantParams url.Values, caData []byte, verrazzanoAPIURL string) (map[string]interface{}, error) {
 
 	var jwtData map[string]interface{}
 
 	// Get the keycloak url to obtain tokens
-	tokenURL := helpers.GenerateKeycloakTokenURL()
+	tokenURL,err := helpers.GenerateKeycloakTokenURL(verrazzanoAPIURL)
+	if err!=nil {
+		return jwtData,err
+	}
 
 	// Create new http POST request to obtain token as response
 	var client *http.Client
@@ -414,7 +420,8 @@ func RefreshToken() error {
 	}
 
 	// Execute the request
-	jwtData, err := executeRequestForJWT(grantParams, []byte(caData))
+	verrazzanoAPIURL,err := helpers.GetVerrazzanoAPIURL(helpers.KubeConfigKeywordVerrazzano)
+	jwtData, err := executeRequestForJWT(grantParams, []byte(caData), verrazzanoAPIURL)
 	if err != nil {
 		return err
 	}

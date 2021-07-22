@@ -336,3 +336,25 @@ func GetCAData(name string) ([]byte, error) {
 	caData = kubeConfig.Clusters[pos].Cluster.CertificateAuthorityData
 	return caData, nil
 }
+
+// Returns the verrazzano api server url
+func GetVerrazzanoAPIURL(name string) (string, error) {
+	var verrazzanoAPIURL string
+	kubeConfig, err := ReadKubeConfig()
+	if err != nil {
+		return verrazzanoAPIURL, err
+	}
+	pos := -1
+	for i := 0; i < len(kubeConfig.Clusters); i++ {
+		if kubeConfig.Clusters[i].Name == name {
+			pos = i
+			break
+		}
+	}
+	if pos == -1 {
+		return verrazzanoAPIURL, errors.New("Unable to find cluster with nickname verrazzano")
+	}
+	// If caData is not present, it will return a empty string
+	verrazzanoAPIURL = kubeConfig.Clusters[pos].Cluster.Server
+	return verrazzanoAPIURL, nil
+}

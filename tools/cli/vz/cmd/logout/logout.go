@@ -30,8 +30,8 @@ func NewCmdLogout(streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewLogoutOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "logout",
-		Short: "vz logout",
-		Long:  "vz_logout",
+		Short: "Logout of Verrazzano",
+		Long:  "Logout of Verrazzano",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := logout(streams); err != nil {
