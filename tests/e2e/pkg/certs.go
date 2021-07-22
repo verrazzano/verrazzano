@@ -21,7 +21,7 @@ func GetCertificate(namespace string, name string) (*unstructured.Unstructured, 
 	return cert, nil
 }
 
-// getScheme returns the WebLogic scheme needed to get unstructured data
+// getScheme returns the certificate scheme needed to get unstructured data
 func getScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    "cert-manager.io",
