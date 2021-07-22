@@ -38,33 +38,33 @@ func ConcatURLParams(urlParams map[string]string) string {
 func GetClientID() string {
 	clientID := os.Getenv("VZ_CLIENT_ID")
 	// Look for the matching environment variable, return default if not found
-	if len(clientID) == 0{
+	if len(clientID) == 0 {
 		clientID = "verrazzano-pkce"
 	}
 	return clientID
 }
 
 // Returns the keycloak base url
-func GetKeycloakURL(verrazzanoAPIURL string) (string,error) {
+func GetKeycloakURL(verrazzanoAPIURL string) (string, error) {
 	keycloakURL := os.Getenv("VZ_KEYCLOAK_URL")
 	// Look for the matching environment variable, return default if not found
 	if len(keycloakURL) == 0 {
-		u,err := url.Parse(verrazzanoAPIURL)
-		if err!= nil {
-			return keycloakURL,err
+		u, err := url.Parse(verrazzanoAPIURL)
+		if err != nil {
+			return keycloakURL, err
 		}
-		u.Host = strings.Replace(u.Host,"verrazzano","keycloak",1)
+		u.Host = strings.Replace(u.Host, "verrazzano", "keycloak", 1)
 		u.Path = ""
 		keycloakURL = u.String()
 	}
-	return keycloakURL,nil
+	return keycloakURL, nil
 }
 
 // Returns the realm name the oidc client is part of
 func GetVerrazzanoRealm() string {
 	realmName := os.Getenv("VZ_REALM")
 	// Look for the matching environment variable, return default if not found
-	if len(realmName) == 0{
+	if len(realmName) == 0 {
 		realmName = "verrazzano-system"
 	}
 	return realmName
@@ -72,7 +72,7 @@ func GetVerrazzanoRealm() string {
 
 // Generates the keycloak api url to login
 // Return string of the form `https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/auth?redirect_uri=abc&state=xyz...`
-func GenerateKeycloakAPIURL(codeChallenge string, redirectURI string, state string,verrazzanoAPIURL string) (string,error) {
+func GenerateKeycloakAPIURL(codeChallenge string, redirectURI string, state string, verrazzanoAPIURL string) (string, error) {
 	urlParams := map[string]string{
 		"client_id":             GetClientID(),
 		"response_type":         "code",
@@ -82,23 +82,23 @@ func GenerateKeycloakAPIURL(codeChallenge string, redirectURI string, state stri
 		"code_challenge_method": "S256",
 	}
 
-	host,err := GetKeycloakURL(verrazzanoAPIURL)
-	if err!= nil {
-		return "",err
+	host, err := GetKeycloakURL(verrazzanoAPIURL)
+	if err != nil {
+		return "", err
 	}
 	path := fmt.Sprintf("auth/realms/%v/protocol/openid-connect/auth", GetVerrazzanoRealm())
 	rawQuery := ConcatURLParams(urlParams)
 
-	return fmt.Sprintf("%v/%v?%v", host, path, rawQuery),nil
+	return fmt.Sprintf("%v/%v?%v", host, path, rawQuery), nil
 }
 
 // Gnerates and returns keycloak server api url to get the jwt token
 // Return string of the form `https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/token
-func GenerateKeycloakTokenURL(verrazzanoAPIURL string) (string,error) {
-	host,err := GetKeycloakURL(verrazzanoAPIURL)
-	if err!= nil {
-		return "",err
+func GenerateKeycloakTokenURL(verrazzanoAPIURL string) (string, error) {
+	host, err := GetKeycloakURL(verrazzanoAPIURL)
+	if err != nil {
+		return "", err
 	}
 	path := fmt.Sprintf("auth/realms/%v/protocol/openid-connect/token", GetVerrazzanoRealm())
-	return fmt.Sprintf("%v/%v", host, path),nil
+	return fmt.Sprintf("%v/%v", host, path), nil
 }

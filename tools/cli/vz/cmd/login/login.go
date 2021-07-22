@@ -24,14 +24,14 @@ import (
 
 // Struct to store Login-command related data. eg.flags,streams,args..
 type LoginOptions struct {
-	args        []string
+	args []string
 	genericclioptions.IOStreams
 }
 
 // Creates a LoginOptions struct to run the login command
 func NewLoginOptions(streams genericclioptions.IOStreams) *LoginOptions {
 	return &LoginOptions{
-		IOStreams:   streams,
+		IOStreams: streams,
 	}
 }
 
@@ -40,7 +40,7 @@ func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helper
 	cmd := &cobra.Command{
 		Use:   "login <verrazzano-api-url> \n  Eg.vz login https://verrazzano.xyz.nip.io",
 		Short: "Login to Verrazzano",
-		Long:  "Login to Verrazzano using the api-url \nMake sure that you have exported VZ_CLIENT_ID, VZ_KEYCLOAK_URL and VZ_REALM",
+		Long:  "Login to Verrazzano using the api-url \nMake sure that you have exported VZ_CLIENT_ID, VZ_KEYCLOAK_URL and VZ_REALM \nMore details at https://github.com/verrazzano/verrazzano/tree/master/tools/cli#setting-up-the-environment-variables",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := login(streams, args, kubernetesInterface); err != nil {
@@ -137,7 +137,7 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 // We open the browser with a url which contains the redirect-uri as a url-param
 // Upon successful authentication, it will redirect the authentication code as parameter to our redirect-uri
 // We will be hosting a server on the redirect-uri and extract the authentication code and pass it to the authFlowLogin using a channel
-func authFlowLogin(caData []byte,verrazzanoAPIURL string) (map[string]interface{}, error) {
+func authFlowLogin(caData []byte, verrazzanoAPIURL string) (map[string]interface{}, error) {
 
 	var jwtData map[string]interface{}
 	// Obtain a available port in non-well known port range
@@ -154,13 +154,13 @@ func authFlowLogin(caData []byte,verrazzanoAPIURL string) (map[string]interface{
 	redirectURI := helpers.GenerateRedirectURI(listener)
 
 	// Generate the login keycloak url by passing the required url parameters
-	loginURL,err := helpers.GenerateKeycloakAPIURL(codeChallenge,
+	loginURL, err := helpers.GenerateKeycloakAPIURL(codeChallenge,
 		redirectURI,
 		state,
 		verrazzanoAPIURL,
 	)
-	if err!=nil {
-		return jwtData,err
+	if err != nil {
+		return jwtData, err
 	}
 	// Make sure the go routine is running
 	time.Sleep(time.Second)
@@ -324,9 +324,9 @@ func executeRequestForJWT(grantParams url.Values, caData []byte, verrazzanoAPIUR
 	var jwtData map[string]interface{}
 
 	// Get the keycloak url to obtain tokens
-	tokenURL,err := helpers.GenerateKeycloakTokenURL(verrazzanoAPIURL)
-	if err!=nil {
-		return jwtData,err
+	tokenURL, err := helpers.GenerateKeycloakTokenURL(verrazzanoAPIURL)
+	if err != nil {
+		return jwtData, err
 	}
 
 	// Create new http POST request to obtain token as response
@@ -420,7 +420,10 @@ func RefreshToken() error {
 	}
 
 	// Execute the request
-	verrazzanoAPIURL,err := helpers.GetVerrazzanoAPIURL(helpers.KubeConfigKeywordVerrazzano)
+	verrazzanoAPIURL, err := helpers.GetVerrazzanoAPIURL(helpers.KubeConfigKeywordVerrazzano)
+	if err != nil {
+		return err
+	}
 	jwtData, err := executeRequestForJWT(grantParams, []byte(caData), verrazzanoAPIURL)
 	if err != nil {
 		return err

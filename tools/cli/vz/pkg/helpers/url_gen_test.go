@@ -6,6 +6,7 @@ package helpers
 import (
 	"github.com/stretchr/testify/assert"
 	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"testing"
@@ -84,7 +85,8 @@ func TestGetKeycloakURL(t *testing.T) {
 	for _, test := range tests {
 		err := os.Setenv("VZ_KEYCLOAK_URL", test.args[0])
 		asserts.NoError(err)
-		keycloakURLRecv := GetKeycloakURL()
+		keycloakURLRecv, err := GetKeycloakURL("")
+		asserts.NoError(err)
 		asserts.Equal(keycloakURLRecv, test.output)
 	}
 }
@@ -112,7 +114,8 @@ func TestGenerateKeycloakTokenURL(t *testing.T) {
 		asserts.NoError(err)
 		err = os.Setenv("VZ_REALM", test.args[1])
 		asserts.NoError(err)
-		URLRecv := GenerateKeycloakTokenURL()
+		URLRecv, err := GenerateKeycloakTokenURL("")
+		asserts.NoError(err)
 		asserts.Equal(URLRecv, test.output)
 	}
 }
@@ -149,7 +152,13 @@ func TestGenerateKeycloakAPIURL(t *testing.T) {
 		err = os.Setenv("VZ_CLIENT_ID", test.args[1])
 		asserts.NoError(err)
 
-		URLRecv := GenerateKeycloakAPIURL(test.args[5], test.args[4], test.args[3])
-		asserts.Equal(URLRecv, test.output)
+		URLRecv, err := GenerateKeycloakAPIURL(test.args[5], test.args[4], test.args[3], "")
+		asserts.NoError(err)
+		uTest, err := url.Parse(test.output)
+		asserts.NoError(err)
+		uRecv, err := url.Parse(URLRecv)
+		asserts.Equal(uTest.Path, uRecv.Path)
+		asserts.NoError(err)
+		asserts.Equal(uTest.Host, uRecv.Host)
 	}
 }

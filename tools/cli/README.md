@@ -12,8 +12,6 @@ The Verrazzano Command Line Interface (CLI) is a tool which can be used to inter
   kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo
 ```
 
-For more information on accessing Keycloak and other user interfaces in Verrazzano, see [Get console credentials](https://github.com/verrazzano/verrazzano/blob/master/install/README.md#6-get-console-credentials).
-
 3. Navigate to **Clients** and select the client, **verrazzano-pkce**. On the **Settings** page, go to **Valid Redirect URIs** and select the plus (+) sign to add the redirect URL `http://localhost/*`.
 4. On the same page, go to **Web Origins** and select the plus (+) sign to add `http://localhost/`.
 5. Click **Save**.
@@ -28,7 +26,7 @@ Verrazzano installations have a default user `verrazzano` configured in the Verr
    kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
 ```
 
-The Verrazzano Console accesses the Verrazzano API using [JSON Web Token (JWT)](https://en.wikipedia.org/wiki/JSON_Web_Token)-based authentication enabled by the [Keycloak Authorization Services](https://www.keycloak.org/docs/4.8/authorization_services/). The CLI application requests this token from the Keycloak API Server. To access the Keycloak API, the user accessing the CLI application must be logged in to Keycloak and have a valid session. When an existing Keycloak user session is expired or upon the expiration of the [refresh token](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/), the user has to login again.
+The Verrazzano CLI accesses the Verrazzano API using [JSON Web Token (JWT)](https://en.wikipedia.org/wiki/JSON_Web_Token)-based authentication enabled by the [Keycloak Authorization Services](https://www.keycloak.org/docs/4.8/authorization_services/). The CLI application requests this token from the Keycloak API Server. To access the Keycloak API, the user accessing the CLI application must be logged in to Keycloak and have a valid session. When an existing Keycloak user session is expired or upon the expiration of the [refresh token](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/), the user has to login again.
 
 ## Setting up the environment variables
 ````
