@@ -12,14 +12,14 @@ import (
 
 // Struct to store Logout-command related data. eg.flags,streams,args..
 type LogoutOptions struct {
-	args        []string
+	args []string
 	genericclioptions.IOStreams
 }
 
 // Creates a LogoutOptions struct to run the logout command
 func NewLogoutOptions(streams genericclioptions.IOStreams) *LogoutOptions {
 	return &LogoutOptions{
-		IOStreams:   streams,
+		IOStreams: streams,
 	}
 }
 
