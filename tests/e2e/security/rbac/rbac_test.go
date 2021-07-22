@@ -334,7 +334,7 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 			var clientset *kubernetes.Clientset
 			Eventually(func() (*kubernetes.Clientset, error) {
 				var err error
-				clientset, err := pkg.GetKubernetesClientset()
+				clientset, err = pkg.GetKubernetesClientset()
 				return clientset, err
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			Eventually(func() (*corev1.PodList, error) {

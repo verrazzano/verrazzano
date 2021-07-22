@@ -735,7 +735,7 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 			&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}})
 		rawConfig, err := clientConfig.RawConfig()
 		if err != nil {
-			ginkgo.Fail(fmt.Sprintf("Could not get rawconfig, error %v", err))
+			return false, "", fmt.Errorf("could not get rawconfig, error %v", err)
 		}
 
 		rawConfig.AuthInfos["sa-token"] = &clientcmdapi.AuthInfo{Token: string(token)}
