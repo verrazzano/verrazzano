@@ -3,7 +3,7 @@
 The Verrazzano Command Line Interface (CLI) is a tool which can be used to interact with the Verrazzano resources.
 
 ## Setting up the keycloak client
-[Keycloak](https://github.com/keycloak/keycloak) provides Identity and Access Management in Verrazzano for authentication to various dashboards and the CLI application. To run the Verrazzano Console locally, first you need to configure the **verrazzano-pkce** [OpenID Connect client](https://www.keycloak.org/docs/latest/server_admin/#oidc-clients) to authenticate the login and validate `localhost` as a redirect uri where the CLI hosts a server waiting for keycloak to redirect there.
+[Keycloak](https://github.com/keycloak/keycloak) provides Identity and Access Management in Verrazzano for authentication to various dashboards and the CLI application. To run the Verrazzano Console locally, first you need to configure the **verrazzano-pkce** [OpenID Connect client](https://www.keycloak.org/docs/latest/server_admin/#oidc-clients) to authenticate the login and validate `localhost` as a redirect uri where the CLI hosts a server waiting for keycloak to redirect there.The CLI uses the kubeconfig to store authentication information.The CLI assumes that the default kubeconfig is present in `~/.kube/config` .Users can change that by setting a environment variable `KUBECONFIG` containing the path to your kubeconfig. 
 
 1. Access the Keycloak administration console for your Verrazzano environment: `https://keycloak.v8o-env.v8o-domain.com`
 2. Log in with the Keycloak admin user and password. Typically the Keycloak admin user name is `keycloakadmin` and the password can be obtained from your management cluster:
@@ -33,6 +33,7 @@ The Verrazzano CLI accesses the Verrazzano API using [JSON Web Token (JWT)](http
 export VZ_KEYCLOAK_URL=<your Keycloak URL> e.g. https://keycloak.default.11.22.33.44.xip.io
 export VZ_CLIENT_ID=<your client id which allows redirect uri on http://localhost or verrazzano-pkce if using default>
 export VZ_REALM=<your Verrazzano Realm> e.g. verrazzano-system if you are using default
+export KUBECONFIG=<Path to a kubeconfig if you want to use a specific kubeconfig instead of the default one>
 ````
 ## Building the CLI
 

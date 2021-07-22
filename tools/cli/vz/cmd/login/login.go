@@ -40,7 +40,7 @@ func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helper
 	cmd := &cobra.Command{
 		Use:   "login <verrazzano-api-url> \n  Eg.vz login https://verrazzano.xyz.nip.io",
 		Short: "Login to Verrazzano",
-		Long:  "Login to Verrazzano using the api-url \nMake sure that you have exported VZ_CLIENT_ID, VZ_KEYCLOAK_URL and VZ_REALM \nMore details at https://github.com/verrazzano/verrazzano/tree/master/tools/cli#setting-up-the-environment-variables",
+		Long:  "Login to Verrazzano using the api-url \nMake sure that you have exported VZ_CLIENT_ID, VZ_KEYCLOAK_URL and VZ_REALM \nMore details at https://github.com/verrazzano/verrazzano/tree/master/tools/cli#setting-up-the-environment-variables \nThe CLI uses the kubeconfig to store authentication information.\nThe CLI assumes that the default kubeconfig is present in ~/.kube/config.\nUsers can change that by setting a environment variable KUBECONFIG containing the path to your kubeconfig.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := login(streams, args, kubernetesInterface); err != nil {
@@ -264,8 +264,14 @@ func handleKeycloakRedirection(urlParamsChannel chan keycloakRedirectionURLParam
 			m, err := url.ParseQuery(u.RawQuery)
 			if err == nil {
 				// Set the auth code obtained through redirection
-				authCode := m["code"][0]
-				stateFromKeycloak := m["state"][0]
+				var authCode string
+				var stateFromKeycloak string
+				if len(m["code"]) > 0 {
+					authCode = m["code"][0]
+				}
+				if len(m["state"]) > 0 {
+					stateFromKeycloak = m["state"][0]
+				}
 				urlParamsChannel <- keycloakRedirectionURLParams{
 					authCode: authCode,
 					state:    stateFromKeycloak,
