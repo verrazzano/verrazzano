@@ -498,10 +498,11 @@ def storePipelineArtifacts(version) {
     script {
         tarfilePrefix="verrazzano_${version}"
         tarfile="${tarfilePrefix}.tar.gz"
+        zipFile="${tarfilePrefix}.zip"
         commitFile="${tarfilePrefix}-commit.txt"
         sha256File="${tarfile}.sha256"
         sh """
-            if [ "${params.GENERATE_TARBALL}" == "true" ] || [[ ${GIT_BRANCH} == release* ]]; then
+            if [ "${params.GENERATE_TARBALL}" == "true" ] || [[ ${GIT_BRANCH} == release-* ]]; then
                 echo "Generating tar file ${tarfile} (SHA: ${sha256File}), commit file ${commitFile}"
                 mkdir ${WORKSPACE}/tar-files
                 chmod uog+w ${WORKSPACE}/tar-files
@@ -514,9 +515,9 @@ def storePipelineArtifacts(version) {
                 cd ${WORKSPACE}
                 sha256sum ${tarfile} > ${sha256File}
                 echo "git-commit=${env.GIT_COMMIT}" > ${commitFile}
+                zip ${zipFile} ${commitFile} ${sha256File} ${tarfile}
                 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${commitFile} --file ${commitFile}
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${tarfile} --file ${tarfile}
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${sha256File} --file ${sha256File}
+                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${zipFile} --file ${zipFile}
            fi
         """
 
