@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,14 +25,16 @@ var _ = Describe("VMI urls test", func() {
 	)
 
 	Context("Fetching the system vmi using api and test urls", func() {
-		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		var isEsEnabled = false
 		var isKibanaEnabled = false
 		var isPrometheusEnabled = false
 		var isGrafanaEnabled = false
 
+		profile, err := pkg.GetVerrazzanoProfile()
+		Expect(err).To(BeNil())
+
 		It("Fetches VMI", func() {
-			if !isManagedClusterProfile {
+			if *profile != v1alpha1.ManagedCluster {
 				Eventually(func() bool {
 					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 					if err != nil {
@@ -63,7 +67,7 @@ var _ = Describe("VMI urls test", func() {
 		})
 
 		It("Accesses VMI endpoints", func() {
-			if !isManagedClusterProfile {
+			if *profile != v1alpha1.ManagedCluster {
 				var api *pkg.APIEndpoint
 				Eventually(func() (*pkg.APIEndpoint, error) {
 					var err error

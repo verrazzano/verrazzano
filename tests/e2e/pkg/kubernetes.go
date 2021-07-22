@@ -289,6 +289,7 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 	return &vz, nil
 }
 
+// GetVerrazzanoProfile returns the profile specified in the verrazzano install resource
 func GetVerrazzanoProfile() (*v1alpha1.ProfileType, error) {
 	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
 	if err != nil {
@@ -297,25 +298,16 @@ func GetVerrazzanoProfile() (*v1alpha1.ProfileType, error) {
 	return &vz.Spec.Profile, nil
 }
 
-// IsManagedClusterProfile returns true if the deployed resource is a 'managed-cluster' profile
-func IsManagedClusterProfile() (bool, error) {
-	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
-	if err != nil {
-		return false, err
-	}
-	return vz.Spec.Profile == v1alpha1.ManagedCluster, nil
-}
-
-// IsACMEStagingEnabledInCluster returns true if the ACME staging environment is configured
-func IsACMEStagingEnabledInCluster(kubeconfigPath string) (bool, error) {
+// GetACMEEnvironment returns true if
+func GetACMEEnvironment(kubeconfigPath string) (string, error) {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 	if vz.Spec.Components.CertManager == nil {
-		return false, nil
+		return "", nil
 	}
-	return vz.Spec.Components.CertManager.Certificate.Acme.Environment == "staging", nil
+	return vz.Spec.Components.CertManager.Certificate.Acme.Environment, nil
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.

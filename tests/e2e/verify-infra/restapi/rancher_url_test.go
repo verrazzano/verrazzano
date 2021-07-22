@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -21,7 +23,9 @@ var _ = Describe("rancher url test", func() {
 
 	Context("Fetching the rancher url using api and test ", func() {
 		It("Fetches rancher url", func() {
-			if !pkg.IsManagedClusterProfile() {
+			profile, err := pkg.GetVerrazzanoProfile()
+			Expect(err).To(BeNil())
+			if *profile != v1alpha1.ManagedCluster {
 				kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
 				var rancherURL string
 

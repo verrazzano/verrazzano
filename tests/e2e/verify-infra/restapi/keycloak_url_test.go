@@ -10,6 +10,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -21,7 +22,9 @@ var _ = Describe("keycloak url test", func() {
 
 	Context("Fetching the keycloak url using api and test ", func() {
 		It("Fetches keycloak url", func() {
-			if !pkg.IsManagedClusterProfile() {
+			profile, err := pkg.GetVerrazzanoProfile()
+			Expect(err).To(BeNil())
+			if *profile != v1alpha1.ManagedCluster {
 				var keycloakURL string
 				Eventually(func() error {
 					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())

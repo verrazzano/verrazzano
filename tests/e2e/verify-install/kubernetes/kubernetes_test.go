@@ -172,13 +172,13 @@ var _ = Describe("Kubernetes Cluster",
 				func() {
 					// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
 					// cluster is registered)
-					if *profile == v1alpha1.ManagedCluster {
+					if *profile != v1alpha1.ManagedCluster {
 						Eventually(func() bool { return pkg.PodsRunning("cattle-system", expectedPodsCattleSystem) }, waitTimeout, pollingInterval).
 							Should(BeTrue())
 					}
 				},
 				func() {
-					if *profile == v1alpha1.ManagedCluster {
+					if *profile != v1alpha1.ManagedCluster {
 						Eventually(func() bool { return pkg.PodsRunning("keycloak", expectedPodsKeycloak) }, waitTimeout, pollingInterval).
 							Should(BeTrue())
 					}
