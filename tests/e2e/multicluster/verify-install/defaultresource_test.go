@@ -61,7 +61,11 @@ func nsListContains(list []v1.Namespace, target string) bool {
 
 func listPodsInKubeSystem() {
 	// Get the Kubernetes clientset and list pods in cluster
-	clientset := pkg.GetKubernetesClientset()
+	clientset, err := pkg.GetKubernetesClientset()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Kubernetes clientset: %v", err))
+		return
+	}
 	pods, err := pkg.ListPodsInCluster("kube-system", clientset)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error listing pods: %v", err))

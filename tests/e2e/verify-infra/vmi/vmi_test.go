@@ -20,7 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -28,7 +27,11 @@ import (
 const verrazzanoNamespace string = "verrazzano-system"
 
 func vmiIngressURLs() (map[string]string, error) {
-	ingressList, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses(verrazzanoNamespace).List(context.TODO(), v1.ListOptions{})
+	clientset, err := pkg.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	ingressList, err := clientset.ExtensionsV1beta1().Ingresses(verrazzanoNamespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -36,9 +39,9 @@ func vmiIngressURLs() (map[string]string, error) {
 	ingressURLs := make(map[string]string)
 
 	for _, ingress := range ingressList.Items {
-		var ingressRules []v1beta1.IngressRule = ingress.Spec.Rules
+		var ingressRules = ingress.Spec.Rules
 		if len(ingressRules) != 1 {
-			return nil, fmt.Errorf("Expected ingress %s in namespace %s to have 1 ingress rule, but had %v",
+			return nil, fmt.Errorf("expected ingress %s in namespace %s to have 1 ingress rule, but had %v",
 				ingress.Name, ingress.Namespace, ingressRules)
 		}
 		ingressURLs[ingress.Name] = fmt.Sprintf("https://%s/", ingressRules[0].Host)
