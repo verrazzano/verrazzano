@@ -50,7 +50,7 @@ function create_image_repos_from_archives() {
     local from_repository=$(dirname $from_image | cut -d \/ -f 2-)
 
     local is_public="false"
-    if [ "$from_repository" == "rancher" ] || [ "$from_image" == "verrazzano-platform-operator" ]; then
+    if [ "$from_repository" == "rancher" ] || [ "$from_image_name" == "verrazzano-platform-operator" ]; then
       # Rancher repos must be public
       is_public="true"
     fi
