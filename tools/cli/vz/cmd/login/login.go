@@ -135,6 +135,10 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 
 // A function to put together all the requirements of authorization grant flow
 // Returns the final jwt token as a map
+// We assume that localhost is already present as a trusted keycloak redirect-uri
+// We open the browser with a url which contains the redirect-uri as a url-param
+// Upon successful authentication, it will redirect the authentication code as parameter to our redirect-uri
+// We will be hosting a server on the redirect-uri and extract the authentication code and pass it to the authFlowLogin using a channel
 func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 
 	var jwtData map[string]interface{}
@@ -156,7 +160,6 @@ func authFlowLogin(caData []byte) (map[string]interface{}, error) {
 		redirectURI,
 		state,
 	)
-
 	// Make sure the go routine is running
 	time.Sleep(time.Second)
 

@@ -77,7 +77,6 @@ func GenerateKeycloakAPIURL(codeChallenge string, redirectURI string, state stri
 // Gnerates and returns keycloak server api url to get the jwt token
 // Return string of the form `https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/token
 func GenerateKeycloakTokenURL() string {
-
 	host := GetKeycloakURL()
 	path := fmt.Sprintf("auth/realms/%v/protocol/openid-connect/token", GetVerrazzanoRealm())
 	return fmt.Sprintf("%v/%v", host, path)

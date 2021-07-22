@@ -200,14 +200,15 @@ func TestNewCmdLogin(t *testing.T) {
 		asserts.Equal(status, "success")
 		asserts.Equal(test.output, outBuffer.String())
 
-		kubeConfig, _ := clientcmd.LoadFromFile("fakekubeconfig")
-		_, ok := kubeConfig.Clusters["verrazzano"]
+		kubeConfig, err := clientcmd.LoadFromFile("fakekubeconfig")
+		asserts.NoError(err)
+		_, ok := kubeConfig.Clusters[helpers.KubeConfigKeywordVerrazzano]
 		asserts.Equal(ok, true)
-		_, ok = kubeConfig.AuthInfos["verrazzano"]
+		_, ok = kubeConfig.AuthInfos[helpers.KubeConfigKeywordVerrazzano]
 		asserts.Equal(ok, true)
 		_, ok = kubeConfig.Contexts[kubeConfig.CurrentContext]
 		asserts.Equal(ok, true)
-		asserts.Equal(strings.Split(kubeConfig.CurrentContext, "@")[0], "verrazzano")
+		asserts.Equal(strings.Split(kubeConfig.CurrentContext, "@")[0], helpers.KubeConfigKeywordVerrazzano)
 
 		outBuffer.Reset()
 	}
@@ -233,13 +234,13 @@ func TestRepeatedLogin(t *testing.T) {
 	err = os.Setenv("KUBECONFIG", currentDirectory+"/fakekubeconfig")
 	asserts.NoError(err)
 
-	err = helpers.SetClusterInKubeConfig("verrazzano",
+	err = helpers.SetClusterInKubeConfig(helpers.KubeConfigKeywordVerrazzano,
 		fakeVerrazzanoAPIURL,
 		fakeCAData,
 	)
 	asserts.NoError(err)
 
-	err = helpers.SetUserInKubeConfig("verrazzano",
+	err = helpers.SetUserInKubeConfig(helpers.KubeConfigKeywordVerrazzano,
 		fakeAccessToken,
 		helpers.AuthDetails{
 			AccessTokenExpTime:  9999999999,

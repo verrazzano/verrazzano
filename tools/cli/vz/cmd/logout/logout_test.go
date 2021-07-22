@@ -41,19 +41,7 @@ func TestNewCmdLogout(t *testing.T) {
 	asserts := assert.New(t)
 
 	// Create a fake clone of kubeconfig
-	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
-	asserts.NoError(err)
-	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
-	asserts.NoError(err)
-	fakeKubeConfig, err := os.Create("fakekubeconfig")
-	asserts.NoError(err)
-	defer os.Remove("fakekubeconfig")
-	_, err = io.Copy(fakeKubeConfig, originalKubeConfig)
-	asserts.NoError(err)
-	err = originalKubeConfig.Close()
-	asserts.NoError(err)
-	err = fakeKubeConfig.Close()
-	asserts.NoError(err)
+	createFakeKubeConfig(asserts)
 	currentDirectory, err := os.Getwd()
 	asserts.NoError(err)
 
@@ -76,7 +64,7 @@ func TestNewCmdLogout(t *testing.T) {
 	)
 	asserts.NoError(err)
 
-	err = helpers.SetUserInKubeConfig("verrazzano",
+	err = helpers.SetUserInKubeConfig(helpers.KubeConfigKeywordVerrazzano,
 		fakeAccessToken,
 		helpers.AuthDetails{
 			AccessTokenExpTime:  9999999999,
@@ -114,7 +102,8 @@ func TestNewCmdLogout(t *testing.T) {
 
 		outBuffer.Reset()
 	}
-
+	err = os.Remove("fakekubeconfig")
+	asserts.NoError(err)
 }
 
 // To test logout with out logging-in
@@ -123,19 +112,7 @@ func TestRepeatedLogout(t *testing.T) {
 	asserts := assert.New(t)
 
 	// Create a fake clone of kubeconfig
-	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
-	asserts.NoError(err)
-	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
-	asserts.NoError(err)
-	fakeKubeConfig, err := os.Create("fakekubeconfig")
-	asserts.NoError(err)
-	defer os.Remove("fakekubeconfig")
-	_, err = io.Copy(fakeKubeConfig, originalKubeConfig)
-	asserts.NoError(err)
-	err = originalKubeConfig.Close()
-	asserts.NoError(err)
-	err = fakeKubeConfig.Close()
-	asserts.NoError(err)
+	createFakeKubeConfig(asserts)
 	currentDirectory, err := os.Getwd()
 	asserts.NoError(err)
 
@@ -161,5 +138,21 @@ func TestRepeatedLogout(t *testing.T) {
 
 		outBuffer.Reset()
 	}
+	err = os.Remove("fakekubeconfig")
+	asserts.NoError(err)
+}
 
+func createFakeKubeConfig(asserts *assert.Assertions) {
+	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
+	asserts.NoError(err)
+	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
+	asserts.NoError(err)
+	fakeKubeConfig, err := os.Create("fakekubeconfig")
+	asserts.NoError(err)
+	_, err = io.Copy(fakeKubeConfig, originalKubeConfig)
+	asserts.NoError(err)
+	err = originalKubeConfig.Close()
+	asserts.NoError(err)
+	err = fakeKubeConfig.Close()
+	asserts.NoError(err)
 }
