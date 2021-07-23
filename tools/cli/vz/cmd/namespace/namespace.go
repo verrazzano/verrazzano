@@ -1,3 +1,6 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package namespace
 
 import (
@@ -26,7 +29,7 @@ func NewCmdNamespace(streams genericclioptions.IOStreams, kubernetesInterface he
 		// TODO : Description needs to be rewritten
 	}
 	cmd.AddCommand(NewCmdNamespaceCreate(streams, kubernetesInterface))
-	//cmd.AddCommand(NewCmdNamespaceList(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdNamespaceList(streams, kubernetesInterface))
 	cmd.AddCommand(NewCmdNamespaceMove(streams, kubernetesInterface))
 	cmd.AddCommand(NewCmdNamespaceDelete(streams, kubernetesInterface))
 	return cmd
