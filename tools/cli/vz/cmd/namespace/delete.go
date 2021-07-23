@@ -82,7 +82,6 @@ func deleteNamespace(streams genericclioptions.IOStreams, args []string, kuberne
 	}
 
 	// deleting namespace from kubernetes API incase it had no associated projects
-	// TODO : Check if project associated namesapces will throw an error
 	err = clientset.CoreV1().Namespaces().Delete(context.Background(), nsName, metav1.DeleteOptions{})
 	if err != nil {
 		fmt.Fprintln(streams.ErrOut, err)

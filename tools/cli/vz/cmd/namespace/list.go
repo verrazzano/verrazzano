@@ -65,7 +65,6 @@ func listNamespace(o *NamespaceListOptions, streams genericclioptions.IOStreams,
 			Version: "v1",
 			Kind:    "namespaces",
 		})
-		// TODO : how to find group?
 		printer, err := o.PrintFlags.ToPrinter()
 		if err != nil {
 			fmt.Fprintln(streams.ErrOut, "Did not get a printer object")

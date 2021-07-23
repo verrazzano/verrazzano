@@ -94,7 +94,7 @@ func moveNamespace(streams genericclioptions.IOStreams, args []string, kubernete
 		// updating the project.
 		srcProject, err = projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Update(context.Background(), srcProject, metav1.UpdateOptions{})
 		if err != nil {
-			//	fmt.Fprintln(streams.ErrOut, err)
+			fmt.Fprintln(streams.ErrOut, err)
 			return err
 		}
 	}
