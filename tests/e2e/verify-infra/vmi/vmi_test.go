@@ -86,19 +86,8 @@ var (
 	elasticPollingInterval = 5 * time.Second
 )
 
-var savedProfile v1alpha1.ProfileType
-
 var _ = BeforeSuite(func() {
 	var err error
-
-	Eventually(func() (*v1alpha1.ProfileType, error) {
-		var profile *v1alpha1.ProfileType
-		profile, err = pkg.GetVerrazzanoProfile()
-		if profile != nil {
-			savedProfile = *profile
-		}
-		return profile, err
-	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
 		vzCRD, err = verrazzanoInstallerCRD()
@@ -129,6 +118,18 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = Describe("VMI", func() {
+	var savedProfile v1alpha1.ProfileType
+	BeforeEach(func() {
+		Eventually(func() (*v1alpha1.ProfileType, error) {
+			var profile *v1alpha1.ProfileType
+			var err error
+			profile, err = pkg.GetVerrazzanoProfile()
+			if profile != nil {
+				savedProfile = *profile
+			}
+			return profile, err
+		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+	})
 
 	if savedProfile == v1alpha1.ManagedCluster {
 		It("Elasticsearch should NOT be present", func() {
