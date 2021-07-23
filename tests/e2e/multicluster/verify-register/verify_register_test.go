@@ -52,7 +52,8 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 		It("admin cluster has the expected VerrazzanoManagedCluster", func() {
 			var client *vmcClient.Clientset
 			Eventually(func() (*vmcClient.Clientset, error) {
-				client, err := pkg.GetVerrazzanoManagedClusterClientset()
+				var err error
+				client, err = pkg.GetVerrazzanoManagedClusterClientset()
 				return client, err
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 			Eventually(func() bool {
