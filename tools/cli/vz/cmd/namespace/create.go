@@ -42,7 +42,6 @@ func NewCmdNamespaceCreate(streams genericclioptions.IOStreams, kubernetesInterf
 			return nil
 		},
 	}
-	cmd.Flags().StringSliceVar(&description, "description", []string{}, "Description about the namespace")
 	cmd.Flags().StringSliceVarP(&projectName, "project-name", "p", []string{""}, "Name of project this namespace belongs to")
 	// checking if project-name flag is passed.
 	projectDeclared = cmd.Flags().Changed("project-name")
