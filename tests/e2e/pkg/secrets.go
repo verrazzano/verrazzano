@@ -35,7 +35,11 @@ func GetSecret(namespace string, name string) (*corev1.Secret, error) {
 func GetSecretInCluster(namespace string, name string, kubeconfigPath string) (*corev1.Secret, error) {
 	// Get the kubernetes clientset for the given cluster
 	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
-	return clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		Log(Info, fmt.Sprintf("GetSecretInCluster error: %s", err))
+	}
+	return secret, err
 }
 
 // CreateCredentialsSecret creates opaque secret

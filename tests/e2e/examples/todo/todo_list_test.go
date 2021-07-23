@@ -4,6 +4,7 @@
 package todo
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -99,18 +100,47 @@ func undeployToDoListExample() {
 		return pkg.DeleteNamespace("todo-list")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	pkg.Log(pkg.Info, "Deleted namespace check")
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace("todo-list")
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	// GIVEN the ToDoList app is undeployed
-	// WHEN the app config secret generated to support secure gateways is fetched
-	// THEN the secret should have been cleaned up
+	// WHEN the app config certificate generated to support secure gateways is fetched
+	// THEN the certificate should have been cleaned up
+	pkg.Log(pkg.Info, "Deleted certificate check")
 	Eventually(func() bool {
-		_, err := pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
+		_, err := pkg.GetCertificate("istio-system", "todo-list-todo-appconf-cert")
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+	// GIVEN the ToDoList app is undeployed
+	// WHEN the app config secret generated to support secure gateways is fetched
+	// THEN the secret should have been cleaned up
+	pkg.Log(pkg.Info, "Waiting for secret containing certificate to be deleted")
+	var secret *v1.Secret
+	var err error
+	for i := 0; i < 30; i++ {
+		secret, err = pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
+		if err != nil && errors.IsNotFound(err) {
+			pkg.Log(pkg.Info, "Secret deleted")
+			return
+		}
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error attempting to get secret: %v", err))
+		}
+		time.Sleep(shortPollingInterval)
+	}
+
+	pkg.Log(pkg.Error, "Secret could not be deleted. Secret data:")
+	if secret != nil {
+		if b, err := json.Marshal(secret); err == nil {
+			pkg.Log(pkg.Info, string(b))
+		}
+	}
+	pkg.ExecuteClusterDumpWithEnvVarConfig()
+	Fail("Unable to delete secret")
 }
 
 var _ = Describe("Verify ToDo List example application.", func() {
