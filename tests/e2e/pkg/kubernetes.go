@@ -13,30 +13,25 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/remotecommand"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
-
-	"k8s.io/api/authorization/v1beta1"
-	rbacv1 "k8s.io/api/rbac/v1"
-
-	"github.com/onsi/ginkgo"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/api/authorization/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
-
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/homedir"
 )
 
@@ -76,12 +71,10 @@ func GetKubeConfigPathFromEnv() string {
 
 	if len(kubeconfigEnvVar) > 0 {
 		kubeconfig = kubeconfigEnvVar
-	} else if home := homedir.HomeDir(); home != "" {
-		// next look for $HOME/.kube/config
-		kubeconfig = filepath.Join(home, ".kube", "config")
 	} else {
-		// give up
-		ginkgo.Fail("Could not find kube config")
+		// use $HOME/.kube/config
+		home := homedir.HomeDir()
+		kubeconfig = filepath.Join(home, ".kube", "config")
 	}
 	return kubeconfig
 }
