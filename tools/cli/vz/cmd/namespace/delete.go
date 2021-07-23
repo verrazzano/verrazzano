@@ -85,6 +85,6 @@ func deleteNamespace(streams genericclioptions.IOStreams, args []string, kuberne
 		return err
 	}
 
-	fmt.Fprintln(streams.Out, "namepspace "+`"`+nsName+`"`+" deleted")
+	fmt.Fprintln(streams.Out, "namespace "+`"`+nsName+`"`+" deleted")
 	return nil
 }
