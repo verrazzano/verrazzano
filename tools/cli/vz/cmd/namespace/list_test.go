@@ -32,7 +32,14 @@ func TestNewCmdNamespaceListOutput(t *testing.T) {
 	outBuffer.Reset()
 	errBuffer.Reset()
 
+	actual :=`NAME   STATE   PROJECT   AGE   
+ns1                      0s    
+ns2                      0s    
+ns3                      0s    
+ns4                      0s    
+
+`
 	// verify output
 	asserts.NoError(testCmd.Execute())
-	asserts.Equal(outBuffer.String(),"")
+	asserts.Equal(outBuffer.String(),actual)
 }

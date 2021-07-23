@@ -69,7 +69,7 @@ func TestNewCmdNamespaceCreateArguments(t *testing.T) {
 	// NewTestIOStreams returns a valid IOStreams and in, out, errout buffers for unit tests
 	streams, _, outBuffer, errBuffer := genericclioptions.NewTestIOStreams()
 	testCmd := NewCmdNamespaceCreate(streams, fakeKubernetes)
-	deleteCmd := NewCmdNamespaceDelete(streams, fakeKubernetes)
+
 
 	// Calling with no arguments should throw an error
 	asserts.EqualError(testCmd.Execute(), "accepts 1 arg(s), received 0")
@@ -81,16 +81,6 @@ func TestNewCmdNamespaceCreateArguments(t *testing.T) {
 		testCmd.SetArgs(ns)
 		asserts.EqualError(testCmd.Execute(), `accepts 1 arg(s), received `+strconv.Itoa(len(ns)))
 		errBuffer.Reset()
-	}
-
-	// Calling with 1 namespace should not throw an error
-	for _, n := range singleNs {
-		testCmd.SetArgs([]string{n})
-		asserts.NoError(testCmd.Execute())
-		asserts.Equal(outBuffer.String(), `namespace/`+n+" created\n")
-		deleteCmd.SetArgs([]string{n})
-		deleteCmd.Execute()
-		outBuffer.Reset()
 	}
 }
 
