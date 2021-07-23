@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/app"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/cluster"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/namespace"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/project"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
@@ -64,5 +65,6 @@ func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.AddCommand(project.NewCmdProject(streams, o))
 	cmd.AddCommand(cluster.NewCmdCluster(streams, o))
 	cmd.AddCommand(app.NewCmdApp(streams))
+	cmd.AddCommand(namespace.NewCmdNamespace(streams,o))
 	return cmd
 }
