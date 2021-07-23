@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	"go/token"
 	"os"
 	"strings"
 	"testing"
@@ -88,6 +89,10 @@ func TestParseFlags(t *testing.T) {
 // THEN the output contains the files and positions of the bad calls
 func TestDisplayResults(t *testing.T) {
 	assert := assert.New(t)
+
+	// clear the maps from previous analysis run
+	funcMap = make(map[string][]funcCall)
+	eventuallyMap = make(map[token.Pos][]funcCall)
 
 	fset, pkgs, err := loadPackages("./test")
 	if err != nil {
