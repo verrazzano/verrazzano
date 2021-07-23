@@ -80,33 +80,28 @@ func listNamespace(o *NamespaceListOptions, streams genericclioptions.IOStreams,
 	data := [][]string{}
 	for _, ns := range collection.Items {
 		var projectName string
-		isVzns := false
 		labels := ns.GetLabels()
+		// if namespace is a verrazzano namespace, display namespace
 		for s, s2 := range labels {
 			if s == "verrazzano-managed" && s2 == "true" {
-				isVzns = true
 				projectName = labels["verrazzano/projectName"]
+				rowData := []string{
+					ns.Name,
+					string(ns.Status.Phase),
+					projectName,
+					helpers.Age(ns.CreationTimestamp),
+				}
+				data = append(data, rowData)
 			}
-
-		}
-		// if namespace is an verrazzano namespace, display this namespace.
-		if isVzns {
-			rowData := []string{
-				ns.Name,
-				string(ns.Status.Phase),
-				projectName,
-				helpers.Age(ns.CreationTimestamp),
-			}
-			data = append(data, rowData)
 		}
 	}
-	if len(data)==0{
-		fmt.Fprintln(streams.Out,"no namespaces present")
+	if len(data) == 0 {
+		fmt.Fprintln(streams.Out, "no verrazzano namespaces exist")
 		return nil
-	}else{
+	} else {
 		err = helpers.PrintTable(headings, data, streams.Out)
 		if err != nil {
-			fmt.Fprintln(streams.ErrOut,err)
+			fmt.Fprintln(streams.ErrOut, err)
 			return err
 		}
 	}
