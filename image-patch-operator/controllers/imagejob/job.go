@@ -61,7 +61,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							},
 							{
 								Name:      "installers-storage",
-								MountPath: "/install",
+								MountPath: "/installers",
 								ReadOnly:  true,
 							},
 						},
@@ -126,7 +126,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 						{
 							Name: "installers-storage",
 							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "pv-claim"},
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "installers-storage-claim"},
 							},
 						},
 					},
