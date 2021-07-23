@@ -98,12 +98,12 @@ func listNamespace(o *NamespaceListOptions, streams genericclioptions.IOStreams,
 	if len(data) == 0 {
 		fmt.Fprintln(streams.Out, "no verrazzano namespaces exist")
 		return nil
-	} else {
-		err = helpers.PrintTable(headings, data, streams.Out)
-		if err != nil {
-			fmt.Fprintln(streams.ErrOut, err)
-			return err
-		}
 	}
+	err = helpers.PrintTable(headings, data, streams.Out)
+	if err != nil {
+		fmt.Fprintln(streams.ErrOut, err)
+		return err
+	}
+
 	return nil
 }
