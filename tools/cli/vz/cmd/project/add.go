@@ -42,6 +42,11 @@ func NewCmdProjectAdd(streams genericclioptions.IOStreams, kubernetesInterface h
 	}
 	cmd.Flags().StringSliceVarP(&projectNamespaces, "namespaces", "n", []string{}, "List of namespaces to include in the project")
 	cmd.Flags().StringSliceVarP(&projectPlacement, "placement", "p", []string{"local"}, "List of clusters this project will be placed in")
+	err := cmd.MarkFlagRequired("namespaces")
+	if err != nil {
+		fmt.Fprintln(streams.ErrOut, "namespace flag is mandatory")
+		return nil
+	}
 	return cmd
 }
 
@@ -50,10 +55,12 @@ func addProject(streams genericclioptions.IOStreams, args []string, kubernetesIn
 
 	// if no namespace was provided, default to a single namespace
 	// with the same name as the project itself
-	if len(projectNamespaces) == 0 {
+	/*if len(projectNamespaces) == 0 {
 		projectNamespaces = []string{projectName}
-	}
+	}*/
 
+	nsLabel := make(map[string]string)
+	nsLabel["verrazzano/projectName"] = projectName
 	// prepare the project resource
 	project := v1alpha1.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
@@ -67,7 +74,9 @@ func addProject(streams genericclioptions.IOStreams, args []string, kubernetesIn
 					for _, v := range projectNamespaces {
 						namespaces = append(namespaces, v1alpha1.NamespaceTemplate{
 							Metadata: metav1.ObjectMeta{
-								Name: v,
+								Name:              v,
+								CreationTimestamp: metav1.Now(),
+								Labels:            nsLabel,
 							},
 						})
 					}
