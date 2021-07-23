@@ -28,7 +28,7 @@ func NewNamespaceCreateOptions(streams genericclioptions.IOStreams) *NamespaceCr
 
 func NewCmdNamespaceCreate(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create namespace",
+		Use:   "create NAMESPACE",
 		Short: "Create a namespace",
 		Long:  "Create a namespace",
 		Args:  cobra.ExactArgs(1),
