@@ -52,11 +52,11 @@ func (o *TestKubernetes) NewVerrazzanoClientSet() (verrazzanoclientset.Interface
 }
 
 // Fake config with fake Host address
-func (o *TestKubernetes) GetKubeConfig() *rest.Config {
+func (o *TestKubernetes) GetKubeConfig() (*rest.Config, error) {
 	config := &rest.Config{
 		Host: "https://1.2.3.4:1234",
 	}
-	return config
+	return config, nil
 }
 
 func (o *TestKubernetes) NewClustersClientSet() (clustersclientset.Interface, error) {
@@ -67,8 +67,8 @@ func (o *TestKubernetes) NewProjectClientSet() (projectclientset.Interface, erro
 	return o.fakeProjectClient, nil
 }
 
-func (o *TestKubernetes) NewClientSet() kubernetes.Interface {
-	return o.fakek8sClient
+func (o *TestKubernetes) NewClientSet() (kubernetes.Interface, error) {
+	return o.fakek8sClient, nil
 }
 
 // Unit test for verifying CmdProjectAdd takes only 1 argument
@@ -153,7 +153,7 @@ func TestNewCmdProjectAdd_Duplicates(t *testing.T) {
 		testCmd.SetArgs([]string{argument})
 		err := testCmd.Execute()
 		asserts.Error(err)
-		asserts.Equal(fmt.Sprintf("verrazzanoprojects.clusters \"%s\" already exists\n", argument), errBuffer.String())
+		asserts.Equal(fmt.Sprintf("verrazzanoprojects.clusters.verrazzano.io \"%s\" already exists\n", argument), errBuffer.String())
 		errBuffer.Reset()
 	}
 }
