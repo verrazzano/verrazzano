@@ -10,32 +10,41 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = Describe("VMI urls test", func() {
-	const (
-		waitTimeout     = 5 * time.Minute
-		pollingInterval = 5 * time.Second
-	)
+var savedProfile v1alpha1.ProfileType
 
+const (
+	waitTimeout     = 5 * time.Minute
+	pollingInterval = 5 * time.Second
+)
+
+var _ = BeforeSuite(func() {
+	Eventually(func() (*v1alpha1.ProfileType, error) {
+		var profile *v1alpha1.ProfileType
+		var err error
+		profile, err = pkg.GetVerrazzanoProfile()
+		if profile != nil {
+			savedProfile = *profile
+		}
+		return profile, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+})
+
+var _ = Describe("VMI urls test", func() {
 	Context("Fetching the system vmi using api and test urls", func() {
 		var isEsEnabled = false
 		var isKibanaEnabled = false
 		var isPrometheusEnabled = false
 		var isGrafanaEnabled = false
 
-		profile, err := pkg.GetVerrazzanoProfile()
-		It("Get the Verrazzano install profile", func() {
-			Expect(err).To(BeNil())
-		})
 		It("Fetches VMI", func() {
-			if *profile != v1alpha1.ManagedCluster {
+			if savedProfile != v1alpha1.ManagedCluster {
 				Eventually(func() bool {
 					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 					if err != nil {
@@ -68,7 +77,7 @@ var _ = Describe("VMI urls test", func() {
 		})
 
 		It("Accesses VMI endpoints", func() {
-			if *profile != v1alpha1.ManagedCluster {
+			if savedProfile != v1alpha1.ManagedCluster {
 				var api *pkg.APIEndpoint
 				Eventually(func() (*pkg.APIEndpoint, error) {
 					var err error

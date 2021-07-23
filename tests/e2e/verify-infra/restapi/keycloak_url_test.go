@@ -6,7 +6,6 @@ package restapi_test
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,16 +14,9 @@ import (
 )
 
 var _ = Describe("keycloak url test", func() {
-	const (
-		waitTimeout     = 5 * time.Minute
-		pollingInterval = 5 * time.Second
-	)
-
 	Context("Fetching the keycloak url using api and test ", func() {
 		It("Fetches keycloak url", func() {
-			profile, err := pkg.GetVerrazzanoProfile()
-			Expect(err).To(BeNil())
-			if *profile != v1alpha1.ManagedCluster {
+			if savedProfile != v1alpha1.ManagedCluster {
 				var keycloakURL string
 				Eventually(func() error {
 					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())

@@ -86,8 +86,19 @@ var (
 	elasticPollingInterval = 5 * time.Second
 )
 
+var savedProfile v1alpha1.ProfileType
+
 var _ = BeforeSuite(func() {
 	var err error
+
+	Eventually(func() (*v1alpha1.ProfileType, error) {
+		var profile *v1alpha1.ProfileType
+		profile, err = pkg.GetVerrazzanoProfile()
+		if profile != nil {
+			savedProfile = *profile
+		}
+		return profile, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
 		vzCRD, err = verrazzanoInstallerCRD()
@@ -119,11 +130,7 @@ var _ = BeforeSuite(func() {
 
 var _ = Describe("VMI", func() {
 
-	profile, err := pkg.GetVerrazzanoProfile()
-	It("Get the Verrazzano install profile", func() {
-		Expect(err).To(BeNil())
-	})
-	if *profile == v1alpha1.ManagedCluster {
+	if savedProfile == v1alpha1.ManagedCluster {
 		It("Elasticsearch should NOT be present", func() {
 			// Verify ES not present
 			Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})).To(BeTrue())
@@ -235,22 +242,22 @@ var _ = Describe("VMI", func() {
 	}
 
 	It("Verify the instance info endpoint URLs", func() {
-		if *profile != v1alpha1.ManagedCluster {
+		if savedProfile != v1alpha1.ManagedCluster {
 			assertInstanceInfoURLs()
 		}
 	})
 
 	size := "50Gi"
-	if *profile == v1alpha1.Dev {
+	if savedProfile == v1alpha1.Dev {
 		It("Check persistent volumes for dev profile", func() {
 			Expect(len(volumeClaims)).To(Equal(0))
 		})
-	} else if *profile == v1alpha1.ManagedCluster {
+	} else if savedProfile == v1alpha1.ManagedCluster {
 		It("Check persistent volumes for managed cluster profile", func() {
 			Expect(len(volumeClaims)).To(Equal(1))
 			assertPersistentVolume("vmi-system-prometheus", size)
 		})
-	} else if *profile == v1alpha1.Prod {
+	} else if savedProfile == v1alpha1.Prod {
 		It("Check persistent volumes for prod cluster profile", func() {
 			Expect(len(volumeClaims)).To(Equal(7))
 			assertPersistentVolume("vmi-system-prometheus", size)
