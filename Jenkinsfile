@@ -602,7 +602,7 @@ def qualityCheck() {
     sh """
         echo "run all linters"
         cd ${GO_REPO_PATH}/verrazzano
-        make check
+        make check check-tests
 
         echo "copyright scan"
         time make copyright-check
