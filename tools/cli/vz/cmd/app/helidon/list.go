@@ -53,7 +53,7 @@ func listHelidonApplications(cmd *cobra.Command, args []string) error {
 	// connect to the server
 	config, err := helpers.GetKubeConfig()
 	if err != nil {
-		return nil
+		return err
 	}
 	oamclientset, err := v1alpha1.NewForConfig(config)
 	if err != nil {
