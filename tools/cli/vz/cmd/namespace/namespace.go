@@ -27,7 +27,7 @@ func NewCmdNamespace(streams genericclioptions.IOStreams, kubernetesInterface he
 	}
 	cmd.AddCommand(NewCmdNamespaceCreate(streams, kubernetesInterface))
 	//cmd.AddCommand(NewCmdNamespaceList(streams, kubernetesInterface))
-	//cmd.AddCommand(NewCmdNamespaceMove(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdNamespaceMove(streams, kubernetesInterface))
 	cmd.AddCommand(NewCmdNamespaceDelete(streams, kubernetesInterface))
 	return cmd
 }
