@@ -23,15 +23,15 @@ type RootOptions struct {
 	genericclioptions.IOStreams
 }
 
-func (c *RootOptions) GetKubeConfig() (*rest.Config,error) {
+func (c *RootOptions) GetKubeConfig() (*rest.Config, error) {
 	return helpers.GetKubeConfig()
 }
 
 func (c *RootOptions) NewClustersClientSet() (clustersclientset.Interface, error) {
 	var client clustersclientset.Interface
-	kubeConfig,err := c.GetKubeConfig()
-	if err!= nil {
-		return client,err
+	kubeConfig, err := c.GetKubeConfig()
+	if err != nil {
+		return client, err
 	}
 	client, err = clustersclientset.NewForConfig(kubeConfig)
 	return client, err
@@ -39,9 +39,9 @@ func (c *RootOptions) NewClustersClientSet() (clustersclientset.Interface, error
 
 func (c *RootOptions) NewProjectClientSet() (projectclientset.Interface, error) {
 	var client projectclientset.Interface
-	kubeConfig,err := c.GetKubeConfig()
-	if err!=nil {
-		return client,err
+	kubeConfig, err := c.GetKubeConfig()
+	if err != nil {
+		return client, err
 	}
 	client, err = projectclientset.NewForConfig(kubeConfig)
 	return client, err
@@ -49,15 +49,15 @@ func (c *RootOptions) NewProjectClientSet() (projectclientset.Interface, error) 
 
 func (c *RootOptions) NewVerrazzanoClientSet() (verrazzanoclientset.Interface, error) {
 	var client verrazzanoclientset.Interface
-	kubeConfig,err := c.GetKubeConfig()
-	if err!=nil {
-		return client,err
+	kubeConfig, err := c.GetKubeConfig()
+	if err != nil {
+		return client, err
 	}
 	client, err = verrazzanoclientset.NewForConfig(kubeConfig)
 	return client, err
 }
 
-func (c *RootOptions) NewClientSet() (kubernetes.Interface,error) {
+func (c *RootOptions) NewClientSet() (kubernetes.Interface, error) {
 	return helpers.GetKubernetesClientset()
 }
 
