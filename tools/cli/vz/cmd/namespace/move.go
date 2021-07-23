@@ -68,7 +68,7 @@ func moveNamespace(streams genericclioptions.IOStreams, args []string, kubernete
 	namespace.SetLabels(nsLabels)
 
 	// if namespace is already existing in a vz project
-	if nsLabels["verrazzano/projectName"] != "" {
+	if nsLabels["verrazzano/projectName"]!="" {
 		srcProjectName := nsLabels["verrazzano/projectName"]
 		// remove namespace from srcProject
 		srcProject, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Get(context.Background(), srcProjectName, metav1.GetOptions{})
@@ -89,9 +89,9 @@ func moveNamespace(streams genericclioptions.IOStreams, args []string, kubernete
 		srcProject.Spec.Template.Namespaces = append(srcProject.Spec.Template.Namespaces[:delIndex], srcProject.Spec.Template.Namespaces[delIndex+1:]...)
 
 		// updating the project.
-		_, err = projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Update(context.Background(), srcProject, metav1.UpdateOptions{})
+		srcProject, err = projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Update(context.Background(), srcProject, metav1.UpdateOptions{})
 		if err != nil {
-			fmt.Fprintln(streams.ErrOut, err)
+		//	fmt.Fprintln(streams.ErrOut, err)
 			return err
 		}
 	}
