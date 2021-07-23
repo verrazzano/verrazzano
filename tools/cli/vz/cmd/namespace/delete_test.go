@@ -14,7 +14,6 @@ import (
 
 // unit test for checking arguments
 // unit test for deleting non-existent namespaces
-// unit test for ensuring namespace is deleted i.e by calling namespace command repeatedly.
 
 func TestNewCmdNamespaceDeleteArgument(t *testing.T) {
 	asserts := assert.New(t)
@@ -49,5 +48,25 @@ func TestNewCmdNamespaceDeleteArgument(t *testing.T) {
 		asserts.NoError(testCmd.Execute())
 		asserts.Equal(outBuffer.String(), `namespace "`+n+`"`+" deleted\n")
 		outBuffer.Reset()
+	}
+}
+
+func TestNewCmdNamespaceDeleteDNE(t *testing.T) {
+	asserts := assert.New(t)
+	fakeKubernetes := &TestKubernetes{
+		fakeProjectClient: fake.NewSimpleClientset(),
+		fakek8sClient:     k8sfake.NewSimpleClientset(),
+	}
+
+	// NewTestIOStreams returns a valid IOStreams and in, out, errout buffers for unit tests
+	streams, _, _, errBuffer := genericclioptions.NewTestIOStreams()
+	testCmd := NewCmdNamespaceDelete(streams, fakeKubernetes)
+
+	// Calling with 1 namespace should not throw an error
+	for _, n := range singleNs {
+		testCmd.SetArgs([]string{n})
+		asserts.Error(testCmd.Execute())
+		asserts.Equal(errBuffer.String(), `namespaces "`+n+`"`+" not found\n")
+		errBuffer.Reset()
 	}
 }
