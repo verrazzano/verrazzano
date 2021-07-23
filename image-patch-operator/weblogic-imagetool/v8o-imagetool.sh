@@ -11,9 +11,9 @@ cat /registry-creds/password | podman login $(cat /registry-creds/registry) --us
 
 # Add installers to the imagetool cache
 export WLSIMG_CACHEDIR="/home/verrazzano/cache"
-./imagetool/bin/imagetool.sh cache addInstaller --type wls --version ${WEBLOGIC_INSTALLER_VERSION} --path ./installers/${WEBLOGIC_INSTALLER_BINARY}
-./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version ${JDK_INSTALLER_VERSION} --path ./installers/${JDK_INSTALLER_BINARY}
-./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version ${WDT_INSTALLER_VERSION} --path ./installers/${WDT_INSTALLER_BINARY}
+./imagetool/bin/imagetool.sh cache addInstaller --type wls --version ${WEBLOGIC_INSTALLER_VERSION} --path /installers/${WEBLOGIC_INSTALLER_BINARY}
+./imagetool/bin/imagetool.sh cache addInstaller --type jdk --version ${JDK_INSTALLER_VERSION} --path /installers/${JDK_INSTALLER_BINARY}
+./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version ${WDT_INSTALLER_VERSION} --path /installers/${WDT_INSTALLER_BINARY}
 
 # Create the image
 ./imagetool/bin/imagetool.sh create --tag ${IMAGE_NAME}:${IMAGE_TAG} --builder podman --jdkVersion ${JDK_INSTALLER_VERSION} --version ${WEBLOGIC_INSTALLER_VERSION}

@@ -62,12 +62,12 @@ COPY --from=build_base --chown=verrazzano:verrazzano /imagetool ./imagetool
 COPY --chown=verrazzano:verrazzano ./v8o-imagetool.sh .
 RUN chmod +x ./v8o-imagetool.sh
 
-# Copy over installers
-COPY --chown=verrazzano:verrazzano \
-    ./installers/${JDK_INSTALLER_BINARY} \
-    ./installers/${WEBLOGIC_INSTALLER_BINARY} \
-    ./installers/${WDT_INSTALLER_BINARY} \
-    ./installers/
+## Copy over installers
+#COPY --chown=verrazzano:verrazzano \
+#    ./installers/${JDK_INSTALLER_BINARY} \
+#    ./installers/${WEBLOGIC_INSTALLER_BINARY} \
+#    ./installers/${WDT_INSTALLER_BINARY} \
+#    ./installers/
 
 COPY THIRD_PARTY_LICENSES.txt /licenses/
 
