@@ -16,8 +16,10 @@ import (
 )
 
 const (
-	longPollingInterval = 20 * time.Second
-	longWaitTimeout     = 10 * time.Minute
+	longPollingInterval  = 20 * time.Second
+	longWaitTimeout      = 10 * time.Minute
+	shortPollingInterval = 10 * time.Second
+	shortWaitTimeout     = 5 * time.Minute
 
 	// Constants for sample metrics of system components validated by the test
 	ingressControllerSuccess       = "nginx_ingress_controller_success"
@@ -78,10 +80,15 @@ var excludePodsIstio = []string{
 }
 
 var _ = BeforeSuite(func() {
+	var profile *v1alpha1.ProfileType
+	Eventually(func() (*v1alpha1.ProfileType, error) {
+		var err error
+		profile, err = pkg.GetVerrazzanoProfile()
+		return profile, err
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
 	present := false
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
-	profile, err := pkg.GetVerrazzanoProfile()
-	Expect(err).To(BeNil())
 	if *profile == v1alpha1.ManagedCluster {
 		if !present {
 			Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
