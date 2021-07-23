@@ -12,8 +12,8 @@ import (
 	"testing"
 )
 
-var projectNs = []string{"project1","project2","project3"}
-var moveData = [][]string{{"ns1","project2"},{"ns2","project3"},{"ns3","project1"}}
+var projectNs = []string{"project1", "project2", "project3"}
+var moveData = [][]string{{"ns1", "project2"}, {"ns2", "project3"}, {"ns3", "project1"}}
 
 // Unit test for moving a verrazzano namespace to a project
 func TestNewCmdNamespaceMoveDefault(t *testing.T) {
@@ -24,10 +24,10 @@ func TestNewCmdNamespaceMoveDefault(t *testing.T) {
 	}
 
 	// NewTestIOStreams returns a valid IOStreams and in, out, errout buffers for unit tests
-	streams, _, outBuffer, _:= genericclioptions.NewTestIOStreams()
+	streams, _, outBuffer, _ := genericclioptions.NewTestIOStreams()
 	testCmd := NewCmdNamespaceMove(streams, fakeKubernetes)
-	createCmd := NewCmdNamespaceCreate(streams,fakeKubernetes)
-	projectaddCmd := project.NewCmdProjectAdd(streams,fakeKubernetes)
+	createCmd := NewCmdNamespaceCreate(streams, fakeKubernetes)
+	projectaddCmd := project.NewCmdProjectAdd(streams, fakeKubernetes)
 
 	for _, ns := range singleNs {
 		createCmd.SetArgs([]string{ns})
@@ -44,9 +44,9 @@ func TestNewCmdNamespaceMoveDefault(t *testing.T) {
 		testCmd.SetArgs(args)
 		asserts.NoError(testCmd.Execute())
 	}
-	actual :=`"ns1" namespace moved to "project2" project
+	actual := `"ns1" namespace moved to "project2" project
 "ns2" namespace moved to "project3" project
 "ns3" namespace moved to "project1" project
 `
-	asserts.Equal(outBuffer.String(),actual)
+	asserts.Equal(outBuffer.String(), actual)
 }
