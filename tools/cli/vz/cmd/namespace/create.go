@@ -15,7 +15,6 @@ import (
 )
 
 var projectName []string
-var description []string
 var projectDeclared bool
 
 type NamespaceCreateOptions struct {
@@ -57,6 +56,10 @@ func createNamespace(streams genericclioptions.IOStreams, args []string, kuberne
 	// if project flag is passed
 	if projectDeclared {
 		projectClientset, err := kubernetesInterface.NewProjectClientSet()
+		if err != nil {
+			fmt.Fprintln(streams.ErrOut, err)
+			return err
+		}
 		project, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Get(context.Background(), projectName[0], metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintln(streams.ErrOut, err)

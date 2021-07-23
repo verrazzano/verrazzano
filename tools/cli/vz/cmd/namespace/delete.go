@@ -50,6 +50,10 @@ func deleteNamespace(streams genericclioptions.IOStreams, args []string, kuberne
 	}
 
 	projects, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		fmt.Fprintln(streams.ErrOut, err)
+		return err
+	}
 	for _, project := range projects.Items {
 		for i, namespace := range project.Spec.Template.Namespaces {
 			if namespace.Metadata.Name == nsName {
