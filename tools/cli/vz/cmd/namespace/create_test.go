@@ -93,3 +93,29 @@ func TestNewCmdNamespaceCreateArguments(t *testing.T) {
 		outBuffer.Reset()
 	}
 }
+
+func TestNewCmdNamespaceCreateDuplicate(t *testing.T) {
+	asserts := assert.New(t)
+	fakeKubernetes := &TestKubernetes{
+		fakeProjectClient: fake.NewSimpleClientset(),
+		fakek8sClient:     k8sfake.NewSimpleClientset(),
+	}
+	// NewTestIOStreams returns a valid IOStreams and in, out, errout buffers for unit tests
+	streams, _, outBuffer, errBuffer := genericclioptions.NewTestIOStreams()
+	testCmd := NewCmdNamespaceCreate(streams, fakeKubernetes)
+
+	// Calling with 1 namespace should not throw an error
+	for _, n := range singleNs {
+		testCmd.SetArgs([]string{n})
+		asserts.NoError(testCmd.Execute())
+		asserts.Equal(outBuffer.String(), `namespace/`+n+" created\n")
+		outBuffer.Reset()
+	}
+	// Creating namespaces again should throw an error
+	for _, n := range singleNs {
+		testCmd.SetArgs([]string{n})
+		asserts.Error(testCmd.Execute())
+		asserts.Equal(errBuffer.String(), `namespaces "`+n+`"`+" already exists\n")
+		errBuffer.Reset()
+	}
+}
