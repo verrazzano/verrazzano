@@ -64,7 +64,10 @@ func moveNamespace(streams genericclioptions.IOStreams, args []string, kubernete
 
 	// making namespace a verrazzano namespace
 	nsLabels := namespace.GetLabels()
-	nsLabels["verrazzano-managed"] = "true"
+	if len(nsLabels)==0{
+		nsLabels = make(map[string]string)
+	}
+		nsLabels["verrazzano-managed"] = "true"
 	namespace.SetLabels(nsLabels)
 
 	// if namespace is already existing in a vz project
@@ -113,6 +116,6 @@ func moveNamespace(streams genericclioptions.IOStreams, args []string, kubernete
 		fmt.Fprintln(streams.ErrOut, err)
 		return err
 	}
-
+	fmt.Fprintln(streams.Out,`"`+nsName+`" namespace moved to "`+destProject.GetName()+`" project`)
 	return nil
 }
