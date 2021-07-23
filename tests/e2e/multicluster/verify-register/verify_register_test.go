@@ -55,7 +55,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 				var err error
 				client, err = pkg.GetVerrazzanoManagedClusterClientset()
 				return client, err
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			Eventually(func() bool {
 				vmc, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
 				return err == nil &&
