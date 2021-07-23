@@ -9,5 +9,5 @@ spec:
     - ReadOnlyMany
   resources:
     requests:
-      storage: 3Gi
-  storageClassName: local-storage
+      storage: {{ .Values.persistentVolumeClaim.storage }}
+  storageClassName: {{ .Values.persistentVolumeClaim.storageClassName }}

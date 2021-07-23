@@ -16,6 +16,14 @@ weblogicDeployTool:
   binary: weblogic-deploy.zip
   version: latest
 
+persistentVolume:
+  storage: 5Gi
+  storageClassName: local-storage
+
+persistentVolumeClaim:
+  storage: 3Gi
+  storageClassName: local-storage
+
 global:
   imagePullSecrets: []
 

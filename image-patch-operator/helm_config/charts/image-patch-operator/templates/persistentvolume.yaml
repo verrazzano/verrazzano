@@ -8,9 +8,9 @@ metadata:
     type: local
 spec:
   capacity:
-    storage: 5Gi
+    storage: {{ .Values.persistentVolume.storage }}
   accessModes:
     - ReadOnlyMany
-  storageClassName: local-storage
+  storageClassName: {{ .Values.persistentVolume.storageClassName }}
   hostPath:
     path: /installers
