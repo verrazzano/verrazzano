@@ -12,10 +12,8 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
-	"strconv"
-
-	//"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
+	"strconv"
 	"testing"
 )
 
