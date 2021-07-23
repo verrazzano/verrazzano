@@ -70,7 +70,6 @@ func TestNewCmdNamespaceCreateArguments(t *testing.T) {
 	streams, _, outBuffer, errBuffer := genericclioptions.NewTestIOStreams()
 	testCmd := NewCmdNamespaceCreate(streams, fakeKubernetes)
 
-
 	// Calling with no arguments should throw an error
 	asserts.EqualError(testCmd.Execute(), "accepts 1 arg(s), received 0")
 	outBuffer.Reset()

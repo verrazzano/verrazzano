@@ -64,14 +64,14 @@ func moveNamespace(streams genericclioptions.IOStreams, args []string, kubernete
 
 	// making namespace a verrazzano namespace
 	nsLabels := namespace.GetLabels()
-	if len(nsLabels)==0{
+	if len(nsLabels) == 0 {
 		nsLabels = make(map[string]string)
 	}
-		nsLabels["verrazzano-managed"] = "true"
+	nsLabels["verrazzano-managed"] = "true"
 	namespace.SetLabels(nsLabels)
 
 	// if namespace is already existing in a vz project
-	if nsLabels["verrazzano/projectName"]!="" {
+	if nsLabels["verrazzano/projectName"] != "" {
 		srcProjectName := nsLabels["verrazzano/projectName"]
 		// remove namespace from srcProject
 		srcProject, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Get(context.Background(), srcProjectName, metav1.GetOptions{})
@@ -94,7 +94,7 @@ func moveNamespace(streams genericclioptions.IOStreams, args []string, kubernete
 		// updating the project.
 		srcProject, err = projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Update(context.Background(), srcProject, metav1.UpdateOptions{})
 		if err != nil {
-		//	fmt.Fprintln(streams.ErrOut, err)
+			//	fmt.Fprintln(streams.ErrOut, err)
 			return err
 		}
 	}
@@ -116,6 +116,6 @@ func moveNamespace(streams genericclioptions.IOStreams, args []string, kubernete
 		fmt.Fprintln(streams.ErrOut, err)
 		return err
 	}
-	fmt.Fprintln(streams.Out,`"`+nsName+`" namespace moved to "`+destProject.GetName()+`" project`)
+	fmt.Fprintln(streams.Out, `"`+nsName+`" namespace moved to "`+destProject.GetName()+`" project`)
 	return nil
 }
