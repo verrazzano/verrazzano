@@ -75,7 +75,6 @@ func listMembers(o *ProjectListMembersOptions, streams genericclioptions.IOStrea
 
 	if len(data) == 0 {
 		fmt.Fprintln(streams.Out, "no members present")
-		return nil
 	} else {
 		err = helpers.PrintTable(headings, data, streams.Out)
 		if err != nil {
