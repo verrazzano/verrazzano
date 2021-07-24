@@ -28,7 +28,7 @@ func NewProjectAddMemberRoleOptions(streams genericclioptions.IOStreams) *Projec
 
 func NewCmdProjectAddMemberRole(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add-member-role -p PROJECT SUBJECT MEMBER-ROLE",
+		Use:   "add-member-role -p PROJECT MEMBER MEMBER-ROLE",
 		Short: "Add a member role to a project",
 		Long:  "Add a member role to a project",
 		Args:  cobra.ExactArgs(2),
@@ -46,14 +46,13 @@ func NewCmdProjectAddMemberRole(streams genericclioptions.IOStreams, kubernetesI
 }
 
 func addMemberRole(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
-	subjectName := args[0]
+	mName := args[0]
 	mrole := args[1]
 	projectClientset, err := kubernetesInterface.NewProjectClientSet()
 	if err != nil {
 		fmt.Fprintln(streams.ErrOut, err)
 		return err
 	}
-	// TODO : Clause for checking member role exists
 
 	project, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Get(context.Background(), projectName[0], metav1.GetOptions{})
 	if err != nil {
@@ -63,7 +62,7 @@ func addMemberRole(streams genericclioptions.IOStreams, args []string, kubernete
 
 	newSubject := v1.Subject{
 		Kind: "User",
-		Name: subjectName,
+		Name: mName,
 	}
 	if mrole == "verrazzano-project-admin" {
 		project.Spec.Template.Security.ProjectAdminSubjects = append(project.Spec.Template.Security.ProjectAdminSubjects, newSubject)
