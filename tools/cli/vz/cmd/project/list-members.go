@@ -15,20 +15,18 @@ import (
 type ProjectListMembersOptions struct {
 	args []string
 	genericclioptions.IOStreams
-	PrintFlags *helpers.PrintFlags
 }
 
 func NewProjectListMembersOptions(streams genericclioptions.IOStreams) *ProjectListMembersOptions {
 	return &ProjectListMembersOptions{
-		IOStreams:  streams,
-		PrintFlags: helpers.NewGetPrintFlags(),
+		IOStreams: streams,
 	}
 }
 
 func NewCmdProjectListMembers(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	o := NewProjectListMembersOptions(streams)
 	cmd := &cobra.Command{
-		Use:   "list-members",
+		Use:   "list-members -p PROJECT",
 		Short: "list current members of the project",
 		Long:  "list current members of the project",
 		Args:  cobra.ExactArgs(1),
@@ -39,25 +37,22 @@ func NewCmdProjectListMembers(streams genericclioptions.IOStreams, kubernetesInt
 			return nil
 		},
 	}
-	o.PrintFlags.AddFlags(cmd)
+	cmd.Flags().StringSliceVarP(&projectName, "project name", "p", []string{}, "project to add member-role")
+	cmd.MarkFlagRequired("project name")
 	return cmd
 }
 
 func listMembers(o *ProjectListMembersOptions, streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
-	projectName := args[0]
 	projectClientset, err := kubernetesInterface.NewProjectClientSet()
 	if err != nil {
 		fmt.Fprintln(streams.ErrOut, err)
 		return err
 	}
-	project, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Get(context.Background(), projectName, metav1.GetOptions{})
+	project, err := projectClientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Get(context.Background(), projectName[0], metav1.GetOptions{})
 	if err != nil {
 		fmt.Fprintln(streams.ErrOut, err)
 		return err
 	}
-
-	// TODO : Logic for handling output flags
-	// which group, version & kind are they?
 
 	headings := []string{"NAME", "ROLE", "KIND"}
 	data := [][]string{}
@@ -66,7 +61,6 @@ func listMembers(o *ProjectListMembersOptions, streams genericclioptions.IOStrea
 			mSubject.Name,
 			"ClusterRole/verrazzano-project-monitor",
 			mSubject.Kind,
-			// TODO : Look how to get the age here.
 		}
 		data = append(data, rowData)
 	}
@@ -77,19 +71,17 @@ func listMembers(o *ProjectListMembersOptions, streams genericclioptions.IOStrea
 			aSubject.Kind,
 		}
 		data = append(data, rowData)
-		// TODO : Look how to get the age here.
 	}
 
-	if len(data)==0{
-		fmt.Fprintln(streams.Out,"no members present")
+	if len(data) == 0 {
+		fmt.Fprintln(streams.Out, "no members present")
 		return nil
-	}else{
+	} else {
 		err = helpers.PrintTable(headings, data, streams.Out)
 		if err != nil {
-			fmt.Fprintln(streams.ErrOut,err)
+			fmt.Fprintln(streams.ErrOut, err)
 			return err
 		}
 	}
-
 	return nil
 }

@@ -73,13 +73,12 @@ func deleteMemberRole(streams genericclioptions.IOStreams, args []string, kubern
 		}
 	}
 
-
 	if isfound == -1 {
 		fmt.Fprintln(streams.ErrOut, errors.New("ProjectMonitorSubject not found"))
 	} else {
-		if isfound == 1{
+		if isfound == 1 {
 			project.Spec.Template.Security.ProjectMonitorSubjects = append(project.Spec.Template.Security.ProjectMonitorSubjects[:index], project.Spec.Template.Security.ProjectMonitorSubjects[index+1:]...)
-		}else{
+		} else {
 			project.Spec.Template.Security.ProjectAdminSubjects = append(project.Spec.Template.Security.ProjectAdminSubjects[:index], project.Spec.Template.Security.ProjectAdminSubjects[index+1:]...)
 		}
 
