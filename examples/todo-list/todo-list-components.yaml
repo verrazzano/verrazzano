@@ -18,7 +18,7 @@ spec:
         spec:
           domainUID: tododomain
           domainHome: /u01/domains/tododomain
-          image: ghcr.io/verrazzano/example-todo:20210724100824-0b6f764
+          image: container-registry.oracle.com/verrazzano/example-todo:0.1.12-1-20210624160519-017d358
           imagePullSecrets:
             - name: tododomain-repo-credentials
           domainHomeSourceType: "FromModel"
