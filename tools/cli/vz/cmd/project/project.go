@@ -30,5 +30,6 @@ func NewCmdProject(streams genericclioptions.IOStreams, kubernetesInterface help
 	cmd.AddCommand(NewCmdProjectAdd(streams, kubernetesInterface))
 	cmd.AddCommand(NewCmdProjectDelete(streams, kubernetesInterface))
 	cmd.AddCommand(NewCmdProjectGet(streams, kubernetesInterface))
+	cmd.AddCommand(NewCmdProjectListRoles(streams, kubernetesInterface))
 	return cmd
 }
