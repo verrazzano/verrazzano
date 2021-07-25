@@ -16,7 +16,7 @@ import (
 var _ = Describe("keycloak url test", func() {
 	Context("Fetching the keycloak url using api and test ", func() {
 		It("Fetches keycloak url", func() {
-			if savedProfile != v1alpha1.ManagedCluster {
+			if profile != v1alpha1.ManagedCluster {
 				var keycloakURL string
 				Eventually(func() error {
 					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())

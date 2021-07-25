@@ -17,7 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var savedProfile v1alpha1.ProfileType
+var profile v1alpha1.ProfileType
 
 const (
 	waitTimeout     = 5 * time.Minute
@@ -25,13 +25,10 @@ const (
 )
 
 var _ = BeforeSuite(func() {
-	Eventually(func() (*v1alpha1.ProfileType, error) {
-		var profile *v1alpha1.ProfileType
+	Eventually(func() (v1alpha1.ProfileType, error) {
+		var profile v1alpha1.ProfileType
 		var err error
 		profile, err = pkg.GetVerrazzanoProfile()
-		if profile != nil {
-			savedProfile = *profile
-		}
 		return profile, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 })
@@ -44,7 +41,7 @@ var _ = Describe("VMI urls test", func() {
 		var isGrafanaEnabled = false
 
 		It("Fetches VMI", func() {
-			if savedProfile != v1alpha1.ManagedCluster {
+			if profile != v1alpha1.ManagedCluster {
 				Eventually(func() bool {
 					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 					if err != nil {
@@ -77,7 +74,7 @@ var _ = Describe("VMI urls test", func() {
 		})
 
 		It("Accesses VMI endpoints", func() {
-			if savedProfile != v1alpha1.ManagedCluster {
+			if profile != v1alpha1.ManagedCluster {
 				var api *pkg.APIEndpoint
 				Eventually(func() (*pkg.APIEndpoint, error) {
 					var err error

@@ -292,12 +292,12 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 }
 
 // GetVerrazzanoProfile returns the profile specified in the verrazzano install resource
-func GetVerrazzanoProfile() (*v1alpha1.ProfileType, error) {
+func GetVerrazzanoProfile() (v1alpha1.ProfileType, error) {
 	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
 	if err != nil {
-		return nil, err
+		return v1alpha1.Prod, err
 	}
-	return &vz.Spec.Profile, nil
+	return vz.Spec.Profile, nil
 }
 
 // GetACMEEnvironment returns true if

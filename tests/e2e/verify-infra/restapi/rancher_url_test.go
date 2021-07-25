@@ -16,7 +16,7 @@ import (
 var _ = Describe("rancher url test", func() {
 	Context("Fetching the rancher url using api and test ", func() {
 		It("Fetches rancher url", func() {
-			if savedProfile != v1alpha1.ManagedCluster {
+			if profile != v1alpha1.ManagedCluster {
 				kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
 				var rancherURL string
 

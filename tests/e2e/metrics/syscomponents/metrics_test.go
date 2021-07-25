@@ -78,22 +78,18 @@ var excludePodsIstio = []string{
 	"istiod",
 }
 
-var savedProfile v1alpha1.ProfileType
+var profile v1alpha1.ProfileType
 
 var _ = BeforeSuite(func() {
-	var profile *v1alpha1.ProfileType
-	Eventually(func() (*v1alpha1.ProfileType, error) {
+	Eventually(func() (v1alpha1.ProfileType, error) {
 		var err error
 		profile, err = pkg.GetVerrazzanoProfile()
-		if profile != nil {
-			savedProfile = *profile
-		}
 		return profile, err
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	present := false
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
-	if *profile == v1alpha1.ManagedCluster {
+	if profile == v1alpha1.ManagedCluster {
 		if !present {
 			Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
 		}
@@ -216,7 +212,7 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
 	for _, metric := range metrics {
 		if pkg.Jq(metric, "metric", namespace) == ns && pkg.Jq(metric, "metric", podName) == pod {
-			if savedProfile == v1alpha1.ManagedCluster {
+			if profile == v1alpha1.ManagedCluster {
 				// when the admin cluster scrapes the metrics from a managed cluster, as label managed_cluster with value
 				// name of the managed cluster is added to the metrics
 				if pkg.Jq(metric, "metric", labelManagedCluster) == clusterName {
@@ -250,7 +246,7 @@ func metricsContainLabels(metricName string, kv map[string]string) bool {
 		}
 
 		if metricFound {
-			if savedProfile == v1alpha1.ManagedCluster {
+			if profile == v1alpha1.ManagedCluster {
 				// when the admin cluster scrapes the metrics from a managed cluster, as label managed_cluster with value
 				// name of the managed cluster is added to the metrics
 				if pkg.Jq(metric, "metric", labelManagedCluster) == clusterName {
