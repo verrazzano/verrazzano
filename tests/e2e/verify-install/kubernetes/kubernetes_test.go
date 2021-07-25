@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,18 +41,11 @@ var expectedNonVMIPodsVerrazzanoSystem = []string{
 //"vmi-system-prometheus",
 //"vmi-system-prometheus-gw"}
 
-var profile v1alpha1.ProfileType
-
-var _ = BeforeSuite(func() {
-	Eventually(func() (v1alpha1.ProfileType, error) {
-		var err error
-		profile, err = pkg.GetVerrazzanoProfile()
-		return profile, err
-	}, timeout5Min, pollingInterval).ShouldNot(BeNil())
-})
-
 var _ = Describe("Kubernetes Cluster",
 	func() {
+		isManagedClusterProfile := pkg.IsManagedClusterProfile()
+		isProdProfile := pkg.IsProdProfile()
+
 		It("has the expected number of nodes", func() {
 			Eventually(func() (bool, error) {
 				nodes, err := pkg.ListNodes()
@@ -69,7 +61,7 @@ var _ = Describe("Kubernetes Cluster",
 				return namespaces, err
 			}, timeout5Min, pollingInterval).ShouldNot(BeNil())
 
-			if profile == v1alpha1.ManagedCluster {
+			if isManagedClusterProfile {
 				Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(BeFalse())
 				Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(BeFalse())
 				// Even though we do not install Rancher on managed clusters, we do create the namespace
@@ -85,7 +77,7 @@ var _ = Describe("Kubernetes Cluster",
 			}
 			Expect(nsListContains(namespaces.Items, "istio-system")).To(BeTrue())
 			Expect(nsListContains(namespaces.Items, "gitlab")).To(BeFalse())
-			if profile == v1alpha1.ManagedCluster {
+			if isManagedClusterProfile {
 				Expect(nsListContains(namespaces.Items, "keycloak")).To(BeFalse())
 			} else {
 				Expect(nsListContains(namespaces.Items, "keycloak")).To(BeTrue())
@@ -104,7 +96,7 @@ var _ = Describe("Kubernetes Cluster",
 			},
 			ginkgoExt.Entry("includes verrazzano-operator", "verrazzano-operator", true),
 			ginkgoExt.Entry("does not include verrazzano-web", "verrazzano-web", false),
-			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", profile != v1alpha1.ManagedCluster),
+			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 			ginkgoExt.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
 			ginkgoExt.Entry("does not include verrazzano-cluster-operator", "verrazzano-cluster-operator", false),
 			ginkgoExt.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
@@ -138,7 +130,7 @@ var _ = Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
 		)
 
-		if profile == v1alpha1.ManagedCluster {
+		if isManagedClusterProfile {
 			ginkgoExt.DescribeTable("rancher components are not deployed",
 				func(name string, expected bool) {
 					Eventually(func() (bool, error) {
@@ -166,12 +158,12 @@ var _ = Describe("Kubernetes Cluster",
 			},
 			ginkgoExt.Entry("includes prometheus", "vmi-system-prometheus", true),
 			ginkgoExt.Entry("includes prometheus-gw", "vmi-system-prometheus-gw", false),
-			ginkgoExt.Entry("includes es-ingest", "vmi-system-es-ingest", profile == v1alpha1.Prod),
-			ginkgoExt.Entry("includes es-data", "vmi-system-es-data", profile == v1alpha1.Prod),
-			ginkgoExt.Entry("includes es-master", "vmi-system-es-master", profile != v1alpha1.ManagedCluster),
-			ginkgoExt.Entry("includes es-kibana", "vmi-system-kibana", profile != v1alpha1.ManagedCluster),
-			ginkgoExt.Entry("includes es-grafana", "vmi-system-grafana", profile != v1alpha1.ManagedCluster),
-			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", profile != v1alpha1.ManagedCluster),
+			ginkgoExt.Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
+			ginkgoExt.Entry("includes es-data", "vmi-system-es-data", isProdProfile),
+			ginkgoExt.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
+			ginkgoExt.Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
+			ginkgoExt.Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
+			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 		)
 
 		It("Expected pods are running", func() {
@@ -179,13 +171,13 @@ var _ = Describe("Kubernetes Cluster",
 				func() {
 					// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
 					// cluster is registered)
-					if profile != v1alpha1.ManagedCluster {
+					if !isManagedClusterProfile {
 						Eventually(func() bool { return pkg.PodsRunning("cattle-system", expectedPodsCattleSystem) }, waitTimeout, pollingInterval).
 							Should(BeTrue())
 					}
 				},
 				func() {
-					if profile != v1alpha1.ManagedCluster {
+					if !isManagedClusterProfile {
 						Eventually(func() bool { return pkg.PodsRunning("keycloak", expectedPodsKeycloak) }, waitTimeout, pollingInterval).
 							Should(BeTrue())
 					}

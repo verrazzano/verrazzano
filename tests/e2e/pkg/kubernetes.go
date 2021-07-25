@@ -300,6 +300,30 @@ func GetVerrazzanoProfile() (v1alpha1.ProfileType, error) {
 	return vz.Spec.Profile, nil
 }
 
+// IsProdProfile returns true if the deployed resource is a 'prod' profile
+func IsProdProfile() bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
+	if err != nil {
+		return false
+	}
+	if vz.Spec.Profile == v1alpha1.Prod {
+		return true
+	}
+	return false
+}
+
+// IsManagedClusterProfile returns true if the deployed resource is a 'managed-cluster' profile
+func IsManagedClusterProfile() bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
+	if err != nil {
+		return false
+	}
+	if vz.Spec.Profile == v1alpha1.ManagedCluster {
+		return true
+	}
+	return false
+}
+
 // GetACMEEnvironment returns true if
 func GetACMEEnvironment(kubeconfigPath string) (string, error) {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
