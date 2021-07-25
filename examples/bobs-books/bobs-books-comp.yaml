@@ -428,7 +428,7 @@ spec:
           domainUID: bobs-bookstore
           domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
           domainHomeSourceType: FromModel
-          image: ghcr.io/verrazzano/example-bobs-books-order-manager:20210724100824-0b6f764
+          image: ghcr.io/verrazzano/example-bobs-bookstore-order-manager:20210724100824-0b6f764
           includeServerOutInPodLog: true
           replicas: 1
           webLogicCredentialsSecret:
