@@ -11,15 +11,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 const (
-	longPollingInterval  = 20 * time.Second
-	longWaitTimeout      = 10 * time.Minute
-	shortPollingInterval = 10 * time.Second
-	shortWaitTimeout     = 5 * time.Minute
+	longPollingInterval = 20 * time.Second
+	longWaitTimeout     = 10 * time.Minute
 
 	// Constants for sample metrics of system components validated by the test
 	ingressControllerSuccess       = "nginx_ingress_controller_success"
@@ -55,6 +52,7 @@ var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
 
 var adminKubeConfig string
+var isManagedClusterProfile bool
 
 // List of namespaces considered for validating the envoy-stats
 var envoyStatsNamespaces = []string{
@@ -78,18 +76,11 @@ var excludePodsIstio = []string{
 	"istiod",
 }
 
-var profile v1alpha1.ProfileType
-
 var _ = BeforeSuite(func() {
-	Eventually(func() (v1alpha1.ProfileType, error) {
-		var err error
-		profile, err = pkg.GetVerrazzanoProfile()
-		return profile, err
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
 	present := false
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
-	if profile == v1alpha1.ManagedCluster {
+	isManagedClusterProfile = pkg.IsManagedClusterProfile()
+	if isManagedClusterProfile {
 		if !present {
 			Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
 		}
@@ -212,7 +203,7 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
 	for _, metric := range metrics {
 		if pkg.Jq(metric, "metric", namespace) == ns && pkg.Jq(metric, "metric", podName) == pod {
-			if profile == v1alpha1.ManagedCluster {
+			if isManagedClusterProfile {
 				// when the admin cluster scrapes the metrics from a managed cluster, as label managed_cluster with value
 				// name of the managed cluster is added to the metrics
 				if pkg.Jq(metric, "metric", labelManagedCluster) == clusterName {
@@ -246,7 +237,7 @@ func metricsContainLabels(metricName string, kv map[string]string) bool {
 		}
 
 		if metricFound {
-			if profile == v1alpha1.ManagedCluster {
+			if isManagedClusterProfile {
 				// when the admin cluster scrapes the metrics from a managed cluster, as label managed_cluster with value
 				// name of the managed cluster is added to the metrics
 				if pkg.Jq(metric, "metric", labelManagedCluster) == clusterName {

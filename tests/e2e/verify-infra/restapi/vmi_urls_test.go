@@ -13,34 +13,24 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-const (
-	waitTimeout     = 5 * time.Minute
-	pollingInterval = 5 * time.Second
-)
-
-var profile v1alpha1.ProfileType
-
-var _ = BeforeSuite(func() {
-	Eventually(func() (v1alpha1.ProfileType, error) {
-		var err error
-		profile, err = pkg.GetVerrazzanoProfile()
-		return profile, err
-	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-})
-
 var _ = Describe("VMI urls test", func() {
+	const (
+		waitTimeout     = 5 * time.Minute
+		pollingInterval = 5 * time.Second
+	)
+
 	Context("Fetching the system vmi using api and test urls", func() {
+		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		var isEsEnabled = false
 		var isKibanaEnabled = false
 		var isPrometheusEnabled = false
 		var isGrafanaEnabled = false
 
 		It("Fetches VMI", func() {
-			if profile != v1alpha1.ManagedCluster {
+			if !isManagedClusterProfile {
 				Eventually(func() bool {
 					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 					if err != nil {
@@ -73,7 +63,7 @@ var _ = Describe("VMI urls test", func() {
 		})
 
 		It("Accesses VMI endpoints", func() {
-			if profile != v1alpha1.ManagedCluster {
+			if !isManagedClusterProfile {
 				var api *pkg.APIEndpoint
 				Eventually(func() (*pkg.APIEndpoint, error) {
 					var err error

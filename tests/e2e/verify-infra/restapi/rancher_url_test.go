@@ -6,17 +6,22 @@ package restapi_test
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 var _ = Describe("rancher url test", func() {
+	const (
+		waitTimeout     = 5 * time.Minute
+		pollingInterval = 5 * time.Second
+	)
+
 	Context("Fetching the rancher url using api and test ", func() {
 		It("Fetches rancher url", func() {
-			if profile != v1alpha1.ManagedCluster {
+			if !pkg.IsManagedClusterProfile() {
 				kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
 				var rancherURL string
 

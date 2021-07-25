@@ -11,7 +11,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -24,14 +23,8 @@ const (
 )
 
 var volumeClaims map[string]*corev1.PersistentVolumeClaim
-var profile v1alpha1.ProfileType
 
 var _ = BeforeSuite(func() {
-	Eventually(func() (v1alpha1.ProfileType, error) {
-		var err error
-		profile, err = pkg.GetVerrazzanoProfile()
-		return profile, err
-	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
 		var err error
 		volumeClaims, err = pkg.GetPersistentVolumes(keycloakNamespace)
@@ -41,8 +34,9 @@ var _ = BeforeSuite(func() {
 
 var _ = Describe("Verify Keycloak configuration", func() {
 	var _ = Context("Verify password policies", func() {
+		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		It("Verify master realm password policy", func() {
-			if profile != v1alpha1.ManagedCluster {
+			if !isManagedClusterProfile {
 				// GIVEN the password policy setup for the master realm during installation
 				// WHEN valid and invalid password changes are attempted
 				// THEN verify valid passwords are accepted and invalid passwords are rejected.
@@ -50,7 +44,7 @@ var _ = Describe("Verify Keycloak configuration", func() {
 			}
 		})
 		It("Verify verrazzano-system realm password policy", func() {
-			if profile != v1alpha1.ManagedCluster {
+			if !isManagedClusterProfile {
 				// GIVEN the password policy setup for the verrazzano-system realm during installation
 				// WHEN valid and invalid password changes are attempted
 				// THEN verify valid passwords are accepted and invalid passwords are rejected.
@@ -65,12 +59,12 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 
 		const size = "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
 
-		if profile == v1alpha1.Dev {
+		if pkg.IsDevProfile() {
 			It("Verify persistent volumes in namespace keycloak based on Dev install profile", func() {
 				// There is no Persistent Volume for MySQL in a dev install
 				Expect(len(volumeClaims)).To(Equal(0))
 			})
-		} else if profile == v1alpha1.ManagedCluster {
+		} else if pkg.IsManagedClusterProfile() {
 			It("Verify namespace keycloak doesn't exist based on Managed Cluster install profile", func() {
 				// There is no keycloak namespace in a managed cluster install
 				Eventually(func() bool {
@@ -78,7 +72,7 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 					return err != nil && errors.IsNotFound(err)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
-		} else if profile == v1alpha1.Prod {
+		} else if pkg.IsProdProfile() {
 			It("Verify persistent volumes in namespace keycloak based on Prod install profile", func() {
 				// 50 GB Persistent Volume create for MySQL in a prod install
 				Expect(len(volumeClaims)).To(Equal(1))

@@ -291,13 +291,16 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 	return &vz, nil
 }
 
-// GetVerrazzanoProfile returns the profile specified in the verrazzano install resource
-func GetVerrazzanoProfile() (v1alpha1.ProfileType, error) {
+// IsDevProfile returns true if the deployed resource is a 'dev' profile
+func IsDevProfile() bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
 	if err != nil {
-		return v1alpha1.Prod, err
+		return false
 	}
-	return vz.Spec.Profile, nil
+	if vz.Spec.Profile == v1alpha1.Dev {
+		return true
+	}
+	return false
 }
 
 // IsProdProfile returns true if the deployed resource is a 'prod' profile
