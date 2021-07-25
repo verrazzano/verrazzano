@@ -46,7 +46,6 @@ var profile v1alpha1.ProfileType
 
 var _ = BeforeSuite(func() {
 	Eventually(func() (v1alpha1.ProfileType, error) {
-		var profile v1alpha1.ProfileType
 		var err error
 		profile, err = pkg.GetVerrazzanoProfile()
 		return profile, err

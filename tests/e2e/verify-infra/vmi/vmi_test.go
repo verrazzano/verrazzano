@@ -120,13 +120,9 @@ var _ = BeforeSuite(func() {
 var _ = Describe("VMI", func() {
 	var profile v1alpha1.ProfileType
 	BeforeEach(func() {
-		Eventually(func() (v1alpha1.ProfileType, error) {
-			var profile v1alpha1.ProfileType
-			var err error
-			profile, err = pkg.GetVerrazzanoProfile()
-			pkg.Log(pkg.Info, fmt.Sprintf("Profile: %v, Erorr: %v", profile, err))
-			return profile, err
-		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+		profile, err := pkg.GetVerrazzanoProfile()
+		pkg.Log(pkg.Info, fmt.Sprintf("Profile: %v, Erorr: %v", profile, err))
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	if profile == v1alpha1.ManagedCluster {

@@ -17,16 +17,15 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var profile v1alpha1.ProfileType
-
 const (
 	waitTimeout     = 5 * time.Minute
 	pollingInterval = 5 * time.Second
 )
 
+var profile v1alpha1.ProfileType
+
 var _ = BeforeSuite(func() {
 	Eventually(func() (v1alpha1.ProfileType, error) {
-		var profile v1alpha1.ProfileType
 		var err error
 		profile, err = pkg.GetVerrazzanoProfile()
 		return profile, err
