@@ -303,15 +303,6 @@ func IsDevProfile() bool {
 	return false
 }
 
-// Get the profile for the deployed install resource
-func GetProfile() (v1alpha1.ProfileType, error) {
-	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
-	if err != nil {
-		return v1alpha1.Dev, err
-	}
-	return vz.Spec.Profile, nil
-}
-
 // IsProdProfile returns true if the deployed resource is a 'prod' profile
 func IsProdProfile() bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
