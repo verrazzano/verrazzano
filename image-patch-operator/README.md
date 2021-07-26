@@ -23,7 +23,7 @@ verrazzano-image-patch-operator-dev   local-00bf9bd7   a0865a3d3e16   5 days ago
 ```
 Now, create a Kubernetes cluster, and load these two images into your cluster. For example, if you are using a Kind cluster, run the following commands.
 
-Make sure you fill out the hostPath field with the path to a directory containing the installers for the JDK, WLS, and Weblogic Image Tool.
+Make sure you fill out the hostPath field with a local path to a directory containing the installers for the JDK, WLS, and Weblogic Image Tool.
 If you don't already have these installers, you may download them locally using the links below
 - [JDK](https://www.oracle.com/java/technologies/javase-jdk16-downloads.html)
 - [WLS](https://www.oracle.com/middleware/technologies/weblogic-server-downloads.html)

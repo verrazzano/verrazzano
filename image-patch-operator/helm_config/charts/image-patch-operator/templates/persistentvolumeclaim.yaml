@@ -4,6 +4,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: installers-storage-claim
+  namespace: {{ .Values.namespace }}
 spec:
   accessModes:
     - ReadOnlyMany
