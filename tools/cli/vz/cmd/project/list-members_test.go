@@ -49,6 +49,7 @@ func TestNewCmdProjectListMembers(t *testing.T) {
 	}
 	outBuffer.Reset()
 
+	// displaying member roles
 	for i := range singleProjects {
 		projectFlag := flag.String("project-name", singleProjects[i], "project to display member-roles of")
 		testCmd.ParseFlags([]string{*projectFlag})

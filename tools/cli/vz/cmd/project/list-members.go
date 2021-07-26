@@ -24,14 +24,13 @@ func NewProjectListMembersOptions(streams genericclioptions.IOStreams) *ProjectL
 }
 
 func NewCmdProjectListMembers(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
-	o := NewProjectListMembersOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "list-members -p PROJECT",
 		Short: "list current members of the project",
 		Long:  "list current members of the project",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := listMembers(o, streams, args, kubernetesInterface); err != nil {
+			if err := listMembers(streams, args, kubernetesInterface); err != nil {
 				return err
 			}
 			return nil
@@ -42,7 +41,7 @@ func NewCmdProjectListMembers(streams genericclioptions.IOStreams, kubernetesInt
 	return cmd
 }
 
-func listMembers(o *ProjectListMembersOptions, streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
+func listMembers(streams genericclioptions.IOStreams, args []string, kubernetesInterface helpers.Kubernetes) error {
 	projectClientset, err := kubernetesInterface.NewProjectClientSet()
 	if err != nil {
 		fmt.Fprintln(streams.ErrOut, err)
