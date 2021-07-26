@@ -157,18 +157,22 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
 			// try to update
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err != nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err != nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
@@ -177,18 +181,22 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 			// try to update
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err != nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err != nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
@@ -199,59 +207,75 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				return getMultiClusterResource("verrazzano-mc", managedClusterName, &cluster)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 			// try to update
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				cluster.Spec.Description = "new Description"
 				err := updateObject(&cluster)
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err != nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := deleteObject(&cluster)
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err != nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
 		// VZ-2336: NOT be able to read other resources such as secrets, config maps or deployments in the admin cluster
 		It("managed cluster cannot access resources in other namespaaces", func() {
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-system", &v1.SecretList{})
-				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				// if we didn't get an error, return false to retry
+				if err == nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() bool {
+			Eventually(func() (bool, error)  {
 				err := listResource("verrazzano-system", &v1.ConfigMapList{})
-				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				// if we didn't get an error, return false to retry
+				if err == nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-mc", &v1.SecretList{})
-				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				// if we didn't get an error, return false to retry
+				if err == nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-mc", &v1.ConfigMapList{})
-				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				// if we didn't get an error, return false to retry
+				if err == nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() bool {
+			Eventually(func() (bool, error)  {
 				err := listResource(testNamespace, &v1.SecretList{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err == nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), err
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() bool {
+			Eventually(func()  (bool, error) {
 				err := listResource(testNamespace, &v1.ConfigMapList{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err != nil {
+					return false, err
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 	})
