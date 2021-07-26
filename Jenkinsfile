@@ -6,6 +6,7 @@ def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
 def SCAN_IMAGE_PATCH_OPERATOR = false
+def VERRAZZANO_DEV_VERSION = ""
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
@@ -474,7 +475,7 @@ pipeline {
             }
         }
         success {
-            storePipelineArtifacts()
+            storePipelineArtifacts(VERRAZZANO_DEV_VERSION)
         }
         cleanup {
             deleteDir()
@@ -492,34 +493,42 @@ def moveContentToGoRepoPath() {
 }
 
 // Called in final post success block of pipeline
-def storePipelineArtifacts() {
-    sh """
-        if [ "${params.GENERATE_TARBALL}" == "true" ]; then
-            mkdir ${WORKSPACE}/tar-files
-            chmod uog+w ${WORKSPACE}/tar-files
-            cp $WORKSPACE/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
-            cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
-            cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
-            mkdir -p ${WORKSPACE}/tar-files/charts
-            cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
-            tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
-            cd ${WORKSPACE}
-            sha256sum tarball.tar.gz > tarball.tar.gz.sha256
-            echo "git-commit=${env.GIT_COMMIT}" > tarball-commit.txt
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball-commit.txt --file tarball-commit.txt
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz --file tarball.tar.gz
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz.sha256 --file tarball.tar.gz.sha256
-       fi
-    """
+def storePipelineArtifacts(version) {
+    script {
+        tarfilePrefix="verrazzano_${version}"
+        tarfile="${tarfilePrefix}.tar.gz"
+        zipFile="${tarfilePrefix}.zip"
+        commitFile="${tarfilePrefix}-commit.txt"
+        sha256File="${tarfile}.sha256"
+        sh """
+            if [ "${params.GENERATE_TARBALL}" == "true" ] || [[ ${GIT_BRANCH} == release-* ]]; then
+                echo "Generating tar file ${tarfile} (SHA: ${sha256File}), commit file ${commitFile}"
+                mkdir ${WORKSPACE}/tar-files
+                chmod uog+w ${WORKSPACE}/tar-files
+                cp $WORKSPACE/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
+                cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
+                cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
+                mkdir -p ${WORKSPACE}/tar-files/charts
+                cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
+                tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/${tarfile}
+                cd ${WORKSPACE}
+                sha256sum ${tarfile} > ${sha256File}
+                echo "git-commit=${env.GIT_COMMIT}" > ${commitFile}
+                zip ${zipFile} ${commitFile} ${sha256File} ${tarfile}
+                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${commitFile} --file ${commitFile}
+                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${zipFile} --file ${zipFile}
+           fi
+        """
 
-    // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
-    sh """
-        if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
-            cd ${GO_REPO_PATH}/verrazzano
-            echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
-        fi
-    """
+        // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
+        sh """
+            if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
+                cd ${GO_REPO_PATH}/verrazzano
+                echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
+            fi
+        """
+    }
 }
 
 // Called in Stage Integration Tests steps
