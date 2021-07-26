@@ -54,8 +54,6 @@ func addProject(streams genericclioptions.IOStreams, args []string, kubernetesIn
 		projectNamespaces = []string{projectName}
 	}
 
-	nsLabel := make(map[string]string)
-	nsLabel["verrazzano/projectName"] = projectName
 	// prepare the project resource
 	project := v1alpha1.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
@@ -69,9 +67,7 @@ func addProject(streams genericclioptions.IOStreams, args []string, kubernetesIn
 					for _, v := range projectNamespaces {
 						namespaces = append(namespaces, v1alpha1.NamespaceTemplate{
 							Metadata: metav1.ObjectMeta{
-								Name:              v,
-								CreationTimestamp: metav1.Now(),
-								Labels:            nsLabel,
+								Name: v,
 							},
 						})
 					}
