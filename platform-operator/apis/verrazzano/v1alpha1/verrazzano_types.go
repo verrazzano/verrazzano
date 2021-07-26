@@ -346,6 +346,7 @@ type RancherComponent struct {
 
 // FluentdComponent specifies the Fluentd DaemonSet configuration
 type FluentdComponent struct {
+	// Specifies whether Fluentd is deployed or not on a cluster.  Default is true.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
