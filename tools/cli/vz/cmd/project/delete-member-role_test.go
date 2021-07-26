@@ -46,7 +46,7 @@ func TestNewCmdProjectDeleteMemberRole(t *testing.T) {
 	outBuffer.Reset()
 
 	// deleting member roles for those projects
-	for i, _ := range argDeleteMember {
+	for i := range argDeleteMember {
 		testCmd.SetArgs([]string{
 			fmt.Sprintf("--project-name=%s", singleProjects[i]),
 			argDeleteMember[i],
