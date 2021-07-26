@@ -268,7 +268,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				if err == nil {
 					return false, goerrors.New("Expected error from listResource")
 				}
-				return errors.IsForbidden(err), err
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			Eventually(func() (bool, error) {
 				err := listResource(testNamespace, &v1.ConfigMapList{})
