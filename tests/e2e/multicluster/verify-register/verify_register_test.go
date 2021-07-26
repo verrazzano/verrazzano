@@ -46,7 +46,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 				return pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
@@ -176,7 +176,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 		})
 
 		It("managed cluster has the expected VerrazzanoProject", func() {
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
@@ -257,10 +257,11 @@ func findNamespace(namespace string) bool {
 	return true
 }
 
-func findVerrazzanoProject(projectName string) bool {
+func findVerrazzanoProject(projectName string) (bool, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
+		pkg.Log(pkg.Info, fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
+		return false, err
 	}
 
 	scheme := runtime.NewScheme()
@@ -276,12 +277,12 @@ func findVerrazzanoProject(projectName string) bool {
 	err = clustersClient.List(context.TODO(), &projectList, &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace})
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list VerrazzanoProject with error: %v", err))
-		return false
+		return false, err
 	}
 	for _, item := range projectList.Items {
 		if item.Name == projectName && item.Namespace == multiclusterNamespace {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }

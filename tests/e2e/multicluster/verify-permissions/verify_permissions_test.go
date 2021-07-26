@@ -237,7 +237,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() (bool, error)  {
+			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-system", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry
 				if err == nil {
@@ -261,7 +261,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() (bool, error)  {
+			Eventually(func() (bool, error) {
 				err := listResource(testNamespace, &v1.SecretList{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
@@ -269,7 +269,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				}
 				return errors.IsForbidden(err), err
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func()  (bool, error) {
+			Eventually(func() (bool, error) {
 				err := listResource(testNamespace, &v1.ConfigMapList{})
 				// if we didn't get an error, fail immediately
 				if err != nil {
@@ -441,7 +441,7 @@ func findConfigMap(namespace, name string) (bool, error) {
 func listResource(namespace string, object runtime.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
-		return  err
+		return err
 	}
 	return clustersClient.List(context.TODO(), object, &client.ListOptions{Namespace: namespace})
 }
@@ -499,7 +499,7 @@ func findMultiClusterSecret(namespace, name string) (bool, error) {
 func getClustersClient() (client.Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
 	if err != nil {
-		pkg.Log(pkg.Error,(fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err)))
+		pkg.Log(pkg.Error, (fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err)))
 		return nil, err
 	}
 
@@ -511,7 +511,7 @@ func getClustersClient() (client.Client, error) {
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
-		pkg.Log(pkg.Error,(fmt.Sprintf("Failed to get clusters client with error: %v", err)))
+		pkg.Log(pkg.Error, (fmt.Sprintf("Failed to get clusters client with error: %v", err)))
 		return nil, err
 	}
 	return clustersClient, nil
