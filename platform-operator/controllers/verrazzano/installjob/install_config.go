@@ -176,8 +176,9 @@ type Rancher struct {
 	Enabled string `json:"enabled,omitempty"`
 }
 
-// Fluentd DaemonSet configuration
+// Fluentd configuration
 type Fluentd struct {
+	Enabled            string       `json:"enabled,omitempty"`
 	FluentdInstallArgs []InstallArg `json:"fluentdInstallArgs,omitempty"`
 }
 
@@ -341,11 +342,9 @@ func getRancher(rancher *installv1alpha1.RancherComponent) Rancher {
 		return Rancher{Enabled: "true"}
 	}
 
-	var enabled string
+	var enabled = "true"
 	if rancher.Enabled != nil {
 		enabled = strconv.FormatBool(*rancher.Enabled)
-	} else {
-		enabled = "true"
 	}
 	return Rancher{Enabled: enabled}
 }
@@ -729,10 +728,10 @@ func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeC
 }
 
 func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {
-	fluentd := Fluentd{}
 	if comp == nil {
-		return fluentd
+		return Fluentd{Enabled: "true"}
 	}
+	fluentd := Fluentd{}
 	fluentd.FluentdInstallArgs = []InstallArg{}
 	for i, vm := range comp.ExtraVolumeMounts {
 		fluentd.FluentdInstallArgs = append(fluentd.FluentdInstallArgs, InstallArg{
@@ -756,5 +755,14 @@ func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {
 			Value: strconv.FormatBool(readOnly),
 		})
 	}
+
+	var enabled string
+	if comp.Enabled != nil {
+		enabled = strconv.FormatBool(*comp.Enabled)
+	} else {
+		enabled = "true"
+	}
+	fluentd.Enabled = enabled
+
 	return fluentd
 }
