@@ -5,10 +5,8 @@ package project
 
 // Commenting out below code as add-member-role test.go is not implemented completely.
 
-/*
-
 import (
-	"flag"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/fake"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -38,20 +36,22 @@ func TestNewCmdProjectDeleteMemberRole(t *testing.T) {
 	}
 	// adding member roles for those respective projects
 	for i, strings := range argAddMember {
-		projectFlag := flag.String("project-name", singleProjects[i], "project to add-member-role")
-		addMemberCmd.Flag(*projectFlag)
-		addMemberCmd.SetArgs(strings)
+		addMemberCmd.SetArgs([]string{
+			fmt.Sprintf("--project-name=%s", singleProjects[i]),
+			strings[0],
+			strings[1],
+		})
 		addMemberCmd.Execute()
 	}
 	outBuffer.Reset()
 
 	// deleting member roles for those projects
-	for i, s := range argDeleteMember {
-		projectFlag := flag.String("project-name", singleProjects[i], "project to delete-member-role from")
-		testCmd.Flag(*projectFlag)
-		testCmd.SetArgs([]string{s})
+	for i, _ := range argDeleteMember {
+		testCmd.SetArgs([]string{
+			fmt.Sprintf("--project-name=%s", singleProjects[i]),
+			argDeleteMember[i],
+		})
 		asserts.NoError(testCmd.Execute())
 		outBuffer.Reset()
 	}
 }
-*/

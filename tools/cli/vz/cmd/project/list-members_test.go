@@ -3,12 +3,8 @@
 
 package project
 
-// commenting out below code as add-member-role test.go file is not implemented completely.
-
-/*
-
 import (
-	"flag"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/fake"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -34,32 +30,28 @@ func TestNewCmdProjectListMembers(t *testing.T) {
 		addCmd.SetArgs([]string{singleProjects[i]})
 		addCmd.Execute()
 		outBuffer.Reset()
-		projectFlag := flag.String("project-name", singleProjects[i], "project to display member-roles of")
-		testCmd.Flag(*projectFlag)
-		testCmd.ParseFlags([]string{*projectFlag})
-		testCmd.SetArgs(argAddMember[i])
+		testCmd.SetArgs([]string{fmt.Sprintf("--project-name=%s", singleProjects[i])})
 		asserts.NoError(testCmd.Execute())
-		asserts.Equal(outBuffer.String(), "no members present")
+		asserts.Equal(outBuffer.String(), "no members present\n")
 		outBuffer.Reset()
 	}
 
 	// adding member roles to previously defined projects
 	for i := range argAddMember {
-		projectFlag := flag.String("project-name", singleProjects[i], "project to add-member-role")
-		addMemberCmd.ParseFlags([]string{*projectFlag})
-		addMemberCmd.Flag(*projectFlag)
-		addMemberCmd.SetArgs(argAddMember[i])
+		addMemberCmd.SetArgs([]string{
+			fmt.Sprintf("--project-name=%s", singleProjects[i]),
+			argAddMember[i][0],
+			argAddMember[i][1],
+		})
+		asserts.NoError(addMemberCmd.Execute())
 		addMemberCmd.Execute()
 	}
 	outBuffer.Reset()
 
 	// displaying member roles
 	for i := range singleProjects {
-		projectFlag := flag.String("project-name", singleProjects[i], "project to display member-roles of")
-		testCmd.ParseFlags([]string{*projectFlag})
-		testCmd.Flag(*projectFlag)
+		testCmd.SetArgs([]string{fmt.Sprintf("--project-name=%s", singleProjects[i])})
 		asserts.NoError(testCmd.Execute())
 		outBuffer.Reset()
 	}
 }
-*/
