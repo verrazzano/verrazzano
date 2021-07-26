@@ -3,12 +3,8 @@
 
 package project
 
-/*
-Commenting out below code as I am unable to set a required flag "project name" while the testCmd is getting executed.
- */
-/*
 import (
-	"flag"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/fake"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -44,13 +40,14 @@ func TestNewCmdProjectAddMemberRole(t *testing.T) {
 
 	// fetching and adding member roles to the projects
 	for i, arg := range argAddMember {
-		projectFlag := flag.String("project-name", singleProjects[i], "project to add-member-role")
-        testCmd.Flag(*projectFlag)
-	//	testCmd.ParseFlags([]string{*projectFlag})
-		testCmd.SetArgs(arg)
+		testCmd.SetArgs([]string{
+			fmt.Sprintf("--project-name=%s", singleProjects[i]),
+			arg[0],
+			arg[1],
+		})
 		asserts.NoError(testCmd.Execute())
-		actual := `member role "` + arg[2] + `" added`
+		actual := `member role "` + arg[1] + `"` + " added\n"
 		asserts.Equal(outBuffer.String(), actual)
+		outBuffer.Reset()
 	}
 }
-*/
