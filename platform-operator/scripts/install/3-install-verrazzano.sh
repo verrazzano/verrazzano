@@ -196,8 +196,7 @@ function install_application_operator {
     --namespace "${VERRAZZANO_NS}" \
     ${HELM_IMAGE_ARGS} \
     ${IMAGE_PULL_SECRETS_ARGUMENT} \
-    ${APP_OPERATOR_IMAGE_ARG} \
-    ${EXTRA_V8O_ARGUMENTS} || return $?
+    ${APP_OPERATOR_IMAGE_ARG} || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install Verrazzano Kubernetes application operator."
     return 1
@@ -289,12 +288,14 @@ if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
 fi
 
-if ! kubectl get namespace ${MONITORING_NS} ; then
-  action "Creating ${MONITORING_NS} namespace" kubectl create namespace ${MONITORING_NS} || exit 1
-fi
+if [ $(is_verrazzano_operator_enabled) == "true" ]; then
+  if ! kubectl get namespace ${MONITORING_NS} ; then
+    action "Creating ${MONITORING_NS} namespace" kubectl create namespace ${MONITORING_NS} || exit 1
+  fi
 
-log "Adding label needed by network policies to ${MONITORING_NS} namespace"
-kubectl label namespace ${MONITORING_NS} "verrazzano.io/namespace=${MONITORING_NS}" --overwrite
+  log "Adding label needed by network policies to ${MONITORING_NS} namespace"
+  kubectl label namespace ${MONITORING_NS} "verrazzano.io/namespace=${MONITORING_NS}" --overwrite
+fi
 
 # If Keycloak is being installed, create the Keycloak namespace if it doesn't exist so we can apply network policies
 if [ $(is_keycloak_enabled) == "true" ] && ! kubectl get namespace keycloak ; then
@@ -318,7 +319,9 @@ if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   fi
 fi
 
-action "Installing Verrazzano system components" install_verrazzano || exit 1
+if [ $(is_verrazzano_operator_enabled) == "true" ]; then
+  action "Installing Verrazzano system components" install_verrazzano || exit 1
+fi
 action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
 action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
 action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
