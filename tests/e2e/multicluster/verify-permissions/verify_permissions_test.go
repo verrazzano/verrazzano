@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	goerrors "errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -160,8 +161,8 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			Eventually(func() (bool, error) {
 				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 				// if we didn't get an error, fail immediately
-				if err != nil {
-					return false, err
+				if err == nil {
+					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -169,8 +170,8 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			Eventually(func() (bool, error) {
 				err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 				// if we didn't get an error, fail immediately
-				if err != nil {
-					return false, err
+				if err == nil {
+					return false, goerrors.New("Expected error from DeleteResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -184,8 +185,8 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			Eventually(func() (bool, error) {
 				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
-				if err != nil {
-					return false, err
+				if err == nil {
+					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -193,8 +194,8 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			Eventually(func() (bool, error) {
 				err := DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
-				if err != nil {
-					return false, err
+				if err == nil {
+					return false, goerrors.New("Expected error from DeleteResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -211,8 +212,8 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				cluster.Spec.Description = "new Description"
 				err := updateObject(&cluster)
 				// if we didn't get an error, fail immediately
-				if err != nil {
-					return false, err
+				if err == nil {
+					return false, goerrors.New("Expected error from updateObject")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -220,8 +221,8 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			Eventually(func() (bool, error) {
 				err := deleteObject(&cluster)
 				// if we didn't get an error, fail immediately
-				if err != nil {
-					return false, err
+				if err == nil {
+					return false, goerrors.New("Expected error from deleteObject")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -233,7 +234,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := listResource("verrazzano-system", &v1.SecretList{})
 				// if we didn't get an error, return false to retry
 				if err == nil {
-					return false, err
+					return false, goerrors.New("Expected error from listResource")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -241,7 +242,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := listResource("verrazzano-system", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry
 				if err == nil {
-					return false, err
+					return false, goerrors.New("Expected error from listResource")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -249,7 +250,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := listResource("verrazzano-mc", &v1.SecretList{})
 				// if we didn't get an error, return false to retry
 				if err == nil {
-					return false, err
+					return false, goerrors.New("Expected error from listResource")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -257,7 +258,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := listResource("verrazzano-mc", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry
 				if err == nil {
-					return false, err
+					return false, goerrors.New("Expected error from listResource")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -265,15 +266,15 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := listResource(testNamespace, &v1.SecretList{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, err
+					return false, goerrors.New("Expected error from listResource")
 				}
 				return errors.IsForbidden(err), err
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			Eventually(func() (bool, error) {
 				err := listResource(testNamespace, &v1.ConfigMapList{})
 				// if we didn't get an error, fail immediately
-				if err != nil {
-					return false, err
+				if err == nil {
+					return false, goerrors.New("Expected error from listResource")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
