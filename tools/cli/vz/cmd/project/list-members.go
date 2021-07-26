@@ -29,7 +29,7 @@ func NewCmdProjectListMembers(streams genericclioptions.IOStreams, kubernetesInt
 		Use:   "list-members -p PROJECT",
 		Short: "list current members of the project",
 		Long:  "list current members of the project",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := listMembers(o, streams, args, kubernetesInterface); err != nil {
 				return err
@@ -37,8 +37,8 @@ func NewCmdProjectListMembers(streams genericclioptions.IOStreams, kubernetesInt
 			return nil
 		},
 	}
-	cmd.Flags().StringSliceVarP(&projectName, "project name", "p", []string{}, "project to add member-role")
-	cmd.MarkFlagRequired("project name")
+	cmd.Flags().StringSliceVarP(&projectName, "project-name", "p", []string{}, "project to display member-roles of")
+	cmd.MarkFlagRequired("project-name")
 	return cmd
 }
 

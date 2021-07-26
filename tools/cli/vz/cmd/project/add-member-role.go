@@ -40,8 +40,8 @@ func NewCmdProjectAddMemberRole(streams genericclioptions.IOStreams, kubernetesI
 			return nil
 		},
 	}
-	cmd.Flags().StringSliceVarP(&projectName, "project name", "p", []string{}, "project to add member-role")
-	cmd.MarkFlagRequired("project name")
+	cmd.Flags().StringSliceVarP(&projectName, "project-name", "p", []string{}, "project to add member-role")
+	cmd.MarkFlagRequired("project-name")
 	return cmd
 }
 

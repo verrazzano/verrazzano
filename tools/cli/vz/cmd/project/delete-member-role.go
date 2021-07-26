@@ -37,8 +37,8 @@ func NewCmdProjectDeleteMemberRole(streams genericclioptions.IOStreams, kubernet
 			return nil
 		},
 	}
-	cmd.Flags().StringSliceVarP(&projectName, "project name", "p", []string{}, "project to delete member-role from")
-	cmd.MarkFlagRequired("project name")
+	cmd.Flags().StringSliceVarP(&projectName, "project-name", "p", []string{}, "project to delete member-role from")
+	cmd.MarkFlagRequired("project-name")
 	return cmd
 }
 
@@ -74,7 +74,7 @@ func deleteMemberRole(streams genericclioptions.IOStreams, args []string, kubern
 	}
 
 	if isfound == -1 {
-		fmt.Fprintln(streams.ErrOut, errors.New("ProjectMonitorSubject not found"))
+		fmt.Fprintln(streams.ErrOut, errors.New("Member not found"))
 	} else {
 		if isfound == 1 {
 			project.Spec.Template.Security.ProjectMonitorSubjects = append(project.Spec.Template.Security.ProjectMonitorSubjects[:index], project.Spec.Template.Security.ProjectMonitorSubjects[index+1:]...)
@@ -87,7 +87,12 @@ func deleteMemberRole(streams genericclioptions.IOStreams, args []string, kubern
 			fmt.Fprintln(streams.ErrOut, err)
 			return err
 		}
-		fmt.Fprintln(streams.Out, `ProjectMonitor Subject "`+mName+`" deleted`)
+		if isfound == 1 {
+			fmt.Fprintln(streams.Out, `ProjectMonitor Subject "`+mName+`" deleted`)
+		} else {
+			fmt.Fprintln(streams.Out, `ProjectAdmin Subject "`+mName+`" deleted`)
+		}
+
 	}
 	return nil
 }
