@@ -78,4 +78,5 @@ func listPodsInKubeSystem() error {
 		pkg.Log(pkg.Info, fmt.Sprintf("pods-status=%v\n", podInfo.Status.Phase))
 		pkg.Log(pkg.Info, fmt.Sprintf("pods-condition=%v\n", podInfo.Status.Conditions))
 	}
+	return nil
 }
