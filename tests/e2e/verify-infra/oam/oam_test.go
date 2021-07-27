@@ -25,13 +25,17 @@ const (
 var _ = Describe("Verify OAM Infra.", func() {
 	Describe("Verify verrazzano-application-operator pod is running.", func() {
 		It("and waiting for expected pods must be running", func() {
-			Eventually(applicationOperatorPodRunning, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(func() (bool, error) {
+				return applicationOperatorPodRunning()
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
 	Describe("Verify oam-kubernetes-runtime pod is running.", func() {
 		It("and waiting for expected pods must be running", func() {
-			Eventually(kubernetesRuntimePodRunning, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(func() (bool, error) {
+				return kubernetesRuntimePodRunning()
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 })
@@ -39,28 +43,32 @@ var _ = Describe("Verify OAM Infra.", func() {
 // podsRunningInVerrazzanoSystem checks if all of the named pods are running in the verrazzano-system namespace.
 // returns true iff all of the names pods are running.
 // if at least one of the pods is not running it returns false.
-func podsRunningInVerrazzanoSystem(podNames []string) bool {
+func podsRunningInVerrazzanoSystem(podNames []string) (bool, error) {
 	// if the list is empty, return true
 	if len(podNames) == 0 {
-		return true
+		return true, nil
 	}
 
 	// otherwise check each pod name in the list
 	for _, podName := range podNames {
-		if pkg.DoesPodExist(verrazzanoSystemNS, podName) {
+		found, err := pkg.DoesPodExist(verrazzanoSystemNS, podName)
+		if err != nil {
+			return false, err
+		}
+		if found {
 			// pod exists, nothing to do
 		} else {
 			// the pod does not exist, return a false
-			return false
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }
 
-func kubernetesRuntimePodRunning() bool {
+func kubernetesRuntimePodRunning() (bool, error) {
 	return podsRunningInVerrazzanoSystem(expectedPodsOam)
 }
 
-func applicationOperatorPodRunning() bool {
+func applicationOperatorPodRunning() (bool, error) {
 	return podsRunningInVerrazzanoSystem(expectedPodsOperator)
 }

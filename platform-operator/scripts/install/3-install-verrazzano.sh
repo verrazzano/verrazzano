@@ -120,6 +120,7 @@ function install_verrazzano()
         --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
         --set keycloak.enabled=$(is_keycloak_enabled) \
         --set rancher.enabled=$(is_rancher_enabled) \
+        --set fluentd.enabled=$(is_fluentd_enabled) \
         --set api.proxy.OidcProviderHost=keycloak.${ENV_NAME}.${DNS_SUFFIX} \
         --set api.proxy.OidcProviderHostInCluster=keycloak-http.keycloak.svc.cluster.local \
         $(get_fluentd_extra_volume_mounts) \
