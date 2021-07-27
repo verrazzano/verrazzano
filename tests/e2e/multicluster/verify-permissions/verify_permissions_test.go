@@ -4,12 +4,12 @@ package permissions_test
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
-	goerrors "errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
