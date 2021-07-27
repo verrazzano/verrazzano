@@ -287,7 +287,7 @@ var _ = AfterSuite(func() {
 	pkg.Log(pkg.Info, "Waiting for namespace to be deleted")
 	var ns *v1.Namespace
 	var err error
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 20; i++ {
 		ns, err = pkg.GetNamespace("sockshop")
 		if err != nil && errors.IsNotFound(err) {
 			pkg.Log(pkg.Info, "Namespace deleted")
