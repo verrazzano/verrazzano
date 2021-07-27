@@ -13,56 +13,45 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/remotecommand"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
-
-	"k8s.io/api/authorization/v1beta1"
-	rbacv1 "k8s.io/api/rbac/v1"
-
-	"github.com/onsi/ginkgo"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/api/authorization/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
-
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/homedir"
 )
 
 const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
 
 // GetKubeConfig will get the kubeconfig from the given kubeconfigPath
-func GetKubeConfigGivenPath(kubeconfigPath string) *restclient.Config {
+func GetKubeConfigGivenPath(kubeconfigPath string) (*restclient.Config, error) {
 	return buildKubeConfig(kubeconfigPath)
 }
 
 // GetKubeConfig will get the kubeconfig from the TEST_KUBECONFIG env var if set, then the env var KUBECONFIG, if set,
 // or else from $HOME/.kube/config
-func GetKubeConfig() *restclient.Config {
+func GetKubeConfig() (*restclient.Config, error) {
 	kubeconfig := GetKubeConfigPathFromEnv()
 
 	return buildKubeConfig(kubeconfig)
 }
 
-func buildKubeConfig(kubeconfig string) *restclient.Config {
-	var err error
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		ginkgo.Fail("Could not get current context from kubeconfig " + kubeconfig)
-	}
-
-	return config
+func buildKubeConfig(kubeconfig string) (*restclient.Config, error) {
+	return clientcmd.BuildConfigFromFlags("", kubeconfig)
 }
 
 // GetKubeConfigPathFromEnv returns the path to the default kubernetes config file in use (from
@@ -82,12 +71,10 @@ func GetKubeConfigPathFromEnv() string {
 
 	if len(kubeconfigEnvVar) > 0 {
 		kubeconfig = kubeconfigEnvVar
-	} else if home := homedir.HomeDir(); home != "" {
-		// next look for $HOME/.kube/config
-		kubeconfig = filepath.Join(home, ".kube", "config")
 	} else {
-		// give up
-		ginkgo.Fail("Could not find kube config")
+		// use $HOME/.kube/config
+		home := homedir.HomeDir()
+		kubeconfig = filepath.Join(home, ".kube", "config")
 	}
 	return kubeconfig
 }
@@ -95,8 +82,10 @@ func GetKubeConfigPathFromEnv() string {
 // DoesCRDExist returns whether a CRD with the given name exists for the cluster
 func DoesCRDExist(crdName string) (bool, error) {
 	// use the current context in the kubeconfig
-	config := GetKubeConfig()
-
+	config, err := GetKubeConfig()
+	if err != nil {
+		return false, err
+	}
 	apixClient, err := apixv1beta1client.NewForConfig(config)
 	if err != nil {
 		Log(Error, "Could not get apix client")
@@ -126,7 +115,10 @@ func DoesNamespaceExist(name string) (bool, error) {
 // DoesNamespaceExistInCluster returns whether a namespace with the given name exists in the specified cluster
 func DoesNamespaceExistInCluster(name string, kubeconfigPath string) (bool, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
 
 	namespace, err := clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
@@ -139,23 +131,29 @@ func DoesNamespaceExistInCluster(name string, kubeconfigPath string) (bool, erro
 
 // ListNamespaces returns a namespace list for the given list options
 func ListNamespaces(opts metav1.ListOptions) (*corev1.NamespaceList, error) {
-	return GetKubernetesClientset().CoreV1().Namespaces().List(context.TODO(), opts)
-}
-
-// ListNamespaces returns a namespace list for the given list options in the specified cluster
-func ListNamespacesInCluster(opts metav1.ListOptions, kubeconfigPath string) (*corev1.NamespaceList, error) {
-	return GetKubernetesClientsetForCluster(kubeconfigPath).CoreV1().Namespaces().List(context.TODO(), opts)
+	client, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	return client.CoreV1().Namespaces().List(context.TODO(), opts)
 }
 
 // ListPods returns a pod list for the given namespace and list options
 func ListPods(namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
-	return GetKubernetesClientset().CoreV1().Pods(namespace).List(context.TODO(), opts)
+	client, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	return client.CoreV1().Pods(namespace).List(context.TODO(), opts)
 }
 
 // ListDeployments returns the list of deployments in a given namespace for the cluster
 func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
 
 	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -168,7 +166,10 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 // ListNodes returns the list of nodes for the cluster
 func ListNodes() (*corev1.NodeList, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
 
 	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -203,155 +204,158 @@ func ListPodsInCluster(namespace string, clientset *kubernetes.Clientset) (*core
 }
 
 // DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
-func DoesPodExist(namespace string, name string) bool {
-	clientset := GetKubernetesClientset()
+func DoesPodExist(namespace string, name string) (bool, error) {
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return false, err
+	}
 	pods, err := ListPodsInCluster(namespace, clientset)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
-		return false
+		return false, err
 	}
 	for i := range pods.Items {
 		if strings.HasPrefix(pods.Items[i].Name, name) {
-			return true
+			return true, nil
 		}
 	}
-	return false
-}
-
-// DoesServiceExist returns whether a service with the given name and namespace exists for the cluster
-func DoesServiceExist(namespace string, name string) bool {
-	services, err := ListServices(namespace)
-	if err != nil {
-		return false
-	}
-	for i := range services.Items {
-		if strings.HasPrefix(services.Items[i].Name, name) {
-			return true
-		}
-	}
-	return false
+	return false, nil
 }
 
 // GetKubernetesClientset returns the Kubernetes clientset for the cluster set in the environment
-func GetKubernetesClientset() *kubernetes.Clientset {
+func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	// use the current context in the kubeconfig
-	config := GetKubeConfig()
-
+	config, err := GetKubeConfig()
+	if err != nil {
+		return nil, err
+	}
 	return createClientset(config)
 }
 
 // GetKubernetesClientsetForCluster returns the Kubernetes clientset for the cluster whose
 // kubeconfig path is specified
-func GetKubernetesClientsetForCluster(kubeconfigPath string) *kubernetes.Clientset {
+func GetKubernetesClientsetForCluster(kubeconfigPath string) (*kubernetes.Clientset, error) {
 	// use the current context in the kubeconfig
-	config := GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 	return createClientset(config)
 }
 
 // createClientset Creates Kubernetes Clientset for a given kubeconfig
-func createClientset(config *restclient.Config) *kubernetes.Clientset {
-	// create the clientset once and cache it
-	var err error
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		ginkgo.Fail("Could not get Kubernetes clientset")
-	}
-
-	return clientset
+func createClientset(config *restclient.Config) (*kubernetes.Clientset, error) {
+	return kubernetes.NewForConfig(config)
 }
 
 // GetVerrazzanoManagedClusterClientset returns the Kubernetes clientset for the VerrazzanoManagedCluster
-func GetVerrazzanoManagedClusterClientset() *vmcClient.Clientset {
-	client, err := vmcClient.NewForConfig(GetKubeConfig())
+func GetVerrazzanoManagedClusterClientset() (*vmcClient.Clientset, error) {
+	config, err := GetKubeConfig()
 	if err != nil {
-		ginkgo.Fail("Could not get Verrazzano Platform Operator clientset")
+		return nil, err
 	}
-	return client
+	return vmcClient.NewForConfig(config)
 }
 
 // GetDynamicClient returns a dynamic client needed to access Unstructured data
-func GetDynamicClient() dynamic.Interface {
-	config := GetKubeConfig()
-	if config == nil {
-		ginkgo.Fail("Could not get an KubeConfig")
-	}
-	client, err := dynamic.NewForConfig(config)
+func GetDynamicClient() (dynamic.Interface, error) {
+	config, err := GetKubeConfig()
 	if err != nil {
-		ginkgo.Fail("Could not get an Dynamic client")
+		return nil, err
 	}
-	return client
-}
-
-// getPlatformOperatorClientsetForCluster returns the Kubernetes clientset for the Verrazzano Platform Operator
-func getPlatformOperatorClientsetForCluster(kubeconfigPath string) *vpoClient.Clientset {
-	client, err := vpoClient.NewForConfig(GetKubeConfigGivenPath(kubeconfigPath))
-	if err != nil {
-		ginkgo.Fail("Could not get Verrazzano Platform Operator clientset")
-	}
-	return client
+	return dynamic.NewForConfig(config)
 }
 
 // GetVerrazzanoInstallResourceInCluster returns the installed Verrazzano CR in the given cluster
 // (there should only be 1 per cluster)
-func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) *v1alpha1.Verrazzano {
-	vzClient := getPlatformOperatorClientsetForCluster(kubeconfigPath).VerrazzanoV1alpha1().Verrazzanos("")
+func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Verrazzano, error) {
+	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	client, err := vpoClient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	vzClient := client.VerrazzanoV1alpha1().Verrazzanos("")
 	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
 
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Error listing out Verrazzano instances: %v", err))
+		return nil, fmt.Errorf("error listing out Verrazzano instances: %v", err)
 	}
 	numVzs := len(vzList.Items)
 	if numVzs == 0 {
-		ginkgo.Fail("Did not find installed verrazzano instance")
-	}
-	if numVzs > 1 {
-		ginkgo.Fail(fmt.Sprintf("Found more than one Verrazzano instance installed: %v", numVzs))
+		return nil, fmt.Errorf("did not find installed Verrazzano instance")
 	}
 	vz := vzList.Items[0]
-	return &vz
+	return &vz, nil
 }
 
-// IsDevProfile returns true if the deployed resource is a Dev profile
+// IsDevProfile returns true if the deployed resource is a 'dev' profile
 func IsDevProfile() bool {
-	return GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv()).Spec.Profile == v1alpha1.Dev
+	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
+	if err != nil {
+		return false
+	}
+	if vz.Spec.Profile == v1alpha1.Dev {
+		return true
+	}
+	return false
 }
 
 // IsProdProfile returns true if the deployed resource is a 'prod' profile
 func IsProdProfile() bool {
-	return GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv()).Spec.Profile == v1alpha1.Prod
+	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
+	if err != nil {
+		return false
+	}
+	if vz.Spec.Profile == v1alpha1.Prod {
+		return true
+	}
+	return false
 }
 
 // IsManagedClusterProfile returns true if the deployed resource is a 'managed-cluster' profile
 func IsManagedClusterProfile() bool {
-	return GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv()).Spec.Profile == v1alpha1.ManagedCluster
-}
-
-// IsACMEStagingEnabledInCluster returns true if the ACME staging environment is configured
-func IsACMEStagingEnabledInCluster(kubeconfigPath string) bool {
-	vz := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
-	if vz.Spec.Components.CertManager == nil {
+	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
+	if err != nil {
 		return false
 	}
-	return vz.Spec.Components.CertManager.Certificate.Acme.Environment == "staging"
+	if vz.Spec.Profile == v1alpha1.ManagedCluster {
+		return true
+	}
+	return false
+}
+
+// GetACMEEnvironment returns true if
+func GetACMEEnvironment(kubeconfigPath string) (string, error) {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return "", err
+	}
+	if vz.Spec.Components.CertManager == nil {
+		return "", nil
+	}
+	return vz.Spec.Components.CertManager.Certificate.Acme.Environment, nil
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
-func APIExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
-	config := GetKubeConfig()
-
-	// create the clientset
-	clientset, err := apixv1beta1client.NewForConfig(config)
+func APIExtensionsClientSet() (*apixv1beta1client.ApiextensionsV1beta1Client, error) {
+	config, err := GetKubeConfig()
 	if err != nil {
-		ginkgo.Fail("Could not get clientset from config")
+		return nil, err
 	}
-
-	return clientset
+	// create the clientset
+	return apixv1beta1client.NewForConfig(config)
 }
 
 // ListServices returns the list of services in a given namespace for the cluster
 func ListServices(namespace string) (*corev1.ServiceList, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
 
 	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -364,7 +368,10 @@ func ListServices(namespace string) (*corev1.ServiceList, error) {
 // GetNamespace returns a namespace
 func GetNamespace(name string) (*corev1.Namespace, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
 
 	return clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 }
@@ -372,7 +379,10 @@ func GetNamespace(name string) (*corev1.Namespace, error) {
 // GetNamespaceInCluster returns a namespace in the cluster whose kubeconfigPath is specified
 func GetNamespaceInCluster(name string, kubeconfigPath string) (*corev1.Namespace, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 
 	return clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 }
@@ -394,7 +404,10 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 	}
 
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -423,8 +436,11 @@ func DeleteNamespace(name string) error {
 
 func DeleteNamespaceInCluster(name string, kubeconfigPath string) error {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
-	err := clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return err
+	}
+	err = clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("DeleteNamespace %s error: %v", name, err))
 	}
@@ -435,7 +451,10 @@ func DeleteNamespaceInCluster(name string, kubeconfigPath string) error {
 // DoesClusterRoleExist returns whether a cluster role with the given name exists in the cluster
 func DoesClusterRoleExist(name string) (bool, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return false, err
+	}
 
 	clusterrole, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
@@ -449,7 +468,10 @@ func DoesClusterRoleExist(name string) (bool, error) {
 // GetClusterRole returns the cluster role with the given name
 func GetClusterRole(name string) (*rbacv1.ClusterRole, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
 
 	clusterrole, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
@@ -472,7 +494,10 @@ func DoesServiceAccountExist(namespace, name string) (bool, error) {
 // DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
 func DoesClusterRoleBindingExist(name string) (bool, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return false, err
+	}
 
 	clusterrolebinding, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
@@ -486,7 +511,10 @@ func DoesClusterRoleBindingExist(name string) (bool, error) {
 // GetClusterRoleBinding returns the cluster role with the given name
 func GetClusterRoleBinding(name string) (*rbacv1.ClusterRoleBinding, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
 
 	crb, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
@@ -500,7 +528,10 @@ func GetClusterRoleBinding(name string) (*rbacv1.ClusterRoleBinding, error) {
 // ListClusterRoleBindings returns the list of cluster role bindings for the cluster
 func ListClusterRoleBindings() (*rbacv1.ClusterRoleBindingList, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
 
 	bindings, err := clientset.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -514,7 +545,10 @@ func ListClusterRoleBindings() (*rbacv1.ClusterRoleBindingList, error) {
 // DoesRoleBindingContainSubject returns true if the RoleBinding exists and it contains the
 // specified subject
 func DoesRoleBindingContainSubject(namespace, name, subjectKind, subjectName string) (bool, error) {
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return false, err
+	}
 
 	rb, err := clientset.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
@@ -560,9 +594,12 @@ func CreateRoleBinding(userOCID string, namespace string, rolebindingname string
 	}
 
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
 
-	_, err := clientset.RbacV1().RoleBindings(namespace).Create(context.TODO(), &rb, metav1.CreateOptions{})
+	_, err = clientset.RbacV1().RoleBindings(namespace).Create(context.TODO(), &rb, metav1.CreateOptions{})
 	if err != nil {
 		Log(Info, fmt.Sprintf("Failed to create role binding: %v", err))
 	}
@@ -571,22 +608,30 @@ func CreateRoleBinding(userOCID string, namespace string, rolebindingname string
 }
 
 // DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
-func DoesRoleBindingExist(name string, namespace string) bool {
+func DoesRoleBindingExist(name string, namespace string) (bool, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return false, err
+	}
 
 	rolebinding, err := clientset.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		Log(Info, fmt.Sprintf("Failed to verify role binding %s in namespace %s with error: %v", name, namespace, err))
+		return false, err
 	}
 
-	return rolebinding != nil
+	return rolebinding != nil, nil
 }
 
 // Execute executes the given command on the pod and container identified by the given names and returns the
 // resulting stdout and stderr
 func Execute(podName, containerName, namespace string, command []string) (string, string, error) {
-	request := GetKubernetesClientset().CoreV1().RESTClient().Post().Resource("pods").Name(podName).
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return "", "", err
+	}
+	request := clientset.CoreV1().RESTClient().Post().Resource("pods").Name(podName).
 		Namespace(namespace).SubResource("exec")
 	request.VersionedParams(
 		&corev1.PodExecOptions{
@@ -599,7 +644,11 @@ func Execute(podName, containerName, namespace string, command []string) (string
 		},
 		scheme.ParameterCodec,
 	)
-	executor, err := remotecommand.NewSPDYExecutor(GetKubeConfig(), "POST", request.URL())
+	client, err := GetKubeConfig()
+	if err != nil {
+		return "", "", err
+	}
+	executor, err := remotecommand.NewSPDYExecutor(client, "POST", request.URL())
 	if err != nil {
 		return "", "", err
 	}
@@ -610,18 +659,21 @@ func Execute(podName, containerName, namespace string, command []string) (string
 }
 
 // GetIstioClientset returns the clientset object for Istio
-func GetIstioClientset() *istioClient.Clientset {
-	cs, err := istioClient.NewForConfig(GetKubeConfig())
+func GetIstioClientset() (*istioClient.Clientset, error) {
+	client, err := GetKubeConfig()
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get Istio clientset: %v", err))
+		return nil, err
 	}
-	return cs
+	return istioClient.NewForConfig(client)
 }
 
 // GetConfigMap returns the config map for the passed in ConfigMap Name and Namespace
 func GetConfigMap(configMapName string, namespace string) (*corev1.ConfigMap, error) {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
 	cmi := clientset.CoreV1().ConfigMaps(namespace)
 	configMap, err := cmi.Get(context.TODO(), configMapName, metav1.GetOptions{})
 	if err != nil {
@@ -687,7 +739,10 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 		},
 	}
 
-	config := GetKubeConfig()
+	config, err := GetKubeConfig()
+	if err != nil {
+		return false, "", err
+	}
 
 	wt := config.WrapTransport // Config might already have a transport wrapper
 	if isServiceAccount {
@@ -700,7 +755,7 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 			&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}})
 		rawConfig, err := clientConfig.RawConfig()
 		if err != nil {
-			ginkgo.Fail(fmt.Sprintf("Could not get rawconfig, error %v", err))
+			return false, "", fmt.Errorf("could not get rawconfig, error %v", err)
 		}
 
 		rawConfig.AuthInfos["sa-token"] = &clientcmdapi.AuthInfo{Token: string(token)}
@@ -718,7 +773,7 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 		rawConfig.CurrentContext = "sa-context"
 		config, err = clientcmd.NewNonInteractiveClientConfig(rawConfig, "sa-context", &clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}}, clientConfig.ConfigAccess()).ClientConfig()
 		if err != nil {
-			ginkgo.Fail(fmt.Sprintf("Could not get config for sa, error %v", err))
+			return false, "", err
 		}
 
 	} else {
@@ -736,7 +791,7 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		ginkgo.Fail("Could not get Kubernetes clientset")
+		return false, "", err
 	}
 
 	auth, err := clientset.AuthorizationV1beta1().SelfSubjectAccessReviews().Create(context.TODO(), canI, metav1.CreateOptions{})
@@ -761,7 +816,10 @@ func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 	}
 
 	secretName := serviceAccount.Secrets[0].Name
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
 	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		msg := fmt.Sprintf("failed to get secret %s for service account %s in namespace %s with error: %v", secretName, sa, namespace, err)
@@ -781,7 +839,10 @@ func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 }
 
 func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
 	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get service account %s in namespace %s with error: %v", name, namespace, err))
@@ -791,7 +852,11 @@ func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
 }
 
 func GetPersistentVolumes(namespace string) (map[string]*corev1.PersistentVolumeClaim, error) {
-	pvcs, err := GetKubernetesClientset().CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), metav1.ListOptions{})
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

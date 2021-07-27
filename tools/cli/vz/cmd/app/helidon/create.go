@@ -6,11 +6,12 @@ package helidon
 import (
 	"bytes"
 	"errors"
+	"text/template"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"text/template"
 )
 
 var (
@@ -161,8 +162,12 @@ func createHelidonApplication(args []string) error {
 		return err
 	}
 
+	kubeConfig, err := pkg.GetKubeConfig()
+	if err != nil {
+		return err
+	}
 	// apply the resulting data (yaml) on the server
-	err = helpers.ServerSideApply(pkg.GetKubeConfig(), b.String())
+	err = helpers.ServerSideApply(kubeConfig, b.String())
 	if err != nil {
 		return err
 	}
@@ -179,6 +184,6 @@ func createHelidonApplication(args []string) error {
 		return err
 	}
 
-	err = helpers.ServerSideApply(pkg.GetKubeConfig(), b2.String())
+	err = helpers.ServerSideApply(kubeConfig, b2.String())
 	return err
 }

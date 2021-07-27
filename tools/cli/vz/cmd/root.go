@@ -24,7 +24,8 @@ type RootOptions struct {
 }
 
 func (c *RootOptions) GetKubeConfig() *rest.Config {
-	return pkg.GetKubeConfig()
+	kubeConfig, _ := pkg.GetKubeConfig()
+	return kubeConfig
 }
 
 func (c *RootOptions) NewClustersClientSet() (clustersclientset.Interface, error) {
@@ -43,7 +44,8 @@ func (c *RootOptions) NewVerrazzanoClientSet() (verrazzanoclientset.Interface, e
 }
 
 func (c *RootOptions) NewClientSet() kubernetes.Interface {
-	return pkg.GetKubernetesClientset()
+	clientset, _ := pkg.GetKubernetesClientset()
+	return clientset
 }
 
 func NewRootOptions(streams genericclioptions.IOStreams) *RootOptions {

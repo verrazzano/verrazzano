@@ -34,7 +34,10 @@ func GetBindingVmiHTTPClient(bindingName string, kubeconfigPath string) (*retrya
 	if err != nil {
 		return nil, err
 	}
-	vmiRawClient := getHTTPClientWithCABundle(bindingVmiCaCert, kubeconfigPath)
+	vmiRawClient, err := getHTTPClientWithCABundle(bindingVmiCaCert, kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 	retryableClient := newRetryableHTTPClient(vmiRawClient)
 	retryableClient.CheckRetry = GetRetryPolicy()
 	return retryableClient, nil

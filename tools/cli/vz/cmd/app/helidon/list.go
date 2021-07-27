@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/spf13/cobra"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
@@ -52,7 +53,11 @@ func NewCmdAppHelidonList(streams genericclioptions.IOStreams) *cobra.Command {
 
 func listHelidonApplications(cmd *cobra.Command, args []string) error {
 	// connect to the server
-	config := pkg.GetKubeConfig()
+	config, err := pkg.GetKubeConfig()
+	if err != nil {
+		fmt.Print("could not get kube config")
+		return err
+	}
 	oamclientset, err := v1alpha1.NewForConfig(config)
 	if err != nil {
 		fmt.Print("could not get the OAM/Helidon clientset")
