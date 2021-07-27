@@ -76,6 +76,7 @@ spec:
         - port: 15090
           protocol: TCP
 {{- end }}
+{{- if .Values.vo.enabled }}
 ---
 # Network policy for Verrazzano operator
 # Ingress: deny all
@@ -91,6 +92,7 @@ spec:
       app: verrazzano-operator
   policyTypes:
     - Ingress
+{{- end }}
 ---
 # Network policy for Verrazzano application operator
 # Ingress: allow access from Kubernetes API server for webhook port 9443
@@ -110,6 +112,7 @@ spec:
     - ports:
         - port: 9443
           protocol: TCP
+{{- if .Values.vmo.enabled }}
 ---
 # Network policy for Verrazzano monitoring operator
 # Ingress: deny all
@@ -125,6 +128,7 @@ spec:
       k8s-app: verrazzano-monitoring-operator
   policyTypes:
     - Ingress
+{{- end }}
 ---
 # Network policy for OAM Kubernetes Runtime operator
 # Ingress: deny all

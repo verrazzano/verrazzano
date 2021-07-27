@@ -121,6 +121,8 @@ function install_verrazzano()
         --set keycloak.enabled=$(is_keycloak_enabled) \
         --set rancher.enabled=$(is_rancher_enabled) \
         --set fluentd.enabled=$(is_fluentd_enabled) \
+        --set vo.enabled=$(is_vo_vmo_enabled) \
+        --set vmo.enabled=$(ia_vo_vmo_enaled) \
         --set api.proxy.OidcProviderHost=keycloak.${ENV_NAME}.${DNS_SUFFIX} \
         --set api.proxy.OidcProviderHostInCluster=keycloak-http.keycloak.svc.cluster.local \
         $(get_fluentd_extra_volume_mounts) \
@@ -289,7 +291,7 @@ if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
 fi
 
-if [ $(is_verrazzano_operator_enabled) == "true" ]; then
+if [ $(is_vo-vmo_enabled) == "true" ]; then
   if ! kubectl get namespace ${MONITORING_NS} ; then
     action "Creating ${MONITORING_NS} namespace" kubectl create namespace ${MONITORING_NS} || exit 1
   fi
@@ -320,9 +322,7 @@ if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   fi
 fi
 
-if [ $(is_verrazzano_operator_enabled) == "true" ]; then
-  action "Installing Verrazzano system components" install_verrazzano || exit 1
-fi
+action "Installing Verrazzano system components" install_verrazzano || exit 1
 action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
 action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
 action "Installing OAM Kubernetes operator" install_oam_operator || exit 1

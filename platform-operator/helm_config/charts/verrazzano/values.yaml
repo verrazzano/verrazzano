@@ -89,19 +89,6 @@ api:
     PGClientID: verrazzano-pg
     RequiredRealmRole: vz_api_access
 
-# OCI-related values
-oci:
-  region: ""
-  tenancyOcid: ""
-  userOcid: ""
-  fingerprint: ""
-  privateKey: ""
-  compartment: ""
-  clusterOcid: ""
-  objectStore:
-    bucketName: ""
-    namespace: ""
-
 config:
   envName:
   dnsSuffix: verrazzano.io
