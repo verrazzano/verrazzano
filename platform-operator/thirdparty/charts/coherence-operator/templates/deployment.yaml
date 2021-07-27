@@ -10,25 +10,19 @@ metadata:
 apiVersion: v1
 kind: Service
 metadata:
-  name: coherence-operator-webhook
-  namespace: {{ .Release.Namespace }}
   labels:
+    name: coherence-operator
     control-plane: coherence
-    app.kubernetes.io/name: coherence-operator
-    app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.0"
-    app.kubernetes.io/component: webhook
-    app.kubernetes.io/part-of: coherence-operator
-    app.kubernetes.io/managed-by: helm
+    app: coherence-operator
+    version: v3.1.5
+  name: coherence-operator-webhook-service
+  namespace: {{ .Release.Namespace }}
 spec:
   ports:
   - port: 443
     targetPort: 9443
   selector:
-    app.kubernetes.io/name: coherence-operator
-    app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.0"
-    app.kubernetes.io/component: manager
+    control-plane: coherence
 ---
 apiVersion: v1
 kind: Service
@@ -37,57 +31,36 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     control-plane: coherence
-    app.kubernetes.io/name: coherence-operator
-    app.kubernetes.io/instance: coherence-operator-rest
-    app.kubernetes.io/version: "3.2.0"
-    app.kubernetes.io/component: rest
-    app.kubernetes.io/part-of: coherence-operator
-    app.kubernetes.io/managed-by: helm
+    app: coherence-operator
+    version: v3.1.5
 spec:
   ports:
     - name: http-rest
       port: 8000
       targetPort: 8000
   selector:
-    app.kubernetes.io/name: coherence-operator
-    app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.0"
-    app.kubernetes.io/component: manager
+    control-plane: coherence
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: coherence-operator
-  namespace: {{ .Release.Namespace }}
   labels:
     control-plane: coherence
-    app.kubernetes.io/name: coherence-operator
-    app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.0"
-    app.kubernetes.io/component: manager
-    app.kubernetes.io/part-of: coherence-operator
-    app.kubernetes.io/managed-by: helm
-    app.kubernetes.io/created-by: controller-manager
+    app: coherence-operator
+    version: v3.1.5
+  name: coherence-operator
+  namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       control-plane: coherence
-      app.kubernetes.io/name: coherence-operator
-      app.kubernetes.io/instance: coherence-operator-manager
-      app.kubernetes.io/version: "3.2.0"
-      app.kubernetes.io/component: manager
   template:
     metadata:
       labels:
         control-plane: coherence
-        app.kubernetes.io/name: coherence-operator
-        app.kubernetes.io/instance: coherence-operator-manager
-        app.kubernetes.io/version: "3.2.0"
-        app.kubernetes.io/component: manager
-        app.kubernetes.io/part-of: coherence-operator
-        app.kubernetes.io/managed-by: helm
-        app.kubernetes.io/created-by: controller-manager
+        app: coherence-operator
+        version: v3.1.5
     spec:
       serviceAccountName: {{ default "coherence-operator" .Values.serviceAccountName }}
       containers:
@@ -110,7 +83,7 @@ spec:
             fieldRef:
               fieldPath: metadata.name
         - name: WEBHOOK_SERVICE
-          value: coherence-operator-webhook
+          value: coherence-operator-webhook-service
         - name: WEBHOOK_SECRET
           value: {{ default "coherence-webhook-server-cert" .Values.webhookCertSecret }}
         - name: SERVICE_NAME

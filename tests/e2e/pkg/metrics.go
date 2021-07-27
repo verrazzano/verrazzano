@@ -27,7 +27,11 @@ func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
 
 // getPrometheusIngressHost gest the host used for ingress to the system Prometheus in the given cluster
 func getPrometheusIngressHost(kubeconfigPath string) string {
-	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
+		return ""
+	}
 	ingressList, _ := clientset.ExtensionsV1beta1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
 		if ingress.Name == "vmi-system-prometheus" {

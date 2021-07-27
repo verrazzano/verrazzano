@@ -18,6 +18,8 @@ spec:
       enabled: false
     kibana:
       enabled: false
+    fluentd:
+      enabled: false
     prometheus:
       enabled: false
     grafana:

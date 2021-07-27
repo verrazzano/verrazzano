@@ -192,7 +192,11 @@ func componentWorkloadExists(kubeconfigPath string, namespace string) bool {
 }
 
 func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
-	config := pkg.GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := pkg.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not get kube config: %v\n", err))
+		return false
+	}
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Could not create dynamic client: %v\n", err))
