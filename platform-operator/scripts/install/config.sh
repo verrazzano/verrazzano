@@ -385,14 +385,18 @@ function get_override_config_value() {
   return 0
 }
 
-// Return true if verrazzano operator should be enabled or not
+# Return true if verrazzano operator should be enabled or not
 function is_verrazzano_operator_enabled() {
-  if [ "$(is_elasticsearch_console_enabled)" == "true" ]  || [ "$(is_kibana_console_enabled)" == "true" ] || [ "$(is_prometheus_console_enabled)" == "true" ] || [ "$(is_grafana_console_enabled)" == "true" ]; then
+  local profile=$(get_install_profile)
+  if [ "$profile" == "managed-cluster" ]; then
+    echo "true"
+  elif [ "$(is_elasticsearch_console_enabled)" == "true" ]  || [ "$(is_kibana_console_enabled)" == "true" ] || [ "$(is_prometheus_console_enabled)" == "true" ] || [ "$(is_grafana_console_enabled)" == "true" ]; then
     echo "true"
   else
     echo "false"
   fi
-}
+
+}}
 
 # Return the value for the key rancher.enabled
 function is_rancher_enabled() {
