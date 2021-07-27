@@ -130,21 +130,25 @@ function install_verrazzano()
         ${PROFILE_VALUES_OVERRIDE} \
         ${EXTRA_V8O_ARGUMENTS} || return $?
   fi
-  log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
-  kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
 
-  log "Verifying that needed secrets are created"
-  retries=0
-  until [ "$retries" -ge 60 ]
-  do
-      kubectl get secret -n ${VERRAZZANO_NS} verrazzano | grep verrazzano && break
-      retries=$(($retries+1))
-      sleep 5
-  done
-  if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
-      error "ERROR: failed creating verrazzano secret"
-      exit 1
+  if [ $(is_vo-vmo_enabled) == "true" ]; then
+    log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
+    kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
+
+    log "Verifying that needed secrets are created"
+    retries=0
+    until [ "$retries" -ge 60 ]
+    do
+        kubectl get secret -n ${VERRAZZANO_NS} verrazzano | grep verrazzano && break
+        retries=$(($retries+1))
+        sleep 5
+    done
+    if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
+        error "ERROR: failed creating verrazzano secret"
+        exit 1
+    fi
   fi
+
   log "Verrazzano install completed"
 }
 

@@ -397,7 +397,6 @@ function is_vo-vmo_enabled() {
     log "Skip Verrazzano Monitoring Operator installation, disabled"
     echo "false"
   fi
-  return 0
 }
 
 # Return the value for the key rancher.enabled
