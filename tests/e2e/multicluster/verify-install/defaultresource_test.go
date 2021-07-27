@@ -27,7 +27,7 @@ var expectedPodsKubeSystem = []string{
 var _ = AfterSuite(func() {
 	Eventually(func() error {
 		return listPodsInKubeSystem()
-	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+	}, waitTimeout, pollingInterval).Should(BeNil())
 })
 
 var _ = Describe("Multi Cluster Install Validation",
