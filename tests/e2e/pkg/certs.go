@@ -13,7 +13,10 @@ import (
 
 // GetCertificate returns the a cert in a given namespace for the cluster specified in the environment
 func GetCertificate(namespace string, name string) (*unstructured.Unstructured, error) {
-	client := GetDynamicClient()
+	client, err := GetDynamicClient()
+	if err != nil {
+		return nil, err
+	}
 	cert, err := client.Resource(getScheme()).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err

@@ -22,7 +22,10 @@ const overallHealth = "overallHealth"
 
 // GetDomain returns a WebLogic domains in unstructured format
 func GetDomain(namespace string, name string) (*unstructured.Unstructured, error) {
-	client := pkg.GetDynamicClient()
+	client, err := pkg.GetDynamicClient()
+	if err != nil {
+		return nil, err
+	}
 	domain, err := client.Resource(getScheme()).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err

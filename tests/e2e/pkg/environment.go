@@ -121,7 +121,11 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) (*v1.Service, error) {
 
 // ListIngresses lists ingresses in namespace
 func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
-	ingresses, err := GetKubernetesClientset().ExtensionsV1beta1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	ingresses, err := clientset.ExtensionsV1beta1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +145,12 @@ func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
 // GetHostnameFromGateway returns the host name from the application gateway that was
 // created by the ingress trait controller
 func GetHostnameFromGateway(namespace string, appConfigName string) string {
-	gateways, err := GetIstioClientset().NetworkingV1alpha3().Gateways(namespace).List(context.TODO(), metav1.ListOptions{})
+	clientset, err := GetIstioClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Could not get istio clientset: %v", err))
+		return ""
+	}
+	gateways, err := clientset.NetworkingV1alpha3().Gateways(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Could not list application ingress gateways: %v", err))
 		return ""

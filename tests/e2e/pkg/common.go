@@ -108,7 +108,11 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 
 // PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
 func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) bool {
-	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset for cluster, error: %v", err))
+		return false
+	}
 	pods, err := ListPodsInCluster(namespace, clientset)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
@@ -130,7 +134,11 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 
 // PodsNotRunning waits for all the pods in namePrefixes to be terminated
 func PodsNotRunning(namespace string, namePrefixes []string) bool {
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset, error: %v", err))
+		return false
+	}
 	allPods, err := ListPodsInCluster(namespace, clientset)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))

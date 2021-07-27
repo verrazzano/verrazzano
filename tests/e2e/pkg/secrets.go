@@ -16,7 +16,11 @@ import (
 // ListSecrets returns the list of secrets in a given namespace for the cluster
 func ListSecrets(namespace string) (*corev1.SecretList, error) {
 	// Get the kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
+		return nil, err
+	}
 
 	secrets, err := clientset.CoreV1().Secrets(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -34,7 +38,10 @@ func GetSecret(namespace string, name string) (*corev1.Secret, error) {
 // GetSecretInCluster returns the secret in a given namespace for the given cluster
 func GetSecretInCluster(namespace string, name string, kubeconfigPath string) (*corev1.Secret, error) {
 	// Get the kubernetes clientset for the given cluster
-	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		Log(Info, fmt.Sprintf("GetSecretInCluster error: %s", err))
@@ -54,7 +61,11 @@ func CreateCredentialsSecret(namespace string, name string, username string, pw 
 func CreateCredentialsSecretFromMap(namespace string, name string, values, labels map[string]string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreateCredentialsSecret %s in %s", name, namespace))
 	// Get the kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
+		return nil, err
+	}
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -76,7 +87,11 @@ func CreateCredentialsSecretFromMap(namespace string, name string, values, label
 func CreatePasswordSecret(namespace string, name string, pw string, labels map[string]string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreatePasswordSecret %s in %s", name, namespace))
 	// Get the kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
+		return nil, err
+	}
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -100,7 +115,11 @@ func CreatePasswordSecret(namespace string, name string, pw string, labels map[s
 func CreateDockerSecret(namespace string, name string, server string, username string, password string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreateDockerSecret %s in %s", name, namespace))
 	// Get the kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
+		return nil, err
+	}
 
 	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", username, password)))
 	secret := &corev1.Secret{
@@ -123,7 +142,10 @@ func CreateDockerSecret(namespace string, name string, server string, username s
 // DeleteSecret deletes the specified secret in the specified namespace
 func DeleteSecret(namespace string, name string) error {
 	// Get the kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		return nil
+	}
 	return clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
