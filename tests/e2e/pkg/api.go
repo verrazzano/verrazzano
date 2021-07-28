@@ -34,7 +34,11 @@ type APIEndpoint struct {
 
 // GetAPIEndpoint returns the APIEndpoint stub with AccessToken, from the given cluster
 func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
-	ingress, err := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	ingress, err := clientset.ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +61,10 @@ func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
-	api.APIURL = getAPIURL(kubeconfigPath)
+	api.APIURL, err = getAPIURL(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 	api.HTTPClient, err = GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -67,10 +74,18 @@ func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
 }
 
 // getAPIURL returns the Verrazzano REST API URL for the cluster whose kubeconfig is given as argument
-func getAPIURL(kubeconfigPath string) string {
-	ingress, _ := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
-	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
-	return fmt.Sprintf("https://%s/%s", ingressRules[0].Host, verrazzanoAPIURLPrefix)
+func getAPIURL(kubeconfigPath string) (string, error) {
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return "", err
+	}
+
+	ingress, err := clientset.ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	var ingressRules = ingress.Spec.Rules
+	return fmt.Sprintf("https://%s/%s", ingressRules[0].Host, verrazzanoAPIURLPrefix), nil
 }
 
 // Get Invoke GET API Request

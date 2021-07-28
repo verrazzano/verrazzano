@@ -18,8 +18,8 @@ def acmeEnvironments = [ "staging", "production" ]
 def certIssuers = [ "self-signed", "acme" ]
 def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
-def availableRegions = [  "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
-                          "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
+// pulling "ap-*" from the test regions given discovery of image pull issues
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1" ]
 Collections.shuffle(availableRegions)
 def keepOKEClusterOnFailure = "false"
@@ -51,7 +51,7 @@ pipeline {
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
-                choices: [ "v1.18.10", "v1.19.7", "v1.17.13" ])
+                choices: [ "v1.18.10", "v1.19.7", "v1.17.13", "v1.19.12", "v1.20.8" ])
         choice (description: 'Certificate Issuer', name: 'CERT_ISSUER',
                 choices: certIssuers)
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',

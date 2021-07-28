@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,9 +31,15 @@ var ingress *v1beta1.Ingress
 var consoleUIConfigured bool = false
 
 var _ = BeforeSuite(func() {
+	var clientset *kubernetes.Clientset
+	Eventually(func() (*kubernetes.Clientset, error) {
+		var err error
+		clientset, err = pkg.GetKubernetesClientset()
+		return clientset, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 	Eventually(func() (*v1beta1.Ingress, error) {
 		var err error
-		ingress, err = pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
+		ingress, err = clientset.ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
 		return ingress, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 

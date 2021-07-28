@@ -287,7 +287,7 @@ var _ = AfterSuite(func() {
 	pkg.Log(pkg.Info, "Waiting for namespace to be deleted")
 	var ns *v1.Namespace
 	var err error
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 20; i++ {
 		ns, err = pkg.GetNamespace("sockshop")
 		if err != nil && errors.IsNotFound(err) {
 			pkg.Log(pkg.Info, "Namespace deleted")
@@ -311,7 +311,12 @@ var _ = AfterSuite(func() {
 
 // isSockShopServiceReady checks if the service is ready
 func isSockShopServiceReady(name string) bool {
-	svc, err := pkg.GetKubernetesClientset().CoreV1().Services("sockshop").Get(context.TODO(), name, metav1.GetOptions{})
+	clientset, err := pkg.GetKubernetesClientset()
+	if err != nil {
+		pkg.Log(pkg.Info, fmt.Sprintf("Could not get Kubernetes clientset: %v\n", err.Error()))
+		return false
+	}
+	svc, err := clientset.CoreV1().Services("sockshop").Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Could not get services %v in sockshop: %v\n", name, err.Error()))
 		return false

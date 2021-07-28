@@ -198,7 +198,7 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get rolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/role-bindings.json || true
         kubectl --insecure-skip-tls-verify get clusterrolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-role-bindings.json || true
         kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
-        kubectl --insecure-skip-tls-verify get ns -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/namespace.json || true
+        kubectl --insecure-skip-tls-verify get ns $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/namespace.json || true
         kubectl --insecure-skip-tls-verify get pvc -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/persistent-volume-claims.json || true
         kubectl --insecure-skip-tls-verify get pv -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/persistent-volumes.json || true
         kubectl --insecure-skip-tls-verify get jobs.batch -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/jobs.json || true
@@ -212,6 +212,7 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
         kubectl --insecure-skip-tls-verify get certificaterequests.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/certificate-requests.json || true
         kubectl --insecure-skip-tls-verify get orders.acme.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/acme-orders.json || true
+        kubectl --insecure-skip-tls-verify get statefulsets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/statefulsets.json || true
       fi
     fi
   done <$CAPTURE_DIR/cluster-dump/namespace_list.out

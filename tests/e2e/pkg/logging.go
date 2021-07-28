@@ -5,7 +5,6 @@ package pkg
 
 import (
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -56,7 +55,7 @@ func Log(level LogLevel, message string) {
 		case Debug:
 			levelHeader = "[DEBUG]"
 		default:
-			ginkgo.Fail("Bad (non-existent) error level requested: " + strconv.Itoa(int(level)))
+			levelHeader = "[INFO]"
 		}
 		ginkgo.GinkgoWriter.Write([]byte(levelHeader + " " + time.Now().Format("2020-01-02 15:04:05.000000") + " " + message + "\n"))
 	}

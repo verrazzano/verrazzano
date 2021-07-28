@@ -1,5 +1,7 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+{{- if .Values.fluentd.enabled }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -166,10 +168,15 @@ data:
           format json
           time_format %Y-%m-%dT%H:%M:%S.%NZ
         </pattern>
-        # kind needs following pattern/format
+        # KIND CRI pattern/format
         <pattern>
           format /^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<flags>[^ ]+) (?<log>.*)$/
           time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        # OKE v1.20.8
+        <pattern>
+          format /^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<flags>[^ ]+) (?<log>.*)$/
+          time_format %Y-%m-%dT%H:%M:%S.%N%:z
         </pattern>
       </parse>
     </source>
@@ -531,3 +538,4 @@ spec:
     rollingUpdate:
       maxUnavailable: 1
     type: RollingUpdate
+{{- end }}

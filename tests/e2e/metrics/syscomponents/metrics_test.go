@@ -161,7 +161,11 @@ func verifyEnvoyStats(metricName string) bool {
 	if err != nil {
 		return false
 	}
-	clientset := pkg.GetKubernetesClientsetForCluster(kubeConfig)
+	clientset, err := pkg.GetKubernetesClientsetForCluster(kubeConfig)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting clienset for %s, error: %v", kubeConfig, err))
+		return false
+	}
 	for _, ns := range envoyStatsNamespaces {
 		pods, err := pkg.ListPodsInCluster(ns, clientset)
 		if err != nil {
