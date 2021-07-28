@@ -33,9 +33,8 @@ func TestNipIoInstallDefaults(t *testing.T) {
 	assert.Equalf(t, "verrazzano-ca-certificate-secret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 	assert.Equalf(t, 0, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
 	assert.Equalf(t, 0, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mySqlInstallArgs length did not match")
-	assert.Equalf(t, "true", config.Keycloak.Enabled, "Expected Keycloak enabled did not match")
-	assert.Equalf(t, "true", config.Rancher.Enabled, "Expected Rancher enabled did not match")
-	assert.Equalf(t, "true", config.Fluentd.Enabled, "Expected Fluentd enabled did not match")
+	assert.Equalf(t, "true", config.Keycloak.Enabled, "Expected keycloak enabled did not match")
+	assert.Equalf(t, "true", config.Rancher.Enabled, "Expected rancher enabled did not match")
 }
 
 // TestNipIoInstallNonDefaults tests the creation of an nip.io install non-default configuration
@@ -91,9 +90,6 @@ func TestNipIoInstallNonDefaults(t *testing.T) {
 				Rancher: &installv1alpha1.RancherComponent{
 					Enabled: &enabled,
 				},
-				Fluentd: &installv1alpha1.FluentdComponent{
-					Enabled: &enabled,
-				},
 				Keycloak: &installv1alpha1.KeycloakComponent{
 					KeycloakInstallArgs: []installv1alpha1.InstallArgs{
 						{
@@ -110,31 +106,6 @@ func TestNipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 					Enabled: &enabled,
-				},
-				Elasticsearch: &installv1alpha1.ElasticsearchComponent{
-					MonitoringComponent: installv1alpha1.MonitoringComponent{
-						Enabled: &enabled,
-					},
-				},
-				Kibana: &installv1alpha1.KibanaComponent{
-					MonitoringComponent: installv1alpha1.MonitoringComponent{
-						Enabled: &enabled,
-					},
-				},
-				Prometheus: &installv1alpha1.PrometheusComponent{
-					MonitoringComponent: installv1alpha1.MonitoringComponent{
-						Enabled: &enabled,
-					},
-				},
-				Grafana: &installv1alpha1.GrafanaComponent{
-					MonitoringComponent: installv1alpha1.MonitoringComponent{
-						Enabled: &enabled,
-					},
-				},
-				Console: &installv1alpha1.ConsoleComponent{
-					MonitoringComponent: installv1alpha1.MonitoringComponent{
-						Enabled: &enabled,
-					},
 				},
 			},
 		},
@@ -165,8 +136,7 @@ func TestNipIoInstallNonDefaults(t *testing.T) {
 	assert.Equalf(t, "customNamespace", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
 	assert.Equalf(t, "customSecret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 
-	assert.Equalf(t, "false", config.Rancher.Enabled, "Expected Rancher enabled did not match")
-	assert.Equalf(t, "false", config.Fluentd.Enabled, "Expected Fluentd enabled did not match")
+	assert.Equalf(t, "false", config.Rancher.Enabled, "Expected rancher enabled did not match")
 
 	assert.Equalf(t, 1, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
 	assert.Equalf(t, "keycloak-name", config.Keycloak.KeycloakInstallArgs[0].Name, "Expected keycloakInstallArgs name did not match")
@@ -174,19 +144,7 @@ func TestNipIoInstallNonDefaults(t *testing.T) {
 	assert.Equalf(t, 1, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mysqlInstallArgs length did not match")
 	assert.Equalf(t, "mysql-name", config.Keycloak.MySQL.MySQLInstallArgs[0].Name, "Expected mysqlInstallArgs name did not match")
 	assert.Equalf(t, "mysql-value", config.Keycloak.MySQL.MySQLInstallArgs[0].Value, "Expected mysqlInstallArgs value did not match")
-	assert.Equalf(t, "false", config.Keycloak.Enabled, "Expected Keycloak enabled did not match")
-
-	assert.Equalf(t, 5, len(config.VzInstallArgs), "Expected VzInstallArgs length did not match")
-	assert.Equalf(t, "elasticSearch.enabled", config.VzInstallArgs[0].Name, "Expected name did not match")
-	assert.Equalf(t, "false", config.VzInstallArgs[0].Value, "Expected value did not match")
-	assert.Equalf(t, "prometheus.enabled", config.VzInstallArgs[1].Name, "Expected name did not match")
-	assert.Equalf(t, "false", config.VzInstallArgs[1].Value, "Expected value did not match")
-	assert.Equalf(t, "kibana.enabled", config.VzInstallArgs[2].Name, "Expected name did not match")
-	assert.Equalf(t, "false", config.VzInstallArgs[1].Value, "Expected value did not match")
-	assert.Equalf(t, "grafana.enabled", config.VzInstallArgs[3].Name, "Expected name did not match")
-	assert.Equalf(t, "false", config.VzInstallArgs[1].Value, "Expected value did not match")
-	assert.Equalf(t, "console.enabled", config.VzInstallArgs[4].Name, "Expected name did not match")
-	assert.Equalf(t, "false", config.VzInstallArgs[1].Value, "Expected value did not match")
+	assert.Equalf(t, "false", config.Keycloak.Enabled, "Expected keycloak enabled did not match")
 }
 
 // TestExternalInstall tests the creation of an external install configuration
