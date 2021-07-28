@@ -34,4 +34,6 @@ spec:
               value: {{ .Values.weblogicDeployTool.version }}
             - name: IMAGE_TOOL_NAME
               value: {{ .Values.imageTool.name }}
+            - name: VZ_DRY_RUN
+              value: {{ .Values.dryRun }}
       serviceAccountName: {{ .Values.imagePatchOperator.name }}

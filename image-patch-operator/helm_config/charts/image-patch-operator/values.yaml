@@ -16,6 +16,8 @@ weblogicDeployTool:
   binary: weblogic-deploy.zip
   version: latest
 
+dryRun: false
+
 global:
   imagePullSecrets: []
 
