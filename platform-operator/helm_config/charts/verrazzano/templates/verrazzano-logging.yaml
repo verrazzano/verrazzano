@@ -167,10 +167,15 @@ data:
           format json
           time_format %Y-%m-%dT%H:%M:%S.%NZ
         </pattern>
-        # kind needs following pattern/format
+        # KIND CRI pattern/format
         <pattern>
           format /^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<flags>[^ ]+) (?<log>.*)$/
           time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        # OKE v1.20.8
+        <pattern>
+          format /^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<flags>[^ ]+) (?<log>.*)$/
+          time_format %Y-%m-%dT%H:%M:%S.%N%:z
         </pattern>
       </parse>
     </source>
