@@ -120,9 +120,9 @@ function install_verrazzano()
         --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
         --set keycloak.enabled=$(is_keycloak_enabled) \
         --set rancher.enabled=$(is_rancher_enabled) \
-        --set fluentd.enabled=$(is_fluentd_enabled) \
+        --set logging.enabled=$(is_logging_enabled) \
         --set vo.enabled=$(is_vo_vmo_enabled) \
-        --set vmo.enabled=$(ia_vo_vmo_enaled) \
+        --set vmo.enabled=$(is_vo_vmo_enabled) \
         --set api.proxy.OidcProviderHost=keycloak.${ENV_NAME}.${DNS_SUFFIX} \
         --set api.proxy.OidcProviderHostInCluster=keycloak-http.keycloak.svc.cluster.local \
         $(get_fluentd_extra_volume_mounts) \
@@ -131,7 +131,7 @@ function install_verrazzano()
         ${EXTRA_V8O_ARGUMENTS} || return $?
   fi
 
-  if [ $(is_vo-vmo_enabled) == "true" ]; then
+  if [ $(is_vo_vmo_enabled) == "true" ]; then
     log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
     kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
 
@@ -295,7 +295,7 @@ if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
 fi
 
-if [ $(is_vo-vmo_enabled) == "true" ]; then
+if [ $(is_vo_vmo_enabled) == "true" ]; then
   if ! kubectl get namespace ${MONITORING_NS} ; then
     action "Creating ${MONITORING_NS} namespace" kubectl create namespace ${MONITORING_NS} || exit 1
   fi

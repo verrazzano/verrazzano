@@ -76,7 +76,9 @@ spec:
         - port: 15090
           protocol: TCP
 {{- end }}
-{{- if .Values.vo.enabled }}
+
+{{ default "true" .Values.voEnabled }}
+{{- if .Values.voEnabled }}
 ---
 # Network policy for Verrazzano operator
 # Ingress: deny all
@@ -112,7 +114,8 @@ spec:
     - ports:
         - port: 9443
           protocol: TCP
-{{- if .Values.vmo.enabled }}
+{{ default "true" .Values.vmoEnabled }}
+{{- if .Values.vmoEnabled }}
 ---
 # Network policy for Verrazzano monitoring operator
 # Ingress: deny all

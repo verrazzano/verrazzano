@@ -65,11 +65,9 @@ monitoringOperator:
   RequestMemory: 48Mi
 
 logging:
+  enabled: true
   name: fluentd
   # NOTE: The fluentd-kubernetes-daemonset image now comes from the bill of materials file (verrazzano-bom.json).
-
-fluentd:
-  enabled: true
 
 console:
   enabled: true
@@ -88,6 +86,19 @@ api:
     PKCEClientID: verrazzano-pkce
     PGClientID: verrazzano-pg
     RequiredRealmRole: vz_api_access
+
+# OCI-related values
+oci:
+  region: ""
+  tenancyOcid: ""
+  userOcid: ""
+  fingerprint: ""
+  privateKey: ""
+  compartment: ""
+  clusterOcid: ""
+  objectStore:
+    bucketName: ""
+    namespace: ""
 
 config:
   envName:

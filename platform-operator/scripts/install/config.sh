@@ -386,15 +386,13 @@ function get_override_config_value() {
 }
 
 # Return true if Verrazzano Operator and Verrazzano Monitoring Operator should be enabled or not
-function is_vo-vmo_enabled() {
+function is_vo_vmo_enabled() {
   local profile=$(get_install_profile)
   if [ "$profile" == "managed-cluster" ]; then
-    echo "true"
-  elif [[ "$(is_elasticsearch_console_enabled)" == "true" || "$(is_kibana_console_enabled)" == "true" || "$(is_prometheus_console_enabled)" == "true" || "$(is_grafana_console_enabled)" == "true" ]]; then
+   echo "true"
+  elif [ "$(is_elasticsearch_console_enabled)" == "true" ] || [ "$(is_kibana_console_enabled)" == "true" ] || [ "$(is_prometheus_console_enabled)" == "true" ] || [ "$(is_grafana_console_enabled)" == "true" ]; then
     echo "true"
   else
-    log "Skip Verrazzano Operator installation, disabled"
-    log "Skip Verrazzano Monitoring Operator installation, disabled"
     echo "false"
   fi
 }
@@ -411,10 +409,10 @@ function is_keycloak_enabled() {
   echo ${keycloak_enabled}
 }
 
-# Return the value for the key fluentd.enabled
-function is_fluentd_enabled() {
-  local fluentd_enabled=$(get_config_value '.fluentd.enabled')
-  echo ${fluentd_enabled}
+# Return the value for the key logging.enabled
+function is_logging_enabled() {
+  local logging_enabled=$(get_config_value '.logging.enabled')
+  echo ${logging_enabled}
 }
 
 function get_fluentd_extra_volume_mounts {
