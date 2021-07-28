@@ -109,6 +109,9 @@ func TestNewImageBuildRequest(t *testing.T) {
 	// Ensure that a Kubernetes job is created when an IBR is created
 	assert.NoError(err)
 
+	// Verify istio-injection disabled for the job
+	assert.Equal(jb.Labels["sidecar.istio.io/inject"], "false")
+
 	// Testing that the spec fields of the IBR propagate to the environmental variables of the ImageJob
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[0].Value, "test-build")
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[1].Value, "test-tag")
