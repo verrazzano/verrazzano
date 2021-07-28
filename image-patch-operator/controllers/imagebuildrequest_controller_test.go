@@ -120,6 +120,12 @@ func TestNewImageBuildRequest(t *testing.T) {
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[7].Value, "fmw_12.2.1.4.0_wls.jar")
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[8].Value, "12.2.1.4.0")
 
+	// Verifying that the PV, PVC, and Volume Mount are present on the created job
+	assert.Equal(jb.Spec.Template.Spec.Volumes[1].Name, "installers-storage")
+	assert.Equal(jb.Spec.Template.Spec.Volumes[1].PersistentVolumeClaim.ClaimName, "installers-storage-claim")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].VolumeMounts[1].Name, "installers-storage")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].VolumeMounts[1].MountPath, "/installers")
+
 }
 
 // TestIBRJobSucceeded tests the Reconcile method for the following:
