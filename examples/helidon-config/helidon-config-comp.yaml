@@ -30,7 +30,7 @@ spec:
         podSpec:
           containers:
             - name: helidon-config-container
-              image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:20210724100824-0b6f764"
+              image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20210728181814-eb1e622"
               env:
                 - name: IS_CONFIG
                   value: "True"
