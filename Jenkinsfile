@@ -154,6 +154,11 @@ pipeline {
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    env.VERRAZZANO_VERSION = "${VERRAZZANO_DEV_VERSION}"
+                    STRIPPED_BRANCH_NAME = sh(returnStdout: true, script: "echo $env.GIT_BRANCH | sed 's/[^a-zA-Z0-9]//g' | head -c 10")
+                    if (!"${STRIPPED_BRANCH_NAME}".startsWith("release-")) {
+                        env.VERRAZZANO_VERSION = "${env.VERRAZZANO_VERSION}-${STRIPPED_BRANCH_NAME}+${SHORT_COMMIT_HASH}"
+                    }
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
