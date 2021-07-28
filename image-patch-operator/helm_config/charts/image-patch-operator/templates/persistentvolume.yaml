@@ -8,9 +8,9 @@ metadata:
     type: local
 spec:
   capacity:
-    storage: {{ .Values.persistentVolume.storage }}
+    storage: {{ .Values.installersVolume.storage }}
   accessModes:
     - ReadOnlyMany
-  storageClassName: {{ .Values.persistentVolume.storageClassName }}
+  storageClassName: {{ .Values.installersVolume.storageClassName }}
   hostPath:
     path: /installers

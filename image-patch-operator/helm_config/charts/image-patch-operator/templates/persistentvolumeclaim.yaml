@@ -10,5 +10,5 @@ spec:
     - ReadOnlyMany
   resources:
     requests:
-      storage: {{ .Values.persistentVolumeClaim.storage }}
-  storageClassName: {{ .Values.persistentVolumeClaim.storageClassName }}
+      storage: {{ .Values.installersVolumeClaim.storage }}
+  storageClassName: {{ .Values.installersVolumeClaim.storageClassName }}

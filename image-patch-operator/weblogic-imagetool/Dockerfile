@@ -41,10 +41,6 @@ RUN microdnf update -y \
 
 WORKDIR /home/verrazzano
 
-ARG JDK_INSTALLER_BINARY
-ARG WEBLOGIC_INSTALLER_BINARY="${WEBLOGIC_INSTALLER_BINARY:-fmw_12.2.1.4.0_wls.jar}"
-ARG WDT_INSTALLER_BINARY="${WDT_INSTALLER_BINARY:-weblogic-deploy.zip}"
-
 RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
     && mkdir -p /home/verrazzano/cache \
     && chown -R 1000:verrazzano /home/verrazzano \
