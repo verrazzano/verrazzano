@@ -4,12 +4,16 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	verrazzanoclientset "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/app"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/cluster"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/login"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/logout"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/project"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -75,9 +79,20 @@ func NewCmdRoot(streams genericclioptions.IOStreams) *cobra.Command {
 		Short: "Verrazzano CLI",
 		Long:  "Verrazzano CLI",
 	}
+	err := login.RefreshToken()
+	if err != nil {
+		err := helpers.RemoveAllAuthData()
+		if err != nil {
+			fmt.Fprintln(streams.Out, "Trouble Logging out")
+		} else {
+			fmt.Fprintln(streams.Out, "Logged out, Please login again")
+		}
+	}
 
 	cmd.AddCommand(project.NewCmdProject(streams, o))
 	cmd.AddCommand(cluster.NewCmdCluster(streams, o))
 	cmd.AddCommand(app.NewCmdApp(streams))
+	cmd.AddCommand(login.NewCmdLogin(streams, o))
+	cmd.AddCommand(logout.NewCmdLogout(streams))
 	return cmd
 }

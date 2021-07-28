@@ -397,6 +397,12 @@ function is_keycloak_enabled() {
   echo ${keycloak_enabled}
 }
 
+# Return the value for the key fluentd.enabled
+function is_fluentd_enabled() {
+  local fluentd_enabled=$(get_config_value '.fluentd.enabled')
+  echo ${fluentd_enabled}
+}
+
 function get_fluentd_extra_volume_mounts {
   if [ ! -z "$(get_config_value '.fluentd')" ] && [ ! -z "$(get_config_value '.fluentd.fluentdInstallArgs')" ]; then
     config_array_to_helm_args ".fluentd.fluentdInstallArgs[]" || return 1

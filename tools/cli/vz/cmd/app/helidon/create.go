@@ -6,10 +6,11 @@ package helidon
 import (
 	"bytes"
 	"errors"
+	"text/template"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"text/template"
 )
 
 var (
@@ -165,6 +166,7 @@ func createHelidonApplication(args []string) error {
 	if err != nil {
 		return err
 	}
+
 	err = helpers.ServerSideApply(kubeConfig, b.String())
 	if err != nil {
 		return err
