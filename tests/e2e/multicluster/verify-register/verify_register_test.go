@@ -274,7 +274,8 @@ func findVerrazzanoProject(projectName string) (bool, error) {
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to get clusters client with error: %v", err))
+		pkg.Log(pkg.Info, fmt.Sprintf("Failed to get clusters client with error: %v", err))
+		return false, err
 	}
 
 	projectList := clustersv1alpha1.VerrazzanoProjectList{}
