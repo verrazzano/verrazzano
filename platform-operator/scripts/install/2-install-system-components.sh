@@ -125,7 +125,7 @@ spec:
               name: $OCI_DNS_CONFIG_SECRET
               key: "oci.yaml"
             ocizonename: $DNS_SUFFIX
-"
+" || return $?
   elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
     if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
        [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
@@ -140,7 +140,7 @@ metadata:
   namespace: $(get_config_value ".certificates.ca.clusterResourceNamespace")
 spec:
   selfSigned: {}
-"
+" || return $?
 
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1
@@ -184,7 +184,7 @@ function install_cert_manager()
 
     setup_cert_manager_crd
     local yaml=$(<"$TMP_DIR/cert-manager.crds.yaml")
-    kubectl_apply_with_retry "$yaml" --validate=false
+    kubectl_apply_with_retry "$yaml" --validate=false || return $?
 
     if ! is_chart_deployed ${chartName} ${cert_manager_ns} ${CERT_MANAGER_CHART_DIR} ; then
       log "cert-manager hasn't been previously installed"
@@ -335,7 +335,6 @@ function reset_rancher_admin_password() {
     log "Retry Rancher admin password reset..."
   done
   update_secret_from_literal rancher-admin-secret cattle-system "$ADMIN_PW"
-  echo "Describe the Rancher admin token"
   kubectl get secret rancher-admin-secret -n cattle-system
 }
 
@@ -461,7 +460,6 @@ function install_rancher()
     wait_for_ingress_ip rancher cattle-system || exit 1
 
     reset_rancher_admin_password || return $?
-
 }
 
 function set_rancher_server_url
