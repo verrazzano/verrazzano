@@ -91,6 +91,7 @@ pipeline {
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
 
+        // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
 
         OCI_CLI_AUTH="instance_principal"
