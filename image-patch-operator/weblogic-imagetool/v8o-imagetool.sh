@@ -3,7 +3,7 @@
 # Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-# This script wiill fail if any line fails
+# This script will fail if any line fails
 set -e
 
 # Log into the registry
@@ -20,12 +20,8 @@ export WLSIMG_CACHEDIR="/home/verrazzano/cache"
 
 # Tag and push the image to the registry
 
-start_time = `date +%s`
+echo time=$(date +"%Y-%m-%dT%TZ") podman tag
 podman tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}
-end_time = `date +%s`
-echo execution time was `expr $end_time - $start_time` s
 
-start_time = `date +%s`
+echo time=$(date +"%Y-%m-%dT%TZ") podman image push
 podman image push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}
-end_time = `date +%s`
-echo execution time was `expr $end_time - $start_time` s
