@@ -131,7 +131,6 @@ func (v *SemVersion) IsLessThan(from *SemVersion) bool {
 }
 
 // ToString Convert to a valid semver string representation
-// TODO: unit test this
 func (v *SemVersion) ToString() string {
 	if v.Build != "" && v.Prerelease != "" {
 		return fmt.Sprintf("%v.%v.%v-%v+%v", v.Major, v.Minor, v.Patch, v.Prerelease, v.Build)
