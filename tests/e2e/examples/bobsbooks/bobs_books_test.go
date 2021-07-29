@@ -42,9 +42,9 @@ func deployBobsBooksExample() {
 	wlsUser := "weblogic"
 	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
 	dbPass := pkg.GetRequiredEnvVarOrFail("DATABASE_PSW")
-	regServ := pkg.GetRequiredEnvVarOrFail("DOCKER_REPO")
-	regUser := pkg.GetRequiredEnvVarOrFail("DOCKER_CREDS_USR")
-	regPass := pkg.GetRequiredEnvVarOrFail("DOCKER_CREDS_PSW")
+	regServ := pkg.GetRequiredEnvVarOrFail("OCR_REPO")
+	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
+	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	pkg.Log(pkg.Info, "Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
