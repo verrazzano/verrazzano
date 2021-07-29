@@ -92,6 +92,9 @@ func TestNewImageBuildRequest(t *testing.T) {
 	_, err := reconciler.Reconcile(request)
 	assert.NoError(err)
 
+	// Verify the DryRun flag is set to false by default (this value can be changed in the helm config values.yaml file)
+	assert.Equal(reconciler.DryRun, false)
+
 	ibr := &imagesv1alpha1.ImageBuildRequest{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
 
