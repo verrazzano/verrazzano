@@ -72,6 +72,10 @@ check_for_resources LB load-balancer lb-100mbps-count $REQUIRED_LB_COUNT
 
 cd ${SCRIPT_DIR}/terraform/cluster
 
+# Set whether Calico is to be installed or not by the OCI OKE TF provider
+export TF_VAR_install_calico = "${INSTALL_CALICO}"
+export TF_VAR_calico_version="$(grep 'calico-version=' ${SCRIPT_DIR}/../../../../.third-party-test-versions | sed 's/calico-version=//g')"
+
 for i in $(seq 1 $CLUSTER_COUNT)
 do
   echo 'Create OKE cluster...'
@@ -92,16 +96,6 @@ do
     # Adding a Service Account Authentication Token to kubeconfig
     # https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengaddingserviceaccttoken.htm
     ${SCRIPT_DIR}/update_oke_kubeconfig.sh
-
-    # Calico needs to be installed before the node pool and workers are ready, otherwise the kube-system
-    # pods get into a bad state
-    if [ $INSTALL_CALICO == true ] ; then
-      ${SCRIPT_DIR}/install_calico_oke.sh
-      if [ $? -ne 0 ]; then
-          echo "Install Calico failed!"
-          exit 1
-      fi
-    fi
   else
     echo "OKE Cluster creation request failed!"
     exit 1
