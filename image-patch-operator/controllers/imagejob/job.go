@@ -105,6 +105,10 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								Name:  "WDT_INSTALLER_VERSION",
 								Value: os.Getenv("WDT_INSTALLER_VERSION"),
 							},
+							{
+								Name:  "IBR_DRY_RUN",
+								Value: os.Getenv("IBR_DRY_RUN"),
+							},
 						},
 					}},
 					RestartPolicy:      corev1.RestartPolicyNever,
