@@ -155,7 +155,7 @@ pipeline {
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "echo $env.GIT_COMMIT | head -c 8")
                     env.VERRAZZANO_VERSION = "${VERRAZZANO_DEV_VERSION}"
-                    if (!"${env.GIT_BRANCH}".startsWith("jenkins-")) {
+                    if (!"${env.GIT_BRANCH}".startsWith("release-")) {
                         STRIPPED_BRANCH_NAME = sh(returnStdout: true, script: "echo $env.GIT_BRANCH | sed 's/[^a-zA-Z0-9]//g' | head -c 10")
                         env.VERRAZZANO_VERSION = "${env.VERRAZZANO_VERSION}-${STRIPPED_BRANCH_NAME}+${SHORT_COMMIT_HASH}"
                     }
