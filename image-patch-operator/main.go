@@ -65,7 +65,7 @@ func main() {
 	}
 
 	// Setup the reconciler
-	_, dryRun := os.LookupEnv("VZ_DRY_RUN") // If this var is set, the image jobs are no-ops
+	_, dryRun := os.LookupEnv("IBR_DRY_RUN") // If this var is set, the image jobs are no-ops
 	reconciler := controllers.ImageBuildRequestReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
