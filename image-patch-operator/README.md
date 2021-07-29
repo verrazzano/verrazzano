@@ -29,6 +29,8 @@ If you don't already have these installers, you may download them locally using 
 - [WLS](https://www.oracle.com/middleware/technologies/weblogic-server-downloads.html)
 - [WIT](https://github.com/oracle/weblogic-image-tool/releases)
 
+Additionally, please add the JDK installer to the image-patch-operator/weblogic-imagetool/installers directory.
+
 ```bash
 # Create the cluster
 $ kind create cluster --config - <<EOF
