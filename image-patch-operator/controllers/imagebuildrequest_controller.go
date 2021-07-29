@@ -90,7 +90,7 @@ func (r *ImageBuildRequestReconciler) createImageJob(ctx context.Context, log *z
 			JobConfigCommon: k8s.JobConfigCommon{
 				JobName:            buildImageJobName(ibr.Name),
 				Namespace:          ibr.Namespace,
-				Labels:             ibr.Labels,
+				Labels:             map[string]string{"sidecar.istio.io/inject": "false"},
 				ServiceAccountName: os.Getenv("IMAGE_TOOL_NAME"),
 				JobImage:           os.Getenv("WIT_IMAGE"),
 				DryRun:             r.DryRun,
