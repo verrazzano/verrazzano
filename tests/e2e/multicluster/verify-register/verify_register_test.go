@@ -9,21 +9,19 @@ import (
 	"os"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"k8s.io/apimachinery/pkg/api/errors"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 const waitTimeout = 10 * time.Minute
@@ -46,14 +44,20 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 				return pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
 		It("admin cluster has the expected VerrazzanoManagedCluster", func() {
+			var client *vmcClient.Clientset
+			Eventually(func() (*vmcClient.Clientset, error) {
+				var err error
+				client, err = pkg.GetVerrazzanoManagedClusterClientset()
+				return client, err
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			Eventually(func() bool {
-				vmc, err := pkg.GetVerrazzanoManagedClusterClientset().ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
+				vmc, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
 				return err == nil &&
 					vmcStatusReady(vmc) &&
 					vmc.Status.LastAgentConnectTime != nil &&
@@ -176,7 +180,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 		})
 
 		It("managed cluster has the expected VerrazzanoProject", func() {
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
@@ -257,10 +261,11 @@ func findNamespace(namespace string) bool {
 	return true
 }
 
-func findVerrazzanoProject(projectName string) bool {
+func findVerrazzanoProject(projectName string) (bool, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
+		pkg.Log(pkg.Info, fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
+		return false, err
 	}
 
 	scheme := runtime.NewScheme()
@@ -269,19 +274,20 @@ func findVerrazzanoProject(projectName string) bool {
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to get clusters client with error: %v", err))
+		pkg.Log(pkg.Info, fmt.Sprintf("Failed to get clusters client with error: %v", err))
+		return false, err
 	}
 
 	projectList := clustersv1alpha1.VerrazzanoProjectList{}
 	err = clustersClient.List(context.TODO(), &projectList, &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace})
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list VerrazzanoProject with error: %v", err))
-		return false
+		return false, err
 	}
 	for _, item := range projectList.Items {
 		if item.Name == projectName && item.Namespace == multiclusterNamespace {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }

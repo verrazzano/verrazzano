@@ -37,7 +37,11 @@ const (
 // NewKeycloakRESTClient creates a new Keycloak REST client.
 func NewKeycloakAdminRESTClient() (*KeycloakRESTClient, error) {
 	kubeconfigPath := GetKubeConfigPathFromEnv()
-	ingress, err := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses(keycloakNamespace).Get(context.TODO(), keycloadIngressName, k8smeta.GetOptions{})
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	ingress, err := clientset.ExtensionsV1beta1().Ingresses(keycloakNamespace).Get(context.TODO(), keycloadIngressName, k8smeta.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

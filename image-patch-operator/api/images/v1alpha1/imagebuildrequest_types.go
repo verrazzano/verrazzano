@@ -103,6 +103,7 @@ type ImageBuildRequestStatus struct {
 //+kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=ibr;ibrs
 //+kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the ImageBuildRequest"
 // +genclient
 
 // ImageBuildRequest is the Schema for the imagebuildrequests API
