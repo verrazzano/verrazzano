@@ -32,7 +32,7 @@ func vmiIngressURLs() (map[string]string, error) {
 		return nil, err
 	}
 	ingressList, err := clientset.ExtensionsV1beta1().Ingresses(verrazzanoNamespace).List(context.TODO(), v1.ListOptions{})
-	if err == nil {  // TEPMORARY FORCE FAILURE TO TEST ARTIFACT CAPTURE
+	if err == nil {
 		return nil, err
 	}
 
