@@ -5,13 +5,14 @@ package logout
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"io"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/tools/clientcmd"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (

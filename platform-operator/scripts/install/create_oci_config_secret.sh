@@ -99,7 +99,7 @@ if [ $? -eq 0 ]; then
   echo "Secret $OCI_CONFIG_SECRET_NAME already exists.  Please delete then try again."
   exit 1
 fi
-kubectl create secret generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
+kubectl create secret -n default generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
 
 
 
