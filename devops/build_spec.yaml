@@ -13,14 +13,10 @@ env:
     DOCKER_IMAGE_TAG: "ocidevops-1"
     CREATE_LATEST_TAG: "0"
 
-  vaultVariables:
-    SECRET: "test-secret"
-
 steps:
   - type: Command
     name: "Prepare environment"
-    comamnd: |
-      echo $SECRET
+    command: |
       sudo yum -y install make
   - type: Command
     name: "Compile"
