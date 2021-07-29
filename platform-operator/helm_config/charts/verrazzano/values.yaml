@@ -68,9 +68,6 @@ logging:
   name: fluentd
   # NOTE: The fluentd-kubernetes-daemonset image now comes from the bill of materials file (verrazzano-bom.json).
 
-fluentd:
-  enabled: true
-
 console:
   enabled: true
   name: verrazzano-console

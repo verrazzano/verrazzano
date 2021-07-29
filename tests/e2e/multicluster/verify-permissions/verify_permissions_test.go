@@ -4,6 +4,7 @@ package permissions_test
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -53,7 +54,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		})
 
 		It("admin cluster - verify mc config map", func() {
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
 
@@ -80,7 +81,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		})
 
 		It("admin cluster - verify mc secret", func() {
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 
@@ -118,12 +119,12 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		It("managed cluster has the expected mc and underlying configmap", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(func() bool {
+					Eventually(func() (bool, error) {
 						return findConfigMap(testNamespace, "mymcconfigmap")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find configmap")
 				},
 				func() {
-					Eventually(func() bool {
+					Eventually(func() (bool, error) {
 						return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
 				},
@@ -133,12 +134,12 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		It("managed cluster has the expected mc and underlying secret", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(func() bool {
+					Eventually(func() (bool, error) {
 						return findSecret(anotherTestNamespace, "mymcsecret")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret")
 				},
 				func() {
-					Eventually(func() bool {
+					Eventually(func() (bool, error) {
 						return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 				},
@@ -153,42 +154,50 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		})
 
 		It("managed cluster can access config map but not modify it", func() {
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
 			// try to update
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err == nil {
+					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err == nil {
+					return false, goerrors.New("Expected error from DeleteResourceFromFile")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
 		It("managed cluster can access secret but not modify it", func() {
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 			// try to update
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err == nil {
+					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err == nil {
+					return false, goerrors.New("Expected error from DeleteResourceFromFile")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
@@ -199,59 +208,75 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				return getMultiClusterResource("verrazzano-mc", managedClusterName, &cluster)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 			// try to update
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				cluster.Spec.Description = "new Description"
 				err := updateObject(&cluster)
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err == nil {
+					return false, goerrors.New("Expected error from updateObject")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := deleteObject(&cluster)
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err == nil {
+					return false, goerrors.New("Expected error from deleteObject")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
 		// VZ-2336: NOT be able to read other resources such as secrets, config maps or deployments in the admin cluster
 		It("managed cluster cannot access resources in other namespaaces", func() {
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-system", &v1.SecretList{})
-				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				// if we didn't get an error, return false to retry
+				if err == nil {
+					return false, goerrors.New("Expected error from listResource")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-system", &v1.ConfigMapList{})
-				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				// if we didn't get an error, return false to retry
+				if err == nil {
+					return false, goerrors.New("Expected error from listResource")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-mc", &v1.SecretList{})
-				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				// if we didn't get an error, return false to retry
+				if err == nil {
+					return false, goerrors.New("Expected error from listResource")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-mc", &v1.ConfigMapList{})
-				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				// if we didn't get an error, return false to retry
+				if err == nil {
+					return false, goerrors.New("Expected error from listResource")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := listResource(testNamespace, &v1.SecretList{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err == nil {
+					return false, goerrors.New("Expected error from listResource")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				err := listResource(testNamespace, &v1.ConfigMapList{})
 				// if we didn't get an error, fail immediately
-				Expect(err).Should(HaveOccurred())
-				return errors.IsForbidden(err)
+				if err == nil {
+					return false, goerrors.New("Expected error from listResource")
+				}
+				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 	})
@@ -276,9 +301,11 @@ func CreateOrUpdateResourceFromFile(yamlFile string, object runtime.Object) erro
 
 // updateObject updates a resource using the provided object
 func updateObject(object runtime.Object) error {
-	clustersClient := getClustersClient()
-
-	err := clustersClient.Create(context.TODO(), object)
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		return err
+	}
+	err = clustersClient.Create(context.TODO(), object)
 	if err != nil && errors.IsAlreadyExists(err) {
 		err = clustersClient.Update(context.TODO(), object)
 	}
@@ -305,7 +332,10 @@ func DeleteResourceFromFile(yamlFile string, object runtime.Object) error {
 
 // deleteObject deletes the given object
 func deleteObject(object runtime.Object) error {
-	clustersClient := getClustersClient()
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		return err
+	}
 	return clustersClient.Delete(context.TODO(), object)
 }
 
@@ -369,93 +399,109 @@ func undeployTestResources() {
 }
 
 // findSecret finds the secret based on name and namespace
-func findSecret(namespace, name string) bool {
-	clustersClient := getClustersClient()
+func findSecret(namespace, name string) (bool, error) {
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		return false, err
+	}
 	secretList := v1.SecretList{}
-	err := clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
+	err = clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list secrets with error: %v", err))
-		return false
+		return false, err
 	}
 	for _, item := range secretList.Items {
 		if item.Name == name && item.Namespace == namespace {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 // findConfigMap finds the config map based on name and namespace
-func findConfigMap(namespace, name string) bool {
-	clustersClient := getClustersClient()
-
+func findConfigMap(namespace, name string) (bool, error) {
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		return false, err
+	}
 	configmapList := v1.ConfigMapList{}
-	err := clustersClient.List(context.TODO(), &configmapList, &client.ListOptions{Namespace: namespace})
+	err = clustersClient.List(context.TODO(), &configmapList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list config maps with error: %v", err))
-		return false
+		return false, err
 	}
 	for _, item := range configmapList.Items {
 		if item.Name == name && item.Namespace == namespace {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 // listResource returns a list of resources based on the object type and namespace
 func listResource(namespace string, object runtime.Object) error {
-	clustersClient := getClustersClient()
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		return err
+	}
 	return clustersClient.List(context.TODO(), object, &client.ListOptions{Namespace: namespace})
 }
 
 // getMultiClusterResource returns a multi cluster resource based the provided multi cluster object's type and namespace
 func getMultiClusterResource(namespace, name string, object runtime.Object) error {
-	clustersClient := getClustersClient()
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		return err
+	}
 	return clustersClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, object)
 }
 
 // findMultiClusterConfigMap returns true if the config map is found based on name and namespace, false otherwise
-func findMultiClusterConfigMap(namespace, name string) bool {
-	clustersClient := getClustersClient()
-
+func findMultiClusterConfigMap(namespace, name string) (bool, error) {
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		return false, err
+	}
 	configmapList := clustersv1alpha1.MultiClusterConfigMapList{}
-	err := clustersClient.List(context.TODO(), &configmapList, &client.ListOptions{Namespace: namespace})
+	err = clustersClient.List(context.TODO(), &configmapList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list multi cluster configmaps with error: %v", err))
-		return false
+		return false, err
 	}
 	for _, item := range configmapList.Items {
 		if item.Name == name && item.Namespace == namespace {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 // findMultiClusterSecret returns true if the secret is found based on name and namespace, false otherwise
-func findMultiClusterSecret(namespace, name string) bool {
-	clustersClient := getClustersClient()
-
+func findMultiClusterSecret(namespace, name string) (bool, error) {
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		return false, err
+	}
 	secretList := clustersv1alpha1.MultiClusterSecretList{}
-	err := clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
+	err = clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list multi cluster secrets with error: %v", err))
-		return false
+		return false, err
 	}
 	for _, item := range secretList.Items {
 		if item.Name == name && item.Namespace == namespace {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 // getClustersClient returns a k8s client
-func getClustersClient() client.Client {
+func getClustersClient() (client.Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
+		pkg.Log(pkg.Error, (fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err)))
+		return nil, err
 	}
 
 	scheme := runtime.NewScheme()
@@ -466,9 +512,10 @@ func getClustersClient() client.Client {
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to get clusters client with error: %v", err))
+		pkg.Log(pkg.Error, (fmt.Sprintf("Failed to get clusters client with error: %v", err)))
+		return nil, err
 	}
-	return clustersClient
+	return clustersClient, nil
 }
 
 // isStatusAsExpected checks whehter the provided inputs align with the provided status

@@ -171,8 +171,6 @@ spec:
                   fluentd:
                     description: Fluentd configuration
                     properties:
-                      enabled:
-                        type: boolean
                       extraVolumeMounts:
                         items:
                           description: VolumeMount defines a hostPath type Volume
