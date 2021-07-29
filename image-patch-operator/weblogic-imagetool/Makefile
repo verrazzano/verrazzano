@@ -60,7 +60,7 @@ get-installers:
 	cd ./installers; \
 	export OCI_CLI_REGION=${OCI_CLI_REGION}; \
 	(test -f "weblogic-deploy.zip" || wget https://github.com/oracle/weblogic-deploy-tooling/releases/download/release-1.9.15/weblogic-deploy.zip); \
-	(test -f ${JDK8_BUNDLE} || oci os object get -bn ${BUCKET_NAME} --file ${JDK8_BUNDLE} --name ${JDK8_BUNDLE}); \
+	(test -f ${JDK8_BUNDLE} || oci os object get -bn ${BUCKET_NAME} --file ${JDK8_BUNDLE} --name ${JDK8_BUNDLE});
 
 .PHONY: docker-clean
 docker-clean:
