@@ -21,7 +21,7 @@ steps:
   - type: Command
     name: "Compile"
     command: |
-      echo "frank"
+      echo "jon"
 #      make docker-push \
 #        VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} \
 #        VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} \
