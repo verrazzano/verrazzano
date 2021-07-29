@@ -70,7 +70,7 @@ This will show an output similar to the following:
 NAME                                               READY   STATUS         RESTARTS   AGE
 verrazzano-image-patch-operator-7477f65ccf-rjmsc   1/1     Running        0          6m42s
 ```
-
+Please note that the created Deployment will by default set the IBR_DRY_RUN flag to false. If you would like to run an image job as a dry run, then you may edit the Deployment and set the environment variable IBR_DRY_RUN to true. This will result in the WebLogic Image Tool script to print the Dockerfile to stdout instead of building the image.
 ### Create a Secret with Credentials for Pushing the Image
 The Secret can be manually created using `kubectl`.<br>
 ```bash
