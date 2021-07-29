@@ -17,7 +17,7 @@ steps:
   - type: Command
     name: "Prepare environment"
     command: |
-      sudo yum -y install make
+      echo "hello"
   - type: Command
     name: "Compile"
     command: |
