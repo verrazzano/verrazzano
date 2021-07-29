@@ -21,7 +21,7 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
-	github.com/verrazzano/pkg v0.0.3-0.20210729122654-01bf5436bf5f // indirect
+	github.com/verrazzano/pkg v0.0.3-0.20210729133444-12761132b14f // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	golang.org/x/tools v0.0.0-20200630223951-c138986dd9b9
