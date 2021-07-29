@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/pkg/k8sutil"
 	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	verrazzanoclientset "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
@@ -28,7 +29,7 @@ type RootOptions struct {
 }
 
 func (c *RootOptions) GetKubeConfig() (*rest.Config, error) {
-	return helpers.GetKubeConfig()
+	return k8sutil.GetKubeConfig()
 }
 
 func (c *RootOptions) NewClustersClientSet() (clustersclientset.Interface, error) {
@@ -62,7 +63,7 @@ func (c *RootOptions) NewVerrazzanoClientSet() (verrazzanoclientset.Interface, e
 }
 
 func (c *RootOptions) NewClientSet() (kubernetes.Interface, error) {
-	return helpers.GetKubernetesClientset()
+	return k8sutil.GetKubernetesClientset()
 }
 
 func NewRootOptions(streams genericclioptions.IOStreams) *RootOptions {

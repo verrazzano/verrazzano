@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/pkg/k8sutil"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/clients/oam/clientset/versioned/typed/oam/v1alpha1"
@@ -52,7 +53,7 @@ func NewCmdAppHelidonList(streams genericclioptions.IOStreams) *cobra.Command {
 
 func listHelidonApplications(cmd *cobra.Command, args []string) error {
 	// connect to the server
-	config, err := helpers.GetKubeConfig()
+	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return err
 	}
@@ -107,7 +108,7 @@ func listHelidonApplications(cmd *cobra.Command, args []string) error {
 	data := [][]string{}
 
 	for _, app := range apps {
-		hostName, err := helpers.GetHostnameFromGateway(app.Namespace, app.Name+"-appconf")
+		hostName, err := k8sutil.GetHostnameFromGateway(app.Namespace, app.Name+"-appconf")
 		if err != nil {
 			return err
 		}

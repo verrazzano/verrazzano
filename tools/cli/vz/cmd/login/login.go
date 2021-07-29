@@ -10,16 +10,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 // Struct to store Login-command related data. eg.flags,streams,args..
@@ -233,7 +234,11 @@ func checkNonEmptyJWTData(jwtData map[string]interface{}) bool {
 func extractCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 	var cert []byte
 
-	kclientset := kubernetesInterface.NewClientSet()
+	kclientset, err := kubernetesInterface.NewClientSet()
+	if err != nil {
+		return cert, err
+	}
+
 	secret, err := kclientset.CoreV1().Secrets("verrazzano-system").Get(context.Background(),
 		"system-tls",
 		metav1.GetOptions{},
