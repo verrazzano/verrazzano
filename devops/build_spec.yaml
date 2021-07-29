@@ -20,6 +20,7 @@ steps:
   - type: Command
     name: "Prepare environment"
     comamnd: |
+      echo $SECRET
       sudo yum -y install make
   - type: Command
     name: "Compile"
