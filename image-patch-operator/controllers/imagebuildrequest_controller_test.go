@@ -145,7 +145,7 @@ func TestIBRJobSucceeded(t *testing.T) {
 		"IBR_NAME": "cluster1",
 	}
 
-	// Creating an ImageBuildRequest resource and Kubernetes job in completed state
+	// Creating an ImageBuildRequest resource and Kubernetes job in succeeded state
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/imagebuildrequest_instance.yaml", params))
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/job_succeeded.yaml", params))
 
@@ -162,6 +162,7 @@ func TestIBRJobSucceeded(t *testing.T) {
 	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("BuildCompleted"))
 	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest build completed successfully")
 
+	// Verify the job exists in a succeeded state
 	jb := &batchv1.Job{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
 	assert.NoError(err)
@@ -196,10 +197,123 @@ func TestIBRJobFailed(t *testing.T) {
 	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("BuildFailed"))
 	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest build failed to complete")
 
+	// Verify the job exists in a failed state
 	jb := &batchv1.Job{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
 	assert.NoError(err)
-	assert.Equal(jb.Status.Succeeded, int32(0))
+	assert.Equal(jb.Status.Failed, int32(1))
+}
+
+// TestIBRDryRun tests the Reconcile method for the following:
+// GIVEN an ImageBuildRequest is applied
+// WHEN DryRun is set to true
+// THEN verify that the status of the ImageBuildRequest reflects that a DryRun is in progress
+func TestIBRDryRun(t *testing.T) {
+	assert := asserts.New(t)
+	cli := fake.NewFakeClientWithScheme(newScheme())
+	params := map[string]string{
+		"IBR_NAME": "cluster1",
+	}
+
+	// Creating an ImageBuildRequest resource
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/imagebuildrequest_instance.yaml", params))
+
+	request := newRequest("default", "cluster1")
+	reconciler := newImageBuildRequestReconciler(cli)
+
+	// Running the image job as a DryRun
+	reconciler.DryRun = true
+	_, err := reconciler.Reconcile(request)
+	assert.NoError(err)
+
+	// Testing if ImageBuildRequest status reflects that ImageJob is in progress of a DryRun
+	ibr := &imagesv1alpha1.ImageBuildRequest{}
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
+	assert.NoError(err)
+	assert.Equal(ibr.Status.State, imagesv1alpha1.StateType("DryRunActive"))
+	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("DryRunStarted"))
+	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest DryRun in progress")
+
+	// Verifying a job gets created when DryRun is active
+	jb := &batchv1.Job{}
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
+	assert.NoError(err)
+}
+
+// TestIBRDryRunJobSucceeded tests the Reconcile method for the following:
+// GIVEN an ImageBuildRequest is applied
+// WHEN the ImageJob completes a DryRun successfully
+// THEN verify that the status of the ImageBuildRequest reflects the DryRun is completed
+func TestIBRDryRunJobSucceeded(t *testing.T) {
+	assert := asserts.New(t)
+	cli := fake.NewFakeClientWithScheme(newScheme())
+	params := map[string]string{
+		"IBR_NAME": "cluster1",
+	}
+
+	// Creating an ImageBuildRequest resource and Kubernetes job in succeeded state
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/imagebuildrequest_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/job_succeeded.yaml", params))
+
+	request := newRequest("default", "cluster1")
+	reconciler := newImageBuildRequestReconciler(cli)
+
+	// Running the image job as a DryRun
+	reconciler.DryRun = true
+	_, err := reconciler.Reconcile(request)
+	assert.NoError(err)
+
+	// Testing if ImageBuildRequest status reflects that ImageJob DryRun is complete
+	ibr := &imagesv1alpha1.ImageBuildRequest{}
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
+	assert.NoError(err)
+	assert.Equal(ibr.Status.State, imagesv1alpha1.StateType("DryRunPrinted"))
+	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("DryRunCompleted"))
+	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest DryRun completed successfully")
+
+	// Verify the job exists in a succeeded state
+	jb := &batchv1.Job{}
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
+	assert.NoError(err)
+	assert.Equal(jb.Status.Succeeded, int32(1))
+}
+
+// TestIBRJobFailed tests the Reconcile method for the following:
+// GIVEN an ImageBuildRequest is applied
+// WHEN the ImageJob DryRun fails
+// THEN verify that the status of the ImageBuildRequest reflects the DryRun failed
+func TestIBRDryRunJobFailed(t *testing.T) {
+	assert := asserts.New(t)
+	cli := fake.NewFakeClientWithScheme(newScheme())
+	params := map[string]string{
+		"IBR_NAME": "cluster1",
+	}
+
+	// Creating an ImageBuildRequest resource and Kubernetes job in failed state
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/imagebuildrequest_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/job_failed.yaml", params))
+
+	request := newRequest("default", "cluster1")
+	reconciler := newImageBuildRequestReconciler(cli)
+
+	// Running the image job as a DryRun
+	reconciler.DryRun = true
+	_, err := reconciler.Reconcile(request)
+	assert.NoError(err)
+
+	// Testing if ImageBuildRequest status reflects that ImageJob DryRun failed
+	ibr := &imagesv1alpha1.ImageBuildRequest{}
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
+	assert.NoError(err)
+	assert.Equal(ibr.Status.State, imagesv1alpha1.StateType("DryRunFailure"))
+	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("DryRunFailed"))
+	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest DryRun failed to complete")
+
+	// Verify the job exists in a failed state
+	jb := &batchv1.Job{}
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
+	assert.NoError(err)
+	assert.Equal(jb.Status.Failed, int32(1))
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
