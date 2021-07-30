@@ -23,7 +23,6 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	if !addReuseValues {
 		// Helm get values command will get the current set values for the installed chart.
 		// The output will be used as input to the helm upgrade command.
-		// overrides that we used during the install.
 		args := []string{"get", "values", releaseName}
 		if namespace != "" {
 			args = append(args, "--namespace")
@@ -71,6 +70,11 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		args = append(args, namespace)
 	}
 
+	// If addReuseValues is true then pass the --reuse-values arg to 'helm upgrade', if overrides are provided.
+	// If addReuseValues is false then do not pass the --reuse-values arg to 'helm upgrade'.  Instead, pass the
+	// values retrieved from 'helm get values' with the -f arg to 'helm upgrade'. This is a workaround to avoid
+	// a failed helm upgrade that results from a nil reference.  The nil reference occurs when a default value
+	// is added to a new chart and new chart references the new value.
 	if addReuseValues {
 		// If overrides are provided the specify --reuse-values
 		if len(overrideFile) > 0 || len(overrides) > 0 {
