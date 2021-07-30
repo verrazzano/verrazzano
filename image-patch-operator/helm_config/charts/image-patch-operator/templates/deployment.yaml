@@ -35,5 +35,5 @@ spec:
             - name: IMAGE_TOOL_NAME
               value: {{ .Values.imageTool.name }}
             - name: IBR_DRY_RUN
-              value: {{ .Values.dryRun }}
+              value: {{ .Values.dryRun | quote }}
       serviceAccountName: {{ .Values.imagePatchOperator.name }}
