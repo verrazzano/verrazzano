@@ -215,3 +215,61 @@ subjects:
 - kind: ServiceAccount
   name: {{ default "coherence-operator" .Values.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
+---
+# ---------------------------------------------------------------------
+# This is the Role required by the Coherence Operator
+# during normal operation to perform leader election.
+# ---------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: leader-election-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+# ---------------------------------------------------------------------
+# This is the Role binding required by the Coherence Operator
+# during normal operation to perform leader election.
+# ---------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: leader-election-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: leader-election-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ default "coherence-operator" .Values.serviceAccountName }}
+    namespace: {{ .Release.Namespace }}

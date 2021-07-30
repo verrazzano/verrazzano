@@ -59,6 +59,11 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								MountPath: "/registry-creds",
 								ReadOnly:  true,
 							},
+							{
+								Name:      "installers-storage",
+								MountPath: "/installers",
+								ReadOnly:  true,
+							},
 						},
 						Env: []corev1.EnvVar{
 							{
@@ -116,6 +121,12 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								Secret: &corev1.SecretVolumeSource{
 									SecretName: constants.ImageJobSecretName,
 								},
+							},
+						},
+						{
+							Name: "installers-storage",
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "installers-storage-claim"},
 							},
 						},
 					},

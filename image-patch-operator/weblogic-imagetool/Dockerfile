@@ -41,10 +41,6 @@ RUN microdnf update -y \
 
 WORKDIR /home/verrazzano
 
-ARG JDK_INSTALLER_BINARY
-ARG WEBLOGIC_INSTALLER_BINARY="${WEBLOGIC_INSTALLER_BINARY:-fmw_12.2.1.4.0_wls.jar}"
-ARG WDT_INSTALLER_BINARY="${WDT_INSTALLER_BINARY:-weblogic-deploy.zip}"
-
 RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
     && mkdir -p /home/verrazzano/cache \
     && chown -R 1000:verrazzano /home/verrazzano \
@@ -62,16 +58,8 @@ COPY --from=build_base --chown=verrazzano:verrazzano /imagetool ./imagetool
 COPY --chown=verrazzano:verrazzano ./v8o-imagetool.sh .
 RUN chmod +x ./v8o-imagetool.sh
 
-# Copy over installers
-COPY --chown=verrazzano:verrazzano \
-    ./installers/${JDK_INSTALLER_BINARY} \
-    ./installers/${WEBLOGIC_INSTALLER_BINARY} \
-    ./installers/${WDT_INSTALLER_BINARY} \
-    ./installers/
-
 COPY THIRD_PARTY_LICENSES.txt /licenses/
 
 USER 1000
 
 ENTRYPOINT ["./v8o-imagetool.sh"]
-

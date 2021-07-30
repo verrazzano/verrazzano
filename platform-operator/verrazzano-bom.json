@@ -283,7 +283,7 @@
             },
             {
               "image": "console",
-              "tag": "1.1.0-20210726183525-294b0a1",
+              "tag": "1.1.0-20210728105539-ce613ef",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -381,7 +381,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.1.5",
+              "tag": "3.2.1",
               "helmFullImageKey": "image"
             }
           ]
