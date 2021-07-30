@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"os"
+	"strconv"
 
 	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
 	"github.com/verrazzano/verrazzano/image-patch-operator/controllers"
@@ -65,7 +66,8 @@ func main() {
 	}
 
 	// Setup the reconciler
-	_, dryRun := os.LookupEnv("IBR_DRY_RUN") // If this var is set, the image jobs are no-ops
+	// If dryRun is set to true, then the image job will print the Dockerfile to stdout instead of building the image
+	dryRun, _ := strconv.ParseBool(os.Getenv("IBR_DRY_RUN"))
 	reconciler := controllers.ImageBuildRequestReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
