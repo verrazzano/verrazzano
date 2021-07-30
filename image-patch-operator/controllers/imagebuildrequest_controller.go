@@ -237,9 +237,8 @@ func (r *ImageBuildRequestReconciler) setImageBuildCondition(log *zap.SugaredLog
 
 	if r.DryRun {
 		return r.updateStatus(log, ibr, "ImageBuildRequest DryRun in progress", imagesv1alpha1.DryRunStarted)
-	} else {
-		return r.updateStatus(log, ibr, "ImageBuildRequest build in progress", imagesv1alpha1.BuildStarted)
 	}
+	return r.updateStatus(log, ibr, "ImageBuildRequest build in progress", imagesv1alpha1.BuildStarted)
 }
 
 // SetupWithManager sets up the controller with the Manager.
