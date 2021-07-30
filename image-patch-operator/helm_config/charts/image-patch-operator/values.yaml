@@ -20,6 +20,14 @@ weblogicDeployTool:
 # setting dryRun to true will not build the image, but instead print the Dockerfile to stdout
 dryRun: false
 
+installersVolume:
+  storage: 5Gi
+  storageClassName: local-storage
+
+installersVolumeClaim:
+  storage: 3Gi
+  storageClassName: local-storage
+
 global:
   imagePullSecrets: []
 

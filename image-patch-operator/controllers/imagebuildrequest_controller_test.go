@@ -112,6 +112,9 @@ func TestNewImageBuildRequest(t *testing.T) {
 	// Ensure that a Kubernetes job is created when an IBR is created
 	assert.NoError(err)
 
+	// Verify istio-injection disabled for the job
+	assert.Equal(jb.Labels["sidecar.istio.io/inject"], "false")
+
 	// Testing that the spec fields of the IBR propagate to the environmental variables of the ImageJob
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[0].Value, "test-build")
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[1].Value, "test-tag")
@@ -122,6 +125,12 @@ func TestNewImageBuildRequest(t *testing.T) {
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[6].Value, "8u281")
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[7].Value, "fmw_12.2.1.4.0_wls.jar")
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[8].Value, "12.2.1.4.0")
+
+	// Verifying that the PV, PVC, and Volume Mount are present on the created job
+	assert.Equal(jb.Spec.Template.Spec.Volumes[1].Name, "installers-storage")
+	assert.Equal(jb.Spec.Template.Spec.Volumes[1].PersistentVolumeClaim.ClaimName, "installers-storage-claim")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].VolumeMounts[1].Name, "installers-storage")
+	assert.Equal(jb.Spec.Template.Spec.Containers[0].VolumeMounts[1].MountPath, "/installers")
 
 }
 
