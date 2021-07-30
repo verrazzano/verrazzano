@@ -4,19 +4,65 @@
 package helm
 
 import (
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"strings"
 
-	vz_os "github.com/verrazzano/verrazzano/platform-operator/internal/util/os"
+	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/util/os"
 	"go.uber.org/zap"
 )
 
 // cmdRunner needed for unit tests
-var runner vz_os.CmdRunner = vz_os.DefaultRunner{}
+var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
 // Upgrade will upgrade a Helm release with the specified charts.  The overrideFiles array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string) (stdout []byte, stderr []byte, err error) {
+func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, addReuseValues bool) (stdout []byte, stderr []byte, err error) {
+	var tmpFile *os.File
+	if !addReuseValues {
+		// Helm get values command will get the current set values for the installed chart.
+		// The output will be used as input to the helm upgrade command.
+		// overrides that we used during the install.
+		args := []string{"get", "values", releaseName}
+		if namespace != "" {
+			args = append(args, "--namespace")
+			args = append(args, namespace)
+		}
+
+		cmd := exec.Command("helm", args...)
+		log.Infof("Running command: %s", cmd.String())
+		stdout, stderr, err = runner.Run(cmd)
+		if err != nil {
+			log.Errorf("helm get values for %s failed with stderr: %s", releaseName, string(stderr))
+			return stdout, stderr, err
+		}
+
+		//  Log get values output
+		log.Infof("helm get values succeeded for %s", releaseName)
+
+		tmpFile, err = ioutil.TempFile(os.TempDir(), "values-*.yaml")
+		if err != nil {
+			log.Errorf("Failed to create temporary file: %v", err)
+			return []byte{}, []byte{}, err
+		}
+
+		defer os.Remove(tmpFile.Name())
+
+		if _, err = tmpFile.Write(stdout); err != nil {
+			log.Errorf("Failed to write to temporary file: %v", err)
+			return []byte{}, []byte{}, err
+		}
+
+		// Close the file
+		if err := tmpFile.Close(); err != nil {
+			log.Errorf("Failed to close temporary file: %v", err)
+			return []byte{}, []byte{}, err
+		}
+
+		log.Infof("Created values file: %s", tmpFile.Name())
+	}
+
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
 	args := []string{"upgrade", releaseName, chartDir}
@@ -25,10 +71,16 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		args = append(args, namespace)
 	}
 
-	// If overrides are provided the specify --reuse-values
-	if len(overrideFile) > 0 || len(overrides) > 0 {
-		args = append(args, "--reuse-values")
+	if addReuseValues {
+		// If overrides are provided the specify --reuse-values
+		if len(overrideFile) > 0 || len(overrides) > 0 {
+			args = append(args, "--reuse-values")
+		}
+	} else {
+		args = append(args, "-f")
+		args = append(args, tmpFile.Name())
 	}
+
 	// Add the override files
 	if len(overrideFile) > 0 {
 		args = append(args, "-f")
@@ -74,11 +126,11 @@ func IsReleaseInstalled(releaseName string, namespace string) (found bool, err e
 }
 
 // SetCmdRunner sets the command runner as needed by unit tests
-func SetCmdRunner(r vz_os.CmdRunner) {
+func SetCmdRunner(r vzos.CmdRunner) {
 	runner = r
 }
 
 // SetDefaultRunner sets the command runner to default
 func SetDefaultRunner() {
-	runner = vz_os.DefaultRunner{}
+	runner = vzos.DefaultRunner{}
 }

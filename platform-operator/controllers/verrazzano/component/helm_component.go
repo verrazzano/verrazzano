@@ -5,11 +5,12 @@ package component
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
@@ -45,6 +46,9 @@ type helmComponent struct {
 
 	// resolveNamespaceFunc is an optional function to process the namespace name
 	resolveNamespaceFunc resolveNamespaceSig
+
+	// addReuseValues bool indicates that the helm upgrade command should specify --reuse-values.
+	addReuseValues bool
 }
 
 // Verify that helmComponent implements Component
@@ -60,7 +64,7 @@ type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespa
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, addReuseValues bool) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
@@ -137,7 +141,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 	}
 
 	// Do the upgrade
-	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, h.valuesFile, overrides)
+	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, h.valuesFile, overrides, h.addReuseValues)
 	return err
 }
 
