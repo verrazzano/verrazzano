@@ -16,6 +16,14 @@ weblogicDeployTool:
   binary: weblogic-deploy.zip
   version: latest
 
+installersVolume:
+  storage: 5Gi
+  storageClassName: local-storage
+
+installersVolumeClaim:
+  storage: 3Gi
+  storageClassName: local-storage
+
 global:
   imagePullSecrets: []
 
