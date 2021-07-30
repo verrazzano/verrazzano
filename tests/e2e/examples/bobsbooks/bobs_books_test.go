@@ -129,14 +129,15 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 	})
 
 	var host = ""
-
+	var err error
 	// Get the host from the Istio gateway resource.
 	// GIVEN the Istio gateway for the bobs-books namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	It("Get host from gateway.", func() {
 		Eventually(func() (string, error) {
-			return k8sutil.GetHostnameFromGateway("bobs-books", "")
+			host, err = k8sutil.GetHostnameFromGateway("bobs-books", "")
+			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
 	Context("Ingress.", func() {

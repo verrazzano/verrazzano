@@ -282,23 +282,27 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	})
 
 	var fooHost = ""
+	var err error
 	It("Get foo host from gateway.", func() {
 		Eventually(func() (string, error) {
-			return k8sutil.GetHostnameFromGateway(fooNamespace, "")
+			fooHost, err = k8sutil.GetHostnameFromGateway(fooNamespace, "")
+			return fooHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", fooNamespace))
 	})
 
 	var barHost = ""
 	It("Get bar host from gateway.", func() {
 		Eventually(func() (string, error) {
-			return k8sutil.GetHostnameFromGateway(barNamespace, "")
+			barHost, err = k8sutil.GetHostnameFromGateway(barNamespace, "")
+			return barHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", barNamespace))
 	})
 
 	var noIstioHost = ""
 	It("Get noistio host from gateway.", func() {
 		Eventually(func() (string, error) {
-			return k8sutil.GetHostnameFromGateway(noIstioNamespace, "")
+			noIstioHost, err = k8sutil.GetHostnameFromGateway(noIstioNamespace, "")
+			return noIstioHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", noIstioNamespace))
 	})
 

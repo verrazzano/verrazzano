@@ -109,9 +109,11 @@ var _ = Describe("Sock Shop Application", func() {
 	})
 
 	var hostname = ""
+	var err error
 	It("Get host from gateway.", func() {
 		Eventually(func() (string, error) {
-			return k8sutil.GetHostnameFromGateway("sockshop", "")
+			hostname, err = k8sutil.GetHostnameFromGateway("sockshop", "")
+			return hostname, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
 

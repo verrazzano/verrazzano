@@ -184,13 +184,15 @@ var _ = Describe("Verify ToDo List example application.", func() {
 
 	Context("Ingress.", func() {
 		var host = ""
+		var err error
 		// Get the host from the Istio gateway resource.
 		// GIVEN the Istio gateway for the todo-list namespace
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
 		It("Get host from gateway.", func() {
 			Eventually(func() (string, error) {
-				return k8sutil.GetHostnameFromGateway("todo-list", "")
+				host, err = k8sutil.GetHostnameFromGateway("todo-list", "")
+				return host, err
 			}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 		})
 

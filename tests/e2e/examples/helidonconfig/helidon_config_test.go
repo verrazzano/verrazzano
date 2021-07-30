@@ -77,13 +77,15 @@ var _ = Describe("Verify Helidon Config OAM App.", func() {
 	})
 
 	var host = ""
+	var err error
 	// Get the host from the Istio gateway resource.
 	// GIVEN the Istio gateway for the helidon-config namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	It("Get host from gateway.", func() {
 		Eventually(func() (string, error) {
-			return k8sutil.GetHostnameFromGateway(testNamespace, "")
+			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
+			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
 
