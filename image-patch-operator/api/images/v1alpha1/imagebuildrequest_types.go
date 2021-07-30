@@ -23,6 +23,15 @@ const (
 
 	// Failed is the state when an ImageBuildRequest has failed
 	Failed StateType = "Failed"
+
+	// DryRunActive is the state when an image job is preforming a DryRun
+	DryRunActive StateType = "DryRunActive"
+
+	// DryRunPrinted is the state after an image job successful preforms a DryRun
+	DryRunPrinted StateType = "DryRunPrinted"
+
+	// DryRunFailure is the state if an image job fails while trying to preform a DryRun
+	DryRunFailure StateType = "DryRunFailure"
 )
 
 // ConditionType identifies the condition of the ImageBuildRequest which can be checked with kubectl wait
@@ -37,6 +46,15 @@ const (
 
 	// BuildFailed means the image build job has failed during execution.
 	BuildFailed ConditionType = "BuildFailed"
+
+	// DryRunStarted means the image job is trying to print the Dockerfile to stdout
+	DryRunStarted ConditionType = "DryRunStarted"
+
+	// DryRunCompleted means the image job printed the Dockerfile to stdout successfully (the image will not be built)
+	DryRunCompleted ConditionType = "DryRunCompleted"
+
+	// DryRunFailed means the image job failed when trying to print the Dockerfile to stdout
+	DryRunFailed ConditionType = "DryRunFailed"
 )
 
 // Condition describes current state of an image build request.
