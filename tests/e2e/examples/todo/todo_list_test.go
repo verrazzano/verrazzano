@@ -11,6 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
 	v1 "k8s.io/api/core/v1"
@@ -188,9 +189,8 @@ var _ = Describe("Verify ToDo List example application.", func() {
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
 		It("Get host from gateway.", func() {
-			Eventually(func() string {
-				host = pkg.GetHostnameFromGateway("todo-list", "")
-				return host
+			Eventually(func() (string, error) {
+				return k8sutil.GetHostnameFromGateway("todo-list", "")
 			}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 		})
 

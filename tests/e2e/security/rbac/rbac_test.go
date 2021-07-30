@@ -13,6 +13,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
@@ -334,7 +335,7 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 			var clientset *kubernetes.Clientset
 			Eventually(func() (*kubernetes.Clientset, error) {
 				var err error
-				clientset, err = pkg.GetKubernetesClientset()
+				clientset, err = k8sutil.GetKubernetesClientset()
 				return clientset, err
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			Eventually(func() (*corev1.PodList, error) {

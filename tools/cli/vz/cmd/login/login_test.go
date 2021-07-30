@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/pkg/k8sutil"
 	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/fake"
@@ -286,7 +287,7 @@ func TestRepeatedLogin(t *testing.T) {
 }
 
 func createFakeKubeConfig(asserts *assert.Assertions) {
-	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
+	originalKubeConfigLocation, err := k8sutil.GetKubeConfigLocation()
 	asserts.NoError(err)
 	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
 	asserts.NoError(err)

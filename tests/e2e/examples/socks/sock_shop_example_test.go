@@ -14,6 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -109,9 +110,8 @@ var _ = Describe("Sock Shop Application", func() {
 
 	var hostname = ""
 	It("Get host from gateway.", func() {
-		Eventually(func() string {
-			hostname = pkg.GetHostnameFromGateway("sockshop", "")
-			return hostname
+		Eventually(func() (string, error) {
+			return k8sutil.GetHostnameFromGateway("sockshop", "")
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
 
@@ -311,7 +311,7 @@ var _ = AfterSuite(func() {
 
 // isSockShopServiceReady checks if the service is ready
 func isSockShopServiceReady(name string) bool {
-	clientset, err := pkg.GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Could not get Kubernetes clientset: %v\n", err.Error()))
 		return false

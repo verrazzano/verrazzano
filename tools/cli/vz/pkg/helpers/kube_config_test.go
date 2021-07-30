@@ -4,27 +4,14 @@
 package helpers
 
 import (
-	"github.com/stretchr/testify/assert"
 	"io"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 	"os"
 	"testing"
-)
 
-func TestGetKubeConfigLocation(t *testing.T) {
-	asserts := assert.New(t)
-	// Test without environment variable
-	kubeConfigLoc, err := GetKubeConfigLocation()
-	asserts.NoError(err)
-	asserts.Equal(kubeConfigLoc, homedir.HomeDir()+"/.kube/config")
-	// Test using environment variable
-	err = os.Setenv("KUBECONFIG", "/home/xyz/somerandompath")
-	asserts.NoError(err)
-	kubeConfigLoc, err = GetKubeConfigLocation()
-	asserts.NoError(err)
-	asserts.Equal("/home/xyz/somerandompath", kubeConfigLoc)
-}
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/pkg/k8sutil"
+	"k8s.io/client-go/tools/clientcmd"
+)
 
 func TestSetAndRemoveClusterFromKubeConfig(t *testing.T) {
 	asserts := assert.New(t)
@@ -159,7 +146,7 @@ func TestSetAndRemoveAuthInfo(t *testing.T) {
 }
 
 func createFakeKubeConfig(asserts *assert.Assertions) {
-	originalKubeConfigLocation, err := GetKubeConfigLocation()
+	originalKubeConfigLocation, err := k8sutil.GetKubeConfigLocation()
 	asserts.NoError(err)
 	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
 	asserts.NoError(err)

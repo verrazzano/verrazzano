@@ -13,10 +13,7 @@ Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
 Copyright (c) 2017, 2021, Oracle Corporation and/or its affiliates.
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2020, Oracle and/or its affiliates.
-fmt.Println("// Copyright (c) 2021, Oracle and/or its affiliates.")
-fmt.Println("-- Copyright (c) 2021, Oracle and/or its affiliates.")
-fmt.Println("<!-- Copyright (c) 2021, Oracle and/or its affiliates. -->")
-fmt.Println("# Copyright (c) 2021, Oracle and/or its affiliates.")
+Copyright (c) 2021, Oracle and/or its affiliates
 
 -------- License
 Copyright (c) 2020, 2021, Oracle America, Inc. and its affiliates.
@@ -1330,12 +1327,9 @@ github.com/spf13/cobra
 -------- Copyrights
 Copyright © 2020 Steve Francia <spf@spf13.com>
 Copyright © 2015 Steve Francia <spf@spf13.com>.
-Copyright:    copyrightLine(),
 Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
 11 of the WIPO copyright treaty adopted on 20 December 1996, or
 Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
-Copyright    string
-copyright": copyrightLine(),
 Copyright © 2013 Steve Francia <spf@spf13.com>.
 Copyright 2015 Red Hat Inc. All rights reserved.
 Copyright 2016 French Ben. All rights reserved.
@@ -2207,7 +2201,7 @@ Portions Copyright © 2009 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors.  All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
-const license = `// Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -2655,4 +2649,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: c736b9fa2fdbdcd0e34900da22a752dc
+License file based on go.mod with md5 sum: ba07082264989e519d4940d6672c1306

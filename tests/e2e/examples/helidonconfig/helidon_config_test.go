@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 )
@@ -81,9 +82,8 @@ var _ = Describe("Verify Helidon Config OAM App.", func() {
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	It("Get host from gateway.", func() {
-		Eventually(func() string {
-			host = pkg.GetHostnameFromGateway(testNamespace, "")
-			return host
+		Eventually(func() (string, error) {
+			return k8sutil.GetHostnameFromGateway(testNamespace, "")
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
 

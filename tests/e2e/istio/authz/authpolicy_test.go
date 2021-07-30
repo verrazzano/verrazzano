@@ -12,6 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -282,25 +283,22 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 
 	var fooHost = ""
 	It("Get foo host from gateway.", func() {
-		Eventually(func() string {
-			fooHost = pkg.GetHostnameFromGateway(fooNamespace, "")
-			return fooHost
+		Eventually(func() (string, error) {
+			return k8sutil.GetHostnameFromGateway(fooNamespace, "")
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", fooNamespace))
 	})
 
 	var barHost = ""
 	It("Get bar host from gateway.", func() {
-		Eventually(func() string {
-			barHost = pkg.GetHostnameFromGateway(barNamespace, "")
-			return barHost
+		Eventually(func() (string, error) {
+			return k8sutil.GetHostnameFromGateway(barNamespace, "")
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", barNamespace))
 	})
 
 	var noIstioHost = ""
 	It("Get noistio host from gateway.", func() {
-		Eventually(func() string {
-			noIstioHost = pkg.GetHostnameFromGateway(noIstioNamespace, "")
-			return noIstioHost
+		Eventually(func() (string, error) {
+			return k8sutil.GetHostnameFromGateway(noIstioNamespace, "")
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", noIstioNamespace))
 	})
 

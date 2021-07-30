@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/api/extensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,7 +35,7 @@ var _ = BeforeSuite(func() {
 	var clientset *kubernetes.Clientset
 	Eventually(func() (*kubernetes.Clientset, error) {
 		var err error
-		clientset, err = pkg.GetKubernetesClientset()
+		clientset, err = k8sutil.GetKubernetesClientset()
 		return clientset, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 	Eventually(func() (*v1beta1.Ingress, error) {
