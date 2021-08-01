@@ -16,13 +16,24 @@ import (
 // cmdRunner needed for unit tests
 var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
+var doGetValues = true
+var doUpgrade = true
+
 // Upgrade will upgrade a Helm release with the specified charts.  The overrideFiles array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, addReuseValues bool) (stdout []byte, stderr []byte, err error) {
+func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string) (stdout []byte, stderr []byte, err error) {
 	var tmpFile *os.File
-	if !addReuseValues {
-		// Helm get values command will get the current set values for the installed chart.
-		// The output will be used as input to the helm upgrade command.
+	tmpFile, err = ioutil.TempFile(os.TempDir(), "values-*.yaml")
+	if err != nil {
+		log.Errorf("Failed to create temporary file: %v", err)
+		return []byte{}, []byte{}, err
+	}
+
+	defer os.Remove(tmpFile.Name())
+
+	// Helm get values command will get the current set values for the installed chart.
+	// The output will be used as input to the helm upgrade command.
+	if doGetValues {
 		args := []string{"get", "values", releaseName}
 		if namespace != "" {
 			args = append(args, "--namespace")
@@ -40,14 +51,6 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		//  Log get values output
 		log.Infof("helm get values succeeded for %s", releaseName)
 
-		tmpFile, err = ioutil.TempFile(os.TempDir(), "values-*.yaml")
-		if err != nil {
-			log.Errorf("Failed to create temporary file: %v", err)
-			return []byte{}, []byte{}, err
-		}
-
-		defer os.Remove(tmpFile.Name())
-
 		if _, err = tmpFile.Write(stdout); err != nil {
 			log.Errorf("Failed to write to temporary file: %v", err)
 			return []byte{}, []byte{}, err
@@ -64,47 +67,41 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
-	args := []string{"upgrade", releaseName, chartDir}
-	if namespace != "" {
-		args = append(args, "--namespace")
-		args = append(args, namespace)
-	}
-
-	// If addReuseValues is true then pass the --reuse-values arg to 'helm upgrade', if overrides are provided.
-	// If addReuseValues is false then do not pass the --reuse-values arg to 'helm upgrade'.  Instead, pass the
-	// values retrieved from 'helm get values' with the -f arg to 'helm upgrade'. This is a workaround to avoid
-	// a failed helm upgrade that results from a nil reference.  The nil reference occurs when a default value
-	// is added to a new chart and new chart references the new value.
-	if addReuseValues {
-		// If overrides are provided the specify --reuse-values
-		if len(overrideFile) > 0 || len(overrides) > 0 {
-			args = append(args, "--reuse-values")
+	if doUpgrade {
+		args := []string{"upgrade", releaseName, chartDir}
+		if namespace != "" {
+			args = append(args, "--namespace")
+			args = append(args, namespace)
 		}
-	} else {
+
+		// Do not pass the --reuse-values arg to 'helm upgrade'.  Instead, pass the
+		// values retrieved from 'helm get values' with the -f arg to 'helm upgrade'. This is a workaround to avoid
+		// a failed helm upgrade that results from a nil reference.  The nil reference occurs when a default value
+		// is added to a new chart and new chart references the new value.
 		args = append(args, "-f")
 		args = append(args, tmpFile.Name())
-	}
 
-	// Add the override files
-	if len(overrideFile) > 0 {
-		args = append(args, "-f")
-		args = append(args, overrideFile)
-	}
-	// Add the override strings
-	if len(overrides) > 0 {
-		args = append(args, "--set")
-		args = append(args, overrides)
-	}
-	cmd := exec.Command("helm", args...)
-	log.Infof("Running command: %s", cmd.String())
-	stdout, stderr, err = runner.Run(cmd)
-	if err != nil {
-		log.Errorf("helm upgrade for %s failed with stderr: %s", releaseName, string(stderr))
-		return stdout, stderr, err
-	}
+		// Add the override files
+		if len(overrideFile) > 0 {
+			args = append(args, "-f")
+			args = append(args, overrideFile)
+		}
+		// Add the override strings
+		if len(overrides) > 0 {
+			args = append(args, "--set")
+			args = append(args, overrides)
+		}
+		cmd := exec.Command("helm", args...)
+		log.Infof("Running command: %s", cmd.String())
+		stdout, stderr, err = runner.Run(cmd)
+		if err != nil {
+			log.Errorf("helm upgrade for %s failed with stderr: %s", releaseName, string(stderr))
+			return stdout, stderr, err
+		}
 
-	//  Log upgrade output
-	log.Infof("helm upgrade succeeded for %s", releaseName)
+		//  Log upgrade output
+		log.Infof("helm upgrade succeeded for %s", releaseName)
+	}
 	return stdout, stderr, nil
 }
 

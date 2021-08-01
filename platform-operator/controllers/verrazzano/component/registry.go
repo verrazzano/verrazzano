@@ -24,7 +24,6 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			ignoreImageOverrides:    true,
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "istiod",
@@ -33,7 +32,6 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			appendOverridesFunc:     appendIstioOverrides,
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "istio-ingress",
@@ -42,7 +40,6 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			appendOverridesFunc:     appendIstioOverrides,
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "istio-egress",
@@ -51,7 +48,6 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			appendOverridesFunc:     appendIstioOverrides,
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "istiocoredns",
@@ -60,7 +56,6 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			appendOverridesFunc:     appendIstioOverrides,
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "ingress-controller",
@@ -68,7 +63,6 @@ func GetComponents() []Component {
 			chartNamespace:          "ingress-nginx",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "ingress-nginx-values.yaml"),
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "cert-manager",
@@ -76,7 +70,6 @@ func GetComponents() []Component {
 			chartNamespace:          "cert-manager",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "cert-manager-values.yaml"),
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "external-dns",
@@ -84,7 +77,6 @@ func GetComponents() []Component {
 			chartNamespace:          "cert-manager",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "external-dns-values.yaml"),
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "rancher",
@@ -92,7 +84,6 @@ func GetComponents() []Component {
 			chartNamespace:          "cattle-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "rancher-values.yaml"),
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "verrazzano",
@@ -100,7 +91,6 @@ func GetComponents() []Component {
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			resolveNamespaceFunc:    resolveVerrazzanoNamespace,
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "coherence-operator",
@@ -108,7 +98,6 @@ func GetComponents() []Component {
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "weblogic-operator",
@@ -116,7 +105,6 @@ func GetComponents() []Component {
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "oam-kubernetes-runtime",
@@ -124,7 +112,6 @@ func GetComponents() []Component {
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "oam-kubernetes-runtime-values.yaml"),
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "verrazzano-application-operator",
@@ -133,7 +120,6 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
 			appendOverridesFunc:     appendApplicationOperatorOverrides,
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "mysql",
@@ -141,7 +127,6 @@ func GetComponents() []Component {
 			chartNamespace:          "keycloak",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),
-			addReuseValues:          false,
 		},
 		helmComponent{
 			releaseName:             "keycloak",
@@ -150,7 +135,6 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
 			appendOverridesFunc:     appendKeycloakOverrides,
-			addReuseValues:          false,
 		},
 	}
 }

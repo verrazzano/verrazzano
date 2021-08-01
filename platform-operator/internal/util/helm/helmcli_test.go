@@ -18,8 +18,6 @@ const chartdir = "my_charts"
 const release = "my_release"
 const missingRelease = "no_release"
 
-var firstCall bool = true
-
 // upgradeRunner is used to test Helm upgrade without actually running an OS exec command
 type upgradeRunner struct {
 	t *testing.T
@@ -40,35 +38,39 @@ type foundRunner struct {
 	t *testing.T
 }
 
-// TestUpgrade tests upgrade with addReuseValues true
+// TestGetValues tests the Helm get values command
 // GIVEN a set of upgrade parameters
 //  WHEN I call Upgrade
 //  THEN the Helm upgrade returns success and the cmd object has correct values
-func TestUpgradeReuse(t *testing.T) {
-	overrideYaml := "my-override.yaml"
-
-	assert := assert.New(t)
-	SetCmdRunner(upgradeRunner{t: t})
-	defer SetDefaultRunner()
-
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, overrideYaml, "", true)
-	assert.NoError(err, "Upgrade returned an error")
-	assert.Len(stderr, 0, "Upgrade stderr should be empty")
-	assert.NotZero(stdout, "Upgrade stdout should not be empty")
-}
-
-// TestUpgrade tests upgrade with addReuseValues false
-// GIVEN a set of upgrade parameters
-//  WHEN I call Upgrade
-//  THEN the Helm upgrade returns success and the cmd object has correct values
-func TestUpgradeNoReuse(t *testing.T) {
+func TestGetValues(t *testing.T) {
 	overrideYaml := "my-override.yaml"
 
 	assert := assert.New(t)
 	SetCmdRunner(getValuesRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, overrideYaml, "", false)
+	doGetValues = true
+	doUpgrade = false
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, overrideYaml, "")
+	assert.NoError(err, "Upgrade returned an error")
+	assert.Len(stderr, 0, "Upgrade stderr should be empty")
+	assert.NotZero(stdout, "Upgrade stdout should not be empty")
+}
+
+// TestUpgrade tests the Helm upgrade command
+// GIVEN a set of upgrade parameters
+//  WHEN I call Upgrade
+//  THEN the Helm upgrade returns success and the cmd object has correct values
+func TestUpgrade(t *testing.T) {
+	overrideYaml := "my-override.yaml"
+
+	assert := assert.New(t)
+	SetCmdRunner(upgradeRunner{t: t})
+	defer SetDefaultRunner()
+
+	doGetValues = false
+	doUpgrade = true
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, overrideYaml, "")
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -83,7 +85,7 @@ func TestUpgradeFail(t *testing.T) {
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", "", "", true)
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", "", "")
 	assert.Error(err, "Upgrade should have returned an error")
 	assert.Len(stdout, 0, "Upgrade stdout should be empty")
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")
@@ -146,20 +148,11 @@ func (r upgradeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err err
 // Run should assert the command parameters are correct then return a success with stdout contents
 func (r getValuesRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	assert := assert.New(r.t)
-	if firstCall {
-		assert.Contains(cmd.Path, "helm", "command should contain helm")
-		assert.Contains(cmd.Args[0], "helm", "args should contain helm")
-		assert.Contains(cmd.Args[1], "get", "args should contain get")
-		assert.Contains(cmd.Args[2], "values", "args should contain get")
-		assert.Contains(cmd.Args[3], release, "args should contain release name")
-		firstCall = false
-	} else {
-		assert.Contains(cmd.Path, "helm", "command should contain helm")
-		assert.Contains(cmd.Args[0], "helm", "args should contain helm")
-		assert.Contains(cmd.Args[1], "upgrade", "args should contain upgrade")
-		assert.Contains(cmd.Args[2], release, "args should contain release name")
-		assert.Contains(cmd.Args[3], chartdir, "args should contain chart dir ")
-	}
+	assert.Contains(cmd.Path, "helm", "command should contain helm")
+	assert.Contains(cmd.Args[0], "helm", "args should contain helm")
+	assert.Contains(cmd.Args[1], "get", "args should contain get")
+	assert.Contains(cmd.Args[2], "values", "args should contain get")
+	assert.Contains(cmd.Args[3], release, "args should contain release name")
 	return []byte("success"), []byte(""), nil
 }
 

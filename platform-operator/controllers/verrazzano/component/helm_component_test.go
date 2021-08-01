@@ -52,7 +52,6 @@ func TestUpgrade(t *testing.T) {
 		ignoreNamespaceOverride: true,
 		valuesFile:              "valuesFile",
 		preUpgradeFunc:          fakePreUpgrade,
-		addReuseValues:          true,
 	}
 
 	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
@@ -82,7 +81,6 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 		valuesFile:              "valuesFile",
 		preUpgradeFunc:          fakePreUpgrade,
 		appendOverridesFunc:     appendIstioOverrides,
-		addReuseValues:          true,
 	}
 
 	os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
@@ -104,7 +102,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, addReuseValues bool) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiod" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
@@ -120,9 +118,6 @@ func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, c
 	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
 	if overrides != fakeOverrides {
 		return []byte("error"), []byte(""), errors.New("Invalid overrides")
-	}
-	if !addReuseValues {
-		return []byte("error"), []byte(""), errors.New("Invalid addReuseValues")
 	}
 	return []byte("success"), []byte(""), nil
 }
