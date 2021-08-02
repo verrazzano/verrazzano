@@ -82,8 +82,6 @@ func TestNewImageBuildRequest(t *testing.T) {
 		"JDK_INSTALLER_VERSION": "8u281",
 		"WLS_INSTALLER_VERSION": "12.2.1.4.0",
 		"IBR_NAME":              "cluster1",
-		"LATEST_PSU":            "false",
-		"RECOMMENDED_PATCHES":   "true",
 	}
 
 	// Creating an ImageBuildRequest resource
