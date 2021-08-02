@@ -11,6 +11,12 @@ imageTool:
   name: verrazzano-image-build-job
   # image value will be filled in during the build pipeline
   image:
+  resourceLimits:
+    cpu: 1100
+    memory: 1073741824 # = 2^30
+  resourceRequests:
+    cpu: 1100
+    memory: 1073741824 # = 2^30
 
 weblogicDeployTool:
   binary: weblogic-deploy.zip
