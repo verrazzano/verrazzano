@@ -10,9 +10,8 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"

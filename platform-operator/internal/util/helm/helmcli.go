@@ -16,6 +16,7 @@ import (
 // cmdRunner needed for unit tests
 var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
+// boolean values needed for unit tests
 var doGetValues = true
 var doUpgrade = true
 
