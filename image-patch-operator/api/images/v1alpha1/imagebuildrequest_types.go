@@ -74,6 +74,12 @@ type ImageBuildRequestSpec struct {
 
 	// The version for WebLogic needed by the WebLogic Image Tool
 	WebLogicInstallerVersion string `json:"webLogicInstallerVersion"`
+
+	// Flag to determine whether to find and apply the latest PatchSet Update
+	LatestPSU bool `json:"latestPSU,omitempty"`
+
+	// Flag to determine whether to find and apply the latest PatchSet Update and recommended patches (takes precedence over LatestPSU)
+	RecommendedPatches bool `json:"recommendedPatches,omitempty"`
 }
 
 // Image provides more configuration information to the ImageBuildRequestSpec
