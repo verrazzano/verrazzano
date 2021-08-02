@@ -40,7 +40,7 @@ func GetValues(log *zap.SugaredLogger, releaseName string, namespace string) ([]
 
 // Upgrade will upgrade a Helm release with the specified charts.  The overrideFiles array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, getValuesFile string) (stdout []byte, stderr []byte, err error) {
+func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, existingValuesFile string) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
 	args := []string{"upgrade", releaseName, chartDir}
@@ -54,7 +54,7 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	// a failed helm upgrade that results from a nil reference.  The nil reference occurs when a default value
 	// is added to a new chart and new chart references the new value.
 	args = append(args, "-f")
-	args = append(args, getValuesFile)
+	args = append(args, existingValuesFile)
 
 	// Add the override files
 	if len(overrideFile) > 0 {
