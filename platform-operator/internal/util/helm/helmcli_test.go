@@ -18,8 +18,13 @@ const chartdir = "my_charts"
 const release = "my_release"
 const missingRelease = "no_release"
 
-// goodRunner is used to test Helm without actually running an OS exec command
-type goodRunner struct {
+// upgradeRunner is used to test Helm upgrade without actually running an OS exec command
+type upgradeRunner struct {
+	t *testing.T
+}
+
+// getValuesRunner is used to test Helm get values without actually running an OS exec command
+type getValuesRunner struct {
 	t *testing.T
 }
 
@@ -33,6 +38,20 @@ type foundRunner struct {
 	t *testing.T
 }
 
+// TestGetValues tests the Helm get values command
+// GIVEN a set of upgrade parameters
+//  WHEN I call Upgrade
+//  THEN the Helm upgrade returns success and the cmd object has correct values
+func TestGetValues(t *testing.T) {
+	assert := assert.New(t)
+	SetCmdRunner(getValuesRunner{t: t})
+	defer SetDefaultRunner()
+
+	stdout, err := GetValues(zap.S(), release, ns)
+	assert.NoError(err, "GetValues returned an error")
+	assert.NotZero(stdout, "GetValues stdout should not be empty")
+}
+
 // TestUpgrade tests the Helm upgrade command
 // GIVEN a set of upgrade parameters
 //  WHEN I call Upgrade
@@ -41,10 +60,10 @@ func TestUpgrade(t *testing.T) {
 	overrideYaml := "my-override.yaml"
 
 	assert := assert.New(t)
-	SetCmdRunner(goodRunner{t: t})
+	SetCmdRunner(upgradeRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, overrideYaml, "")
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, overrideYaml, "", "")
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -59,7 +78,7 @@ func TestUpgradeFail(t *testing.T) {
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", "", "")
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", "", "", "")
 	assert.Error(err, "Upgrade should have returned an error")
 	assert.Len(stdout, 0, "Upgrade stdout should be empty")
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")
@@ -108,7 +127,7 @@ func TestIsReleaseInstalledFailed(t *testing.T) {
 }
 
 // Run should assert the command parameters are correct then return a success with stdout contents
-func (r goodRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+func (r upgradeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	assert := assert.New(r.t)
 	assert.Contains(cmd.Path, "helm", "command should contain helm")
 	assert.Contains(cmd.Args[0], "helm", "args should contain helm")
@@ -116,6 +135,17 @@ func (r goodRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error)
 	assert.Contains(cmd.Args[2], release, "args should contain release name")
 	assert.Contains(cmd.Args[3], chartdir, "args should contain chart dir ")
 
+	return []byte("success"), []byte(""), nil
+}
+
+// Run should assert the command parameters are correct then return a success with stdout contents
+func (r getValuesRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	assert := assert.New(r.t)
+	assert.Contains(cmd.Path, "helm", "command should contain helm")
+	assert.Contains(cmd.Args[0], "helm", "args should contain helm")
+	assert.Contains(cmd.Args[1], "get", "args should contain get")
+	assert.Contains(cmd.Args[2], "values", "args should contain get")
+	assert.Contains(cmd.Args[3], release, "args should contain release name")
 	return []byte("success"), []byte(""), nil
 }
 
