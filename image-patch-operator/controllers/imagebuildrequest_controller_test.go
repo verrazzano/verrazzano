@@ -93,7 +93,7 @@ func TestNewImageBuildRequest(t *testing.T) {
 	assert.NoError(err)
 
 	// Verify the DryRun flag is set to false by default (this value can be changed in the helm config values.yaml file)
-	assert.Equal(reconciler.DryRun, false)
+	assert.Equal(false, reconciler.DryRun)
 
 	ibr := &imagesv1alpha1.ImageBuildRequest{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
@@ -102,9 +102,9 @@ func TestNewImageBuildRequest(t *testing.T) {
 	assert.NoError(err)
 
 	// The status, condition, and message of the IBR should reflect that the ImageJob is in progress
-	assert.Equal(ibr.Status.State, imagesv1alpha1.StateType("Building"))
-	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("BuildStarted"))
-	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest build in progress")
+	assert.Equal(imagesv1alpha1.StateType("Building"), ibr.Status.State)
+	assert.Equal(imagesv1alpha1.ConditionType("BuildStarted"), ibr.Status.Conditions[0].Type)
+	assert.Equal("ImageBuildRequest build in progress", ibr.Status.Conditions[0].Message)
 
 	jb := &batchv1.Job{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
@@ -113,24 +113,24 @@ func TestNewImageBuildRequest(t *testing.T) {
 	assert.NoError(err)
 
 	// Verify istio-injection disabled for the job
-	assert.Equal(jb.Labels["sidecar.istio.io/inject"], "false")
+	assert.Equal("false", jb.Labels["sidecar.istio.io/inject"])
 
 	// Testing that the spec fields of the IBR propagate to the environmental variables of the ImageJob
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[0].Value, "test-build")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[1].Value, "test-tag")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[2].Value, "phx.ocir.io")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[3].Value, "myrepo/verrazzano")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[4].Value, "ghcr.io/oracle/oraclelinux:8-slim")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[5].Value, "jdk-8u281-linux-x64.tar.gz")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[6].Value, "8u281")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[7].Value, "fmw_12.2.1.4.0_wls.jar")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[8].Value, "12.2.1.4.0")
+	assert.Equal("test-build", jb.Spec.Template.Spec.Containers[0].Env[0].Value)
+	assert.Equal("test-tag", jb.Spec.Template.Spec.Containers[0].Env[1].Value)
+	assert.Equal("phx.ocir.io", jb.Spec.Template.Spec.Containers[0].Env[2].Value)
+	assert.Equal("myrepo/verrazzano", jb.Spec.Template.Spec.Containers[0].Env[3].Value)
+	assert.Equal("ghcr.io/oracle/oraclelinux:8-slim", jb.Spec.Template.Spec.Containers[0].Env[4].Value)
+	assert.Equal("jdk-8u281-linux-x64.tar.gz", jb.Spec.Template.Spec.Containers[0].Env[5].Value)
+	assert.Equal("8u281", jb.Spec.Template.Spec.Containers[0].Env[6].Value)
+	assert.Equal("fmw_12.2.1.4.0_wls.jar", jb.Spec.Template.Spec.Containers[0].Env[7].Value)
+	assert.Equal("12.2.1.4.0", jb.Spec.Template.Spec.Containers[0].Env[8].Value)
 
 	// Verifying that the PV, PVC, and Volume Mount are present on the created job
-	assert.Equal(jb.Spec.Template.Spec.Volumes[1].Name, "installers-storage")
-	assert.Equal(jb.Spec.Template.Spec.Volumes[1].PersistentVolumeClaim.ClaimName, "installers-storage-claim")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].VolumeMounts[1].Name, "installers-storage")
-	assert.Equal(jb.Spec.Template.Spec.Containers[0].VolumeMounts[1].MountPath, "/installers")
+	assert.Equal("installers-storage", jb.Spec.Template.Spec.Volumes[1].Name)
+	assert.Equal("installers-storage-claim", jb.Spec.Template.Spec.Volumes[1].PersistentVolumeClaim.ClaimName)
+	assert.Equal("installers-storage", jb.Spec.Template.Spec.Containers[0].VolumeMounts[1].Name)
+	assert.Equal("/installers", jb.Spec.Template.Spec.Containers[0].VolumeMounts[1].MountPath)
 
 }
 
@@ -158,15 +158,15 @@ func TestIBRJobSucceeded(t *testing.T) {
 	ibr := &imagesv1alpha1.ImageBuildRequest{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
 	assert.NoError(err)
-	assert.Equal(ibr.Status.State, imagesv1alpha1.StateType("Published"))
-	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("BuildCompleted"))
-	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest build completed successfully")
+	assert.Equal(imagesv1alpha1.StateType("Published"), ibr.Status.State)
+	assert.Equal(imagesv1alpha1.ConditionType("BuildCompleted"), ibr.Status.Conditions[0].Type)
+	assert.Equal("ImageBuildRequest build completed successfully", ibr.Status.Conditions[0].Message)
 
 	// Verify the job exists in a succeeded state
 	jb := &batchv1.Job{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
 	assert.NoError(err)
-	assert.Equal(jb.Status.Succeeded, int32(1))
+	assert.Equal(int32(1), jb.Status.Succeeded)
 }
 
 // TestIBRJobFailed tests the Reconcile method for the following:
@@ -193,15 +193,15 @@ func TestIBRJobFailed(t *testing.T) {
 	ibr := &imagesv1alpha1.ImageBuildRequest{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
 	assert.NoError(err)
-	assert.Equal(ibr.Status.State, imagesv1alpha1.StateType("Failed"))
-	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("BuildFailed"))
-	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest build failed to complete")
+	assert.Equal(imagesv1alpha1.StateType("Failed"), ibr.Status.State)
+	assert.Equal(imagesv1alpha1.ConditionType("BuildFailed"), ibr.Status.Conditions[0].Type)
+	assert.Equal("ImageBuildRequest build failed to complete", ibr.Status.Conditions[0].Message)
 
 	// Verify the job exists in a failed state
 	jb := &batchv1.Job{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
 	assert.NoError(err)
-	assert.Equal(jb.Status.Failed, int32(1))
+	assert.Equal(int32(1), jb.Status.Failed)
 }
 
 // TestIBRDryRun tests the Reconcile method for the following:
@@ -230,9 +230,9 @@ func TestIBRDryRun(t *testing.T) {
 	ibr := &imagesv1alpha1.ImageBuildRequest{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
 	assert.NoError(err)
-	assert.Equal(ibr.Status.State, imagesv1alpha1.StateType("DryRunActive"))
-	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("DryRunStarted"))
-	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest DryRun in progress")
+	assert.Equal(imagesv1alpha1.StateType("DryRunActive"), ibr.Status.State)
+	assert.Equal(imagesv1alpha1.ConditionType("DryRunStarted"), ibr.Status.Conditions[0].Type)
+	assert.Equal("ImageBuildRequest DryRun in progress", ibr.Status.Conditions[0].Message)
 
 	// Verifying a job gets created when DryRun is active
 	jb := &batchv1.Job{}
@@ -267,15 +267,15 @@ func TestIBRDryRunJobSucceeded(t *testing.T) {
 	ibr := &imagesv1alpha1.ImageBuildRequest{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
 	assert.NoError(err)
-	assert.Equal(ibr.Status.State, imagesv1alpha1.StateType("DryRunPrinted"))
-	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("DryRunCompleted"))
-	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest DryRun completed successfully")
+	assert.Equal(imagesv1alpha1.StateType("DryRunPrinted"), ibr.Status.State)
+	assert.Equal(imagesv1alpha1.ConditionType("DryRunCompleted"), ibr.Status.Conditions[0].Type)
+	assert.Equal("ImageBuildRequest DryRun completed successfully", ibr.Status.Conditions[0].Message)
 
 	// Verify the job exists in a succeeded state
 	jb := &batchv1.Job{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
 	assert.NoError(err)
-	assert.Equal(jb.Status.Succeeded, int32(1))
+	assert.Equal(int32(1), jb.Status.Succeeded)
 }
 
 // TestIBRJobFailed tests the Reconcile method for the following:
@@ -305,15 +305,15 @@ func TestIBRDryRunJobFailed(t *testing.T) {
 	ibr := &imagesv1alpha1.ImageBuildRequest{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "cluster1"}, ibr)
 	assert.NoError(err)
-	assert.Equal(ibr.Status.State, imagesv1alpha1.StateType("DryRunFailure"))
-	assert.Equal(ibr.Status.Conditions[0].Type, imagesv1alpha1.ConditionType("DryRunFailed"))
-	assert.Equal(ibr.Status.Conditions[0].Message, "ImageBuildRequest DryRun failed to complete")
+	assert.Equal(imagesv1alpha1.StateType("DryRunFailure"), ibr.Status.State)
+	assert.Equal(imagesv1alpha1.ConditionType("DryRunFailed"), ibr.Status.Conditions[0].Type)
+	assert.Equal("ImageBuildRequest DryRun failed to complete", ibr.Status.Conditions[0].Message)
 
 	// Verify the job exists in a failed state
 	jb := &batchv1.Job{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "default", Name: "verrazzano-images-cluster1"}, jb)
 	assert.NoError(err)
-	assert.Equal(jb.Status.Failed, int32(1))
+	assert.Equal(int32(1), jb.Status.Failed)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
