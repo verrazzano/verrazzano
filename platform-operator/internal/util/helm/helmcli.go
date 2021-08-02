@@ -68,10 +68,17 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	}
 	cmd := exec.Command("helm", args...)
 	log.Infof("Running command: %s", cmd.String())
-	stdout, stderr, err = runner.Run(cmd)
-	if err != nil {
+	const maxRetry = 3
+	for i := 1; i <= maxRetry; i++ {
+		stdout, stderr, err = runner.Run(cmd)
+		if err == nil {
+			break
+		}
 		log.Errorf("helm upgrade for %s failed with stderr: %s", releaseName, string(stderr))
-		return stdout, stderr, err
+		if i == maxRetry {
+			return stdout, stderr, err
+		}
+		log.Errorf("retry %v for upgrade", i)
 	}
 
 	//  Log upgrade output
