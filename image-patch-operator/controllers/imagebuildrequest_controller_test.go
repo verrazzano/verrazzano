@@ -82,6 +82,8 @@ func TestNewImageBuildRequest(t *testing.T) {
 		"JDK_INSTALLER_VERSION": "8u281",
 		"WLS_INSTALLER_VERSION": "12.2.1.4.0",
 		"IBR_NAME":              "cluster1",
+		"LATEST_PSU":            "false",
+		"RECOMMENDED_PATCHES":   "true",
 	}
 
 	// Creating an ImageBuildRequest resource
@@ -122,6 +124,8 @@ func TestNewImageBuildRequest(t *testing.T) {
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[6].Value, "8u281")
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[7].Value, "fmw_12.2.1.4.0_wls.jar")
 	assert.Equal(jb.Spec.Template.Spec.Containers[0].Env[8].Value, "12.2.1.4.0")
+	assert.Equal("false", jb.Spec.Template.Spec.Containers[0].Env[11].Value)
+	assert.Equal("true", jb.Spec.Template.Spec.Containers[0].Env[12].Value)
 
 	// Verifying that the PV, PVC, and Volume Mount are present on the created job
 	assert.Equal(jb.Spec.Template.Spec.Volumes[1].Name, "installers-storage")
