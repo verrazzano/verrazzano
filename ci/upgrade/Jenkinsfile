@@ -229,7 +229,7 @@ pipeline {
                 stage("upgrade-verrazzano") {
                     steps {
                         script {
-                            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/generated-verrazzano-bom.json | jq -r '.version'").trim()
+                            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/generated-verrazzano-bom.json | jq -r '.version'").trim()
                         }
                         sh """
                             echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
