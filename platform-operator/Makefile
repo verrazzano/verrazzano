@@ -36,8 +36,9 @@ endif
 
 DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
-VERRAZZANO_MAJOR_MINOR_PATCH = $(shell grep verrazzano-development-version ../.verrazzano-development-version | sed -e 's/verrazzano-development-version=//')
-VERRAZZANO_VERSION=${VERRAZZANO_MAJOR_MINOR_PATCH}
+SHORT_COMMIT_HASH ?= $(shell git rev-parse --short=8 HEAD)
+VERRAZZANO_DEV_VERSION ?= $(shell grep verrazzano-development-version ../.verrazzano-development-version | sed -e 's/verrazzano-development-version=//')
+VERRAZZANO_VERSION ?= ${VERRAZZANO_DEV_VERSION}-local+${SHORT_COMMIT_HASH}
 
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE ?= verrazzano-application-operator-dev
 
