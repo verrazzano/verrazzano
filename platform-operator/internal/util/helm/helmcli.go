@@ -14,6 +14,7 @@ import (
 // cmdRunner needed for unit tests
 var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
+// GetValues will run 'helm get values' command and return the output from the command.
 func GetValues(log *zap.SugaredLogger, releaseName string, namespace string) ([]byte, error) {
 	// Helm get values command will get the current set values for the installed chart.
 	// The output will be used as input to the helm upgrade command.
