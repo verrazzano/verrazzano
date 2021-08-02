@@ -5,6 +5,8 @@ package component
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -61,7 +63,7 @@ type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespa
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, getValueFile string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
@@ -137,8 +139,35 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 		overrides = bldr.String()
 	}
 
+	stdout, err := helm.GetValues(log, h.releaseName, namespace)
+	if err != nil {
+		return err
+	}
+
+	var tmpFile *os.File
+	tmpFile, err = ioutil.TempFile(os.TempDir(), "values-*.yaml")
+	if err != nil {
+		log.Errorf("Failed to create temporary file: %v", err)
+		return err
+	}
+
+	defer os.Remove(tmpFile.Name())
+
+	if _, err = tmpFile.Write(stdout); err != nil {
+		log.Errorf("Failed to write to temporary file: %v", err)
+		return err
+	}
+
+	// Close the file
+	if err := tmpFile.Close(); err != nil {
+		log.Errorf("Failed to close temporary file: %v", err)
+		return err
+	}
+
+	log.Infof("Created values file: %s", tmpFile.Name())
+
 	// Do the upgrade
-	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, h.valuesFile, overrides)
+	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, h.valuesFile, overrides, tmpFile.Name())
 	return err
 }
 

@@ -43,18 +43,13 @@ type foundRunner struct {
 //  WHEN I call Upgrade
 //  THEN the Helm upgrade returns success and the cmd object has correct values
 func TestGetValues(t *testing.T) {
-	overrideYaml := "my-override.yaml"
-
 	assert := assert.New(t)
 	SetCmdRunner(getValuesRunner{t: t})
 	defer SetDefaultRunner()
 
-	doGetValues = true
-	doUpgrade = false
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, overrideYaml, "")
-	assert.NoError(err, "Upgrade returned an error")
-	assert.Len(stderr, 0, "Upgrade stderr should be empty")
-	assert.NotZero(stdout, "Upgrade stdout should not be empty")
+	stdout, err := GetValues(zap.S(), release, ns)
+	assert.NoError(err, "GetValues returned an error")
+	assert.NotZero(stdout, "GetValues stdout should not be empty")
 }
 
 // TestUpgrade tests the Helm upgrade command
@@ -68,9 +63,7 @@ func TestUpgrade(t *testing.T) {
 	SetCmdRunner(upgradeRunner{t: t})
 	defer SetDefaultRunner()
 
-	doGetValues = false
-	doUpgrade = true
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, overrideYaml, "")
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, overrideYaml, "", "")
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -85,7 +78,7 @@ func TestUpgradeFail(t *testing.T) {
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", "", "")
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", "", "", "")
 	assert.Error(err, "Upgrade should have returned an error")
 	assert.Len(stdout, 0, "Upgrade stdout should be empty")
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")

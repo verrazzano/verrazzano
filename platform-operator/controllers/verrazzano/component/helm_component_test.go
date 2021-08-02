@@ -101,7 +101,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, getValuesFile string) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiod" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
@@ -117,6 +117,10 @@ func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, c
 	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
 	if overrides != fakeOverrides {
 		return []byte("error"), []byte(""), errors.New("Invalid overrides")
+	}
+	// This string contains a temporary file containing the output from helm get values
+	if getValuesFile == "" {
+		return []byte("error"), []byte(""), errors.New("Invalid get values file")
 	}
 	return []byte("success"), []byte(""), nil
 }
