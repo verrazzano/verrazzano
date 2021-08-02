@@ -229,8 +229,7 @@ pipeline {
                 stage("upgrade-verrazzano") {
                     steps {
                         script {
-                            def props = readProperties file: '.verrazzano-development-version'
-                            VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "cat ${GO_REPO_PATH}/verrazzano/platform-operator/verrazzano-bom.json | jq -r '.version'").trim()
                         }
                         sh """
                             echo "Upgrading the Verrazzano installation"
