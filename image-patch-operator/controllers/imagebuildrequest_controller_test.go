@@ -125,6 +125,8 @@ func TestNewImageBuildRequest(t *testing.T) {
 	assert.Equal("8u281", jb.Spec.Template.Spec.Containers[0].Env[6].Value)
 	assert.Equal("fmw_12.2.1.4.0_wls.jar", jb.Spec.Template.Spec.Containers[0].Env[7].Value)
 	assert.Equal("12.2.1.4.0", jb.Spec.Template.Spec.Containers[0].Env[8].Value)
+	assert.Equal("false", jb.Spec.Template.Spec.Containers[0].Env[11].Value)
+	assert.Equal("true", jb.Spec.Template.Spec.Containers[0].Env[12].Value)
 
 	// Verifying that the PV, PVC, and Volume Mount are present on the created job
 	assert.Equal("installers-storage", jb.Spec.Template.Spec.Volumes[1].Name)
