@@ -37,6 +37,10 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	cpuRequest, _ := strconv.Atoi(os.Getenv("WIT_POD_RESOURCE_REQUEST_CPU"))
 	memoryRequest, _ := strconv.Atoi(os.Getenv("WIT_POD_RESOURCE_REQUEST_MEMORY"))
 
+	// Convert memory values to Gibibytes
+	memoryLimit *= 1024 * 1024 * 1024
+	memoryRequest *= 1024 * 1024 * 1024
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        jobConfig.JobName,

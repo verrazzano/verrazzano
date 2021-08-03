@@ -14,11 +14,11 @@ imageTool:
   # Specifies the resource limits for the Pod running WebLogic Image Tool
   resourceLimits:
     cpu: "1100" # Units: millicores
-    memory: "1073741824" # = 2^30. Units: Gibibytes
+    memory: "1" # Units: Gibibytes
   # Specifies the resource requests for the Pod running WebLogic Image Tool
   resourceRequests:
     cpu: "1100" # Units: millicores
-    memory: "1073741824" # = 2^30. Units: Gibibytes
+    memory: "1" # Units: Gibibytes
 
 weblogicDeployTool:
   binary: weblogic-deploy.zip
