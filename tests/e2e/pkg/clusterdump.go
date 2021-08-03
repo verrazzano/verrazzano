@@ -9,17 +9,16 @@ import (
 	"os/exec"
 )
 
-// ExecuteClusterDump executes the cluster dump tool.
-// command - The fully quallified cluster dump executable.
-// kubeconfig - The kube config file to use when executing the cluster dump tool.
-// directory - The directory to store the cluster dump within.
-func ExecuteClusterDump(command string, kubeconfig string, directory string) error {
-	fmt.Printf("Execute cluster dump: KUBECONFIG=%s; %s -d %s\n", kubeconfig, command, directory)
-	if command == "" {
+// ExecuteAnalysis executes the verrazzano-analysis tool.
+// command - The fully qualified verrazzano-analysis executable.
+// directory - The directory containing the cluster dump to analyze.
+func ExecuteAnalysis(analysisCommand string, directory string) error {
+	fmt.Printf("Execute analysis: %s --reportFile %s/analysis.report %s\n", analysisCommand, directory, directory)
+	if analysisCommand == "" {
 		return nil
 	}
-	cmd := exec.Command(command, "-d", directory)
-	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
+	reportFile := fmt.Sprintf("%s/analysis.report", directory)
+	cmd := exec.Command(analysisCommand, "--reportFile ", reportFile, directory)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
@@ -31,6 +30,30 @@ func ExecuteClusterDump(command string, kubeconfig string, directory string) err
 	return nil
 }
 
+// ExecuteClusterDump executes the cluster dump tool.
+// command - The fully qualified cluster dump executable.
+// kubeconfig - The kube config file to use when executing the cluster dump tool.
+// directory - The directory to store the cluster dump within.
+func ExecuteClusterDump(dumpCommand string, analysisCommand string, kubeconfig string, directory string) error {
+	fmt.Printf("Execute cluster dump: KUBECONFIG=%s; %s -d %s\n", kubeconfig, dumpCommand, directory)
+	if dumpCommand == "" {
+		return nil
+	}
+	cmd := exec.Command(dumpCommand, "-d", directory)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+        err = ExecuteAnalysis(analysisCommand, directory)
+
+	return nil
+}
+
 // ExecuteClusterDumpWithEnvVarConfig executes the cluster dump tool using config from environment variables.
 // DUMP_KUBECONFIG - The kube config file to use when executing the cluster dump tool.
 // DUMP_DIRECTORY - The directory to store the cluster dump within.
@@ -38,6 +61,7 @@ func ExecuteClusterDump(command string, kubeconfig string, directory string) err
 func ExecuteClusterDumpWithEnvVarConfig() error {
 	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
 	directory := os.Getenv("DUMP_DIRECTORY")
-	command := os.Getenv("DUMP_COMMAND")
-	return ExecuteClusterDump(command, kubeconfig, directory)
+	dumpCommand := os.Getenv("DUMP_COMMAND")
+	analysisCommand := os.Getenv("ANALYSIS_COMMAND")
+	return ExecuteClusterDump(dumpCommand, analysisCommand, kubeconfig, directory)
 }
