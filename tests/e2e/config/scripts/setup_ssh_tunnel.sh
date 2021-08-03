@@ -41,6 +41,13 @@ if [ -z "VCN_CIDR" ]; then
     exit 1
 fi
 
+oci compute instance list \
+  --compartment-id "${TF_VAR_compartment_id}" \
+  --display-name "${TF_VAR_label_prefix}-bastion"
+
+oci compute instance list \
+  --compartment-id "${TF_VAR_compartment_id}"
+
 # find bastion compute instance id
 BASTION_ID=$(oci compute instance list \
   --compartment-id "${TF_VAR_compartment_id}" \
