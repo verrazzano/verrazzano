@@ -13,6 +13,7 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr v0.4.0 // indirect
 	github.com/golang/mock v1.4.4
+	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/hashicorp/go-retryablehttp v0.6.8
 	github.com/jetstack/cert-manager v1.2.0
@@ -21,7 +22,7 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
-	github.com/verrazzano/pkg v0.0.3-0.20210730071405-1d91af0dad10 // indirect
+	github.com/verrazzano/pkg v0.0.3-0.20210803102214-6b3c6261fd6e // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	golang.org/x/tools v0.0.0-20200630223951-c138986dd9b9
