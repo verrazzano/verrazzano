@@ -16,6 +16,10 @@ weblogicDeployTool:
   binary: weblogic-deploy.zip
   version: latest
 
+# this flag will get passed to the weblogic-imagetool
+# setting dryRun to true will not build the image, but instead print the Dockerfile to stdout
+dryRun: false
+
 installersVolume:
   storage: 5Gi
   storageClassName: local-storage
