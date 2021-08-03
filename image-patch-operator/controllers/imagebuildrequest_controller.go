@@ -176,6 +176,12 @@ func (r *ImageBuildRequestReconciler) updateStatus(log *zap.SugaredLogger, cr *i
 		cr.Status.State = imagesv1alpha1.Published
 	case imagesv1alpha1.BuildFailed:
 		cr.Status.State = imagesv1alpha1.Failed
+	case imagesv1alpha1.DryRunStarted:
+		cr.Status.State = imagesv1alpha1.DryRunActive
+	case imagesv1alpha1.DryRunCompleted:
+		cr.Status.State = imagesv1alpha1.DryRunPrinted
+	case imagesv1alpha1.DryRunFailed:
+		cr.Status.State = imagesv1alpha1.DryRunFailure
 	}
 	log.Infof("Setting ImageBuildRequest resource condition and state: %v/%v", condition.Type, cr.Status.State)
 
@@ -195,27 +201,43 @@ func (r *ImageBuildRequestReconciler) setImageBuildCondition(log *zap.SugaredLog
 		for _, condition := range ibr.Status.Conditions {
 			if condition.Type == imagesv1alpha1.BuildCompleted || condition.Type == imagesv1alpha1.BuildFailed {
 				return nil
+			} else if condition.Type == imagesv1alpha1.DryRunCompleted || condition.Type == imagesv1alpha1.DryRunFailed {
+				return nil
 			}
 		}
 		var message string
 		var conditionType imagesv1alpha1.ConditionType
 		if job.Status.Succeeded == 1 {
-			message = "ImageBuildRequest build completed successfully"
-			conditionType = imagesv1alpha1.BuildCompleted
+			if r.DryRun {
+				message = "ImageBuildRequest DryRun completed successfully"
+				conditionType = imagesv1alpha1.DryRunCompleted
+			} else {
+				message = "ImageBuildRequest build completed successfully"
+				conditionType = imagesv1alpha1.BuildCompleted
+			}
 		} else {
-			message = "ImageBuildRequest build failed to complete"
-			conditionType = imagesv1alpha1.BuildFailed
+			if r.DryRun {
+				message = "ImageBuildRequest DryRun failed to complete"
+				conditionType = imagesv1alpha1.DryRunFailed
+			} else {
+				message = "ImageBuildRequest build failed to complete"
+				conditionType = imagesv1alpha1.BuildFailed
+			}
+
 		}
 		return r.updateStatus(log, ibr, message, conditionType)
 	}
 
 	// Add the build started condition if not already added
 	for _, condition := range ibr.Status.Conditions {
-		if condition.Type == imagesv1alpha1.BuildStarted {
+		if condition.Type == imagesv1alpha1.BuildStarted || condition.Type == imagesv1alpha1.DryRunStarted {
 			return nil
 		}
 	}
 
+	if r.DryRun {
+		return r.updateStatus(log, ibr, "ImageBuildRequest DryRun in progress", imagesv1alpha1.DryRunStarted)
+	}
 	return r.updateStatus(log, ibr, "ImageBuildRequest build in progress", imagesv1alpha1.BuildStarted)
 }
 

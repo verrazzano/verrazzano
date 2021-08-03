@@ -118,6 +118,10 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								Name:  "RECOMMENDED_PATCHES",
 								Value: strconv.FormatBool(jobConfig.IBR.Spec.RecommendedPatches),
 							},
+							{
+								Name:  "IBR_DRY_RUN",
+								Value: os.Getenv("IBR_DRY_RUN"),
+							},
 						},
 					}},
 					RestartPolicy:      corev1.RestartPolicyNever,
