@@ -66,10 +66,12 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		args = append(args, "--set")
 		args = append(args, overrides)
 	}
-	const maxRetry = 3
+	// Try to upgrade several times.  Sometimes upgrade fails with "already exists" or "no deployed release".
+	// We have seen from tests that doing a retry will eventually sucssed if these 2 errors occur.
+	const maxRetry = 5
 	for i := 1; i <= maxRetry; i++ {
 		cmd := exec.Command("helm", args...)
-		log.Infof("Running command: %s", i, cmd.String())
+		log.Infof("Running command: %s", cmd.String())
 		stdout, stderr, err = runner.Run(cmd)
 		if err == nil {
 			break
