@@ -40,7 +40,7 @@ func GetValues(log *zap.SugaredLogger, releaseName string, namespace string) ([]
 
 // Upgrade will upgrade a Helm release with the specified charts.  The overrideFiles array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, getValuesFile string) (stdout []byte, stderr []byte, err error) {
+func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, existingValuesFile string) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
 	args := []string{"upgrade", releaseName, chartDir}
@@ -54,7 +54,7 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	// a failed helm upgrade that results from a nil reference.  The nil reference occurs when a default value
 	// is added to a new chart and new chart references the new value.
 	args = append(args, "-f")
-	args = append(args, getValuesFile)
+	args = append(args, existingValuesFile)
 
 	// Add the override files
 	if len(overrideFile) > 0 {
@@ -66,12 +66,21 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		args = append(args, "--set")
 		args = append(args, overrides)
 	}
-	cmd := exec.Command("helm", args...)
-	log.Infof("Running command: %s", cmd.String())
-	stdout, stderr, err = runner.Run(cmd)
-	if err != nil {
+	// Try to upgrade several times.  Sometimes upgrade fails with "already exists" or "no deployed release".
+	// We have seen from tests that doing a retry will eventually sucssed if these 2 errors occur.
+	const maxRetry = 5
+	for i := 1; i <= maxRetry; i++ {
+		cmd := exec.Command("helm", args...)
+		log.Infof("Running command: %s", cmd.String())
+		stdout, stderr, err = runner.Run(cmd)
+		if err == nil {
+			break
+		}
 		log.Errorf("helm upgrade for %s failed with stderr: %s", releaseName, string(stderr))
-		return stdout, stderr, err
+		if i == maxRetry {
+			return stdout, stderr, err
+		}
+		log.Infof("Retrying upgrade, attempt %v", i+1)
 	}
 
 	//  Log upgrade output

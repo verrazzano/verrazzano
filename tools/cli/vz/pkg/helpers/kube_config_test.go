@@ -4,12 +4,13 @@
 package helpers
 
 import (
-	"github.com/stretchr/testify/assert"
 	"io"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 func TestGetKubeConfigLocation(t *testing.T) {

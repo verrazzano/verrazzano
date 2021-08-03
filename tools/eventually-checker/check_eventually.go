@@ -96,11 +96,19 @@ func loadPackages(path string) (*token.FileSet, []*packages.Package, error) {
 func analyze(files []*ast.File) {
 	for _, file := range files {
 		var currentFuncDecl string
+		var funcEnd token.Pos
 		ast.Inspect(file, func(n ast.Node) bool {
+			if n != nil && n.Pos() > funcEnd {
+				// this node is after the current function decl end position, so reset
+				currentFuncDecl = ""
+				funcEnd = 0
+			}
+
 			pkg := file.Name.Name
 			switch x := n.(type) {
 			case *ast.FuncDecl:
 				currentFuncDecl = fmt.Sprintf("%s.%s", pkg, x.Name.Name)
+				funcEnd = x.End()
 			case *ast.CallExpr:
 				name, pos := getNameAndPosFromCallExpr(x, file.Name.Name)
 
@@ -114,7 +122,7 @@ func analyze(files []*ast.File) {
 							return false
 						}
 						addCallToEventuallyMap(pos, f, pos)
-					} else {
+					} else if currentFuncDecl != "" {
 						if _, ok := funcMap[currentFuncDecl]; !ok {
 							funcMap[currentFuncDecl] = make([]funcCall, 0)
 						}

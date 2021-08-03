@@ -53,6 +53,7 @@ function usage {
     echo "  -o oci_config_file         The full path to the OCI configuration file (default ~/.oci/config)"
     echo "  -s config_file_section     The properties section within the OCI configuration file.  Default is DEFAULT"
     echo "  -k secret_name             The secret name containing the OCI configuration.  Default is oci"
+    echo "  -c context_name            The kubectl context to use"
     echo "  -h                         Help"
     echo
     exit 1
@@ -63,13 +64,15 @@ OUTPUT_FILE=$TMP_DIR/oci.yaml
 OCI_CONFIG_FILE=~/.oci/config
 SECTION=DEFAULT
 OCI_CONFIG_SECRET_NAME=oci
+K8SCONTEXT=""
 
-while getopts o:s:k:h flag
+while getopts c:o:s:k:h flag
 do
     case "${flag}" in
         o) OCI_CONFIG_FILE=${OPTARG};;
         s) SECTION=${OPTARG};;
         k) OCI_CONFIG_SECRET_NAME=${OPTARG};;
+        c) K8SCONTEXT="--context=${OPTARG}";;
         h) usage;;
         *) usage;;
     esac
@@ -93,14 +96,13 @@ fi
 # create the secret in default namespace
 create_secret=true
 
-kubectl get secret $OCI_CONFIG_SECRET_NAME -n default > /dev/null 2>&1
+kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n default > /dev/null 2>&1
 if [ $? -eq 0 ]; then
   # secret exists
   echo "Secret $OCI_CONFIG_SECRET_NAME already exists.  Please delete then try again."
   exit 1
 fi
-kubectl create secret generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
-
+kubectl ${K8SCONTEXT} create secret -n default  generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
 
 
 

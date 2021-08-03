@@ -110,6 +110,18 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								Name:  "WDT_INSTALLER_VERSION",
 								Value: os.Getenv("WDT_INSTALLER_VERSION"),
 							},
+							{
+								Name:  "LATEST_PSU",
+								Value: strconv.FormatBool(jobConfig.IBR.Spec.LatestPSU),
+							},
+							{
+								Name:  "RECOMMENDED_PATCHES",
+								Value: strconv.FormatBool(jobConfig.IBR.Spec.RecommendedPatches),
+							},
+							{
+								Name:  "IBR_DRY_RUN",
+								Value: os.Getenv("IBR_DRY_RUN"),
+							},
 						},
 					}},
 					RestartPolicy:      corev1.RestartPolicyNever,
