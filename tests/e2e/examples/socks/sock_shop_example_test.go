@@ -78,7 +78,7 @@ var _ = Describe("Sock Shop Application", func() {
 			func() {
 				Eventually(func() bool {
 					return isSockShopServiceReady("catalogue")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
+				}, waitTimeout, pollingInterval).Should(BeFalse())
 			},
 			func() {
 				Eventually(func() bool {
