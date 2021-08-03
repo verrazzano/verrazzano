@@ -4,8 +4,9 @@
 package helpers
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // Test to check if the browser opening function is supported on current platform
