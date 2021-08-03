@@ -9,37 +9,17 @@ import (
 	"os/exec"
 )
 
-// ExecuteAnalysis executes the verrazzano-analysis tool.
-// command - The fully qualified verrazzano-analysis executable.
-// directory - The directory containing the cluster dump to analyze.
-func ExecuteAnalysis(analysisCommand string, directory string) error {
-	fmt.Printf("Execute analysis: %s --reportFile %s/analysis.report %s\n", analysisCommand, directory, directory)
-	if analysisCommand == "" {
-		return nil
-	}
-	reportFile := fmt.Sprintf("%s/analysis.report", directory)
-	cmd := exec.Command(analysisCommand, "--reportFile ", reportFile, directory)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	if err := cmd.Wait(); err != nil {
-		return err
-	}
-	return nil
-}
-
 // ExecuteClusterDump executes the cluster dump tool.
 // command - The fully qualified cluster dump executable.
 // kubeconfig - The kube config file to use when executing the cluster dump tool.
 // directory - The directory to store the cluster dump within.
-func ExecuteClusterDump(dumpCommand string, analysisCommand string, kubeconfig string, directory string) error {
+func ExecuteClusterDump(dumpCommand string, kubeconfig string, directory string) error {
 	fmt.Printf("Execute cluster dump: KUBECONFIG=%s; %s -d %s\n", kubeconfig, dumpCommand, directory)
 	if dumpCommand == "" {
 		return nil
 	}
-	cmd := exec.Command(dumpCommand, "-d", directory)
+	reportFile := fmt.Sprintf("%s/cluster-dump/analysis.report", directory)
+	cmd := exec.Command(dumpCommand, "-d", directory, "-r", reportFile)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -49,7 +29,6 @@ func ExecuteClusterDump(dumpCommand string, analysisCommand string, kubeconfig s
 	if err := cmd.Wait(); err != nil {
 		return err
 	}
-        err = ExecuteAnalysis(analysisCommand, directory)
 
 	return nil
 }
@@ -62,6 +41,5 @@ func ExecuteClusterDumpWithEnvVarConfig() error {
 	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
 	directory := os.Getenv("DUMP_DIRECTORY")
 	dumpCommand := os.Getenv("DUMP_COMMAND")
-	analysisCommand := os.Getenv("ANALYSIS_COMMAND")
-	return ExecuteClusterDump(dumpCommand, analysisCommand, kubeconfig, directory)
+	return ExecuteClusterDump(dumpCommand, kubeconfig, directory)
 }
