@@ -160,7 +160,7 @@ pipeline {
                     // update the description with some meaningful info
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_FOR_UPGRADE
                     echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
-                    OPERATOR_YAML_FILE = "https://github.com/verrazzano/verrazzano/releases/${params.VERSION_FOR_INSTALL}/download/operator.yaml"
+                    OPERATOR_YAML_FILE = "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml"
                 }
             }
         }
