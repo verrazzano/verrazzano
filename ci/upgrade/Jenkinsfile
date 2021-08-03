@@ -159,7 +159,7 @@ pipeline {
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_FOR_UPGRADE
-                    VERSION_FOR_INSTALL="${params.VERSION_FOR_INSTALL}"
+                    VERSION_FOR_INSTALL=${params.VERSION_FOR_INSTALL}
                     OPERATOR_YAML_FILE = 'https://github.com/verrazzano/verrazzano/releases/${VERSION_FOR_INSTALL}/download/operator.yaml'
                 }
             }
