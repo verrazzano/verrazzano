@@ -17,7 +17,7 @@ spec:
           namespace: bobs-books
         spec:
           replicas: 2
-          image: container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210624160519-017d358
+          image: container-registry.oracle.com/verrazzano/example-roberts-coherence:1.0.0-1-20210728181814-eb1e622
           imagePullPolicy: IfNotPresent
           imagePullSecrets:
             - name: bobs-books-repo-credentials
@@ -66,7 +66,7 @@ spec:
         podSpec:
           containers:
             - name: robert-helidon-stock-application
-              image: container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210624160519-017d358
+              image: container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:1.0.0-1-20210728181814-eb1e622
               imagePullPolicy: IfNotPresent
               ports:
                 - name: http
@@ -97,7 +97,7 @@ spec:
           namespace: bobs-books
         spec:
           replicas: 1
-          image: container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210624160519-017d358
+          image: container-registry.oracle.com/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
           imagePullPolicy: IfNotPresent
           imagePullSecrets:
             - name: bobs-books-repo-credentials
@@ -142,7 +142,7 @@ spec:
         podSpec:
           containers:
             - name: bobbys-helidon-stock-application
-              image: container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210624160519-017d358
+              image: container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:1.0.0-1-20210728181814-eb1e622
               imagePullPolicy: IfNotPresent
               ports:
                 - containerPort: 8080
@@ -181,7 +181,7 @@ spec:
         spec:
           domainUID: bobbys-front-end
           domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
-          image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210624160519-017d358
+          image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20210728181814-eb1e622
           imagePullSecrets:
             - name: bobs-books-repo-credentials
           domainHomeSourceType: "FromModel"
@@ -428,7 +428,7 @@ spec:
           domainUID: bobs-bookstore
           domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
           domainHomeSourceType: FromModel
-          image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210624160519-017d358
+          image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:1.0.0-1-20210728181814-eb1e622
           includeServerOutInPodLog: true
           replicas: 1
           webLogicCredentialsSecret:

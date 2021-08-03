@@ -79,6 +79,14 @@ spec:
               jdkInstallerVersion:
                 description: The version for JDK needed by the WebLogic Image Tool
                 type: string
+              latestPSU:
+                description: Flag to determine whether to find and apply the latest
+                  PatchSet Update
+                type: boolean
+              recommendedPatches:
+                description: Flag to determine whether to find and apply the latest
+                  PatchSet Update and recommended patches (takes precedence over LatestPSU)
+                type: boolean
               webLogicInstaller:
                 description: The WebLogic Installer that will be used by the WebLogic
                   Image Tool

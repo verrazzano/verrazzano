@@ -16,3 +16,5 @@ spec:
     repository: {{.IMAGE_REPOSITORY}}
   jdkInstallerVersion: {{.JDK_INSTALLER_VERSION}}
   webLogicInstallerVersion: {{.WLS_INSTALLER_VERSION}}
+  latestPSU: false
+  recommendedPatches: true
