@@ -171,6 +171,7 @@ spec:
   policyTypes:
     - Ingress
 {{- end }}
+{{- if .Values.verrazzanoOperator.enabled }}
 ---
 # Network policy for Node Exporter
 # Ingress: allow connect from Prometheus to scrape metrics
@@ -197,6 +198,7 @@ spec:
       ports:
         - port: 9100
           protocol: TCP
+{{- end }}
 {{- if .Values.keycloak.enabled }}
 ---
 # Network policy for Keycloak

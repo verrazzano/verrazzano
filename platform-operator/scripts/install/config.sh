@@ -409,10 +409,10 @@ function is_keycloak_enabled() {
   echo ${keycloak_enabled}
 }
 
-# Return the value for the key logging.enabled
-function is_logging_enabled() {
-  local logging_enabled=$(get_config_value '.logging.enabled')
-  echo ${logging_enabled}
+# Return the value for the key fluentd.enabled
+function is_fluentd_enabled() {
+  local fluentd_enabled=$(get_config_value '.fluentd.enabled')
+  echo ${fluentd_enabled}
 }
 
 function get_fluentd_extra_volume_mounts {
