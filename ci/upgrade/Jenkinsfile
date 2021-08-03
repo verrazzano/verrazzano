@@ -24,9 +24,9 @@ pipeline {
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
                 choices: [ "1.18", "1.19", "1.20", "1.17" ])
-        string (name: 'GIT_BRANCH_FOR_INSTALL',
-                defaultValue: 'release-1.0',
-                description: 'This is the full git commit hash for the install.  By default, the latest Master release will be installed',
+        string (name: 'VERSION_FOR_INSTALL',
+                defaultValue: 'v1.0.0',
+                description: 'This is the Verrazzano veersion for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
                 defaultValue: 'NONE',
@@ -159,9 +159,9 @@ pipeline {
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_FOR_UPGRADE
-                    GIT_BRANCH_FOR_INSTALL = ${params.GIT_BRANCH_FOR_INSTALL}
-                    echo "Using operator.yaml for release " ${GIT_BRANCH_FOR_INSTALL}
-                    OPERATOR_YAML_FILE = 'https://github.com/verrazzano/verrazzano/releases/${GIT_BRANCH_FOR_INSTALL}/download/operator.yaml'
+                    VERSION_FOR_INSTALL = ${params.VERSION_FOR_INSTALL}
+                    echo "Using operator.yaml for release " ${VERSION_FOR_INSTALL}
+                    OPERATOR_YAML_FILE = 'https://github.com/verrazzano/verrazzano/releases/${VERSION_FOR_INSTALL}/download/operator.yaml'
                 }
             }
         }
