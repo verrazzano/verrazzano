@@ -42,7 +42,9 @@ func TestValidSemver(t *testing.T) {
 		version, err := NewSemVersion(verString)
 		assert.NoError(t, err)
 		assert.NotNil(t, version)
-		assert.Equal(t, fmt.Sprintf("%s.%s.%s", verComponents[0], verComponents[1], verComponents[2]), version.ToString())
+		if !hasPreRelease && !hasBuild {
+			assert.Equal(t, fmt.Sprintf("%s.%s.%s", verComponents[0], verComponents[1], verComponents[2]), version.ToString())
+		}
 		expectedMajor, _ := strconv.ParseInt(verComponents[0], 10, 64)
 		assert.Equal(t, expectedMajor, version.Major)
 		expectedMinor, _ := strconv.ParseInt(verComponents[1], 10, 64)
@@ -115,6 +117,20 @@ func TestCompareTo(t *testing.T) {
 	v0_0_9, _ := NewSemVersion("v0.0.9")
 	v0_0_10, _ := NewSemVersion("v0.0.10")
 	assert.Equal(t, 1, v0_0_10.CompareTo(v0_0_9))
+
+	v010deva, _ := NewSemVersion("v0.1.0-dev+aaaaaaaa")
+	v010deva2, _ := NewSemVersion("v0.1.0-dev+aaaaaaaa")
+	v010devb, _ := NewSemVersion("v0.1.0-dev+bbbbbbbb")
+	v010proda, _ := NewSemVersion("v0.1.0-prod+aaaaaaaa")
+	v020deva, _ := NewSemVersion("v0.2.0-dev+aaaaaaaa")
+	v020devb, _ := NewSemVersion("v0.2.0-dev+bbbbbbbb")
+
+	assert.Equal(t, 0, v010deva.CompareTo(v010deva2))
+	assert.Equal(t, 1, v010deva.CompareTo(v010devb))
+	assert.Equal(t, 1, v010deva.CompareTo(v010proda))
+	assert.Equal(t, 1, v010deva.CompareTo(v010))
+	assert.Equal(t, -1, v010deva.CompareTo(v020deva))
+	assert.Equal(t, -1, v010deva.CompareTo(v020devb))
 
 	V100, err := NewSemVersion("V1.0.0")
 	assert.NoError(t, err)
@@ -251,4 +267,51 @@ func TestIsGreatherThan(t *testing.T) {
 	assert.False(t, v009.IsGreatherThan(v009_2))
 	assert.False(t, v009.IsGreatherThan(v0010))
 	assert.True(t, v0010.IsGreatherThan(v009))
+}
+
+// TestToString Tests ToString function which converts a Semver object to its string representation
+// GIVEN a call to ToString with different valid SemVersion objects
+// WHEN the ToString returns the correct string
+// THEN return Equal
+func TestToString(t *testing.T) {
+	v010, _ := NewSemVersion("v0.1.0")
+	v010dev, _ := NewSemVersion("v0.1.0-dev")
+	v010a, _ := NewSemVersion("v0.1.0+aaaaaaaa")
+	v010deva, _ := NewSemVersion("v0.1.0-dev+aaaaaaaa")
+	v010devaa, _ := NewSemVersion("v0.1.0-dev+aaaaaaaa-aaaaaaaa")
+	v010aa, _ := NewSemVersion("v0.1.0+aaaaaaaa-aaaaaaaa")
+
+	assert.Equal(t, "0.1.0", v010.ToString())
+	assert.Equal(t, "0.1.0-dev", v010dev.ToString())
+	assert.Equal(t, "0.1.0+aaaaaaaa", v010a.ToString())
+	assert.Equal(t, "0.1.0-dev+aaaaaaaa", v010deva.ToString())
+	assert.Equal(t, "0.1.0-dev+aaaaaaaa-aaaaaaaa", v010devaa.ToString())
+	assert.Equal(t, "0.1.0+aaaaaaaa-aaaaaaaa", v010aa.ToString())
+}
+
+// TestCompareVersionSubstring Tests CompareVersionSubstring function which converts a Semver object to its string representation
+// GIVEN a call to CompareVersionSubstring with two strings
+// WHEN the Semver field is equivalent to the passed in string
+// THEN return Equal
+func TestCompareVersionSubstring(t *testing.T) {
+	v010, _ := NewSemVersion("v0.1.0")
+	v010dev, _ := NewSemVersion("v0.1.0-dev")
+	v010a, _ := NewSemVersion("v0.1.0+aaaaaaaa")
+	v010deva, _ := NewSemVersion("v0.1.0-dev+aaaaaaaa")
+	v010devaa, _ := NewSemVersion("v0.1.0-dev+aaaaaaaa-aaaaaaaa")
+
+	assert.Equal(t, 0, compareVersionSubstring(v010.Prerelease, ""))
+	assert.Equal(t, 0, compareVersionSubstring(v010.Build, ""))
+	assert.Equal(t, 1, compareVersionSubstring(v010dev.Prerelease, ""))
+	assert.Equal(t, 0, compareVersionSubstring(v010dev.Prerelease, "dev"))
+	assert.Equal(t, 0, compareVersionSubstring(v010dev.Build, ""))
+	assert.Equal(t, 0, compareVersionSubstring(v010a.Prerelease, ""))
+	assert.Equal(t, 1, compareVersionSubstring(v010a.Prerelease, "aaaaaaaa"))
+	assert.Equal(t, 0, compareVersionSubstring(v010a.Build, "aaaaaaaa"))
+	assert.Equal(t, 0, compareVersionSubstring(v010deva.Prerelease, "dev"))
+	assert.Equal(t, 1, compareVersionSubstring(v010deva.Build, ""))
+	assert.Equal(t, 0, compareVersionSubstring(v010deva.Build, "aaaaaaaa"))
+	assert.Equal(t, 1, compareVersionSubstring(v010devaa.Build, "aaaaaaaa"))
+	assert.Equal(t, 1, compareVersionSubstring(v010devaa.Prerelease, "aaaaaaaa"))
+	assert.Equal(t, 0, compareVersionSubstring(v010devaa.Build, "aaaaaaaa-aaaaaaaa"))
 }
