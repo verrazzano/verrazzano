@@ -6,10 +6,11 @@ package helpers
 import (
 	"errors"
 	"io/ioutil"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api/v1"
-	"k8s.io/client-go/util/homedir"
 	"os"
 	"path/filepath"
+
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api/v1"
+	"k8s.io/client-go/util/homedir"
 	"sigs.k8s.io/yaml"
 )
 

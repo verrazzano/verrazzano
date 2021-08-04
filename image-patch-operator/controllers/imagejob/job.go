@@ -59,6 +59,11 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								MountPath: "/registry-creds",
 								ReadOnly:  true,
 							},
+							{
+								Name:      "installers-storage",
+								MountPath: "/installers",
+								ReadOnly:  true,
+							},
 						},
 						Env: []corev1.EnvVar{
 							{
@@ -105,6 +110,18 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								Name:  "WDT_INSTALLER_VERSION",
 								Value: os.Getenv("WDT_INSTALLER_VERSION"),
 							},
+							{
+								Name:  "LATEST_PSU",
+								Value: strconv.FormatBool(jobConfig.IBR.Spec.LatestPSU),
+							},
+							{
+								Name:  "RECOMMENDED_PATCHES",
+								Value: strconv.FormatBool(jobConfig.IBR.Spec.RecommendedPatches),
+							},
+							{
+								Name:  "IBR_DRY_RUN",
+								Value: os.Getenv("IBR_DRY_RUN"),
+							},
 						},
 					}},
 					RestartPolicy:      corev1.RestartPolicyNever,
@@ -116,6 +133,12 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 								Secret: &corev1.SecretVolumeSource{
 									SecretName: constants.ImageJobSecretName,
 								},
+							},
+						},
+						{
+							Name: "installers-storage",
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "installers-storage-claim"},
 							},
 						},
 					},

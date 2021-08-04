@@ -4,12 +4,13 @@
 package helpers
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net"
 	"net/url"
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetClientID(t *testing.T) {

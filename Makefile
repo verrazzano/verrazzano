@@ -102,10 +102,9 @@ copyright-check-branch: copyright-check
 .PHONY: check-tests
 check-tests: check-eventually
 
-# using "-report" here displays results but does not exit with a non-zero code, doing this until we address all of the existing complaints
 .PHONY: check-eventually
 check-eventually: check-eventually-test
-	go run tools/eventually-checker/check_eventually.go -report tests/e2e
+	go run tools/eventually-checker/check_eventually.go tests/e2e
 
 .PHONY: check-eventually-test
 check-eventually-test:

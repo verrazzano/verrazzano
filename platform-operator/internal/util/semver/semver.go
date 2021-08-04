@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"go.uber.org/zap"
 )
@@ -104,8 +105,11 @@ func (v *SemVersion) CompareTo(from *SemVersion) int {
 	var result int
 	if result = compareVersion(from.Major, v.Major); result == 0 {
 		if result = compareVersion(from.Minor, v.Minor); result == 0 {
-			result = compareVersion(from.Patch, v.Patch)
-			// Ignore pre-release/buildver fields for now
+			if result = compareVersion(from.Patch, v.Patch); result == 0 {
+				if result = compareVersionSubstring(from.Prerelease, v.Prerelease); result == 0 {
+					result = compareVersionSubstring(from.Build, v.Build)
+				}
+			}
 		}
 	}
 	return result
@@ -128,7 +132,15 @@ func (v *SemVersion) IsLessThan(from *SemVersion) bool {
 
 // ToString Convert to a valid semver string representation
 func (v *SemVersion) ToString() string {
-	return fmt.Sprintf("%v.%v.%v", v.Major, v.Minor, v.Patch)
+	if v.Build != "" && v.Prerelease != "" {
+		return fmt.Sprintf("%v.%v.%v-%v+%v", v.Major, v.Minor, v.Patch, v.Prerelease, v.Build)
+	} else if v.Build == "" && v.Prerelease != "" {
+		return fmt.Sprintf("%v.%v.%v-%v", v.Major, v.Minor, v.Patch, v.Prerelease)
+	} else if v.Build != "" && v.Prerelease == "" {
+		return fmt.Sprintf("%v.%v.%v+%v", v.Major, v.Minor, v.Patch, v.Build)
+	} else {
+		return fmt.Sprintf("%v.%v.%v", v.Major, v.Minor, v.Patch)
+	}
 }
 
 // Returns
@@ -143,4 +155,12 @@ func compareVersion(v1 int64, v2 int64) int {
 		return -1
 	}
 	return 0
+}
+
+// Returns 0 if the strings are equal, or 1 if not
+func compareVersionSubstring(v1 string, v2 string) int {
+	if strings.Compare(v1, v2) == 0 {
+		return 0
+	}
+	return 1
 }
