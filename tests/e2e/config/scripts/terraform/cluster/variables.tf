@@ -51,3 +51,5 @@ variable "operator_enabled" {
   default = false
 }
 variable "node_pool_image_id" {}
+variable "calico_enabled" {}
+variable "calico_version" {}
