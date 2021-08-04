@@ -48,6 +48,7 @@ kibana:
 
 verrazzanoOperator:
   name: verrazzano-operator
+  enabled: true
   # NOTE: The image you're looking for isn't here. The verrazzano-operator and node-exporter images
   # now come from the bill of materials file (verrazzano-bom.json).
   apiServerRealm: verrazzano-system
@@ -55,6 +56,7 @@ verrazzanoOperator:
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
+  enabled: true
   # NOTE: The monitoring-related images now come from the bill of materials file (verrazzano-bom.json).
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
