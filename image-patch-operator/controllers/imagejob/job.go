@@ -31,16 +31,6 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
 
-	// Convert resource limits from strings to integers
-	cpuLimit, _ := strconv.Atoi(os.Getenv("WIT_POD_RESOURCE_LIMIT_CPU"))
-	memoryLimit, _ := strconv.Atoi(os.Getenv("WIT_POD_RESOURCE_LIMIT_MEMORY"))
-	cpuRequest, _ := strconv.Atoi(os.Getenv("WIT_POD_RESOURCE_REQUEST_CPU"))
-	memoryRequest, _ := strconv.Atoi(os.Getenv("WIT_POD_RESOURCE_REQUEST_MEMORY"))
-
-	// Convert memory values to Gibibytes
-	memoryLimit *= 1024 * 1024 * 1024
-	memoryRequest *= 1024 * 1024 * 1024
-
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        jobConfig.JobName,
@@ -61,12 +51,12 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 					Containers: []corev1.Container{{
 						Resources: corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
-								"cpu":    *resource.NewMilliQuantity(int64(cpuLimit), resource.DecimalSI),
-								"memory": *resource.NewQuantity(int64(memoryLimit), resource.BinarySI),
+								"cpu":    resource.MustParse(os.Getenv("WIT_POD_RESOURCE_LIMIT_CPU")),
+								"memory": resource.MustParse(os.Getenv("WIT_POD_RESOURCE_LIMIT_MEMORY")),
 							},
 							Requests: corev1.ResourceList{
-								"cpu":    *resource.NewMilliQuantity(int64(cpuRequest), resource.DecimalSI),
-								"memory": *resource.NewQuantity(int64(memoryRequest), resource.BinarySI),
+								"cpu":    resource.MustParse(os.Getenv("WIT_POD_RESOURCE_REQUEST_CPU")),
+								"memory": resource.MustParse(os.Getenv("WIT_POD_RESOURCE_REQUEST_MEMORY")),
 							},
 						},
 						Name:            "image-build-request",
