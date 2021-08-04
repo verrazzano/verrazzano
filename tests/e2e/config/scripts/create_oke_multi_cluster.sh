@@ -73,7 +73,7 @@ check_for_resources LB load-balancer lb-100mbps-count $REQUIRED_LB_COUNT
 cd ${SCRIPT_DIR}/terraform/cluster
 
 # Set whether Calico is to be installed or not by the OCI OKE TF provider
-export TF_VAR_install_calico = "${INSTALL_CALICO}"
+export TF_VAR_calico_enabled = "${INSTALL_CALICO}"
 export TF_VAR_calico_version="$(grep 'calico-version=' ${SCRIPT_DIR}/../../../../.third-party-test-versions | sed 's/calico-version=//g')"
 
 for i in $(seq 1 $CLUSTER_COUNT)
