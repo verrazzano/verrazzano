@@ -63,7 +63,7 @@ type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespa
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, getValueFile string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, existingValuesFile string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
