@@ -31,21 +31,11 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
 
-	// If resource limit and request environment variables are not set, then use some default values
-	for _, envVar := range [2]string{"WIT_POD_RESOURCE_LIMIT_CPU", "WIT_POD_RESOURCE_REQUEST_CPU"} {
-		_, present := os.LookupEnv(envVar)
-		if !present {
-			defaultValue := "1100m"
-			os.Setenv(envVar, defaultValue)
-		}
-	}
-	for _, envVar := range [2]string{"WIT_POD_RESOURCE_LIMIT_MEMORY", "WIT_POD_RESOURCE_REQUEST_MEMORY"} {
-		_, present := os.LookupEnv(envVar)
-		if !present {
-			defaultValue := "1Gi"
-			os.Setenv(envVar, defaultValue)
-		}
-	}
+	cpuLimit, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_LIMIT_CPU"))
+	memoryLimit, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_LIMIT_MEMORY"))
+	cpuRequest, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_REQUEST_CPU"))
+	memoryRequest, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_REQUEST_MEMORY"))
+	_ = err // TODO: what to do in the case of an error
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -67,12 +57,12 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 					Containers: []corev1.Container{{
 						Resources: corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
-								"cpu":    resource.MustParse(os.Getenv("WIT_POD_RESOURCE_LIMIT_CPU")),
-								"memory": resource.MustParse(os.Getenv("WIT_POD_RESOURCE_LIMIT_MEMORY")),
+								"cpu":    cpuLimit,
+								"memory": memoryLimit,
 							},
 							Requests: corev1.ResourceList{
-								"cpu":    resource.MustParse(os.Getenv("WIT_POD_RESOURCE_REQUEST_CPU")),
-								"memory": resource.MustParse(os.Getenv("WIT_POD_RESOURCE_REQUEST_MEMORY")),
+								"cpu":    cpuRequest,
+								"memory": memoryRequest,
 							},
 						},
 						Name:            "image-build-request",
