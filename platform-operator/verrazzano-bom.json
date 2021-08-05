@@ -119,12 +119,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.7.3",
+              "tag": "1.10.2",
               "helmFullImageKey": "pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.7.3",
+              "tag": "1.10.2",
               "helmImageKey": "global.proxy.image",
               "helmTagKey": "global.tag"
             }
@@ -136,7 +136,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.7.3",
+              "tag": "1.10.2",
               "helmImageKey": "global.proxy.image",
               "helmTagKey": "global.tag"
             }
@@ -148,7 +148,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.7.3",
+              "tag": "1.10.2",
               "helmImageKey": "global.proxy.image",
               "helmTagKey": "global.tag"
             }
@@ -238,7 +238,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.7.3",
+              "tag": "1.10.2",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {

@@ -44,7 +44,7 @@ rules:
       - get
       - list
       - watch
-  - apiGroups:
+  - apiGroups: 
     - config.istio.io
     - networking.istio.io
     - authentication.istio.io
@@ -111,7 +111,7 @@ rules:
       - get
       - list
       - watch
-  - apiGroups:
+  - apiGroups: 
     - config.istio.io
     - networking.istio.io
     - authentication.istio.io

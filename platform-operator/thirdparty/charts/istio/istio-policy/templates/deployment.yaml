@@ -28,10 +28,6 @@ spec:
         istio: mixer
         istio-mixer-type: policy
       annotations:
-        {{- if .Values.meshConfig.enablePrometheusMerge }}
-        prometheus.io/port: "15014"
-        prometheus.io/scrape: "true"
-        {{- end }}
         sidecar.istio.io/inject: "false"
 {{- with .Values.mixer.policy.podAnnotations }}
 {{ toYaml . | indent 8 }}
@@ -44,26 +40,6 @@ spec:
       securityContext:
         fsGroup: 1337
       volumes:
-{{- if .Values.global.controlPlaneSecurityEnabled }}
-      - name: config-volume
-        configMap:
-          name: istio{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}
-          optional: true
-      {{- if eq .Values.global.pilotCertProvider "istiod" }}
-      - name: istiod-ca-cert
-        configMap:
-          name: istio-ca-root-cert
-      {{- end }}
-      {{- if eq .Values.global.jwtPolicy "third-party-jwt" }}
-      - name: istio-token
-        projected:
-          sources:
-          - serviceAccountToken:
-              path: istio-token
-              expirationSeconds: 43200
-              audience: {{ .Values.global.sds.token.aud }}
-      {{- end }}
-{{- end }}
       - name: istio-certs
         secret:
           secretName: istio.istio-policy-service-account
@@ -116,12 +92,12 @@ spec:
     {{- if .Values.global.controlPlaneSecurityEnabled}}
           - --configStoreURL=mcps://istio-galley.{{ .Values.global.configNamespace }}.svc:15019
     {{- else }}
-          - --configStoreURL=mcp://istio-galley.{{ .Values.global.istioNamespace }}.svc:9901
+          - --configStoreURL=mcp://istio-galley.{{ .Values.global.configNamespace }}.svc:9901
     {{- end }}
 {{- else }}
           - --configStoreURL=k8s://
 {{- end }}
-          - --configDefaultNamespace={{ .Values.global.istioNamespace }}
+          - --configDefaultNamespace={{ .Values.global.configNamespace }}
           {{- if .Values.mixer.policy.adapters.useAdapterCRDs }}
           - --useAdapterCRDs=true
           {{- else }}
@@ -183,7 +159,7 @@ spec:
         image: "{{ .Values.global.hub }}/{{ .Values.global.proxy.image }}:{{ .Values.global.tag }}"
 {{- end }}
 {{- if .Values.global.imagePullPolicy }}
-        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
 {{- end }}
         ports:
         - containerPort: 15004
@@ -197,7 +173,7 @@ spec:
         - --serviceCluster
         - istio-policy
         - --templateFile
-        - /var/lib/istio/envoy/envoy_policy.yaml.tmpl
+        - /etc/istio/proxy/envoy_policy.yaml.tmpl
       {{- if .Values.global.controlPlaneSecurityEnabled }}
         - --controlPlaneAuthPolicy
         - MUTUAL_TLS
@@ -227,16 +203,6 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: status.podIP
-        - name: JWT_POLICY
-          value: {{ .Values.global.jwtPolicy }}
-        - name: PILOT_CERT_PROVIDER
-          value: {{ .Values.global.pilotCertProvider }}
-        - name: CA_ADDR
-        {{- if .Values.global.caAddress }}
-          value: {{ .Values.global.caAddress }}
-        {{- else }}
-          value: istiod.{{ .Values.global.istioNamespace }}.svc:15012
-        {{- end }}
         resources:
 {{- if .Values.global.proxy.resources }}
 {{ toYaml .Values.global.proxy.resources | indent 10 }}
@@ -244,17 +210,9 @@ spec:
 {{ toYaml .Values.global.defaultResources | indent 10 }}
 {{- end }}
         volumeMounts:
-        - name: config-volume
-          mountPath: /etc/istio/config
-        {{- if eq .Values.global.pilotCertProvider "istiod" }}
-        - mountPath: /var/run/secrets/istio
-          name: istiod-ca-cert
-        {{- end }}
-        {{- if eq .Values.global.jwtPolicy "third-party-jwt" }}
-        - name: istio-token
-          mountPath: /var/run/secrets/tokens
+        - name: istio-certs
+          mountPath: /etc/certs
           readOnly: true
-        {{- end }}
         - name: uds-socket
           mountPath: /sock
 {{- end }}

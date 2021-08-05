@@ -1,3 +1,4 @@
+{{ if or (eq .Values.revision "") (not .Values.clusterResources) }}
 {{- if not .Values.global.omitSidecarInjectorConfigMap }}
 apiVersion: v1
 kind: ConfigMap
@@ -5,12 +6,11 @@ metadata:
   name: istio-sidecar-injector{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}
   namespace: {{ .Release.Namespace }}
   labels:
-    istio.io/rev: {{ .Values.revision | default "default" }}
     release: {{ .Release.Name }}
 data:
 {{/* Scope the values to just top level fields used in the template, to reduce the size. */}}
   values: |-
-{{ pick .Values "global" "istio_cni" "sidecarInjectorWebhook" "revision" | toPrettyJson | indent 4 }}
+{{ pick .Values "global" "istio_cni" "sidecarInjectorWebhook" | toPrettyJson | indent 4 }}
 
   # To disable injection: use omitSidecarInjectorConfigMap, which disables the webhook patching
   # and istiod webhook functionality.
@@ -20,9 +20,9 @@ data:
   config: |-
     policy: {{ .Values.global.proxy.autoInject }}
     alwaysInjectSelector:
-{{ toYaml .Values.sidecarInjectorWebhook.alwaysInjectSelector | trim | indent 6 }}
+      {{ toYaml .Values.sidecarInjectorWebhook.alwaysInjectSelector | trim | indent 6 }}
     neverInjectSelector:
-{{ toYaml .Values.sidecarInjectorWebhook.neverInjectSelector | trim | indent 6 }}
+      {{ toYaml .Values.sidecarInjectorWebhook.neverInjectSelector | trim | indent 6 }}
     injectedAnnotations:
       {{- range $key, $val := .Values.sidecarInjectorWebhook.injectedAnnotations }}
       "{{ $key }}": "{{ $val }}"
@@ -30,4 +30,5 @@ data:
 
 {{ .Files.Get "files/injection-template.yaml" | trim | indent 4 }}
 
+{{- end }}
 {{- end }}

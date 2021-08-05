@@ -9,7 +9,6 @@ metadata:
   name: istio-sidecar-injector{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}-{{ .Release.Namespace }}
 {{- end }}
   labels:
-    istio.io/rev: {{ .Values.revision | default "default" }}
     app: sidecar-injector
     release: {{ .Release.Name }}
 webhooks:
@@ -20,14 +19,12 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: "/inject"
       caBundle: ""
-    sideEffects: None
     rules:
       - operations: [ "CREATE" ]
         apiGroups: [""]
         apiVersions: ["v1"]
         resources: ["pods"]
     failurePolicy: Fail
-    admissionReviewVersions: ["v1beta1", "v1"]
     namespaceSelector:
 {{- if .Values.sidecarInjectorWebhook.enableNamespacesByDefault }}
       matchExpressions:
@@ -46,14 +43,19 @@ webhooks:
 {{- else if .Values.revision }}
       matchExpressions:
       - key: istio-injection
-        operator: DoesNotExist
+        operator: NotIn
+        values:
+        - disabled
       - key: istio.io/rev
         operator: In
         values:
         - {{ .Values.revision }}
-{{- else }}
+{{- else if eq .Values.sidecarInjectorWebhook.injectLabel "istio-injection" }}
       matchLabels:
         istio-injection: enabled
+{{- else }}
+      matchLabels:
+        istio-env: {{ .Release.Namespace }}
 {{- end }}
 {{- if .Values.sidecarInjectorWebhook.objectSelector.enabled }}
     objectSelector:
@@ -63,14 +65,6 @@ webhooks:
         operator: NotIn
         values:
         - "false"
-{{- else if .Values.revision }}
-      matchExpressions:
-      - key: "sidecar.istio.io/inject"
-        operator: DoesNotExist
-      - key: istio.io/rev
-        operator: In
-        values:
-        - {{ .Values.revision }}
 {{- else }}
       matchLabels:
         "sidecar.istio.io/inject": "true"

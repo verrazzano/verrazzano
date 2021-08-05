@@ -56,18 +56,12 @@ spec:
           volumeMounts:
           - name: config-volume
             mountPath: /etc/prometheus
-          {{- if and .Values.prometheus.provisionPrometheusCert (not .Values.meshConfig.enablePrometheusMerge) }}
           - mountPath: /etc/istio-certs
             name: istio-certs
-          {{- end }}
 
-{{- if and .Values.prometheus.provisionPrometheusCert (not .Values.meshConfig.enablePrometheusMerge) }}
+{{- if .Values.prometheus.provisionPrometheusCert }}
         - name: istio-proxy
-{{- if contains "/" .Values.global.proxy.image }}
-          image: "{{ .Values.global.proxy.image }}"
-{{- else }}
-          image: "{{ .Values.global.hub }}/{{ .Values.global.proxy.image | default "proxyv2" }}:{{ .Values.global.tag }}"
-{{- end }}
+          image: "{{ .Values.global.hub }}/{{ .Values.global.proxy.image }}:{{ .Values.global.tag }}"
           ports:
             - containerPort: 15090
               protocol: TCP
@@ -77,6 +71,11 @@ spec:
             - sidecar
             - --domain
             - $(POD_NAMESPACE).svc.{{ .Values.global.proxy.clusterDomain }}
+            - --configPath
+            - "/etc/istio/proxy"
+            - --binaryPath
+            - "/usr/local/bin/envoy"
+            - --serviceCluster
             - "istio-proxy-prometheus"
             {{- if .Values.global.proxy.logLevel }}
             - --proxyLogLevel={{ .Values.global.proxy.logLevel }}
@@ -84,16 +83,29 @@ spec:
             {{- if .Values.global.proxy.componentLogLevel }}
             - --proxyComponentLogLevel={{ .Values.global.proxy.componentLogLevel }}
             {{- end}}
+            - --proxyAdminPort
+            - "15000"
+              {{- if .Values.global.istiod.enabled }}
             - --controlPlaneAuthPolicy
             - NONE
+              {{- else if .Values.global.controlPlaneSecurityEnabled }}
+            - --controlPlaneAuthPolicy
+            - MUTUAL_TLS
+              {{- else }}
+            - --controlPlaneAuthPolicy
+            - NONE
+              {{- end }}
+            - --statusPort
+            - "15020"
               {{- if .Values.global.trustDomain }}
             - --trust-domain={{ .Values.global.trustDomain }}
               {{- end }}
               {{- if .Values.global.logAsJson }}
             - --log_as_json
               {{- end }}
+            - --controlPlaneBootstrap=false
           env:
-            - name: OUTPUT_CERTS
+            - name: OUTPUT_KEY_CERT_TO_DIRECTORY
               value: "/etc/istio-certs"
             - name: JWT_POLICY
               value: {{ .Values.global.jwtPolicy }}
@@ -103,8 +115,10 @@ spec:
             - name: CA_ADDR
               {{- if .Values.global.caAddress }}
               value: {{ .Values.global.caAddress }}
+              {{- else if .Values.global.configNamespace }}
+              value: istiod.{{ .Values.global.configNamespace }}.svc:15012
               {{- else }}
-              value: istiod{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}.{{ .Values.global.istioNamespace }}.svc:15012
+              value: istiod.istio-system.svc:15012
               {{- end }}
             - name: POD_NAME
               valueFrom:
@@ -126,6 +140,14 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            - name: ISTIO_META_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: ISTIO_META_CONFIG_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
               {{- if .Values.global.network }}
             - name: ISTIO_META_NETWORK
               value: "{{ .Values.global.network }}"
@@ -137,12 +159,6 @@ spec:
             - name: ISTIO_META_MESH_ID
               value: "{{ .Values.global.trustDomain }}"
               {{- end }}
-            - name: ISTIO_META_CLUSTER_ID
-              value: "{{ .Values.global.multiCluster.clusterName | default `Kubernetes` }}"
-            {{- range $key, $value := .Values.meshConfig.defaultConfig.proxyMetadata }}
-            - name: {{ $key }}
-              value: "{{ $value }}"
-            {{- end }}
           imagePullPolicy: {{ .Values.global.imagePullPolicy | default "Always" }}
           readinessProbe:
             failureThreshold: 30
@@ -180,13 +196,21 @@ spec:
         configMap:
           name: prometheus
 
-{{- if and .Values.prometheus.provisionPrometheusCert (not .Values.meshConfig.enablePrometheusMerge) }}
+{{- if .Values.prometheus.provisionPrometheusCert }}
       - name: istio-certs
         emptyDir:
           medium: Memory
+{{- else }}
+      - name: istio-certs
+        secret:
+          defaultMode: 420
+{{- if not .Values.security.enabled }}
+          optional: true
+{{- end }}
+          secretName: istio.default
 {{- end }}
 
-{{- if and .Values.prometheus.provisionPrometheusCert (not .Values.meshConfig.enablePrometheusMerge) }}
+{{- if .Values.prometheus.provisionPrometheusCert }}
       - emptyDir:
           medium: Memory
         name: istio-envoy
@@ -205,6 +229,12 @@ spec:
         configMap:
           defaultMode: 420
           name: istio-ca-root-cert
+        {{- end }}
+        {{- if and (eq .Values.global.proxy.tracer "lightstep") .Values.global.tracer.lightstep.cacertPath }}
+      - name: lightstep-certs
+        secret:
+          optional: true
+        secretName: lightstep.cacert
         {{- end }}
 {{- end }}
 

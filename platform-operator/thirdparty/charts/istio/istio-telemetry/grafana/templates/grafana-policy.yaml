@@ -1,5 +1,5 @@
-apiVersion: security.istio.io/v1beta1
-kind: PeerAuthentication
+apiVersion: authentication.istio.io/v1alpha1
+kind: Policy
 metadata:
   name: grafana-ports-mtls-disabled
   namespace: {{ .Release.Namespace }}
@@ -7,9 +7,7 @@ metadata:
     app: grafana
     release: {{ .Release.Name }}
 spec:
-  selector:
-    matchLabels:
-      app: grafana
-  portLevelMtls:
-    {{ .Values.grafana.service.externalPort }}:
-      mode: DISABLE
+  targets:
+  - name: grafana
+    ports:
+    - number: {{ .Values.grafana.service.externalPort }}

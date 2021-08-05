@@ -16,13 +16,8 @@ spec:
         name: tcp-istiod
       hosts:
         - "*"
-    - port:
-        number: 15017
-        protocol: TCP
-        name: tcp-istiodwebhook
-      hosts:
-        - "*"
 ---
+
 
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -44,13 +39,6 @@ spec:
         host: istiod.{{ .Values.global.istioNamespace }}.svc.{{ .Values.global.proxy.clusterDomain }}
         port:
           number: 15012
-  - match:
-    - port: 15017
-    route:
-    - destination:
-        host: istiod.{{ .Release.Namespace }}.svc.{{ .Values.global.proxy.clusterDomain }}
-        port:
-          number: 443
 ---
 
 apiVersion: networking.istio.io/v1alpha3
@@ -68,9 +56,6 @@ spec:
         number: 15012
       tls:
         mode: DISABLE
-    - port:
-        number: 15017
-      tls:
-        mode: DISABLE
 
 {{- end }}
+
