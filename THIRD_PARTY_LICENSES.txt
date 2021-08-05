@@ -13,7 +13,7 @@ Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
 Copyright (c) 2017, 2021, Oracle Corporation and/or its affiliates.
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2020, Oracle and/or its affiliates.
-Copyright (c) 2021, Oracle and/or its affiliates
+Copyright (c) 2021, Oracle and/or its affiliates.
 
 -------- License
 Copyright (c) 2020, 2021, Oracle America, Inc. and its affiliates.
@@ -2649,4 +2649,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 6ff48c06f83ae57ae4aaaa80fe8ca1f2
+License file based on go.mod with md5 sum: dd6f949bb6c2970b180d0c2282620df4

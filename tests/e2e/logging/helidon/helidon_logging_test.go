@@ -95,7 +95,7 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 	Describe("Verify Hello Helidon app is working.", func() {
 		It("Access /greet App Url.", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
-				kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
 					ginkgo.Fail(err.Error())
 				}

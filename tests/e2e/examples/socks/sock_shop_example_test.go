@@ -129,7 +129,7 @@ var _ = Describe("Sock Shop Application", func() {
 	It("SockShop can log in with default user", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%v/login", hostname)
-			kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 			if err != nil {
 				ginkgo.Fail(err.Error())
 			}
@@ -317,7 +317,7 @@ var _ = AfterSuite(func() {
 
 // isSockShopServiceReady checks if the service is ready
 func isSockShopServiceReady(name string) bool {
-	clientset, err := pkg.GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Could not get Kubernetes clientset: %v\n", err.Error()))
 		return false

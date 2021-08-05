@@ -13,6 +13,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/pkg/k8sutil"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -50,7 +51,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 	//			Be able to update the status of MultiClusterXXX resources in the admin cluster
 	Context("Admin Cluster - verify mc resources and their status updates", func() {
 		BeforeEach(func() {
-			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+			os.Setenv(k8sutil.ENV_VAR_TEST_KUBECONFIG, os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
 		It("admin cluster - verify mc config map", func() {
@@ -113,7 +114,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 	Context("Managed Cluster - check for underlying resources", func() {
 		BeforeEach(func() {
-			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
+			os.Setenv(k8sutil.ENV_VAR_TEST_KUBECONFIG, os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
 		It("managed cluster has the expected mc and underlying configmap", func() {
@@ -150,7 +151,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 	// VZ-2336:  NOT be able to update or delete any MultiClusterXXX resources in the admin cluster
 	Context("Managed Cluster - MC object access on admin cluster", func() {
 		BeforeEach(func() {
-			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_ACCESS_KUBECONFIG"))
+			os.Setenv(k8sutil.ENV_VAR_TEST_KUBECONFIG, os.Getenv("MANAGED_ACCESS_KUBECONFIG"))
 		})
 
 		It("managed cluster can access config map but not modify it", func() {
@@ -343,7 +344,7 @@ func deleteObject(object runtime.Object) error {
 func deployTestResources() {
 	pkg.Log(pkg.Info, "Deploying MC Resources")
 
-	os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+	os.Setenv(k8sutil.ENV_VAR_TEST_KUBECONFIG, os.Getenv("ADMIN_KUBECONFIG"))
 
 	// create the test project
 	pkg.Log(pkg.Info, "Creating test project")
@@ -377,7 +378,7 @@ func deployTestResources() {
 func undeployTestResources() {
 	pkg.Log(pkg.Info, "Undeploying MC Resources")
 
-	os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+	os.Setenv(k8sutil.ENV_VAR_TEST_KUBECONFIG, os.Getenv("ADMIN_KUBECONFIG"))
 
 	// delete a config map
 	pkg.Log(pkg.Info, "Deleting MC config map")
@@ -498,9 +499,9 @@ func findMultiClusterSecret(namespace, name string) (bool, error) {
 
 // getClustersClient returns a k8s client
 func getClustersClient() (client.Client, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
+	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv(k8sutil.ENV_VAR_TEST_KUBECONFIG))
 	if err != nil {
-		pkg.Log(pkg.Error, (fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err)))
+		pkg.Log(pkg.Error, (fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv(k8sutil.ENV_VAR_TEST_KUBECONFIG), err)))
 		return nil, err
 	}
 

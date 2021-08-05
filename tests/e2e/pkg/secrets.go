@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/verrazzano/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -16,7 +17,7 @@ import (
 // ListSecrets returns the list of secrets in a given namespace for the cluster
 func ListSecrets(namespace string) (*corev1.SecretList, error) {
 	// Get the kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
 		return nil, err
@@ -32,7 +33,7 @@ func ListSecrets(namespace string) (*corev1.SecretList, error) {
 
 // GetSecret returns the a secret in a given namespace for the cluster specified in the environment
 func GetSecret(namespace string, name string) (*corev1.Secret, error) {
-	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +66,7 @@ func CreateCredentialsSecret(namespace string, name string, username string, pw 
 func CreateCredentialsSecretFromMap(namespace string, name string, values, labels map[string]string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreateCredentialsSecret %s in %s", name, namespace))
 	// Get the kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
 		return nil, err
@@ -91,7 +92,7 @@ func CreateCredentialsSecretFromMap(namespace string, name string, values, label
 func CreatePasswordSecret(namespace string, name string, pw string, labels map[string]string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreatePasswordSecret %s in %s", name, namespace))
 	// Get the kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
 		return nil, err
@@ -119,7 +120,7 @@ func CreatePasswordSecret(namespace string, name string, pw string, labels map[s
 func CreateDockerSecret(namespace string, name string, server string, username string, password string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreateDockerSecret %s in %s", name, namespace))
 	// Get the kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
 		return nil, err
@@ -146,7 +147,7 @@ func CreateDockerSecret(namespace string, name string, server string, username s
 // DeleteSecret deletes the specified secret in the specified namespace
 func DeleteSecret(namespace string, name string) error {
 	// Get the kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"github.com/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,7 +35,7 @@ type HTTPResponse struct {
 
 // GetWebPage makes an HTTP GET request using a retryable client configured with the Verrazzano cert bundle
 func GetWebPage(url string, hostHeader string) (*HTTPResponse, error) {
-	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func GetWebPageWithBasicAuth(url string, hostHeader string, username string, pas
 
 // GetCertificates will return the server SSL certificates for the given URL.
 func GetCertificates(url string) ([]*x509.Certificate, error) {
-	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func PostWithBasicAuth(url, body, username, password, kubeconfigPath string) (*H
 
 // PostWithHostHeader posts a request with a specified Host header
 func PostWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
-	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +105,7 @@ func PostWithHostHeader(url, contentType string, hostHeader string, body io.Read
 
 // Delete executes an HTTP DELETE
 func Delete(url string, hostHeader string) (*HTTPResponse, error) {
-	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +181,7 @@ func CheckNoServerHeader(resp *HTTPResponse) bool {
 
 // GetSystemVmiHTTPClient returns a retryable HTTP client configured with the system vmi CA cert
 func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
-	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +199,7 @@ func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
 
 // PutWithHostHeader PUTs a request with a specified Host header
 func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
-	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return nil, err
 	}

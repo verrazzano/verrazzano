@@ -176,7 +176,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 		return false
 	}
 
-	kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
 		return false

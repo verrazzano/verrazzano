@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo"
+	"github.com/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -89,7 +90,7 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 
 // LogIndexFound confirms a named index can be found in Elasticsearch in the cluster specified in the environment
 func LogIndexFound(indexName string) bool {
-	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		ginkgo.Fail(err.Error())
 	}
@@ -111,7 +112,7 @@ func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 // LogRecordFound confirms a recent log record for the index with matching fields can be found
 // in the cluster specified in the environment
 func LogRecordFound(indexName string, after time.Time, fields map[string]string) bool {
-	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		ginkgo.Fail(err.Error())
 	}
@@ -223,7 +224,7 @@ var elasticQueryTemplate *template.Template
 
 func systemES() string {
 	if systemElasticHost == "" {
-		kubeconfigPath, err := GetKubeConfigPathFromEnv()
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			ginkgo.Fail(err.Error())
 		}
@@ -248,7 +249,7 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 		Log(Error, fmt.Sprintf("Error: %v", err))
 	}
 	Log(Debug, fmt.Sprintf("Search: %v \nQuery: \n%v", url, buffer.String()))
-	configPath, err := GetKubeConfigPathFromEnv()
+	configPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error retrieving kubeconfig, error=%v", err))
 	}

@@ -569,6 +569,8 @@ github.com/verrazzano/pkg v0.0.3-0.20210730071405-1d91af0dad10 h1:oyeQw4C+1pka6V
 github.com/verrazzano/pkg v0.0.3-0.20210730071405-1d91af0dad10/go.mod h1:QpLDfm4NKsF/tvv+cYIHWMXgVHpTTLmmjGKu8RcwYck=
 github.com/verrazzano/pkg v0.0.3-0.20210803102214-6b3c6261fd6e h1:wglAokQe/FEiafWpHWqPkCNoou1d6F3hkICTvTe/5BI=
 github.com/verrazzano/pkg v0.0.3-0.20210803102214-6b3c6261fd6e/go.mod h1:5fGe2fIMkyZvPNe7LmSpkElLDSvEnNkIyVyZKbLnK4I=
+github.com/verrazzano/pkg v0.0.3-0.20210805100346-26ee43a78c36 h1:x8oLBvNBSpdZAbeQnZe3awocps1NBBjPuwalqzeave0=
+github.com/verrazzano/pkg v0.0.3-0.20210805100346-26ee43a78c36/go.mod h1:5fGe2fIMkyZvPNe7LmSpkElLDSvEnNkIyVyZKbLnK4I=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.25 h1:lhB5M+FRNw1QUnYUxtEl7vF7EI+uNSkfcs5RRLATvfE=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.25/go.mod h1:rzkO22zlewUe9o2haP+YFGVMclwCD9gzHSHeEI5ZMxQ=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=

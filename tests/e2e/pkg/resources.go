@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/verrazzano/pkg/k8sutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +39,7 @@ var nsGvr = schema.GroupVersionResource{
 // This is intended to be equivalent to `kubectl apply`
 // The cluster used is the one set by default in the environment
 func CreateOrUpdateResourceFromFile(file string) error {
-	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return err
 	}
@@ -147,7 +148,7 @@ func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.D
 // This is intended to be equivalent to `kubectl delete`
 // The test data file is found using the FindTestDataFile function.
 func DeleteResourceFromFile(file string) error {
-	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return err
 	}

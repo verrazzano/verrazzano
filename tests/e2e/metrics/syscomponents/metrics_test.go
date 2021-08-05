@@ -12,6 +12,7 @@ import (
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -89,7 +90,7 @@ var _ = BeforeSuite(func() {
 		// Include the namespace keycloak for the validation for admin cluster and single cluster installation
 		envoyStatsNamespaces = append(envoyStatsNamespaces, keycloakNamespace)
 		var err error
-		adminKubeConfig, err = pkg.GetKubeConfigPathFromEnv()
+		adminKubeConfig, err = k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			ginkgo.Fail(err.Error())
 		}

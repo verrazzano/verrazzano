@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -32,7 +33,7 @@ var _ = Describe("VMI urls test", func() {
 		It("Fetches VMI", func() {
 			if !isManagedClusterProfile {
 				Eventually(func() bool {
-					kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+					kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 					if err != nil {
 						return false
 					}
@@ -72,7 +73,7 @@ var _ = Describe("VMI urls test", func() {
 				var api *pkg.APIEndpoint
 				Eventually(func() (*pkg.APIEndpoint, error) {
 					var err error
-					kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+					kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 					if err != nil {
 						return nil, err
 					}

@@ -420,7 +420,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", noIstioHost)
 
-			kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 			if err != nil {
 				ginkgo.Fail(err.Error())
 			}
