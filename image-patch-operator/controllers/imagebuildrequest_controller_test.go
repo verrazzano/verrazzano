@@ -88,6 +88,14 @@ func TestNewImageBuildRequest(t *testing.T) {
 	// Creating an ImageBuildRequest resource
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/imagebuildrequest_instance.yaml", params))
 
+	// Set test values for resource limits and requests
+	cpuValueString := "1100m"
+	memoryValueString := "1Gi"
+	os.Setenv("WIT_POD_RESOURCE_LIMIT_CPU", cpuValueString)
+	os.Setenv("WIT_POD_RESOURCE_LIMIT_MEMORY", memoryValueString)
+	os.Setenv("WIT_POD_RESOURCE_REQUEST_CPU", cpuValueString)
+	os.Setenv("WIT_POD_RESOURCE_REQUEST_MEMORY", memoryValueString)
+
 	request := newRequest("default", "cluster1")
 	reconciler := newImageBuildRequestReconciler(cli)
 	_, err := reconciler.Reconcile(request)
@@ -116,19 +124,21 @@ func TestNewImageBuildRequest(t *testing.T) {
 	// Verify istio-injection disabled for the job
 	assert.Equal("false", jb.Labels["sidecar.istio.io/inject"])
 
-	// Default values for resource limits and requests
-	cpuValue := resource.NewMilliQuantity(1100, resource.DecimalSI)
-	memoryValue := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
+	// Convert test values for resource limits and requests to type Quantity
+	cpuValue, _ := resource.ParseQuantity(cpuValueString)
+	memoryValue, _ := resource.ParseQuantity(memoryValueString)
 
-	// Verify that the Job has the expected values for resource limits and requests
+	// Get resource limits and requests on the Pod
 	cpuLimit := jb.Spec.Template.Spec.Containers[0].Resources.Limits["cpu"]
 	memoryLimit := jb.Spec.Template.Spec.Containers[0].Resources.Limits["memory"]
 	cpuRequest := jb.Spec.Template.Spec.Containers[0].Resources.Requests["cpu"]
 	memoryRequest := jb.Spec.Template.Spec.Containers[0].Resources.Requests["memory"]
-	assert.Zero(cpuLimit.Cmp(*cpuValue))
-	assert.Zero(memoryLimit.Cmp(*memoryValue))
-	assert.Zero(cpuRequest.Cmp(*cpuValue))
-	assert.Zero(memoryRequest.Cmp(*memoryValue))
+
+	// Verify that the resource limits and requests are the expected test values
+	assert.Zero(cpuLimit.Cmp(cpuValue))
+	assert.Zero(memoryLimit.Cmp(memoryValue))
+	assert.Zero(cpuRequest.Cmp(cpuValue))
+	assert.Zero(memoryRequest.Cmp(memoryValue))
 
 	// Testing that the spec fields of the IBR propagate to the environmental variables of the ImageJob
 	assert.Equal("test-build", jb.Spec.Template.Spec.Containers[0].Env[0].Value)
