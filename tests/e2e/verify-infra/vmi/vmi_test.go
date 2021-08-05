@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -28,7 +27,7 @@ import (
 const verrazzanoNamespace string = "verrazzano-system"
 
 func vmiIngressURLs() (map[string]string, error) {
-	clientset, err := k8sutil.GetKubernetesClientset()
+	clientset, err := pkg.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +282,14 @@ func assertBearerAuthorized(url string) bool {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
 		return false
 	}
-	api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+
+	kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig location: %v", err))
+		return false
+	}
+
+	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
 		return false
@@ -419,7 +425,9 @@ func assertDashboard(url string) {
 }
 
 func assertInstanceInfoURLs() {
-	cr, err := pkg.GetVerrazzanoInstallResourceInCluster(pkg.GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+	Expect(err).To(BeNil())
+	cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	Expect(err).To(BeNil())
 	instanceInfo := cr.Status.VerrazzanoInstance
 	switch cr.Spec.Profile {

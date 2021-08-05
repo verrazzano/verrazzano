@@ -38,7 +38,12 @@ var nsGvr = schema.GroupVersionResource{
 // This is intended to be equivalent to `kubectl apply`
 // The cluster used is the one set by default in the environment
 func CreateOrUpdateResourceFromFile(file string) error {
-	return CreateOrUpdateResourceFromFileInCluster(file, GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	if err != nil {
+		return err
+	}
+
+	return CreateOrUpdateResourceFromFileInCluster(file, kubeconfigPath)
 }
 
 // CreateOrUpdateResourceFromFileInCluster is identical to CreateOrUpdateResourceFromFile, except that
@@ -142,7 +147,11 @@ func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.D
 // This is intended to be equivalent to `kubectl delete`
 // The test data file is found using the FindTestDataFile function.
 func DeleteResourceFromFile(file string) error {
-	return DeleteResourceFromFileInCluster(file, GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	if err != nil {
+		return err
+	}
+	return DeleteResourceFromFileInCluster(file, kubeconfigPath)
 }
 
 // DeleteResourceFromFileInCluster is identical to DeleteResourceFromFile, except that

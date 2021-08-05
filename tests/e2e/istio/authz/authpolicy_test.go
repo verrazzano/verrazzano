@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/pkg/k8sutil"
@@ -419,7 +420,10 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", noIstioHost)
 
-			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+			if err != nil {
+				ginkgo.Fail(err.Error())
+			}
 			client, err := pkg.GetVerrazzanoNoRetryHTTPClient(kubeconfigPath)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to get client: %v", err))

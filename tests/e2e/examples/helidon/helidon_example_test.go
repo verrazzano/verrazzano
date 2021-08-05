@@ -175,7 +175,13 @@ func appEndpointAccessible(url string, hostname string) bool {
 		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
 		return false
 	}
-	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+
+	kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		return false
+	}
+
 	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))

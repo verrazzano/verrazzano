@@ -32,7 +32,12 @@ var _ = Describe("VMI urls test", func() {
 		It("Fetches VMI", func() {
 			if !isManagedClusterProfile {
 				Eventually(func() bool {
-					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+					kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+					if err != nil {
+						return false
+					}
+
+					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 					if err != nil {
 						return false
 					}
@@ -67,7 +72,12 @@ var _ = Describe("VMI urls test", func() {
 				var api *pkg.APIEndpoint
 				Eventually(func() (*pkg.APIEndpoint, error) {
 					var err error
-					api, err = pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+					kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+					if err != nil {
+						return nil, err
+					}
+
+					api, err = pkg.GetAPIEndpoint(kubeconfigPath)
 					return api, err
 				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 

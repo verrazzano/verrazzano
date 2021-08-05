@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/onsi/ginkgo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -88,7 +89,11 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 
 // LogIndexFound confirms a named index can be found in Elasticsearch in the cluster specified in the environment
 func LogIndexFound(indexName string) bool {
-	return LogIndexFoundInCluster(indexName, GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	if err != nil {
+		ginkgo.Fail(err.Error())
+	}
+	return LogIndexFoundInCluster(indexName, kubeconfigPath)
 }
 
 // LogIndexFoundInCluster confirms a named index can be found in Elasticsearch on the given cluster
@@ -106,7 +111,11 @@ func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 // LogRecordFound confirms a recent log record for the index with matching fields can be found
 // in the cluster specified in the environment
 func LogRecordFound(indexName string, after time.Time, fields map[string]string) bool {
-	return LogRecordFoundInCluster(indexName, after, fields, GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	if err != nil {
+		ginkgo.Fail(err.Error())
+	}
+	return LogRecordFoundInCluster(indexName, after, fields, kubeconfigPath)
 }
 
 // LogRecordFoundInCluster confirms a recent log record for the index with matching fields can be found
@@ -214,7 +223,11 @@ var elasticQueryTemplate *template.Template
 
 func systemES() string {
 	if systemElasticHost == "" {
-		systemElasticHost = getSystemElasticSearchIngressHost(GetKubeConfigPathFromEnv())
+		kubeconfigPath, err := GetKubeConfigPathFromEnv()
+		if err != nil {
+			ginkgo.Fail(err.Error())
+		}
+		systemElasticHost = getSystemElasticSearchIngressHost(kubeconfigPath)
 	}
 	return systemElasticHost
 }
@@ -235,7 +248,11 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 		Log(Error, fmt.Sprintf("Error: %v", err))
 	}
 	Log(Debug, fmt.Sprintf("Search: %v \nQuery: \n%v", url, buffer.String()))
-	configPath := GetKubeConfigPathFromEnv()
+	configPath, err := GetKubeConfigPathFromEnv()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error retrieving kubeconfig, error=%v", err))
+	}
+
 	var result map[string]interface{}
 	resp, err := PostWithBasicAuth(url, buffer.String(), "verrazzano", GetVerrazzanoPasswordInCluster(configPath), configPath)
 	if err != nil {

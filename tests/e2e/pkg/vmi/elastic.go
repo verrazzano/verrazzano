@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -48,7 +49,11 @@ func (e *Elastic) PodsRunning() bool {
 
 // Connect checks if the elasticsearch cluster can be connected
 func (e *Elastic) Connect() bool {
-	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+	if err != nil {
+		return false
+	}
+
 	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 	if err != nil {
 		return false
@@ -109,7 +114,11 @@ func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client
 // ListIndices lists elasticsearch indices
 func (e *Elastic) ListIndices() []string {
 	idx := []string{}
-	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+	if err != nil {
+		ginkgo.Fail(err.Error())
+	}
+
 	for i := range e.getIndices(kubeconfigPath) {
 		idx = append(idx, i)
 	}

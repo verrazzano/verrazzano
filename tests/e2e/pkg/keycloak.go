@@ -36,7 +36,11 @@ const (
 
 // NewKeycloakRESTClient creates a new Keycloak REST client.
 func NewKeycloakAdminRESTClient() (*KeycloakRESTClient, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := GetKubeConfigPathFromEnv()
+	if err != nil {
+		return nil, err
+	}
+
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err

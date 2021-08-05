@@ -24,7 +24,11 @@ var _ = Describe("keycloak url test", func() {
 			if !pkg.IsManagedClusterProfile() {
 				var keycloakURL string
 				Eventually(func() error {
-					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+					kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+					if err != nil {
+						return err
+					}
+					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 					if err != nil {
 						return err
 					}

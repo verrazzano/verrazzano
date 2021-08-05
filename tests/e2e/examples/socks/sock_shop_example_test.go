@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/pkg/k8sutil"
@@ -128,7 +129,10 @@ var _ = Describe("Sock Shop Application", func() {
 	It("SockShop can log in with default user", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%v/login", hostname)
-			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+			if err != nil {
+				ginkgo.Fail(err.Error())
+			}
 			return pkg.GetWebPageWithBasicAuth(url, hostname, username, password, kubeconfigPath)
 		}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
 
@@ -313,7 +317,7 @@ var _ = AfterSuite(func() {
 
 // isSockShopServiceReady checks if the service is ready
 func isSockShopServiceReady(name string) bool {
-	clientset, err := k8sutil.GetKubernetesClientset()
+	clientset, err := pkg.GetKubernetesClientset()
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Could not get Kubernetes clientset: %v\n", err.Error()))
 		return false

@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -122,7 +121,7 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) (*v1.Service, error) {
 
 // ListIngresses lists ingresses in namespace
 func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
-	clientset, err := k8sutil.GetKubernetesClientset()
+	clientset, err := GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}

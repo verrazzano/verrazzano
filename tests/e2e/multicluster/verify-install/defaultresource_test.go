@@ -10,7 +10,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,7 +63,7 @@ func nsListContains(list []v1.Namespace, target string) bool {
 
 func listPodsInKubeSystem() error {
 	// Get the Kubernetes clientset and list pods in cluster
-	clientset, err := k8sutil.GetKubernetesClientset()
+	clientset, err := pkg.GetKubernetesClientset()
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Kubernetes clientset: %v", err))
 		return err

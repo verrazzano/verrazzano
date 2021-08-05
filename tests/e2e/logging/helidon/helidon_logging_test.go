@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/pkg/k8sutil"
@@ -94,7 +95,10 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 	Describe("Verify Hello Helidon app is working.", func() {
 		It("Access /greet App Url.", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
-				kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+				kubeconfigPath, err := pkg.GetKubeConfigPathFromEnv()
+				if err != nil {
+					ginkgo.Fail(err.Error())
+				}
 				url := fmt.Sprintf("https://%s/greet", host)
 				return pkg.GetWebPageWithBasicAuth(url, host, "", "", kubeconfigPath)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Hello World")))
