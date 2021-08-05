@@ -18,10 +18,10 @@ VERRAZZANO_DEFAULT_SECRET_NAME="verrazzano-ca-certificate-secret"
 function install_nginx_ingress_controller()
 {
     local ingress_nginx_ns=ingress-nginx
-    local chartName=ingress-controller
+    local chart_name=ingress-controller
     local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/ingress-nginx
 
-    if ! is_chart_deployed ${chartName} ${ingress_nginx_ns} ${NGINX_INGRESS_CHART_DIR} ; then
+    if ! is_chart_deployed ${chart_name} ${ingress_nginx_ns} ${NGINX_INGRESS_CHART_DIR} ; then
       # Create the namespace for nginx
       if ! kubectl get namespace ${ingress_nginx_ns} ; then
           kubectl create namespace ${ingress_nginx_ns}
@@ -49,16 +49,30 @@ function install_nginx_ingress_controller()
         EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
       fi
 
-      build_image_overrides ingress-nginx ${chartName}
+      log "Installing ${ingress_nginx_ns}/${chart_name}"
+      build_image_overrides ingress-nginx ${chart_name}
 
-      helm upgrade ${chartName} ${NGINX_INGRESS_CHART_DIR} --install \
-        --namespace ${ingress_nginx_ns} \
-        -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
-        ${EXTRA_NGINX_ARGUMENTS} \
-        ${HELM_IMAGE_ARGS} \
-        --timeout 15m0s \
-        --wait \
-        || return $?
+      while true ; do
+        helm upgrade ${chart_name} ${NGINX_INGRESS_CHART_DIR} --install \
+          --namespace ${ingress_nginx_ns} \
+          --wait \
+          -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
+          ${EXTRA_NGINX_ARGUMENTS} \
+          ${HELM_IMAGE_ARGS} \
+          || return $?
+        if [ $? -eq 0 ]; then
+          break
+        else
+          local helm_status=$?
+          check_for_slow_image_pulls istio-system
+          if [[ $? -eq 1 ]]; then
+            log "Retrying install of ${ingress_nginx_ns}/${chart_name} due to slow image pulls"
+            helm uninstall ${chart_name} --namespace ${ingress_nginx_ns}
+          else
+            return $helm_status
+          fi
+        fi
+      done
     fi
 
     # Label the ingress-nginx namespace so that we can apply network policies

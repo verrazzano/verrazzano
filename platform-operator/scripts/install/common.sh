@@ -373,6 +373,18 @@ function generate_password() {
   dd if=/dev/urandom bs=${_pwsize} count=3 2>/dev/null | base64 | tr -d '+/=' | cut -c1-${_pwsize}
 }
 
+# Returns 0 if no slow image pulls are detected, otherwise returns 1
+# $1 the namespace to check
+function check_for_slow_image_pulls() {
+  local pulling_count=$(kubectl get events -n $1 | grep Pulling | wc -l)
+  local pulled_count=$(kubectl get events -n $1 | grep 'Successfully pulled' | wc -l)
+  if [[ $pulling_count -eq $pulled_count ]]; then
+    echo "Slow image pulls detected for namepaces $1"
+	  return 0
+  fi
+  return 1
+}
+
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
 
 VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"

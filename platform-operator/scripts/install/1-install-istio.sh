@@ -84,29 +84,43 @@ function install_istio()
     fi
 
     if ! is_chart_deployed istio-base istio-system ${ISTIO_CHART_DIR}/base ; then
-      log "Installing Istio base"
+      log "Installing istio-system/istio-base"
       helm upgrade istio-base ${ISTIO_CHART_DIR}/base \
         --install \
         --namespace istio-system \
+        --wait \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        --wait \
         || return $?
     fi
 
     if ! is_chart_deployed istiod istio-system ${ISTIO_CHART_DIR}/istio-control/istio-discovery ; then
-      log "Installing Istio discovery"
       local chart_name=istiod
+      log "Installing istio-system/${chart_name}"
       build_image_overrides istio ${chart_name}
 
-      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
-        --install \
-        --namespace istio-system \
-        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-        ${HELM_IMAGE_ARGS} \
-        ${ISTIO_HUB_OVERRIDE} \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        || return $?
+      while true ; do
+        helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
+          --install \
+          --namespace istio-system \
+          --wait \
+          -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+          ${HELM_IMAGE_ARGS} \
+          ${ISTIO_HUB_OVERRIDE} \
+          ${IMAGE_PULL_SECRETS_ARGUMENT}
+        if [ $? -eq 0 ]; then
+          break
+        else
+          local helm_status=$?
+          check_for_slow_image_pulls istio-system
+          if [[ $? -eq 1 ]]; then
+            log "Retrying install of istio-system/${chart_name} due to slow image pulls"
+            helm uninstall ${chart_name} --namespace istio-system
+          else
+            return $helm_status
+          fi
+        fi
+      done
     fi
 
     log "Generate Istio ingress specific configuration"
@@ -115,48 +129,90 @@ function install_istio()
     EXTRA_INGRESS_ARGUMENTS="$EXTRA_INGRESS_ARGUMENTS --set gateways.istio-ingressgateway.type=${INGRESS_TYPE}"
 
     if ! is_chart_deployed istio-ingress istio-system ${ISTIO_CHART_DIR}/gateways/istio-ingress ; then
-      log "Installing Istio ingress"
       local chart_name=istio-ingress
+      log "Installing istio-system/${chart_name}"
       build_image_overrides istio ${chart_name}
 
-      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-ingress \
-        --install \
-        --namespace istio-system \
-        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-        ${HELM_IMAGE_ARGS} \
-        ${ISTIO_HUB_OVERRIDE} \
-        ${EXTRA_INGRESS_ARGUMENTS} \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        || return $?
+      while true ; do
+        helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-ingress \
+          --install \
+          --namespace istio-system \
+          --wait \
+          -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+          ${HELM_IMAGE_ARGS} \
+          ${ISTIO_HUB_OVERRIDE} \
+          ${EXTRA_INGRESS_ARGUMENTS} \
+          ${IMAGE_PULL_SECRETS_ARGUMENT}
+        if [ $? -eq 0 ]; then
+          break
+        else
+          local helm_status=$?
+          check_for_slow_image_pulls istio-system
+          if [[ $? -eq 1 ]]; then
+            log "Retrying install of istio-system/${chart_name} due to slow image pulls"
+            helm uninstall ${chart_name} --namespace istio-system
+          else
+            return $helm_status
+          fi
+        fi
+      done
     fi
 
     if ! is_chart_deployed istio-egress istio-system ${ISTIO_CHART_DIR}/gateways/istio-egress ; then
-      log "Installing Istio egress"
+      log "Installing istio-system/${chart_name}"
       local chart_name=istio-egress
       build_image_overrides istio ${chart_name}
 
-      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-egress \
-        --install \
-        --namespace istio-system \
-        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-        ${HELM_IMAGE_ARGS} \
-        ${ISTIO_HUB_OVERRIDE} \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        || return $?
+      while true ; do
+        helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-egress \
+          --install \
+          --namespace istio-system \
+          --wait \
+          -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+          ${HELM_IMAGE_ARGS} \
+          ${ISTIO_HUB_OVERRIDE} \
+          ${IMAGE_PULL_SECRETS_ARGUMENT}
+        if [ $? -eq 0 ]; then
+          break
+        else
+          local helm_status=$?
+          check_for_slow_image_pulls istio-system
+          if [[ $? -eq 1 ]]; then
+            log "Retrying install of istio-system/${chart_name} due to slow image pulls"
+            helm uninstall ${chart_name} --namespace istio-system
+          else
+            return $helm_status
+          fi
+        fi
+      done
     fi
 
     if ! is_chart_deployed istiocoredns istio-system ${ISTIO_CHART_DIR}/istiocoredns ; then
-      log "Installing istiocoredns"
       local chart_name=istiocoredns
+      log "Installing istio-system/${chart_name}"
       build_image_overrides istio ${chart_name}
 
-      helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istiocoredns \
-        --install \
-        --namespace istio-system \
-        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-        ${HELM_IMAGE_ARGS} \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        || return $?
+      while true ; do
+        helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istiocoredns \
+          --install \
+          --namespace istio-system \
+          --wait \
+          -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+          ${HELM_IMAGE_ARGS} \
+          ${IMAGE_PULL_SECRETS_ARGUMENT}
+        if [ $? -eq 0 ]; then
+          break
+        else
+          local helm_status=$?
+          check_for_slow_image_pulls istio-system
+          if [[ $? -eq 1 ]]; then
+            log "Retrying install of istio-system/${chart_name} due to slow image pulls"
+            helm uninstall ${chart_name} --namespace istio-system
+          else
+            return $helm_status
+          fi
+        fi
+      done
     fi
 
     log "Setting Istio global mesh policy to STRICT mode"
@@ -193,8 +249,6 @@ spec:
             '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
             server_header_transformation: PASS_THROUGH
 ")
-    log "Waiting for all the pods in istio-system namespace to reach ready state"
-    kubectl wait --for=condition=ready pods --all -n istio-system --timeout=20m
 }
 
 function log_kube_version {
