@@ -1,38 +1,30 @@
-{{- if and .Values.global.remotePolicyAddress .Values.global.createRemoteSvcEndpoints }}
----
+{{- if .Values.global.remotePilotAddress }}
+  {{- if .Values.pilot.enabled }}
 apiVersion: v1
 kind: Endpoints
 metadata:
-  name: istio-policy
-  namespace: {{ .Values.global.istioNamespace }}
+  name: istiod-remote
+  namespace: {{ .Release.Namespace }}
 subsets:
 - addresses:
-  - ip: {{ .Values.global.remotePolicyAddress }}
+  - ip: {{ .Values.global.remotePilotAddress }}
   ports:
-  - name: grpc-mixer
-    port: 9091
-  - name: grpc-mixer-mtls
-    port: 15004
-  - name: http-monitoring
-    port: 15014
-{{- end }}
-{{- if and .Values.global.remoteTelemetryAddress .Values.global.createRemoteSvcEndpoints }}
----
+  - port: 15012
+    name: tcp-istiod
+    protocol: TCP
+  {{- else if regexMatch "^([0-9]*\\.){3}[0-9]*$" .Values.global.remotePilotAddress }}
 apiVersion: v1
 kind: Endpoints
 metadata:
-  name: istio-telemetry
-  namespace: {{ .Values.global.istioNamespace }}
+  name: istiod
+  namespace: {{ .Release.Namespace }}
 subsets:
 - addresses:
-  - ip: {{ .Values.global.remoteTelemetryAddress }}
+  - ip: {{ .Values.global.remotePilotAddress }}
   ports:
-  - name: grpc-mixer
-    port: 9091
-  - name: grpc-mixer-mtls
-    port: 15004
-  - name: http-monitoring
-    port: 15014
-  - name: prometheus
-    port: 42422
+  - port: 15012
+    name: tcp-istiod
+    protocol: TCP
+  {{- end }}
+---
 {{- end }}

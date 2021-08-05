@@ -1,17 +1,17 @@
 {{/* affinity - https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ */}}
 
-{{- define "nodeaffinity" }}
-  nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-    {{- include "nodeAffinityRequiredDuringScheduling" . }}
-    preferredDuringSchedulingIgnoredDuringExecution:
-    {{- include "nodeAffinityPreferredDuringScheduling" . }}
+{{ define "nodeaffinity" }}
+nodeAffinity:
+  requiredDuringSchedulingIgnoredDuringExecution:
+  {{- include "nodeAffinityRequiredDuringScheduling" . }}
+  preferredDuringSchedulingIgnoredDuringExecution:
+  {{- include "nodeAffinityPreferredDuringScheduling" . }}
 {{- end }}
 
 {{- define "nodeAffinityRequiredDuringScheduling" }}
       nodeSelectorTerms:
       - matchExpressions:
-        - key: beta.kubernetes.io/arch
+        - key: kubernetes.io/arch
           operator: In
           values:
         {{- range $key, $val := .global.arch }}
@@ -34,7 +34,7 @@
     - weight: {{ $val | int }}
       preference:
         matchExpressions:
-        - key: beta.kubernetes.io/arch
+        - key: kubernetes.io/arch
           operator: In
           values:
           - {{ $key | quote }}
