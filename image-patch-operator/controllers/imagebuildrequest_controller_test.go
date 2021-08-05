@@ -22,6 +22,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	k8score "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1beta1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -114,6 +115,20 @@ func TestNewImageBuildRequest(t *testing.T) {
 
 	// Verify istio-injection disabled for the job
 	assert.Equal("false", jb.Labels["sidecar.istio.io/inject"])
+
+	// Default values for resource limits and requests
+	cpuValue := resource.NewMilliQuantity(1100, resource.DecimalSI)
+	memoryValue := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
+
+	// Verify that the Job has the expected values for resource limits and requests
+	cpuLimit := jb.Spec.Template.Spec.Containers[0].Resources.Limits["cpu"]
+	memoryLimit := jb.Spec.Template.Spec.Containers[0].Resources.Limits["memory"]
+	cpuRequest := jb.Spec.Template.Spec.Containers[0].Resources.Requests["cpu"]
+	memoryRequest := jb.Spec.Template.Spec.Containers[0].Resources.Requests["memory"]
+	assert.Zero(cpuLimit.Cmp(*cpuValue))
+	assert.Zero(memoryLimit.Cmp(*memoryValue))
+	assert.Zero(cpuRequest.Cmp(*cpuValue))
+	assert.Zero(memoryRequest.Cmp(*memoryValue))
 
 	// Testing that the spec fields of the IBR propagate to the environmental variables of the ImageJob
 	assert.Equal("test-build", jb.Spec.Template.Spec.Containers[0].Env[0].Value)

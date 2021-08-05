@@ -31,6 +31,22 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
 
+	// If resource limit and request environment variables are not set, then use some default values
+	for _, envVar := range [2]string{"WIT_POD_RESOURCE_LIMIT_CPU", "WIT_POD_RESOURCE_REQUEST_CPU"} {
+		_, present := os.LookupEnv(envVar)
+		if !present {
+			defaultValue := "1100m"
+			os.Setenv(envVar, defaultValue)
+		}
+	}
+	for _, envVar := range [2]string{"WIT_POD_RESOURCE_LIMIT_MEMORY", "WIT_POD_RESOURCE_REQUEST_MEMORY"} {
+		_, present := os.LookupEnv(envVar)
+		if !present {
+			defaultValue := "1Gi"
+			os.Setenv(envVar, defaultValue)
+		}
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        jobConfig.JobName,
