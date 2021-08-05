@@ -31,11 +31,10 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
 
-	cpuLimit, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_LIMIT_CPU"))
-	memoryLimit, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_LIMIT_MEMORY"))
-	cpuRequest, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_REQUEST_CPU"))
-	memoryRequest, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_REQUEST_MEMORY"))
-	_ = err // TODO: what to do in the case of an error
+	cpuLimit, _ := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_LIMIT_CPU"))
+	memoryLimit, _ := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_LIMIT_MEMORY"))
+	cpuRequest, _ := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_REQUEST_CPU"))
+	memoryRequest, _ := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_REQUEST_MEMORY"))
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
