@@ -128,17 +128,11 @@ func TestNewImageBuildRequest(t *testing.T) {
 	cpuValue, _ := resource.ParseQuantity(cpuValueString)
 	memoryValue, _ := resource.ParseQuantity(memoryValueString)
 
-	// Get resource limits and requests on the Pod
-	cpuLimit := jb.Spec.Template.Spec.Containers[0].Resources.Limits["cpu"]
-	memoryLimit := jb.Spec.Template.Spec.Containers[0].Resources.Limits["memory"]
-	cpuRequest := jb.Spec.Template.Spec.Containers[0].Resources.Requests["cpu"]
-	memoryRequest := jb.Spec.Template.Spec.Containers[0].Resources.Requests["memory"]
-
 	// Verify that the resource limits and requests are the expected test values
-	assert.Zero(cpuLimit.Cmp(cpuValue))
-	assert.Zero(memoryLimit.Cmp(memoryValue))
-	assert.Zero(cpuRequest.Cmp(cpuValue))
-	assert.Zero(memoryRequest.Cmp(memoryValue))
+	assert.Equal(cpuValue, jb.Spec.Template.Spec.Containers[0].Resources.Limits["cpu"])
+	assert.Equal(memoryValue, jb.Spec.Template.Spec.Containers[0].Resources.Limits["memory"])
+	assert.Equal(cpuValue, jb.Spec.Template.Spec.Containers[0].Resources.Requests["cpu"])
+	assert.Equal(memoryValue, jb.Spec.Template.Spec.Containers[0].Resources.Requests["memory"])
 
 	// Testing that the spec fields of the IBR propagate to the environmental variables of the ImageJob
 	assert.Equal("test-build", jb.Spec.Template.Spec.Containers[0].Env[0].Value)
