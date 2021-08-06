@@ -22,6 +22,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	k8score "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1beta1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -87,6 +88,14 @@ func TestNewImageBuildRequest(t *testing.T) {
 	// Creating an ImageBuildRequest resource
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/imagebuildrequest_instance.yaml", params))
 
+	// Set test values for resource limits and requests
+	cpuValueString := "1100m"
+	memoryValueString := "1Gi"
+	os.Setenv("WIT_POD_RESOURCE_LIMIT_CPU", cpuValueString)
+	os.Setenv("WIT_POD_RESOURCE_LIMIT_MEMORY", memoryValueString)
+	os.Setenv("WIT_POD_RESOURCE_REQUEST_CPU", cpuValueString)
+	os.Setenv("WIT_POD_RESOURCE_REQUEST_MEMORY", memoryValueString)
+
 	request := newRequest("default", "cluster1")
 	reconciler := newImageBuildRequestReconciler(cli)
 	_, err := reconciler.Reconcile(request)
@@ -114,6 +123,16 @@ func TestNewImageBuildRequest(t *testing.T) {
 
 	// Verify istio-injection disabled for the job
 	assert.Equal("false", jb.Labels["sidecar.istio.io/inject"])
+
+	// Convert test values for resource limits and requests to type Quantity
+	cpuValue, _ := resource.ParseQuantity(cpuValueString)
+	memoryValue, _ := resource.ParseQuantity(memoryValueString)
+
+	// Verify that the resource limits and requests are the expected test values
+	assert.Equal(cpuValue, jb.Spec.Template.Spec.Containers[0].Resources.Limits["cpu"])
+	assert.Equal(memoryValue, jb.Spec.Template.Spec.Containers[0].Resources.Limits["memory"])
+	assert.Equal(cpuValue, jb.Spec.Template.Spec.Containers[0].Resources.Requests["cpu"])
+	assert.Equal(memoryValue, jb.Spec.Template.Spec.Containers[0].Resources.Requests["memory"])
 
 	// Testing that the spec fields of the IBR propagate to the environmental variables of the ImageJob
 	assert.Equal("test-build", jb.Spec.Template.Spec.Containers[0].Env[0].Value)
