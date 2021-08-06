@@ -207,6 +207,7 @@ pipeline {
                     steps {
                         sh """
                         echo "Upgrading the Verrazzano platform operator"
+                        # Download the operator.yaml for the target version that we are upgrading to
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                         cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                         kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
@@ -223,7 +224,9 @@ pipeline {
                 stage("upgrade-verrazzano") {
                     steps {
                         script {
-                            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/generated-verrazzano-bom.json | jq -r '.version'").trim()
+                            // Download the bom for the target version that we are upgrading to, then extract the version
+                            // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
+                            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
                         }
                         sh """
                             echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
