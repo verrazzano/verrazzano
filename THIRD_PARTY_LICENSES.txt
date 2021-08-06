@@ -1203,8 +1203,6 @@ Copyright 2014 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors
 Copyright (c) 2015, 2018, 2019 Opsmate, Inc. All rights reserved.
 Copyright 2020 The cert-manager Authors.
-Copyright YEAR The cert-manager Authors.
-Copyright The cert-manager Authors.
 Copyright 2015 The Kubernetes Authors.
 Copyright (c) 2015-2017 Sebastian Erhart
 Copyright 2016 The Kubernetes Authors.
@@ -1387,7 +1385,6 @@ limitations under the License.
 istio.io/api
 -------- Copyrights
 Copyright 2016-2020 Istio Authors
-Copyright Istio Authors
 Copyright 2019 Istio Authors
 Copyright 2020 Istio Authors
 Copyright (c) 2013 TOML authors
@@ -1418,7 +1415,6 @@ Copyright (c) 2016 Mail.Ru Group
 Copyright (c) 2014 The Go-FlowRate Authors. All rights reserved.
 Copyright (c) 2013-2014 Onsi Fakhouri
 Copyright (c) 2016 Yasuhiro Matsumoto
-Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
 Copyright (c) 2013, Patrick Mezard
 Copyright (c) 2012 Alex Ogier. All rights reserved.
 Copyright (c) 2014 Stretchr, Inc.
@@ -1477,7 +1473,6 @@ Copyright (c) 2016 Mail.Ru Group
 Copyright (c) 2014 The Go-FlowRate Authors. All rights reserved.
 Copyright (c) 2013-2014 Onsi Fakhouri
 Copyright (c) 2016 Yasuhiro Matsumoto
-Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
 Copyright (c) 2011-2012 Peter Bourgon
 Copyright (c) 2013, Patrick Mezard
 Copyright (c) 2012 Alex Ogier. All rights reserved.
@@ -2649,4 +2644,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: dd6f949bb6c2970b180d0c2282620df4
+License file based on go.mod with md5 sum: 8e76bf2af4a2eeb09b61ea88cbda6b4d
