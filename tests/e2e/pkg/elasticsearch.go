@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -230,7 +229,8 @@ func systemES() string {
 	if systemElasticHost == "" {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
-			ginkgo.Fail(err.Error())
+			Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+			return ""
 		}
 		systemElasticHost = getSystemElasticSearchIngressHost(kubeconfigPath)
 	}
