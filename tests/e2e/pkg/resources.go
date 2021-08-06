@@ -41,6 +41,7 @@ var nsGvr = schema.GroupVersionResource{
 func CreateOrUpdateResourceFromFile(file string) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return err
 	}
 
@@ -150,6 +151,7 @@ func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.D
 func DeleteResourceFromFile(file string) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return err
 	}
 	return DeleteResourceFromFileInCluster(file, kubeconfigPath)

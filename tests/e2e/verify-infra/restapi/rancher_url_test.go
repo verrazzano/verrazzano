@@ -25,6 +25,7 @@ var _ = Describe("rancher url test", func() {
 			if !pkg.IsManagedClusterProfile() {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
 					Fail(err.Error())
 				}
 

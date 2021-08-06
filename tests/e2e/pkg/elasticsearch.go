@@ -92,8 +92,10 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 func LogIndexFound(indexName string) bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		ginkgo.Fail(err.Error())
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
 	}
+
 	return LogIndexFoundInCluster(indexName, kubeconfigPath)
 }
 
@@ -114,8 +116,10 @@ func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 func LogRecordFound(indexName string, after time.Time, fields map[string]string) bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		ginkgo.Fail(err.Error())
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
 	}
+
 	return LogRecordFoundInCluster(indexName, after, fields, kubeconfigPath)
 }
 
@@ -252,6 +256,7 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 	configPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error retrieving kubeconfig, error=%v", err))
+		return nil
 	}
 
 	var result map[string]interface{}

@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/pkg/k8sutil"
@@ -92,7 +91,7 @@ var _ = BeforeSuite(func() {
 		var err error
 		adminKubeConfig, err = k8sutil.GetKubeConfigLocation()
 		if err != nil {
-			ginkgo.Fail(err.Error())
+			Fail(err.Error())
 		}
 	}
 })

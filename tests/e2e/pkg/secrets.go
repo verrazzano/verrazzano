@@ -35,6 +35,7 @@ func ListSecrets(namespace string) (*corev1.SecretList, error) {
 func GetSecret(namespace string, name string) (*corev1.Secret, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return nil, err
 	}
 	return GetSecretInCluster(namespace, name, kubeconfigPath)

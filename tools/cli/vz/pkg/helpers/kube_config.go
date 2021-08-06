@@ -210,6 +210,7 @@ func ReadKubeConfig() (Config, error) {
 	if err != nil {
 		return kubeConfig, err
 	}
+
 	byteSliceKubeconfig, err := ioutil.ReadFile(kubeConfigLoc)
 	if err != nil {
 		return kubeConfig, err

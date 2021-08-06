@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
@@ -52,6 +51,7 @@ func (e *Elastic) PodsRunning() bool {
 func (e *Elastic) Connect() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
 		return false
 	}
 
@@ -117,7 +117,8 @@ func (e *Elastic) ListIndices() []string {
 	idx := []string{}
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		ginkgo.Fail(err.Error())
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return nil
 	}
 
 	for i := range e.getIndices(kubeconfigPath) {

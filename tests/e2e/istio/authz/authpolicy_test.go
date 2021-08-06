@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/pkg/k8sutil"
@@ -416,14 +415,11 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	// *** This call should fail for a 500 because Non-Istio can't call Istio when MTLS is STRICT
 	// If this should fail because the call succeeded, verify that peerauthentication exists in istio-system and is set to STRICT
 	It("Verify NoIstio Frontend canNOT call Bar Backend.", func() {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() bool {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", noIstioHost)
-
-			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-			if err != nil {
-				ginkgo.Fail(err.Error())
-			}
 			client, err := pkg.GetVerrazzanoNoRetryHTTPClient(kubeconfigPath)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to get client: %v", err))

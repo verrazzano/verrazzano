@@ -106,8 +106,10 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 func PodsRunning(namespace string, namePrefixes []string) bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		ginkgo.Fail(err.Error())
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
 	}
+
 	return PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
 }
 
@@ -281,8 +283,10 @@ func findMetric(metrics []interface{}, key, value string) bool {
 func MetricsExist(metricsName, key, value string) bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		ginkgo.Fail(err.Error())
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
 	}
+
 	return MetricsExistInCluster(metricsName, key, value, kubeconfigPath)
 }
 

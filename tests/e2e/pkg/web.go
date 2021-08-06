@@ -37,6 +37,7 @@ type HTTPResponse struct {
 func GetWebPage(url string, hostHeader string) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return nil, err
 	}
 
@@ -65,6 +66,7 @@ func GetWebPageWithBasicAuth(url string, hostHeader string, username string, pas
 func GetCertificates(url string) ([]*x509.Certificate, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return nil, err
 	}
 
@@ -93,6 +95,7 @@ func PostWithBasicAuth(url, body, username, password, kubeconfigPath string) (*H
 func PostWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return nil, err
 	}
 
@@ -107,6 +110,7 @@ func PostWithHostHeader(url, contentType string, hostHeader string, body io.Read
 func Delete(url string, hostHeader string) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return nil, err
 	}
 
@@ -183,6 +187,7 @@ func CheckNoServerHeader(resp *HTTPResponse) bool {
 func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return nil, err
 	}
 
@@ -201,6 +206,7 @@ func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
 func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return nil, err
 	}
 

@@ -25,6 +25,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Unable to fetch Kubeconfig, error: %v", err))
 	}
+
 	K8sClient, err = k8s.NewClient(kc)
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))

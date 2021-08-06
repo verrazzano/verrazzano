@@ -76,8 +76,10 @@ func DoesCRDExist(crdName string) (bool, error) {
 func DoesNamespaceExist(name string) (bool, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return false, err
 	}
+
 	return DoesNamespaceExistInCluster(name, kubeconfigPath)
 }
 
@@ -254,6 +256,7 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 func IsDevProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return false
 	}
 
@@ -271,6 +274,7 @@ func IsDevProfile() bool {
 func IsProdProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return false
 	}
 
@@ -288,6 +292,7 @@ func IsProdProfile() bool {
 func IsManagedClusterProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return false
 	}
 
@@ -407,6 +412,7 @@ func DeleteNamespace(name string) error {
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return err
 	}
 
@@ -723,6 +729,7 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
+			Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 			return false, "", err
 		}
 

@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/pkg/k8sutil"
@@ -127,12 +126,10 @@ var _ = Describe("Sock Shop Application", func() {
 	})
 
 	It("SockShop can log in with default user", func() {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%v/login", hostname)
-			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-			if err != nil {
-				ginkgo.Fail(err.Error())
-			}
 			return pkg.GetWebPageWithBasicAuth(url, hostname, username, password, kubeconfigPath)
 		}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
 
