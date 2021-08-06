@@ -8,6 +8,7 @@ import (
 
 	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,6 +23,10 @@ type JobConfigCommon struct {
 	JobImage           string                            // Image name/tag for the job
 	DryRun             bool                              // Perform the job as a dry-run/no-op, for testing purposes
 	IBR                *imagesv1alpha1.ImageBuildRequest // ImageBuildRequest carrying job environmental variables
+	CPULimit           resource.Quantity                 // Pod's resource limit for the CPU
+	MemoryLimit        resource.Quantity                 // Pod's resource limit for memory
+	CPURequest         resource.Quantity                 // Pod's resource request for CPU
+	MemoryRequest      resource.Quantity                 // Pod's resource request for memory
 }
 
 // NoOpMode value for MODE variable for no-op (test) jobs

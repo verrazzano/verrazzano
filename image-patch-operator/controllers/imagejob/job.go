@@ -11,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/image-patch-operator/internal/k8s"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,11 +29,6 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 		annotations = make(map[string]string, 1)
 		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
-
-	cpuLimit, _ := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_LIMIT_CPU"))
-	memoryLimit, _ := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_LIMIT_MEMORY"))
-	cpuRequest, _ := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_REQUEST_CPU"))
-	memoryRequest, _ := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_REQUEST_MEMORY"))
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -56,12 +50,12 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 					Containers: []corev1.Container{{
 						Resources: corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
-								"cpu":    cpuLimit,
-								"memory": memoryLimit,
+								"cpu":    jobConfig.CPULimit,
+								"memory": jobConfig.MemoryLimit,
 							},
 							Requests: corev1.ResourceList{
-								"cpu":    cpuRequest,
-								"memory": memoryRequest,
+								"cpu":    jobConfig.CPURequest,
+								"memory": jobConfig.MemoryRequest,
 							},
 						},
 						Name:            "image-build-request",
