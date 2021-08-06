@@ -121,6 +121,8 @@ function install_verrazzano()
         --set keycloak.enabled=$(is_keycloak_enabled) \
         --set rancher.enabled=$(is_rancher_enabled) \
         --set fluentd.enabled=$(is_fluentd_enabled) \
+        --set verrazzanoOperator.enabled=$(is_vo_vmo_enabled) \
+        --set monitoringOperator.enabled=$(is_vo_vmo_enabled) \
         --set api.proxy.OidcProviderHost=keycloak.${ENV_NAME}.${DNS_SUFFIX} \
         --set api.proxy.OidcProviderHostInCluster=keycloak-http.keycloak.svc.cluster.local \
         $(get_fluentd_extra_volume_mounts) \
@@ -128,21 +130,25 @@ function install_verrazzano()
         ${PROFILE_VALUES_OVERRIDE} \
         ${EXTRA_V8O_ARGUMENTS} || return $?
   fi
-  log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
-  kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
 
-  log "Verifying that needed secrets are created"
-  retries=0
-  until [ "$retries" -ge 60 ]
-  do
-      kubectl get secret -n ${VERRAZZANO_NS} verrazzano | grep verrazzano && break
-      retries=$(($retries+1))
-      sleep 5
-  done
-  if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
-      error "ERROR: failed creating verrazzano secret"
-      exit 1
+  if [ $(is_vo_vmo_enabled) == "true" ]; then
+    log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
+    kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
+
+    log "Verifying that needed secrets are created"
+    retries=0
+    until [ "$retries" -ge 60 ]
+    do
+        kubectl get secret -n ${VERRAZZANO_NS} verrazzano | grep verrazzano && break
+        retries=$(($retries+1))
+        sleep 5
+    done
+    if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
+        error "ERROR: failed creating verrazzano secret"
+        exit 1
+    fi
   fi
+
   log "Verrazzano install completed"
 }
 
@@ -197,8 +203,7 @@ function install_application_operator {
     --namespace "${VERRAZZANO_NS}" \
     ${HELM_IMAGE_ARGS} \
     ${IMAGE_PULL_SECRETS_ARGUMENT} \
-    ${APP_OPERATOR_IMAGE_ARG} \
-    ${EXTRA_V8O_ARGUMENTS} || return $?
+    ${APP_OPERATOR_IMAGE_ARG} || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install Verrazzano Kubernetes application operator."
     return 1
@@ -290,12 +295,14 @@ if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
 fi
 
-if ! kubectl get namespace ${MONITORING_NS} ; then
-  action "Creating ${MONITORING_NS} namespace" kubectl create namespace ${MONITORING_NS} || exit 1
-fi
+if [ $(is_vo_vmo_enabled) == "true" ]; then
+  if ! kubectl get namespace ${MONITORING_NS} ; then
+    action "Creating ${MONITORING_NS} namespace" kubectl create namespace ${MONITORING_NS} || exit 1
+  fi
 
-log "Adding label needed by network policies to ${MONITORING_NS} namespace"
-kubectl label namespace ${MONITORING_NS} "verrazzano.io/namespace=${MONITORING_NS}" --overwrite
+  log "Adding label needed by network policies to ${MONITORING_NS} namespace"
+  kubectl label namespace ${MONITORING_NS} "verrazzano.io/namespace=${MONITORING_NS}" --overwrite
+fi
 
 # If Keycloak is being installed, create the Keycloak namespace if it doesn't exist so we can apply network policies
 if [ $(is_keycloak_enabled) == "true" ] && ! kubectl get namespace keycloak ; then
