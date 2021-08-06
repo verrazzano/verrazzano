@@ -47,6 +47,7 @@ pipeline {
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
                       defaultValue: false,
                       description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)')
+        booleanParam (description: 'Whether to emit pipeline metrics', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -92,6 +93,8 @@ pipeline {
         INSTALL_CONFIG_FILE = "${GO_REPO_PATH}/verrazzano/platform-operator/config/samples/install-default.yaml"
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password')
         DATABASE_PSW = credentials('todo-mysql-password')
+        SAURON_CRED = credentials('verrazzano-sauron')
+        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
     }
 
     stages {
@@ -179,7 +182,11 @@ pipeline {
                 OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
-                listNamepacesAndPods('before installing Verrazzano')
+                script {
+                    listNamepacesAndPods('before installing Verrazzano')
+                    VZ_TEST_METRIC = metricJobName('')
+                    metricTimerStart("${VZ_TEST_METRIC}")
+                }
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
                         cd ${GO_REPO_PATH}/verrazzano
@@ -372,6 +379,7 @@ pipeline {
                 fi
             """
             script {
+                EMIT_TEST_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '-1')
                 failureCount = params.failureCount as Integer
                 failureCount++
                 println("current failureCount: ${failureCount}")
@@ -409,6 +417,7 @@ pipeline {
         }
         aborted {
             script {
+                EMIT_TEST_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                 abort = true
                 sh """
                     echo "Run aborted - ensuring deletion of VZ cluster and operator"
@@ -419,6 +428,11 @@ pipeline {
                     # Remove the platform operator and its resources
                     kubectl delete --ignore-not-found=true -f ${WORKSPACE}/acceptance-test-operator.yaml
                 """
+            }
+        }
+        success {
+            script {
+                EMIT_TEST_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '1')
             }
         }
         cleanup {
@@ -538,4 +552,38 @@ def listNamepacesAndPods(customMessage) {
         kubectl get all --all-namespaces
         echo "-----------------------------------------------------"
     """
+}
+
+def metricJobName(stageName) {
+    job = env.JOB_NAME.split("/")[0]
+    job = '_' + job.replaceAll('-','_')
+    if (stageName) {
+        job = job + '_' + stageName
+    }
+    return job
+}
+
+def metricTimerStart(metricName) {
+    def timerStartName = "${metricName}_START"
+    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
+}
+
+def metricTimerEnd(metricName, status) {
+    def timerStartName = "${metricName}_START"
+    def timerEndName   = "${metricName}_END"
+    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
+    if (params.EMIT_METRICS) {
+        long x = env."${timerStartName}" as long;
+        long y = env."${timerEndName}" as long;
+        def dur = (y-x)
+        def testEnv = 'magicdns_oke_' + "${params.OKE_CLUSTER_VERSION}"
+        labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+                 'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+                 'test_env=\\"' + "$testEnv"+'\\"'
+        EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        echo "emit prometheus metrics: $EMIT"
+        return EMIT
+    } else {
+        return ''
+    }
 }

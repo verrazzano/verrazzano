@@ -66,6 +66,7 @@ pipeline {
                         trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: false)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to emit pipeline metrics', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -146,6 +147,10 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
+        //OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
+        //OC_TELEMETRY_URL = credentials('oci-telemetry-url')
+        SAURON_CRED = credentials('verrazzano-sauron')
+        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
     }
 
     stages {
@@ -373,15 +378,19 @@ pipeline {
             }
             post {
                 always {
-                    sh """
-                        ## dump out install logs
-                        mkdir -p ${WORKSPACE}/platform-operator/scripts/install/build/logs
-                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                        echo "------------------------------------------"
-                    """
+                    script {
+                        sh """
+                            ## dump out install logs
+                            mkdir -p ${WORKSPACE}/platform-operator/scripts/install/build/logs
+                            kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                            kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                            echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+                            echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+                            echo "------------------------------------------"
+                        """
+                        VZ_TEST_METRIC = metricJobName('')
+                        metricTimerStart("${VZ_TEST_METRIC}")
+                    }
                 }
             }
         }
@@ -585,12 +594,18 @@ pipeline {
                 rm archive.zip
             """
             script {
+                EMIT_TEST_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '-1')
                 if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
                     emailext recipientProviders: [[$class: 'CulpritsRecipientProvider'],[$class: 'RequesterRecipientProvider']],
                        subject: "Verrazzano: ${env.JOB_NAME} - Failed",
                        body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
+           }
+       }
+       success {
+           script {
+               EMIT_TEST_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '1')
            }
        }
     }
@@ -791,4 +806,45 @@ def getEffectiveDumpOnSuccess() {
         echo "Forcing dump on success based on global override setting"
     }
     return effectiveValue
+}
+
+def metricJobName(stageName) {
+    job = env.JOB_NAME.split("/")[0]
+    job = '_' + job.replaceAll('-','_')
+    if (stageName) {
+        job = job + '_' + stageName
+    }
+    return job
+}
+
+def metricTimerStart(metricName) {
+    def timerStartName = "${metricName}_START"
+    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
+}
+
+def metricTimerEnd(metricName, status) {
+    def timerStartName = "${metricName}_START"
+    def timerEndName   = "${metricName}_END"
+    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
+    if (params.EMIT_METRICS) {
+        long x = env."${timerStartName}" as long;
+        long y = env."${timerEndName}" as long;
+        def dur = (y-x)
+        def testEnv = 'ocidns_oke_' + "${params.OKE_CLUSTER_VERSION}"
+        
+        // OCI-Telemetry
+        // labels = '\\"number\\"=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+        //          '\\"commit_sha\\"=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+        //          '\\"test_env\\"=\\"' + "$testEnv"+'\\"'
+        // OCI_MET=sh(returnStdout: true, script: "ci/scripts/oci_metric_emit.sh ${env.OC_TELEMETRY_URL} ${env.OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+
+        labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+                 'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+                 'test_env=\\"' + "$testEnv"+'\\"'
+        EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        echo "emit prometheus metrics: $EMIT"
+        return EMIT
+    } else {
+        return ''
+    }
 }

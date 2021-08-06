@@ -43,6 +43,7 @@ pipeline {
                 defaultValue: 'master',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
+        booleanParam (description: 'Whether to emit pipeline metrics', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -98,6 +99,8 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
+        SAURON_CRED = credentials('verrazzano-sauron')
+        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
     }
 
     stages {
@@ -219,16 +222,24 @@ pipeline {
         stage('Build') {
             when { not { buildingTag() } }
             steps {
-                buildImages("${DOCKER_IMAGE_TAG}")
+                script {
+                    VZ_BUILD_METRIC = metricJobName('build')
+                    metricTimerStart("${VZ_BUILD_METRIC}")
+                    buildImages("${DOCKER_IMAGE_TAG}")
+                }
             }
             post {
                 failure {
                     script {
+                        EMIT_METRICS=metricTimerEnd("${VZ_BUILD_METRIC}", '-1')
                         SKIP_TRIGGERED_TESTS = true
                     }
                 }
                 success {
-                    archiveArtifacts artifacts: "generated-verrazzano-bom.json", allowEmptyArchive: true
+                    script {
+                        EMIT_METRICS=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
+                        archiveArtifacts artifacts: "generated-verrazzano-bom.json", allowEmptyArchive: true
+                    }
                 }
             }
         }
@@ -410,6 +421,8 @@ pipeline {
 
             steps {
                 script {
+                    VZ_TEST_METRIC = metricJobName('kind_test')
+                    metricTimerStart("${VZ_TEST_METRIC}")
                     build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
                             string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.18'),
@@ -425,7 +438,13 @@ pipeline {
             post {
                 failure {
                     script {
+                        EMIT_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '-1')
                         SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+                success {
+                    script {
+                        EMIT_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                     }
                 }
             }
@@ -743,4 +762,36 @@ def getSuspectList(commitList, userMappings) {
     }
     echo "returning suspect list: ${retValue}"
     return retValue
+}
+
+def metricJobName(stageName) {
+    job = env.JOB_NAME.split("/")[0]
+    job = '_' + job.replaceAll('-','_')
+    if (stageName) {
+        job = job + '_' + stageName
+    }
+    return job
+}
+
+def metricTimerStart(metricName) {
+    def timerStartName = "${metricName}_START"
+    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
+}
+
+def metricTimerEnd(metricName, status) {
+    def timerStartName = "${metricName}_START"
+    def timerEndName   = "${metricName}_END"
+    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
+    if (params.EMIT_METRICS) {
+        long x = env."${timerStartName}" as long;
+        long y = env."${timerEndName}" as long;
+        def dur = (y-x)
+        labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+                 'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
+        EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
+        echo "emit prometheus metrics: $EMIT"
+        return EMIT
+    } else {
+        return ''
+    }
 }

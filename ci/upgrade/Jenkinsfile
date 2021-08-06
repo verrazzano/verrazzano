@@ -26,7 +26,7 @@ pipeline {
                 choices: [ "1.18", "1.19", "1.20", "1.17" ])
         string (name: 'VERSION_FOR_INSTALL',
                 defaultValue: 'v1.0.0',
-                description: 'This is the Verrazzano veersion for install.  By default, the latest Master release will be installed',
+                description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
                 defaultValue: 'NONE',
@@ -42,6 +42,7 @@ pipeline {
                 choices: [ "nip.io", "sslip.io" ])
         booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to true)', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to emit pipeline metrics', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -75,6 +76,8 @@ pipeline {
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+        SAURON_CRED = credentials('verrazzano-sauron')
+        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
     }
 
     stages {
@@ -194,6 +197,10 @@ pipeline {
                                 echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                                 echo "------------------------------------------"
                             """
+                            script {
+                                VZ_TEST_METRIC = metricJobName('')
+                                metricTimerStart("${VZ_TEST_METRIC}")
+                            }
                         }
                     }
                 }
@@ -312,6 +319,7 @@ pipeline {
             post {
                 failure {
                     script {
+                        EMIT_TEST_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '-1')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
                         }
@@ -319,6 +327,7 @@ pipeline {
                 }
                 success {
                     script {
+                        EMIT_TEST_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
                         }
@@ -469,4 +478,38 @@ def dumpVerrazzanoApiLogs() {
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-api.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
+}
+
+def metricJobName(stageName) {
+    job = env.JOB_NAME.split("/")[0]
+    job = '_' + job.replaceAll('-','_')
+    if (stageName) {
+        job = job + '_' + stageName
+    }
+    return job
+}
+
+def metricTimerStart(metricName) {
+    def timerStartName = "${metricName}_START"
+    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
+}
+
+def metricTimerEnd(metricName, status) {
+    def timerStartName = "${metricName}_START"
+    def timerEndName   = "${metricName}_END"
+    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
+    if (params.EMIT_METRICS) {
+        long x = env."${timerStartName}" as long;
+        long y = env."${timerEndName}" as long;
+        def dur = (y-x)
+        def testEnv = 'kind_' + "${params.KUBERNETES_CLUSTER_VERSION}"
+        labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+                 'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+                 'test_env=\\"' + "$testEnv"+'\\"'
+        EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        echo "emit prometheus metrics: $EMIT"
+        return EMIT
+    } else {
+        return ''
+    }
 }
