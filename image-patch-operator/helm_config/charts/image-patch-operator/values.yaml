@@ -11,6 +11,14 @@ imageTool:
   name: verrazzano-image-build-job
   # image value will be filled in during the build pipeline
   image:
+  # Specifies the resource limits for the Pod running WebLogic Image Tool
+  resourceLimits:
+    cpu: "1100m"
+    memory: "1Gi"
+  # Specifies the resource requests for the Pod running WebLogic Image Tool
+  resourceRequests:
+    cpu: "1100m"
+    memory: "1Gi"
 
 weblogicDeployTool:
   binary: weblogic-deploy.zip

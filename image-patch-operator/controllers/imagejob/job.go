@@ -48,6 +48,16 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
+						Resources: corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								"cpu":    jobConfig.CPULimit,
+								"memory": jobConfig.MemoryLimit,
+							},
+							Requests: corev1.ResourceList{
+								"cpu":    jobConfig.CPURequest,
+								"memory": jobConfig.MemoryRequest,
+							},
+						},
 						Name:            "image-build-request",
 						Image:           jobConfig.JobImage,
 						ImagePullPolicy: corev1.PullIfNotPresent,

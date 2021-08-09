@@ -16,7 +16,13 @@ export WLSIMG_CACHEDIR="/home/verrazzano/cache"
 ./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version ${WDT_INSTALLER_VERSION} --path /installers/${WDT_INSTALLER_BINARY}
 
 # Create the image
-./imagetool/bin/imagetool.sh create --tag ${IMAGE_NAME}:${IMAGE_TAG} --builder podman --jdkVersion ${JDK_INSTALLER_VERSION} --version ${WEBLOGIC_INSTALLER_VERSION} --dryRun=${IBR_DRY_RUN}
+./imagetool/bin/imagetool.sh create \
+  --tag ${IMAGE_NAME}:${IMAGE_TAG} \
+  --builder podman \
+  --jdkVersion ${JDK_INSTALLER_VERSION} \
+  --version ${WEBLOGIC_INSTALLER_VERSION} \
+  --dryRun=${IBR_DRY_RUN} \
+  --fromImage ${BASE_IMAGE}
 
 # Tag and push the image to the registry (only if we are not in a DryRun)
 if [ "${IBR_DRY_RUN}" == "false" ] ; then
