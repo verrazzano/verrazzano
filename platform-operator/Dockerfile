@@ -21,11 +21,9 @@ FROM ghcr.io/oracle/oraclelinux:7-slim
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
-# Use both olcne11 and olcne13 versions since helm-3.1.1 is available only on olcne11 and
-# kubectl 1.20.6-2 only on olcne13
+# Use olcne13, which is required for kubectl 1.20.6-2
 RUN yum update -y \
     && yum install -y openssl jq patch \
-    && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne11/x86_64/ \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne13/x86_64/ \
     && yum install -y kubectl-1.20.6-2.el7 \
     && yum install -y helm-3.3.4-2.el7 \
