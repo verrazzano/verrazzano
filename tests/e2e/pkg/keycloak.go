@@ -13,7 +13,7 @@ import (
 	"io/ioutil"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

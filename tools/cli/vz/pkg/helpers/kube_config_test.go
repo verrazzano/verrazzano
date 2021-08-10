@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"k8s.io/client-go/tools/clientcmd"
 )
 

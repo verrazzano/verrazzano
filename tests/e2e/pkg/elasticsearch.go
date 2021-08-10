@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

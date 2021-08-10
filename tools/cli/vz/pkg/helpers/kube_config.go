@@ -7,7 +7,7 @@ import (
 	"errors"
 	"io/ioutil"
 
-	"github.com/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/yaml"
 )

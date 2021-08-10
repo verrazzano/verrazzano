@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

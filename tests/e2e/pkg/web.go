@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-	"github.com/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

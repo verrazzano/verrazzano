@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"istio.io/api/networking/v1alpha3"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/client-go/util/homedir"

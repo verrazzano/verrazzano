@@ -13,7 +13,7 @@ import (
 	"sync"
 
 	"github.com/onsi/ginkgo"
-	"github.com/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 )
 
 // RunCommand runs an external process, captures the stdout

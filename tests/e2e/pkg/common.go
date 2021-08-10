@@ -19,7 +19,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
-	"github.com/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 )

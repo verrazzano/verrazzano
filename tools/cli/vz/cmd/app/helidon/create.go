@@ -9,7 +9,7 @@ import (
 	"text/template"
 
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )

@@ -7,8 +7,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/pkg/k8sutil"
 	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	verrazzanoclientset "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/app"

@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/pkg/k8sutil"
 	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/fake"
 	verrazzanoclientset "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
