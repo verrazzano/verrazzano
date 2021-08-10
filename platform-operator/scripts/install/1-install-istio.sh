@@ -103,7 +103,7 @@ function install_istio()
         helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
           --install \
           --namespace istio-system \
-          --wait \
+          --wait --timeout 3m \
           -f $VZ_OVERRIDES_DIR/istio-values.yaml \
           ${HELM_IMAGE_ARGS} \
           ${ISTIO_HUB_OVERRIDE} \
@@ -114,8 +114,8 @@ function install_istio()
           local helm_status=$?
           check_for_slow_image_pulls istio-system
           if [[ $? -eq 1 ]]; then
+            reset_chart ${chart_name} istio-system ${ISTIO_CHART_DIR}/istio-control/istio-discovery
             log "Retrying install of istio-system/${chart_name} due to slow image pulls"
-            helm uninstall ${chart_name} --namespace istio-system
           else
             return $helm_status
           fi
@@ -137,7 +137,7 @@ function install_istio()
         helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-ingress \
           --install \
           --namespace istio-system \
-          --wait \
+          --wait --timeout 3m \
           -f $VZ_OVERRIDES_DIR/istio-values.yaml \
           ${HELM_IMAGE_ARGS} \
           ${ISTIO_HUB_OVERRIDE} \
@@ -149,8 +149,8 @@ function install_istio()
           local helm_status=$?
           check_for_slow_image_pulls istio-system
           if [[ $? -eq 1 ]]; then
+            reset_chart ${chart_name} istio-system ${ISTIO_CHART_DIR}/gateways/istio-ingress
             log "Retrying install of istio-system/${chart_name} due to slow image pulls"
-            helm uninstall ${chart_name} --namespace istio-system
           else
             return $helm_status
           fi
@@ -159,15 +159,15 @@ function install_istio()
     fi
 
     if ! is_chart_deployed istio-egress istio-system ${ISTIO_CHART_DIR}/gateways/istio-egress ; then
-      log "Installing istio-system/${chart_name}"
       local chart_name=istio-egress
+      log "Installing istio-system/${chart_name}"
       build_image_overrides istio ${chart_name}
 
       while true ; do
         helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-egress \
           --install \
           --namespace istio-system \
-          --wait \
+          --wait --timeout 3m \
           -f $VZ_OVERRIDES_DIR/istio-values.yaml \
           ${HELM_IMAGE_ARGS} \
           ${ISTIO_HUB_OVERRIDE} \
@@ -178,8 +178,8 @@ function install_istio()
           local helm_status=$?
           check_for_slow_image_pulls istio-system
           if [[ $? -eq 1 ]]; then
+            reset_chart ${chart_name} istio-system ${ISTIO_CHART_DIR}/gateways/istio-egress
             log "Retrying install of istio-system/${chart_name} due to slow image pulls"
-            helm uninstall ${chart_name} --namespace istio-system
           else
             return $helm_status
           fi
@@ -196,7 +196,7 @@ function install_istio()
         helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istiocoredns \
           --install \
           --namespace istio-system \
-          --wait \
+          --wait --timeout 3m \
           -f $VZ_OVERRIDES_DIR/istio-values.yaml \
           ${HELM_IMAGE_ARGS} \
           ${IMAGE_PULL_SECRETS_ARGUMENT}
@@ -206,8 +206,8 @@ function install_istio()
           local helm_status=$?
           check_for_slow_image_pulls istio-system
           if [[ $? -eq 1 ]]; then
+            reset_chart ${chart_name} istio-system ${ISTIO_CHART_DIR}/istiocoredns
             log "Retrying install of istio-system/${chart_name} due to slow image pulls"
-            helm uninstall ${chart_name} --namespace istio-system
           else
             return $helm_status
           fi

@@ -224,19 +224,21 @@ function get_deployment_status() {
 # $2 namespace
 # $3 chart location
 function reset_chart(){
-  local ns=$2
   local chartName=$1
+  local ns=$2
   local chartLocation=${3:-""}
   # status values: unknown, deployed, uninstalled, superseded, failed, uninstalling, pending-install, pending-upgrade or pending-rollback
   local deployment_status=$(get_deployment_status ${chartName} ${ns})
-  log "Deployment status for ${ns}/${chartName}: ${deployment_status}"
-  if [ "${deployment_status}" != "deployed" ]; then
-      log "Resetting chart state for ${ns}/${chartName} at ${chartLocation} if necessary"
-      helm template ${chartName} -n ${ns} ${chartLocation} 2>/dev/null |  kubectl delete -f - 2>/dev/null || true
-      helm uninstall -n ${ns} ${chartName} 2>/dev/null
-      return $?
+  if [ ! -z "${deployment_status}" ] ; then
+    if [ "${deployment_status}" != "deployed" ] ; then
+        log "Deployment status for ${ns}/${chartName}: ${deployment_status}"
+        log "Resetting chart state for ${ns}/${chartName} at ${chartLocation}"
+        helm template ${chartName} -n ${ns} ${chartLocation} 2>/dev/null |  kubectl delete -f - 2>/dev/null || true
+        helm uninstall -n ${ns} ${chartName} 2>/dev/null
+        return $?
+    fi
+    log "Chart ${ns}/${chartName} at ${chartLocation} status: ${deployment_status}"
   fi
-  log "Chart ${ns}/${chartName} at ${chartLocation} status: ${deployment_status}"
   return 0
 }
 
@@ -376,12 +378,14 @@ function generate_password() {
 # Returns 0 if no slow image pulls are detected, otherwise returns 1
 # $1 the namespace to check
 function check_for_slow_image_pulls() {
-  local pulling_count=$(kubectl get events -n $1 | grep Pulling | wc -l)
-  local pulled_count=$(kubectl get events -n $1 | grep 'Successfully pulled' | wc -l)
+  local namespace=$1
+  local pulling_count=$(kubectl get events -n $namespace | grep Pulling | wc -l)
+  local pulled_count=$(kubectl get events -n $namespace | grep 'Successfully pulled' | wc -l)
   if [[ $pulling_count -eq $pulled_count ]]; then
-    echo "Slow image pulls detected for namepaces $1"
+    log "Slow image pulls NOT detected for namespace $namespace after install failure"
 	  return 0
   fi
+  log "Slow image pulls detected for namepace $namespace after install failure"
   return 1
 }
 

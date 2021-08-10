@@ -55,19 +55,19 @@ function install_nginx_ingress_controller()
       while true ; do
         helm upgrade ${chart_name} ${NGINX_INGRESS_CHART_DIR} --install \
           --namespace ${ingress_nginx_ns} \
-          --wait \
+          --wait --timeout 3m \
+          --debug \
           -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
           ${EXTRA_NGINX_ARGUMENTS} \
-          ${HELM_IMAGE_ARGS} \
-          || return $?
+          ${HELM_IMAGE_ARGS}
         if [ $? -eq 0 ]; then
           break
         else
           local helm_status=$?
-          check_for_slow_image_pulls istio-system
+          check_for_slow_image_pulls ${ingress_nginx_ns}
           if [[ $? -eq 1 ]]; then
+            reset_chart ${chart_name} ${ingress_nginx_ns} ${NGINX_INGRESS_CHART_DIR}
             log "Retrying install of ${ingress_nginx_ns}/${chart_name} due to slow image pulls"
-            helm uninstall ${chart_name} --namespace ${ingress_nginx_ns}
           else
             return $helm_status
           fi
@@ -220,17 +220,31 @@ function install_cert_manager()
     fi
 
     build_image_overrides cert-manager ${chartName}
+    log "Installing ${cert_manager_ns}/${chartName}"
 
-    helm upgrade ${chartName} ${CERT_MANAGER_CHART_DIR} \
-        --install \
-        --namespace ${cert_manager_ns} \
-        --version v1.2.0 \
-        -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
-        ${HELM_IMAGE_ARGS} \
-        ${EXTRA_CERT_MANAGER_ARGUMENTS} \
-        --wait \
-        --timeout 10m0s \
-        || return $?
+    while true ; do
+      helm upgrade ${chartName} ${CERT_MANAGER_CHART_DIR} \
+          --install \
+          --namespace ${cert_manager_ns} \
+          --version v1.2.0 \
+          -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
+          ${HELM_IMAGE_ARGS} \
+          ${EXTRA_CERT_MANAGER_ARGUMENTS} \
+          --wait \
+          --timeout 3m --debug
+      if [ $? -eq 0 ]; then
+        break
+      else
+        local helm_status=$?
+        check_for_slow_image_pulls ${cert_manager_ns}
+        if [[ $? -eq 1 ]]; then
+          reset_chart ${chartName} ${cert_manager_ns} ${CERT_MANAGER_CHART_DIR}
+          log "Retrying install of ${cert_manager_ns}/${chartName} due to slow image pulls"
+        else
+          return $helm_status
+        fi
+      fi
+    done
 
     kubectl -n cert-manager rollout status -w deploy/cert-manager
 
@@ -418,16 +432,31 @@ function install_rancher()
       fi
 
       local chart_name=rancher
+      log "Installing cattle-system/${chart_name}"
       build_image_overrides rancher ${chart_name}
 
       # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-      helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
-        --install --namespace cattle-system \
-        --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
-        --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
-        ${HELM_IMAGE_ARGS} \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        ${EXTRA_RANCHER_ARGUMENTS}
+      while true ; do
+        helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
+          --install --namespace cattle-system \
+          --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
+          --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+          ${HELM_IMAGE_ARGS} \
+          ${IMAGE_PULL_SECRETS_ARGUMENT} \
+          ${EXTRA_RANCHER_ARGUMENTS}
+        if [ $? -eq 0 ]; then
+          break
+        else
+          local helm_status=$?
+          check_for_slow_image_pulls cattle-system
+          if [[ $? -eq 1 ]]; then
+            reset_chart ${chart_name} cattle-system ${RANCHER_CHART_DIR}
+            log "Retrying install of cattle-system/${chart_name} due to slow image pulls"
+          else
+            return $helm_status
+          fi
+        fi
+      done
     fi
 
     if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 > /dev/null ; then
