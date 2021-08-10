@@ -7,6 +7,7 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 CLUSTER_COUNT=${1:-1}
 KUBECONFIG_DIR=${2:-""}
+INSTALL_CALICO=${3:-false}
 
 set +e
 
@@ -71,6 +72,10 @@ do
     echo "Setting Terraform workspace: $workspace"
     ./terraform workspace select $workspace -no-color
   fi
+
+  # Set Calico related mandatory variables
+  export TF_VAR_calico_enabled="${INSTALL_CALICO}"
+  export TF_VAR_calico_version="$(grep 'calico-version=' ${SCRIPT_DIR}/../../../../.third-party-test-versions | sed 's/calico-version=//g')"
 
   ./delete-cluster.sh
 done

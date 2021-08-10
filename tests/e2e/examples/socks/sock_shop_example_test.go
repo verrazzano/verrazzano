@@ -238,7 +238,7 @@ var _ = Describe("Sock Shop Application", func() {
 	})
 
 	PIt("SockShop can retrieve orders", func() {
-		//https://jira.oraclecorp.com/jira/browse/VZ-1026
+		//TODO
 	})
 
 	It("Verify '/catalogue' UI endpoint is working.", func() {

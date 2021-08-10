@@ -99,11 +99,13 @@ func IsReleaseInstalled(releaseName string, namespace string) (found bool, err e
 		args = append(args, namespace)
 	}
 	cmd := exec.Command("helm", args...)
-	_, stderr, err := runner.Run(cmd)
+	stdout, stderr, err := runner.Run(cmd)
 	if err == nil {
+		log.Infof("helm status output for release %s\n %s\n", releaseName, string(stdout))
 		return true, nil
 	}
 	if strings.Contains(string(stderr), "not found") {
+		log.Infof("helm release not found for %s\n", releaseName)
 		return false, nil
 	}
 	log.Errorf("helm status for release %s failed with stderr: %s\n", releaseName, string(stderr))

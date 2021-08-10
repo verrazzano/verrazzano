@@ -10,7 +10,7 @@ import (
 )
 
 // ExecuteClusterDump executes the cluster dump tool.
-// command - The fully quallified cluster dump executable.
+// command - The fully qualified cluster dump executable.
 // kubeconfig - The kube config file to use when executing the cluster dump tool.
 // directory - The directory to store the cluster dump within.
 func ExecuteClusterDump(command string, kubeconfig string, directory string) error {
@@ -18,7 +18,8 @@ func ExecuteClusterDump(command string, kubeconfig string, directory string) err
 	if command == "" {
 		return nil
 	}
-	cmd := exec.Command(command, "-d", directory)
+	reportFile := fmt.Sprintf("%s/cluster-dump/analysis.report", directory)
+	cmd := exec.Command(command, "-d", directory, "-r", reportFile)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -28,6 +29,7 @@ func ExecuteClusterDump(command string, kubeconfig string, directory string) err
 	if err := cmd.Wait(); err != nil {
 		return err
 	}
+
 	return nil
 }
 

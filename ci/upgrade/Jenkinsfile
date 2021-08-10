@@ -24,9 +24,9 @@ pipeline {
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
                 choices: [ "1.18", "1.19", "1.20", "1.17" ])
-        string (name: 'GIT_COMMIT_FOR_INSTALL',
-                defaultValue: 'NONE',
-                description: 'This is the full git commit hash for the install.  By default, the latest Master release will be installed',
+        string (name: 'VERSION_FOR_INSTALL',
+                defaultValue: 'v1.0.0',
+                description: 'This is the Verrazzano veersion for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
                 defaultValue: 'NONE',
@@ -159,14 +159,8 @@ pipeline {
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_FOR_UPGRADE
-                    if (params.GIT_COMMIT_FOR_INSTALL == "NONE") {
-                        echo "Specific GIT commit was not specified for install.  Using latest master release"
-                        OPERATOR_YAML_FILE = 'https://github.com/verrazzano/verrazzano/releases/latest/download/operator.yaml'
-                    } else {
-                        INSTALL_SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${GIT_COMMIT_FOR_INSTALL}").trim()
-                        OCI_OS_LOCATION="${INSTALL_SHORT_COMMIT_HASH}"
-                        OPERATOR_YAML_FILE = ""
-                    }
+                    echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
+                    OPERATOR_YAML_FILE = "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml"
                 }
             }
         }
@@ -213,6 +207,7 @@ pipeline {
                     steps {
                         sh """
                         echo "Upgrading the Verrazzano platform operator"
+                        # Download the operator.yaml for the target version that we are upgrading to
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                         cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                         kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
@@ -229,7 +224,9 @@ pipeline {
                 stage("upgrade-verrazzano") {
                     steps {
                         script {
-                            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/generated-verrazzano-bom.json | jq -r '.version'").trim()
+                            // Download the bom for the target version that we are upgrading to, then extract the version
+                            // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
+                            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
                         }
                         sh """
                             echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
