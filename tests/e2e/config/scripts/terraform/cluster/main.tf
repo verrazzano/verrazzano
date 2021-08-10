@@ -3,7 +3,7 @@
 
 module "oke" {
   source = "oracle-terraform-modules/oke/oci"
-  version = "3.2.0"
+  version = "3.3.0"
 
   tenancy_id = var.tenancy_id
   user_id = var.user_id
@@ -24,6 +24,9 @@ module "oke" {
   operator_enabled = var.operator_enabled
   bastion_enabled = var.bastion_enabled
   username = var.username
+
+  calico_enabled = var.calico_enabled
+  calico_version = var.calico_version
 
   vcn_name = "${var.cluster_name}-vcn"
   vcn_dns_label = var.cluster_name
