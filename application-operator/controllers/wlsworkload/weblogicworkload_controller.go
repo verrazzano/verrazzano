@@ -5,10 +5,10 @@ package wlsworkload
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"crypto/rand"
 	"math/big"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
