@@ -463,7 +463,7 @@ func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr
 	secret := &corev1.Secret{}
 	err := r.Get(ctx, client.ObjectKey{Namespace: namespaceName, Name: secretName}, secret)
 	if err != nil && k8serrors.IsNotFound(err) {
-		thePassword, err := genPassword(10)
+		thePassword, err := genPassword(40)
 		if err != nil {
 			return err
 		}
