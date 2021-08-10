@@ -36,7 +36,7 @@ var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var _ = Describe("Multi Cluster Verify Register", func() {
 	Context("Admin Cluster", func() {
 		BeforeEach(func() {
-			os.Setenv(k8sutil.ENV_VAR_TEST_KUBECONFIG, os.Getenv("ADMIN_KUBECONFIG"))
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
 		It("admin cluster create VerrazzanoProject", func() {
@@ -162,7 +162,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 
 	Context("Managed Cluster", func() {
 		BeforeEach(func() {
-			os.Setenv(k8sutil.ENV_VAR_TEST_KUBECONFIG, os.Getenv("MANAGED_KUBECONFIG"))
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
 		It("managed cluster has the expected secrets", func() {
@@ -263,9 +263,9 @@ func findNamespace(namespace string) bool {
 }
 
 func findVerrazzanoProject(projectName string) (bool, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv(k8sutil.ENV_VAR_TEST_KUBECONFIG))
+	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv(k8sutil.EnvVarTestKubeConfig))
 	if err != nil {
-		pkg.Log(pkg.Info, fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv(k8sutil.ENV_VAR_TEST_KUBECONFIG), err))
+		pkg.Log(pkg.Info, fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv(k8sutil.EnvVarTestKubeConfig), err))
 		return false, err
 	}
 

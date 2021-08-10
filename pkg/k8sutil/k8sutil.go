@@ -21,18 +21,18 @@ import (
 )
 
 // Name of Environment Variable for KUBECONFIG
-const ENV_VAR_KUBECONFIG = "KUBECONFIG"
+const EnvVarKubeConfig = "KUBECONFIG"
 
 // Name of Environment Variable for test KUBECONFIG
-const ENV_VAR_TEST_KUBECONFIG = "TEST_KUBECONFIG"
+const EnvVarTestKubeConfig = "TEST_KUBECONFIG"
 
 // Helper function to obtain the default kubeConfig location
 func GetKubeConfigLocation() (string, error) {
-	if testKubeConfig := os.Getenv(ENV_VAR_TEST_KUBECONFIG); len(testKubeConfig) > 0 {
+	if testKubeConfig := os.Getenv(EnvVarTestKubeConfig); len(testKubeConfig) > 0 {
 		return testKubeConfig, nil
 	}
 
-	if kubeConfig := os.Getenv(ENV_VAR_KUBECONFIG); len(kubeConfig) > 0 {
+	if kubeConfig := os.Getenv(EnvVarKubeConfig); len(kubeConfig) > 0 {
 		return kubeConfig, nil
 	}
 

@@ -368,7 +368,7 @@ func GetNamespaceInCluster(name string, kubeconfigPath string) (*corev1.Namespac
 
 // CreateNamespace creates a namespace
 func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, error) {
-	if len(os.Getenv(k8sutil.ENV_VAR_TEST_KUBECONFIG)) > 0 {
+	if len(os.Getenv(k8sutil.EnvVarTestKubeConfig)) > 0 {
 		existingNamespace, err := GetNamespace(name)
 		if err != nil {
 			Log(Error, fmt.Sprintf("CreateNamespace %s, error while getting existing namespace: %v", name, err))
@@ -405,7 +405,7 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 
 // DeleteNamespace deletes a namespace in the cluster specified in the environment
 func DeleteNamespace(name string) error {
-	if len(os.Getenv(k8sutil.ENV_VAR_TEST_KUBECONFIG)) > 0 {
+	if len(os.Getenv(k8sutil.EnvVarTestKubeConfig)) > 0 {
 		Log(Info, fmt.Sprintf("DeleteNamespace %s, test is running with custom service account and therefore namespace won't be deleted by the test", name))
 		return nil
 	}

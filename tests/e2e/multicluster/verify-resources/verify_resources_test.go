@@ -21,7 +21,7 @@ const shortPollInterval = 5 * time.Second
 var _ = Describe("Multi Cluster Verify Resources", func() {
 	Context("Admin Cluster", func() {
 		BeforeEach(func() {
-			os.Setenv(k8sutil.ENV_VAR_TEST_KUBECONFIG, os.Getenv("ADMIN_KUBECONFIG"))
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
 		It("Create VerrazzanoProject with invalid content", func() {

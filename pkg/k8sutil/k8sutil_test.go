@@ -23,16 +23,16 @@ const appConfigNamespace = "test"
 func TestGetKubeConfigLocationEnvVarTestKubeconfig(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
-	prevEnvVar := os.Getenv(k8sutil.ENV_VAR_TEST_KUBECONFIG)
+	prevEnvVar := os.Getenv(k8sutil.EnvVarTestKubeConfig)
 	randomKubeConfig := "/home/testing/somerandompath"
 	// Test using environment variable
-	err := os.Setenv(k8sutil.ENV_VAR_TEST_KUBECONFIG, randomKubeConfig)
+	err := os.Setenv(k8sutil.EnvVarTestKubeConfig, randomKubeConfig)
 	asserts.NoError(err)
 	kubeConfigLoc, err := k8sutil.GetKubeConfigLocation()
 	asserts.NoError(err)
 	asserts.Equal(randomKubeConfig, kubeConfigLoc)
 	// Reset env variable
-	err = os.Setenv(k8sutil.ENV_VAR_TEST_KUBECONFIG, prevEnvVar)
+	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
 	asserts.NoError(err)
 
 }
@@ -40,31 +40,31 @@ func TestGetKubeConfigLocationEnvVarTestKubeconfig(t *testing.T) {
 func TestGetKubeConfigLocationEnvVar(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
-	prevEnvVar := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVar := os.Getenv(k8sutil.EnvVarKubeConfig)
 	randomKubeConfig := "/home/xyz/somerandompath"
 	// Test using environment variable
-	err := os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, randomKubeConfig)
+	err := os.Setenv(k8sutil.EnvVarKubeConfig, randomKubeConfig)
 	asserts.NoError(err)
 	kubeConfigLoc, err := k8sutil.GetKubeConfigLocation()
 	asserts.NoError(err)
 	asserts.Equal(randomKubeConfig, kubeConfigLoc)
 	// Reset env variable
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVar)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVar)
 	asserts.NoError(err)
 
 }
 func TestGetKubeConfigLocationHomeDir(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
-	prevEnvVar := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVar := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Test without environment variable
-	err := os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, "")
+	err := os.Setenv(k8sutil.EnvVarKubeConfig, "")
 	asserts.NoError(err)
 	kubeConfigLoc, err := k8sutil.GetKubeConfigLocation()
 	asserts.NoError(err)
 	asserts.Equal(kubeConfigLoc, homedir.HomeDir()+"/.kube/config")
 	// Reset env variable
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVar)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVar)
 	asserts.NoError(err)
 }
 
@@ -72,17 +72,17 @@ func TestGetKubeConfigLocationReturnsError(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
 	prevEnvVarHome := os.Getenv(envVarHome)
-	prevEnvVarKubeConfig := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Unset HOME environment variable
 	err := os.Setenv(envVarHome, "")
 	asserts.NoError(err)
 	// Unset KUBECONFIG environment variable
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, "")
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, "")
 	asserts.NoError(err)
 	_, err = k8sutil.GetKubeConfigLocation()
 	asserts.Error(err)
 	// Reset env variables
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVarKubeConfig)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 	err = os.Setenv(envVarHome, prevEnvVarHome)
 	asserts.NoError(err)
@@ -92,17 +92,17 @@ func TestGetKubeConfigReturnsError(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
 	prevEnvVarHome := os.Getenv(envVarHome)
-	prevEnvVarKubeConfig := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Unset HOME environment variable
 	err := os.Setenv(envVarHome, "")
 	asserts.NoError(err)
 	// Unset KUBECONFIG environment variable
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, "")
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, "")
 	asserts.NoError(err)
 	_, err = k8sutil.GetKubeConfig()
 	asserts.Error(err)
 	// Reset env variables
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVarKubeConfig)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 	err = os.Setenv(envVarHome, prevEnvVarHome)
 	asserts.NoError(err)
@@ -111,18 +111,18 @@ func TestGetKubeConfigReturnsError(t *testing.T) {
 func TestGetKubeConfigDummyKubeConfig(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
-	prevEnvVarKubeConfig := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Unset KUBECONFIG environment variable
 	wd, err := os.Getwd()
 	asserts.NoError(err)
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
 	asserts.NoError(err)
 	kubeconfig, err := k8sutil.GetKubeConfig()
 	asserts.NoError(err)
 	asserts.NotNil(kubeconfig)
 	asserts.Equal(kubeconfig.Host, dummyk8sHost)
 	// Reset env variables
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVarKubeConfig)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 }
 
@@ -130,17 +130,17 @@ func TestGetKubernetesClientsetReturnsError(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
 	prevEnvVarHome := os.Getenv(envVarHome)
-	prevEnvVarKubeConfig := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Unset HOME environment variable
 	err := os.Setenv(envVarHome, "")
 	asserts.NoError(err)
 	// Unset KUBECONFIG environment variable
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, "")
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, "")
 	asserts.NoError(err)
 	_, err = k8sutil.GetKubernetesClientset()
 	asserts.Error(err)
 	// Reset env variables
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVarKubeConfig)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 	err = os.Setenv(envVarHome, prevEnvVarHome)
 	asserts.NoError(err)
@@ -149,17 +149,17 @@ func TestGetKubernetesClientsetReturnsError(t *testing.T) {
 func TestGetKubernetesClientsetDummyKubeConfig(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
-	prevEnvVarKubeConfig := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Unset KUBECONFIG environment variable
 	wd, err := os.Getwd()
 	asserts.NoError(err)
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
 	asserts.NoError(err)
 	clientset, err := k8sutil.GetKubernetesClientset()
 	asserts.NoError(err)
 	asserts.NotNil(clientset)
 	// Reset env variables
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVarKubeConfig)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 }
 
@@ -167,17 +167,17 @@ func TestGetIstioClientsetReturnsError(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
 	prevEnvVarHome := os.Getenv(envVarHome)
-	prevEnvVarKubeConfig := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Unset HOME environment variable
 	err := os.Setenv(envVarHome, "")
 	asserts.NoError(err)
 	// Unset KUBECONFIG environment variable
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, "")
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, "")
 	asserts.NoError(err)
 	_, err = k8sutil.GetIstioClientset()
 	asserts.Error(err)
 	// Reset env variables
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVarKubeConfig)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 	err = os.Setenv(envVarHome, prevEnvVarHome)
 	asserts.NoError(err)
@@ -186,17 +186,17 @@ func TestGetIstioClientsetReturnsError(t *testing.T) {
 func TestGetIstioClientsetDummyKubeConfig(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
-	prevEnvVarKubeConfig := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Unset KUBECONFIG environment variable
 	wd, err := os.Getwd()
 	asserts.NoError(err)
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
 	asserts.NoError(err)
 	istioClientSet, err := k8sutil.GetIstioClientset()
 	asserts.NoError(err)
 	asserts.NotNil(istioClientSet)
 	// Reset env variables
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVarKubeConfig)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 }
 
@@ -204,17 +204,17 @@ func TestGetHostnameFromGatewayReturnsErrorNoKubeconfig(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
 	prevEnvVarHome := os.Getenv(envVarHome)
-	prevEnvVarKubeConfig := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Unset HOME environment variable
 	err := os.Setenv(envVarHome, "")
 	asserts.NoError(err)
 	// Unset KUBECONFIG environment variable
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, "")
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, "")
 	asserts.NoError(err)
 	_, err = k8sutil.GetHostnameFromGateway(appConfigNamespace, appConfigName)
 	asserts.Error(err)
 	// Reset env variables
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVarKubeConfig)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 	err = os.Setenv(envVarHome, prevEnvVarHome)
 	asserts.NoError(err)
@@ -223,27 +223,27 @@ func TestGetHostnameFromGatewayReturnsErrorNoKubeconfig(t *testing.T) {
 func TestGetHostnameFromGatewayErrorListGateways(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
-	prevEnvVarKubeConfig := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Unset KUBECONFIG environment variable
 	wd, err := os.Getwd()
 	asserts.NoError(err)
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
 	asserts.NoError(err)
 	_, err = k8sutil.GetHostnameFromGateway(appConfigNamespace, appConfigName)
 	asserts.Error(err)
 	// Reset env variables
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVarKubeConfig)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 }
 
 func TestGetHostnameFromGatewayGatewayForAppConfigDoesNotExist(t *testing.T) {
 	asserts := assert.New(t)
 	// Preserve previous env var value
-	prevEnvVarKubeConfig := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Unset KUBECONFIG environment variable
 	wd, err := os.Getwd()
 	asserts.NoError(err)
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
 	asserts.NoError(err)
 
 	gateway1 := istiov1alpha3.Gateway{}
@@ -253,7 +253,7 @@ func TestGetHostnameFromGatewayGatewayForAppConfigDoesNotExist(t *testing.T) {
 	hostname, _ := k8sutil.GetHostnameFromGateway(appConfigNamespace, appConfigName, gateway1, gateway2)
 	asserts.Empty(hostname)
 	// Reset env variables
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVarKubeConfig)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 }
 
@@ -261,11 +261,11 @@ func TestGetHostnameFromGatewayGatewaysForAppConfigExists(t *testing.T) {
 	asserts := assert.New(t)
 	serverHost := "testhost"
 	// Preserve previous env var value
-	prevEnvVarKubeConfig := os.Getenv(k8sutil.ENV_VAR_KUBECONFIG)
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
 	// Unset KUBECONFIG environment variable
 	wd, err := os.Getwd()
 	asserts.NoError(err)
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
 	asserts.NoError(err)
 
 	gateway1 := istiov1alpha3.Gateway{}
@@ -279,6 +279,6 @@ func TestGetHostnameFromGatewayGatewaysForAppConfigExists(t *testing.T) {
 	hostname, _ := k8sutil.GetHostnameFromGateway(appConfigNamespace, appConfigName, gateway1, gateway2)
 	asserts.Equal(serverHost, hostname)
 	// Reset env variables
-	err = os.Setenv(k8sutil.ENV_VAR_KUBECONFIG, prevEnvVarKubeConfig)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 }

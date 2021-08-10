@@ -28,7 +28,7 @@ var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var _ = Describe("Multi Cluster Verify API", func() {
 	Context("Admin Cluster", func() {
 		BeforeEach(func() {
-			os.Setenv(k8sutil.ENV_VAR_TEST_KUBECONFIG, os.Getenv("ADMIN_KUBECONFIG"))
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
 		It("Get and Validate Verrazzano resource for admin cluster", func() {
