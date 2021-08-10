@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"crypto/rand"
 	"math/big"
-	"strings"
-	"time"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -485,7 +483,7 @@ func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr
 
 		// Set the owner reference.
 		appConfig := &v1alpha2.ApplicationConfiguration{}
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: appName}, appConfig)
+		err = r.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: appName}, appConfig)
 		if err != nil {
 			return err
 		}
