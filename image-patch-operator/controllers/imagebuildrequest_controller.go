@@ -17,6 +17,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -84,6 +85,24 @@ func (r *ImageBuildRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, 
 
 // createImageJob creates the image job
 func (r *ImageBuildRequestReconciler) createImageJob(ctx context.Context, log *zap.SugaredLogger, ibr *imagesv1alpha1.ImageBuildRequest, configMapName string) error {
+	// Resource limits and requests
+	cpuLimit, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_LIMIT_CPU"))
+	if err != nil {
+		return err
+	}
+	memoryLimit, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_LIMIT_MEMORY"))
+	if err != nil {
+		return err
+	}
+	cpuRequest, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_REQUEST_CPU"))
+	if err != nil {
+		return err
+	}
+	memoryRequest, err := resource.ParseQuantity(os.Getenv("WIT_POD_RESOURCE_REQUEST_MEMORY"))
+	if err != nil {
+		return err
+	}
+
 	// Define a new image job resource
 	job := imagejob.NewJob(
 		&imagejob.JobConfig{
@@ -95,6 +114,10 @@ func (r *ImageBuildRequestReconciler) createImageJob(ctx context.Context, log *z
 				JobImage:           os.Getenv("WIT_IMAGE"),
 				DryRun:             r.DryRun,
 				IBR:                ibr,
+				CPULimit:           cpuLimit,
+				MemoryLimit:        memoryLimit,
+				CPURequest:         cpuRequest,
+				MemoryRequest:      memoryRequest,
 			},
 			ConfigMapName: configMapName,
 		})
@@ -107,7 +130,7 @@ func (r *ImageBuildRequestReconciler) createImageJob(ctx context.Context, log *z
 	// Check if the image job exist
 	jobFound := &batchv1.Job{}
 	log.Infof("Checking if image job %s exist", buildImageJobName(ibr.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: buildImageJobName(ibr.Name), Namespace: ibr.Namespace}, jobFound)
+	err = r.Get(ctx, types.NamespacedName{Name: buildImageJobName(ibr.Name), Namespace: ibr.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating image job %s, dry-run=%v", buildImageJobName(ibr.Name), r.DryRun)
 		err = r.Create(ctx, job)

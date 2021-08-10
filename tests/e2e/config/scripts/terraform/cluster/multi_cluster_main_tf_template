@@ -25,6 +25,9 @@ module "MODULE_NAME" {
   bastion_enabled = var.bastion_enabled
   username = var.username
 
+  calico_enabled = var.calico_enabled
+  calico_version = var.calico_version
+
   vcn_name = "CLUSTER_NAME-vcn"
   vcn_dns_label = var.cluster_name
   label_prefix = var.label_prefix

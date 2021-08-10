@@ -25,7 +25,7 @@ EXCLUDE_COMPONENTS=
 function usage() {
   ec=${1:-0}
   echo """
-This script is to help pushing Verrazzao container images into a private repository from their default locations
+This script is to help pushing Verrazzano container images into a private repository from their default locations
 usage:
 
   $0 -t <docker-registry> [-l <archive-path> -r <repository-path>]
