@@ -67,7 +67,7 @@ const OidcNginxConfFileTemplate = `#user  nobody;
 {{- if eq .Mode "oauth-proxy" }}
 {{- if eq .SSLEnabled true }}
         lua_ssl_verify_depth 2;
-        lua_ssl_trusted_certificate /secret/ca-bundle;
+        lua_ssl_trusted_certificate /etc/ssl/certs/ca-bundle.crt;
 {{- end }}
 
         upstream http_backend {
