@@ -166,9 +166,9 @@ func undeployFooApplication() {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	// NOTE: This function does wait for the pods to terminate even though it's not using Eventually
-	notRunning := pkg.PodsNotRunning(fooNamespace, expectedPodsFoo)
-	Expect(notRunning).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", fooNamespace))
+	Eventually(func() (bool, error) {
+		return pkg.PodsNotRunning(fooNamespace, expectedPodsFoo)
+	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", fooNamespace))
 
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
@@ -201,9 +201,9 @@ func undeployBarApplication() {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	// NOTE: This function does wait for the pods to terminate even though it's not using Eventually
-	notRunning := pkg.PodsNotRunning(barNamespace, expectedPodsBar)
-	Expect(notRunning).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", barNamespace))
+	Eventually(func() (bool, error) {
+		return pkg.PodsNotRunning(barNamespace, expectedPodsBar)
+	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", barNamespace))
 
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
@@ -236,9 +236,9 @@ func undeployNoIstioApplication() {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	// NOTE: This function does wait for the pods to terminate even though it's not using Eventually
-	notRunning := pkg.PodsNotRunning(noIstioNamespace, expectedPodsBar)
-	Expect(notRunning).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", noIstioNamespace))
+	Eventually(func() (bool, error) {
+		return pkg.PodsNotRunning(noIstioNamespace, expectedPodsBar)
+	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", noIstioNamespace))
 
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {

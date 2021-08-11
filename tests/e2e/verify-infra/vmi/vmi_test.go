@@ -123,17 +123,23 @@ var _ = Describe("VMI", func() {
 	if isManagedClusterProfile {
 		It("Elasticsearch should NOT be present", func() {
 			// Verify ES not present
-			Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})).To(BeTrue())
+			Eventually(func() (bool, error) {
+				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(elasticTLSSecret()).To(BeTrue())
 			Expect(elastic.CheckIngress()).To(BeFalse())
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-es-ingest"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
 			// Verify Kibana not present
-			Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})).To(BeTrue())
+			Eventually(func() (bool, error) {
+				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-kibana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
 			// Verify Grafana not present
-			Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-grafana"})).To(BeTrue())
+			Eventually(func() (bool, error) {
+				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-grafana"})
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-grafana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 		})
 	} else {
