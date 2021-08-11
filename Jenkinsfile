@@ -98,6 +98,9 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
+
+        PROMETHEUS_CRED = credentials('verrazzano-sauron')
+        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
     }
 
     stages {
@@ -350,6 +353,15 @@ pipeline {
                 }
                 always {
                     archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Emit Metrics') {
+            when { not { buildingTag() } }
+            steps {
+                script {
+                    genMetrics "${GO_REPO_PATH}/verrazzano/tests/e2e", "${env.PROMETHEUS_CRED}", "${env.PROMETHEUS_GW_URL}", "${env.GIT_COMMIT}", "kind_1.18", "${env.BRANCH_NAME}", "${env.BUILD_NUMBER}", "${env.JOB_NAME}"
                 }
             }
         }
