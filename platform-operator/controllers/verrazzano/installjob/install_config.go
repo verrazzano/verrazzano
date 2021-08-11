@@ -19,7 +19,7 @@ import (
 
 const (
 	defaultCAClusterResourceName string = "cert-manager"
-	defaultCASecretName          string = "verrazzano-ca-certificate-secret"
+	defaultCASecretName          string = "verrazzano-ca-certificate-secret" //nolint:gosec //#gosec G101
 
 	// Verrazzano Helm chart value names
 	esStorageValueName         string = "elasticSearch.nodes.data.requests.storage"

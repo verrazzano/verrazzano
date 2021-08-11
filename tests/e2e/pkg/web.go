@@ -215,7 +215,11 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) (*http.Clie
 	if err != nil {
 		return nil, err
 	}
-	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: ca}}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs:    ca,
+			MinVersion: tls.VersionTLS12},
+	}
 
 	proxyURL := getProxyURL()
 	if proxyURL != "" {

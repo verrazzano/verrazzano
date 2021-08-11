@@ -22,14 +22,14 @@ type QualifiedResourceRelation struct {
 // right - The second qualified resource relation for the equivalence comparison
 func QualifiedResourceRelationSlicesEquivalent(left []QualifiedResourceRelation, right []QualifiedResourceRelation) bool {
 	// Verify items in left slice exists in right slice
-	for _, rel := range left {
-		if !QualifiedResourceRelationsContain(right, &rel) {
+	for i := range left {
+		if !QualifiedResourceRelationsContain(right, &left[i]) {
 			return false
 		}
 	}
 	// Verify items in right slice exist in left slice
-	for _, rel := range right {
-		if !QualifiedResourceRelationsContain(left, &rel) {
+	for i := range right {
+		if !QualifiedResourceRelationsContain(left, &right[i]) {
 			return false
 		}
 	}
@@ -40,8 +40,8 @@ func QualifiedResourceRelationSlicesEquivalent(left []QualifiedResourceRelation,
 // slice - The slice of qualified resource relations to search
 // find - The qualified resource relation to find in the slice
 func QualifiedResourceRelationsContain(slice []QualifiedResourceRelation, find *QualifiedResourceRelation) bool {
-	for _, rel := range slice {
-		if reflect.DeepEqual(find, &rel) {
+	for i := range slice {
+		if reflect.DeepEqual(find, &slice[i]) {
 			return true
 		}
 	}

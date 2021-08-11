@@ -61,10 +61,10 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 		s.Log.Error(err, "failed to list VerrazzanoProject on local cluster")
 		return nil
 	}
-	for _, project := range allLocalProjects.Items {
+	for i, project := range allLocalProjects.Items {
 		// Delete each VerrazzanoProject object that is not on the admin cluster
 		if !projectListContains(allAdminProjects, project.Name, project.Namespace) {
-			err := s.LocalClient.Delete(s.Context, &project)
+			err := s.LocalClient.Delete(s.Context, &allLocalProjects.Items[i])
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete VerrazzanoProject with name %q and namespace %q", project.Name, project.Namespace))
 			}

@@ -26,7 +26,7 @@ type KeycloakRESTClient struct {
 const (
 	keycloakNamespace               = "keycloak"
 	keycloadIngressName             = "keycloak"
-	keycloakAdminUserPasswordSecret = "keycloak-http"
+	keycloakAdminUserPasswordSecret = "keycloak-http" //nolint:gosec //#gosec G101
 	keycloakAdminUserRealm          = "master"
 	keycloakAdminUserName           = "keycloakadmin"
 

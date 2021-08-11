@@ -125,8 +125,8 @@ func TestSetAndRemoveAuthInfo(t *testing.T) {
 	err = os.Setenv("KUBECONFIG", currentDirectory+"/fakekubeconfig")
 	asserts.NoError(err)
 
-	fakeAccessToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew"
-	fakeRefreshToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew"
+	fakeAccessToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew"  //nolint:gosec //#gosec G101
+	fakeRefreshToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew" //nolint:gosec //#gosec G101
 
 	// Add a user to kubeconfig
 	err = SetUserInKubeConfig(KubeConfigKeywordVerrazzano,

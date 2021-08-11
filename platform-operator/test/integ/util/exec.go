@@ -25,9 +25,9 @@ func RunCommand(commandLine string) (string, string) {
 	if len(parts) < 1 {
 		ginkgo.Fail("No command provided")
 	} else if len(parts) == 1 {
-		cmd = exec.Command(parts[0], "")
+		cmd = exec.Command(parts[0], "") //nolint:gosec //#nosec G204
 	} else {
-		cmd = exec.Command(parts[0], parts[1:]...)
+		cmd = exec.Command(parts[0], parts[1:]...) //nolint:gosec //#nosec G204
 	}
 	var stdoutBuf, stderrBuf bytes.Buffer
 	stdoutIn, _ := cmd.StdoutPipe()

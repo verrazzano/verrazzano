@@ -254,7 +254,7 @@ func WriteToKubeConfig(kubeConfig Config) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(kubeConfigLoc, byteSliceKubeConfig, 0644)
+	err = ioutil.WriteFile(kubeConfigLoc, byteSliceKubeConfig, 0600)
 	if err != nil {
 		return err
 	}

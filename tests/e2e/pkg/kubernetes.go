@@ -863,8 +863,8 @@ func GetPersistentVolumes(namespace string) (map[string]*corev1.PersistentVolume
 
 	volumeClaims := make(map[string]*corev1.PersistentVolumeClaim)
 
-	for _, pvc := range pvcs.Items {
-		volumeClaims[pvc.Name] = &pvc
+	for i, pvc := range pvcs.Items {
+		volumeClaims[pvc.Name] = &pvcs.Items[i]
 	}
 	return volumeClaims, nil
 }

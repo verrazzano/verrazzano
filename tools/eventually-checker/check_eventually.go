@@ -209,8 +209,8 @@ func checkForBadCalls() map[token.Pos][]token.Pos {
 	var resultsMap = make(map[token.Pos][]token.Pos)
 
 	for key, val := range eventuallyMap {
-		for _, eventuallyFuncCall := range val {
-			if fc := findBadCall(&eventuallyFuncCall, 0); fc != nil {
+		for i := range val {
+			if fc := findBadCall(&val[i], 0); fc != nil {
 				if _, ok := resultsMap[fc.pos]; !ok {
 					resultsMap[fc.pos] = make([]token.Pos, 0)
 				}
@@ -233,9 +233,9 @@ func findBadCall(fc *funcCall, depth int) *funcCall {
 	if strings.HasSuffix(fc.name, ".Fail") || strings.HasSuffix(fc.name, ".Expect") {
 		return fc
 	}
-
-	for _, child := range funcMap[fc.name] {
-		if childFuncCall := findBadCall(&child, depth+1); childFuncCall != nil {
+	fn := funcMap[fc.name]
+	for i := range fn {
+		if childFuncCall := findBadCall(&fn[i], depth+1); childFuncCall != nil {
 			return childFuncCall
 		}
 	}
