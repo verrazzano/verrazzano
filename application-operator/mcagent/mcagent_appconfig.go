@@ -43,10 +43,10 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 		s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
 		return nil
 	}
-	for _, mcAppConfig := range allLocalMCAppConfigs.Items {
+	for i, mcAppConfig := range allLocalMCAppConfigs.Items {
 		// Delete each MultiClusterApplicationConfiguration object that is not on the admin cluster or no longer placed on this cluster
 		if !s.appConfigPlacedOnCluster(&allAdminMCAppConfigs, mcAppConfig.Name, mcAppConfig.Namespace) {
-			err := s.LocalClient.Delete(s.Context, &mcAppConfig)
+			err := s.LocalClient.Delete(s.Context, &allLocalMCAppConfigs.Items[i])
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterApplicationConfiguration with name %q and namespace %q", mcAppConfig.Name, mcAppConfig.Namespace))
 			}

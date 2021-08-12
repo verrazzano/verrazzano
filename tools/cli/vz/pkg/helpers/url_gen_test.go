@@ -124,7 +124,7 @@ func TestGenerateKeycloakTokenURL(t *testing.T) {
 func TestGenerateRedirectURI(t *testing.T) {
 	asserts := assert.New(t)
 	for i := 2; i < 5; i++ {
-		listener, err := net.Listen("tcp", ":0")
+		listener, err := net.Listen("tcp", "localhost:0")
 		asserts.NoError(err)
 		expectedURI := "http://localhost:" + strconv.Itoa(listener.Addr().(*net.TCPAddr).Port)
 		actualURI := GenerateRedirectURI(listener)

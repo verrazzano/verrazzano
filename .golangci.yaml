@@ -9,6 +9,7 @@ linters:
     - golint
     - gosimple
     - deadcode
+    - gosec
   disable-all: true
   fast: true
 

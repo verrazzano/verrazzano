@@ -4,9 +4,10 @@
 package integ_test
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"strings"
 	"time"
 
@@ -123,8 +124,10 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	})
 	//FLUENTD sidecar needs app's explicit logging scope secret to be present in app NS
 	It("Explicit logging scope secret is manually created in application namespace", func() {
+		password, err := genPassword(10)
+		Expect(err).To(BeNil(), "Expected password generation to succeed.")
 		command := fmt.Sprintf("create secret generic %s -n %s --from-literal=password=%s --from-literal=username=someUser",
-			appLoggingScopeSecret, appNamespace, genPassword(10))
+			appLoggingScopeSecret, appNamespace, password)
 		_, stderr := util.Kubectl(command)
 		Expect(stderr).To(Equal(""))
 	})
@@ -248,11 +251,15 @@ func appConfigExists() bool {
 
 var passwordChars = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func genPassword(passSize int) string {
-	rand.Seed(time.Now().UnixNano())
+// genPassword generates a password string of a specific size.
+func genPassword(passSize int) (string, error) {
+	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(len(passwordChars))))
+	if err != nil {
+		return "", err
+	}
 	var b strings.Builder
 	for i := 0; i < passSize; i++ {
-		b.WriteRune(passwordChars[rand.Intn(len(passwordChars))])
+		b.WriteRune(passwordChars[nBig.Int64()])
 	}
-	return b.String()
+	return b.String(), nil
 }
