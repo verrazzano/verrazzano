@@ -312,6 +312,8 @@ func updateLoggingDaemonSet(newSecret, secretVersion string, ds *appsv1.DaemonSe
 			ds.Spec.Template.Spec.Containers[i].Env = updateEnv(newSecret, secretVersion, ds.Spec.Template.Spec.Containers[i].Env)
 			ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
 				registrationSecretVersion, secretVersion)
+			ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
+				"CA_FILE", "/fluentd/secret/ca-bundle")
 		}
 	}
 	return ds
