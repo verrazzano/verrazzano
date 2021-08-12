@@ -16,26 +16,29 @@ import (
 )
 
 // Flags
-var testReportDir string
 var promCredentials string
+var prometheusURL string
+
+var testReportDir string
 var gitCommit string
 var testEnvironment string
 var gitBranch string
 var buildNumber string
 var buildJobName string
-var prometheusURL string
 
 // Credentials to push the metrics
 var user = ""
 var pwd = ""
+
+// instance
 var inst = ""
 
+// constants
 const commitSha = "commit_sha"
 const branch = "branch"
 const jobNumber = "job_number"
 const testEnv = "test_env"
 const instance = "instance"
-
 const metricPrefix = "_verrazzano_"
 const statusSuffix = "_status"
 const timeSuffix = "_time"
@@ -110,7 +113,10 @@ func processInput() (exitCode int) {
 		printUsage()
 		return 1
 	}
-	fmt.Println("buildJobName: ", buildJobName)
+	// Extract only the first part, and remove the feature branch
+	jobParts := strings.Split(buildJobName, "/")
+	buildJobName = jobParts[0]
+	fmt.Println("buildJobName : ", buildJobName)
 
 	// extract user and password from the promCredentials
 	cred := strings.Split(promCredentials, ":")
@@ -118,6 +124,7 @@ func processInput() (exitCode int) {
 	pwd = cred[1]
 
 	inst = getInstanceFromBranch(gitBranch)
+	fmt.Println("Instance : ", inst)
 	return 0
 }
 
@@ -161,9 +168,8 @@ func emitTestStatus(metricName string, metricValue float64) {
 		Collector(statusMetric).
 		BasicAuth(user, pwd).
 		Add(); err != nil {
-		fmt.Println("Could not push completion time to push gateway.")
+		fmt.Println("Could not push completion time to push gateway, ", err)
 	}
-	fmt.Println("Emitted metric for the test status successfully.")
 }
 
 func emitTestTime(metricName string, testDuration int64) {
@@ -184,9 +190,8 @@ func emitTestTime(metricName string, testDuration int64) {
 		Collector(timeMetric).
 		BasicAuth(user, pwd).
 		Add(); err != nil {
-		fmt.Println("Could not push completion time to push gateway.")
+		fmt.Println("Could not push completion time to push gateway, ", err)
 	}
-	fmt.Println("Emitted metric for the test time successfully.")
 }
 
 func getInstanceFromBranch(branchName string) (instance string) {
