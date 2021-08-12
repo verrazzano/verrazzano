@@ -145,6 +145,7 @@ func processJunitReports() {
 			}
 		}
 		metricName = strings.ReplaceAll(strings.ToLower(suite.Name), " ", "_")
+		metricName = strings.ReplaceAll(strings.ToLower(metricName), "-", "_")
 		emitTestStatus(metricName, metricValue)
 		emitTestTime(metricName, suite.Totals.Duration.Milliseconds())
 	}
