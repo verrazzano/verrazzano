@@ -18,7 +18,6 @@ import (
 // Flags
 var promCredentials string
 var prometheusURL string
-
 var testReportDir string
 var gitCommit string
 var testEnvironment string
@@ -123,8 +122,7 @@ func processInput() (exitCode int) {
 	user = cred[0]
 	pwd = cred[1]
 
-	inst = getInstanceFromBranch(gitBranch)
-	fmt.Println("Instance : ", inst)
+	inst = removeSpecialChars(gitBranch)
 	return 0
 }
 
@@ -134,25 +132,23 @@ func processJunitReports() {
 		log.Fatalf("failed to ingest JUnit xml %v", err)
 	}
 
-	metricValue := 0.0
-	metricName := ""
 	for _, suite := range suites {
+		testStatus := 0.0
 		if suite.Totals.Tests == suite.Totals.Passed {
-			metricValue = 1.0
+			testStatus = 1.0
 		} else {
 			if suite.Totals.Failed > 0 {
-				metricValue = -1.0
+				testStatus = -1.0
 			}
 		}
-		metricName = strings.ReplaceAll(strings.ToLower(suite.Name), " ", "_")
-		metricName = strings.ReplaceAll(strings.ToLower(metricName), "-", "_")
-		emitTestStatus(metricName, metricValue)
-		emitTestTime(metricName, suite.Totals.Duration.Milliseconds())
+		metricName := removeSpecialChars(suite.Name)
+		emitTestMetrics(metricPrefix+metricName+statusSuffix, testStatus)
+		emitTestMetrics(metricPrefix+metricName+timeSuffix, float64(suite.Totals.Duration.Milliseconds()))
 	}
 }
 
-func emitTestStatus(metricName string, metricValue float64) {
-	metricName = metricPrefix + metricName + statusSuffix
+// Emit metrics for the test status and execution time
+func emitTestMetrics(metricName string, metricValue float64) {
 	statusMetric := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: metricName,
 		ConstLabels: prometheus.Labels{
@@ -173,37 +169,16 @@ func emitTestStatus(metricName string, metricValue float64) {
 	}
 }
 
-func emitTestTime(metricName string, testDuration int64) {
-	metricName = metricPrefix + metricName + timeSuffix
-	timeMetric := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: metricName,
-		ConstLabels: prometheus.Labels{
-			commitSha: gitCommit,
-			branch:    gitBranch,
-			jobNumber: buildNumber,
-			testEnv:   testEnvironment,
-			instance:  inst,
-		},
-	})
-	timeMetric.SetToCurrentTime()
-	timeMetric.Set(float64(testDuration))
-	if err := push.New(prometheusURL, buildJobName).
-		Collector(timeMetric).
-		BasicAuth(user, pwd).
-		Add(); err != nil {
-		fmt.Println("Could not push completion time to push gateway, ", err)
-	}
-}
-
-func getInstanceFromBranch(branchName string) (instance string) {
-	// Retain only alphanumeric characters, / and _ from the git branch name
+// The label instance and the value for metric doesn't allow special characters.
+// Replace all the non-alphanumeric characters with an underscore
+func removeSpecialChars(inputParam string) string {
+	strings.ReplaceAll(strings.ToLower(inputParam), " ", "_")
 	reg, err := regexp.Compile("[^a-zA-Z0-9/_]")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	returnVal := reg.ReplaceAllString(branchName, "")
-	// Replace forward slash with an underscore character, as the value for instance cannot contain forward slash.
+	returnVal := reg.ReplaceAllString(inputParam, "")
 	returnVal = strings.ReplaceAll(strings.ToLower(returnVal), "/", "_")
 	return returnVal
 }
