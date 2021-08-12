@@ -234,7 +234,11 @@ func checkNonEmptyJWTData(jwtData map[string]interface{}) bool {
 func extractCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 	var cert []byte
 
-	kclientset := kubernetesInterface.NewClientSet()
+	kclientset, err := kubernetesInterface.NewClientSet()
+	if err != nil {
+		return cert, err
+	}
+
 	secret, err := kclientset.CoreV1().Secrets("verrazzano-system").Get(context.Background(),
 		"system-tls",
 		metav1.GetOptions{},

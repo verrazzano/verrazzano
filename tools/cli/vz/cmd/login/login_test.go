@@ -20,6 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/fake"
 	verrazzanoclientset "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
@@ -68,11 +69,11 @@ type TestKubernetes struct {
 	fakek8sClient      kubernetes.Interface
 }
 
-func (o *TestKubernetes) GetKubeConfig() *rest.Config {
+func (o *TestKubernetes) GetKubeConfig() (*rest.Config, error) {
 	config := &rest.Config{
 		Host: "https://1.2.3.4:1234",
 	}
-	return config
+	return config, nil
 }
 
 func (o *TestKubernetes) NewClustersClientSet() (clustersclientset.Interface, error) {
@@ -87,8 +88,8 @@ func (o *TestKubernetes) NewProjectClientSet() (projectclientset.Interface, erro
 	return o.fakeProjectClient, nil
 }
 
-func (o *TestKubernetes) NewClientSet() kubernetes.Interface {
-	return o.fakek8sClient
+func (o *TestKubernetes) NewClientSet() (kubernetes.Interface, error) {
+	return o.fakek8sClient, nil
 }
 
 func authHandle(w http.ResponseWriter, r *http.Request) {
@@ -286,7 +287,7 @@ func TestRepeatedLogin(t *testing.T) {
 }
 
 func createFakeKubeConfig(asserts *assert.Assertions) {
-	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
+	originalKubeConfigLocation, err := k8sutil.GetKubeConfigLocation()
 	asserts.NoError(err)
 	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
 	asserts.NoError(err)

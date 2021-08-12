@@ -75,11 +75,11 @@ type TestKubernetes struct {
 }
 
 // Fake config with fake Host address
-func (o *TestKubernetes) GetKubeConfig() *rest.Config {
+func (o *TestKubernetes) GetKubeConfig() (*rest.Config, error) {
 	config := &rest.Config{
 		Host: "https://1.2.3.4:1234",
 	}
-	return config
+	return config, nil
 }
 
 func (o *TestKubernetes) NewClustersClientSet() (clustersclientset.Interface, error) {
@@ -94,8 +94,8 @@ func (o *TestKubernetes) NewProjectClientSet() (projectclientset.Interface, erro
 	return o.fakeProjectCleint, nil
 }
 
-func (o *TestKubernetes) NewClientSet() kubernetes.Interface {
-	return o.fakek8sClient
+func (o *TestKubernetes) NewClientSet() (kubernetes.Interface, error) {
+	return o.fakek8sClient, nil
 }
 
 // Test different permutations for flags for register command
