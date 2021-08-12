@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -35,7 +36,7 @@ var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var _ = Describe("Multi Cluster Verify Register", func() {
 	Context("Admin Cluster", func() {
 		BeforeEach(func() {
-			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
 		It("admin cluster create VerrazzanoProject", func() {
@@ -161,7 +162,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 
 	Context("Managed Cluster", func() {
 		BeforeEach(func() {
-			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
 		It("managed cluster has the expected secrets", func() {
@@ -262,9 +263,9 @@ func findNamespace(namespace string) bool {
 }
 
 func findVerrazzanoProject(projectName string) (bool, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
+	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv(k8sutil.EnvVarTestKubeConfig))
 	if err != nil {
-		pkg.Log(pkg.Info, fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
+		pkg.Log(pkg.Info, fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv(k8sutil.EnvVarTestKubeConfig), err))
 		return false, err
 	}
 

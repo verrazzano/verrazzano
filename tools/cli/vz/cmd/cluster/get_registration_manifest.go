@@ -67,7 +67,12 @@ func (o *ClusterManifestOptions) getManifest(kubenetesInterface helpers.Kubernet
 	manifestName := vmcObject.Spec.ManagedClusterManifestSecret
 
 	// k8s client set to fetch the secret
-	kclientset := kubenetesInterface.NewClientSet()
+	kclientset, err := kubenetesInterface.NewClientSet()
+
+	if err != nil {
+		return err
+	}
+
 	secret, err := kclientset.CoreV1().Secrets(vmcNamespace).Get(context.Background(), manifestName, v1.GetOptions{})
 
 	if err != nil {

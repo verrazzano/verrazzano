@@ -10,6 +10,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -23,8 +24,14 @@ var _ = Describe("keycloak url test", func() {
 		It("Fetches keycloak url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				var keycloakURL string
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+					Fail(err.Error())
+				}
+
 				Eventually(func() error {
-					api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 					if err != nil {
 						return err
 					}

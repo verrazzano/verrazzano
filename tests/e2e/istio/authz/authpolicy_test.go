@@ -12,6 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -281,26 +282,27 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	})
 
 	var fooHost = ""
+	var err error
 	It("Get foo host from gateway.", func() {
-		Eventually(func() string {
-			fooHost = pkg.GetHostnameFromGateway(fooNamespace, "")
-			return fooHost
+		Eventually(func() (string, error) {
+			fooHost, err = k8sutil.GetHostnameFromGateway(fooNamespace, "")
+			return fooHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", fooNamespace))
 	})
 
 	var barHost = ""
 	It("Get bar host from gateway.", func() {
-		Eventually(func() string {
-			barHost = pkg.GetHostnameFromGateway(barNamespace, "")
-			return barHost
+		Eventually(func() (string, error) {
+			barHost, err = k8sutil.GetHostnameFromGateway(barNamespace, "")
+			return barHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", barNamespace))
 	})
 
 	var noIstioHost = ""
 	It("Get noistio host from gateway.", func() {
-		Eventually(func() string {
-			noIstioHost = pkg.GetHostnameFromGateway(noIstioNamespace, "")
-			return noIstioHost
+		Eventually(func() (string, error) {
+			noIstioHost, err = k8sutil.GetHostnameFromGateway(noIstioNamespace, "")
+			return noIstioHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", noIstioNamespace))
 	})
 
@@ -413,11 +415,11 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	// *** This call should fail for a 500 because Non-Istio can't call Istio when MTLS is STRICT
 	// If this should fail because the call succeeded, verify that peerauthentication exists in istio-system and is set to STRICT
 	It("Verify NoIstio Frontend canNOT call Bar Backend.", func() {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() bool {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", noIstioHost)
-
-			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
 			client, err := pkg.GetVerrazzanoNoRetryHTTPClient(kubeconfigPath)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to get client: %v", err))

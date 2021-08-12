@@ -101,10 +101,13 @@ func (o *ClusterRegisterOptions) registerCluster(kubernetesInterface helpers.Kub
 }
 
 func (o *ClusterRegisterOptions) checkConfigMap(kubernetesInterface helpers.Kubernetes) error {
-	client := kubernetesInterface.NewClientSet()
+	client, err := kubernetesInterface.NewClientSet()
+	if err != nil {
+		return err
+	}
 	name := "verrazzano-admin-cluster"
 
-	_, err := client.CoreV1().ConfigMaps(vmcNamespace).Get(context.Background(), name, metav1.GetOptions{})
+	_, err = client.CoreV1().ConfigMaps(vmcNamespace).Get(context.Background(), name, metav1.GetOptions{})
 
 	// Config map doesn't exist, crete one
 	if err != nil && k8serror.IsNotFound(err) {
@@ -112,7 +115,10 @@ func (o *ClusterRegisterOptions) checkConfigMap(kubernetesInterface helpers.Kube
 		if err != nil {
 			return err
 		}
-
+		kubeConfig, err := kubernetesInterface.GetKubeConfig()
+		if err != nil {
+			return err
+		}
 		configMap := &corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ConfigMap",
@@ -123,7 +129,7 @@ func (o *ClusterRegisterOptions) checkConfigMap(kubernetesInterface helpers.Kube
 				Namespace: vmcNamespace,
 			},
 			Data: map[string]string{
-				"server": kubernetesInterface.GetKubeConfig().Host,
+				"server": kubeConfig.Host,
 			},
 		}
 		_, err = client.CoreV1().ConfigMaps(vmcNamespace).Create(context.Background(), configMap, metav1.CreateOptions{})
