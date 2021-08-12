@@ -96,31 +96,13 @@ function install_istio()
 
     if ! is_chart_deployed istiod istio-system ${ISTIO_CHART_DIR}/istio-control/istio-discovery ; then
       local chart_name=istiod
-      log "Installing istio-system/${chart_name}"
       build_image_overrides istio ${chart_name}
-
-      while true ; do
-        helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
-          --install \
-          --namespace istio-system \
-          --wait --timeout 3m \
-          -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-          ${HELM_IMAGE_ARGS} \
-          ${ISTIO_HUB_OVERRIDE} \
-          ${IMAGE_PULL_SECRETS_ARGUMENT}
-        if [ $? -eq 0 ]; then
-          break
-        else
-          local helm_status=$?
-          check_for_slow_image_pulls istio-system
-          if [[ $? -eq 1 ]]; then
-            reset_chart ${chart_name} istio-system ${ISTIO_CHART_DIR}/istio-control/istio-discovery
-            log "Retrying install of istio-system/${chart_name} due to slow image pulls"
-          else
-            return $helm_status
-          fi
-        fi
-      done
+      helm_install-retry ${chart_name} ${ISTIO_CHART_DIR}/istio-control/istio-discovery istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${HELM_IMAGE_ARGS} \
+        ${ISTIO_HUB_OVERRIDE} \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
     fi
 
     log "Generate Istio ingress specific configuration"
@@ -130,89 +112,35 @@ function install_istio()
 
     if ! is_chart_deployed istio-ingress istio-system ${ISTIO_CHART_DIR}/gateways/istio-ingress ; then
       local chart_name=istio-ingress
-      log "Installing istio-system/${chart_name}"
       build_image_overrides istio ${chart_name}
-
-      while true ; do
-        helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-ingress \
-          --install \
-          --namespace istio-system \
-          --wait --timeout 3m \
-          -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-          ${HELM_IMAGE_ARGS} \
-          ${ISTIO_HUB_OVERRIDE} \
-          ${EXTRA_INGRESS_ARGUMENTS} \
-          ${IMAGE_PULL_SECRETS_ARGUMENT}
-        if [ $? -eq 0 ]; then
-          break
-        else
-          local helm_status=$?
-          check_for_slow_image_pulls istio-system
-          if [[ $? -eq 1 ]]; then
-            reset_chart ${chart_name} istio-system ${ISTIO_CHART_DIR}/gateways/istio-ingress
-            log "Retrying install of istio-system/${chart_name} due to slow image pulls"
-          else
-            return $helm_status
-          fi
-        fi
-      done
+      helm_install-retry ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-ingress istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${HELM_IMAGE_ARGS} \
+        ${ISTIO_HUB_OVERRIDE} \
+        ${EXTRA_INGRESS_ARGUMENTS} \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
     fi
 
     if ! is_chart_deployed istio-egress istio-system ${ISTIO_CHART_DIR}/gateways/istio-egress ; then
       local chart_name=istio-egress
-      log "Installing istio-system/${chart_name}"
       build_image_overrides istio ${chart_name}
-
-      while true ; do
-        helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-egress \
-          --install \
-          --namespace istio-system \
-          --wait --timeout 3m \
-          -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-          ${HELM_IMAGE_ARGS} \
-          ${ISTIO_HUB_OVERRIDE} \
-          ${IMAGE_PULL_SECRETS_ARGUMENT}
-        if [ $? -eq 0 ]; then
-          break
-        else
-          local helm_status=$?
-          check_for_slow_image_pulls istio-system
-          if [[ $? -eq 1 ]]; then
-            reset_chart ${chart_name} istio-system ${ISTIO_CHART_DIR}/gateways/istio-egress
-            log "Retrying install of istio-system/${chart_name} due to slow image pulls"
-          else
-            return $helm_status
-          fi
-        fi
-      done
+      helm_install-retry ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-egress istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${HELM_IMAGE_ARGS} \
+        ${ISTIO_HUB_OVERRIDE} \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
     fi
 
     if ! is_chart_deployed istiocoredns istio-system ${ISTIO_CHART_DIR}/istiocoredns ; then
       local chart_name=istiocoredns
-      log "Installing istio-system/${chart_name}"
       build_image_overrides istio ${chart_name}
-
-      while true ; do
-        helm upgrade ${chart_name} ${ISTIO_CHART_DIR}/istiocoredns \
-          --install \
-          --namespace istio-system \
-          --wait --timeout 3m \
-          -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-          ${HELM_IMAGE_ARGS} \
-          ${IMAGE_PULL_SECRETS_ARGUMENT}
-        if [ $? -eq 0 ]; then
-          break
-        else
-          local helm_status=$?
-          check_for_slow_image_pulls istio-system
-          if [[ $? -eq 1 ]]; then
-            reset_chart ${chart_name} istio-system ${ISTIO_CHART_DIR}/istiocoredns
-            log "Retrying install of istio-system/${chart_name} due to slow image pulls"
-          else
-            return $helm_status
-          fi
-        fi
-      done
+      helm_install-retry ${chart_name} ${ISTIO_CHART_DIR}/istiocoredns istio-system \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+        ${HELM_IMAGE_ARGS} \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        || return $?
     fi
 
     log "Setting Istio global mesh policy to STRICT mode"

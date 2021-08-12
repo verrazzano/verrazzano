@@ -378,15 +378,42 @@ function generate_password() {
 # Returns 0 if no slow image pulls are detected, otherwise returns 1
 # $1 the namespace to check
 function check_for_slow_image_pulls() {
-  local namespace=$1
-  local pulling_count=$(kubectl get events -n $namespace | grep Pulling | wc -l)
-  local pulled_count=$(kubectl get events -n $namespace | grep 'Successfully pulled' | wc -l)
+  local pulling_count=$(kubectl get events -n $1 | grep Pulling | wc -l)
+
+  # don't count any succesful pulls in the last 19 seconds to mitigate the issue where the
+  # helm install fails and the image pull succeeds before we can do this check
+  local pulled_count=$(kubectl get events -n $1 | grep 'Successfully pulled' | awk '$1 !~ /^1?[0-9]s/ {print $0}' | wc -l)
+
   if [[ $pulling_count -eq $pulled_count ]]; then
     log "Slow image pulls NOT detected for namespace $namespace after install failure"
-	  return 0
+    return 0
   fi
-  log "Slow image pulls detected for namepace $namespace after install failure"
+
+  log "Slow image pulls detected for namepace $1 after install failure"
   return 1
+}
+
+# Installs a helm chart, if the helm command fails, check for slow image pulls and retry as needed
+# $1 the chart name
+# $2 the chart directory
+# $3 the namespace
+function helm_install-retry() {
+    local chart_name=$1
+    local chart_dir=$2
+    local ns=$3
+    shift 3
+
+    while true ; do
+      log "Installing ${ns}/${chart_name}"
+      helm upgrade ${chart_name} ${chart_dir} \
+        --install --namespace ${ns} \
+        --wait --timeout 3m \
+        $@ && break
+      local helm_status=$?
+      check_for_slow_image_pulls ${ns} && return $helm_status
+      log "Retrying install of ${ns}/${chart_name} due to slow image pulls"
+      reset_chart ${chart_name} ${ns} ${chart_dir}
+    done
 }
 
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano

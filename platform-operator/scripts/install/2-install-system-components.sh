@@ -18,10 +18,10 @@ VERRAZZANO_DEFAULT_SECRET_NAME="verrazzano-ca-certificate-secret"
 function install_nginx_ingress_controller()
 {
     local ingress_nginx_ns=ingress-nginx
-    local chart_name=ingress-controller
+    local chartName=ingress-controller
     local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/ingress-nginx
 
-    if ! is_chart_deployed ${chart_name} ${ingress_nginx_ns} ${NGINX_INGRESS_CHART_DIR} ; then
+    if ! is_chart_deployed ${chartName} ${ingress_nginx_ns} ${NGINX_INGRESS_CHART_DIR} ; then
       # Create the namespace for nginx
       if ! kubectl get namespace ${ingress_nginx_ns} ; then
           kubectl create namespace ${ingress_nginx_ns}
@@ -49,30 +49,13 @@ function install_nginx_ingress_controller()
         EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
       fi
 
-      log "Installing ${ingress_nginx_ns}/${chart_name}"
-      build_image_overrides ingress-nginx ${chart_name}
+      build_image_overrides ingress-nginx ${chartName}
 
-      while true ; do
-        helm upgrade ${chart_name} ${NGINX_INGRESS_CHART_DIR} --install \
-          --namespace ${ingress_nginx_ns} \
-          --wait --timeout 3m \
-          --debug \
-          -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
-          ${EXTRA_NGINX_ARGUMENTS} \
-          ${HELM_IMAGE_ARGS}
-        if [ $? -eq 0 ]; then
-          break
-        else
-          local helm_status=$?
-          check_for_slow_image_pulls ${ingress_nginx_ns}
-          if [[ $? -eq 1 ]]; then
-            reset_chart ${chart_name} ${ingress_nginx_ns} ${NGINX_INGRESS_CHART_DIR}
-            log "Retrying install of ${ingress_nginx_ns}/${chart_name} due to slow image pulls"
-          else
-            return $helm_status
-          fi
-        fi
-      done
+      helm_install-retry ${chartName} ${NGINX_INGRESS_CHART_DIR} ${ingress_nginx_ns} \
+        -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
+        ${EXTRA_NGINX_ARGUMENTS} \
+        ${HELM_IMAGE_ARGS} \
+        || return $?
     fi
 
     # Label the ingress-nginx namespace so that we can apply network policies
@@ -220,31 +203,13 @@ function install_cert_manager()
     fi
 
     build_image_overrides cert-manager ${chartName}
-    log "Installing ${cert_manager_ns}/${chartName}"
 
-    while true ; do
-      helm upgrade ${chartName} ${CERT_MANAGER_CHART_DIR} \
-          --install \
-          --namespace ${cert_manager_ns} \
-          --version v1.2.0 \
-          -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
-          ${HELM_IMAGE_ARGS} \
-          ${EXTRA_CERT_MANAGER_ARGUMENTS} \
-          --wait \
-          --timeout 3m --debug
-      if [ $? -eq 0 ]; then
-        break
-      else
-        local helm_status=$?
-        check_for_slow_image_pulls ${cert_manager_ns}
-        if [[ $? -eq 1 ]]; then
-          reset_chart ${chartName} ${cert_manager_ns} ${CERT_MANAGER_CHART_DIR}
-          log "Retrying install of ${cert_manager_ns}/${chartName} due to slow image pulls"
-        else
-          return $helm_status
-        fi
-      fi
-    done
+    helm_install-retry ${chartName} ${CERT_MANAGER_CHART_DIR} ${cert_manager_ns} \
+        --version v1.2.0 \
+        -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
+        ${HELM_IMAGE_ARGS} \
+        ${EXTRA_CERT_MANAGER_ARGUMENTS} \
+        || return $?
 
     kubectl -n cert-manager rollout status -w deploy/cert-manager
 
@@ -286,9 +251,7 @@ function install_external_dns()
 
     build_image_overrides external-dns ${chartName}
 
-    helm upgrade ${chartName} ${EXTERNAL_DNS_CHART_DIR} \
-        --install \
-        --namespace ${externalDNSNamespace} \
+    helm_install-retry ${chartName} ${EXTERNAL_DNS_CHART_DIR} ${externalDNSNamespace} \
         -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
         ${HELM_IMAGE_ARGS} \
         --set domainFilters[0]=${DNS_SUFFIX} \
@@ -300,7 +263,6 @@ function install_external_dns()
         --set extraVolumeMounts[0].name=config \
         --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
         ${extraExternalDNSArgs} \
-        --wait \
         || return $?
     fi
 }
@@ -436,27 +398,13 @@ function install_rancher()
       build_image_overrides rancher ${chart_name}
 
       # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-      while true ; do
-        helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
-          --install --namespace cattle-system \
-          --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
-          --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
-          ${HELM_IMAGE_ARGS} \
-          ${IMAGE_PULL_SECRETS_ARGUMENT} \
-          ${EXTRA_RANCHER_ARGUMENTS}
-        if [ $? -eq 0 ]; then
-          break
-        else
-          local helm_status=$?
-          check_for_slow_image_pulls cattle-system
-          if [[ $? -eq 1 ]]; then
-            reset_chart ${chart_name} cattle-system ${RANCHER_CHART_DIR}
-            log "Retrying install of cattle-system/${chart_name} due to slow image pulls"
-          else
-            return $helm_status
-          fi
-        fi
-      done
+      helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
+        --install --namespace cattle-system \
+        --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
+        --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+        ${HELM_IMAGE_ARGS} \
+        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+        ${EXTRA_RANCHER_ARGUMENTS}
     fi
 
     if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 > /dev/null ; then
