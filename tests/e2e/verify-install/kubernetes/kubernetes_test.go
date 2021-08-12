@@ -50,7 +50,7 @@ var _ = Describe("Kubernetes Cluster",
 			Eventually(func() (bool, error) {
 				nodes, err := pkg.ListNodes()
 				return nodes != nil && len(nodes.Items) >= 1, err
-			}, timeout5Min, pollingInterval).ShouldNot(BeNil())
+			}, timeout5Min, pollingInterval).Should(BeTrue())
 		})
 
 		It("has the expected namespaces", func() {
