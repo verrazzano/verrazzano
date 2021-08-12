@@ -23,6 +23,6 @@ if [ -z $2 ]; then
 fi
 TEST_ENV=$2
 
-cd main
+cd ${SCRIPT_DIR}/main
 GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --report-dir="${TEST_REPORT_DIR}" --prometheus-credential="${PROMETHEUS_CRED}" --prometheus-url="${PROMETHEUS_GW_URL}" --commit-sha="${GIT_COMMIT}" --test-env="${TEST_ENV}" --branch-name="${BRANCH_NAME}" --build-number="${BUILD_NUMBER}" --job-name="${JOB_NAME}"
 
