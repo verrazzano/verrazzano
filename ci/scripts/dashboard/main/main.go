@@ -44,7 +44,7 @@ const kubernetestVersion = "kubernetes_version"
 const instance = "instance"
 const testSuite = "test_suite"
 const jenkinsJob = "jenkins_job"
-const metricPrefix = "_verrazzano_"
+const metricPrefix = "_verrazzano_test_"
 const statusSuffix = "_status"
 const timeSuffix = "_time"
 
