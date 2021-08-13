@@ -231,13 +231,13 @@ pipeline {
             post {
                 failure {
                     script {
-                        EMIT_METRICS=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
+                        METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
                         SKIP_TRIGGERED_TESTS = true
                     }
                 }
                 success {
                     script {
-                        EMIT_METRICS=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
+                        METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
                         archiveArtifacts artifacts: "generated-verrazzano-bom.json", allowEmptyArchive: true
                     }
                 }
@@ -439,13 +439,13 @@ pipeline {
             post {
                 failure {
                     script {
-                        EMIT_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         SKIP_TRIGGERED_TESTS = true
                     }
                 }
                 success {
                     script {
-                        EMIT_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                     }
                 }
             }

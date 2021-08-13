@@ -394,7 +394,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        EMIT_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
                         }
@@ -402,7 +402,7 @@ pipeline {
                 }
                 success {
                     script {
-                        EMIT_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
                         }
@@ -611,11 +611,11 @@ def metricTimerEnd(metricName, status) {
         long x = env."${timerStartName}" as long;
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
-        def testEnv = 'kind_' + "${params.KUBERNETES_CLUSTER_VERSION}"
         labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
                  'jenkins_job=\\"' + "${env.JOB_NAME}"+'\\",' +
                  'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
-                 'test_env=\\"' + "$testEnv"+'\\"'
+                 'kubernetes_version=\\"' + "${params.KUBERNETES_CLUSTER_VERSION}"+'\\",' +
+                 'test_env=\\"kind\\"'
         EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
         echo "emit prometheus metrics: $EMIT"
         return EMIT

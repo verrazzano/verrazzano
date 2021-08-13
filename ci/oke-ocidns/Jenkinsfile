@@ -594,7 +594,7 @@ pipeline {
                 rm archive.zip
             """
             script {
-                EMIT_TEST_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                 if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
                     emailext recipientProviders: [[$class: 'CulpritsRecipientProvider'],[$class: 'RequesterRecipientProvider']],
                        subject: "Verrazzano: ${env.JOB_NAME} - Failed",
@@ -605,7 +605,7 @@ pipeline {
        }
        success {
            script {
-               EMIT_TEST_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+               METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
            }
        }
     }
@@ -830,7 +830,6 @@ def metricTimerEnd(metricName, status) {
         long x = env."${timerStartName}" as long;
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
-        def testEnv = 'ocidns_oke_' + "${params.OKE_CLUSTER_VERSION}"
 
         // OCI-Telemetry
         // labels = '\\"number\\"=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
@@ -841,7 +840,8 @@ def metricTimerEnd(metricName, status) {
         labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
                  'jenkins_job=\\"' + "${env.JOB_NAME}"+'\\",' +
                  'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
-                 'test_env=\\"' + "$testEnv"+'\\"'
+                 'kubernetes_version=\\"' + "${params.OKE_CLUSTER_VERSION}"+'\\",' +
+                 'test_env=\\"' + "ocidns_oke"+'\\"'
         EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
         echo "emit prometheus metrics: $EMIT"
         return EMIT
