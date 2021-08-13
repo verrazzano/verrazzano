@@ -37,6 +37,7 @@ const branch = "branch"
 const jobNumber = "job_number"
 const testEnv = "test_env"
 const instance = "instance"
+const testSuite = "test_suite"
 const metricPrefix = "_verrazzano_"
 const statusSuffix = "_status"
 const timeSuffix = "_time"
@@ -126,32 +127,31 @@ func processJunitReports() {
 	if err != nil {
 		log.Fatalf("failed to ingest JUnit xml %v", err)
 	}
-
+	var testStatus float64
 	for _, suite := range suites {
-		testStatus := 0.0
 		if suite.Totals.Tests == suite.Totals.Passed {
 			testStatus = 1.0
 		} else {
-			if suite.Totals.Failed > 0 {
-				testStatus = -1.0
-			}
+			testStatus = -1.0
 		}
 		metricName := removeSpecialChars(suite.Name)
-		emitTestMetrics(metricPrefix+metricName+statusSuffix, testStatus)
-		emitTestMetrics(metricPrefix+metricName+timeSuffix, float64(suite.Totals.Duration.Milliseconds()))
+		emitTestMetrics(metricName, statusSuffix, testStatus)
+		emitTestMetrics(metricName, timeSuffix, float64(suite.Totals.Duration.Milliseconds()))
 	}
 }
 
 // Emit metrics for the test status and execution time
-func emitTestMetrics(metricName string, metricValue float64) {
+func emitTestMetrics(metricName string, metricSuffix string, metricValue float64) {
+	metricToEmit := metricPrefix+ metricName + metricSuffix
 	testMetric := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: metricName,
+		Name: metricToEmit,
 		ConstLabels: prometheus.Labels{
 			commitSha: gitCommit,
 			branch:    gitBranch,
 			jobNumber: buildNumber,
 			testEnv:   testEnvironment,
 			instance:  inst,
+			testSuite: metricName,
 		},
 	})
 	testMetric.SetToCurrentTime()
@@ -163,7 +163,7 @@ func emitTestMetrics(metricName string, metricValue float64) {
 		fmt.Println("Could not push completion time to push gateway, ", err)
 		log.Fatal(err)
 	}
-	fmt.Printf("Successfully pushed metric %v\n", metricName)
+	fmt.Printf("Successfully pushed metric %v\n", metricToEmit)
 }
 
 // The label instance and the value for metric doesn't allow special characters.
