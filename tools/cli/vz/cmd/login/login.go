@@ -148,8 +148,14 @@ func authFlowLogin(caData []byte, verrazzanoAPIURL string) (map[string]interface
 	}
 
 	// Generate random code verifier and code challenge pair
-	codeVerifier, codeChallenge := helpers.GenerateRandomCodePair()
-	state := helpers.GenerateRandomState()
+	codeVerifier, codeChallenge, err := helpers.GenerateRandomCodePair()
+	if err != nil {
+		return jwtData, err
+	}
+	state, err := helpers.GenerateRandomState()
+	if err != nil {
+		return jwtData, err
+	}
 
 	// Generate the redirect uri using the port obtained
 	redirectURI := helpers.GenerateRedirectURI(listener)
@@ -299,7 +305,7 @@ func handleKeycloakRedirection(urlParamsChannel chan keycloakRedirectionURLParam
 // Fetch an available port
 // Return in the form of listener
 func getFreePort() (net.Listener, error) {
-	listener, err := net.Listen("tcp", ":0")
+	listener, err := net.Listen("tcp", "localhost:0")
 	return listener, err
 }
 
@@ -353,7 +359,8 @@ func executeRequestForJWT(grantParams url.Values, caData []byte, verrazzanoAPIUR
 		client = &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					RootCAs: caCertPool,
+					RootCAs:    caCertPool,
+					MinVersion: tls.VersionTLS12,
 				},
 			},
 		}

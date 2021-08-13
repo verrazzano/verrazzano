@@ -17,7 +17,7 @@ func WriteYaml(path string, obj interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = ioutil.WriteFile(fileout, bytes, 0644)
+	err = ioutil.WriteFile(fileout, bytes, 0600)
 	return fileout, err
 }
 
