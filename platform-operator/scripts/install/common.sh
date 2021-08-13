@@ -396,23 +396,29 @@ function check_for_slow_image_pulls() {
 # $1 the chart name
 # $2 the chart directory
 # $3 the namespace
-function helm_install-retry() {
-    local chart_name=$1
-    local chart_dir=$2
-    local ns=$3
-    shift 3
+function helm_install_retry() {
+  local chart_name=$1
+  local chart_dir=$2
+  local ns=$3
+  shift 3
 
-    while true ; do
-      log "Installing ${ns}/${chart_name}"
-      helm upgrade ${chart_name} ${chart_dir} \
-        --install --namespace ${ns} \
-        --wait --timeout 3m \
-        $@ && break
-      local helm_status=$?
-      check_for_slow_image_pulls ${ns} && return $helm_status
-      log "Retrying install of ${ns}/${chart_name} due to slow image pulls"
-      reset_chart ${chart_name} ${ns} ${chart_dir}
-    done
+  local retries=0
+  local max_retries=1
+  while true ; do
+    log "Installing ${ns}/${chart_name}"
+    helm upgrade ${chart_name} ${chart_dir} \
+      --install --namespace ${ns} \
+      --wait --timeout 10m \
+      "$@" && break
+    local helm_status=$?
+    if [ "$retries" -eq "$max_retries" ] ; then
+fix      return $helm_status
+    fi
+    ((retries+=1))
+    check_for_slow_image_pulls ${ns} && return $helm_status
+    log "Retrying install of ${ns}/${chart_name} due to slow image pulls"
+    reset_chart ${chart_name} ${ns} ${chart_dir} || return $?
+  done
 }
 
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano

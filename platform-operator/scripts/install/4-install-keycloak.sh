@@ -81,7 +81,7 @@ function install_mysql {
 
   log "PROFILE VALUES OVERRIDE = ${PROFILE_VALUES_OVERRIDE}"
 
-  helm_install-retry ${chart_name} ${MYSQL_CHART_DIR} ${KEYCLOAK_NS} \
+  helm_install_retry ${chart_name} ${MYSQL_CHART_DIR} ${KEYCLOAK_NS} \
       -f $VZ_OVERRIDES_DIR/mysql-values.yaml \
       ${HELM_IMAGE_ARGS} \
       ${IMAGE_PULL_SECRETS_ARGUMENT} \
@@ -155,7 +155,7 @@ function install_keycloak {
     build_extra_init_containers_override
 
     # Install keycloak helm chart
-    helm_install-retry ${chart_name} ${KEYCLOAK_CHART_DIR} ${KEYCLOAK_NS} \
+    helm_install_retry ${chart_name} ${KEYCLOAK_CHART_DIR} ${KEYCLOAK_NS} \
         -f $VZ_OVERRIDES_DIR/keycloak-values.yaml \
         ${KEYCLOAK_ARGUMENTS} \
         ${keycloak_image_args} \

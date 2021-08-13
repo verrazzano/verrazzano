@@ -107,7 +107,7 @@ function install_verrazzano()
     build_image_overrides monitoring-init-images monitoring-init-images
     HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} ${image_args}"
 
-    helm_install-retry ${chart_name} ${VZ_CHARTS_DIR}/verrazzano ${VERRAZZANO_NS} \
+    helm_install_retry ${chart_name} ${VZ_CHARTS_DIR}/verrazzano ${VERRAZZANO_NS} \
         --set image.pullPolicy=IfNotPresent \
         --set config.envName=${ENV_NAME} \
         --set config.dnsSuffix=${DNS_SUFFIX} \
@@ -162,7 +162,7 @@ function install_oam_operator {
   local chart_name=oam-kubernetes-runtime
   build_image_overrides oam-kubernetes-runtime ${chart_name}
 
-  helm_install-retry ${chart_name} ${CHARTS_DIR}/oam-kubernetes-runtime ${VERRAZZANO_NS} \
+  helm_install_retry ${chart_name} ${CHARTS_DIR}/oam-kubernetes-runtime ${VERRAZZANO_NS} \
     ${HELM_IMAGE_ARGS} \
     ${IMAGE_PULL_SECRETS_ARGUMENT} \
     || return $?
@@ -191,7 +191,7 @@ function install_application_operator {
   local chart_name=verrazzano-application-operator
   build_image_overrides verrazzano-application-operator ${chart_name}
 
-  helm_install-retry ${chart_name} ${VZ_CHARTS_DIR}/verrazzano-application-operator ${VERRAZZANO_NS} \
+  helm_install_retry ${chart_name} ${VZ_CHARTS_DIR}/verrazzano-application-operator ${VERRAZZANO_NS} \
     ${HELM_IMAGE_ARGS} \
     ${IMAGE_PULL_SECRETS_ARGUMENT} \
     ${APP_OPERATOR_IMAGE_ARG} || return $?
@@ -224,7 +224,7 @@ function install_weblogic_operator {
   local chart_name=weblogic-operator
   build_image_overrides weblogic-operator ${chart_name}
 
-  helm_install-retry ${chart_name} ${CHARTS_DIR}/weblogic-operator ${VERRAZZANO_NS} \
+  helm_install_retry ${chart_name} ${CHARTS_DIR}/weblogic-operator ${VERRAZZANO_NS} \
     -f $VZ_OVERRIDES_DIR/weblogic-values.yaml \
     --set serviceAccount=weblogic-operator-sa \
     --set domainNamespaceSelectionStrategy=LabelSelector \
@@ -252,7 +252,7 @@ function install_coherence_operator {
   local chart_name=coherence-operator
   build_image_overrides coherence-operator ${chart_name}
 
-  helm_install-retry ${chart_name} ${CHARTS_DIR}/coherence-operator ${VERRAZZANO_NS} \
+  helm_install_retry ${chart_name} ${CHARTS_DIR}/coherence-operator ${VERRAZZANO_NS} \
     -f $VZ_OVERRIDES_DIR/coherence-values.yaml \
     ${HELM_IMAGE_ARGS} \
     ${IMAGE_PULL_SECRETS_ARGUMENT} \

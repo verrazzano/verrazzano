@@ -97,7 +97,7 @@ function install_istio()
     if ! is_chart_deployed istiod istio-system ${ISTIO_CHART_DIR}/istio-control/istio-discovery ; then
       local chart_name=istiod
       build_image_overrides istio ${chart_name}
-      helm_install-retry ${chart_name} ${ISTIO_CHART_DIR}/istio-control/istio-discovery istio-system \
+      helm_install_retry ${chart_name} ${ISTIO_CHART_DIR}/istio-control/istio-discovery istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         ${HELM_IMAGE_ARGS} \
         ${ISTIO_HUB_OVERRIDE} \
@@ -113,7 +113,7 @@ function install_istio()
     if ! is_chart_deployed istio-ingress istio-system ${ISTIO_CHART_DIR}/gateways/istio-ingress ; then
       local chart_name=istio-ingress
       build_image_overrides istio ${chart_name}
-      helm_install-retry ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-ingress istio-system \
+      helm_install_retry ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-ingress istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         ${HELM_IMAGE_ARGS} \
         ${ISTIO_HUB_OVERRIDE} \
@@ -125,7 +125,7 @@ function install_istio()
     if ! is_chart_deployed istio-egress istio-system ${ISTIO_CHART_DIR}/gateways/istio-egress ; then
       local chart_name=istio-egress
       build_image_overrides istio ${chart_name}
-      helm_install-retry ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-egress istio-system \
+      helm_install_retry ${chart_name} ${ISTIO_CHART_DIR}/gateways/istio-egress istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         ${HELM_IMAGE_ARGS} \
         ${ISTIO_HUB_OVERRIDE} \
@@ -136,7 +136,7 @@ function install_istio()
     if ! is_chart_deployed istiocoredns istio-system ${ISTIO_CHART_DIR}/istiocoredns ; then
       local chart_name=istiocoredns
       build_image_overrides istio ${chart_name}
-      helm_install-retry ${chart_name} ${ISTIO_CHART_DIR}/istiocoredns istio-system \
+      helm_install_retry ${chart_name} ${ISTIO_CHART_DIR}/istiocoredns istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         ${HELM_IMAGE_ARGS} \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \

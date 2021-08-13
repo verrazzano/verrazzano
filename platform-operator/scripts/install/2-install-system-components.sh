@@ -51,7 +51,7 @@ function install_nginx_ingress_controller()
 
       build_image_overrides ingress-nginx ${chartName}
 
-      helm_install-retry ${chartName} ${NGINX_INGRESS_CHART_DIR} ${ingress_nginx_ns} \
+      helm_install_retry ${chartName} ${NGINX_INGRESS_CHART_DIR} ${ingress_nginx_ns} \
         -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
         ${EXTRA_NGINX_ARGUMENTS} \
         ${HELM_IMAGE_ARGS} \
@@ -204,7 +204,7 @@ function install_cert_manager()
 
     build_image_overrides cert-manager ${chartName}
 
-    helm_install-retry ${chartName} ${CERT_MANAGER_CHART_DIR} ${cert_manager_ns} \
+    helm_install_retry ${chartName} ${CERT_MANAGER_CHART_DIR} ${cert_manager_ns} \
         --version v1.2.0 \
         -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
         ${HELM_IMAGE_ARGS} \
@@ -251,7 +251,7 @@ function install_external_dns()
 
     build_image_overrides external-dns ${chartName}
 
-    helm_install-retry ${chartName} ${EXTERNAL_DNS_CHART_DIR} ${externalDNSNamespace} \
+    helm_install_retry ${chartName} ${EXTERNAL_DNS_CHART_DIR} ${externalDNSNamespace} \
         -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
         ${HELM_IMAGE_ARGS} \
         --set domainFilters[0]=${DNS_SUFFIX} \
@@ -408,7 +408,7 @@ function install_rancher()
           ${EXTRA_RANCHER_ARGUMENTS} \
           || return $?
       else
-        helm_install-retry ${chart_name} ${RANCHER_CHART_DIR} cattle-system \
+        helm_install_retry ${chart_name} ${RANCHER_CHART_DIR} cattle-system \
           --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
           --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
           ${HELM_IMAGE_ARGS} \
