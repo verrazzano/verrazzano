@@ -231,7 +231,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        EMIT_METRICS=metricTimerEnd("${VZ_BUILD_METRIC}", '-1')
+                        EMIT_METRICS=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
                         SKIP_TRIGGERED_TESTS = true
                     }
                 }
@@ -431,14 +431,15 @@ pipeline {
                             booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
                             booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
                             booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
-                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
+                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
+                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                         ], wait: true
                 }
             }
             post {
                 failure {
                     script {
-                        EMIT_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '-1')
+                        EMIT_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         SKIP_TRIGGERED_TESTS = true
                     }
                 }
@@ -467,7 +468,8 @@ pipeline {
                     build job: "verrazzano-push-triggered-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                         ], wait: true
                 }
             }
@@ -787,6 +789,7 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
         labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+                 'jenkins_job=\\"' + "${env.JOB_NAME}"+'\\",' +
                  'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
         EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
         echo "emit prometheus metrics: $EMIT"

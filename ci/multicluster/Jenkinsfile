@@ -385,7 +385,7 @@ pipeline {
                         }
                         failure {
                             script {
-                                EMIT_INSTALL_METRICS=metricTimerEnd("${VZ_INSTALL_METRIC}", '-1')
+                                EMIT_INSTALL_METRICS=metricTimerEnd("${VZ_INSTALL_METRIC}", '0')
                             }
                         }
                         success {
@@ -608,7 +608,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        EMIT_TEST_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '-1')
+                        EMIT_TEST_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                     }
                 }
@@ -1155,6 +1155,7 @@ def metricTimerEnd(metricName, status) {
         def dur = (y-x)
         def testEnv = "${params.TEST_ENV}" + '_' + "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION }"
         labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+                 'jenkins_job=\\"' + "${env.JOB_NAME}"+'\\",' +
                  'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
                  'test_env=\\"' + "$testEnv"+'\\"'
         EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")

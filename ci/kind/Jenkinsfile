@@ -394,7 +394,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        EMIT_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '-1')
+                        EMIT_METRICS=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
                         }
@@ -613,6 +613,7 @@ def metricTimerEnd(metricName, status) {
         def dur = (y-x)
         def testEnv = 'kind_' + "${params.KUBERNETES_CLUSTER_VERSION}"
         labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+                 'jenkins_job=\\"' + "${env.JOB_NAME}"+'\\",' +
                  'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
                  'test_env=\\"' + "$testEnv"+'\\"'
         EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
