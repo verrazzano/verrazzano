@@ -10,7 +10,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"log"
-	"os"
 	"regexp"
 	"strings"
 )
@@ -47,6 +46,7 @@ func main() {
 	processJunitReports()
 }
 
+// Process the input arguments and validate
 func processInput() (exitCode int) {
 	flag.StringVar(&testReportDir, "report-dir", "", "The directory containing the JUnit reports")
 	flag.StringVar(&promCredentials, "prometheus-credential", "", "Prometheus credentials")
@@ -64,7 +64,6 @@ func processInput() (exitCode int) {
 		printUsage()
 		return 1
 	}
-	fmt.Println("testReportDir: ", testReportDir)
 
 	if promCredentials == "" {
 		fmt.Printf("\nRequired flag prometheus-credential is not specified, exiting.\n")
@@ -84,28 +83,24 @@ func processInput() (exitCode int) {
 		printUsage()
 		return 1
 	}
-	fmt.Println("gitCommit: ", gitCommit)
 
 	if testEnvironment == "" {
 		fmt.Printf("\nRequired flag test-env is not specified, exiting.\n")
 		printUsage()
 		return 1
 	}
-	fmt.Println("testEnvironment: ", testEnvironment)
 
 	if gitBranch == "" {
 		fmt.Printf("\nRequired flag branch-name is not specified, exiting.\n")
 		printUsage()
 		return 1
 	}
-	fmt.Println("gitBranch: ", gitBranch)
 
 	if buildNumber == "" {
 		fmt.Printf("\nRequired flag build-number is not specified, exiting.\n")
 		printUsage()
 		return 1
 	}
-	fmt.Println("buildNumber: ", buildNumber)
 
 	if buildJobName == "" {
 		fmt.Printf("\nRequired flag job-name is not specified, exiting.\n")
@@ -115,7 +110,6 @@ func processInput() (exitCode int) {
 	// Extract only the first part, and remove the feature branch
 	jobParts := strings.Split(buildJobName, "/")
 	buildJobName = jobParts[0]
-	fmt.Println("buildJobName : ", buildJobName)
 
 	// extract user and password from the promCredentials
 	cred := strings.Split(promCredentials, ":")
@@ -126,6 +120,7 @@ func processInput() (exitCode int) {
 	return 0
 }
 
+// Process the Junit reports created by the tests, recursively under the directory testReportDir
 func processJunitReports() {
 	suites, err := junit.IngestDir(testReportDir)
 	if err != nil {
@@ -149,7 +144,7 @@ func processJunitReports() {
 
 // Emit metrics for the test status and execution time
 func emitTestMetrics(metricName string, metricValue float64) {
-	statusMetric := prometheus.NewGauge(prometheus.GaugeOpts{
+	testMetric := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: metricName,
 		ConstLabels: prometheus.Labels{
 			commitSha: gitCommit,
@@ -159,26 +154,27 @@ func emitTestMetrics(metricName string, metricValue float64) {
 			instance:  inst,
 		},
 	})
-	statusMetric.SetToCurrentTime()
-	statusMetric.Set(metricValue)
+	testMetric.SetToCurrentTime()
+	testMetric.Set(metricValue)
 	if err := push.New(prometheusURL, buildJobName).
-		Collector(statusMetric).
+		Collector(testMetric).
 		BasicAuth(user, pwd).
 		Add(); err != nil {
 		fmt.Println("Could not push completion time to push gateway, ", err)
+		log.Fatal(err)
 	}
+	fmt.Printf("Successfully pushed metric %v\n", metricName)
 }
 
 // The label instance and the value for metric doesn't allow special characters.
 // Replace all the non-alphanumeric characters with an underscore
 func removeSpecialChars(inputParam string) string {
-	strings.ReplaceAll(strings.ToLower(inputParam), " ", "_")
+	returnVal := strings.ReplaceAll(strings.ToLower(inputParam), " ", "_")
 	reg, err := regexp.Compile("[^a-zA-Z0-9/_]")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
-	returnVal := reg.ReplaceAllString(inputParam, "")
+	returnVal = reg.ReplaceAllString(returnVal, "")
 	returnVal = strings.ReplaceAll(strings.ToLower(returnVal), "/", "_")
 	return returnVal
 }
