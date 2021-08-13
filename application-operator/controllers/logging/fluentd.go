@@ -4,20 +4,17 @@
 package logging
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
-	"text/template"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -33,8 +30,6 @@ const (
 	elasticSearchURLEnv  = "ELASTICSEARCH_URL"
 	elasticSearchUserEnv = "ELASTICSEARCH_USER"
 	elasticSearchPwdEnv  = "ELASTICSEARCH_PASSWORD"
-
-	CAFileConfig = "\n  ca_file /fluentd/secret/ca-bundle"
 )
 
 // DefaultFluentdImage holds the default FLUENTD image that will be used if it is not specified in the logging logInfo
@@ -195,29 +190,6 @@ func (f *Fluentd) createFluentdConfigMap(namespace string) *v1.ConfigMap {
 			return data
 		}(),
 	}
-}
-
-func GetFluentdConfiguration(templateConfig string, requiresCABundle bool) string {
-	tmpl, err := template.New("fluentdContainer").Parse(templateConfig)
-	if err != nil {
-		return ""
-	}
-
-	caFile := ""
-	if requiresCABundle {
-		caFile = CAFileConfig
-	}
-	data := struct {
-		CAFile string
-	}{caFile}
-
-	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, data)
-	if err != nil {
-		return ""
-	}
-
-	return buf.String()
 }
 
 // removeFluentdContainer removes FLUENTD container

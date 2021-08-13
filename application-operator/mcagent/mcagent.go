@@ -10,25 +10,30 @@ import (
 	"os"
 	"time"
 
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // ENV VAR for registration secret version
 const registrationSecretVersion = "REGISTRATION_SECRET_VERSION"
+
+// ENV VAR for ca file
+const caFile = "CA_FILE"
+
+// ca_file location when the registration secret contains a ca-bundle
+const caBundle = "/fluentd/secret/ca-bundle"
 
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUpdateMessage, log logr.Logger) {
@@ -313,7 +318,7 @@ func updateLoggingDaemonSet(newSecret, secretVersion string, ds *appsv1.DaemonSe
 			ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
 				registrationSecretVersion, secretVersion)
 			ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
-				"CA_FILE", "/fluentd/secret/ca-bundle")
+				caFile, caBundle)
 		}
 	}
 	return ds

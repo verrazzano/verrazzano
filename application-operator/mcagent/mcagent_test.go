@@ -8,15 +8,14 @@ import (
 	"fmt"
 	"testing"
 
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	appsv1 "k8s.io/api/apps/v1"
-
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -489,8 +488,9 @@ func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 // THEN ensure that Fluentd daemonset is updated
 func TestSyncer_configureLogging(t *testing.T) {
 	type fields struct {
-		oldSecretVersion string
-		newSecretVersion string
+		oldSecretVersion      string
+		newSecretVersion      string
+		expectDaemonsetUpdate bool
 	}
 	tests := []struct {
 		name   string
@@ -499,36 +499,49 @@ func TestSyncer_configureLogging(t *testing.T) {
 		{
 			name: "new registration",
 			fields: fields{
-				oldSecretVersion: "",
-				newSecretVersion: "version1",
+				oldSecretVersion:      "",
+				newSecretVersion:      "version1",
+				expectDaemonsetUpdate: true,
+			},
+		},
+		{
+			name: "new registration well known certs",
+			fields: fields{
+				oldSecretVersion:      "",
+				newSecretVersion:      "version1",
+				expectDaemonsetUpdate: false,
 			},
 		},
 		{
 			name: "delete registration",
 			fields: fields{
-				oldSecretVersion: "version1",
-				newSecretVersion: "",
+				oldSecretVersion:      "version1",
+				newSecretVersion:      "",
+				expectDaemonsetUpdate: true,
 			},
 		},
 		{
 			name: "update registration",
 			fields: fields{
-				oldSecretVersion: "version1",
-				newSecretVersion: "version2",
+				oldSecretVersion:      "version1",
+				newSecretVersion:      "version2",
+				expectDaemonsetUpdate: true,
 			},
 		},
 		{
 			name: "no registration",
 			fields: fields{
-				oldSecretVersion: "",
-				newSecretVersion: "",
+				oldSecretVersion:      "",
+				newSecretVersion:      "",
+				expectDaemonsetUpdate: true,
 			},
 		},
 		{
 			name: "same registration",
 			fields: fields{
-				oldSecretVersion: "version1",
-				newSecretVersion: "version1",
+				oldSecretVersion:      "version1",
+				newSecretVersion:      "version1",
+				expectDaemonsetUpdate: true,
 			},
 		},
 	}
@@ -548,6 +561,10 @@ func TestSyncer_configureLogging(t *testing.T) {
 					secret.Name = constants.MCRegistrationSecret
 					secret.Namespace = constants.VerrazzanoSystemNamespace
 					secret.ResourceVersion = newVersion
+					if tt.fields.expectDaemonsetUpdate {
+						secret.Data = map[string][]byte{}
+						secret.Data["ca-bundle"] = []byte("test ca-bundle data")
+					}
 					return nil
 				})
 
@@ -562,20 +579,23 @@ func TestSyncer_configureLogging(t *testing.T) {
 				})
 			// update only when registration is updated
 			if oldVersion != newVersion {
-				mcMock.EXPECT().
-					Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
-					DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
-						ds.Name = "fluentd"
-						ds.Namespace = constants.VerrazzanoSystemNamespace
-						ds.Spec = getTestDaemonSetSpec(oldVersion)
-						return nil
-					})
-				mcMock.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
-						asserts.Equal(t, newVersion, getEnvValue(&ds.Spec.Template.Spec.Containers, registrationSecretVersion), "expected env value for "+registrationSecretVersion)
-						return nil
-					})
+				if tt.fields.expectDaemonsetUpdate {
+					mcMock.EXPECT().
+						Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
+						DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
+							ds.Name = "fluentd"
+							ds.Namespace = constants.VerrazzanoSystemNamespace
+							ds.Spec = getTestDaemonSetSpec(oldVersion)
+							return nil
+						})
+					mcMock.EXPECT().
+						Update(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
+							asserts.Equal(t, newVersion, getEnvValue(&ds.Spec.Template.Spec.Containers, registrationSecretVersion), "expected env value for "+registrationSecretVersion)
+							asserts.Equal(t, caBundle, getEnvValue(&ds.Spec.Template.Spec.Containers, caFile), "expected env value for "+registrationSecretVersion)
+							return nil
+						})
+				}
 			}
 
 			// Make the request
