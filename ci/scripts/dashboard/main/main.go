@@ -31,6 +31,9 @@ var pwd = ""
 // instance
 var inst = ""
 
+// prometheus job
+var prometheusJob = ""
+
 // constants
 const commitSha = "commit_sha"
 const branch = "branch"
@@ -38,6 +41,7 @@ const jobNumber = "job_number"
 const testEnv = "test_env"
 const instance = "instance"
 const testSuite = "test_suite"
+const jenkinsJob = "jenkins_job"
 const metricPrefix = "_verrazzano_"
 const statusSuffix = "_status"
 const timeSuffix = "_time"
@@ -110,7 +114,7 @@ func processInput() (exitCode int) {
 	}
 	// Extract only the first part, and remove the feature branch
 	jobParts := strings.Split(buildJobName, "/")
-	buildJobName = jobParts[0]
+	prometheusJob = jobParts[0]
 
 	// extract user and password from the promCredentials
 	cred := strings.Split(promCredentials, ":")
@@ -125,14 +129,12 @@ func processInput() (exitCode int) {
 func processJunitReports() {
 	suites, err := junit.IngestDir(testReportDir)
 	if err != nil {
-		log.Fatalf("failed to ingest JUnit xml %v", err)
+		log.Fatalf("Failed to ingest the junit reports %v", err)
 	}
-	var testStatus float64
 	for _, suite := range suites {
+		testStatus := 0.0
 		if suite.Totals.Tests == suite.Totals.Passed {
 			testStatus = 1.0
-		} else {
-			testStatus = -1.0
 		}
 		metricName := removeSpecialChars(suite.Name)
 		emitTestMetrics(metricName, statusSuffix, testStatus)
@@ -146,16 +148,17 @@ func emitTestMetrics(metricName string, metricSuffix string, metricValue float64
 	testMetric := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: metricToEmit,
 		ConstLabels: prometheus.Labels{
-			commitSha: gitCommit,
-			branch:    gitBranch,
-			jobNumber: buildNumber,
-			testEnv:   testEnvironment,
-			instance:  inst,
-			testSuite: metricName,
+			commitSha:  gitCommit,
+			branch:     gitBranch,
+			jobNumber:  buildNumber,
+			testEnv:    testEnvironment,
+			instance:   inst,
+			testSuite:  metricName,
+			jenkinsJob: buildJobName,
 		},
 	})
 	testMetric.Set(metricValue)
-	if err := push.New(prometheusURL, buildJobName).
+	if err := push.New(prometheusURL, prometheusJob).
 		Collector(testMetric).
 		BasicAuth(user, pwd).
 		Add(); err != nil {
@@ -167,13 +170,14 @@ func emitTestMetrics(metricName string, metricSuffix string, metricValue float64
 // The label instance and the value for metric doesn't allow special characters.
 // Replace all the non-alphanumeric characters with an underscore
 func removeSpecialChars(inputParam string) string {
-	returnVal := strings.ReplaceAll(strings.ToLower(inputParam), " ", "_")
+	inputParam = strings.ToLower(inputParam)
+	replacer := strings.NewReplacer("/", "_", " ", "_", "-", "_")
+	returnVal := replacer.Replace(inputParam)
 	reg, err := regexp.Compile("[^a-zA-Z0-9/_]")
 	if err != nil {
 		log.Fatal(err)
 	}
 	returnVal = reg.ReplaceAllString(returnVal, "")
-	returnVal = strings.ReplaceAll(strings.ToLower(returnVal), "/", "_")
 	return returnVal
 }
 
