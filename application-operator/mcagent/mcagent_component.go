@@ -45,10 +45,10 @@ func (s *Syncer) syncMCComponentObjects(namespace string) error {
 		s.Log.Error(err, "failed to list MultiClusterComponent on local cluster")
 		return nil
 	}
-	for _, mcComponent := range allLocalMCComponents.Items {
+	for i, mcComponent := range allLocalMCComponents.Items {
 		// Delete each MultiClusterComponent object that is not on the admin cluster or no longer placed on this cluster
 		if !s.componentPlacedOnCluster(&allAdminMCComponents, mcComponent.Name, mcComponent.Namespace) {
-			err := s.LocalClient.Delete(s.Context, &mcComponent)
+			err := s.LocalClient.Delete(s.Context, &allLocalMCComponents.Items[i])
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterComponent with name %q and namespace %q", mcComponent.Name, mcComponent.Namespace))
 			}

@@ -26,15 +26,15 @@ const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
 // MCAgentSecret contains information needed by the agent to access the admin cluster, such as the admin kubeconfig.
 // This secret is used by the MC agent running on the managed cluster.
-const MCAgentSecret = "verrazzano-cluster-agent"
+const MCAgentSecret = "verrazzano-cluster-agent" //nolint:gosec //#gosec G101
 
 // MCRegistrationSecret contains information which related to the managed cluster itself, such as the
 // managed cluster name.
-const MCRegistrationSecret = "verrazzano-cluster-registration"
+const MCRegistrationSecret = "verrazzano-cluster-registration" //nolint:gosec //#gosec G101
 
 // MCLocalRegistrationSecret - the name of the local secret that contains the cluster registration information.
-// Thos is created at Verrazzano install.
-const MCLocalRegistrationSecret = "verrazzano-local-registration"
+// This is created at Verrazzano install.
+const MCLocalRegistrationSecret = "verrazzano-local-registration" //nolint:gosec //#gosec G101
 
 // MCClusterRole is the role name for the role used during VMC reconcile
 const MCClusterRole = "verrazzano-managed-cluster"

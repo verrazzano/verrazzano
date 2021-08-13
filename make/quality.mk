@@ -10,7 +10,7 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 
 .PHONY: check
 check: install-linter
-	$(LINTER) run
+	$(LINTER) --color never run
 
 # find or download golangci-lint
 .PHONY: install-linter

@@ -9,7 +9,7 @@ import (
 	"text/template"
 
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -162,11 +162,12 @@ func createHelidonApplication(args []string) error {
 		return err
 	}
 
-	kubeConfig, err := pkg.GetKubeConfig()
+	// apply the resulting data (yaml) on the server
+	kubeConfig, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return err
 	}
-	// apply the resulting data (yaml) on the server
+
 	err = helpers.ServerSideApply(kubeConfig, b.String())
 	if err != nil {
 		return err

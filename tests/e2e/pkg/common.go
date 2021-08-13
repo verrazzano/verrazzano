@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
@@ -103,7 +104,13 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 
 // PodsRunning is identical to PodsRunningInCluster, except that it uses the cluster specified in the environment
 func PodsRunning(namespace string, namePrefixes []string) bool {
-	return PodsRunningInCluster(namespace, namePrefixes, GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+
+	return PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
 }
 
 // PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
@@ -132,41 +139,26 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 	return len(missing) == 0
 }
 
-// PodsNotRunning waits for all the pods in namePrefixes to be terminated
-func PodsNotRunning(namespace string, namePrefixes []string) bool {
-	clientset, err := GetKubernetesClientset()
+// PodsNotRunning returns true if all pods in namePrefixes are not running
+func PodsNotRunning(namespace string, namePrefixes []string) (bool, error) {
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting clientset, error: %v", err))
-		return false
+		return false, err
 	}
 	allPods, err := ListPodsInCluster(namespace, clientset)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
-		return false
+		return false, err
 	}
 	terminatedPods := notRunning(allPods.Items, namePrefixes...)
-	var i int = 0
-	for len(terminatedPods) != len(namePrefixes) {
-		Log(Info, fmt.Sprintf("Pods %v were TERMINATED in %v", terminatedPods, namespace))
-		time.Sleep(15 * time.Second)
-		pods, err := ListPodsInCluster(namespace, clientset)
-		if err != nil {
-			Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
-			return false
-		}
-		terminatedPods = notRunning(pods.Items, namePrefixes...)
-		i++
-		if i > 10 {
-			break
-		}
-	}
 	if len(terminatedPods) != len(namePrefixes) {
 		runningPods := areRunning(allPods.Items, namePrefixes...)
 		Log(Info, fmt.Sprintf("Pods %v were RUNNING in %v", runningPods, namespace))
-		return false
+		return false, nil
 	}
 	Log(Info, fmt.Sprintf("ALL pods %v were TERMINATED in %v", terminatedPods, namespace))
-	return true
+	return true, nil
 }
 
 // notRunning finds the pods not running
@@ -274,7 +266,13 @@ func findMetric(metrics []interface{}, key, value string) bool {
 
 // MetricsExist is identical to MetricsExistInCluster, except that it uses the cluster specified in the environment
 func MetricsExist(metricsName, key, value string) bool {
-	return MetricsExistInCluster(metricsName, key, value, GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+
+	return MetricsExistInCluster(metricsName, key, value, kubeconfigPath)
 }
 
 // MetricsExist validates the availability of a given metric in the given cluster
