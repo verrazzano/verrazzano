@@ -3,6 +3,9 @@
 
 def GIT_COMMIT_TO_USE
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def TESTS_FAILED = false
+def tarfilePrefix="verrazzano_periodic"
+def storeLocation=""
 
 pipeline {
     options {
@@ -66,11 +69,12 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
+                    storeLocation="${env.BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}.zip"
                 }
             }
         }
 
-        stage ('Kick off parallel tests') {
+        stage ('Periodic Test Suites') {
             parallel {
                 stage('Kind Acceptance Tests on 1.19 Non-Calico') {
                     steps {
@@ -82,6 +86,13 @@ pipeline {
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
                                 ], wait: true
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
                         }
                     }
                 }
@@ -97,6 +108,13 @@ pipeline {
                                 ], wait: true
                         }
                     }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                    }
                 }
                 stage('OCI DNS/ACME-Staging Tests') {
                     steps {
@@ -108,6 +126,13 @@ pipeline {
                                     string(name: 'ACME_ENVIRONMENT', value: "staging"),
                                     booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
                                 ], wait: true
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
                         }
                     }
                 }
@@ -124,13 +149,39 @@ pipeline {
                                 ], wait: true
                         }
                     }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                    }
                 }*/
-                stage('Private registry tests') {
+            }
+        }
+        stage("Private Registry") {
+            when {
+                allOf {
+                    expression {TESTS_FAILED == false}
+                }
+            }
+            stages {
+                stage("Upload Periodic Run Artifacts") {
+                    steps {
+                        sh """
+                            if [ "${env.BRANCH_NAME}" == "master" ]; then
+                                ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${tarfilePrefix}
+                            fi
+                        """
+                    }
+                }
+                stage('Private Registry Tests') {
                     steps {
                         script {
                             build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation)
                                 ], wait: true
                         }
                     }
@@ -140,13 +191,6 @@ pipeline {
     }
 
     post {
-        success {
-            sh """
-                if [ "${env.BRANCH_NAME}" == "master" ]; then
-                    ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH}
-                fi
-            """
-        }
         cleanup {
             deleteDir()
         }
