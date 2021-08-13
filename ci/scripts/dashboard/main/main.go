@@ -23,6 +23,7 @@ var testEnvironment string
 var gitBranch string
 var buildNumber string
 var buildJobName string
+var k8sVersion string
 
 // Credentials to push the metrics
 var user = ""
@@ -39,6 +40,7 @@ const commitSha = "commit_sha"
 const branch = "branch"
 const jobNumber = "job_number"
 const testEnv = "test_env"
+const kubernetestVersion = "kubernetes_version"
 const instance = "instance"
 const testSuite = "test_suite"
 const jenkinsJob = "jenkins_job"
@@ -61,6 +63,7 @@ func processInput() (exitCode int) {
 	flag.StringVar(&gitBranch, "branch-name", "", "Branch Name")
 	flag.StringVar(&buildNumber, "build-number", "", "Build Number")
 	flag.StringVar(&buildJobName, "job-name", "", "Job Name")
+	flag.StringVar(&k8sVersion, "kubernetes-version", "", "Kubernetes Version")
 
 	flag.Parse()
 
@@ -82,6 +85,12 @@ func processInput() (exitCode int) {
 		return 1
 	}
 	prometheusURL = strings.TrimSuffix(prometheusURL, "/")
+
+	if k8sVersion == "" {
+		fmt.Printf("\nRequired flag kubernetes-version is not specified, exiting.\n")
+		printUsage()
+		return 1
+	}
 
 	if gitCommit == "" {
 		fmt.Printf("\nRequired flag commit-sha hash not specified, exiting.\n")
@@ -148,13 +157,14 @@ func emitTestMetrics(metricName string, metricSuffix string, metricValue float64
 	testMetric := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: metricToEmit,
 		ConstLabels: prometheus.Labels{
-			commitSha:  gitCommit,
-			branch:     gitBranch,
-			jobNumber:  buildNumber,
-			testEnv:    testEnvironment,
-			instance:   inst,
-			testSuite:  metricName,
-			jenkinsJob: buildJobName,
+			commitSha:          gitCommit,
+			branch:             gitBranch,
+			jobNumber:          buildNumber,
+			testEnv:            testEnvironment,
+			instance:           inst,
+			testSuite:          metricName,
+			jenkinsJob:         buildJobName,
+			kubernetestVersion: k8sVersion,
 		},
 	})
 	testMetric.Set(metricValue)

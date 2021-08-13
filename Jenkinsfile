@@ -43,6 +43,7 @@ pipeline {
                 defaultValue: 'master',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -448,7 +449,8 @@ pipeline {
                     build job: "verrazzano-push-triggered-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                         ], wait: true
                 }
             }

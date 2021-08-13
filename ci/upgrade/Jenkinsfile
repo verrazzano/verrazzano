@@ -42,6 +42,7 @@ pipeline {
                 choices: [ "nip.io", "sslip.io" ])
         booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to true)', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -75,6 +76,12 @@ pipeline {
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+
+         // used to emit metrics
+         SAURON_CRED = credentials('verrazzano-sauron')
+         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+         TEST_ENV_LABEL = "kind"
+         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
     }
 
     stages {
@@ -345,6 +352,9 @@ pipeline {
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
+                if [ "${params.EMIT_METRICS}" == "true" ] ; then
+                    ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${TEST_ENV_LABEL}"
+                fi
                 cd ${GO_REPO_PATH}/verrazzano/platform-operator
                 make delete-cluster
                 cd ${WORKSPACE}/verrazzano
