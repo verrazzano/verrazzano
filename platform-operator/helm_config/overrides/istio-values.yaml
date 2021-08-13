@@ -16,6 +16,9 @@ global:
   imagePullPolicy: IfNotPresent
   proxy:
     readinessFailureThreshold: 90
+  tracer:
+    zipkin:
+      address: zipkin.verrazzano-system:9411
 
 gateways:
   istio-egressgateway:

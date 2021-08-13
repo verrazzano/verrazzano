@@ -389,6 +389,23 @@
       ]
     },
     {
+      "name": "kiali",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "kiali",
+          "images": [
+            {
+              "image": "kiali",
+              "tag": "v1.34",
+              "helmFullImageKey": "deployment.image_name",
+              "helmTagKey": "deployment.image_version"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "mysql",
       "subcomponents": [
         {

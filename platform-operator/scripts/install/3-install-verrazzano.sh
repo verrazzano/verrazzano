@@ -278,6 +278,72 @@ function install_coherence_operator {
   fi
 }
 
+function install_kiali {
+  if is_chart_deployed kiali ${VERRAZZANO_NS} ${CHARTS_DIR}/kiali ; then
+    return 0
+  fi
+
+  IMAGE_PULL_SECRETS_ARGUMENT=""
+  if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+    IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+  fi
+
+  log "Install the Kiali Management Console"
+  local chart_name=kiali
+  build_image_overrides kiali ${chart_name}
+  log "Kiali Helm Image Args = ${HELM_IMAGE_ARGS}"
+  log "helm upgrade --install --wait ${chart_name} \
+    ${CHARTS_DIR}/kiali \
+    --namespace "${VERRAZZANO_NS}" \
+    -f $VZ_OVERRIDES_DIR/kiali-values.yaml \
+    ${HELM_IMAGE_ARGS} \
+    ${IMAGE_PULL_SECRETS_ARGUMENT}"
+
+  helm upgrade --install --wait ${chart_name} \
+    ${CHARTS_DIR}/kiali \
+    --namespace "${VERRAZZANO_NS}" \
+    -f $VZ_OVERRIDES_DIR/kiali-values.yaml \
+    ${HELM_IMAGE_ARGS} \
+    ${IMAGE_PULL_SECRETS_ARGUMENT} \
+    || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to install the Kiali Management Console."
+    return 1
+  fi
+}
+
+function install_jaeger {
+# if is_chart_deployed kiali ${VERRAZZANO_NS} ${CHARTS_DIR}/kiali ; then
+#    return 0
+#  fi
+
+  IMAGE_PULL_SECRETS_ARGUMENT=""
+  if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+    IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
+  fi
+
+  log "Install Jaeger Distributed Tracing"
+#  local chart_name=kiali
+#  build_image_overrides kiali ${chart_name}
+
+  if ! kubectl apply -f ${CHARTS_DIR}/jaeger/jaeger.yaml ; then
+    action "Installation of Jaeger Distribited Tracing FAILED" || exit 1
+  fi
+
+
+#  helm upgrade --install --wait ${chart_name} \
+#    ${CHARTS_DIR}/kiali \
+#    --namespace "${VERRAZZANO_NS}" \
+#    -f $VZ_OVERRIDES_DIR/kiali-values.yaml \
+#    ${HELM_IMAGE_ARGS} \
+#    ${IMAGE_PULL_SECRETS_ARGUMENT} \
+#    || return $?
+#  if [ $? -ne 0 ]; then
+#    error "Failed to install the Kiali Management Console."
+#    return 1
+#  fi
+}
+
 # Set environment variable for checking if optional imagePullSecret was provided
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
@@ -331,3 +397,5 @@ action "Installing Coherence Kubernetes operator" install_coherence_operator || 
 action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
 action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
 action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1
+action "Installing Kiali management console for an Istio-based service mesh" install_kiali || exit 1
+action "Installing Jaeger distributed tracing system" install_jaeger || exit 1
