@@ -26,7 +26,7 @@ endif
 .PHONY: word-linter
 word-linter:
 	words=$(curl -L https://bit.ly/3iIUcdL | grep -v '^\s*\(#\|$\)')
-	grep $words -r --exclude-dir=vendor --exclude-dir=word-checker ./../*
+	grep $words -r --exclude-dir=vendor --exclude-dir=word-checker *
 
 .PHONY: coverage
 coverage:
