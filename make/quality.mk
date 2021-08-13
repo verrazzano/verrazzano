@@ -9,7 +9,7 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 #
 
 .PHONY: check
-check: install-linter
+check: install-linter word-linter
 	$(LINTER) run
 
 # find or download golangci-lint
@@ -21,6 +21,12 @@ ifeq (, $(shell command -v golangci-lint))
 else
 	$(eval LINTER=$(shell command -v golangci-lint))
 endif
+
+# search for "bad" words in repo
+.PHONY: word-linter
+word-linter:
+	words=$(curl -L https://bit.ly/3iIUcdL | grep -v '^\s*\(#\|$\)')
+	grep $words -r --exclude-dir=vendor --exclude-dir=word-checker ./../*
 
 .PHONY: coverage
 coverage:
