@@ -838,7 +838,7 @@ def metricTimerEnd(metricName, status) {
         // OCI_MET=sh(returnStdout: true, script: "ci/scripts/oci_metric_emit.sh ${env.OC_TELEMETRY_URL} ${env.OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
 
         labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
-                 'jenkins_job=\\"' + "${env.JOB_NAME}"+'\\",' +
+                 'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
                  'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
                  'kubernetes_version=\\"' + "${params.OKE_CLUSTER_VERSION}"+'\\",' +
                  'test_env=\\"' + "ocidns_oke"+'\\"'
