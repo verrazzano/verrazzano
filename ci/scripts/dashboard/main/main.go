@@ -154,7 +154,6 @@ func emitTestMetrics(metricName string, metricSuffix string, metricValue float64
 			testSuite: metricName,
 		},
 	})
-	testMetric.SetToCurrentTime()
 	testMetric.Set(metricValue)
 	if err := push.New(prometheusURL, buildJobName).
 		Collector(testMetric).
@@ -163,7 +162,6 @@ func emitTestMetrics(metricName string, metricSuffix string, metricValue float64
 		fmt.Println("Could not push completion time to push gateway, ", err)
 		log.Fatal(err)
 	}
-	fmt.Printf("Successfully pushed metric %v\n", metricToEmit)
 }
 
 // The label instance and the value for metric doesn't allow special characters.
