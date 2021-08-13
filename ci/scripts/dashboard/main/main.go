@@ -142,7 +142,7 @@ func processJunitReports() {
 
 // Emit metrics for the test status and execution time
 func emitTestMetrics(metricName string, metricSuffix string, metricValue float64) {
-	metricToEmit := metricPrefix+ metricName + metricSuffix
+	metricToEmit := metricPrefix + metricName + metricSuffix
 	testMetric := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: metricToEmit,
 		ConstLabels: prometheus.Labels{
