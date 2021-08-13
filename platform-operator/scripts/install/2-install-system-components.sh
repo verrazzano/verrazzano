@@ -394,17 +394,28 @@ function install_rancher()
       fi
 
       local chart_name=rancher
-      log "Installing cattle-system/${chart_name}"
       build_image_overrides rancher ${chart_name}
 
-      # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-      helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
-        --install --namespace cattle-system \
-        --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
-        --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
-        ${HELM_IMAGE_ARGS} \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        ${EXTRA_RANCHER_ARGUMENTS}
+      if [ $(is_external_dns) == "true" ]; then
+        log "Installing cattle-system/${chart_name}"
+        # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
+        helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
+          --install --namespace cattle-system \
+          --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
+          --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+          ${HELM_IMAGE_ARGS} \
+          ${IMAGE_PULL_SECRETS_ARGUMENT} \
+          ${EXTRA_RANCHER_ARGUMENTS} \
+          || return $?
+      else
+        helm_install-retry ${chart_name} ${RANCHER_CHART_DIR} cattle-system \
+          --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
+          --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+          ${HELM_IMAGE_ARGS} \
+          ${IMAGE_PULL_SECRETS_ARGUMENT} \
+          ${EXTRA_RANCHER_ARGUMENTS} \
+          || return $?
+      fi
     fi
 
     if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 > /dev/null ; then

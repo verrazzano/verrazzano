@@ -385,7 +385,6 @@ function check_for_slow_image_pulls() {
   local pulled_count=$(kubectl get events -n $1 | grep 'Successfully pulled' | awk '$1 !~ /^1?[0-9]s/ {print $0}' | wc -l)
 
   if [[ $pulling_count -eq $pulled_count ]]; then
-    log "Slow image pulls NOT detected for namespace $namespace after install failure"
     return 0
   fi
 

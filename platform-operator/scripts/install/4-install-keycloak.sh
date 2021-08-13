@@ -67,8 +67,6 @@ function install_mysql {
     IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
 
-  log "Install MySQL helm chart"
-
   local chart_name=mysql
   build_image_overrides mysql ${chart_name}
   local image_args=${HELM_IMAGE_ARGS}
@@ -83,16 +81,13 @@ function install_mysql {
 
   log "PROFILE VALUES OVERRIDE = ${PROFILE_VALUES_OVERRIDE}"
 
-  helm upgrade ${chart_name} ${MYSQL_CHART_DIR} \
-      --install \
-      --namespace ${KEYCLOAK_NS} \
-      --timeout 10m \
-      --wait \
+  helm_install-retry ${chart_name} ${MYSQL_CHART_DIR} ${KEYCLOAK_NS} \
       -f $VZ_OVERRIDES_DIR/mysql-values.yaml \
       ${HELM_IMAGE_ARGS} \
       ${IMAGE_PULL_SECRETS_ARGUMENT} \
       ${PROFILE_VALUES_OVERRIDE} \
-      ${EXTRA_MYSQL_ARGUMENTS}
+      ${EXTRA_MYSQL_ARGUMENTS} \
+      || return $?
 }
 
 # build_extra_init_containers_override overrides the keycloak extraInitContainers helm value with YAML that
@@ -141,15 +136,15 @@ function install_keycloak {
       exit 1
     fi
 
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.username=${KCADMIN_USERNAME}"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target=${DNS_TARGET_NAME}"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.nginx\.ingress\.kubernetes\.io/service-upstream=true"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.nginx\.ingress\.kubernetes\.io/upstream-vhost=keycloak-http.keycloak.svc.cluster.local"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].secretName=${ENV_NAME}-secret"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
-  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbUser=${MYSQL_USERNAME}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.username=${KCADMIN_USERNAME}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target=${DNS_TARGET_NAME}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.nginx\.ingress\.kubernetes\.io/service-upstream=true"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.nginx\.ingress\.kubernetes\.io/upstream-vhost=keycloak-http.keycloak.svc.cluster.local"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].secretName=${ENV_NAME}-secret"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbUser=${MYSQL_USERNAME}"
 
     # Handle any additional Keycloak install args
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS $(get_keycloak_helm_args_from_config)"
@@ -160,15 +155,12 @@ function install_keycloak {
     build_extra_init_containers_override
 
     # Install keycloak helm chart
-    helm upgrade ${chart_name} ${KEYCLOAK_CHART_DIR} \
-        --install \
-        --namespace ${KEYCLOAK_NS} \
+    helm_install-retry ${chart_name} ${KEYCLOAK_CHART_DIR} ${KEYCLOAK_NS} \
         -f $VZ_OVERRIDES_DIR/keycloak-values.yaml \
         ${KEYCLOAK_ARGUMENTS} \
         ${keycloak_image_args} \
         --set keycloak.extraInitContainers="${EXTRA_INIT_CONTAINERS_OVERRIDE}" \
-        --timeout 10m \
-        --wait
+        || return $?
   fi
 
   VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "adminsGroup: &default_adminsGroup " | awk '{ print $3 }')
