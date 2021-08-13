@@ -157,9 +157,9 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
 
         // used to emit metrics
-        PROMETHEUS_CRED = credentials('verrazzano-sauron')
+        SAURON_CRED = credentials('verrazzano-sauron')
         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
-        TEST_ENV_LABEL = "multi_cluster"
+        TEST_ENV_LABEL = "multi_cluster_${params.TEST_ENV}_${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION}"
     }
 
     stages {

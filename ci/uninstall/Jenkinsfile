@@ -101,7 +101,7 @@ pipeline {
         DATABASE_PSW = credentials('todo-mysql-password')
 
         // used to emit metrics
-        PROMETHEUS_CRED = credentials('verrazzano-sauron')
+        SAURON_CRED = credentials('verrazzano-sauron')
         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
         TEST_ENV_LABEL = "uninstall"
     }
