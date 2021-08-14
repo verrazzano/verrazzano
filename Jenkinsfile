@@ -422,6 +422,7 @@ pipeline {
                             booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
                             booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
                             string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
+                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                         ], wait: true
                 }
             }
