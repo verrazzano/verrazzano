@@ -22,11 +22,10 @@ else
 	$(eval LINTER=$(shell command -v golangci-lint))
 endif
 
-# search for "bad" words in repo
+# search for internal words that should not be in the repo
 .PHONY: word-linter
 word-linter:
-	words=$(curl -L https://bit.ly/3iIUcdL | grep -v '^\s*\(#\|$\)')
-	grep $words -r --exclude-dir=vendor --exclude-dir=word-checker *
+	! curl -sL https://bit.ly/3iIUcdL | grep -v '^\s*\(#\|$$\)' | grep -f /dev/stdin -r *
 
 .PHONY: coverage
 coverage:
