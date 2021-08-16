@@ -31,6 +31,7 @@ const registrationSecretVersion = "REGISTRATION_SECRET_VERSION"
 
 // ENV VAR for ca file
 const caFile = "CA_FILE"
+const caFileDefault = "/etc/nginx/all-ca-certs.pem"
 
 // ca_file location when the registration secret contains a ca-bundle
 const caBundle = "/fluentd/secret/ca-bundle"
@@ -290,10 +291,10 @@ func (s *Syncer) configureLogging() {
 	secretVersionEnv := getEnvValue(&daemonSet.Spec.Template.Spec.Containers, registrationSecretVersion)
 	// CreateOrUpdate updates the deployment if cluster name or es secret version changed
 	caBundle := string(regSecret.Data[constants.CaBundleKey])
-	if secretVersionEnv != secretVersion && len(caBundle) > 0 {
+	if secretVersionEnv != secretVersion {
 		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
 			s.Log.Info(fmt.Sprintf("Update the DaemonSet %s, registration secret version from %q to %q", loggingName, secretVersionEnv, secretVersion))
-			daemonSet = *updateLoggingDaemonSet(constants.MCRegistrationSecret, secretVersion, &daemonSet)
+			daemonSet = *updateLoggingDaemonSet(constants.MCRegistrationSecret, secretVersion, caBundle, &daemonSet)
 			return nil
 		})
 	}
@@ -310,15 +311,22 @@ func getEnvValue(containers *[]corev1.Container, envName string) string {
 	return ""
 }
 
-func updateLoggingDaemonSet(newSecret, secretVersion string, ds *appsv1.DaemonSet) *appsv1.DaemonSet {
+func updateLoggingDaemonSet(newSecret, secretVersion, caBundle string, ds *appsv1.DaemonSet) *appsv1.DaemonSet {
 	ds.Spec.Template.Spec.Volumes = updateVolumes(newSecret, secretVersion, ds.Spec.Template.Spec.Volumes)
 	for i, c := range ds.Spec.Template.Spec.Containers {
 		if c.Name == "fluentd" {
 			ds.Spec.Template.Spec.Containers[i].Env = updateEnv(newSecret, secretVersion, ds.Spec.Template.Spec.Containers[i].Env)
 			ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
 				registrationSecretVersion, secretVersion)
-			ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
-				caFile, caBundle)
+			if len(caBundle) > 0 {
+				// Override the default caFile when the contents of the ca-bundle are passed
+				ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
+					caFile, caBundle)
+			} else {
+				// Make sure the environment variable is still pointing to the default value
+				ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
+					caFile, caFileDefault)
+			}
 		}
 	}
 	return ds
