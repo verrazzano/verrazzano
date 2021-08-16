@@ -563,7 +563,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 					secret.ResourceVersion = newVersion
 					if tt.fields.expectDaemonsetUpdate {
 						secret.Data = map[string][]byte{}
-						secret.Data["ca-bundle"] = []byte("test ca-bundle data")
+						secret.Data[constants.CaBundleKey] = []byte("test ca-bundle data")
 					}
 					return nil
 				})

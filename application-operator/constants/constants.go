@@ -3,9 +3,6 @@
 
 package constants
 
-// VerrazzanoClustersGroup - clusters group
-const VerrazzanoClustersGroup = "clusters.verrazzano.io"
-
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
@@ -41,9 +38,8 @@ const ElasticsearchUsernameData = "username"
 // cluster's Elasticsearch password
 const ElasticsearchPasswordData = "password"
 
-// ElasticsearchCABundleData - the field name in MCRegistrationSecret that contains the admin
-// cluster's Elasticsearch CA bundle
-const ElasticsearchCABundleData = "ca-bundle"
+// CaBundleKey is the CA cert key in a secret
+const CaBundleKey = "ca-bundle"
 
 // LabelVerrazzanoManaged - constant for a Kubernetes label that is applied by Verrazzano
 const LabelVerrazzanoManaged = "verrazzano-managed"

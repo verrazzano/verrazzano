@@ -289,7 +289,7 @@ func (s *Syncer) configureLogging() {
 	}
 	secretVersionEnv := getEnvValue(&daemonSet.Spec.Template.Spec.Containers, registrationSecretVersion)
 	// CreateOrUpdate updates the deployment if cluster name or es secret version changed
-	caBundle := string(regSecret.Data[constants.ElasticsearchCABundleData])
+	caBundle := string(regSecret.Data[constants.CaBundleKey])
 	if secretVersionEnv != secretVersion && len(caBundle) > 0 {
 		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
 			s.Log.Info(fmt.Sprintf("Update the DaemonSet %s, registration secret version from %q to %q", loggingName, secretVersionEnv, secretVersion))
