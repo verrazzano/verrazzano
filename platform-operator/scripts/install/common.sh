@@ -412,7 +412,7 @@ function helm_install_retry() {
       "$@" && break
     local helm_status=$?
     if [ "$retries" -eq "$max_retries" ] ; then
-fix      return $helm_status
+      return $helm_status
     fi
     ((retries+=1))
     check_for_slow_image_pulls ${ns} && return $helm_status
