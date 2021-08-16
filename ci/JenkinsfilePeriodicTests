@@ -146,7 +146,7 @@ pipeline {
                                     string(name: 'TEST_ENV', value: 'ocidns_oke'),
                                     string(name: 'ACME_ENVIRONMENT', value: "staging"),
                                     // Disable Calico with these runs temporarily
-                                    string(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
+                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true)
                                 ], wait: true
                         }
                     }
