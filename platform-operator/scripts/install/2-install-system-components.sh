@@ -51,13 +51,10 @@ function install_nginx_ingress_controller()
 
       build_image_overrides ingress-nginx ${chartName}
 
-      helm upgrade ${chartName} ${NGINX_INGRESS_CHART_DIR} --install \
-        --namespace ${ingress_nginx_ns} \
+      helm_install_retry ${chartName} ${NGINX_INGRESS_CHART_DIR} ${ingress_nginx_ns} \
         -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
         ${EXTRA_NGINX_ARGUMENTS} \
         ${HELM_IMAGE_ARGS} \
-        --timeout 15m0s \
-        --wait \
         || return $?
     fi
 
@@ -207,15 +204,11 @@ function install_cert_manager()
 
     build_image_overrides cert-manager ${chartName}
 
-    helm upgrade ${chartName} ${CERT_MANAGER_CHART_DIR} \
-        --install \
-        --namespace ${cert_manager_ns} \
+    helm_install_retry ${chartName} ${CERT_MANAGER_CHART_DIR} ${cert_manager_ns} \
         --version v1.2.0 \
         -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
         ${HELM_IMAGE_ARGS} \
         ${EXTRA_CERT_MANAGER_ARGUMENTS} \
-        --wait \
-        --timeout 10m0s \
         || return $?
 
     kubectl -n cert-manager rollout status -w deploy/cert-manager
@@ -258,9 +251,7 @@ function install_external_dns()
 
     build_image_overrides external-dns ${chartName}
 
-    helm upgrade ${chartName} ${EXTERNAL_DNS_CHART_DIR} \
-        --install \
-        --namespace ${externalDNSNamespace} \
+    helm_install_retry ${chartName} ${EXTERNAL_DNS_CHART_DIR} ${externalDNSNamespace} \
         -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
         ${HELM_IMAGE_ARGS} \
         --set domainFilters[0]=${DNS_SUFFIX} \
@@ -272,7 +263,6 @@ function install_external_dns()
         --set extraVolumeMounts[0].name=config \
         --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
         ${extraExternalDNSArgs} \
-        --wait \
         || return $?
     fi
 }
@@ -406,14 +396,27 @@ function install_rancher()
       local chart_name=rancher
       build_image_overrides rancher ${chart_name}
 
-      # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-      helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
-        --install --namespace cattle-system \
-        --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
-        --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
-        ${HELM_IMAGE_ARGS} \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        ${EXTRA_RANCHER_ARGUMENTS}
+      # Check if this install is using a dns type "external".
+      if [ $(is_external_dns) == "true" ]; then
+        log "Installing cattle-system/${chart_name}"
+        # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
+        helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
+          --install --namespace cattle-system \
+          --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
+          --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+          ${HELM_IMAGE_ARGS} \
+          ${IMAGE_PULL_SECRETS_ARGUMENT} \
+          ${EXTRA_RANCHER_ARGUMENTS} \
+          || return $?
+      else
+        helm_install_retry ${chart_name} ${RANCHER_CHART_DIR} cattle-system \
+          --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
+          --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+          ${HELM_IMAGE_ARGS} \
+          ${IMAGE_PULL_SECRETS_ARGUMENT} \
+          ${EXTRA_RANCHER_ARGUMENTS} \
+          || return $?
+      fi
     fi
 
     if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 > /dev/null ; then
