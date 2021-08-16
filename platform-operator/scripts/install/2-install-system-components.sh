@@ -396,6 +396,7 @@ function install_rancher()
       local chart_name=rancher
       build_image_overrides rancher ${chart_name}
 
+      # Check if this install is using a dns type "external".
       if [ $(is_external_dns) == "true" ]; then
         log "Installing cattle-system/${chart_name}"
         # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command

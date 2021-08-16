@@ -84,11 +84,7 @@ function install_istio()
     fi
 
     if ! is_chart_deployed istio-base istio-system ${ISTIO_CHART_DIR}/base ; then
-      log "Installing istio-system/istio-base"
-      helm upgrade istio-base ${ISTIO_CHART_DIR}/base \
-        --install \
-        --namespace istio-system \
-        --wait \
+      helm_install_retry istio-base ${ISTIO_CHART_DIR}/base istio-system \
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
         || return $?
