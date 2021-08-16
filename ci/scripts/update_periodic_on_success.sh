@@ -47,4 +47,5 @@ oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} 
 # Get the latest stable generated BOM file
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${SHORT_COMMIT_HASH_ENV}/generated-verrazzano-bom.json --file ${WORKSPACE}/tar-files/verrazzano-bom.json
 # Call the script to generate and publish the BOM
-ci/scripts/generate_product_zip.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} master-last-clean-periodic-test ${ZIPFILE_PREFIX} ${WORKSPACE}/tar-files/verrazzano-bom.json
+echo "Creating Zip for commit ${GIT_COMMIT_USED}, short hash ${SHORT_COMMIT_HASH_ENV}, file prefix ${ZIPFILE_PREFIX}, BOM file ${WORKSPACE}/tar-files/verrazzano-bom.json"
+ci/scripts/generate_product_zip.sh ${GIT_COMMIT_USED} ${SHORT_COMMIT_HASH_ENV} master-last-clean-periodic-test ${ZIPFILE_PREFIX} ${WORKSPACE}/tar-files/verrazzano-bom.json

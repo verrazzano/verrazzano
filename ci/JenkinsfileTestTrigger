@@ -40,6 +40,7 @@ pipeline {
                         defaultValue: 'nip.io',
                         description: 'This is the wildcard DNS domain',
                         trim: true)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -106,7 +107,8 @@ pipeline {
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -118,7 +120,8 @@ pipeline {
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -130,7 +133,8 @@ pipeline {
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true)
+                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -143,7 +147,8 @@ pipeline {
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -156,7 +161,8 @@ pipeline {
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -169,7 +175,8 @@ pipeline {
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -181,7 +188,8 @@ pipeline {
                                     parameters: [
                                             string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                             string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                         }
                     }
