@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,7 +35,12 @@ type HTTPResponse struct {
 
 // GetWebPage makes an HTTP GET request using a retryable client configured with the Verrazzano cert bundle
 func GetWebPage(url string, hostHeader string) (*HTTPResponse, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -58,7 +64,12 @@ func GetWebPageWithBasicAuth(url string, hostHeader string, username string, pas
 
 // GetCertificates will return the server SSL certificates for the given URL.
 func GetCertificates(url string) ([]*x509.Certificate, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -82,7 +93,12 @@ func PostWithBasicAuth(url, body, username, password, kubeconfigPath string) (*H
 
 // PostWithHostHeader posts a request with a specified Host header
 func PostWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -92,7 +108,12 @@ func PostWithHostHeader(url, contentType string, hostHeader string, body io.Read
 
 // Delete executes an HTTP DELETE
 func Delete(url string, hostHeader string) (*HTTPResponse, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -106,7 +127,11 @@ func GetVerrazzanoNoRetryHTTPClient(kubeconfigPath string) (*http.Client, error)
 	if err != nil {
 		return nil, err
 	}
-	return getHTTPClientWithCABundle(caCert, kubeconfigPath), nil
+	client, err := getHTTPClientWithCABundle(caCert, kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 // GetVerrazzanoHTTPClient returns a retryable Http client configured with the verrazzano CA cert
@@ -125,7 +150,10 @@ func GetRancherHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) 
 	if err != nil {
 		return nil, err
 	}
-	rawClient := getHTTPClientWithCABundle(caCert, kubeconfigPath)
+	rawClient, err := getHTTPClientWithCABundle(caCert, kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 	return newRetryableHTTPClient(rawClient), nil
 }
 
@@ -135,7 +163,10 @@ func GetKeycloakHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error)
 	if err != nil {
 		return nil, err
 	}
-	keycloakRawClient := getHTTPClientWithCABundle(caCert, kubeconfigPath)
+	keycloakRawClient, err := getHTTPClientWithCABundle(caCert, kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 	return newRetryableHTTPClient(keycloakRawClient), nil
 }
 
@@ -154,18 +185,31 @@ func CheckNoServerHeader(resp *HTTPResponse) bool {
 
 // GetSystemVmiHTTPClient returns a retryable HTTP client configured with the system vmi CA cert
 func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	caCert, err := getSystemVMICACert(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
-	vmiRawClient := getHTTPClientWithCABundle(caCert, kubeconfigPath)
+	vmiRawClient, err := getHTTPClientWithCABundle(caCert, kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 	return newRetryableHTTPClient(vmiRawClient), nil
 }
 
 // PutWithHostHeader PUTs a request with a specified Host header
 func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -197,8 +241,16 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 }
 
 // getHTTPClientWithCABundle returns an HTTP client configured with the provided CA cert
-func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Client {
-	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCertPoolInCluster(caData, kubeconfigPath)}}
+func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) (*http.Client, error) {
+	ca, err := rootCertPoolInCluster(caData, kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs:    ca,
+			MinVersion: tls.VersionTLS12},
+	}
 
 	proxyURL := getProxyURL()
 	if proxyURL != "" {
@@ -210,20 +262,27 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 	// disable the custom DNS resolver
 	// setupCustomDNSResolver(tr, kubeconfigPath)
 
-	return &http.Client{Transport: tr}
+	return &http.Client{Transport: tr}, nil
 }
 
-func getEnvName(kubeconfigPath string) string {
-	installedEnvName := GetVerrazzanoInstallResourceInCluster(kubeconfigPath).Spec.EnvironmentName
-	if len(installedEnvName) == 0 {
-		return defaultEnvName
+func getEnvName(kubeconfigPath string) (string, error) {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return "", err
 	}
-	return installedEnvName
+	if len(vz.Spec.EnvironmentName) == 0 {
+		return defaultEnvName, nil
+	}
+	return vz.Spec.EnvironmentName, nil
 }
 
 // getVerrazzanoCACert returns the verrazzano CA cert in the specified cluster
 func getVerrazzanoCACert(kubeconfigPath string) ([]byte, error) {
-	return doGetCACertFromSecret(getEnvName(kubeconfigPath)+"-secret", "verrazzano-system", kubeconfigPath)
+	envName, err := getEnvName(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return doGetCACertFromSecret(envName+"-secret", "verrazzano-system", kubeconfigPath)
 }
 
 // getRancherCACert returns the Rancher CA cert
@@ -233,7 +292,11 @@ func getRancherCACert(kubeconfigPath string) ([]byte, error) {
 
 // getKeycloakCACert returns the keycloak CA cert
 func getKeycloakCACert(kubeconfigPath string) ([]byte, error) {
-	return doGetCACertFromSecret(getEnvName(kubeconfigPath)+"-secret", "keycloak", kubeconfigPath)
+	envName, err := getEnvName(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return doGetCACertFromSecret(envName+"-secret", "keycloak", kubeconfigPath)
 }
 
 // getSystemVMICACert returns the system vmi CA cert
@@ -260,7 +323,10 @@ func getProxyURL() string {
 
 // doGetCACertFromSecret returns the CA cert from the specified kubernetes secret in the given cluster
 func doGetCACertFromSecret(secretName string, namespace string, kubeconfigPath string) ([]byte, error) {
-	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
 	certSecret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -280,7 +346,7 @@ func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
 }
 
 // rootCertPoolInCluster returns the root cert pool
-func rootCertPoolInCluster(caData []byte, kubeconfigPath string) *x509.CertPool {
+func rootCertPoolInCluster(caData []byte, kubeconfigPath string) (*x509.CertPool, error) {
 	var certPool *x509.CertPool = nil
 
 	if len(caData) != 0 {
@@ -289,7 +355,11 @@ func rootCertPoolInCluster(caData []byte, kubeconfigPath string) *x509.CertPool 
 		certPool.AppendCertsFromPEM(caData)
 	}
 
-	if IsACMEStagingEnabledInCluster(kubeconfigPath) {
+	env, err := GetACMEEnvironment(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	if env == "staging" {
 		// Add the ACME staging CAs if necessary
 		if certPool == nil {
 			certPool = x509.NewCertPool()
@@ -300,7 +370,7 @@ func rootCertPoolInCluster(caData []byte, kubeconfigPath string) *x509.CertPool 
 			}
 		}
 	}
-	return certPool
+	return certPool, nil
 }
 
 // HasStatus asserts that an HTTPResponse has a given status.

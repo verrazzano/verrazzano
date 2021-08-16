@@ -140,14 +140,16 @@ const OidcAuthLuaFileTemplate = `local me = {}
 
     function me.unauthorized(msg, err)
         me.deleteCookie("authn")
-        ngx.status = ngx.HTTP_UNAUTHORIZED
         me.logJson(ngx.ERR, msg, err)
+        ngx.status = ngx.HTTP_UNAUTHORIZED
+        ngx.say("401 Unauthorized")
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     function me.forbidden(msg, err)
-        ngx.status = ngx.HTTP_FORBIDDEN
         me.logJson(ngx.ERR, msg, err)
+        ngx.status = ngx.HTTP_FORBIDDEN
+        ngx.say("403 Forbidden")
         ngx.exit(ngx.HTTP_FORBIDDEN)
     end
 
@@ -638,9 +640,7 @@ const OidcAuthLuaFileTemplate = `local me = {}
       me.logJson(ngx.INFO, "Read service account token.")
       local serviceAccountToken = me.read_file("/run/secrets/kubernetes.io/serviceaccount/token")
       if not (serviceAccountToken) then
-        ngx.status = 401
-        me.logJson(ngx.ERR, "No service account token present in pod.")
-        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        me.unauthorized("No service account token present in pod.")
       end
       return serviceAccountToken
     end
@@ -695,14 +695,10 @@ const OidcAuthLuaFileTemplate = `local me = {}
           },
       })
       if err then
-        ngx.status = 401
-        me.logJson(ngx.ERR, "Error accessing vz api", err)
-        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        me.unauthorized("Error accessing vz api", err)
       end
       if not(res) or not (res.body) then
-        ngx.status = 401
-        me.logJson(ngx.ERR, "Unable to get k8s resource.")
-        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        me.unauthorized("Unable to get k8s resource.")
       end
       local cjson = require "cjson"
       return cjson.decode(res.body)
@@ -738,45 +734,40 @@ const OidcAuthLuaFileTemplate = `local me = {}
         me.logJson(ngx.INFO, "Read vmc resource for " .. args.cluster)
         local vmc = me.getVMC(args.cluster)
         if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
-            ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to fetch vmc api url for vmc " .. args.cluster)
-            ngx.exit(ngx.HTTP_UNAUTHORIZED)
+            me.unauthorized("Unable to fetch vmc api url for vmc " .. args.cluster)
         end
+
+        local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
+        ngx.req.set_uri_args(args)
+        ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
 
         -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
         -- A secret is created in admin cluster during multi cluster setup that contains the ca certificate.
         -- Here we read the name of that secret from vmc spec and retrieve the secret from cluster and read the cacrt field.
         -- The value of cacrt field is decoded to get the ca certificate and is appended to file being pointed to by the proxy_ssl_trusted_certificate variable.
-        local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
+
         if not(vmc.spec) or not(vmc.spec.caSecret) then
-            ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to fetch ca secret name for vmc to access api server of managed cluster " .. args.cluster)
-            ngx.exit(ngx.HTTP_UNAUTHORIZED)
+            me.logJson(ngx.INFO, "ca secret name not present on vmc resource, assuming well known CA certificate exists for managed cluster " .. args.cluster)
+            do return end
         end
 
         local secret = me.getSecret(vmc.spec.caSecret)
-        if not(secret) or not(secret.data) or not(secret.data["cacrt"]) then
-            ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to fetch ca secret for vmc to access api server of managed cluster " .. args.cluster)
-            ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        if not(secret) or not(secret.data) or not(secret.data["cacrt"]) or secret.data["cacrt"] == "" then
+            me.logJson(ngx.INFO, "Unable to fetch ca secret for vmc, assuming well known CA certificate exists for managed cluster " .. args.cluster)
+            do return end
         end
 
         local decodedSecret = ngx.decode_base64(secret.data["cacrt"])
         if not(decodedSecret) then
-            ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to decode ca secret for vmc to access api server of managed cluster " .. args.cluster)
-            ngx.exit(ngx.HTTP_UNAUTHORIZED)
+            me.unauthorized("Unable to decode ca secret for vmc to access api server of managed cluster " .. args.cluster)
         end
 
+        args.cluster = nil
         local startIndex, _ = string.find(decodedSecret, "-----BEGIN CERTIFICATE-----")
         local _, endIndex = string.find(decodedSecret, "-----END CERTIFICATE-----")
         if startIndex >= 1 and endIndex > startIndex then
             me.write_file("/etc/nginx/upstream.pem", string.sub(decodedSecret, startIndex, endIndex))
         end
-
-        args.cluster = nil
-        ngx.req.set_uri_args(args)
-        ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
     end
 {{ end }}
 

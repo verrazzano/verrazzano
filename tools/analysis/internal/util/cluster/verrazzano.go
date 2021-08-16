@@ -83,9 +83,9 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 				log.Errorf("Error getting deployments in %s", namespace, err)
 			}
 			if deploymentList != nil && len(deploymentList.Items) > 0 {
-				for _, deployment := range deploymentList.Items {
+				for i, deployment := range deploymentList.Items {
 					verrazzanoDeployments[deployment.ObjectMeta.Name] = deployment
-					if IsDeploymentProblematic(&deployment) {
+					if IsDeploymentProblematic(&deploymentList.Items[i]) {
 						problematicVerrazzanoDeploymentNames = append(problematicVerrazzanoDeploymentNames, deployment.ObjectMeta.Name)
 					}
 				}

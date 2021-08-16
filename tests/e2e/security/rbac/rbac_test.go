@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/client-go/kubernetes"
+
 	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
@@ -329,9 +332,14 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 			// Get secret for the SA
 			var pods *corev1.PodList
 			saSecret := serviceAccount.Secrets[0]
+			var clientset *kubernetes.Clientset
+			Eventually(func() (*kubernetes.Clientset, error) {
+				var err error
+				clientset, err = k8sutil.GetKubernetesClientset()
+				return clientset, err
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			Eventually(func() (*corev1.PodList, error) {
 				var err error
-				clientset := pkg.GetKubernetesClientset()
 				pods, err = pkg.ListPodsInCluster(verrazzanoSystemNS, clientset)
 				return pods, err
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
@@ -427,7 +435,7 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 })
 
 func verifyRoleBindingExists(name string) {
-	Eventually(func() bool {
+	Eventually(func() (bool, error) {
 		return pkg.DoesRoleBindingExist(name, rbacTestNamespace)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 }

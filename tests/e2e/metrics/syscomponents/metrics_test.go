@@ -11,6 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -87,7 +88,11 @@ var _ = BeforeSuite(func() {
 	} else {
 		// Include the namespace keycloak for the validation for admin cluster and single cluster installation
 		envoyStatsNamespaces = append(envoyStatsNamespaces, keycloakNamespace)
-		adminKubeConfig = pkg.GetKubeConfigPathFromEnv()
+		var err error
+		adminKubeConfig, err = k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Fail(err.Error())
+		}
 	}
 })
 
@@ -161,7 +166,11 @@ func verifyEnvoyStats(metricName string) bool {
 	if err != nil {
 		return false
 	}
-	clientset := pkg.GetKubernetesClientsetForCluster(kubeConfig)
+	clientset, err := pkg.GetKubernetesClientsetForCluster(kubeConfig)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting clienset for %s, error: %v", kubeConfig, err))
+		return false
+	}
 	for _, ns := range envoyStatsNamespaces {
 		pods, err := pkg.ListPodsInCluster(ns, clientset)
 		if err != nil {

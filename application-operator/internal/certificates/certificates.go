@@ -41,7 +41,7 @@ const (
 	// MultiClusterConfigMapName is the resource name for the MultiClusterConfigMap ValidatingWebhook
 	MultiClusterConfigMapName = "verrazzano-application-multiclusterconfigmap"
 	// MultiClusterSecretName is the resource name for the MultiClusterSecret ValidatingWebhook
-	MultiClusterSecretName = "verrazzano-application-multiclustersecret"
+	MultiClusterSecretName = "verrazzano-application-multiclustersecret" //nolint:gosec //#gosec G101
 )
 
 // SetupCertificates creates the needed certificates for the validating webhook

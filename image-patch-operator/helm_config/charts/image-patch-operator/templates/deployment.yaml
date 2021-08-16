@@ -28,4 +28,20 @@ spec:
               value: {{ .Values.imagePatchOperator.image }}
             - name: WIT_IMAGE
               value: {{ .Values.imageTool.image }}
+            - name: WDT_INSTALLER_BINARY
+              value: {{ .Values.weblogicDeployTool.binary }}
+            - name: WDT_INSTALLER_VERSION
+              value: {{ .Values.weblogicDeployTool.version }}
+            - name: IMAGE_TOOL_NAME
+              value: {{ .Values.imageTool.name }}
+            - name: IBR_DRY_RUN
+              value: {{ .Values.dryRun | quote }}
+            - name: WIT_POD_RESOURCE_LIMIT_CPU
+              value: {{ .Values.imageTool.resourceLimits.cpu | quote }}
+            - name: WIT_POD_RESOURCE_LIMIT_MEMORY
+              value: {{ .Values.imageTool.resourceLimits.memory | quote }}
+            - name: WIT_POD_RESOURCE_REQUEST_CPU
+              value: {{ .Values.imageTool.resourceRequests.cpu | quote }}
+            - name: WIT_POD_RESOURCE_REQUEST_MEMORY
+              value: {{ .Values.imageTool.resourceRequests.memory | quote }}
       serviceAccountName: {{ .Values.imagePatchOperator.name }}

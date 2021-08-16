@@ -12,9 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/api/extensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,9 +32,15 @@ var ingress *v1beta1.Ingress
 var consoleUIConfigured bool = false
 
 var _ = BeforeSuite(func() {
+	var clientset *kubernetes.Clientset
+	Eventually(func() (*kubernetes.Clientset, error) {
+		var err error
+		clientset, err = k8sutil.GetKubernetesClientset()
+		return clientset, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 	Eventually(func() (*v1beta1.Ingress, error) {
 		var err error
-		ingress, err = pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
+		ingress, err = clientset.ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
 		return ingress, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
@@ -84,7 +93,8 @@ var _ = Describe("Verrazzano Web UI", func() {
 		})
 
 		It("should return no Server header", func() {
-			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			Expect(err).ShouldNot(HaveOccurred())
 			httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 			Expect(err).ShouldNot(HaveOccurred())
 			req, err := retryablehttp.NewRequest("GET", serverURL, nil)
@@ -100,7 +110,8 @@ var _ = Describe("Verrazzano Web UI", func() {
 		})
 
 		It("should not return CORS Access-Control-Allow-Origin header when no Origin header is provided", func() {
-			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			Expect(err).ShouldNot(HaveOccurred())
 			httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 			Expect(err).ShouldNot(HaveOccurred())
 			req, err := retryablehttp.NewRequest("GET", serverURL, nil)
@@ -116,7 +127,8 @@ var _ = Describe("Verrazzano Web UI", func() {
 		})
 
 		It("should not return CORS Access-Control-Allow-Origin header when Origin: * is provided", func() {
-			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			Expect(err).ShouldNot(HaveOccurred())
 			httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 			Expect(err).ShouldNot(HaveOccurred())
 			req, err := retryablehttp.NewRequest("GET", serverURL, nil)
@@ -133,7 +145,8 @@ var _ = Describe("Verrazzano Web UI", func() {
 		})
 
 		It("should not return CORS Access-Control-Allow-Origin header when Origin: null is provided", func() {
-			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			Expect(err).ShouldNot(HaveOccurred())
 			httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 			Expect(err).ShouldNot(HaveOccurred())
 			req, err := retryablehttp.NewRequest("GET", serverURL, nil)

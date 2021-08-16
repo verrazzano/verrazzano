@@ -45,10 +45,10 @@ func (s *Syncer) syncMCConfigMapObjects(namespace string) error {
 		s.Log.Error(err, "failed to list MultiClusterConfigMap on local cluster")
 		return nil
 	}
-	for _, mcConfigMap := range allLocalMCConfigMaps.Items {
+	for i, mcConfigMap := range allLocalMCConfigMaps.Items {
 		// Delete each MultiClusterConfigMap object that is not on the admin cluster or no longer placed on this cluster
 		if !s.configMapPlacedOnCluster(&allAdminMCConfigMaps, mcConfigMap.Name, mcConfigMap.Namespace) {
-			err := s.LocalClient.Delete(s.Context, &mcConfigMap)
+			err := s.LocalClient.Delete(s.Context, &allLocalMCConfigMaps.Items[i])
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterConfigMap with name %q and namespace %q", mcConfigMap.Name, mcConfigMap.Namespace))
 			}

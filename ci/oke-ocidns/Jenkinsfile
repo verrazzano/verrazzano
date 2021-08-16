@@ -51,7 +51,7 @@ pipeline {
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
-                choices: [ "v1.18.10", "v1.19.7", "v1.17.13" ])
+                choices: [ "v1.18.10", "v1.19.7", "v1.17.13", "v1.19.12", "v1.20.8" ])
         choice (description: 'Certificate Issuer', name: 'CERT_ISSUER',
                 choices: certIssuers)
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
@@ -64,8 +64,9 @@ pipeline {
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
-        booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: false)
+        booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -140,6 +141,18 @@ pipeline {
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+
+        // used for console artifact capture on failure
+        JENKINS_READ = credentials('jenkins-auditor')
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
+        OCI_OS_BUCKET="verrazzano-builds"
+
+        // used to emit metrics
+        SAURON_CRED = credentials('verrazzano-sauron')
+        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        TEST_ENV_LABEL = "${params.TEST_ENV}"
+        K8S_VERSION_LABEL = "${params.OKE_CLUSTER_VERSION}"
     }
 
     stages {
@@ -213,7 +226,7 @@ pipeline {
                             export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
                             export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
                             # call create_oke_cluster with cluster access private
-                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${params.CREATE_CLUSTER_USE_CALICO}
+                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${CREATE_CLUSTER_USE_CALICO}
                         """
                     }
                 }
@@ -252,8 +265,6 @@ pipeline {
         stage("install-platform-operator") {
             environment {
                 OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
                 sh """
@@ -555,7 +566,11 @@ pipeline {
             """
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
+
             sh """
+                if [ "${params.EMIT_METRICS}" == "true" ] ; then
+                    ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e"
+                fi
                 if [ "${TEST_ENV}" == "ocidns_oke" ]; then
                   ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
                 fi
@@ -571,6 +586,15 @@ pipeline {
             """
        }
        failure {
+            sh """
+                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
+            """
+            archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
+            sh """
+                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
+                OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
+                rm archive.zip
+            """
             script {
                 if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
                     emailext recipientProviders: [[$class: 'CulpritsRecipientProvider'],[$class: 'RequesterRecipientProvider']],

@@ -22,6 +22,15 @@ verrazzano-weblogic-image-tool-dev    local-00bf9bd7   d975a2f4b85a   4 minutes 
 verrazzano-image-patch-operator-dev   local-00bf9bd7   a0865a3d3e16   5 days ago      187MB
 ```
 Now, create a Kubernetes cluster, and load these two images into your cluster. For example, if you are using a Kind cluster, run the following commands.
+
+Make sure you fill out the hostPath field with a local path to a directory containing the installers for the JDK, WLS, and Weblogic Image Tool.
+If you don't already have these installers, you may download them locally using the links below
+- [JDK](https://www.oracle.com/java/technologies/javase-jdk16-downloads.html)
+- [WLS](https://www.oracle.com/middleware/technologies/weblogic-server-downloads.html)
+- [WIT](https://github.com/oracle/weblogic-image-tool/releases)
+
+Additionally, please add the JDK installer to the image-patch-operator/weblogic-imagetool/installers directory.
+
 ```bash
 # Create the cluster
 $ kind create cluster --config - <<EOF
@@ -36,6 +45,9 @@ nodes:
           extraArgs:
             "service-account-issuer": "kubernetes.default.svc"
             "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
+    extraMounts:
+      - hostPath: <path-to-installers>
+        containerPath: /installers
 EOF
 
 # Load the images
@@ -133,3 +145,12 @@ To track the progress of your WebLogic Image Tool image, check the logs of this 
 ```bash
 $ kubectl logs -f -n verrazzano-system verrazzano-images-cluster1-XXXXX
 ```
+
+### Troubleshooting
+After creating an ImageBuildRequest, if you encounter problems with the building of your image, you may be able to help diagnose your problem through the use of the WebLogic Image Tool Dry Run feature. Running an ImageJob as a Dry Run will result in the Dockerfile of the image to be printed to stdout - the image will not be built or pushed.
+
+There are two different methods to run an ImageJob as a Dry Run. The first is to edit the Deployment that gets created by the helm install. By default, the "IBR_DRY_RUN" environmental variable of the Deployment will be set to false. You may edit the Deployment and set this variable to true. This will run all future ImageJobs as a Dry Run (you may set this variable back to false to run ImageJobs regularly).
+
+The second method you may use, is to edit the values.yaml file in the helm_config directory. The values.yaml file lists a variable "dryRun" which by default is set to false. Setting this variable to true, and then preforming a helm install will result in future ImageJobs to run as Dry Runs. You may change back to running ImageJobs normally by editing the Deployment and setting the "IBR_DRY_RUN" variable back to false.
+
+To view the output of an ImageJob Dry Run, follow the steps located in the "Check the Status of the Image" section of this document.

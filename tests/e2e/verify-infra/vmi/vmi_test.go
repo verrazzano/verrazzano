@@ -15,12 +15,12 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -28,7 +28,11 @@ import (
 const verrazzanoNamespace string = "verrazzano-system"
 
 func vmiIngressURLs() (map[string]string, error) {
-	ingressList, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses(verrazzanoNamespace).List(context.TODO(), v1.ListOptions{})
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	ingressList, err := clientset.ExtensionsV1beta1().Ingresses(verrazzanoNamespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -36,9 +40,9 @@ func vmiIngressURLs() (map[string]string, error) {
 	ingressURLs := make(map[string]string)
 
 	for _, ingress := range ingressList.Items {
-		var ingressRules []v1beta1.IngressRule = ingress.Spec.Rules
+		var ingressRules = ingress.Spec.Rules
 		if len(ingressRules) != 1 {
-			return nil, fmt.Errorf("Expected ingress %s in namespace %s to have 1 ingress rule, but had %v",
+			return nil, fmt.Errorf("expected ingress %s in namespace %s to have 1 ingress rule, but had %v",
 				ingress.Name, ingress.Namespace, ingressRules)
 		}
 		ingressURLs[ingress.Name] = fmt.Sprintf("https://%s/", ingressRules[0].Host)
@@ -47,7 +51,11 @@ func vmiIngressURLs() (map[string]string, error) {
 }
 
 func verrazzanoMonitoringInstanceCRD() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
-	crd, err := pkg.APIExtensionsClientSet().CustomResourceDefinitions().Get(context.TODO(), "verrazzanomonitoringinstances.verrazzano.io", v1.GetOptions{})
+	client, err := pkg.APIExtensionsClientSet()
+	if err != nil {
+		return nil, err
+	}
+	crd, err := client.CustomResourceDefinitions().Get(context.TODO(), "verrazzanomonitoringinstances.verrazzano.io", v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +63,11 @@ func verrazzanoMonitoringInstanceCRD() (*apiextensionsv1beta1.CustomResourceDefi
 }
 
 func verrazzanoInstallerCRD() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
-	crd, err := pkg.APIExtensionsClientSet().CustomResourceDefinitions().Get(context.TODO(), "verrazzanos.install.verrazzano.io", v1.GetOptions{})
+	client, err := pkg.APIExtensionsClientSet()
+	if err != nil {
+		return nil, err
+	}
+	crd, err := client.CustomResourceDefinitions().Get(context.TODO(), "verrazzanos.install.verrazzano.io", v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -112,17 +124,23 @@ var _ = Describe("VMI", func() {
 	if isManagedClusterProfile {
 		It("Elasticsearch should NOT be present", func() {
 			// Verify ES not present
-			Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})).To(BeTrue())
+			Eventually(func() (bool, error) {
+				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(elasticTLSSecret()).To(BeTrue())
 			Expect(elastic.CheckIngress()).To(BeFalse())
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-es-ingest"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
 			// Verify Kibana not present
-			Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})).To(BeTrue())
+			Eventually(func() (bool, error) {
+				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-kibana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
 			// Verify Grafana not present
-			Expect(pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-grafana"})).To(BeTrue())
+			Eventually(func() (bool, error) {
+				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-grafana"})
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-grafana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 		})
 	} else {
@@ -271,7 +289,14 @@ func assertBearerAuthorized(url string) bool {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
 		return false
 	}
-	api, err := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig location: %v", err))
+		return false
+	}
+
+	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
 		return false
@@ -407,7 +432,10 @@ func assertDashboard(url string) {
 }
 
 func assertInstanceInfoURLs() {
-	cr := pkg.GetVerrazzanoInstallResourceInCluster(pkg.GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	Expect(err).To(BeNil())
+	cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	Expect(err).To(BeNil())
 	instanceInfo := cr.Status.VerrazzanoInstance
 	switch cr.Spec.Profile {
 	case v1alpha1.ManagedCluster:

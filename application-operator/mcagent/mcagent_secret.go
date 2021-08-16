@@ -45,10 +45,10 @@ func (s *Syncer) syncMCSecretObjects(namespace string) error {
 		s.Log.Error(err, "failed to list MultiClusterSecret on local cluster")
 		return nil
 	}
-	for _, mcSecret := range allLocalMCSecrets.Items {
+	for si, mcSecret := range allLocalMCSecrets.Items {
 		// Delete each MultiClusterSecret object that is not on the admin cluster or no longer placed on this cluster
 		if !s.secretPlacedOnCluster(&allAdminMCSecrets, mcSecret.Name, mcSecret.Namespace) {
-			err := s.LocalClient.Delete(s.Context, &mcSecret)
+			err := s.LocalClient.Delete(s.Context, &allLocalMCSecrets.Items[si])
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterSecret with name %q and namespace %q", mcSecret.Name, mcSecret.Namespace))
 			}

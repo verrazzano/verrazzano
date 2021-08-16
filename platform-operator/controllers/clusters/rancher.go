@@ -32,12 +32,12 @@ import (
 const (
 	rancherNamespace   = "cattle-system"
 	rancherIngressName = "rancher"
-	rancherAdminSecret = "rancher-admin-secret"
-	rancherTLSSecret   = "tls-rancher-ingress"
+	rancherAdminSecret = "rancher-admin-secret" //nolint:gosec //#gosec G101
+	rancherTLSSecret   = "tls-rancher-ingress"  //nolint:gosec //#gosec G101
 
 	clusterPath         = "/v3/cluster"
 	clustersByNamePath  = "/v3/clusters?name="
-	clusterRegTokenPath = "/v3/clusterregistrationtoken"
+	clusterRegTokenPath = "/v3/clusterregistrationtoken" //nolint:gosec //#gosec G101
 	manifestPath        = "/v3/import/"
 	loginPath           = "/v3-public/localProviders/local?action=login"
 
@@ -410,6 +410,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log *zap.SugaredLogger) (*h
 	tlsConfig := &tls.Config{
 		RootCAs:    newCertPool(rc.certificateAuthorityData),
 		ServerName: rc.host,
+		MinVersion: tls.VersionTLS12,
 	}
 	tr := &http.Transport{
 		TLSClientConfig:       tlsConfig,

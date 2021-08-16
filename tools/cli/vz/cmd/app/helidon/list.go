@@ -7,11 +7,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/spf13/cobra"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/clients/oam/clientset/versioned/typed/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -52,7 +53,10 @@ func NewCmdAppHelidonList(streams genericclioptions.IOStreams) *cobra.Command {
 
 func listHelidonApplications(cmd *cobra.Command, args []string) error {
 	// connect to the server
-	config := pkg.GetKubeConfig()
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return err
+	}
 	oamclientset, err := v1alpha1.NewForConfig(config)
 	if err != nil {
 		fmt.Print("could not get the OAM/Helidon clientset")
@@ -102,12 +106,17 @@ func listHelidonApplications(cmd *cobra.Command, args []string) error {
 	// print out details of the projects
 	headings := []string{"NAMESPACE", "NAME", "AGE", "HOSTNAME"}
 	data := [][]string{}
+
 	for _, app := range apps {
+		hostName, err := k8sutil.GetHostnameFromGateway(app.Namespace, app.Name+"-appconf")
+		if err != nil {
+			return err
+		}
 		rowData := []string{
 			app.Namespace,
 			app.Name,
 			helpers.Age(app.CreationTimestamp),
-			pkg.GetHostnameFromGateway(app.Namespace, app.Name+"-appconf"),
+			hostName,
 		}
 		data = append(data, rowData)
 	}

@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -23,7 +23,11 @@ const (
 
 // getSystemElasticSearchIngressHost gets the system Elasticsearch Ingress host in the given cluster
 func getSystemElasticSearchIngressHost(kubeconfigPath string) string {
-	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
+		return ""
+	}
 	ingressList, _ := clientset.ExtensionsV1beta1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
 		if ingress.Name == "vmi-system-es-ingest" {
@@ -85,18 +89,13 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 
 // LogIndexFound confirms a named index can be found in Elasticsearch in the cluster specified in the environment
 func LogIndexFound(indexName string) bool {
-	return LogIndexFoundInCluster(indexName, GetKubeConfigPathFromEnv())
-}
-
-// FindLogIndexWithPrefix find indices with the specified index name prefix
-func FindLogIndexWithPrefix(prefix string) []string {
-	indices := []string{}
-	for _, name := range listSystemElasticSearchIndices(GetKubeConfigPathFromEnv()) {
-		if strings.HasPrefix(name, prefix) {
-			indices = append(indices, name)
-		}
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
 	}
-	return indices
+
+	return LogIndexFoundInCluster(indexName, kubeconfigPath)
 }
 
 // LogIndexFoundInCluster confirms a named index can be found in Elasticsearch on the given cluster
@@ -114,7 +113,13 @@ func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 // LogRecordFound confirms a recent log record for the index with matching fields can be found
 // in the cluster specified in the environment
 func LogRecordFound(indexName string, after time.Time, fields map[string]string) bool {
-	return LogRecordFoundInCluster(indexName, after, fields, GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+
+	return LogRecordFoundInCluster(indexName, after, fields, kubeconfigPath)
 }
 
 // LogRecordFoundInCluster confirms a recent log record for the index with matching fields can be found
@@ -222,7 +227,12 @@ var elasticQueryTemplate *template.Template
 
 func systemES() string {
 	if systemElasticHost == "" {
-		systemElasticHost = getSystemElasticSearchIngressHost(GetKubeConfigPathFromEnv())
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+			return ""
+		}
+		systemElasticHost = getSystemElasticSearchIngressHost(kubeconfigPath)
 	}
 	return systemElasticHost
 }
@@ -243,7 +253,12 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 		Log(Error, fmt.Sprintf("Error: %v", err))
 	}
 	Log(Debug, fmt.Sprintf("Search: %v \nQuery: \n%v", url, buffer.String()))
-	configPath := GetKubeConfigPathFromEnv()
+	configPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error retrieving kubeconfig, error=%v", err))
+		return nil
+	}
+
 	var result map[string]interface{}
 	resp, err := PostWithBasicAuth(url, buffer.String(), "verrazzano", GetVerrazzanoPasswordInCluster(configPath), configPath)
 	if err != nil {

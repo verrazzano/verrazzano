@@ -23,6 +23,15 @@ const (
 
 	// Failed is the state when an ImageBuildRequest has failed
 	Failed StateType = "Failed"
+
+	// DryRunActive is the state when an image job is preforming a DryRun
+	DryRunActive StateType = "DryRunActive"
+
+	// DryRunPrinted is the state after an image job successful preforms a DryRun
+	DryRunPrinted StateType = "DryRunPrinted"
+
+	// DryRunFailure is the state if an image job fails while trying to preform a DryRun
+	DryRunFailure StateType = "DryRunFailure"
 )
 
 // ConditionType identifies the condition of the ImageBuildRequest which can be checked with kubectl wait
@@ -37,6 +46,15 @@ const (
 
 	// BuildFailed means the image build job has failed during execution.
 	BuildFailed ConditionType = "BuildFailed"
+
+	// DryRunStarted means the image job is trying to print the Dockerfile to stdout
+	DryRunStarted ConditionType = "DryRunStarted"
+
+	// DryRunCompleted means the image job printed the Dockerfile to stdout successfully (the image will not be built)
+	DryRunCompleted ConditionType = "DryRunCompleted"
+
+	// DryRunFailed means the image job failed when trying to print the Dockerfile to stdout
+	DryRunFailed ConditionType = "DryRunFailed"
 )
 
 // Condition describes current state of an image build request.
@@ -74,6 +92,12 @@ type ImageBuildRequestSpec struct {
 
 	// The version for WebLogic needed by the WebLogic Image Tool
 	WebLogicInstallerVersion string `json:"webLogicInstallerVersion"`
+
+	// Flag to determine whether to find and apply the latest PatchSet Update
+	LatestPSU bool `json:"latestPSU,omitempty"`
+
+	// Flag to determine whether to find and apply the latest PatchSet Update and recommended patches (takes precedence over LatestPSU)
+	RecommendedPatches bool `json:"recommendedPatches,omitempty"`
 }
 
 // Image provides more configuration information to the ImageBuildRequestSpec
@@ -103,6 +127,7 @@ type ImageBuildRequestStatus struct {
 //+kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=ibr;ibrs
 //+kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the ImageBuildRequest"
 // +genclient
 
 // ImageBuildRequest is the Schema for the imagebuildrequests API

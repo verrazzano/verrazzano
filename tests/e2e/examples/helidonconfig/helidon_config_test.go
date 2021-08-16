@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 )
@@ -76,14 +77,15 @@ var _ = Describe("Verify Helidon Config OAM App.", func() {
 	})
 
 	var host = ""
+	var err error
 	// Get the host from the Istio gateway resource.
 	// GIVEN the Istio gateway for the helidon-config namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	It("Get host from gateway.", func() {
-		Eventually(func() string {
-			host = pkg.GetHostnameFromGateway(testNamespace, "")
-			return host
+		Eventually(func() (string, error) {
+			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
+			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
 
@@ -94,7 +96,8 @@ var _ = Describe("Verify Helidon Config OAM App.", func() {
 	Describe("Verify Helidon Config app is working.", func() {
 		It("Access /config App Url.", func() {
 			url := fmt.Sprintf("https://%s/config", host)
-			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			Expect(err).ShouldNot(HaveOccurred())
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				return pkg.GetWebPageWithBasicAuth(url, host, "", "", kubeconfigPath)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("HelloConfig World")))

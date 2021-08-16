@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,7 +27,7 @@ type KeycloakRESTClient struct {
 const (
 	keycloakNamespace               = "keycloak"
 	keycloadIngressName             = "keycloak"
-	keycloakAdminUserPasswordSecret = "keycloak-http"
+	keycloakAdminUserPasswordSecret = "keycloak-http" //nolint:gosec //#gosec G101
 	keycloakAdminUserRealm          = "master"
 	keycloakAdminUserName           = "keycloakadmin"
 
@@ -36,8 +37,16 @@ const (
 
 // NewKeycloakRESTClient creates a new Keycloak REST client.
 func NewKeycloakAdminRESTClient() (*KeycloakRESTClient, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
-	ingress, err := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses(keycloakNamespace).Get(context.TODO(), keycloadIngressName, k8smeta.GetOptions{})
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return nil, err
+	}
+
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	ingress, err := clientset.ExtensionsV1beta1().Ingresses(keycloakNamespace).Get(context.TODO(), keycloadIngressName, k8smeta.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

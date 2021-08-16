@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -121,7 +122,11 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) (*v1.Service, error) {
 
 // ListIngresses lists ingresses in namespace
 func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
-	ingresses, err := GetKubernetesClientset().ExtensionsV1beta1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	ingresses, err := clientset.ExtensionsV1beta1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -136,37 +141,4 @@ func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
 		Log(Info, fmt.Sprintf("Could not create output file: %s, error: %v", filename, err))
 	}
 	return ingresses, nil
-}
-
-// GetHostnameFromGateway returns the host name from the application gateway that was
-// created by the ingress trait controller
-func GetHostnameFromGateway(namespace string, appConfigName string) string {
-	gateways, err := GetIstioClientset().NetworkingV1alpha3().Gateways(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		Log(Error, fmt.Sprintf("Could not list application ingress gateways: %v", err))
-		return ""
-	}
-
-	// if an optional appConfigName is provided, construct the gateway name from the namespace and
-	// appConfigName and look for that specific gateway, otherwise just use the first gateway
-	gatewayName := ""
-	if len(appConfigName) > 0 {
-		gatewayName = fmt.Sprintf("%s-%s-gw", namespace, appConfigName)
-	}
-
-	for _, gateway := range gateways.Items {
-		fmt.Printf("Found an app ingress gateway with name: %s\n", gateway.ObjectMeta.Name)
-
-		if len(gatewayName) > 0 && gatewayName != gateway.ObjectMeta.Name {
-			continue
-		}
-		if len(gateway.Spec.Servers) > 0 && len(gateway.Spec.Servers[0].Hosts) > 0 {
-			return gateway.Spec.Servers[0].Hosts[0]
-		}
-	}
-
-	// this can happen if the app gateway has not been created yet, the caller should
-	// keep retrying and eventually we should get a gateway with a host
-	fmt.Printf("Could not find host in application ingress gateways in namespace: %s\n", namespace)
-	return ""
 }

@@ -12,9 +12,9 @@ import (
 )
 
 type Kubernetes interface {
-	GetKubeConfig() *rest.Config
+	GetKubeConfig() (*rest.Config, error)
 	NewClustersClientSet() (clientset.Interface, error)
 	NewProjectClientSet() (projectclientset.Interface, error)
 	NewVerrazzanoClientSet() (verrazzanoclientset.Interface, error)
-	NewClientSet() kubernetes.Interface
+	NewClientSet() (kubernetes.Interface, error)
 }

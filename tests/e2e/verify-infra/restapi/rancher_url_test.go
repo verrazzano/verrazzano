@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package restapi
+package restapi_test
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -22,7 +23,12 @@ var _ = Describe("rancher url test", func() {
 	Context("Fetching the rancher url using api and test ", func() {
 		It("Fetches rancher url", func() {
 			if !pkg.IsManagedClusterProfile() {
-				kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+					Fail(err.Error())
+				}
+
 				var rancherURL string
 
 				Eventually(func() error {

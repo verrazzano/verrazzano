@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +39,13 @@ var nsGvr = schema.GroupVersionResource{
 // This is intended to be equivalent to `kubectl apply`
 // The cluster used is the one set by default in the environment
 func CreateOrUpdateResourceFromFile(file string) error {
-	return CreateOrUpdateResourceFromFileInCluster(file, GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return err
+	}
+
+	return CreateOrUpdateResourceFromFileInCluster(file, kubeconfigPath)
 }
 
 // CreateOrUpdateResourceFromFileInCluster is identical to CreateOrUpdateResourceFromFile, except that
@@ -53,7 +60,12 @@ func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string)
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
 	Log(Info, fmt.Sprintf("Found resource: %s", found))
-	return createOrUpdateResourceFromBytes(bytes, GetKubeConfigGivenPath(kubeconfigPath))
+
+	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to get kube config: %w", err)
+	}
+	return createOrUpdateResourceFromBytes(bytes, config)
 }
 
 // createOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
@@ -137,7 +149,12 @@ func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.D
 // This is intended to be equivalent to `kubectl delete`
 // The test data file is found using the FindTestDataFile function.
 func DeleteResourceFromFile(file string) error {
-	return DeleteResourceFromFileInCluster(file, GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return err
+	}
+	return DeleteResourceFromFileInCluster(file, kubeconfigPath)
 }
 
 // DeleteResourceFromFileInCluster is identical to DeleteResourceFromFile, except that
@@ -157,7 +174,10 @@ func DeleteResourceFromFileInCluster(file string, kubeconfigPath string) error {
 // deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
 // This is intended to be equivalent to `kubectl delete`
 func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
-	config := GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to get kube config: %w", err)
+	}
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
@@ -212,7 +232,11 @@ func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace s
 		}
 	}
 
-	return patchResourceFromBytes(gvr, namespace, name, patchBytes, GetKubeConfigGivenPath(kubeconfigPath))
+	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to get kube config: %w", err)
+	}
+	return patchResourceFromBytes(gvr, namespace, name, patchBytes, config)
 }
 
 // patchResourceFromBytes patches a Kubernetes resource from bytes. The contents of the byte slice must be in

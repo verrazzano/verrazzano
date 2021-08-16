@@ -70,7 +70,7 @@ func TestNewCmdProjectDelete_DNE(t *testing.T) {
 		testCmd.SetArgs([]string{argument})
 		err := testCmd.Execute()
 		asserts.Error(err)
-		asserts.Equal(fmt.Sprintf("verrazzanoprojects.clusters \"%s\" not found\n", argument), errBuffer.String())
+		asserts.Equal(fmt.Sprintf("verrazzanoprojects.clusters.verrazzano.io \"%s\" not found\n", argument), errBuffer.String())
 		errBuffer.Reset()
 	}
 }

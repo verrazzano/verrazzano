@@ -66,6 +66,11 @@ check_for_resources LB load-balancer lb-100mbps-count 2
 echo 'Install OKE...'
 echo 'Create cluster...'
 cd ${SCRIPT_DIR}/terraform/cluster
+
+# Set whether Calico is to be installed or not by the OCI OKE TF provider
+export TF_VAR_calico_enabled="${INSTALL_CALICO}"
+export TF_VAR_calico_version="$(grep 'calico-version=' ${SCRIPT_DIR}/../../../../.third-party-test-versions | sed 's/calico-version=//g')"
+
 echo "Create cluster started at $(date)"
 ./create-cluster.sh
 echo "Create cluster completed at $(date)"
@@ -92,16 +97,6 @@ if [ ${status_code:-1} -eq 0 ]; then
     ${SCRIPT_DIR}/update_oke_kubeconfig.sh
     echo "KUBECONFIG contents after update:"
     cat ${KUBECONFIG}
-
-    # Calico needs to be installed before any pods are created, so do it here before the nodes are ready
-    if [ $INSTALL_CALICO == true ] ; then
-        ${WORKSPACE}/ci/scripts/download_calico.sh
-        ${SCRIPT_DIR}/install_calico_oke.sh
-        if [ $? -ne 0 ]; then
-            echo "Install Calico failed!"
-            exit 1
-        fi
-    fi
 
     # Right after oke cluster is provisioned, it takes a while before any node is added to the cluster
     # The next command will wait for node to come up before continue

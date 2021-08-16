@@ -10,6 +10,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,7 +26,9 @@ var expectedPodsKubeSystem = []string{
 	"kube-proxy"}
 
 var _ = AfterSuite(func() {
-	listPodsInKubeSystem()
+	Eventually(func() error {
+		return listPodsInKubeSystem()
+	}, waitTimeout, pollingInterval).Should(BeNil())
 })
 
 var _ = Describe("Multi Cluster Install Validation",
@@ -59,17 +62,22 @@ func nsListContains(list []v1.Namespace, target string) bool {
 	return false
 }
 
-func listPodsInKubeSystem() {
+func listPodsInKubeSystem() error {
 	// Get the Kubernetes clientset and list pods in cluster
-	clientset := pkg.GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Kubernetes clientset: %v", err))
+		return err
+	}
 	pods, err := pkg.ListPodsInCluster("kube-system", clientset)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error listing pods: %v", err))
-		return
+		return err
 	}
 	for _, podInfo := range (*pods).Items {
 		pkg.Log(pkg.Info, fmt.Sprintf("pods-name=%v\n", podInfo.Name))
 		pkg.Log(pkg.Info, fmt.Sprintf("pods-status=%v\n", podInfo.Status.Phase))
 		pkg.Log(pkg.Info, fmt.Sprintf("pods-condition=%v\n", podInfo.Status.Conditions))
 	}
+	return nil
 }

@@ -39,3 +39,10 @@ func unusedFunc() { //nolint
 
 func localFunc() {
 }
+
+// this common Ginkgo pattern is here to test a bug fix... prior to the fix, the "Fail"
+// here would be associated with the preceding function declaration ("localFunc" in this
+// case) and it would cause a false positive
+var _ = Describe("Generic decl bug fix", func() {
+	Fail("This is not in an eventually")
+})

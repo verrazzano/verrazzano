@@ -385,6 +385,18 @@ function get_override_config_value() {
   return 0
 }
 
+# Return true if Verrazzano Operator and Verrazzano Monitoring Operator should be enabled or not
+function is_vo_vmo_enabled() {
+  local profile=$(get_install_profile)
+  if [ "$profile" == "managed-cluster" ]; then
+   echo "true"
+  elif [ "$(is_elasticsearch_console_enabled)" == "true" ] || [ "$(is_kibana_console_enabled)" == "true" ] || [ "$(is_prometheus_console_enabled)" == "true" ] || [ "$(is_grafana_console_enabled)" == "true" ]; then
+    echo "true"
+  else
+    echo "false"
+  fi
+}
+
 # Return the value for the key rancher.enabled
 function is_rancher_enabled() {
   local rancher_enabled=$(get_config_value '.rancher.enabled')
@@ -395,6 +407,12 @@ function is_rancher_enabled() {
 function is_keycloak_enabled() {
   local keycloak_enabled=$(get_config_value '.keycloak.enabled')
   echo ${keycloak_enabled}
+}
+
+# Return the value for the key fluentd.enabled
+function is_fluentd_enabled() {
+  local fluentd_enabled=$(get_config_value '.fluentd.enabled')
+  echo ${fluentd_enabled}
 }
 
 function get_fluentd_extra_volume_mounts {
