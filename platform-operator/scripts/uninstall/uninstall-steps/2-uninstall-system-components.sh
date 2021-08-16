@@ -70,6 +70,10 @@ function delete_cert_manager() {
   patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespace cert-manager" '/cert-manager/ {print $1}' '{"metadata":{"finalizers":null}}' \
     || return $? # return on pipefail
 
+  # delete cainjector config map
+  log "Deleting cainjector leader election configmap"
+  kubectl delete configmap cert-manager-cainjector-leader-election -n kube-system --ignore-not-found=true || err_return $? "Could not delete ConfigMap from kube-system" || return $?
+
   # delete namespace
   log "Deleting cert-manager namespace"
   kubectl delete namespace cert-manager --ignore-not-found=true || err_return $? "Could not delete namespace cert-manager" || return $?

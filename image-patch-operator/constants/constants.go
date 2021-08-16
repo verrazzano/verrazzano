@@ -4,4 +4,4 @@
 package constants
 
 // ImageJobSecretName is the name of the secret to be used in the ImageJob Spec
-const ImageJobSecretName = "verrazzano-imagetool"
+const ImageJobSecretName = "verrazzano-imagetool" //nolint:gosec //#gosec G101

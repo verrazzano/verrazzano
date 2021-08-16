@@ -8,14 +8,27 @@ Copyright (C) 2021, Oracle and/or its affiliates.
 Copyright (c) 2019 Oracle and/or its affiliates.  All rights reserved.
 Copyright 2020, Oracle Corporation and/or its affiliates.
 Copyright (c) 2015-2021 Bitnami
+Copyright The Helm Authors.
 Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
 Copyright (c) 2017, 2021, Oracle Corporation and/or its affiliates.
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
+Copyright Scanner
+Copyright scanning target .
+Copyright scanning target platform-operator/scripts
+copyright/licsense information:
+Copyright scanning target ignore_copyright_check.txt
+Copyright scanning target tools/copyright/README.md
+Copyright scanning target .DS_Store
+Copyright scanning target platform-operator/run-vpo.sh
+Copyright scanning target Jenkinsfile
+Copyright scanning target Makefile
+Copyright scanning target tools/copyright/copyright.go
 Copyright (c) 2020, Oracle and/or its affiliates.
 fmt.Println("// Copyright (c) 2021, Oracle and/or its affiliates.")
 fmt.Println("-- Copyright (c) 2021, Oracle and/or its affiliates.")
 fmt.Println("<!-- Copyright (c) 2021, Oracle and/or its affiliates. -->")
 fmt.Println("# Copyright (c) 2021, Oracle and/or its affiliates.")
+Copyright Fixer
 
 -------- License
 Copyright (c) 2020, 2021, Oracle America, Inc. and its affiliates.
@@ -1154,6 +1167,8 @@ Copyright 2014 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors
 Copyright (c) 2015, 2018, 2019 Opsmate, Inc. All rights reserved.
 Copyright 2020 The cert-manager Authors.
+Copyright YEAR The cert-manager Authors.
+Copyright The cert-manager Authors.
 Copyright 2015 The Kubernetes Authors.
 Copyright (c) 2015-2017 Sebastian Erhart
 Copyright 2016 The Kubernetes Authors.
@@ -1276,9 +1291,12 @@ github.com/spf13/cobra
 -------- Copyrights
 Copyright © 2020 Steve Francia <spf@spf13.com>
 Copyright © 2015 Steve Francia <spf@spf13.com>.
+Copyright:    copyrightLine(),
 Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
 11 of the WIPO copyright treaty adopted on 20 December 1996, or
 Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
+Copyright    string
+copyright": copyrightLine(),
 Copyright © 2013 Steve Francia <spf@spf13.com>.
 Copyright 2015 Red Hat Inc. All rights reserved.
 Copyright 2016 French Ben. All rights reserved.
@@ -1336,6 +1354,7 @@ limitations under the License.
 istio.io/api
 -------- Copyrights
 Copyright 2016-2020 Istio Authors
+Copyright Istio Authors
 Copyright 2019 Istio Authors
 Copyright 2020 Istio Authors
 Copyright (c) 2013 TOML authors
@@ -1366,6 +1385,7 @@ Copyright (c) 2016 Mail.Ru Group
 Copyright (c) 2014 The Go-FlowRate Authors. All rights reserved.
 Copyright (c) 2013-2014 Onsi Fakhouri
 Copyright (c) 2016 Yasuhiro Matsumoto
+Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
 Copyright (c) 2013, Patrick Mezard
 Copyright (c) 2012 Alex Ogier. All rights reserved.
 Copyright (c) 2014 Stretchr, Inc.
@@ -1385,6 +1405,7 @@ Copyright 2014 The Kubernetes Authors.
 istio.io/client-go
 -------- Copyrights
 Copyright 2016-2020 Istio Authors
+Copyright Istio Authors
 Copyright 2019 Istio Authors
 Copyright 2015 Microsoft Corporation
 Copyright (c) 2013 TOML authors
@@ -1423,6 +1444,7 @@ Copyright (c) 2016 Mail.Ru Group
 Copyright (c) 2014 The Go-FlowRate Authors. All rights reserved.
 Copyright (c) 2013-2014 Onsi Fakhouri
 Copyright (c) 2016 Yasuhiro Matsumoto
+Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
 Copyright (c) 2011-2012 Peter Bourgon
 Copyright (c) 2013, Patrick Mezard
 Copyright (c) 2012 Alex Ogier. All rights reserved.
@@ -1445,12 +1467,14 @@ Copyright 2014 The Kubernetes Authors.
 istio.io/gogo-genproto
 -------- Copyrights
 Copyright 2016-2019 Istio Authors
+Copyright Istio Authors
 Copyright 2019 Istio Authors
 
 -------- Dependency
 k8s.io/api
 -------- Copyrights
 Copyright 2019 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
 Copyright 2015 The Kubernetes Authors.
@@ -1462,6 +1486,7 @@ k8s.io/apiextensions-apiserver
 -------- Copyrights
 Copyright 2019 The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
@@ -1476,6 +1501,7 @@ Copyright 2020 The Kubernetes Authors.
 Copyright 2015 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2009 The Go Authors. All rights reserved.
 
@@ -1492,6 +1518,7 @@ Copyright 2016 The Kubernetes Authors.
 -------- Dependency
 k8s.io/client-go
 -------- Copyrights
+Copyright The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
 Copyright 2014 The Kubernetes Authors.
@@ -1508,6 +1535,7 @@ Copyright 2013 Google Inc. All Rights Reserved.
 -------- Dependency
 k8s.io/kube-openapi
 -------- Copyrights
+Copyright The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
@@ -2346,6 +2374,12 @@ Copyright (c) 2019 Gert Drapers
 Copyright (c) 2013 Blake Embrey (hello@blakeembrey.com)
 
 -------- Dependency
+github.com/joshdk/go-junit
+-------- Copyrights
+Copyright (c) Josh Komoroske
+Copyright Josh Komoroske. All rights reserved.
+
+-------- Dependency
 github.com/json-iterator/go
 -------- Copyrights
 Copyright (c) 2016 json-iterator
@@ -2369,6 +2403,7 @@ github.com/onsi/ginkgo
 -------- Copyrights
 Copyright (c) 2013-2014 Onsi Fakhouri
 Copyright (c) 2016 Yasuhiro Matsumoto
+Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
 
 -------- Dependency
 github.com/onsi/gomega
@@ -2403,6 +2438,7 @@ go.uber.org/zap
 -------- Copyrights
 Copyright (c) 2016-2017 Uber Technologies, Inc.
 Copyright (c) 2016 Uber Technologies, Inc.
+Copyright (c) "*" Uber Technologies, Inc.")
 Copyright (c) 2017 Uber Technologies, Inc.
 Copyright (c) 2019 Uber Technologies, Inc.
 Copyright (c) 2020 Uber Technologies, Inc.
@@ -2439,6 +2475,7 @@ github.com/beorn7/perks
 github.com/cespare/xxhash/v2
 github.com/emicklei/go-restful
 github.com/gertd/go-pluralize
+github.com/joshdk/go-junit
 github.com/json-iterator/go
 github.com/mailru/easyjson
 github.com/nxadm/tail
@@ -2585,4 +2622,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 875e563f2b867b895a80b2625fcf1828
+License file based on go.mod with md5 sum: a1161f777872ab3a85a3d55a8d106134

@@ -507,6 +507,16 @@ function is_oci_dns() {
   fi
 }
 
+# Return a flag indicating whether this is an installation leveraging external DNS (OLCNE)
+function is_external_dns() {
+  local dns_type=$(get_config_value '.dns.type')
+  if [ "$dns_type" == "external" ]; then
+    echo "true"
+  else
+    echo "false"
+  fi
+}
+
 if [ -z "$INSTALL_CONFIG_FILE" ]; then
   INSTALL_CONFIG_FILE=$DEFAULT_CONFIG_FILE
 fi
