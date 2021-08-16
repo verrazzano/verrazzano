@@ -7,6 +7,8 @@ def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
 def SCAN_IMAGE_PATCH_OPERATOR = false
 def VERRAZZANO_DEV_VERSION = ""
+def tarfilePrefix=""
+def storeLocation=""
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
@@ -43,7 +45,7 @@ pipeline {
                 defaultValue: 'master',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
-        booleanParam (description: 'Whether to emit pipeline metrics', name: 'EMIT_METRICS', defaultValue: true)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -474,6 +476,48 @@ pipeline {
                 }
             }
         }
+        stage('Zip Build and Test') {
+            // If the tests are clean and this is a release branch or GENERATE_TARBALL == true,
+            // generate the Verrazzano full product zip and run the Private Registry tests
+            when {
+                allOf {
+                    not { buildingTag() }
+                    expression {SKIP_TRIGGERED_TESTS == false}
+                    anyOf {
+                        branch 'release-*';
+                        expression{params.GENERATE_TARBALL == true}
+                    }
+                }
+            }
+            stages{
+                stage("Build Product Zip") {
+                    steps {
+                        script {
+                            tarfilePrefix="verrazzano_${VERRAZZANO_DEV_VERSION}"
+                            storeLocation="${env.BRANCH_NAME}/${tarfilePrefix}.zip"
+                            generatedBOM="$WORKSPACE/generated-verrazzano-bom.json"
+                            echo "Building zipfile, prefix: ${tarfilePrefix}, location:  ${storeLocation}"
+                            sh """
+                                ci/scripts/generate_product_zip.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${env.BRANCH_NAME} ${tarfilePrefix} ${generatedBOM}
+                            """
+                        }
+                    }
+                }
+                stage("Private Registry Test") {
+                    steps {
+                        script {
+                            echo "Starting private registry test for ${storeLocation}, file prefix ${tarfilePrefix}"
+                            build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation)
+                                ], wait: true
+                        }
+                    }
+                }
+            }
+        }
     }
 
     post {
@@ -502,7 +546,7 @@ pipeline {
             }
         }
         success {
-            storePipelineArtifacts(VERRAZZANO_DEV_VERSION)
+            storePipelineArtifacts()
         }
         cleanup {
             deleteDir()
@@ -520,33 +564,8 @@ def moveContentToGoRepoPath() {
 }
 
 // Called in final post success block of pipeline
-def storePipelineArtifacts(version) {
+def storePipelineArtifacts() {
     script {
-        tarfilePrefix="verrazzano_${version}"
-        tarfile="${tarfilePrefix}.tar.gz"
-        zipFile="${tarfilePrefix}.zip"
-        commitFile="${tarfilePrefix}-commit.txt"
-        sha256File="${tarfile}.sha256"
-        sh """
-            if [ "${params.GENERATE_TARBALL}" == "true" ] || [[ ${GIT_BRANCH} == release-* ]]; then
-                echo "Generating tar file ${tarfile} (SHA: ${sha256File}), commit file ${commitFile}"
-                mkdir ${WORKSPACE}/tar-files
-                chmod uog+w ${WORKSPACE}/tar-files
-                cp $WORKSPACE/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
-                cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
-                cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
-                mkdir -p ${WORKSPACE}/tar-files/charts
-                cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
-                tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/${tarfile}
-                cd ${WORKSPACE}
-                sha256sum ${tarfile} > ${sha256File}
-                echo "git-commit=${env.GIT_COMMIT}" > ${commitFile}
-                zip ${zipFile} ${commitFile} ${sha256File} ${tarfile}
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${commitFile} --file ${commitFile}
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${zipFile} --file ${zipFile}
-           fi
-        """
-
         // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
         sh """
             if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then

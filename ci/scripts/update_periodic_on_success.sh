@@ -16,25 +16,17 @@ if [ -z "$2" ]; then
 fi
 SHORT_COMMIT_HASH_ENV="$2"
 
+if [ -z "$3" ]; then
+  echo "The tar/Zip file prefix must be specified"
+  exit 1
+fi
+ZIPFILE_PREFIX="$3"
+
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
 
-mkdir ${WORKSPACE}/tar-files
-chmod uog+w ${WORKSPACE}/tar-files
-oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${SHORT_COMMIT_HASH_ENV}/generated-verrazzano-bom.json --file ${WORKSPACE}/tar-files/verrazzano-bom.json
-cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
-cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
-mkdir -p ${WORKSPACE}/tar-files/charts
-cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
-tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
-cd ${WORKSPACE}
-sha256sum tarball.tar.gz > tarball.tar.gz.sha256
-oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/tarball.tar.gz --file tarball.tar.gz
-oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/tarball.tar.gz.sha256 --file tarball.tar.gz.sha256
-echo "git-commit=${GIT_COMMIT_USED}" > tarball-commit.txt
-oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/tarball-commit.txt --file tarball-commit.txt
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${SHORT_COMMIT_HASH_ENV}/operator.yaml --file operator.yaml
 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/operator.yaml --file operator.yaml
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${SHORT_COMMIT_HASH_ENV}/k8s-dump-cluster.sh --file k8s-dump-cluster.sh
@@ -49,3 +41,11 @@ oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} 
 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/verrazzano-analysis-linux-amd64.tar.gz.sha256 --file verrazzano-analysis-linux-amd64.tar.gz.sha256
 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/verrazzano-analysis-darwin-amd64.tar.gz --file verrazzano-analysis-darwin-amd64.tar.gz
 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/verrazzano-analysis-darwin-amd64.tar.gz.sha256 --file verrazzano-analysis-darwin-amd64.tar.gz.sha256
+
+# Generate a Verrazzano full Zip for private registry testing
+
+# Get the latest stable generated BOM file
+oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${SHORT_COMMIT_HASH_ENV}/generated-verrazzano-bom.json --file ${WORKSPACE}/tar-files/verrazzano-bom.json
+# Call the script to generate and publish the BOM
+echo "Creating Zip for commit ${GIT_COMMIT_USED}, short hash ${SHORT_COMMIT_HASH_ENV}, file prefix ${ZIPFILE_PREFIX}, BOM file ${WORKSPACE}/tar-files/verrazzano-bom.json"
+ci/scripts/generate_product_zip.sh ${GIT_COMMIT_USED} ${SHORT_COMMIT_HASH_ENV} master-last-clean-periodic-test ${ZIPFILE_PREFIX} ${WORKSPACE}/tar-files/verrazzano-bom.json

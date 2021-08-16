@@ -40,7 +40,7 @@ pipeline {
                         defaultValue: 'nip.io',
                         description: 'This is the wildcard DNS domain',
                         trim: true)
-        booleanParam (description: 'Whether to emit pipeline metrics', name: 'EMIT_METRICS', defaultValue: true)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
