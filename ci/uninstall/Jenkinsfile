@@ -215,7 +215,11 @@ pipeline {
                 OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
-                listNamepacesAndPods('before installing Verrazzano')
+                script {
+                    listNamepacesAndPods('before installing Verrazzano')
+                    VZ_TEST_METRIC = metricJobName('')
+                    metricTimerStart("${VZ_TEST_METRIC}")
+                }
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
                         # Create image pull secret for Verrazzano docker images
@@ -476,6 +480,7 @@ pipeline {
         }
         failure {
             script {
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                 archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
                 mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
                 subject: "Verrazzano: ${env.JOB_NAME} - Failed",
@@ -485,6 +490,11 @@ pipeline {
                         slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                     }
                 }
+            }
+        }
+        success {
+            script {
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
             }
         }
         cleanup {
@@ -609,4 +619,39 @@ def getEffectiveDumpOnSuccess() {
         echo "Forcing dump on success based on global override setting"
     }
     return effectiveValue
+}
+
+def metricJobName(stageName) {
+    job = env.JOB_NAME.split("/")[0]
+    job = '_' + job.replaceAll('-','_')
+    if (stageName) {
+        job = job + '_' + stageName
+    }
+    return job
+}
+
+def metricTimerStart(metricName) {
+    def timerStartName = "${metricName}_START"
+    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
+}
+
+def metricTimerEnd(metricName, status) {
+    def timerStartName = "${metricName}_START"
+    def timerEndName   = "${metricName}_END"
+    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
+    if (params.EMIT_METRICS) {
+        long x = env."${timerStartName}" as long;
+        long y = env."${timerEndName}" as long;
+        def dur =  (y-x)
+        labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+                 'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
+                 'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+                 'kubernetes_version=\\"' + "${params.OKE_CLUSTER_VERSION}"+'\\",' +
+                 'test_env=\\"' + "magicdns_oke"+'\\"'
+        EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        echo "emit prometheus metrics: $EMIT"
+        return EMIT
+    } else {
+        return ''
+    }
 }
