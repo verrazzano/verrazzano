@@ -808,7 +808,7 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
         labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
-                 'jenkins_job=\\"' + "${env.JOB_NAME}"+'\\",' +
+                 'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
                  'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
         EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
         echo "emit prometheus metrics: $EMIT"
