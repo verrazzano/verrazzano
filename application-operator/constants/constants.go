@@ -42,7 +42,7 @@ const ElasticsearchPasswordData = "password"
 const CaBundleKey = "ca-bundle"
 
 // CaFileDefault is the default value for the CA_FILE environment variable
-const CaFileDefault = "/etc/nginx/all-ca-certs.pem"
+const CaFileDefault = "/etc/ssl/certs/ca-bundle.crt"
 
 // CaFileOverride is the location when the registration secret contains a ca-bundle
 const CaFileOverride = "/fluentd/secret/ca-bundle"
