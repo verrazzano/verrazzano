@@ -501,7 +501,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				oldSecretVersion: "",
 				newSecretVersion: "version1",
-				expectCaFile:     caBundle,
+				expectCaFile:     constants.CaFileOverride,
 			},
 		},
 		{
@@ -509,7 +509,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				oldSecretVersion: "",
 				newSecretVersion: "version1",
-				expectCaFile:     caFileDefault,
+				expectCaFile:     constants.CaFileDefault,
 			},
 		},
 		{
@@ -517,7 +517,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				oldSecretVersion: "version1",
 				newSecretVersion: "",
-				expectCaFile:     caBundle,
+				expectCaFile:     constants.CaFileOverride,
 			},
 		},
 		{
@@ -525,7 +525,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				oldSecretVersion: "version1",
 				newSecretVersion: "version2",
-				expectCaFile:     caBundle,
+				expectCaFile:     constants.CaFileOverride,
 			},
 		},
 		{
@@ -533,7 +533,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				oldSecretVersion: "",
 				newSecretVersion: "",
-				expectCaFile:     caBundle,
+				expectCaFile:     constants.CaFileOverride,
 			},
 		},
 		{
@@ -541,7 +541,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				oldSecretVersion: "version1",
 				newSecretVersion: "version1",
-				expectCaFile:     caBundle,
+				expectCaFile:     constants.CaFileOverride,
 			},
 		},
 	}
@@ -561,9 +561,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 					secret.Name = constants.MCRegistrationSecret
 					secret.Namespace = constants.VerrazzanoSystemNamespace
 					secret.ResourceVersion = newVersion
-					if tt.fields.expectCaFile == caBundle {
+					if tt.fields.expectCaFile == constants.CaFileOverride {
 						secret.Data = map[string][]byte{}
-						secret.Data[constants.CaBundleKey] = []byte(caBundle)
+						secret.Data[constants.CaBundleKey] = []byte("test")
 					}
 					return nil
 				})

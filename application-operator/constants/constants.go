@@ -41,6 +41,12 @@ const ElasticsearchPasswordData = "password"
 // CaBundleKey is the CA cert key in a secret
 const CaBundleKey = "ca-bundle"
 
+// CaFileDefault is the default value for the CA_FILE environment variable
+const CaFileDefault = "/etc/nginx/all-ca-certs.pem"
+
+// CaFileOverride is the location when the registration secret contains a ca-bundle
+const CaFileOverride = "/fluentd/secret/ca-bundle"
+
 // LabelVerrazzanoManaged - constant for a Kubernetes label that is applied by Verrazzano
 const LabelVerrazzanoManaged = "verrazzano-managed"
 
