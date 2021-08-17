@@ -321,7 +321,7 @@ data:
       slow_flush_log_threshold 120s
 
       hosts "#{ENV['ELASTICSEARCH_URL']}"
-      ca_file /fluentd/secret/ca-bundle
+      ca_file "#{ENV['CA_FILE']}"
       # ssl_version TLSv1_2
       user "#{ENV['ELASTICSEARCH_USER']}"
       password "#{ENV['ELASTICSEARCH_PASSWORD']}"
@@ -474,6 +474,8 @@ spec:
                   key: password
                   name: verrazzano
                   optional: true
+            - name: CA_FILE
+              value: /etc/ssl/certs/ca-bundle.crt
           image: {{ .Values.logging.fluentdImage }}
           imagePullPolicy: IfNotPresent
           name: {{ .Values.logging.name }}
