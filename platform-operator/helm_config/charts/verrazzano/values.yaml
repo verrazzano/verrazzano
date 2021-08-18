@@ -68,6 +68,8 @@ monitoringOperator:
 
 logging:
   name: fluentd
+  elasticsearchURL: http://vmi-system-es-ingest-oidc:8775
+  elasticsearchSecret: verrazzano
   # NOTE: The fluentd-kubernetes-daemonset image now comes from the bill of materials file (verrazzano-bom.json).
 
 fluentd:

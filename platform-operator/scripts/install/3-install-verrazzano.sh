@@ -123,6 +123,7 @@ function install_verrazzano()
         --set api.proxy.OidcProviderHost=keycloak.${ENV_NAME}.${DNS_SUFFIX} \
         --set api.proxy.OidcProviderHostInCluster=keycloak-http.keycloak.svc.cluster.local \
         $(get_fluentd_extra_volume_mounts) \
+        $(get_fluentd_elasticsearch_options) \
         ${HELM_IMAGE_ARGS} \
         ${PROFILE_VALUES_OVERRIDE} \
         ${EXTRA_V8O_ARGUMENTS} || return $?

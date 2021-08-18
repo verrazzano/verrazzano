@@ -171,6 +171,10 @@ spec:
                   fluentd:
                     description: Fluentd configuration
                     properties:
+                      elasticsearchSecret:
+                        type: string
+                      elasticsearchURL:
+                        type: string
                       enabled:
                         description: Specifies whether Fluentd is deployed or not
                           on a cluster.  Default is true.

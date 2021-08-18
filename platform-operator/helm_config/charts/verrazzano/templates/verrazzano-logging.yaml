@@ -461,20 +461,20 @@ spec:
             - name: FLUENT_ELASTICSEARCH_SED_DISABLE
               value: "true"
             - name: ELASTICSEARCH_URL
-              value: http://vmi-system-es-ingest-oidc:8775
+              value: {{ .Values.logging.elasticsearchURL }}
             - name: CLUSTER_NAME
               value: local
             - name: ELASTICSEARCH_USER
               valueFrom:
                 secretKeyRef:
                   key: username
-                  name: verrazzano
+                  name: {{ .Values.logging.elasticsearchSecret }}
                   optional: true
             - name: ELASTICSEARCH_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
-                  name: verrazzano
+                  name: {{ .Values.logging.elasticsearchSecret }}
                   optional: true
             - name: CA_FILE
               value: /etc/ssl/certs/ca-bundle.crt
@@ -512,7 +512,7 @@ spec:
       volumes:
         - name: secret-volume
           secret:
-            secretName: verrazzano
+            secretName: {{ .Values.logging.elasticsearchSecret }}
         - configMap:
             name: {{ .Values.logging.name }}-config
           name: {{ .Values.logging.name }}-config
