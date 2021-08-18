@@ -10,6 +10,7 @@ TMP_DIR=$(mktemp -d)
 trap 'rc=$?; rm -rf ${TMP_DIR} || true' EXIT
 
 OCI_CONFIG_SECRET_NAME=oci
+VERRAZZANO_NS=verrazzano-system
 
 # Validate expected environment variables exist
 if [ -z "${OCI_CLI_REGION}" ]; then
@@ -48,5 +49,5 @@ if [[ ! -z "${OCI_PRIVATE_KEY_PASSPHRASE}" ]]; then
 fi
 
 # create the secret in default namespace
-kubectl create namespace verrazzano-system
-kubectl create secret generic $OCI_CONFIG_SECRET_NAME -n verrazzano-system --from-file=$OUTPUT_FILE
+kubectl create namespace $VERRAZZANO_NS
+kubectl create secret generic $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_NS --from-file=$OUTPUT_FILE

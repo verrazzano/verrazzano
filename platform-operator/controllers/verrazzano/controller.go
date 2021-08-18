@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
@@ -163,7 +163,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
 	// ensure the secret exists before proceeding
 	secret := &corev1.Secret{}
-	err := r.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: "verrazzano-system"}, secret)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: constants.VerrazzanoSystemNamespace}, secret)
 	if err != nil {
 		return err
 	}

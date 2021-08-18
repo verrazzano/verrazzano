@@ -65,6 +65,7 @@ OCI_CONFIG_FILE=~/.oci/config
 SECTION=DEFAULT
 OCI_CONFIG_SECRET_NAME=oci
 K8SCONTEXT=""
+VERRAZZANO_SYSTEM_NS=verrazzano-system
 
 while getopts c:o:s:k:h flag
 do
@@ -93,16 +94,16 @@ if [[ ! -z "$pass_phrase" ]]; then
   echo "  passphrase: $pass_phrase" >> $OUTPUT_FILE
 fi
 
-# create the secret in default namespace
+# create the secret in verrazzano-system namespace
 create_secret=true
 
-kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n default > /dev/null 2>&1
+kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_SYSTEM_NS > /dev/null 2>&1
 if [ $? -eq 0 ]; then
   # secret exists
-  echo "Secret $OCI_CONFIG_SECRET_NAME already exists.  Please delete then try again."
+  echo "Secret $OCI_CONFIG_SECRET_NAME already exists in ${VERRAZZANO_SYSTEM_NS} namespace. Please delete that and then try again."
   exit 1
 fi
-kubectl ${K8SCONTEXT} create secret -n default  generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
+kubectl ${K8SCONTEXT} create secret -n $VERRAZZANO_SYSTEM_NS  generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
 
 
 

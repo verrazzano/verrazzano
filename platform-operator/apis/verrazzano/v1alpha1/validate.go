@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
 
@@ -127,10 +128,10 @@ func ValidateInProgress(state StateType) error {
 func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 	if spec.Components.DNS != nil && spec.Components.DNS.OCI != nil {
 		secret := &corev1.Secret{}
-		err := client.Get(context.TODO(), types.NamespacedName{Name: spec.Components.DNS.OCI.OCIConfigSecret, Namespace: "verrazzano-system"}, secret)
+		err := client.Get(context.TODO(), types.NamespacedName{Name: spec.Components.DNS.OCI.OCIConfigSecret, Namespace: constants.VerrazzanoSystemNamespace}, secret)
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
-				return fmt.Errorf("secret \"%s\" must be created in the verrazzano-system namespace before installing Verrrazzano for OCI DNS", spec.Components.DNS.OCI.OCIConfigSecret)
+				return fmt.Errorf("The secret \"%s\" must be created in the %s namespace before installing Verrrazzano for OCI DNS", spec.Components.DNS.OCI.OCIConfigSecret, constants.VerrazzanoSystemNamespace)
 			}
 			return err
 		}
