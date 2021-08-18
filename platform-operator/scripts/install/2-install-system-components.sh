@@ -92,7 +92,7 @@ function setup_cluster_issuer() {
     local OCI_DNS_ZONE_OCID=$(get_config_value ".dns.oci.dnsZoneOcid")
     local OCI_DNS_ZONE_NAME=$(get_config_value ".dns.oci.dnsZoneName")
 
-    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET ; then
+    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n verrazzano-system ; then
         fail "The OCI Configuration Secret $OCI_DNS_CONFIG_SECRET does not exist"
     fi
 
@@ -233,7 +233,7 @@ function install_external_dns()
     # Operator has already checked for existence of secret in default namespace
     # The DNS zone compartment will get appended to secret generated for cert external dns
     local dns_compartment=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
-    kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
+    kubectl get secret ${OCI_DNS_CONFIG_SECRET} -n verrazzano-system -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
         | sed '/^$/d' > $TMP_DIR/oci.yaml
     echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
     kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n ${externalDNSNamespace}

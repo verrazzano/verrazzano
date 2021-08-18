@@ -539,7 +539,7 @@ func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 
 	err = ValidateOciDNSSecret(client, &vz.Spec)
 	assert.Error(t, err)
-	assert.Equal(t, "secret \"oci-bad-secret\" must be created in the default namespace before installing Verrrazzano for OCI DNS", err.Error())
+	assert.Equal(t, "secret \"oci-bad-secret\" must be created in the verrazzano-system namespace before installing Verrrazzano for OCI DNS", err.Error())
 }
 
 // TestValidateOciDnsSecretGoodSecret tests that validate succeeds if a secret in the verrazzano CR exists
@@ -569,7 +569,7 @@ func TestValidateOciDnsSecretGoodSecret(t *testing.T) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "oci",
-			Namespace: "default",
+			Namespace: "verrazzano-system",
 		},
 	}
 	err = client.Create(context.TODO(), secret)

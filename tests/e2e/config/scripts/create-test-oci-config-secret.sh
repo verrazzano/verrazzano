@@ -48,4 +48,5 @@ if [[ ! -z "${OCI_PRIVATE_KEY_PASSPHRASE}" ]]; then
 fi
 
 # create the secret in default namespace
-kubectl create secret generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
+kubectl create namespace verrazzano-system
+kubectl create secret generic $OCI_CONFIG_SECRET_NAME -n verrazzano-system --from-file=$OUTPUT_FILE
