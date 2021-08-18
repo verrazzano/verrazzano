@@ -83,9 +83,9 @@ var _ = Describe("rancher url test", func() {
 						return err
 					}
 
-					rancherLoginUrl := fmt.Sprintf("%s/%s", rancherURL, "v3-public/localProviders/local?action=login")
+					rancherLoginURL := fmt.Sprintf("%s/%s", rancherURL, "v3-public/localProviders/local?action=login")
 					payload := `{"Username": "admin", "Password": "` + string(rancherAdminPassword) + `"}`
-					response, err := httpClient.Post(rancherLoginUrl, "application/json", payload)
+					response, err := httpClient.Post(rancherLoginURL, "application/json", payload)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("Error getting rancher admin token: %v", err))
 						return err
