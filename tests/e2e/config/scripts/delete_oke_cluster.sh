@@ -7,7 +7,7 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 CLUSTER_COUNT=${1:-1}
 KUBECONFIG_DIR=${2:-""}
-INSTALL_CALICO=${3:-false}
+INSTALL_CALICO=${3:-true}
 
 set +e
 

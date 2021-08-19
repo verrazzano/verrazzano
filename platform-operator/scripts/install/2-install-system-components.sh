@@ -256,8 +256,8 @@ function install_external_dns()
         ${HELM_IMAGE_ARGS} \
         --set domainFilters[0]=${DNS_SUFFIX} \
         --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
-        --set txtOwnerId=v8o-local-${NAME} \
-        --set txtPrefix=_v8o-local-${NAME}_ \
+        --set txtOwnerId=v8o-local-${NAME}-${TIMESTAMP} \
+        --set txtPrefix=_v8o-local-${NAME}-${TIMESTAMP}_ \
         --set extraVolumes[0].name=config \
         --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
         --set extraVolumeMounts[0].name=config \
@@ -574,6 +574,7 @@ REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
 OCI_DNS_CONFIG_SECRET=$(get_config_value ".dns.oci.ociConfigSecret")
 NAME=$(get_config_value ".environmentName")
+TIMESTAMP=$(date +%s)
 DNS_TYPE=$(get_config_value ".dns.type")
 CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")
 
