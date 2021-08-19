@@ -222,7 +222,7 @@ pipeline {
                                 metricTimerStart("${VZ_TEST_METRIC}")
                             }
                             // enable debug logging of verrazzano api istio proxy
-                            sh """
+                            sh '''
                                 if [ "${params.ENABLE_API_ENVOY_LOGGING}" == "true" ] ; then
                                     vz_api_pod=$(kubectl get pod -n verrazzano-system -l app=verrazzano-api --no-headers -o custom-columns=":metadata.name")
                                     kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?connection=debug
@@ -232,7 +232,7 @@ pipeline {
                                     kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?http=debug
                                     kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?pool=debug
                                  fi
-                            """
+                            '''
                         }
                     }
                 }
