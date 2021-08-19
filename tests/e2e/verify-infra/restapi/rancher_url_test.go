@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -85,7 +86,7 @@ var _ = Describe("rancher url test", func() {
 
 					rancherLoginURL := fmt.Sprintf("%s/%s", rancherURL, "v3-public/localProviders/local?action=login")
 					payload := `{"Username": "admin", "Password": "` + string(rancherAdminPassword) + `"}`
-					response, err := httpClient.Post(rancherLoginURL, "application/json", payload)
+					response, err := httpClient.Post(rancherLoginURL, "application/json", strings.NewReader(payload))
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("Error getting rancher admin token: %v", err))
 						return err
