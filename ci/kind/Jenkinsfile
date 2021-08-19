@@ -234,6 +234,7 @@ pipeline {
                                         kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?pool=debug
                                     """
                                 }
+                            }
                         }
                     }
                 }
