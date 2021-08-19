@@ -151,9 +151,7 @@ var _ = Describe("rancher url test", func() {
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())
 
-				Expect(state).To(Equal("active"), "Found unexpected server header in response")
-				pkg.Log(pkg.Info, "rancher local cluster in active state")
-
+				Expect(state).To(Equal("active"), "rancher local cluster not in active state")
 			}
 		})
 	})
