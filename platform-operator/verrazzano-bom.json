@@ -1,7 +1,7 @@
 {
   "registry": "ghcr.io",
   "version": "VERRAZZANO_VERSION",
-  "components": [
+  "components": [cd 
     {
       "name": "verrazzano-platform-operator",
       "subcomponents": [
