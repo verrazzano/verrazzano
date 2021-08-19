@@ -116,7 +116,7 @@ var _ = Describe("rancher url test", func() {
 				Expect(token).NotTo(BeEmpty(), "Invalid token returned by rancher")
 				state := ""
 				Eventually(func() error {
-					req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, "v3/clusters/local"), "")
+					req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, "v3/clusters/local"), nil)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("Error creating rancher clusters api request: %v", err))
 						return err
@@ -152,6 +152,7 @@ var _ = Describe("rancher url test", func() {
 				}, waitTimeout, pollingInterval).Should(BeNil())
 
 				Expect(state).To(Equal("active"), "Found unexpected server header in response")
+				pkg.Log(pkg.Info, "rancher local cluster in active state")
 
 			}
 		})
