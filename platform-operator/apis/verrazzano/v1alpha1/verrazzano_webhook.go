@@ -52,7 +52,6 @@ func (v *Verrazzano) ValidateCreate() error {
 	}
 
 	// Validate that the OCI DNS secret required by install exists
-	log.Info("Check for validating oci secret as part in ValidateCreate")
 	if err := ValidateOciDNSSecret(client, &v.Spec); err != nil {
 		return err
 	}

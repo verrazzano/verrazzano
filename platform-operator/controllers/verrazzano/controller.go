@@ -104,7 +104,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// If Verrazzano is installed see if upgrade is needed
 	if isInstalled(vz.Status) {
-		log.Info("Verrazzano is already installed, check if upgrade is needed.")
 		// If the version is specified and different than the current version of the installation
 		// then proceed with upgrade
 		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
@@ -122,7 +121,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	log.Info("Check oci secret in Reconciler")
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
 	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
 		err := r.doesOCIDNSConfigSecretExist(vz)

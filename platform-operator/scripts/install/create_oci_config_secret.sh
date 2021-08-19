@@ -100,7 +100,7 @@ create_secret=true
 kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_INSTALL_NS > /dev/null 2>&1
 if [ $? -eq 0 ]; then
   # secret exists
-  echo "Secret $OCI_CONFIG_SECRET_NAME already exists in ${VERRAZZANO_INSTALL_NS} namespace. Please delete that and then try again."
+  echo "Secret $OCI_CONFIG_SECRET_NAME already exists in ${VERRAZZANO_INSTALL_NS} namespace. Please delete that and try again."
   exit 1
 fi
 kubectl ${K8SCONTEXT} create secret -n $VERRAZZANO_INSTALL_NS  generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE

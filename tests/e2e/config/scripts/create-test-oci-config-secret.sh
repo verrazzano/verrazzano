@@ -50,7 +50,7 @@ fi
 
 # create the secret in verrazzano-install namespace
 if ! kubectl get namespace ${VERRAZZANO_INSTALL_NS} ; then
-  echo "The namespace ${VERRAZZANO_INSTALL_NS} doesn't exit. Please install the Verrazzano platform operator and then try again."
+  echo "The namespace ${VERRAZZANO_INSTALL_NS} doesn't exit. Please install the Verrazzano platform operator and try again."
   exit 1
 fi
 kubectl create secret generic $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_INSTALL_NS --from-file=$OUTPUT_FILE
