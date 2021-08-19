@@ -10,7 +10,7 @@ TMP_DIR=$(mktemp -d)
 trap 'rc=$?; rm -rf ${TMP_DIR} || true' EXIT
 
 OCI_CONFIG_SECRET_NAME=oci
-VERRAZZANO_NS=verrazzano-system
+VERRAZZANO_INSTALL_NS=verrazzano-install
 
 # Validate expected environment variables exist
 if [ -z "${OCI_CLI_REGION}" ]; then
@@ -48,6 +48,9 @@ if [[ ! -z "${OCI_PRIVATE_KEY_PASSPHRASE}" ]]; then
   echo "  passphrase: ${OCI_PRIVATE_KEY_PASSPHRASE}" >> $OUTPUT_FILE
 fi
 
-# create the secret in default namespace
-kubectl create namespace $VERRAZZANO_NS
-kubectl create secret generic $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_NS --from-file=$OUTPUT_FILE
+# create the secret in verrazzano-install namespace
+if ! kubectl get namespace ${VERRAZZANO_INSTALL_NS} ; then
+  echo "The namespace ${VERRAZZANO_INSTALL_NS} doesn't exit. Please install the Verrazzano platform operator and then try again."
+  exit 1
+fi
+kubectl create secret generic $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_INSTALL_NS --from-file=$OUTPUT_FILE

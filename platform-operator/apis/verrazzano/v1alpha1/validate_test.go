@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
@@ -539,7 +540,7 @@ func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 
 	err = ValidateOciDNSSecret(client, &vz.Spec)
 	assert.Error(t, err)
-	assert.Equal(t, "The secret \"oci-bad-secret\" must be created in the verrazzano-system namespace before installing Verrrazzano for OCI DNS", err.Error())
+	assert.Equal(t, "The secret \"oci-bad-secret\" must be created in the verrazzano-install namespace before installing Verrrazzano for OCI DNS", err.Error())
 }
 
 // TestValidateOciDnsSecretGoodSecret tests that validate succeeds if a secret in the verrazzano CR exists
@@ -569,7 +570,7 @@ func TestValidateOciDnsSecretGoodSecret(t *testing.T) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "oci",
-			Namespace: "verrazzano-system",
+			Namespace: constants.VerrazzanoInstallNamespace,
 		},
 	}
 	err = client.Create(context.TODO(), secret)
