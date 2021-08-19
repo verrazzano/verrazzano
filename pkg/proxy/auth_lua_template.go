@@ -140,14 +140,16 @@ const OidcAuthLuaFileTemplate = `local me = {}
 
     function me.unauthorized(msg, err)
         me.deleteCookie("authn")
-        ngx.status = ngx.HTTP_UNAUTHORIZED
         me.logJson(ngx.ERR, msg, err)
+        ngx.status = ngx.HTTP_UNAUTHORIZED
+        ngx.say("401 Unauthorized")
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     function me.forbidden(msg, err)
-        ngx.status = ngx.HTTP_FORBIDDEN
         me.logJson(ngx.ERR, msg, err)
+        ngx.status = ngx.HTTP_FORBIDDEN
+        ngx.say("403 Forbidden")
         ngx.exit(ngx.HTTP_FORBIDDEN)
     end
 
@@ -638,9 +640,7 @@ const OidcAuthLuaFileTemplate = `local me = {}
       me.logJson(ngx.INFO, "Read service account token.")
       local serviceAccountToken = me.read_file("/run/secrets/kubernetes.io/serviceaccount/token")
       if not (serviceAccountToken) then
-        ngx.status = 401
-        me.logJson(ngx.ERR, "No service account token present in pod.")
-        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        me.unauthorized("No service account token present in pod.")
       end
       return serviceAccountToken
     end
@@ -695,14 +695,10 @@ const OidcAuthLuaFileTemplate = `local me = {}
           },
       })
       if err then
-        ngx.status = 401
-        me.logJson(ngx.ERR, "Error accessing vz api", err)
-        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        me.unauthorized("Error accessing vz api", err)
       end
       if not(res) or not (res.body) then
-        ngx.status = 401
-        me.logJson(ngx.ERR, "Unable to get k8s resource.")
-        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        me.unauthorized("Unable to get k8s resource.")
       end
       local cjson = require "cjson"
       return cjson.decode(res.body)
@@ -738,9 +734,7 @@ const OidcAuthLuaFileTemplate = `local me = {}
         me.logJson(ngx.INFO, "Read vmc resource for " .. args.cluster)
         local vmc = me.getVMC(args.cluster)
         if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
-            ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to fetch vmc api url for vmc " .. args.cluster)
-            ngx.exit(ngx.HTTP_UNAUTHORIZED)
+            me.unauthorized("Unable to fetch vmc api url for vmc " .. args.cluster)
         end
 
         -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
@@ -763,9 +757,7 @@ const OidcAuthLuaFileTemplate = `local me = {}
 
         local decodedSecret = ngx.decode_base64(secret.data["cacrt"])
         if not(decodedSecret) then
-            ngx.status = 401
-            me.logJson(ngx.ERR, "Unable to decode ca secret for vmc to access api server of managed cluster " .. args.cluster)
-            ngx.exit(ngx.HTTP_UNAUTHORIZED)
+            me.unauthorized("Unable to decode ca secret for vmc to access api server of managed cluster " .. args.cluster)
         end
 
         local startIndex, _ = string.find(decodedSecret, "-----BEGIN CERTIFICATE-----")
