@@ -316,6 +316,7 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     runGinkgo('examples/todo')
+                    runGinkgo('verify-infra/restapi')
                 }
             }
             post {
@@ -452,6 +453,7 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     runGinkgo('examples/todo')
+                    runGinkgo('verify-infra/restapi')
                 }
             }
             post {
