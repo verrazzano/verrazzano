@@ -393,6 +393,34 @@ function install_rancher()
         EXTRA_RANCHER_ARGUMENTS="${EXTRA_RANCHER_ARGUMENTS} --set systemDefaultRegistry=${sys_default_reg} --set useBundledSystemChart=true"
       fi
 
+      if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 > /dev/null ; then
+        log "Using ACME staging, create staging certs secret for Rancher"
+        local acme_staging_certs=${TMP_DIR}/ca-additional.pem
+        echo -n "" > ${acme_staging_certs}
+        curl_args=(--output ${TMP_DIR}/int-r3.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem")
+        call_curl 200 http_response http_status curl_args || true
+        if [ ${http_status:--1} -ne 200 ]; then
+          log "Error downloading LetsEncrypt Staging intermediate R3 cert"
+        else
+          cat ${TMP_DIR}/int-r3.pem >> ${acme_staging_certs}
+        fi
+        curl_args=(--output ${TMP_DIR}/int-e1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem")
+        call_curl 200 http_response http_status curl_args || true
+        if [ ${http_status:--1} -ne 200 ]; then
+          log "Error downloading LetsEncrypt Staging intermediate E1 cert"
+        else
+          cat ${TMP_DIR}/int-e1.pem >> ${acme_staging_certs}
+        fi
+        curl_args=(--output ${TMP_DIR}/root-x1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem")
+        call_curl 200 http_response http_status curl_args || true
+        if [ ${http_status:--1} -ne 200 ]; then
+          log "Error downloading LetsEncrypt Staging X1 Root cert"
+        else
+          cat ${TMP_DIR}/root-x1.pem >> ${acme_staging_certs}
+        fi
+        kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
+      fi
+
       local chart_name=rancher
       build_image_overrides rancher ${chart_name}
 
@@ -417,34 +445,6 @@ function install_rancher()
           ${EXTRA_RANCHER_ARGUMENTS} \
           || return $?
       fi
-    fi
-
-    if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 > /dev/null ; then
-      log "Using ACME staging, create staging certs secret for Rancher"
-      local acme_staging_certs=${TMP_DIR}/ca-additional.pem
-      echo -n "" > ${acme_staging_certs}
-      curl_args=(--output ${TMP_DIR}/int-r3.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem")
-      call_curl 200 http_response http_status curl_args || true
-      if [ ${http_status:--1} -ne 200 ]; then
-        log "Error downloading LetsEncrypt Staging intermediate R3 cert"
-      else
-        cat ${TMP_DIR}/int-r3.pem >> ${acme_staging_certs}
-      fi
-      curl_args=(--output ${TMP_DIR}/int-e1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem")
-      call_curl 200 http_response http_status curl_args || true
-      if [ ${http_status:--1} -ne 200 ]; then
-        log "Error downloading LetsEncrypt Staging intermediate E1 cert"
-      else
-        cat ${TMP_DIR}/int-e1.pem >> ${acme_staging_certs}
-      fi
-      curl_args=(--output ${TMP_DIR}/root-x1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem")
-      call_curl 200 http_response http_status curl_args || true
-      if [ ${http_status:--1} -ne 200 ]; then
-        log "Error downloading LetsEncrypt Staging X1 Root cert"
-      else
-        cat ${TMP_DIR}/root-x1.pem >> ${acme_staging_certs}
-      fi
-      kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
     fi
 
     # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
