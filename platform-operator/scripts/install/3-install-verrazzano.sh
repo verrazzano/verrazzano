@@ -102,7 +102,6 @@ function install_verrazzano()
 
   if ! is_chart_deployed verrazzano ${VERRAZZANO_NS} ${VZ_CHARTS_DIR}/verrazzano ; then
     local chart_name=verrazzano
-    local kube_server_ip=$(kubectl get ep kubernetes -n default -o jsonpath='{.subsets[0].addresses[0].ip}')
     build_image_overrides verrazzano ${chart_name}
     local image_args=${HELM_IMAGE_ARGS}
     build_image_overrides monitoring-init-images monitoring-init-images
@@ -123,7 +122,6 @@ function install_verrazzano()
         --set monitoringOperator.enabled=$(is_vo_vmo_enabled) \
         --set api.proxy.OidcProviderHost=keycloak.${ENV_NAME}.${DNS_SUFFIX} \
         --set api.proxy.OidcProviderHostInCluster=keycloak-http.keycloak.svc.cluster.local \
-        --set api.kubeServerIPRange=${kube_server_ip}/32 \
         $(get_fluentd_extra_volume_mounts) \
         ${HELM_IMAGE_ARGS} \
         ${PROFILE_VALUES_OVERRIDE} \
