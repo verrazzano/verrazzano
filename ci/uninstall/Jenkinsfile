@@ -313,10 +313,20 @@ pipeline {
             environment {
                 TEST_ENV = "OKE"
             }
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    runGinkgo('examples/todo')
-                    runGinkgo('verify-infra/restapi')
+            parallel {
+                stage('verify-install') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-install')
+                        }
+                    }
+                }
+                stage('verify-infra restapi') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-infra/restapi')
+                        }
+                    }
                 }
             }
             post {
@@ -450,10 +460,20 @@ pipeline {
             environment {
                 TEST_ENV = "OKE"
             }
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    runGinkgo('examples/todo')
-                    runGinkgo('verify-infra/restapi')
+            parallel {
+                stage('verify-install') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-install')
+                        }
+                    }
+                }
+                stage('verify-infra restapi') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-infra/restapi')
+                        }
+                    }
                 }
             }
             post {
