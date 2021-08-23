@@ -44,7 +44,7 @@ pipeline {
     }
 
     environment {
-        KUBERNETES_VERSION = '1.17,1.19,1.20'
+        KUBERNETES_VERSION = '1.17,1.19,1.18'
     }
 
     stages {
@@ -153,12 +153,12 @@ pipeline {
                         }
                     }
                 }
-                stage('Kind Acceptance Tests on 1.19') {
+                stage('Kind Acceptance Tests on 1.18') {
                     steps {
                         script {
                             build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.18'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -167,12 +167,12 @@ pipeline {
                         }
                     }
                 }
-                stage('Kind Acceptance Tests on 1.20') {
+                stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
                             build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
