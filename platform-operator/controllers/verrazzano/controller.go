@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"path/filepath"
@@ -17,14 +18,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
+
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
 
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
@@ -119,6 +120,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
+	// Pre-populate the component status fields
+	initializeComponentStatus(vz)
+
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
 	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
 		err := r.doesOCIDNSConfigSecretExist(vz)
@@ -142,6 +146,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return newRequeueWithDelay(), err
 	}
 
+	if err := r.reconcileInstall(log, req, vz); err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	// Create/update a configmap from spec for future comparison on update/upgrade
 	if err := r.saveVerrazzanoSpec(ctx, log, vz); err != nil {
 		return newRequeueWithDelay(), err
@@ -160,7 +168,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
 	// ensure the secret exists before proceeding
 	secret := &corev1.Secret{}
-	err := r.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: constants.VerrazzanoInstallNamespace}, secret)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: vzconst.VerrazzanoInstallNamespace}, secret)
 	if err != nil {
 		return err
 	}
@@ -512,21 +520,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 	cr.Status.Conditions = append(cr.Status.Conditions, condition)
 
 	// Set the state of resource
-	switch conditionType {
-	case installv1alpha1.InstallStarted:
-		cr.Status.State = installv1alpha1.Installing
-	case installv1alpha1.UninstallStarted:
-		cr.Status.State = installv1alpha1.Uninstalling
-	case installv1alpha1.UpgradeStarted:
-		cr.Status.State = installv1alpha1.Upgrading
-	case installv1alpha1.InstallComplete:
-		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, cr)
-		fallthrough
-	case installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
-		cr.Status.State = installv1alpha1.Ready
-	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
-		cr.Status.State = installv1alpha1.Failed
-	}
+	cr.Status.State = checkCondtitionType(conditionType)
 	log.Infof("Setting verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
 
 	// Update the status
@@ -536,6 +530,67 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 		return err
 	}
 	return nil
+}
+
+func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, componentName string, message string, conditionType installv1alpha1.ConditionType) error {
+	t := time.Now().UTC()
+	condition := installv1alpha1.Condition{
+		Type:    conditionType,
+		Status:  corev1.ConditionTrue,
+		Message: message,
+		LastTransitionTime: fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
+			t.Year(), t.Month(), t.Day(),
+			t.Hour(), t.Minute(), t.Second()),
+	}
+
+	if cr.Status.Components == nil {
+		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
+	}
+	componentStatus := cr.Status.Components[componentName]
+	if componentStatus == nil {
+		componentStatus = &installv1alpha1.ComponentStatusDetails{
+			Name: componentName,
+		}
+		cr.Status.Components[componentName] = componentStatus
+	}
+
+	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus, condition)
+
+	// Set the state of resource
+	componentStatus.State = checkCondtitionType(conditionType)
+
+	// Update the status
+	err := r.Status().Update(context.TODO(), cr)
+	if err != nil {
+		log.Errorf("Failed to update verrazzano resource status: %v", err)
+		return err
+	}
+	return nil
+}
+
+func appendConditionIfNecessary(log *zap.SugaredLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
+	for _, existingCondition := range compStatus.Conditions {
+		if existingCondition.Type == newCondition.Type {
+			return compStatus.Conditions
+		}
+	}
+	log.Infof("Adding %s resource newCondition: %v", compStatus.Name, newCondition.Type)
+	return append(compStatus.Conditions, newCondition)
+}
+
+func checkCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.StateType {
+	switch currentCondition {
+	case installv1alpha1.InstallStarted:
+		return installv1alpha1.Installing
+	case installv1alpha1.UninstallStarted:
+		return installv1alpha1.Uninstalling
+	case installv1alpha1.UpgradeStarted:
+		return installv1alpha1.Upgrading
+	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
+		return installv1alpha1.Failed
+	}
+	// Return ready for installv1alpha1.InstallComplete, installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete
+	return installv1alpha1.Ready
 }
 
 // setInstallCondition sets the verrazzano resource condition in status for install
@@ -551,8 +606,12 @@ func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Jo
 		var conditionType installv1alpha1.ConditionType
 		if job.Status.Succeeded == 1 {
 			message = "Verrazzano install completed successfully"
-			conditionType = installv1alpha1.InstallComplete
-			log.Info(message)
+			if checkComponentReadyState(vz) {
+				// Set install complete IFF all subcomponent status' are "Ready"
+				conditionType = installv1alpha1.InstallComplete
+				log.Info(message)
+				vz.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, vz)
+			}
 		} else {
 			message = "Verrazzano install failed to complete"
 			conditionType = installv1alpha1.InstallFailed
@@ -569,6 +628,33 @@ func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Jo
 	}
 
 	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.InstallStarted)
+}
+
+// checkComponentReadyState returns true if all component-level status' are "Ready"
+func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
+	for _, compStatus := range vz.Status.Components {
+		if compStatus.State != installv1alpha1.Ready {
+			return false
+		}
+	}
+	return true
+}
+
+// initializeComponentStatus Initialize the component status field with the known set that indicate they support the
+// operator-based in stall.  This is so that we know ahead of time exactly how many components we expect to install
+// via the operator, and when we're done installing.
+func initializeComponentStatus(cr *installv1alpha1.Verrazzano) {
+	if cr.Status.Components != nil {
+		return
+	}
+	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
+	for _, comp := range component.GetComponents() {
+		if comp.IsOperatorInstallSupported() {
+			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
+				Name: comp.Name(),
+			}
+		}
+	}
 }
 
 // setUninstallCondition sets the verrazzano resource condition in status for uninstall

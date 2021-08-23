@@ -550,6 +550,12 @@ func TestUpgradeCompleted(t *testing.T) {
 	helm.SetCmdRunner(goodRunner{})
 	component.UpgradePrehooksEnabled = false
 
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)

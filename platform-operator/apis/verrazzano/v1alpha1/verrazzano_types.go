@@ -132,6 +132,22 @@ type VerrazzanoStatus struct {
 	Conditions []Condition `json:"conditions,omitempty"`
 	// State of the Verrazzano custom resource
 	State StateType `json:"state,omitempty"`
+	// States of the individual installed components
+	Components ComponentStatusMap `json:"components,omitempty"`
+}
+
+type ComponentStatusMap map[string]*ComponentStatusDetails
+
+// ComponentStatusDetails defines the observed state of a Verrazzano component
+type ComponentStatusDetails struct {
+	// Name of the component
+	Name string `json:"name,omitempty"`
+	// Information about the current state of a component
+	Conditions []Condition `json:"conditions,omitempty"`
+	// The version of Verrazzano that is installed
+	State StateType `json:"state,omitempty"`
+	// The version of Verrazzano that is installed
+	Version string `json:"version,omitempty"`
 }
 
 // ConditionType identifies the condition of the install/uninstall/upgrade which can be checked with kubectl wait
