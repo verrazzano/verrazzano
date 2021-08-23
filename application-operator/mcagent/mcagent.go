@@ -351,12 +351,12 @@ func updateEnv(newSecretName string, newSecret corev1.Secret, secretVersion stri
 	for _, env := range old {
 		if env.Name == "CLUSTER_NAME" {
 			new = append(new, corev1.EnvVar{
-				Name: env.Name,
+				Name:  env.Name,
 				Value: clusterName,
 			})
 		} else if env.Name == "ELASTICSEARCH_URL" {
 			new = append(new, corev1.EnvVar{
-				Name: env.Name,
+				Name:  env.Name,
 				Value: esURL,
 			})
 		} else if env.Name == "ELASTICSEARCH_USER" {
