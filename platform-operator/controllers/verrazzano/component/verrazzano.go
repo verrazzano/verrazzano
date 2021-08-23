@@ -52,6 +52,7 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client client.Client, namespa
 	for i, container := range daemonSet.Spec.Template.Spec.Containers {
 		if container.Name == "fluentd" {
 			fluentdIndex = i
+			break
 		}
 	}
 	if fluentdIndex == -1 {
