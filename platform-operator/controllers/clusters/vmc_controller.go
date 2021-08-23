@@ -122,7 +122,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	}
 
 	log.Infof("Syncing the Manifest secret for VMC %s", vmc.Name)
-	err = r.syncManifestSecret(vmc)
+	err = r.syncManifestSecret(ctx, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the Manifest secret", err, log)
 		return ctrl.Result{}, err

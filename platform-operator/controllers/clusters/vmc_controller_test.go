@@ -644,7 +644,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	reconciler := newVMCReconciler(mock)
 	reconciler.log = zap.S()
 
-	err := reconciler.syncManifestSecret(&vmc)
+	err := reconciler.syncManifestSecret(context.TODO(), &vmc)
 
 	// Validate the results
 	mocker.Finish()

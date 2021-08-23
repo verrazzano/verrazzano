@@ -106,14 +106,17 @@ spec:
                 description: Prometheus Host for the managed cluster.
                 type: string
               rancherRegistration:
-                description: State of Rancher registration for the managed cluster
+                description: State of Rancher registration for a managed cluster
                 properties:
                   message:
+                    description: Supporting message related to the Rancher registration
+                      status
                     type: string
-                  type:
+                  status:
+                    description: The status of the Rancher registration
                     type: string
                 required:
-                - type
+                - status
                 type: object
             type: object
         type: object
