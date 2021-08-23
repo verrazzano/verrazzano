@@ -53,6 +53,43 @@ type VerrazzanoList struct {
 	Items           []Verrazzano `json:"items"`
 }
 
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=verrazzanocomponents
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=vzcomp;vzcomps
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall"
+// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano installation"
+// +genclient
+
+// VerrazzanoComponent is the Schema for the verrazzanocomponents API
+type VerrazzanoComponent struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	ComponentName string                    `json:"component,omitempty"`
+	Spec          VerrazzanoSpec            `json:"spec,omitempty"`
+	Status        VerrazzanoComponentStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// VerrazzanoComponentList contains a list of VerrazzanoComponent
+type VerrazzanoComponentList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []VerrazzanoComponent `json:"items"`
+}
+
+// VerrazzanoComponentStatus defines the observed state of VerrazzanoComponent
+type VerrazzanoComponentStatus struct {
+	// The version of Verrazzano that is installed
+	Version string `json:"version,omitempty"`
+	// The latest available observations of an object's current state.
+	Conditions []Condition `json:"conditions,omitempty"`
+	// State of the Verrazzano custom resource
+	State StateType `json:"state,omitempty"`
+}
+
 // VerrazzanoSpec defines the desired state of Verrazzano
 type VerrazzanoSpec struct {
 	// Version is the Verrazzano version
@@ -154,6 +191,9 @@ type ComponentStatusDetails struct {
 type ConditionType string
 
 const (
+	// NotInstalled indicates a component is not currently installed
+	NotInstalled ConditionType = "NotInstalled"
+
 	// InstallStarted means an install is in progress.
 	InstallStarted ConditionType = "InstallStarted"
 
@@ -200,6 +240,9 @@ type Condition struct {
 type StateType string
 
 const (
+	// NotInstalled indicates a component is not currently installed
+	Disabled StateType = "Disabled"
+
 	// Installing is the state when an install is in progress
 	Installing StateType = "Installing"
 
@@ -208,6 +251,9 @@ const (
 
 	// Upgrading is the state when an upgrade is in progress
 	Upgrading StateType = "Upgrading"
+
+	// Error is the state when a Verrazzano resource has experienced an error that may leave it in an unstable state
+	Error StateType = "Error"
 
 	// Ready is the state when a Verrazzano resource can perform an uninstall or upgrade
 	Ready StateType = "Ready"
