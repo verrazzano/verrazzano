@@ -656,14 +656,23 @@ func Test_updateEnv(t *testing.T) {
 			Value: "fluentd.conf",
 		},
 	}
-	newEnvs := updateEnv(constants.MCRegistrationSecret, "v2", oldEnvs)
+	const newClusterName = "newManagedClusterName"
+	const newElasticURL = "https://myNewElasticURL"
+	regSecret := corev1.Secret{
+		Data: map[string][]byte{
+			constants.ClusterNameData: []byte(newClusterName),
+			constants.ElasticsearchURLData: []byte(newElasticURL),
+			constants.ElasticsearchUsernameData: []byte("someuser"),
+		},
+	}
+	newEnvs := updateEnv(constants.MCRegistrationSecret, regSecret, "v2", oldEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
-	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("CLUSTER_NAME", &newEnvs).ValueFrom.SecretKeyRef.Name)
-	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_URL", &newEnvs).ValueFrom.SecretKeyRef.Name)
+	asserts.Equal(t, newClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
+	asserts.Equal(t, newElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_USER", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_PASSWORD", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	//un-registration of setting secretVersion back to ""
-	newEnvs = updateEnv(constants.MCRegistrationSecret, "", newEnvs)
+	newEnvs = updateEnv(constants.MCRegistrationSecret, regSecret,"", newEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
 	asserts.Equal(t, defaultClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
 	asserts.Equal(t, defaultElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
