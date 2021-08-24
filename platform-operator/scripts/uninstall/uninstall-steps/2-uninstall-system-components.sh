@@ -109,13 +109,13 @@ function delete_rancher() {
 
   # Deleting rancher components
   log "Deleting rancher"
-  helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargs -r helm uninstall -n fleet-system \
+  helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n fleet-system \
     || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
-    helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargs -r helm -n fleet-system uninstall fleet-crd \
+    helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm -n fleet-system uninstall fleet-crd \
     || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
-  helm ls -n rancher-operator-system | awk '/rancher/ {print $1}' | xargs -r helm uninstall -n rancher-operator-system \
+  helm ls -n rancher-operator-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n rancher-operator-system \
     || err_return $? "Could not delete rancher-operator-system charts from helm" || return $? # return on pipefail
-  helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargs -r helm uninstall -n cattle-system \
+  helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
     || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
 
   log "Delete the additional CA secret for Rancher"
@@ -124,7 +124,7 @@ function delete_rancher() {
 
   log "Deleting CRs from rancher"
   kubectl api-resources --api-group=management.cattle.io --verbs=delete -o name \
-    | xargs -r -n 1 kubectl get --all-namespaces --ignore-not-found -o custom-columns=":kind,:metadata.name,:metadata.namespace" \
+    | xargsr -n 1 kubectl get --all-namespaces --ignore-not-found -o custom-columns=":kind,:metadata.name,:metadata.namespace" \
     | awk '{res="";if ($1 != "") res=tolower($1)".management.cattle.io "tolower($2); if ($3 != "<none>" && res != "") res=res" -n "$3; if (res != "") cmd="kubectl patch "res" -p \x027{\"metadata\":{\"finalizers\":null}}\x027 --type=merge;kubectl delete "res; print cmd}' \
     | sh \
     || err_return $? "Could not delete rancher CRs" || return $? # return on pipefail
