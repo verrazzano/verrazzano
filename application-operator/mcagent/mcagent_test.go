@@ -8,15 +8,14 @@ import (
 	"fmt"
 	"testing"
 
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	appsv1 "k8s.io/api/apps/v1"
-
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -491,6 +490,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 	type fields struct {
 		oldSecretVersion string
 		newSecretVersion string
+		expectCaFile     string
 	}
 	tests := []struct {
 		name   string
@@ -501,6 +501,15 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				oldSecretVersion: "",
 				newSecretVersion: "version1",
+				expectCaFile:     constants.CaFileOverride,
+			},
+		},
+		{
+			name: "new registration well known certs",
+			fields: fields{
+				oldSecretVersion: "",
+				newSecretVersion: "version1",
+				expectCaFile:     constants.CaFileDefault,
 			},
 		},
 		{
@@ -508,6 +517,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				oldSecretVersion: "version1",
 				newSecretVersion: "",
+				expectCaFile:     constants.CaFileOverride,
 			},
 		},
 		{
@@ -515,6 +525,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				oldSecretVersion: "version1",
 				newSecretVersion: "version2",
+				expectCaFile:     constants.CaFileOverride,
 			},
 		},
 		{
@@ -522,6 +533,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				oldSecretVersion: "",
 				newSecretVersion: "",
+				expectCaFile:     constants.CaFileOverride,
 			},
 		},
 		{
@@ -529,6 +541,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				oldSecretVersion: "version1",
 				newSecretVersion: "version1",
+				expectCaFile:     constants.CaFileOverride,
 			},
 		},
 	}
@@ -548,6 +561,10 @@ func TestSyncer_configureLogging(t *testing.T) {
 					secret.Name = constants.MCRegistrationSecret
 					secret.Namespace = constants.VerrazzanoSystemNamespace
 					secret.ResourceVersion = newVersion
+					if tt.fields.expectCaFile == constants.CaFileOverride {
+						secret.Data = map[string][]byte{}
+						secret.Data[constants.CaBundleKey] = []byte("test")
+					}
 					return nil
 				})
 
@@ -574,6 +591,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 					Update(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
 						asserts.Equal(t, newVersion, getEnvValue(&ds.Spec.Template.Spec.Containers, registrationSecretVersion), "expected env value for "+registrationSecretVersion)
+						asserts.Equal(t, tt.fields.expectCaFile, getEnvValue(&ds.Spec.Template.Spec.Containers, caFile), "expected env value for "+registrationSecretVersion)
 						return nil
 					})
 			}

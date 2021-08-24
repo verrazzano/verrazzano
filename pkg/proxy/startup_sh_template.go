@@ -32,6 +32,12 @@ const OidcStartupFileTemplate = `#!/bin/bash
 
 {{- if eq .Mode "api-proxy" }}
     cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/upstream.pem
+{{- else if eq .Mode "oauth-proxy" }}
+    # Create a pem file that contains all well known ca certs plus
+    # the ca-bundle from the managed cluster registration secret.
+    # It is valid for ca-bundle to be empty.
+    cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/all-ca-certs.pem
+    cat /secret/ca-bundle >> /etc/nginx/all-ca-certs.pem
 {{- end }}
 
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx -t
