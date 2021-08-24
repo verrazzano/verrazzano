@@ -488,14 +488,14 @@ func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 // THEN ensure that Fluentd daemonset is updated
 func TestSyncer_configureLogging(t *testing.T) {
 	type fields struct {
-		secretExists     bool
-		dsSecretVersion  string
-		expectCaFile     string
-		dsClusterName    string
-		dsEsURL          string
-		dsSecretName     string
-		dsCaFile         string
-		expectUpdateDS   bool
+		secretExists    bool
+		dsSecretVersion string
+		expectCaFile    string
+		dsClusterName   string
+		dsEsURL         string
+		dsSecretName    string
+		dsCaFile        string
+		expectUpdateDS  bool
 	}
 	tests := []struct {
 		name   string
@@ -504,118 +504,118 @@ func TestSyncer_configureLogging(t *testing.T) {
 		{
 			name: "new registration with override ca cert",
 			fields: fields{
-				secretExists:     true,
-				dsSecretVersion:  "",
-				expectCaFile:     constants.CaFileOverride,
-				dsClusterName:    "",
-				dsEsURL:          "",
-				dsSecretName:     "",
-				dsCaFile:         constants.CaFileDefault,
-				expectUpdateDS:   true,
+				secretExists:    true,
+				dsSecretVersion: "",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "",
+				dsEsURL:         "",
+				dsSecretName:    "",
+				dsCaFile:        constants.CaFileDefault,
+				expectUpdateDS:  true,
 			},
 		},
 		{
 			name: "new registration well known CA certs",
 			fields: fields{
-				secretExists:     true,
-				dsSecretVersion:  "",
-				expectCaFile:     constants.CaFileDefault,
-				dsClusterName:    "",
-				dsEsURL:          "",
-				dsSecretName:     "",
-				dsCaFile:         constants.CaFileDefault,
-				expectUpdateDS:   true,
+				secretExists:    true,
+				dsSecretVersion: "",
+				expectCaFile:    constants.CaFileDefault,
+				dsClusterName:   "",
+				dsEsURL:         "",
+				dsSecretName:    "",
+				dsCaFile:        constants.CaFileDefault,
+				expectUpdateDS:  true,
 			},
 		},
 		{
 			name: "delete registration",
 			fields: fields{
-				secretExists:     false,
-				dsSecretVersion:  "version1",
-				expectCaFile:     constants.CaFileDefault,
-				dsClusterName:    "secretClusterName",
-				dsEsURL:          "secretEsURL",
-				dsSecretName:     constants.MCRegistrationSecret,
-				dsCaFile:         constants.CaFileOverride,
-				expectUpdateDS:   true,
+				secretExists:    false,
+				dsSecretVersion: "version1",
+				expectCaFile:    constants.CaFileDefault,
+				dsClusterName:   "secretClusterName",
+				dsEsURL:         "secretEsURL",
+				dsSecretName:    constants.MCRegistrationSecret,
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  true,
 			},
 		},
 		{
 			name: "update registration secret version changed",
 			fields: fields{
-				secretExists:     true,
-				dsSecretVersion:  "differentVersion",
-				expectCaFile:     constants.CaFileOverride,
-				dsClusterName:    "secretClusterName",
-				dsEsURL:          "secretEsURL",
-				dsSecretName:     constants.MCRegistrationSecret,
-				dsCaFile:         constants.CaFileOverride,
-				expectUpdateDS:   true,
+				secretExists:    true,
+				dsSecretVersion: "differentVersion",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "secretClusterName",
+				dsEsURL:         "secretEsURL",
+				dsSecretName:    constants.MCRegistrationSecret,
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  true,
 			},
 		},
 		{
 			name: "update registration daemonset cluster name changed",
 			fields: fields{
-				secretExists:     true,
-				dsSecretVersion:  "secretVersion",
-				expectCaFile:     constants.CaFileOverride,
-				dsClusterName:    "differentClusterName",
-				dsEsURL:          "secretEsURL",
-				dsSecretName:     constants.MCRegistrationSecret,
-				dsCaFile:         constants.CaFileOverride,
-				expectUpdateDS:   true,
+				secretExists:    true,
+				dsSecretVersion: "secretVersion",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "differentClusterName",
+				dsEsURL:         "secretEsURL",
+				dsSecretName:    constants.MCRegistrationSecret,
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  true,
 			},
 		},
 		{
 			name: "update registration daemonset ES URL changed",
 			fields: fields{
-				secretExists:     true,
-				dsSecretVersion:  "secretVersion",
-				expectCaFile:     constants.CaFileOverride,
-				dsClusterName:    "secretClusterName",
-				dsEsURL:          "differentEsURL",
-				dsSecretName:     constants.MCRegistrationSecret,
-				dsCaFile:         constants.CaFileOverride,
-				expectUpdateDS:   true,
+				secretExists:    true,
+				dsSecretVersion: "secretVersion",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "secretClusterName",
+				dsEsURL:         "differentEsURL",
+				dsSecretName:    constants.MCRegistrationSecret,
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  true,
 			},
 		},
 		{
 			name: "update registration daemonset secret name changed",
 			fields: fields{
-				secretExists:     true,
-				dsSecretVersion:  "secretVersion",
-				expectCaFile:     constants.CaFileOverride,
-				dsClusterName:    "secretClusterName",
-				dsEsURL:          "secretEsURL",
-				dsSecretName:     "differentSecret",
-				dsCaFile:         constants.CaFileOverride,
-				expectUpdateDS:   true,
+				secretExists:    true,
+				dsSecretVersion: "secretVersion",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "secretClusterName",
+				dsEsURL:         "secretEsURL",
+				dsSecretName:    "differentSecret",
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  true,
 			},
 		},
 		{
 			name: "no registration",
 			fields: fields{
-				secretExists:     false,
-				dsSecretVersion:  "",
-				expectCaFile:     constants.CaFileDefault,
-				dsClusterName:    defaultClusterName,
-				dsEsURL:          defaultElasticURL,
-				dsSecretName:     defaultSecretName,
-				dsCaFile:         constants.CaFileDefault,
-				expectUpdateDS:   false,
+				secretExists:    false,
+				dsSecretVersion: "",
+				expectCaFile:    constants.CaFileDefault,
+				dsClusterName:   defaultClusterName,
+				dsEsURL:         defaultElasticURL,
+				dsSecretName:    defaultSecretName,
+				dsCaFile:        constants.CaFileDefault,
+				expectUpdateDS:  false,
 			},
 		},
 		{
 			name: "same registration",
 			fields: fields{
-				secretExists:     true,
-				dsSecretVersion:  "secretVersion",
-				expectCaFile:     constants.CaFileOverride,
-				dsClusterName:    "secretClusterName",
-				dsEsURL:          "secretEsURL",
-				dsSecretName:     constants.MCRegistrationSecret,
-				dsCaFile:         constants.CaFileOverride,
-				expectUpdateDS:   false,
+				secretExists:    true,
+				dsSecretVersion: "secretVersion",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "secretClusterName",
+				dsEsURL:         "secretEsURL",
+				dsSecretName:    constants.MCRegistrationSecret,
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  false,
 			},
 		},
 	}
@@ -648,9 +648,8 @@ func TestSyncer_configureLogging(t *testing.T) {
 							secret.Data[constants.ElasticsearchURLData] = []byte("secretEsURL")
 						}
 						return nil
-					} else {
-						return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, constants.MCRegistrationSecret)
 					}
+					return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, constants.MCRegistrationSecret)
 				})
 
 			// Managed Cluster - expect call to get the fluentd deployment.
@@ -714,11 +713,11 @@ func getTestDaemonSetSpec(secretVersion, clusterName, esURL, secretName, caFileV
 								Value: secretVersion,
 							},
 							{
-								Name: constants.FluentdClusterNameEnvVar,
+								Name:  constants.FluentdClusterNameEnvVar,
 								Value: clusterName,
 							},
 							{
-								Name: constants.FluentdElasticsearchURLEnvVar,
+								Name:  constants.FluentdElasticsearchURLEnvVar,
 								Value: esURL,
 							},
 							{
@@ -750,7 +749,7 @@ func getTestDaemonSetSpec(secretVersion, clusterName, esURL, secretName, caFileV
 								},
 							},
 							{
-								Name: caFile,
+								Name:  caFile,
 								Value: caFileValue,
 							},
 						},
