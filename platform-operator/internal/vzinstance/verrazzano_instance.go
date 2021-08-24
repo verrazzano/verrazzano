@@ -17,7 +17,7 @@ import (
 const systemNamespace = "verrazzano-system"
 
 // GetInstanceInfo returns the instance info for the local install.
-func GetInstanceInfo(client client.Client) *v1alpha1.InstanceInfo {
+func GetInstanceInfo(client client.Client, cr *v1alpha1.Verrazzano) *v1alpha1.InstanceInfo {
 
 	ingressList := &extv1beta1.IngressList{}
 	err := client.List(context.TODO(), ingressList)
@@ -30,20 +30,27 @@ func GetInstanceInfo(client client.Client) *v1alpha1.InstanceInfo {
 		return nil
 	}
 
+	// Console ingress always exist. Only show console URL if the console was enabled during install.
+	var consoleURL *string
+	if cr.Spec.Components.Console == nil || *cr.Spec.Components.Console.Enabled {
+		consoleURL = getSystemIngressURL(ingressList.Items, systemNamespace, constants.VzConsoleIngress)
+	} else {
+		consoleURL = nil
+	}
 	instanceInfo := &v1alpha1.InstanceInfo{
-		ConsoleURL:    getSystemIngressURL(client, ingressList.Items, systemNamespace, constants.VzConsoleIngress),
-		RancherURL:    getSystemIngressURL(client, ingressList.Items, "cattle-system", "rancher"),
-		KeyCloakURL:   getSystemIngressURL(client, ingressList.Items, "keycloak", "keycloak"),
-		ElasticURL:    getSystemIngressURL(client, ingressList.Items, systemNamespace, "vmi-system-es-ingest"),
-		KibanaURL:     getSystemIngressURL(client, ingressList.Items, systemNamespace, "vmi-system-kibana"),
-		GrafanaURL:    getSystemIngressURL(client, ingressList.Items, systemNamespace, "vmi-system-grafana"),
-		PrometheusURL: getSystemIngressURL(client, ingressList.Items, systemNamespace, "vmi-system-prometheus"),
+		ConsoleURL:    consoleURL,
+		RancherURL:    getSystemIngressURL(ingressList.Items, "cattle-system", "rancher"),
+		KeyCloakURL:   getSystemIngressURL(ingressList.Items, "keycloak", "keycloak"),
+		ElasticURL:    getSystemIngressURL(ingressList.Items, systemNamespace, "vmi-system-es-ingest"),
+		KibanaURL:     getSystemIngressURL(ingressList.Items, systemNamespace, "vmi-system-kibana"),
+		GrafanaURL:    getSystemIngressURL(ingressList.Items, systemNamespace, "vmi-system-grafana"),
+		PrometheusURL: getSystemIngressURL(ingressList.Items, systemNamespace, "vmi-system-prometheus"),
 	}
 	return instanceInfo
 }
 
-func getSystemIngressURL(client client.Client, ingresses []extv1beta1.Ingress, namespace string, name string) *string {
-	var ingress *extv1beta1.Ingress = findIngress(ingresses, namespace, name)
+func getSystemIngressURL(ingresses []extv1beta1.Ingress, namespace string, name string) *string {
+	var ingress = findIngress(ingresses, namespace, name)
 	if ingress == nil {
 		zap.S().Infof("No ingress found for %s/%s", namespace, name)
 		return nil

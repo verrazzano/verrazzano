@@ -176,8 +176,9 @@ type Rancher struct {
 	Enabled string `json:"enabled,omitempty"`
 }
 
-// Fluentd DaemonSet configuration
+// Fluentd configuration
 type Fluentd struct {
+	Enabled            string       `json:"enabled,omitempty"`
 	FluentdInstallArgs []InstallArg `json:"fluentdInstallArgs,omitempty"`
 }
 
@@ -338,43 +339,47 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 
 func getRancher(rancher *installv1alpha1.RancherComponent) Rancher {
 	if rancher == nil {
-		return Rancher{}
+		return Rancher{Enabled: "true"}
 	}
-	rancherConfig := Rancher{
-		Enabled: strconv.FormatBool(rancher.Enabled),
+
+	var enabled = "true"
+	if rancher.Enabled != nil {
+		enabled = strconv.FormatBool(*rancher.Enabled)
 	}
-	return rancherConfig
+	return Rancher{Enabled: enabled}
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
 func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource) (Keycloak, error) {
-
+	// keycloak was not specified in CR so return defaults
 	if keycloak == nil {
+		keycloakConfig := Keycloak{Enabled: "true"}
 		if defaultVolumeSpec != nil && defaultVolumeSpec.EmptyDir != nil {
 			var mySQLArgs []InstallArg
 			mySQLArgs = append(mySQLArgs, InstallArg{
 				Name:  "persistence.enabled",
 				Value: "false",
 			})
-			keycloakConfig := Keycloak{
-				MySQL: MySQL{
-					MySQLInstallArgs: mySQLArgs,
-				},
-			}
-			return keycloakConfig, nil
+			keycloakConfig.MySQL.MySQLInstallArgs = mySQLArgs
 		}
-		return Keycloak{}, nil
+		return keycloakConfig, nil
 	}
 
 	// Get the explicit helm args for MySQL
 	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
 
+	var enabled string
+	if keycloak.Enabled != nil {
+		enabled = strconv.FormatBool(*keycloak.Enabled)
+	} else {
+		enabled = "true"
+	}
 	keycloakConfig := Keycloak{
 		KeycloakInstallArgs: getInstallArgs(keycloak.KeycloakInstallArgs),
 		MySQL: MySQL{
 			MySQLInstallArgs: mySQLArgs,
 		},
-		Enabled: strconv.FormatBool(keycloak.Enabled),
+		Enabled: enabled,
 	}
 
 	// Use a volume source specified in the Keycloak config, otherwise use the default spec
@@ -630,12 +635,13 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 	args = append(args, getVMIInstallArgs(vzSpec)...)
 
 	// Console
-	if vzSpec.Components.Console != nil {
+	if vzSpec.Components.Console != nil && vzSpec.Components.Console.Enabled != nil {
 		args = append(args, InstallArg{
 			Name:  consoleEnabledValueName,
-			Value: strconv.FormatBool(vzSpec.Components.Console.Enabled),
+			Value: strconv.FormatBool(*vzSpec.Components.Console.Enabled),
 		})
 	}
+
 	return args, nil
 }
 
@@ -667,10 +673,12 @@ func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
 	const helmValuePrefix = "elasticSearch."
 	vmiArgs := []InstallArg{}
 	if vzSpec.Components.Elasticsearch != nil {
-		vmiArgs = append(vmiArgs, InstallArg{
-			Name:  esEnabledValueName,
-			Value: strconv.FormatBool(vzSpec.Components.Elasticsearch.Enabled),
-		})
+		if vzSpec.Components.Elasticsearch.Enabled != nil {
+			vmiArgs = append(vmiArgs, InstallArg{
+				Name:  esEnabledValueName,
+				Value: strconv.FormatBool(*vzSpec.Components.Elasticsearch.Enabled),
+			})
+		}
 		// Add the set of args specified in the yaml, prefixing the elasticSearch string
 		// For example, the following YAML will result in `elasticSearch.nodes.master.replicas`
 		// elasticsearch:
@@ -685,24 +693,27 @@ func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
 			})
 		}
 	}
-	if vzSpec.Components.Prometheus != nil {
+	if vzSpec.Components.Prometheus != nil && vzSpec.Components.Prometheus.Enabled != nil {
 		vmiArgs = append(vmiArgs, InstallArg{
 			Name:  promEnabledValueName,
-			Value: strconv.FormatBool(vzSpec.Components.Prometheus.Enabled),
+			Value: strconv.FormatBool(*vzSpec.Components.Prometheus.Enabled),
 		})
 	}
-	if vzSpec.Components.Kibana != nil {
+
+	if vzSpec.Components.Kibana != nil && vzSpec.Components.Kibana.Enabled != nil {
 		vmiArgs = append(vmiArgs, InstallArg{
 			Name:  kibanaEnabledValueName,
-			Value: strconv.FormatBool(vzSpec.Components.Kibana.Enabled),
+			Value: strconv.FormatBool(*vzSpec.Components.Kibana.Enabled),
 		})
 	}
-	if vzSpec.Components.Grafana != nil {
+
+	if vzSpec.Components.Grafana != nil && vzSpec.Components.Grafana.Enabled != nil {
 		vmiArgs = append(vmiArgs, InstallArg{
 			Name:  grafanaEnabledValueName,
-			Value: strconv.FormatBool(vzSpec.Components.Grafana.Enabled),
+			Value: strconv.FormatBool(*vzSpec.Components.Grafana.Enabled),
 		})
 	}
+
 	return vmiArgs
 }
 
@@ -717,10 +728,10 @@ func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeC
 }
 
 func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {
-	fluentd := Fluentd{}
 	if comp == nil {
-		return fluentd
+		return Fluentd{Enabled: "true"}
 	}
+	fluentd := Fluentd{}
 	fluentd.FluentdInstallArgs = []InstallArg{}
 	for i, vm := range comp.ExtraVolumeMounts {
 		fluentd.FluentdInstallArgs = append(fluentd.FluentdInstallArgs, InstallArg{
@@ -744,5 +755,14 @@ func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {
 			Value: strconv.FormatBool(readOnly),
 		})
 	}
+
+	var enabled string
+	if comp.Enabled != nil {
+		enabled = strconv.FormatBool(*comp.Enabled)
+	} else {
+		enabled = "true"
+	}
+	fluentd.Enabled = enabled
+
 	return fluentd
 }

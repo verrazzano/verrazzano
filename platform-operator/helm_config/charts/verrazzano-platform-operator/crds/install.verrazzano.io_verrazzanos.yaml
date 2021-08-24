@@ -94,7 +94,6 @@ spec:
                     description: Console configuration
                     properties:
                       enabled:
-                        default: true
                         type: boolean
                     type: object
                   dns:
@@ -142,7 +141,6 @@ spec:
                     description: Elasticsearch configuration
                     properties:
                       enabled:
-                        default: true
                         type: boolean
                       installArgs:
                         description: Arguments for installing Elasticsearch
@@ -173,6 +171,10 @@ spec:
                   fluentd:
                     description: Fluentd configuration
                     properties:
+                      enabled:
+                        description: Specifies whether Fluentd is deployed or not
+                          on a cluster.  Default is true.
+                        type: boolean
                       extraVolumeMounts:
                         items:
                           description: VolumeMount defines a hostPath type Volume
@@ -197,7 +199,6 @@ spec:
                     description: Grafana configuration
                     properties:
                       enabled:
-                        default: true
                         type: boolean
                     type: object
                   ingress:
@@ -1979,14 +1980,12 @@ spec:
                     description: Grafana configuration
                     properties:
                       enabled:
-                        default: true
                         type: boolean
                     type: object
                   prometheus:
                     description: Prometheus configuration
                     properties:
                       enabled:
-                        default: true
                         type: boolean
                     type: object
                   rancher:
