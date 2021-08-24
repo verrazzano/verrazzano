@@ -274,7 +274,7 @@ func (s *Syncer) configureLogging() {
 		s.Log.Info(fmt.Sprintf("Failed to find the logging DaemonSet %s, %s", loggingName, err.Error()))
 		return
 	}
-	// regSecretExists := false
+
 	regSecret := corev1.Secret{}
 	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
 	if regErr != nil {
@@ -301,64 +301,6 @@ func getEnvValue(containers *[]corev1.Container, envName string) string {
 		}
 	}
 	return ""
-}
-
-// check Fluentd daemonset and see if the relevant fields match what's in the registration secret. Returns a boolean
-// indicating whether the Fluentd daemonset needs update
-func (s *Syncer) loggingDaemonSetNeedsUpdate(regSecretExists bool, secretName string, regSecret corev1.Secret, ds appsv1.DaemonSet) bool {
-	expectedClusterName := defaultClusterName
-	expectedESURL := defaultElasticURL
-	expectedSecretName := defaultSecretName
-	expectedCaFile := constants.CaFileDefault
-	expectedSecretVersion := ""
-	if regSecretExists {
-		expectedClusterName = string(regSecret.Data[constants.ClusterNameData])
-		expectedESURL = string(regSecret.Data[constants.ElasticsearchURLData])
-		expectedSecretVersion = string(regSecret.ResourceVersion)
-		expectedSecretName = secretName
-		expectedCaFile = string(regSecret.Data[constants.CaBundleKey])
-	}
-	actualClusterName := ""
-	actualESURL := ""
-	actualUserSecretName := ""
-	actualPwdSecretName := ""
-	actualCaFile := ""
-	actualSecretVersion := ""
-
-	for _, c := range ds.Spec.Template.Spec.Containers {
-		if c.Name == "fluentd" {
-			for _, envVar := range c.Env {
-				if envVar.Name == constants.FluentdClusterNameEnvVar {
-					actualClusterName = envVar.Value
-				} else if envVar.Name == constants.FluentdElasticsearchURLEnvVar {
-					actualESURL = envVar.Value
-				} else if envVar.Name == constants.FluentdElasticsearchUserEnvVar {
-					if envVar.ValueFrom != nil && envVar.ValueFrom.SecretKeyRef != nil {
-						actualUserSecretName = envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name
-					}
-				} else if envVar.Name == constants.FluentdElasticsearchPwdEnvVar {
-					if envVar.ValueFrom != nil && envVar.ValueFrom.SecretKeyRef != nil {
-						actualPwdSecretName = envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name
-					}
-				} else if envVar.Name == registrationSecretVersion {
-					actualSecretVersion = envVar.Value
-				} else if envVar.Name == caFile {
-					actualCaFile = envVar.Value
-				}
-			}
-			break
-		}
-	}
-
-	if actualClusterName != expectedClusterName ||
-		actualESURL != expectedESURL ||
-		actualUserSecretName != expectedSecretName ||
-		actualPwdSecretName != expectedSecretName ||
-		actualCaFile != expectedCaFile ||
-		actualSecretVersion != expectedSecretVersion {
-		return true
-	}
-	return false
 }
 
 func updateLoggingDaemonSet(newSecretName string, newSecret corev1.Secret, ds *appsv1.DaemonSet) *appsv1.DaemonSet {
