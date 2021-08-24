@@ -63,11 +63,11 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client client.Client, namespa
 	clusterNameIndex := -1
 	elasticURLIndex := -1
 	for i, env := range daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env {
-		if env.Name == "CLUSTER_NAME" && env.ValueFrom != nil {
+		if env.Name == constants.ClusterNameEnvVar && env.ValueFrom != nil {
 			clusterNameIndex = i
 			continue
 		}
-		if env.Name == "ELASTICSEARCH_URL" && env.ValueFrom != nil {
+		if env.Name == constants.ElasticsearchURLEnvVar && env.ValueFrom != nil {
 			elasticURLIndex = i
 		}
 	}
@@ -86,15 +86,15 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client client.Client, namespa
 	}
 
 	// The secret must contain a cluster name
-	clusterName, ok := secret.Data["managed-cluster-name"]
+	clusterName, ok := secret.Data[constants.ClusterNameData]
 	if !ok {
-		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, "managed-cluster-name")
+		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.ClusterNameData)
 	}
 
 	// The secret must contain the Elasticsearch endpoint's URL
-	elasticsearchURL, ok := secret.Data["es-url"]
+	elasticsearchURL, ok := secret.Data[constants.ElasticsearchURLData]
 	if !ok {
-		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, "es-url")
+		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.ElasticsearchURLData)
 	}
 
 	// Update the daemonset to use a value instead of the valueFrom

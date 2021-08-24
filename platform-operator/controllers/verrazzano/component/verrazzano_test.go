@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -71,11 +71,11 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 							Name: "wrong-name",
 							Env: []corev1.EnvVar{
 								{
-									Name:  "CLUSTER_NAME",
-									Value: "admin",
+									Name:  constants.ClusterNameEnvVar,
+									Value: "managed1",
 								},
 								{
-									Name:  "ELASTICSEARCH_URL",
+									Name:  constants.ElasticsearchURLEnvVar,
 									Value: "some-url",
 								},
 							},
@@ -102,8 +102,8 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 
 	// create a secret with needed keys
 	data := make(map[string][]byte)
-	data["managed-cluster-name"] = []byte("managed1")
-	data["es-url"] = []byte("some-url")
+	data[constants.ClusterNameData] = []byte("managed1")
+	data[constants.ElasticsearchURLData] = []byte("some-url")
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: defNs,
@@ -120,7 +120,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: constants.MCRegistrationSecret,
 			},
-			Key: "managed-cluster-name",
+			Key: constants.ClusterNameData,
 		},
 	}
 	esURLRef := corev1.EnvVarSource{
@@ -128,7 +128,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: constants.MCRegistrationSecret,
 			},
-			Key: "es-url",
+			Key: constants.ElasticsearchURLData,
 		},
 	}
 	daemonSet.Spec.Template.Spec.Containers[0].Env[0].Value = ""
