@@ -102,6 +102,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 
 	// Do the preUpgrade if the function is defined
 	if h.preUpgradeFunc != nil && UpgradePrehooksEnabled {
+		log.Infof("Running preUpgrade function for %s", h.releaseName)
 		err := h.preUpgradeFunc(log, client, h.releaseName, namespace, h.chartDir)
 		if err != nil {
 			return err
