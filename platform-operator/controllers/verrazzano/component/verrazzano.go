@@ -26,7 +26,7 @@ func resolveVerrazzanoNamespace(ns string) string {
 }
 
 // verrazzanoPreUpgrade contains code that is run prior to helm upgrade for the verrazzano helm chart
-func verrazzanoPreUpgrade(log *zap.SugaredLogger, client client.Client, release string, namespace string, chartDir string) error {
+func verrazzanoPreUpgrade(log *zap.SugaredLogger, client client.Client, _ string, namespace string, _ string) error {
 	return fixupFluentdDaemonset(log, client, namespace)
 }
 
