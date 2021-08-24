@@ -274,7 +274,7 @@ func (s *Syncer) configureLogging() {
 		s.Log.Info(fmt.Sprintf("Failed to find the logging DaemonSet %s, %s", loggingName, err.Error()))
 		return
 	}
-	secretVersion := ""
+	regSecretExists := false
 	regSecret := corev1.Secret{}
 	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
 	if regErr != nil {
@@ -282,13 +282,14 @@ func (s *Syncer) configureLogging() {
 			return
 		}
 	} else {
-		secretVersion = regSecret.ResourceVersion
+		regSecretExists = true
 	}
-	secretVersionEnv := getEnvValue(&daemonSet.Spec.Template.Spec.Containers, registrationSecretVersion)
-	// CreateOrUpdate updates the deployment if cluster name or es secret version changed
-	if secretVersionEnv != secretVersion {
+
+	daemonsetNeedsUpdate := s.loggingDaemonSetNeedsUpdate(regSecretExists, constants.MCRegistrationSecret, regSecret, daemonSet)
+	// CreateOrUpdate updates the fluentd daemonset if we determine that it needs updating
+	if daemonsetNeedsUpdate {
 		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
-			s.Log.Info(fmt.Sprintf("Update the DaemonSet %s, registration secret version from %q to %q", loggingName, secretVersionEnv, secretVersion))
+			s.Log.Info(fmt.Sprintf("Update the DaemonSet %s, either registration secret or daemonset changed", loggingName))
 			daemonSet = *updateLoggingDaemonSet(constants.MCRegistrationSecret, regSecret, &daemonSet)
 			return nil
 		})
@@ -304,6 +305,58 @@ func getEnvValue(containers *[]corev1.Container, envName string) string {
 		}
 	}
 	return ""
+}
+
+// check Fluentd daemonset and see if the relevant fields match what's in the registration secret. Returns a boolean
+// indicating whether the Fluentd daemonset needs update
+func (s *Syncer) loggingDaemonSetNeedsUpdate(regSecretExists bool, secretName string, regSecret corev1.Secret, ds appsv1.DaemonSet) bool {
+	expectedClusterName := defaultClusterName
+	expectedESURL := defaultElasticURL
+	expectedSecretName := defaultSecretName
+	expectedSecretVersion := ""
+	if regSecretExists {
+		expectedClusterName = string(regSecret.Data[constants.ClusterNameData])
+		expectedESURL = string(regSecret.Data[constants.ElasticsearchURLData])
+		expectedSecretVersion = string(regSecret.ResourceVersion)
+		expectedSecretName = secretName
+	}
+	actualClusterName := ""
+	actualESURL := ""
+	actualUserSecretName := ""
+	actualPwdSecretName := ""
+	actualSecretVersion := ""
+
+	for _, c := range ds.Spec.Template.Spec.Containers {
+		if c.Name == "fluentd" {
+			for _, envVar := range c.Env {
+				if envVar.Name == constants.FluentdClusterNameEnvVar {
+					actualClusterName = envVar.Value
+				} else if envVar.Name == constants.FluentdElasticsearchURLEnvVar {
+					actualESURL = envVar.Value
+				} else if envVar.Name == constants.FluentdElasticsearchUserEnvVar {
+					if envVar.ValueFrom != nil && envVar.ValueFrom.SecretKeyRef != nil {
+						actualUserSecretName = envVar.ValueFrom.SecretKeyRef.Name
+					}
+				} else if envVar.Name == constants.FluentdElasticsearchPwdEnvVar {
+					if envVar.ValueFrom != nil && envVar.ValueFrom.SecretKeyRef != nil {
+						actualUserSecretName = envVar.ValueFrom.SecretKeyRef.Name
+					}
+				} else if envVar.Name == registrationSecretVersion {
+					actualSecretVersion = envVar.Value
+				}
+			}
+			break
+		}
+	}
+
+	if actualClusterName != expectedClusterName ||
+		actualESURL != expectedESURL ||
+		actualUserSecretName != expectedSecretName ||
+		actualPwdSecretName != expectedSecretName ||
+		actualSecretVersion != expectedSecretVersion {
+		return true
+	}
+	return false
 }
 
 func updateLoggingDaemonSet(newSecretName string, newSecret corev1.Secret, ds *appsv1.DaemonSet) *appsv1.DaemonSet {
@@ -349,17 +402,17 @@ func updateEnv(newSecretName string, newSecret corev1.Secret, secretVersion stri
 
 	var new []corev1.EnvVar
 	for _, env := range old {
-		if env.Name == "CLUSTER_NAME" {
+		if env.Name == constants.FluentdClusterNameEnvVar {
 			new = append(new, corev1.EnvVar{
 				Name:  env.Name,
 				Value: clusterName,
 			})
-		} else if env.Name == "ELASTICSEARCH_URL" {
+		} else if env.Name == constants.FluentdElasticsearchURLEnvVar {
 			new = append(new, corev1.EnvVar{
 				Name:  env.Name,
 				Value: esURL,
 			})
-		} else if env.Name == "ELASTICSEARCH_USER" {
+		} else if env.Name == constants.FluentdElasticsearchUserEnvVar {
 			new = append(new, corev1.EnvVar{
 				Name: env.Name,
 				ValueFrom: &corev1.EnvVarSource{
@@ -374,7 +427,7 @@ func updateEnv(newSecretName string, newSecret corev1.Secret, secretVersion stri
 					},
 				},
 			})
-		} else if env.Name == "ELASTICSEARCH_PASSWORD" {
+		} else if env.Name == constants.FluentdElasticsearchPwdEnvVar {
 			new = append(new, corev1.EnvVar{
 				Name: env.Name,
 				ValueFrom: &corev1.EnvVarSource{
