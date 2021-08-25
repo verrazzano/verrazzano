@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
+
 	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -1204,6 +1206,34 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetRegistrationSecretName(name)))
 
+	// Expect a call to get the fluentd DaemonSet - return the fluentd daemonset
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
+			ds.TypeMeta = metav1.TypeMeta{
+				APIVersion: "apps/v1",
+				Kind:       "DaemonSet"}
+			ds.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			ds.Spec.Template.Spec.Containers = []corev1.Container{{
+				Name: "fluentd",
+				Env: []corev1.EnvVar{{
+					Name:  "ELASTICSEARCH_URL",
+					Value: "http://vmi-system-es-ingest-oidc:8775",
+				}},
+			}}
+			ds.Spec.Template.Spec.Volumes = []corev1.Volume{{
+				Name: "secret-volume",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: "verrazzano",
+					},
+				},
+			}}
+			return nil
+		})
+
 	// Expect a call to get the tls ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil())).
@@ -1271,8 +1301,8 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 			asserts.Equalf(passwordData, string(pw), "Incorrect ES password in Registration secret ")
 			url := secret.Data[ESURLKey]
 			asserts.Equalf(urlData, string(url), "Incorrect ES URL in Registration secret ")
-		    adminCa := secret.Data[AdminCaBundleKey]
-		    asserts.Equalf(caData, string(adminCa), "Incorrect admin ca bundle in Registration secret ")
+			adminCa := secret.Data[AdminCaBundleKey]
+			asserts.Equalf(caData, string(adminCa), "Incorrect admin ca bundle in Registration secret ")
 			return nil
 		})
 }

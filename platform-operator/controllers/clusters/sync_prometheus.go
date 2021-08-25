@@ -153,7 +153,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 		return newScrapeConfig, nil
 	}
 
-	vzPromSecret, err := r.getVzPromSecret()
+	vzPromSecret, err := r.getSecret(constants.VerrazzanoPromInternal)
 	if err != nil {
 		return nil, err
 	}
