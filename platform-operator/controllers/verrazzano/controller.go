@@ -75,7 +75,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// The verrazzano resource is being deleted
+	// Check if verrazzano resource is being deleted
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.procDelete(ctx, log, vz)
 	}
@@ -95,7 +95,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err := r.createClusterRoleBinding(ctx, log, vz); err != nil {
+	if err := r.createClusterRoleBinding(ctx, log, vz, getInstallNamespace()); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -175,10 +175,10 @@ func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredL
 }
 
 // deleteServiceAccount deletes the service account used for install
-func (r *Reconciler) deleteServiceAccount(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) deleteServiceAccount(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, namespace string) error {
 	sa := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: getInstallNamespace(),
+			Namespace: namespace,
 			Name:      buildServiceAccountName(vz.Name),
 		},
 	}
@@ -191,17 +191,19 @@ func (r *Reconciler) deleteServiceAccount(ctx context.Context, log *zap.SugaredL
 }
 
 // createClusterRoleBinding creates a required cluster role binding
-func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+// NOTE: A RoleBinding doesn't work because we get the following error when the install scripts call kubectl get nodes
+//   " nodes is forbidden: User "xyz" cannot list resource "nodes" in API group "" at the cluster scope"
+func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, namespace string) error {
 	// Define a new cluster role binding resource
-	clusterRoleBinding := installjob.NewClusterRoleBinding(vz, buildClusterRoleBindingName(vz.Namespace, vz.Name), getInstallNamespace(), buildServiceAccountName(vz.Name))
+	binding := installjob.NewClusterRoleBinding(vz, buildClusterRoleBindingName(vz.Namespace, vz.Name), getInstallNamespace(), buildServiceAccountName(vz.Name))
 
 	// Check if the cluster role binding for running the install scripts exist
-	clusterRoleBindingFound := &rbacv1.ClusterRoleBinding{}
-	log.Infof("Checking if install cluster role binding %s exist", clusterRoleBinding.Name)
-	err := r.Get(ctx, types.NamespacedName{Name: clusterRoleBinding.Name, Namespace: clusterRoleBinding.Namespace}, clusterRoleBindingFound)
+	bindingFound := &rbacv1.ClusterRoleBinding{}
+	log.Infof("Checking if install cluster role binding %s exist", binding.Name)
+	err := r.Get(ctx, types.NamespacedName{Name: binding.Name, Namespace: binding.Namespace}, bindingFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Infof("Creating install cluster role binding %s", clusterRoleBinding.Name)
-		err = r.Create(ctx, clusterRoleBinding)
+		log.Infof("Creating install cluster role binding %s", binding.Name)
+		err = r.Create(ctx, binding)
 		if err != nil {
 			return err
 		}
@@ -212,16 +214,32 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 	return nil
 }
 
-// deleteClusterRoleBinding deletes the cluster role binding
-func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
-	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+// deleteRoleBinding deletes the cluster role binding
+func (r *Reconciler) deleteRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, namespace string) error {
+	binding := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: buildClusterRoleBindingName(vz.Namespace, vz.Name),
+			Name:      buildClusterRoleBindingName(getInstallNamespace(), vz.Name),
+			Namespace: namespace,
 		},
 	}
-	err := r.Delete(ctx, clusterRoleBinding, &client.DeleteOptions{})
+	err := r.Delete(ctx, binding, &client.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		log.Errorf("Failed deleting ClusterRoleBinding %s: %v", clusterRoleBinding.Name, err)
+		log.Errorf("Failed deleting RoleBinding %s: %v", binding.Name, err)
+		return err
+	}
+	return nil
+}
+
+// deleteClusterRoleBinding deletes the cluster role binding
+func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano,) error {
+	binding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildClusterRoleBindingName(getInstallNamespace(), vz.Name),
+		},
+	}
+	err := r.Delete(ctx, binding, &client.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		log.Errorf("Failed deleting ClusterRoleBinding %s: %v", binding.Name, err)
 		return err
 	}
 	return nil
@@ -262,10 +280,10 @@ func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger
 }
 
 // deleteConfigMap deletes the config map used for installation
-func (r *Reconciler) deleteConfigMap(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) deleteConfigMap(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, namespace string) error {
 	cm := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: getInstallNamespace(),
+			Namespace: namespace,
 			Name:      buildConfigMapName(vz.Name),
 		},
 	}
@@ -386,6 +404,7 @@ func (r *Reconciler) deleteNamespace(ctx context.Context, log *zap.SugaredLogger
 	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
+			Name: namespace,  // required by the controller Delete call
 		},
 	}
 	err := r.Delete(ctx, &ns, &client.DeleteOptions{})
@@ -461,7 +480,7 @@ func buildServiceAccountName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s", name)
 }
 
-// buildClusterRoleBindingName returns the clusterrolebinding name for jobs based on verrazzano resource name.
+// buildClusterRoleBindingName returns the ClusgterRoleBinding name for jobs based on verrazzano resource name.
 func buildClusterRoleBindingName(namespace string, name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-%s", namespace, name)
 }
@@ -883,6 +902,11 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 					return newRequeueWithDelay(), err
 				}
 
+				err = r.cleanupDefault(ctx, log, vz)
+				if err != nil {
+					return newRequeueWithDelay(), err
+				}
+
 				// All install related resources have been deleted, delete the finalizer so that the Verrazzano
 				// resource can get removed from etcd.
 				log.Infof("Removing finalizer %s", finalizerName)
@@ -899,20 +923,20 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 
 // Cleanup the resources left over from install and uninstall
 func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
-	// Delete ClusterRoleBinding
-	err := r.deleteClusterRoleBinding(ctx, log, vz)
+	// Delete roleBinding
+	err := r.deleteRoleBinding(ctx, log, vz, getInstallNamespace())
 	if err != nil {
 		return err
 	}
 
 	// Delete install service account
-	err = r.deleteServiceAccount(ctx, log, vz)
+	err = r.deleteServiceAccount(ctx, log, vz, getInstallNamespace())
 	if err != nil {
 		return err
 	}
 
 	// Delete the install config map
-	err = r.deleteConfigMap(ctx, log, vz)
+	err = r.deleteConfigMap(ctx, log, vz, getInstallNamespace())
 	if err != nil {
 		return err
 	}
@@ -922,9 +946,34 @@ func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *in
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
+
+// Cleanup the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
+// also includes the ClusterRoleBinding, which is outside the scope of namespace
+func (r *Reconciler) cleanupDefault(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	// Delete ClusterRoleBinding
+	err := r.deleteClusterRoleBinding(ctx, log, vz)
+	if err != nil {
+		return err
+	}
+
+	// Delete install service account
+	err = r.deleteServiceAccount(ctx, log, vz, vzconst.DefaultNamespace)
+	if err != nil {
+		return err
+	}
+
+	// Delete the install config map
+	err = r.deleteConfigMap(ctx, log, vz, vzconst.DefaultNamespace)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 
 // Create a new Result that will cause a reconcile requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
