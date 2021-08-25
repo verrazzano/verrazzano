@@ -381,6 +381,21 @@ func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log *
 	return nil
 }
 
+// deleteNamespace deletes a namespace
+func (r *Reconciler) deleteNamespace(ctx context.Context, log *zap.SugaredLogger, namespace string) error {
+	ns := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+		},
+	}
+	err := r.Delete(ctx, &ns, &client.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		log.Errorf("Failed deleting namespace %s: %v", ns.Name, err)
+		return err
+	}
+	return nil
+}
+
 // SetupWithManager creates a new controller and adds it to the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
@@ -903,11 +918,11 @@ func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *in
 	}
 
 	// Delete the verrazzano-system namespace
-	ns := corev1.Namespace{}
-	err = r.Delete(ctx, &ns, &client.DeleteOptions{})
+	err = r.deleteNamespace(ctx, log, vzconst.VerrazzanoSystemNamespace)
 	if err != nil {
 		return err
 	}
+	
 	return nil
 }
 
