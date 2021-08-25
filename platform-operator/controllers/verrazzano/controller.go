@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -76,30 +77,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// The verrazzano resource is being deleted
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		// Finalizer is present, so lets do the uninstall
-		if containsString(vz.ObjectMeta.Finalizers, finalizerName) {
-			// Cancel any running install jobs before installing
-			if err := r.cancelInstallJob(log, vz); err != nil {
-				return reconcile.Result{}, err
-			}
-			if err := r.createUninstallJob(log, vz); err != nil {
-				// If fail to start the uninstall, return with error so that it can be retried
-				return reconcile.Result{}, err
-			}
-
-			// Remove the finalizer and update the verrazzano resource if the uninstall has finished.
-			for _, condition := range vz.Status.Conditions {
-				if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
-					log.Infof("Removing finalizer %s", finalizerName)
-					vz.ObjectMeta.Finalizers = removeString(vz.ObjectMeta.Finalizers, finalizerName)
-					err := r.Update(ctx, vz)
-					if err != nil && !errors.IsConflict(err) {
-						return reconcile.Result{}, err
-					}
-				}
-			}
-		}
-		return reconcile.Result{}, nil
+		return r.procDelete(ctx, log, vz)
 	}
 
 	// If Verrazzano is installed see if upgrade is needed
@@ -179,13 +157,6 @@ func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredL
 	}
 	serviceAccount := installjob.NewServiceAccount(getInstallNamespace(), buildServiceAccountName(vz.Name), imagePullSecrets, vz.Labels)
 
-	// TODO MACKIN - handle this in finalizer
-	// Set verrazzano resource as the owner and controller of the service account resource.
-	// This reference will result in the service account resource being deleted when the verrazzano CR is deleted.
-	//if err := controllerutil.SetControllerReference(vz, serviceAccount, r.Scheme); err != nil {
-	//	return err
-	//}
-
 	// Check if the service account for running the scripts exist
 	serviceAccountFound := &corev1.ServiceAccount{}
 	log.Infof("Checking if install service account %s exist", buildServiceAccountName(vz.Name))
@@ -200,6 +171,22 @@ func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredL
 		return err
 	}
 
+	return nil
+}
+
+// deleteServiceAccount deletes the service account used for install
+func (r *Reconciler) deleteServiceAccount(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	sa := corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: getInstallNamespace(),
+			Name:      buildServiceAccountName(vz.Name),
+		},
+	}
+	err := r.Delete(ctx, &sa, &client.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		log.Errorf("Failed deleting ServiceAccount %s: %v", sa.Name, err)
+		return err
+	}
 	return nil
 }
 
@@ -225,17 +212,25 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 	return nil
 }
 
+// deleteClusterRoleBinding deletes the cluster role binding
+func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: buildClusterRoleBindingName(vz.Namespace, vz.Name),
+		},
+	}
+	err := r.Delete(ctx, clusterRoleBinding, &client.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		log.Errorf("Failed deleting ClusterRoleBinding %s: %v", clusterRoleBinding.Name, err)
+		return err
+	}
+	return nil
+}
+
 // createConfigMap creates a required config map for installation
 func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Create the configmap resource that will contain installation configuration options
 	configMap := installjob.NewConfigMap(getInstallNamespace(), buildConfigMapName(vz.Name), vz.Labels)
-
-	// TODO MACKIN - handle this in finalizer
-	// Set the verrazzano resource as the owner and controller of the configmap
-	//err := controllerutil.SetControllerReference(vz, configMap, r.Scheme)
-	//if err != nil {
-	//	return err
-	//}
 
 	// Check if the ConfigMap exists for running the install
 	configMapFound := &corev1.ConfigMap{}
@@ -266,11 +261,32 @@ func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger
 	return nil
 }
 
-// cancelInstallJob Cancels a running install job by deleting the batch object
-func (r *Reconciler) cancelInstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+// deleteConfigMap deletes the config map used for installation
+func (r *Reconciler) deleteConfigMap(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	cm := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: getInstallNamespace(),
+			Name:      buildConfigMapName(vz.Name),
+		},
+	}
+	err := r.Delete(ctx, &cm, &client.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		log.Errorf("Failed deleting ConfigMap %s: %v", cm.Name, err)
+		return err
+	}
+	return nil
+}
+
+// deleteInstallJob Deletes the install job, which will also result in the install pod being deleted.
+func (r *Reconciler) deleteInstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Check if the job for running the install scripts exist
 	jobName := buildInstallJobName(vz.Name)
-	jobFound := &batchv1.Job{}
+	jobFound := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: getInstallNamespace(),
+			Name:      buildInstallJobName(vz.Name),
+		},
+	}
 	log.Debugf("Checking if install job %s exist", jobName)
 	err := r.Get(context.TODO(), types.NamespacedName{Name: jobName, Namespace: getInstallNamespace()}, jobFound)
 	if err != nil {
@@ -304,12 +320,6 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 			ConfigMapName: configMapName,
 		})
 
-	// TODO MACKIN - cleanup in finalizer
-	// Set verrazzano resource as the owner and controller of the job resource.
-	// This reference will result in the job resource being deleted when the verrazzano CR is deleted.
-	//if err := controllerutil.SetControllerReference(vz, job, r.Scheme); err != nil {
-	//	return err
-	//}
 	// Check if the job for running the install scripts exist
 	jobFound := &batchv1.Job{}
 	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
@@ -398,12 +408,6 @@ func (r *Reconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alp
 			},
 		},
 	)
-
-	// TODO mackin - delete in finalizer
-	// Set verrazzano resource as the owner and controller of the uninstall job resource.
-	//if err := controllerutil.SetControllerReference(vz, job, r.Scheme); err != nil {
-	//	return err
-	//}
 
 	// Check if the job for running the uninstall scripts exist
 	jobFound := &batchv1.Job{}
@@ -839,4 +843,77 @@ func commonPath(a, b string) string {
 // Get the install namespace where this controller is running.
 func getInstallNamespace() string {
 	return vzconst.VerrazzanoInstallNamespace
+}
+
+// Process the Verrazzano resource deletion
+func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+	// Finalizer is present, so lets do the uninstall
+	if containsString(vz.ObjectMeta.Finalizers, finalizerName) {
+		// Delete the install job if it exists, cancelling any running install jobs before uninstalling
+		if err := r.deleteInstallJob(log, vz); err != nil {
+			log.Errorf("Failed creating the install job: %v", err)
+			return newRequeueWithDelay(), err
+		}
+		// Create the uninstall job if it doesn't exist
+		if err := r.createUninstallJob(log, vz); err != nil {
+			log.Errorf("Failed creating the uninstall job: %v", err)
+			return newRequeueWithDelay(), err
+		}
+
+		// Remove the finalizer and update the verrazzano resource if the uninstall has finished.
+		for _, condition := range vz.Status.Conditions {
+			if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
+				err := r.cleanup(ctx, log, vz)
+				if err != nil {
+					return newRequeueWithDelay(), err
+				}
+
+				// All install related resources have been deleted, delete the finalizer so that the Verrazzano
+				// resource can get removed from etcd.
+				log.Infof("Removing finalizer %s", finalizerName)
+				vz.ObjectMeta.Finalizers = removeString(vz.ObjectMeta.Finalizers, finalizerName)
+				err = r.Update(ctx, vz)
+				if err != nil {
+					return newRequeueWithDelay(), err
+				}
+			}
+		}
+	}
+	return reconcile.Result{}, nil
+}
+
+// Cleanup the resources left over from install and uninstall
+func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	// Delete ClusterRoleBinding
+	err := r.deleteClusterRoleBinding(ctx, log, vz)
+	if err != nil {
+		return err
+	}
+
+	// Delete install service account
+	err = r.deleteServiceAccount(ctx, log, vz)
+	if err != nil {
+		return err
+	}
+
+	// Delete the install config map
+	err = r.deleteConfigMap(ctx, log, vz)
+	if err != nil {
+		return err
+	}
+
+	// Delete the verrazzano-system namespace
+	ns := corev1.Namespace{}
+	err = r.Delete(ctx, &ns, &client.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Create a new Result that will cause a reconcile requeue after a short delay
+func newRequeueWithDelay() ctrl.Result {
+	var seconds = rand.IntnRange(3, 5)
+	delaySecs := time.Duration(seconds) * time.Second
+	return ctrl.Result{Requeue: true, RequeueAfter: delaySecs}
 }

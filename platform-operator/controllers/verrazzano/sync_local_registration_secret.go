@@ -11,7 +11,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -68,6 +70,21 @@ func (r *Reconciler) mutateLocalRegistrationSecret(secret *corev1.Secret) error 
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
 		clusters.ManagedClusterNameKey: []byte(constants.MCLocalCluster),
+	}
+	return nil
+}
+
+// Delete the local registration secret
+func (r *Reconciler) deleteLocalRegistrationSecret(vz *installv1alpha1.Verrazzano) error {
+	secret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.MCAgentSecret,
+		},
+	}
+	err := r.Delete(context.TODO(), &secret, &client.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("Failed deleting the local registration secret %s/%s: %v", secret.Namespace, secret.Name, err)
 	}
 	return nil
 }
