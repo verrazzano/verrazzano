@@ -123,6 +123,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutatePrometheusConfigMap(vmc *clus
 					if len(cacrtValue) > 0 {
 						// cert configured for scraper - needs to be added to config map
 						configMap.Data[getCAKey(vmc)] = cacrtValue
+						// if dne set to empty?
 					}
 
 				}

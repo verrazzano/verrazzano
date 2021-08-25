@@ -6,8 +6,6 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"net/url"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -18,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"net/url"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -109,8 +108,12 @@ func newScheme() *runtime.Scheme {
 
 // validateSecret enforces that the CA secret name was specified and that the secret exists
 func (v VerrazzanoManagedCluster) validateSecret(client client.Client) error {
+	log := zap.S().With("source", "webhook", "operation", "update", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
+	log.Info("Validate secret")
+
 	if len(v.Spec.CASecret) == 0 {
-		return fmt.Errorf("The name of the CA secret in namespace %s must be specified", constants.VerrazzanoMultiClusterNamespace)
+		log.Debugf("No CA secret in namespace %s defined, using well-known CA", constants.VerrazzanoMultiClusterNamespace)
+		return nil
 	}
 	secret := corev1.Secret{}
 	nsn := types.NamespacedName{
