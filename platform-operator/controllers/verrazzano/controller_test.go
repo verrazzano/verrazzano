@@ -145,7 +145,7 @@ func TestSuccessfulInstall(t *testing.T) {
 
 	// Expect a call to get the Job - return that it exists
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
 			newJob := installjob.NewJob(&installjob.JobConfig{
 				JobConfigCommon: k8s.JobConfigCommon{
@@ -237,14 +237,14 @@ func TestCreateVerrazzano(t *testing.T) {
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, buildServiceAccountName(name)))
 
 	// Expect a call to create the ServiceAccount - return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, serviceAccount *corev1.ServiceAccount, opts ...client.CreateOption) error {
-			asserts.Equalf(namespace, serviceAccount.Namespace, "ServiceAccount namespace did not match")
+			asserts.Equalf(getInstallNamespace(), serviceAccount.Namespace, "ServiceAccount namespace did not match")
 			asserts.Equalf(buildServiceAccountName(name), serviceAccount.Name, "ServiceAccount name did not match")
 			asserts.Equalf(labels, serviceAccount.Labels, "ServiceAccount labels did not match")
 			return nil
@@ -263,20 +263,20 @@ func TestCreateVerrazzano(t *testing.T) {
 			asserts.Equalf(buildClusterRoleBindingName(namespace, name), clusterRoleBinding.Name, "ClusterRoleBinding name did not match")
 			asserts.Equalf(labels, clusterRoleBinding.Labels, "ClusterRoleBinding labels did not match")
 			asserts.Equalf(buildServiceAccountName(name), clusterRoleBinding.Subjects[0].Name, "ClusterRoleBinding Subjects name did not match")
-			asserts.Equalf(namespace, clusterRoleBinding.Subjects[0].Namespace, "ClusterRoleBinding Subjects namespace did not match")
+			asserts.Equalf(getInstallNamespace(), clusterRoleBinding.Subjects[0].Namespace, "ClusterRoleBinding Subjects namespace did not match")
 			return nil
 		})
 
 	// Expect a call to get the ConfigMap - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, buildServiceAccountName(name)))
 
 	// Expect a call to create the ConfigMap - return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			asserts.Equalf(namespace, configMap.Namespace, "ConfigMap namespace did not match")
+			asserts.Equalf(getInstallNamespace(), configMap.Namespace, "ConfigMap namespace did not match")
 			asserts.Equalf(buildConfigMapName(name), configMap.Name, "ConfigMap name did not match")
 			asserts.Equalf(labels, configMap.Labels, "ConfigMap labels did not match")
 			return nil
@@ -287,14 +287,14 @@ func TestCreateVerrazzano(t *testing.T) {
 
 	// Expect a call to get the Job - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildInstallJobName(name)))
 
 	// Expect a call to create the Job - return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, job *batchv1.Job, opts ...client.CreateOption) error {
-			asserts.Equalf(namespace, job.Namespace, "Job namespace did not match")
+			asserts.Equalf(getInstallNamespace(), job.Namespace, "Job namespace did not match")
 			asserts.Equalf(buildInstallJobName(name), job.Name, "Job name did not match")
 			asserts.Equalf(labels, job.Labels, "Job labels did not match")
 			return nil
@@ -304,7 +304,7 @@ func TestCreateVerrazzano(t *testing.T) {
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 
 	// Expect a call to get a stale uninstall job resource
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildUninstallJobName(name)}, gomock.Any()).Return(nil)
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Any()).Return(nil)
 
 	// Expect a call to delete a stale uninstall job resource
 	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -380,14 +380,14 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, buildServiceAccountName(name)))
 
 	// Expect a call to create the ServiceAccount - return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, serviceAccount *corev1.ServiceAccount, opts ...client.CreateOption) error {
-			asserts.Equalf(namespace, serviceAccount.Namespace, "ServiceAccount namespace did not match")
+			asserts.Equalf(getInstallNamespace(), serviceAccount.Namespace, "ServiceAccount namespace did not match")
 			asserts.Equalf(buildServiceAccountName(name), serviceAccount.Name, "ServiceAccount name did not match")
 			asserts.Equalf(labels, serviceAccount.Labels, "ServiceAccount labels did not match")
 			return nil
@@ -406,7 +406,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			asserts.Equalf(buildClusterRoleBindingName(namespace, name), clusterRoleBinding.Name, "ClusterRoleBinding name did not match")
 			asserts.Equalf(labels, clusterRoleBinding.Labels, "ClusterRoleBinding labels did not match")
 			asserts.Equalf(buildServiceAccountName(name), clusterRoleBinding.Subjects[0].Name, "ClusterRoleBinding Subjects name did not match")
-			asserts.Equalf(namespace, clusterRoleBinding.Subjects[0].Namespace, "ClusterRoleBinding Subjects namespace did not match")
+			asserts.Equalf(getInstallNamespace(), clusterRoleBinding.Subjects[0].Namespace, "ClusterRoleBinding Subjects namespace did not match")
 			return nil
 		})
 
@@ -430,14 +430,14 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 
 	// Expect a call to get the ConfigMap - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, buildServiceAccountName(name)))
 
 	// Expect a call to create the ConfigMap - return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			asserts.Equalf(namespace, configMap.Namespace, "ConfigMap namespace did not match")
+			asserts.Equalf(getInstallNamespace(), configMap.Namespace, "ConfigMap namespace did not match")
 			asserts.Equalf(buildConfigMapName(name), configMap.Name, "ConfigMap name did not match")
 			asserts.Equalf(labels, configMap.Labels, "ConfigMap labels did not match")
 			asserts.NotNil(configMap.Data["config.json"], "Configuration entry not found")
@@ -450,14 +450,14 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 
 	// Expect a call to get the Job - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildInstallJobName(name)))
 
 	// Expect a call to create the Job - return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, job *batchv1.Job, opts ...client.CreateOption) error {
-			asserts.Equalf(namespace, job.Namespace, "Job namespace did not match")
+			asserts.Equalf(getInstallNamespace(), job.Namespace, "Job namespace did not match")
 			asserts.Equalf(buildInstallJobName(name), job.Name, "Job name did not match")
 			asserts.Equalf(labels, job.Labels, "Job labels did not match")
 			return nil
@@ -467,7 +467,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 
 	// Expect a call to get a stale uninstall job resource
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildUninstallJobName(name)}, gomock.Any()).Return(nil)
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Any()).Return(nil)
 
 	// Expect a call to delete a stale uninstall job resource
 	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -543,12 +543,12 @@ func TestUninstallComplete(t *testing.T) {
 
 	// Expect a lookup of a running install job
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildInstallJobName(name)))
 
 	// Expect a call to get the uninstall Job - return that it exists
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
 			newJob := installjob.NewJob(&installjob.JobConfig{
 				JobConfigCommon: k8s.JobConfigCommon{
@@ -579,6 +579,11 @@ func TestUninstallComplete(t *testing.T) {
 			asserts.Len(verrazzano.Status.Conditions, 2)
 			return nil
 		})
+
+	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
+	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
+	expectDeleteConfigMap(mock, getInstallNamespace(), name)
+	expectDeleteNamespace(mock)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -1893,7 +1898,7 @@ func newVerrazzanoReconciler(c client.Client) Reconciler {
 func setupInstallInternalConfigMapExpectations(mock *mocks.MockClient, name string, namespace string) {
 	// Expect a call to get an existing configmap, but return a NotFound error.
 	mock.EXPECT().
-		Get(gomock.Any(), client.ObjectKey{Name: buildInternalConfigMapName(name), Namespace: namespace}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), client.ObjectKey{Name: buildInternalConfigMapName(name), Namespace: getInstallNamespace()}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name client.ObjectKey, configMap *corev1.ConfigMap) error {
 			return errors.NewNotFound(schema.GroupResource{
 				Group:    vzapi.SchemeGroupVersion.Group,
@@ -1963,7 +1968,7 @@ func expectVerrazzanoSystemNamespaceDoesNotExist(mock *mocks.MockClient, asserts
 func expectConfigMapExists(mock *mocks.MockClient, namespace string, name string, labels map[string]string) {
 	// Expect a call to get the ConfigMap - return that it exists
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
 			cm := installjob.NewConfigMap(name.Namespace, name.Name, labels)
 			configMap.ObjectMeta = cm.ObjectMeta
@@ -1992,7 +1997,7 @@ func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzap
 func expectGetServiceAccountExists(mock *mocks.MockClient, namespace string, name string, labels map[string]string) {
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
 			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
@@ -2011,6 +2016,36 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 			verrazzano.Spec.Components.DNS = verrazzanoToUse.Spec.Components.DNS
 			return nil
 		})
+}
+
+// expectDeleteServiceAccount expects a call to delete the service account used by install
+func expectDeleteServiceAccount(mock *mocks.MockClient, namespace string, name string) {
+	// Expect a call to get the ServiceAccount - return that it exists
+	mock.EXPECT().
+		Delete(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Any()).Return(nil)
+}
+
+
+// expectDeleteConfigMap expects a call to delete the config map used by install
+func expectDeleteConfigMap(mock *mocks.MockClient, namespace string, name string) {
+	// Expect a call to get the ServiceAccount - return that it exists
+	mock.EXPECT().
+		Delete(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Any()).Return(nil)
+}
+
+// expectDeleteNamespace expects a call to delete the verrazzano-system ns
+func expectDeleteNamespace(mock *mocks.MockClient) {
+	// Expect a call to get the ServiceAccount - return that it exists
+	mock.EXPECT().
+		Delete(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoSystemNamespace}, gomock.Any()).Return(nil)
+}
+
+
+// expectDeleteClusterRoleBinding expects a call to delete the ClusterRoleBinding for the Verrazzano with the given
+// namespace and name, and returns that it exists
+func expectDeleteClusterRoleBinding(mock *mocks.MockClient, namespace string, name string) {
+	mock.EXPECT().
+		Delete(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Any()).Return(nil)
 }
 
 // Test_commonPath tests commonPath function

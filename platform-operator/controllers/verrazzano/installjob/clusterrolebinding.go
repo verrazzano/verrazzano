@@ -13,7 +13,7 @@ import (
 // vz - pointer to verrazzano resource
 // name - name of the RoleBinding resource
 // saName - name of ServiceAccount resource
-func NewClusterRoleBinding(vz *installv1alpha1.Verrazzano,rbNname string, saNamespace string, saName string) *rbacv1.ClusterRoleBinding {
+func NewClusterRoleBinding(vz *installv1alpha1.Verrazzano, rbNname string, saNamespace string, saName string) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   rbNname,

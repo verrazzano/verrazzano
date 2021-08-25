@@ -214,27 +214,11 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 	return nil
 }
 
-// deleteRoleBinding deletes the cluster role binding
-func (r *Reconciler) deleteRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, namespace string) error {
-	binding := &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildClusterRoleBindingName(getInstallNamespace(), vz.Name),
-			Namespace: namespace,
-		},
-	}
-	err := r.Delete(ctx, binding, &client.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		log.Errorf("Failed deleting RoleBinding %s: %v", binding.Name, err)
-		return err
-	}
-	return nil
-}
-
 // deleteClusterRoleBinding deletes the cluster role binding
-func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano,) error {
+func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, namespace string) error {
 	binding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildClusterRoleBindingName(getInstallNamespace(), vz.Name),
+			Name: buildClusterRoleBindingName(namespace, vz.Name),
 		},
 	}
 	err := r.Delete(ctx, binding, &client.DeleteOptions{})
@@ -404,7 +388,7 @@ func (r *Reconciler) deleteNamespace(ctx context.Context, log *zap.SugaredLogger
 	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
-			Name: namespace,  // required by the controller Delete call
+			Name:      namespace, // required by the controller Delete call
 		},
 	}
 	err := r.Delete(ctx, &ns, &client.DeleteOptions{})
@@ -924,7 +908,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 // Cleanup the resources left over from install and uninstall
 func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Delete roleBinding
-	err := r.deleteRoleBinding(ctx, log, vz, getInstallNamespace())
+	err := r.deleteClusterRoleBinding(ctx, log, vz, getInstallNamespace())
 	if err != nil {
 		return err
 	}
@@ -954,7 +938,7 @@ func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *in
 // also includes the ClusterRoleBinding, which is outside the scope of namespace
 func (r *Reconciler) cleanupDefault(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Delete ClusterRoleBinding
-	err := r.deleteClusterRoleBinding(ctx, log, vz)
+	err := r.deleteClusterRoleBinding(ctx, log, vz, vzconst.DefaultNamespace)
 	if err != nil {
 		return err
 	}
@@ -973,7 +957,6 @@ func (r *Reconciler) cleanupDefault(ctx context.Context, log *zap.SugaredLogger,
 
 	return nil
 }
-
 
 // Create a new Result that will cause a reconcile requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
