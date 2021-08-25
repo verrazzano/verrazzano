@@ -75,6 +75,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// Ensure the required resources needed for both install and uninstall exist
+	if err := r.createServiceAccount(ctx, log, vz); err != nil {
+		return newRequeueWithDelay(), err
+	}
+	if err := r.createClusterRoleBinding(ctx, log, vz); err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	// Check if verrazzano resource is being deleted
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.procDelete(ctx, log, vz)
@@ -91,51 +99,42 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.createServiceAccount(ctx, log, vz); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err := r.createClusterRoleBinding(ctx, log, vz, getInstallNamespace()); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
 	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
 		err := r.doesOCIDNSConfigSecretExist(vz)
 		if err != nil {
-			return reconcile.Result{}, err
+			return newRequeueWithDelay(), err
 		}
 	}
-	err := r.createConfigMap(ctx, log, vz)
-	if err != nil {
-		return reconcile.Result{}, err
+
+	if err := r.createConfigMap(ctx, log, vz); err != nil {
+		return newRequeueWithDelay(), err
 	}
 
 	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
-	err = r.createVerrazzanoSystemNamespace(ctx, log)
-	if err != nil {
+	if err := r.createVerrazzanoSystemNamespace(ctx, log); err != nil {
 		log.Errorf("Failed to create namespace %v: %v", vzconst.VerrazzanoSystemNamespace, err)
-		return reconcile.Result{}, err
+		return newRequeueWithDelay(), err
 	}
 
 	if err := r.createInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
-		return reconcile.Result{}, err
+		return newRequeueWithDelay(), err
 	}
 
 	// Create/update a configmap from spec for future comparison on update/upgrade
 	if err := r.saveVerrazzanoSpec(ctx, log, vz); err != nil {
-		return reconcile.Result{}, err
+		return newRequeueWithDelay(), err
 	}
 
 	// Sync the local cluster registration secret that allows the use of MCxyz resources on the
 	// admin cluster without needing a VMC.
 	if err := r.syncLocalRegistrationSecret(vz); err != nil {
 		log.Errorf("Failed to sync the local registration secret: %v", err)
-		return reconcile.Result{}, err
+		return newRequeueWithDelay(), err
 	}
 
-	return ctrl.Result{}, err
+	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
@@ -193,7 +192,7 @@ func (r *Reconciler) deleteServiceAccount(ctx context.Context, log *zap.SugaredL
 // createClusterRoleBinding creates a required cluster role binding
 // NOTE: A RoleBinding doesn't work because we get the following error when the install scripts call kubectl get nodes
 //   " nodes is forbidden: User "xyz" cannot list resource "nodes" in API group "" at the cluster scope"
-func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, namespace string) error {
+func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new cluster role binding resource
 	binding := installjob.NewClusterRoleBinding(vz, buildClusterRoleBindingName(vz.Namespace, vz.Name), getInstallNamespace(), buildServiceAccountName(vz.Name))
 

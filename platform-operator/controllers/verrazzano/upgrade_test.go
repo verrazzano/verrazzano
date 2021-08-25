@@ -44,6 +44,7 @@ type badRunner struct {
 func TestUpgradeNoVersion(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -73,6 +74,12 @@ func TestUpgradeNoVersion(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -92,6 +99,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 func TestUpgradeSameVersion(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -124,6 +132,12 @@ func TestUpgradeSameVersion(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -143,6 +157,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 func TestUpgradeStarted(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -177,6 +192,12 @@ func TestUpgradeStarted(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
@@ -208,6 +229,7 @@ func TestUpgradeStarted(t *testing.T) {
 func TestUpgradeTooManyFailures(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -255,6 +277,12 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -274,6 +302,7 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -331,6 +360,12 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			}
 			return nil
 		})
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -363,6 +398,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -421,6 +457,12 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -440,6 +482,7 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 func TestUpgradeCompleted(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	fname, _ := filepath.Abs(unitTestBomFile)
 	component.SetUnitTestBomFilePath(fname)
@@ -478,6 +521,12 @@ func TestUpgradeCompleted(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
@@ -513,6 +562,7 @@ func TestUpgradeCompleted(t *testing.T) {
 func TestUpgradeHelmError(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -549,6 +599,12 @@ func TestUpgradeHelmError(t *testing.T) {
 			}
 			return nil
 		})
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
