@@ -51,7 +51,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	secret.Type = corev1.SecretTypeOpaque
 
 	// Get the info needed to build the elasicsearch secret
-	url, err := r.getElasticsearchURL()
+	esUrl, err := r.getElasticsearchURL()
 	if err != nil {
 		return err
 	}
@@ -73,11 +73,12 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// Build the secret data
 	secret.Data = map[string][]byte{
 		ManagedClusterNameKey: []byte(manageClusterName),
-		ESURLKey:              []byte(url),
-		CaBundleKey:           tlsSecret.Data[CaCrtKey],
+		ESURLKey:              []byte(esUrl),
+		ESCaBundleKey:         tlsSecret.Data[CaCrtKey],
 		UsernameKey:           vzSecret.Data[UsernameKey],
 		PasswordKey:           vzSecret.Data[PasswordKey],
 		KeycloakURLKey:        []byte(keycloakURL),
+		AdminCaBundleKey:      tlsSecret.Data[CaCrtKey],
 	}
 	return nil
 }

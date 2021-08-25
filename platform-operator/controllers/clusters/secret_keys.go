@@ -6,8 +6,11 @@ package clusters
 // CaCrtKey is the CA cert key in the system-tls secret
 const CaCrtKey = "ca.crt"
 
-// CaBundleKey is the CA cert key in the Elasticsearch secret
-const CaBundleKey = "ca-bundle"
+// ESCaBundleKey is the ES CA cert key in the registration secret
+const ESCaBundleKey = "es-ca-bundle"
+
+// AdminCaBundleKey is the admin CA cert key in the registration secret
+const AdminCaBundleKey = "ca-bundle"
 
 // KubeconfigKey is the kubeconfig key
 const KubeconfigKey = "admin-kubeconfig"

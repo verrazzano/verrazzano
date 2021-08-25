@@ -1262,15 +1262,17 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			clusterName := secret.Data[ManagedClusterNameKey]
-			asserts.Equalf(testManagedCluster, string(clusterName), "Incorrect cluster testManagedCluster in Elasticsearch secret ")
-			ca := secret.Data[CaBundleKey]
-			asserts.Equalf(caData, string(ca), "Incorrect cadata in Elasticsearch secret ")
+			asserts.Equalf(testManagedCluster, string(clusterName), "Incorrect cluster testManagedCluster in Registration secret ")
+			esCa := secret.Data[ESCaBundleKey]
+			asserts.Equalf(caData, string(esCa), "Incorrect ES ca bundle in Registration secret ")
 			user := secret.Data[UsernameKey]
-			asserts.Equalf(userData, string(user), "Incorrect user in Elasticsearch secret ")
+			asserts.Equalf(userData, string(user), "Incorrect ES user in Registration secret ")
 			pw := secret.Data[PasswordKey]
-			asserts.Equalf(passwordData, string(pw), "Incorrect password in Elasticsearch secret ")
+			asserts.Equalf(passwordData, string(pw), "Incorrect ES password in Registration secret ")
 			url := secret.Data[ESURLKey]
-			asserts.Equalf(urlData, string(url), "Incorrect URL in Elasticsearch secret ")
+			asserts.Equalf(urlData, string(url), "Incorrect ES URL in Registration secret ")
+		    adminCa := secret.Data[AdminCaBundleKey]
+		    asserts.Equalf(caData, string(adminCa), "Incorrect admin ca bundle in Registration secret ")
 			return nil
 		})
 }
