@@ -287,7 +287,7 @@ func (s *Syncer) configureLogging() {
 	// controllerutil will not update it
 	controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
 		s.Log.Info(fmt.Sprintf("Update the DaemonSet %s, either registration secret or daemonset changed", loggingName))
-		daemonSet = *updateLoggingDaemonSet(constants.MCRegistrationSecret, regSecret, &daemonSet)
+		updateLoggingDaemonSet(constants.MCRegistrationSecret, regSecret, &daemonSet)
 		return nil
 	})
 }
@@ -303,7 +303,7 @@ func getEnvValue(containers *[]corev1.Container, envName string) string {
 	return ""
 }
 
-func updateLoggingDaemonSet(newSecretName string, newSecret corev1.Secret, ds *appsv1.DaemonSet) *appsv1.DaemonSet {
+func updateLoggingDaemonSet(newSecretName string, newSecret corev1.Secret, ds *appsv1.DaemonSet) {
 	secretVersion := newSecret.ResourceVersion
 	caBundlePresent := newSecret.Data != nil && len(string(newSecret.Data[constants.CaBundleKey])) > 0
 
@@ -324,7 +324,6 @@ func updateLoggingDaemonSet(newSecretName string, newSecret corev1.Secret, ds *a
 			}
 		}
 	}
-	return ds
 }
 
 const (
