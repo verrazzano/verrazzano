@@ -490,11 +490,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 	type fields struct {
 		secretExists    bool
 		dsSecretVersion string
-		expectCaFile    string
 		dsClusterName   string
 		dsEsURL         string
 		dsSecretName    string
-		dsCaFile        string
 		expectUpdateDS  bool
 	}
 	tests := []struct {
@@ -506,11 +504,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				secretExists:    true,
 				dsSecretVersion: "",
-				expectCaFile:    constants.CaFileOverride,
 				dsClusterName:   "",
 				dsEsURL:         "",
 				dsSecretName:    "",
-				dsCaFile:        constants.CaFileDefault,
 				expectUpdateDS:  true,
 			},
 		},
@@ -519,11 +515,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				secretExists:    true,
 				dsSecretVersion: "",
-				expectCaFile:    constants.CaFileDefault,
 				dsClusterName:   "",
 				dsEsURL:         "",
 				dsSecretName:    "",
-				dsCaFile:        constants.CaFileDefault,
 				expectUpdateDS:  true,
 			},
 		},
@@ -532,11 +526,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				secretExists:    false,
 				dsSecretVersion: "version1",
-				expectCaFile:    constants.CaFileDefault,
 				dsClusterName:   "secretClusterName",
 				dsEsURL:         "secretEsURL",
 				dsSecretName:    constants.MCRegistrationSecret,
-				dsCaFile:        constants.CaFileOverride,
 				expectUpdateDS:  true,
 			},
 		},
@@ -545,11 +537,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				secretExists:    true,
 				dsSecretVersion: "differentVersion",
-				expectCaFile:    constants.CaFileOverride,
 				dsClusterName:   "secretClusterName",
 				dsEsURL:         "secretEsURL",
 				dsSecretName:    constants.MCRegistrationSecret,
-				dsCaFile:        constants.CaFileOverride,
 				expectUpdateDS:  true,
 			},
 		},
@@ -558,11 +548,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				secretExists:    true,
 				dsSecretVersion: "secretVersion",
-				expectCaFile:    constants.CaFileOverride,
 				dsClusterName:   "differentClusterName",
 				dsEsURL:         "secretEsURL",
 				dsSecretName:    constants.MCRegistrationSecret,
-				dsCaFile:        constants.CaFileOverride,
 				expectUpdateDS:  true,
 			},
 		},
@@ -571,11 +559,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				secretExists:    true,
 				dsSecretVersion: "secretVersion",
-				expectCaFile:    constants.CaFileOverride,
 				dsClusterName:   "secretClusterName",
 				dsEsURL:         "differentEsURL",
 				dsSecretName:    constants.MCRegistrationSecret,
-				dsCaFile:        constants.CaFileOverride,
 				expectUpdateDS:  true,
 			},
 		},
@@ -584,11 +570,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				secretExists:    true,
 				dsSecretVersion: "secretVersion",
-				expectCaFile:    constants.CaFileOverride,
 				dsClusterName:   "secretClusterName",
 				dsEsURL:         "secretEsURL",
 				dsSecretName:    "differentSecret",
-				dsCaFile:        constants.CaFileOverride,
 				expectUpdateDS:  true,
 			},
 		},
@@ -597,11 +581,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				secretExists:    false,
 				dsSecretVersion: "",
-				expectCaFile:    constants.CaFileDefault,
 				dsClusterName:   defaultClusterName,
 				dsEsURL:         defaultElasticURL,
 				dsSecretName:    defaultSecretName,
-				dsCaFile:        constants.CaFileDefault,
 				expectUpdateDS:  false,
 			},
 		},
@@ -610,11 +592,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				secretExists:    true,
 				dsSecretVersion: "secretVersion",
-				expectCaFile:    constants.CaFileOverride,
 				dsClusterName:   "secretClusterName",
 				dsEsURL:         "secretEsURL",
 				dsSecretName:    constants.MCRegistrationSecret,
-				dsCaFile:        constants.CaFileOverride,
 				expectUpdateDS:  false,
 			},
 		},
@@ -627,7 +607,6 @@ func TestSyncer_configureLogging(t *testing.T) {
 			dsSecretName := tt.fields.dsSecretName
 			expectUpdateDS := tt.fields.expectUpdateDS
 			secretExists := tt.fields.secretExists
-			dsCaFile := tt.fields.dsCaFile
 
 			// Managed cluster mocks
 			mcMocker := gomock.NewController(t)
@@ -641,12 +620,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 						secret.Name = constants.MCRegistrationSecret
 						secret.Namespace = constants.VerrazzanoSystemNamespace
 						secret.ResourceVersion = "secretVersion"
-						if tt.fields.expectCaFile == constants.CaFileOverride {
-							secret.Data = map[string][]byte{}
-							secret.Data[constants.CaBundleKey] = []byte("test")
-							secret.Data[constants.ClusterNameData] = []byte("secretClusterName")
-							secret.Data[constants.ElasticsearchURLData] = []byte("secretEsURL")
-						}
+						secret.Data = map[string][]byte{}
+						secret.Data[constants.ClusterNameData] = []byte("secretClusterName")
+						secret.Data[constants.ElasticsearchURLData] = []byte("secretEsURL")
 						return nil
 					}
 					return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, constants.MCRegistrationSecret)
@@ -658,7 +634,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
 					ds.Name = "fluentd"
 					ds.Namespace = constants.VerrazzanoSystemNamespace
-					ds.Spec = getTestDaemonSetSpec(dsSecretVersion, dsClusterName, dsEsURL, dsSecretName, dsCaFile)
+					ds.Spec = getTestDaemonSetSpec(dsSecretVersion, dsClusterName, dsEsURL, dsSecretName)
 					return nil
 				})
 
@@ -669,7 +645,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
 					ds.Name = "fluentd"
 					ds.Namespace = constants.VerrazzanoSystemNamespace
-					ds.Spec = getTestDaemonSetSpec(dsSecretVersion, dsClusterName, dsEsURL, dsSecretName, dsCaFile)
+					ds.Spec = getTestDaemonSetSpec(dsSecretVersion, dsClusterName, dsEsURL, dsSecretName)
 					return nil
 				})
 			// update only when expected
@@ -682,7 +658,6 @@ func TestSyncer_configureLogging(t *testing.T) {
 							expectedSecretVersion = "secretVersion"
 						}
 						asserts.Equal(t, expectedSecretVersion, getEnvValue(&ds.Spec.Template.Spec.Containers, registrationSecretVersion), "expected env value for "+registrationSecretVersion)
-						asserts.Equal(t, tt.fields.expectCaFile, getEnvValue(&ds.Spec.Template.Spec.Containers, caFile), "expected env value for "+registrationSecretVersion)
 						return nil
 					})
 			}
@@ -700,7 +675,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 		})
 	}
 }
-func getTestDaemonSetSpec(secretVersion, clusterName, esURL, secretName, caFileValue string) appsv1.DaemonSetSpec {
+func getTestDaemonSetSpec(secretVersion, clusterName, esURL, secretName string) appsv1.DaemonSetSpec {
 	return appsv1.DaemonSetSpec{
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
@@ -747,10 +722,6 @@ func getTestDaemonSetSpec(secretVersion, clusterName, esURL, secretName, caFileV
 										}(true),
 									},
 								},
-							},
-							{
-								Name:  caFile,
-								Value: caFileValue,
 							},
 						},
 					},

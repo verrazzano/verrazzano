@@ -29,9 +29,6 @@ import (
 // ENV VAR for registration secret version
 const registrationSecretVersion = "REGISTRATION_SECRET_VERSION"
 
-// ENV VAR for ca file
-const caFile = "CA_FILE"
-
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUpdateMessage, log logr.Logger) {
 	// Wait for the existence of the verrazzano-cluster-agent secret.  It contains the credentials
@@ -304,7 +301,6 @@ func getEnvValue(containers *[]corev1.Container, envName string) string {
 
 func updateLoggingDaemonSet(newSecretName string, newSecret corev1.Secret, ds *appsv1.DaemonSet) {
 	secretVersion := newSecret.ResourceVersion
-	caBundlePresent := newSecret.Data != nil && len(string(newSecret.Data[constants.CaBundleKey])) > 0
 
 	ds.Spec.Template.Spec.Volumes = updateVolumes(newSecretName, secretVersion, ds.Spec.Template.Spec.Volumes)
 	for i, c := range ds.Spec.Template.Spec.Containers {
@@ -312,15 +308,6 @@ func updateLoggingDaemonSet(newSecretName string, newSecret corev1.Secret, ds *a
 			ds.Spec.Template.Spec.Containers[i].Env = updateEnv(newSecretName, newSecret, secretVersion, ds.Spec.Template.Spec.Containers[i].Env)
 			ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
 				registrationSecretVersion, secretVersion)
-			if caBundlePresent {
-				// Override the default caFile when the contents of the ca-bundle are passed
-				ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
-					caFile, constants.CaFileOverride)
-			} else {
-				// Make sure the environment variable is still pointing to the default value
-				ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
-					caFile, constants.CaFileDefault)
-			}
 		}
 	}
 }
