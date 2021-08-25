@@ -13,27 +13,28 @@ import (
 // vz - pointer to verrazzano resource
 // name - name of the clusterrolebinding resource
 // saName - name of service account resource
-func NewClusterRoleBinding(vz *installv1alpha1.Verrazzano, name string, saName string) *rbacv1.ClusterRoleBinding {
+func NewClusterRoleBinding(vz *installv1alpha1.Verrazzano, name string, saNamespace string, saName string) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: vz.Labels,
+			// TODO mackin - delete this in finalizer
 			// Set owner reference here instead of calling controllerutil.SetControllerReference
 			// which does not allow cluster-scoped resources.
 			// This reference will result in the clusterrolebinding resource being deleted
 			// when the verrazzano CR is deleted.
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: vz.APIVersion,
-					Kind:       vz.Kind,
-					Name:       vz.Name,
-					UID:        vz.UID,
-					Controller: func() *bool {
-						flag := true
-						return &flag
-					}(),
-				},
-			},
+			//OwnerReferences: []metav1.OwnerReference{
+			//	{
+			//		APIVersion: vz.APIVersion,
+			//		Kind:       vz.Kind,
+			//		Name:       vz.Name,
+			//		UID:        vz.UID,
+			//		Controller: func() *bool {
+			//			flag := true
+			//			return &flag
+			//		}(),
+			//	},
+			//},
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
@@ -44,7 +45,7 @@ func NewClusterRoleBinding(vz *installv1alpha1.Verrazzano, name string, saName s
 			{
 				Kind:      "ServiceAccount",
 				Name:      saName,
-				Namespace: vz.Namespace,
+				Namespace: saNamespace,
 			},
 		},
 	}
