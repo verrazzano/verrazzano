@@ -92,7 +92,7 @@ func TestCreateVMC(t *testing.T) {
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
-	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -153,7 +153,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
-	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.Empty(configMap.Data["ca-test"], "Cert entry found")
@@ -222,7 +222,7 @@ scrape_configs:
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
-	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		// check for the modified entry
@@ -294,7 +294,7 @@ scrape_configs:
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
-	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -358,7 +358,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
-	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
+	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -577,6 +577,8 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
 
 	clusterName := "cluster1"
 	caData := "ca"
@@ -618,6 +620,15 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
+			return nil
+		})
+
+	mock.EXPECT().Status().Return(mockStatus)
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			asserts.Equal(clustersapi.RegistrationFailed, vmc.Status.RancherRegistration.Status)
+			asserts.Equal("Registration of managed cluster failed: unable to get rancher ingress host name", vmc.Status.RancherRegistration.Message)
 			return nil
 		})
 
@@ -998,7 +1009,7 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
-	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false, expectedRancherYAML)
+	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, expectedRancherYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -1256,7 +1267,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 }
 
 // Expect syncManifest related calls
-func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockRequestSender *mocks.MockRequestSender,
+func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.MockStatusWriter, mockRequestSender *mocks.MockRequestSender,
 	name string, clusterAlreadyRegistered bool, expectedRancherYAML string) {
 
 	asserts := assert.New(t)
@@ -1298,6 +1309,15 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockRequestSender 
 
 	// Expect all of the calls needed to register the cluster with Rancher
 	expectRegisterClusterWithRancher(t, mock, mockRequestSender, name, clusterAlreadyRegistered)
+
+	mock.EXPECT().Status().Return(mockStatus)
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			asserts.Equal(clustersapi.RegistrationCompleted, vmc.Status.RancherRegistration.Status)
+			asserts.Equal("Registration of managed cluster completed successfully", vmc.Status.RancherRegistration.Message)
+			return nil
+		})
 
 	// Expect a call to create the manifest secret
 	mock.EXPECT().
