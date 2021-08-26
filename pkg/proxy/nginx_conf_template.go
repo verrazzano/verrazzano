@@ -63,7 +63,7 @@ const OidcNginxConfFileTemplate = `#user  nobody;
         lua_shared_dict jwks 1m;
 
         #access_log  logs/host.access.log  main;
-        server_tokens off
+        server_tokens off;
 
         #charset koi8-r;
         expires           0;
@@ -138,7 +138,7 @@ const OidcNginxConfFileTemplate = `#user  nobody;
         # vmi services
         server {
             listen 8775
-            server_name  ~<backend_name>.vmi.system.$vz_env_dns_suffix;
+            server_name  "~^(?<backend_name>.+)\.vmi\.system\.$vz_env_dns_suffix$";
 
 {{- if eq .SSLEnabled true }}
             lua_ssl_verify_depth 2;

@@ -215,7 +215,7 @@ func TestCreateOidcProxyConfigYaml(t *testing.T) {
 		"k8s-app":              "verrazzano.io",
 		"vmo.v1.verrazzano.io": "system",
 	}
-	config := generateConfigmapYaml("vmi-system-grafana-oidc-config", "verrazzano-system", labels, data)
+	config := generateConfigmapYaml("api-nginx-conf", "verrazzano-system", labels, data)
 	err = checkForValidYaml(config)
 	if err != nil {
 		t.Fatalf("Invalid yaml for Oidc configmap: %v", err)
