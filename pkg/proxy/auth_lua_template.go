@@ -38,8 +38,6 @@ const OidcAuthLuaFileTemplate = `local me = {}
     local oidcIssuerUri = nil
     local oidcIssuerUriLocal = nil
 
-    local logoutCallbackUri = nil
-
     function me.config(opts)
         for key, val in pairs(opts) do
             me[key] = val
@@ -59,16 +57,16 @@ const OidcAuthLuaFileTemplate = `local me = {}
         if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
             oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..oidcRealm
         end
-{{ if eq .Mode "oauth-proxy" }}
-        logoutCallbackUri = me.ingressUri..me.logoutCallbackPath
-{{ else if eq .Mode "api-proxy" }}
-        local keycloakURL = me.read_file("/api-config/keycloak-url")
-        if keycloakURL and keycloakURL ~= "" then
-            me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
-            oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
-            oidcProviderInClusterUri = nil
+
+        if ngx.var.backend_name == 'verrazzano-api' then
+            local keycloakURL = me.read_file("/api-config/keycloak-url")
+            if keycloakURL and keycloakURL ~= "" then
+                me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
+                oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
+                oidcProviderInClusterUri = nil
+            end
         end
-{{ end }}
+
         oidcIssuerUri = oidcProviderUri
         oidcIssuerUriLocal = oidcProviderInClusterUri
         --[[
@@ -153,6 +151,13 @@ const OidcAuthLuaFileTemplate = `local me = {}
         ngx.exit(ngx.HTTP_FORBIDDEN)
     end
 
+    function me.not_found(msg, err)
+        me.logJson(ngx.ERR, msg, err)
+        ngx.status = ngx.HTTP_NOT_FOUND
+        ngx.say("404 Not Found")
+        ngx.exit(ngx.HTTP_NOT_FOUND)
+    end
+
     function me.logout()
         local redirectArgs = ngx.encode_args({
             redirect_uri = me.logoutCallbackUri
@@ -186,6 +191,19 @@ const OidcAuthLuaFileTemplate = `local me = {}
         if authHeader then
             local start, _ = authHeader:find(credentialType)
             if start then
+                return true
+            end
+        end
+        return false
+    end
+
+    function me.requestUriMatches(requestUri, matchPath)
+        if requestUri then
+            if requestUri == matchPath then
+                return true
+            end
+            local start, _ = requestUri:find(matchPath..'?')
+            if start == 1 then
                 return true
             end
         end
@@ -632,7 +650,8 @@ const OidcAuthLuaFileTemplate = `local me = {}
         return "-----BEGIN CERTIFICATE-----\n"..x5c[1].."\n-----END CERTIFICATE-----"
     end
 
-{{ if eq .Mode "api-proxy" }}
+    -- api-proxy - methods for handling multi-cluster k8s API requests
+
     local vzApiHost = os.getenv("VZ_API_HOST")
     local vzApiVersion = os.getenv("VZ_API_VERSION")
 
@@ -651,40 +670,6 @@ const OidcAuthLuaFileTemplate = `local me = {}
       local serverUrl = "https://" .. host .. ":" .. port
       return serverUrl
     end
-
-    --[[
-
-    -- the next three functions appear to be unused, commenting out
-
-    function me.split(s, delimiter)
-      local result = {}
-      for match in (s..delimiter):gmatch("(.-)"..delimiter) do
-          table.insert(result, match)
-      end
-      return result
-    end
-
-    function me.contains(table, element)
-      for _, value in pairs(table) do
-        if value == element then
-          return true
-        end
-      end
-      return false
-    end
-
-    function me.capture(cmd, raw)
-      local f = assert(io.popen(cmd, 'r'))
-      local s = assert(f:read('*a'))
-      f:close()
-      if raw then return s end
-      s = string.gsub(s, '^%s+', '')
-      s = string.gsub(s, '%s+$', '')
-      s = string.gsub(s, '[\n\r]+', ' ')
-      return s
-    end
-
-    --]]
 
     function me.getK8SResource(resourcePath)
       local http = require "resty.http"
@@ -769,7 +754,6 @@ const OidcAuthLuaFileTemplate = `local me = {}
             me.write_file("/etc/nginx/upstream.pem", string.sub(decodedSecret, startIndex, endIndex))
         end
     end
-{{ end }}
 
     return me
 `

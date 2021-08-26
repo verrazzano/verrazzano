@@ -19,17 +19,13 @@ const OidcNginxConfFilename = "nginx.conf"
 const OidcNginxConfFileTemplate = `#user  nobody;
     worker_processes  1;
 
-    #error_log  logs/error.log;
-    #error_log  logs/error.log  notice;
-    #error_log  logs/error.log  info;
-
+    error_log  logs/error.log info;
     pid        logs/nginx.pid;
-    {{- if eq .Mode "api-proxy" }}
+
     env KUBERNETES_SERVICE_HOST;
     env KUBERNETES_SERVICE_PORT;
     env VZ_API_HOST;
     env VZ_API_VERSION;
-    {{- end }}
 
     events {
         worker_connections  1024;
@@ -43,14 +39,14 @@ const OidcNginxConfFileTemplate = `#user  nobody;
         #                  '$status $body_bytes_sent "$http_referer" '
         #                  '"$http_user_agent" "$http_x_forwarded_for"';
 
-        error_log  logs/error.log  info;
-
         sendfile        on;
         #tcp_nopush     on;
 
-{{- if eq .Mode "oauth-proxy" }}
-        client_max_body_size 65m;
-{{- end }}
+        # TODO: This was previously set but only for oauth-proxy
+        # Do we need this here at all, or should we be enforcing
+        # this sort of constraint in the ingress controller?
+        #
+        # client_max_body_size 65m;
 
         #keepalive_timeout  0;
         keepalive_timeout  65;
@@ -60,46 +56,57 @@ const OidcNginxConfFileTemplate = `#user  nobody;
         lua_package_path '/usr/local/share/lua/5.1/?.lua;;';
         lua_package_cpath '/usr/local/lib/lua/5.1/?.so;;';
         resolver _NAMESERVER_;
+
         # cache for discovery metadata documents
         lua_shared_dict discovery 1m;
         #  cache for JWKs
         lua_shared_dict jwks 1m;
-{{- if eq .Mode "oauth-proxy" }}
-{{- if eq .SSLEnabled true }}
-        lua_ssl_verify_depth 2;
-        lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
-{{- end }}
 
-        upstream http_backend {
-            server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;
-        }
-{{- end }}
+        #access_log  logs/host.access.log  main;
+        server_tokens off
 
+        #charset koi8-r;
+        expires           0;
+        add_header        Cache-Control private;
+
+        set $vz_env_dns_suffix "{{ .EnvironmentDnsSuffix }}";
+
+        root     /opt/nginx/html;
+
+        # reject requests with no host header
         server {
-            listen       8775;
-            server_name  apiserver;
-            root     /opt/nginx/html;
-            #charset koi8-r;
+            listen      80;
+            server_name "";
+            return      444;
+        }
 
-{{- if eq .Mode "oauth-proxy" }}
-            set $oidc_user "";
-            rewrite_by_lua_file /etc/nginx/conf.lua;
-{{- end }}
-
-            #access_log  logs/host.access.log  main;
-            expires           0;
-            add_header        Cache-Control private;
-
-{{- if eq .Mode "oauth-proxy" }}
-            proxy_set_header  X-WEBAUTH-USER $oidc_user;
-{{- end }}
-
+        # pass-thru servers for keycloak and rancher - no proxy authn/authz
+        server {
+            listen 8775
+            server_name  keycloak.$vz_env_dns_suffix;
             location / {
-{{- if eq .Mode "oauth-proxy" }}
-                proxy_pass http://http_backend;
-{{- else if eq .Mode "api-proxy" }}
+                proxy_pass keycloak-http.keycloak.svc.cluster.local:80;
+            }
+        }
+        server {
+            listen 8775
+            server_name  rancher.$vz_env_dns_suffix;
+            location / {
+                proxy_pass rancher.cattle-system.svc.cluster.local:80;
+            }
+        }
+
+        # verrazzano api and console
+        server {
+            listen 8775
+            server_name  verrazzano.$vz_env_dns_suffix;
+
+            # api
+            location /20210501/ {
                 lua_ssl_verify_depth 2;
                 lua_ssl_trusted_certificate /etc/nginx/upstream.pem;
+
+                set $backend_name "verrazzano-api"
                 set $kubernetes_server_url "";
                 rewrite_by_lua_file /etc/nginx/conf.lua;
                 proxy_pass $kubernetes_server_url;
@@ -111,19 +118,43 @@ const OidcNginxConfFileTemplate = `#user  nobody;
                     end
                     ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
                 }
+            }
+
+            # console
+            location / {
+{{- if eq .SSLEnabled true }}
+                lua_ssl_verify_depth 2;
+                lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
 {{- end }}
+                set $backend_name "verrazzano-console"
+                set $backend_port "";
+                set $oidc_user "";
+                rewrite_by_lua_file /etc/nginx/conf.lua;
+                proxy_set_header  X-WEBAUTH-USER $oidc_user;
+                proxy_pass $backend_name.verrazzano-system.svc.cluster.local:$backend_port
             }
+        }
 
-            error_page 404 /404.html;
-                location = /40x.html {
-            }
+        # vmi services
+        server {
+            listen 8775
+            server_name  ~<backend_name>.vmi.system.$vz_env_dns_suffix;
 
-            #error_page  404              /404.html;
-            # redirect server error pages to the static page /50x.html
-            #
-            error_page   500 502 503 504  /50x.html;
-            location = /50x.html {
-                root   html;
+{{- if eq .SSLEnabled true }}
+            lua_ssl_verify_depth 2;
+            lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
+{{- end }}
+
+            # proxy_pass backend previously specified as an upstream server with parameters:
+            #     server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;
+            # Are those parameters still needed?
+
+            location / {
+                set $backend_port "";
+                set $oidc_user "";
+                rewrite_by_lua_file /etc/nginx/conf.lua;
+                proxy_set_header  X-WEBAUTH-USER $oidc_user;
+                proxy_pass $backend_name.verrazzano-system.svc.cluster.local:$backend_port
             }
         }
     }
