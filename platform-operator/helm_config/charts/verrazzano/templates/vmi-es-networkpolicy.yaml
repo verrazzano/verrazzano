@@ -21,16 +21,6 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: ingress-nginx
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: ingress-controller
-      ports:
-        - protocol: TCP
-          port: 8775
     # Allow ingress from Kibana
     - from:
         - podSelector:
@@ -75,6 +65,16 @@ spec:
       ports:
         - port: 15090
           protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: auth-proxy
+      ports:
+        - port: 9200
+          protocol: TCP
   {{- else }}
 # Network policy for Elasticsearch full multi-pod installation
 
@@ -117,6 +117,16 @@ spec:
               app: system-prometheus
       ports:
         - port: 15090
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: auth-proxy
+      ports:
+        - port: 9300
           protocol: TCP
 ---
 # Network policy for Elasticsearch Data
@@ -173,6 +183,18 @@ spec:
       ports:
         - port: 15090
           protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: auth-proxy
+      ports:
+        - port: 9200
+          protocol: TCP
+        - protocol: TCP
+          port: 9300
 ---
 # Network policy for Elasticsearch Ingest
 # Ingress: allow from ingress controller to the OIDC sidecar port 8775
@@ -193,17 +215,6 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    # Allow ingress from ingress controller to the OIDC sidecar running in the ES pod
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: ingress-nginx
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: ingress-controller
-      ports:
-        - protocol: TCP
-          port: 8775
     # Allow ingress from ES master and ES data on cluster port
     - from:
         - podSelector:
@@ -241,6 +252,18 @@ spec:
       ports:
         - port: 15090
           protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: auth-proxy
+      ports:
+        - port: 9200
+          protocol: TCP
+        - protocol: TCP
+          port: 9300
   # end else
   {{- end }}
 ---
@@ -260,17 +283,6 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    # Ingress: allow nginx-ingress-controller to connect to port 8775 (OIDC proxy)
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: ingress-nginx
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: ingress-controller
-      ports:
-        - protocol: TCP
-          port: 8775
     - from:
         - namespaceSelector:
             matchLabels:
@@ -280,5 +292,15 @@ spec:
               app: system-prometheus
       ports:
         - port: 15090
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: auth-proxy
+      ports:
+        - port: 5601
           protocol: TCP
   {{- end }}

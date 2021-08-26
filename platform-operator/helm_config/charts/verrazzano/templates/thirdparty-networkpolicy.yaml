@@ -73,12 +73,12 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: ingress-nginx
+              verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app.kubernetes.io/instance: ingress-controller
+              app: system-prometheus
       ports:
-        - port: 8775
+        - port: 15090
           protocol: TCP
     - from:
         - namespaceSelector:
@@ -86,9 +86,9 @@ spec:
               verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app: auth-proxy
       ports:
-        - port: 15090
+        - port: 3000
           protocol: TCP
 {{- end }}
 {{- if .Values.prometheus.enabled}}
@@ -110,19 +110,19 @@ spec:
     - Ingress
   ingress:
     - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: ingress-nginx
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: ingress-controller
-      ports:
-        - port: 8775
-          protocol: TCP
-    - from:
         - podSelector:
             matchLabels:
               app: system-grafana
+      ports:
+        - port: 9090
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: auth-proxy
       ports:
         - port: 9090
           protocol: TCP

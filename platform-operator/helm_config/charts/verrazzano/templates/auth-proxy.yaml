@@ -1,0 +1,127 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.authProxy.impersonatorRoleName }}
+rules:
+- apiGroups: [""]
+  resources: ["users", "groups"]
+  verbs: ["impersonate"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.authProxy.impersonatorRoleName }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.authProxy.impersonatorRoleName }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.authProxy.name }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.authProxy.name }}
+  name: {{ .Values.authProxy.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.authProxy.name }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+        traffic.sidecar.istio.io/excludeOutboundPorts: 443,6443
+      labels:
+        app: {{ .Values.authProxy.name }}
+    spec:
+      volumes:
+       - name: api-config
+         projected:
+           sources:
+            - secret:
+                items:
+                  - key: ca.crt
+                    path: default-ca-bundle
+                name: system-tls
+                optional: true
+            - secret:
+                name: verrazzano-cluster-registration
+                optional: true
+                items:
+                  - key: ca-bundle
+                    path: admin-ca-bundle
+                  - key: keycloak-url
+                    path: keycloak-url
+            - configMap:
+                name: api-nginx-conf
+                items:
+                  - key: startup.sh
+                    path: startup.sh
+                    mode: 0755
+                  - key: nginx.conf
+                    path: nginx.conf
+                    mode: 0744 
+                  - key: conf.lua
+                    path: conf.lua
+                    mode: 0755
+                  - key: auth.lua
+                    path: auth.lua
+                    mode: 0755
+                  - key: reload.sh
+                    path: reload.sh
+                    mode: 0755
+      containers:
+      - image: {{ .Values.authProxy.imageName }}:{{ .Values.authProxy.imageVersion }}
+        imagePullPolicy: {{ .Values.authProxy.pullPolicy }}
+        name: {{ .Values.authProxy.name }}
+        command: ["/api-config/startup.sh"]
+        env:
+        - name: VZ_API_HOST
+          value: "verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
+        - name: VZ_API_VERSION
+          value: "20210501"
+        ports:
+            - containerPort: {{ .Values.authProxy.port }}
+        volumeMounts:
+        - mountPath: /api-config
+          name: api-config
+      serviceAccount: {{ .Values.authProxy.name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.authProxy.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: api
+    port: {{ .Values.authProxy.port }}
+    protocol: TCP
+    targetPort: {{ .Values.authProxy.port }}
+  selector:
+    app: {{ .Values.authProxy.name }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.authProxy.name }}
+  namespace: {{ .Release.Namespace }}
+{{- if .Values.global.imagePullSecrets }}
+imagePullSecrets:
+{{- range .Values.global.imagePullSecrets }}
+- name: {{ . }}
+{{- end }}
+{{- end }}

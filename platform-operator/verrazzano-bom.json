@@ -292,6 +292,12 @@
               "tag": "0.46.0-20210510134749-abc2d2088",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
+            },
+            {
+              "image": "nginx-ingress-controller",
+              "tag": "xxx",
+              "helmFullImageKey": "authProxy.imageName",
+              "helmTagKey": "authProxy.imageVersion"
             }
           ]
         }
