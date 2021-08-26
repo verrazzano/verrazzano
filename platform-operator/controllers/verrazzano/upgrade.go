@@ -20,8 +20,6 @@ import (
 // The max upgrade failures for a given upgrade attempt is 2
 const failedUpgradeLimit = 2
 
-var deletedOldResources bool
-
 // Reconcile upgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Upgrade version was validated in webhook, see ValidateVersion
