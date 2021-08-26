@@ -162,7 +162,17 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 // THEN the validation should succeed and default to a well-known CA
 func TestCreateMissingSecretName(t *testing.T) {
 	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme(), verrazzanoList), nil
+		return fake.NewFakeClientWithScheme(newScheme(),
+			verrazzanoList,
+			&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      constants.AdminClusterConfigMapName,
+					Namespace: constants.VerrazzanoMultiClusterNamespace,
+				},
+				Data: map[string]string{
+					constants.ServerDataKey: "https://testUrl",
+				},
+			}), nil
 	}
 	defer func() { getClientFunc = getClient }()
 	vz := VerrazzanoManagedCluster{
