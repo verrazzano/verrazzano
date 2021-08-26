@@ -15,7 +15,7 @@ import (
 func appendApplicationOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []keyValue) ([]keyValue, error) {
 	envImageOverride := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
 	if len(envImageOverride) == 0 {
-		return nil, nil
+		return kvs, nil
 	}
 	kvs = append(kvs, keyValue{
 		key:   "image",
