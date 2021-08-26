@@ -69,8 +69,6 @@ const OidcNginxConfFileTemplate = `#user  nobody;
         expires           0;
         add_header        Cache-Control private;
 
-        set $vz_env_dns_suffix "{{ .EnvironmentDnsSuffix }}";
-
         root     /opt/nginx/html;
 
         # reject requests with no host header
@@ -83,14 +81,14 @@ const OidcNginxConfFileTemplate = `#user  nobody;
         # pass-thru servers for keycloak and rancher - no proxy authn/authz
         server {
             listen 8775
-            server_name  keycloak.$vz_env_dns_suffix;
+            server_name  "keycloak.{{ .EnvironmentDnsSuffix }}";
             location / {
                 proxy_pass keycloak-http.keycloak.svc.cluster.local:80;
             }
         }
         server {
             listen 8775
-            server_name  rancher.$vz_env_dns_suffix;
+            server_name  "rancher.{{ .EnvironmentDnsSuffix }}";
             location / {
                 proxy_pass rancher.cattle-system.svc.cluster.local:80;
             }
@@ -99,7 +97,7 @@ const OidcNginxConfFileTemplate = `#user  nobody;
         # verrazzano api and console
         server {
             listen 8775
-            server_name  verrazzano.$vz_env_dns_suffix;
+            server_name  "verrazzano.{{ .EnvironmentDnsSuffix }}";
 
             # api
             location /20210501/ {
@@ -138,7 +136,7 @@ const OidcNginxConfFileTemplate = `#user  nobody;
         # vmi services
         server {
             listen 8775
-            server_name  "~^(?<backend_name>.+)\.vmi\.system\.$vz_env_dns_suffix$";
+            server_name  "~^(?<backend_name>.+)\.vmi\.system\.{{ .EnvironmentDnsSuffix }}$";
 
 {{- if eq .SSLEnabled true }}
             lua_ssl_verify_depth 2;
