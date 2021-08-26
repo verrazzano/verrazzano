@@ -95,3 +95,18 @@ const DefaultClusterName = "local"
 
 // VzPrometehusIngress - the name of the ingress for system vmi prometheus
 const VzPrometheusIngress = "vmi-system-prometheus"
+
+// ClusterNameEnvVar is the environment variable used to identify the managed cluster for fluentd
+const FluentdClusterNameEnvVar = "CLUSTER_NAME"
+
+// FluentdElasticsearchURLEnvVar is the environment variable name used to identify the admin cluster's
+// Elasticsearch URL for fluentd
+const FluentdElasticsearchURLEnvVar = "ELASTICSEARCH_URL"
+
+// FluentdElasticsearchUserEnvVar is the environment variable name used to identify the admin cluster's
+// Elasticsearch username for fluentd
+const FluentdElasticsearchUserEnvVar = "ELASTICSEARCH_USER"
+
+// FluentdElasticsearchPwdEnvVar is the environment variable name used to identify the admin cluster's
+// Elasticsearch password for fluentd
+const FluentdElasticsearchPwdEnvVar = "ELASTICSEARCH_PASSWORD"
