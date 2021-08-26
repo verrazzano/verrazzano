@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"testing"
 
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -488,12 +490,11 @@ func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 // THEN ensure that Fluentd daemonset is updated
 func TestSyncer_configureLogging(t *testing.T) {
 	type fields struct {
-		secretExists    bool
-		dsSecretVersion string
-		dsClusterName   string
-		dsEsURL         string
-		dsSecretName    string
-		expectUpdateDS  bool
+		secretExists   bool
+		dsClusterName  string
+		dsEsURL        string
+		dsSecretName   string
+		expectUpdateDS bool
 	}
 	tests := []struct {
 		name   string
@@ -502,106 +503,86 @@ func TestSyncer_configureLogging(t *testing.T) {
 		{
 			name: "new registration with override ca cert",
 			fields: fields{
-				secretExists:    true,
-				dsSecretVersion: "",
-				dsClusterName:   "",
-				dsEsURL:         "",
-				dsSecretName:    "",
-				expectUpdateDS:  true,
+				secretExists:   true,
+				dsClusterName:  "",
+				dsEsURL:        "",
+				dsSecretName:   "",
+				expectUpdateDS: true,
 			},
 		},
 		{
 			name: "new registration well known CA certs",
 			fields: fields{
-				secretExists:    true,
-				dsSecretVersion: "",
-				dsClusterName:   "",
-				dsEsURL:         "",
-				dsSecretName:    "",
-				expectUpdateDS:  true,
+				secretExists:   true,
+				dsClusterName:  "",
+				dsEsURL:        "",
+				dsSecretName:   "",
+				expectUpdateDS: true,
 			},
 		},
 		{
 			name: "delete registration",
 			fields: fields{
-				secretExists:    false,
-				dsSecretVersion: "version1",
-				dsClusterName:   "secretClusterName",
-				dsEsURL:         "secretEsURL",
-				dsSecretName:    constants.MCRegistrationSecret,
-				expectUpdateDS:  true,
-			},
-		},
-		{
-			name: "update registration secret version changed",
-			fields: fields{
-				secretExists:    true,
-				dsSecretVersion: "differentVersion",
-				dsClusterName:   "secretClusterName",
-				dsEsURL:         "secretEsURL",
-				dsSecretName:    constants.MCRegistrationSecret,
-				expectUpdateDS:  true,
+				secretExists:   false,
+				dsClusterName:  "secretClusterName",
+				dsEsURL:        "secretEsURL",
+				dsSecretName:   constants.MCRegistrationSecret,
+				expectUpdateDS: true,
 			},
 		},
 		{
 			name: "update registration daemonset cluster name changed",
 			fields: fields{
-				secretExists:    true,
-				dsSecretVersion: "secretVersion",
-				dsClusterName:   "differentClusterName",
-				dsEsURL:         "secretEsURL",
-				dsSecretName:    constants.MCRegistrationSecret,
-				expectUpdateDS:  true,
+				secretExists:   true,
+				dsClusterName:  "differentClusterName",
+				dsEsURL:        "secretEsURL",
+				dsSecretName:   constants.MCRegistrationSecret,
+				expectUpdateDS: true,
 			},
 		},
 		{
 			name: "update registration daemonset ES URL changed",
 			fields: fields{
-				secretExists:    true,
-				dsSecretVersion: "secretVersion",
-				dsClusterName:   "secretClusterName",
-				dsEsURL:         "differentEsURL",
-				dsSecretName:    constants.MCRegistrationSecret,
-				expectUpdateDS:  true,
+				secretExists:   true,
+				dsClusterName:  "secretClusterName",
+				dsEsURL:        "differentEsURL",
+				dsSecretName:   constants.MCRegistrationSecret,
+				expectUpdateDS: true,
 			},
 		},
 		{
 			name: "update registration daemonset secret name changed",
 			fields: fields{
-				secretExists:    true,
-				dsSecretVersion: "secretVersion",
-				dsClusterName:   "secretClusterName",
-				dsEsURL:         "secretEsURL",
-				dsSecretName:    "differentSecret",
-				expectUpdateDS:  true,
+				secretExists:   true,
+				dsClusterName:  "secretClusterName",
+				dsEsURL:        "secretEsURL",
+				dsSecretName:   "differentSecret",
+				expectUpdateDS: true,
 			},
 		},
 		{
 			name: "no registration",
 			fields: fields{
-				secretExists:    false,
-				dsSecretVersion: "",
-				dsClusterName:   defaultClusterName,
-				dsEsURL:         defaultElasticURL,
-				dsSecretName:    defaultSecretName,
-				expectUpdateDS:  false,
+				secretExists:   false,
+				dsClusterName:  defaultClusterName,
+				dsEsURL:        defaultElasticURL,
+				dsSecretName:   defaultSecretName,
+				expectUpdateDS: false,
 			},
 		},
 		{
 			name: "same registration",
 			fields: fields{
-				secretExists:    true,
-				dsSecretVersion: "secretVersion",
-				dsClusterName:   "secretClusterName",
-				dsEsURL:         "secretEsURL",
-				dsSecretName:    constants.MCRegistrationSecret,
-				expectUpdateDS:  false,
+				secretExists:   true,
+				dsClusterName:  "secretClusterName",
+				dsEsURL:        "secretEsURL",
+				dsSecretName:   constants.MCRegistrationSecret,
+				expectUpdateDS: false,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dsSecretVersion := tt.fields.dsSecretVersion
 			dsClusterName := tt.fields.dsClusterName
 			dsEsURL := tt.fields.dsEsURL
 			dsSecretName := tt.fields.dsSecretName
@@ -628,13 +609,31 @@ func TestSyncer_configureLogging(t *testing.T) {
 					return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, constants.MCRegistrationSecret)
 				})
 
+			// Managed Cluster - expect call to list Verrazzano CR.
+			mcMock.EXPECT().
+				List(gomock.Any(), &vzapi.VerrazzanoList{}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, list *vzapi.VerrazzanoList, opts ...*client.ListOptions) error {
+					vz := vzapi.Verrazzano{
+						Spec: vzapi.VerrazzanoSpec{
+							Components: vzapi.ComponentSpec{
+								Fluentd: &vzapi.FluentdComponent{
+									ElasticsearchURL:    defaultElasticURL,
+									ElasticsearchSecret: defaultSecretName,
+								},
+							},
+						},
+					}
+					list.Items = append(list.Items, vz)
+					return nil
+				})
+
 			// Managed Cluster - expect call to get the fluentd deployment.
 			mcMock.EXPECT().
 				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
 					ds.Name = "fluentd"
 					ds.Namespace = constants.VerrazzanoSystemNamespace
-					ds.Spec = getTestDaemonSetSpec(dsSecretVersion, dsClusterName, dsEsURL, dsSecretName)
+					ds.Spec = getTestDaemonSetSpec(dsClusterName, dsEsURL, dsSecretName)
 					return nil
 				})
 
@@ -645,7 +644,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
 					ds.Name = "fluentd"
 					ds.Namespace = constants.VerrazzanoSystemNamespace
-					ds.Spec = getTestDaemonSetSpec(dsSecretVersion, dsClusterName, dsEsURL, dsSecretName)
+					ds.Spec = getTestDaemonSetSpec(dsClusterName, dsEsURL, dsSecretName)
 					return nil
 				})
 			// update only when expected
@@ -653,11 +652,6 @@ func TestSyncer_configureLogging(t *testing.T) {
 				mcMock.EXPECT().
 					Update(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
-						expectedSecretVersion := ""
-						if secretExists {
-							expectedSecretVersion = "secretVersion"
-						}
-						asserts.Equal(t, expectedSecretVersion, getEnvValue(&ds.Spec.Template.Spec.Containers, registrationSecretVersion), "expected env value for "+registrationSecretVersion)
 						return nil
 					})
 			}
@@ -675,7 +669,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 		})
 	}
 }
-func getTestDaemonSetSpec(secretVersion, clusterName, esURL, secretName string) appsv1.DaemonSetSpec {
+func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSetSpec {
 	return appsv1.DaemonSetSpec{
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
@@ -683,10 +677,6 @@ func getTestDaemonSetSpec(secretVersion, clusterName, esURL, secretName string) 
 					{
 						Name: "fluentd",
 						Env: []corev1.EnvVar{
-							{
-								Name:  registrationSecretVersion,
-								Value: secretVersion,
-							},
 							{
 								Name:  constants.FluentdClusterNameEnvVar,
 								Value: clusterName,
@@ -767,14 +757,14 @@ func Test_updateEnv(t *testing.T) {
 			constants.ElasticsearchUsernameData: []byte("someuser"),
 		},
 	}
-	newEnvs := updateEnv(constants.MCRegistrationSecret, regSecret, "v2", oldEnvs)
+	newEnvs := updateEnv(constants.MCRegistrationSecret, regSecret, "v2", defaultElasticURL, defaultSecretName, oldEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
 	asserts.Equal(t, newClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
 	asserts.Equal(t, newElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_USER", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_PASSWORD", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	//un-registration of setting secretVersion back to ""
-	newEnvs = updateEnv(constants.MCRegistrationSecret, regSecret, "", newEnvs)
+	newEnvs = updateEnv(constants.MCRegistrationSecret, regSecret, "", defaultElasticURL, defaultSecretName, newEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
 	asserts.Equal(t, defaultClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
 	asserts.Equal(t, defaultElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
@@ -814,12 +804,12 @@ func Test_updateVolumes(t *testing.T) {
 			},
 		},
 	}
-	newVols := updateVolumes(constants.MCRegistrationSecret, "v2", oldVols)
+	newVols := updateVolumes(constants.MCRegistrationSecret, "v2", defaultSecretName, oldVols)
 	asserts.NotNil(t, findVol("my-config", &newVols))
 	asserts.NotNil(t, findVol("varlog", &newVols))
 	asserts.Equal(t, constants.MCRegistrationSecret, findVol("secret-volume", &newVols).VolumeSource.Secret.SecretName)
 	//un-registration of setting secretVersion back to ""
-	newVols = updateVolumes(constants.MCRegistrationSecret, "", newVols)
+	newVols = updateVolumes(constants.MCRegistrationSecret, "", defaultSecretName, newVols)
 	asserts.Equal(t, defaultSecretName, findVol("secret-volume", &newVols).VolumeSource.Secret.SecretName)
 	asserts.NotNil(t, findVol("my-config", &newVols))
 	asserts.NotNil(t, findVol("varlog", &newVols))

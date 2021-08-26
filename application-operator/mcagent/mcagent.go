@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -283,7 +284,7 @@ func (s *Syncer) configureLogging() {
 	// CreateOrUpdate updates the fluentd daemonset - if no changes to the daemonset after we mutate it in memory,
 	// controllerutil will not update it
 	controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
-		updateLoggingDaemonSet(constants.MCRegistrationSecret, regSecret, &daemonSet)
+		s.updateLoggingDaemonSet(constants.MCRegistrationSecret, regSecret, &daemonSet)
 		return nil
 	})
 }
@@ -299,15 +300,18 @@ func getEnvValue(containers *[]corev1.Container, envName string) string {
 	return ""
 }
 
-func updateLoggingDaemonSet(newSecretName string, newSecret corev1.Secret, ds *appsv1.DaemonSet) {
+func (s *Syncer) updateLoggingDaemonSet(newSecretName string, newSecret corev1.Secret, ds *appsv1.DaemonSet) {
 	secretVersion := newSecret.ResourceVersion
 
-	ds.Spec.Template.Spec.Volumes = updateVolumes(newSecretName, secretVersion, ds.Spec.Template.Spec.Volumes)
+	vzESURL, vzESSecret, err := s.getVzESURLSecret()
+	if err != nil {
+		return
+	}
+
+	ds.Spec.Template.Spec.Volumes = updateVolumes(newSecretName, secretVersion, vzESSecret, ds.Spec.Template.Spec.Volumes)
 	for i, c := range ds.Spec.Template.Spec.Containers {
 		if c.Name == "fluentd" {
-			ds.Spec.Template.Spec.Containers[i].Env = updateEnv(newSecretName, newSecret, secretVersion, ds.Spec.Template.Spec.Containers[i].Env)
-			ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
-				registrationSecretVersion, secretVersion)
+			ds.Spec.Template.Spec.Containers[i].Env = updateEnv(newSecretName, newSecret, secretVersion, vzESURL, vzESSecret, ds.Spec.Template.Spec.Containers[i].Env)
 		}
 	}
 }
@@ -318,12 +322,12 @@ const (
 	defaultSecretName  = "verrazzano"
 )
 
-func updateEnv(newSecretName string, newSecret corev1.Secret, secretVersion string, old []corev1.EnvVar) []corev1.EnvVar {
+func updateEnv(newSecretName string, newSecret corev1.Secret, secretVersion, vzESURL, vzESSecret string, old []corev1.EnvVar) []corev1.EnvVar {
 	secretName := newSecretName
-	esURL := defaultElasticURL
+	esURL := vzESURL
 	clusterName := defaultClusterName
 	if secretVersion == "" {
-		secretName = defaultSecretName
+		secretName = vzESSecret
 	} else if newSecret.Data != nil {
 		clusterName = string(newSecret.Data[constants.ClusterNameData])
 		esURL = string(newSecret.Data[constants.ElasticsearchURLData])
@@ -378,10 +382,10 @@ func updateEnv(newSecretName string, newSecret corev1.Secret, secretVersion stri
 	return new
 }
 
-func updateVolumes(newSecretName, secretVersion string, old []corev1.Volume) []corev1.Volume {
+func updateVolumes(newSecretName, secretVersion, vzESSecret string, old []corev1.Volume) []corev1.Volume {
 	secretName := newSecretName
 	if secretVersion == "" {
-		secretName = defaultSecretName
+		secretName = vzESSecret
 	}
 	var new []corev1.Volume
 	for _, vol := range old {
@@ -437,4 +441,26 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)
 	}
 	return ingress.Spec.TLS[0].Hosts[0], nil
+}
+
+// getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
+func (s *Syncer) getVzESURLSecret() (string, string, error) {
+	vzList := vzapi.VerrazzanoList{}
+	err := s.LocalClient.List(s.Context, &vzList, &client.ListOptions{})
+	if err != nil {
+		s.Log.Error(err, "Can not list Verrazzano CR")
+		return "", "", err
+	}
+	url := defaultElasticURL
+	secret := defaultSecretName
+	// what to do when there is more than one Verrazzano CR
+	for _, vz := range vzList.Items {
+		if len(vz.Spec.Components.Fluentd.ElasticsearchURL) > 0 {
+			url = vz.Spec.Components.Fluentd.ElasticsearchURL
+		}
+		if len(vz.Spec.Components.Fluentd.ElasticsearchSecret) > 0 {
+			secret = vz.Spec.Components.Fluentd.ElasticsearchSecret
+		}
+	}
+	return url, secret, nil
 }
