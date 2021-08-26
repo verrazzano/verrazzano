@@ -9,9 +9,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NewClusterRoleBinding returns a RoleBinding resource for installing Verrazzano
+// NewClusterRoleBinding returns a ClusterRoleBinding resource for installing Verrazzano
 // vz - pointer to verrazzano resource
-// name - name of the RoleBinding resource
+// name - name of the ClusterRoleBinding resource
+// saNamespace - name of ServiceAccount namespace
 // saName - name of ServiceAccount resource
 func NewClusterRoleBinding(vz *installv1alpha1.Verrazzano, rbNname string, saNamespace string, saName string) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
