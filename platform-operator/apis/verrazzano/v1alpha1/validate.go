@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"reflect"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
@@ -26,7 +27,12 @@ func GetCurrentBomVersion() (*semver.SemVersion, error) {
 	if err != nil {
 		return nil, err
 	}
-	return semver.NewSemVersion(fmt.Sprintf("v%s", bom.GetVersion()))
+	v := bom.GetVersion()
+	if v == constants.BomVerrazzanoVersion {
+		// This will only happen during development testing, the value doesn't matter
+		v = "1.0.1"
+	}
+	return semver.NewSemVersion(fmt.Sprintf("v%s", v))
 }
 
 // ValidateVersion check that requestedVersion matches BOM requestedVersion

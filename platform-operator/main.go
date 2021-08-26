@@ -5,8 +5,6 @@ package main
 
 import (
 	"flag"
-	"os"
-
 	"github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -16,16 +14,14 @@ import (
 	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/netpolicy"
 	"go.uber.org/zap"
-	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -138,13 +134,6 @@ func main() {
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Errorf("unable to create controller: %v", err)
-		os.Exit(1)
-	}
-
-	// Watch for the secondary resource (Job).
-	if err := reconciler.Controller.Watch(&source.Kind{Type: &batchv1.Job{}},
-		&handler.EnqueueRequestForOwner{OwnerType: &installv1alpha1.Verrazzano{}, IsController: true}); err != nil {
-		setupLog.Errorf("unable to set watch for Job resource: %v", err)
 		os.Exit(1)
 	}
 

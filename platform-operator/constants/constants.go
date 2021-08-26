@@ -62,3 +62,5 @@ const VerrazzanoAppOperatorImageEnvVar = "APP_OPERATOR_IMAGE"
 
 // The Kubernetes default namespace
 const DefaultNamespace = "default"
+
+const BomVerrazzanoVersion = "VERRAZZANO_VERSION"

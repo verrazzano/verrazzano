@@ -101,6 +101,7 @@ func TestGetInstallJobName(t *testing.T) {
 // WHEN a verrazzano resource has been applied
 // THEN ensure all the objects are already created
 func TestSuccessfulInstall(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -207,6 +208,7 @@ func TestSuccessfulInstall(t *testing.T) {
 // WHEN a verrazzano resource has been created
 // THEN ensure all the objects are created
 func TestCreateVerrazzano(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test1"}
@@ -342,6 +344,7 @@ func TestCreateVerrazzano(t *testing.T) {
 // WHEN a verrazzano resource has been created
 // THEN ensure all the objects are created
 func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test1"}
@@ -505,6 +508,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 // WHEN a verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallComplete(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -591,9 +595,6 @@ func TestUninstallComplete(t *testing.T) {
 	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
 	expectDeleteConfigMap(mock, getInstallNamespace(), name)
 	expectDeleteNamespace(mock)
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteConfigMap(mock, getInstallNamespace(), name)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -612,6 +613,7 @@ func TestUninstallComplete(t *testing.T) {
 // WHEN a verrazzano resource has been deleted
 // THEN ensure an unisntall job is started
 func TestUninstallStarted(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -699,6 +701,7 @@ func TestUninstallStarted(t *testing.T) {
 // WHEN a verrazzano resource has been deleted
 // THEN ensure the error is handled
 func TestUninstallFailed(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -783,9 +786,6 @@ func TestUninstallFailed(t *testing.T) {
 	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
 	expectDeleteConfigMap(mock, getInstallNamespace(), name)
 	expectDeleteNamespace(mock)
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteConfigMap(mock, getInstallNamespace(), name)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -804,6 +804,7 @@ func TestUninstallFailed(t *testing.T) {
 // WHEN a verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallSucceeded(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -888,9 +889,6 @@ func TestUninstallSucceeded(t *testing.T) {
 	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
 	expectDeleteConfigMap(mock, getInstallNamespace(), name)
 	expectDeleteNamespace(mock)
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteConfigMap(mock, getInstallNamespace(), name)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -909,6 +907,7 @@ func TestUninstallSucceeded(t *testing.T) {
 // WHEN it does not exist
 // THEN ensure the error not found is handled
 func TestVerrazzanoNotFound(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 

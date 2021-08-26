@@ -11,6 +11,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
 	"time"
 
@@ -52,6 +55,12 @@ const finalizerName = "install.verrazzano.io"
 // Key into ConfigMap data for stored install Spec, the data for which will be used for update/upgrade purposes
 const configDataKey = "spec"
 
+// watchSet is needed to keep track of which Verrazzano CRs have a job watch created
+var watchSet = make(map[string]bool)
+
+// Set to true during unit testing
+var unitTesting bool
+
 // Reconcile will reconcile the CR
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
@@ -73,6 +82,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// Error getting the verrazzano resource - don't requeue.
 		log.Errorf("Failed to fetch verrazzano resource: %v", err)
 		return reconcile.Result{}, err
+	}
+
+	// Initial the verrazzano CR
+	result, err := r.initVz(vz, log)
+	if err != nil {
+		log.Errorf("unable to set watch for Job resource: %v", err)
+		return result, err
+	}
+	if shouldRequeue(result) {
+		return result, nil
 	}
 
 	// Ensure the required resources needed for both install and uninstall exist
@@ -532,9 +551,11 @@ func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Jo
 		if job.Status.Succeeded == 1 {
 			message = "Verrazzano install completed successfully"
 			conditionType = installv1alpha1.InstallComplete
+			log.Info(message)
 		} else {
 			message = "Verrazzano install failed to complete"
 			conditionType = installv1alpha1.InstallFailed
+			log.Error(message)
 		}
 		return r.updateStatus(log, vz, message, conditionType)
 	}
@@ -574,9 +595,11 @@ func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.
 		if job.Status.Succeeded == 1 {
 			message = "Verrazzano uninstall completed successfully"
 			conditionType = installv1alpha1.UninstallComplete
+			log.Info(message)
 		} else {
 			message = "Verrazzano uninstall failed to complete"
 			conditionType = installv1alpha1.UninstallFailed
+			log.Error(message)
 		}
 		return r.updateStatus(log, vz, message, conditionType)
 	}
@@ -885,11 +908,6 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 					return newRequeueWithDelay(), err
 				}
 
-				err = r.cleanupDefault(ctx, log, vz)
-				if err != nil {
-					return newRequeueWithDelay(), err
-				}
-
 				// All install related resources have been deleted, delete the finalizer so that the Verrazzano
 				// resource can get removed from etcd.
 				log.Infof("Removing finalizer %s", finalizerName)
@@ -933,9 +951,9 @@ func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *in
 	return nil
 }
 
-// Cleanup the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
+// cleanupOld deltes the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
 // also includes the ClusterRoleBinding, which is outside the scope of namespace
-func (r *Reconciler) cleanupDefault(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) cleanupOld(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Delete ClusterRoleBinding
 	err := r.deleteClusterRoleBinding(ctx, log, vz, vzconst.DefaultNamespace)
 	if err != nil {
@@ -962,4 +980,76 @@ func newRequeueWithDelay() ctrl.Result {
 	var seconds = rand.IntnRange(3, 5)
 	delaySecs := time.Duration(seconds) * time.Second
 	return ctrl.Result{Requeue: true, RequeueAfter: delaySecs}
+}
+
+// Return true if requeue is needed
+func shouldRequeue(r ctrl.Result) bool {
+	return r.Requeue || r.RequeueAfter > 0
+}
+
+// Watch the jobs in the verrazzano-install for this vz resource.  The reconcile loop will be called
+// when a job is updated.
+func (r *Reconciler) watchJobs(namespace string, name string, log *zap.SugaredLogger) error {
+
+	// Define a mapping to the verrazzano resource
+	mapFn := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			return []reconcile.Request{
+				{NamespacedName: types.NamespacedName{
+					Namespace: namespace,
+					Name:      name,
+				}},
+			}
+		})
+
+	// Watch job updates
+	p := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return e.ObjectOld != e.ObjectNew
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+	}
+
+	// Watch jobs and trigger reconciles for Verrazzano resources when a job changes
+	err := r.Controller.Watch(
+		&source.Kind{Type: &batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{Namespace: getInstallNamespace()},
+		}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: mapFn,
+		},
+		// Comment it if default predicate fun is used.
+		p)
+	if err != nil {
+		return err
+	}
+	log.Infof("Watching for jobs to activate reconcile for Verrrazzano CR %s/%s", namespace, name)
+
+	return nil
+}
+
+// Init the Verrazzano resource. Add a watch for each Verrazzano resource so that the reconciler
+// gets called for that resource if an event happens on a job
+func (r *Reconciler) initVz(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	if unitTesting {
+		return ctrl.Result{}, nil
+	}
+
+	// Check if watch already created for this resource
+	_, ok := watchSet[vz.Name]
+	if ok {
+		return ctrl.Result{}, nil
+	}
+
+	// Watch the jobs in the operator namespace for this VZ CR
+	if err := r.watchJobs(vz.Namespace, vz.Name, log); err != nil {
+		log.Errorf("unable to set Job watch for Verrrazzano CR %s: %v", vz.Name, err)
+		return newRequeueWithDelay(), err
+	}
+
+	// Update the map indicating the resource is being watched
+	watchSet[vz.Name] = true
+	return ctrl.Result{Requeue: true}, nil
 }
