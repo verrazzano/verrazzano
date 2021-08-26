@@ -20,6 +20,8 @@ import (
 // The max upgrade failures for a given upgrade attempt is 2
 const failedUpgradeLimit = 2
 
+var deletedOldResources bool
+
 // Reconcile upgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Upgrade version was validated in webhook, see ValidateVersion
@@ -60,11 +62,9 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 	cr.Status.Version = targetVersion
 	err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
 
-	// Cleanup old security
-	err = r.cleanupOld(context.TODO(), log, cr)
-	if err != nil {
-		return newRequeueWithDelay(), err
-	}
+	// Cleanup old resources left around when the install used to be done in the default namespace
+	// This is a best effort attempt, do not fail on errors
+	_ = r.cleanupOld(context.TODO(), log, cr)
 
 	return ctrl.Result{}, err
 }

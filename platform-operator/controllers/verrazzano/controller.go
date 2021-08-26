@@ -84,8 +84,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// Initial the verrazzano CR
-	result, err := r.initVz(vz, log)
+	// Watch for install/uinstall job events
+	result, err := r.ensureJobWatch(vz, log)
 	if err != nil {
 		log.Errorf("unable to set watch for Job resource: %v", err)
 		return result, err
@@ -1030,9 +1030,9 @@ func (r *Reconciler) watchJobs(namespace string, name string, log *zap.SugaredLo
 	return nil
 }
 
-// Init the Verrazzano resource. Add a watch for each Verrazzano resource so that the reconciler
+// ensureJobWatch adds a watch for each Verrazzano resource so that the reconciler
 // gets called for that resource if an event happens on a job
-func (r *Reconciler) initVz(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) ensureJobWatch(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
 	if unitTesting {
 		return ctrl.Result{}, nil
 	}
@@ -1052,4 +1052,9 @@ func (r *Reconciler) initVz(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogg
 	// Update the map indicating the resource is being watched
 	watchSet[vz.Name] = true
 	return ctrl.Result{Requeue: true}, nil
+}
+
+// This is needed for unit testing
+func initUnitTesing() {
+	unitTesting = true
 }

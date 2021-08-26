@@ -42,7 +42,7 @@ type badRunner struct {
 // WHEN a verrazzano version is empty
 // THEN ensure a condition with type UpgradeStarted is not added
 func TestUpgradeNoVersion(t *testing.T) {
-	unitTesting = true
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -98,7 +98,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 // WHEN a verrazzano spec.version is the same as the status.version
 // THEN ensure a condition with type UpgradeStarted is not added
 func TestUpgradeSameVersion(t *testing.T) {
-	unitTesting = true
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -157,7 +157,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 // WHEN upgrade has not been started and spec.version doesn't match status.version
 // THEN ensure a condition with type UpgradeStarted is added
 func TestUpgradeStarted(t *testing.T) {
-	unitTesting = true
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -230,7 +230,7 @@ func TestUpgradeStarted(t *testing.T) {
 // WHEN the current upgrade failed more than the failure limet
 // THEN ensure that upgrade is not started
 func TestUpgradeTooManyFailures(t *testing.T) {
-	unitTesting = true
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -304,7 +304,7 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 // WHEN the total upgrade failures exceed the limit, but the current upgrade is under the limit
 // THEN ensure that upgrade is started
 func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
-	unitTesting = true
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -401,7 +401,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 // WHEN the current upgrade failures exceeds the limit, but there was a previous upgrade success
 // THEN ensure that upgrade is not started
 func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
-	unitTesting = true
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -486,7 +486,7 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 // WHEN spec.version doesn't match status.version
 // THEN ensure a condition with type UpgradeCompleted is added
 func TestUpgradeCompleted(t *testing.T) {
-	unitTesting = true
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -528,6 +528,10 @@ func TestUpgradeCompleted(t *testing.T) {
 			return nil
 		})
 
+	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
+	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
+	expectDeleteConfigMap(mock, getInstallNamespace(), name)
+
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
 
@@ -536,10 +540,6 @@ func TestUpgradeCompleted(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteConfigMap(mock, getInstallNamespace(), name)
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
@@ -571,7 +571,7 @@ func TestUpgradeCompleted(t *testing.T) {
 // WHEN spec.version doesn't match status.version
 // THEN ensure a condition with type UpgradeCompleted is added
 func TestUpgradeHelmError(t *testing.T) {
-	unitTesting = true
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
