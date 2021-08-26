@@ -286,7 +286,6 @@ func (s *Syncer) configureLogging() {
 	// CreateOrUpdate updates the fluentd daemonset - if no changes to the daemonset after we mutate it in memory,
 	// controllerutil will not update it
 	controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
-		s.Log.Info(fmt.Sprintf("Update the DaemonSet %s, either registration secret or daemonset changed", loggingName))
 		updateLoggingDaemonSet(constants.MCRegistrationSecret, regSecret, &daemonSet)
 		return nil
 	})
