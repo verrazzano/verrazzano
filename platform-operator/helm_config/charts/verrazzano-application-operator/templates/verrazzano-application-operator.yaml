@@ -153,6 +153,15 @@ rules:
       - update
       - watch
   - apiGroups:
+      - install.verrazzano.io
+    resources:
+      - '*'
+      - '*/status'
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - coherence.oracle.com
     resources:
       - coherence
