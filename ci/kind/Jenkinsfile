@@ -597,6 +597,7 @@ def acceptanceTestsConsole() {
         make run-ui-tests
 
         # Copy artifacts to workspace, ignore if copy fails
+        mkdir -p ${WORKSPACE}/console/screenshots
         cp oraclejetconfig.json ${WORKSPACE}/console || true
         cp Screenshot*.png ${WORKSPACE}/console/screenshots || true
     """
