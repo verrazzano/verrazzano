@@ -233,10 +233,10 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 }
 
 // deleteClusterRoleBinding deletes the cluster role binding
-func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, namespace string) error {
+func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	binding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: buildClusterRoleBindingName(namespace, vz.Name),
+			Name: buildClusterRoleBindingName(vz.Namespace, vz.Name),
 		},
 	}
 	err := r.Delete(ctx, binding, &client.DeleteOptions{})
@@ -925,7 +925,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 // Cleanup the resources left over from install and uninstall
 func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Delete roleBinding
-	err := r.deleteClusterRoleBinding(ctx, log, vz, getInstallNamespace())
+	err := r.deleteClusterRoleBinding(ctx, log, vz)
 	if err != nil {
 		return err
 	}
