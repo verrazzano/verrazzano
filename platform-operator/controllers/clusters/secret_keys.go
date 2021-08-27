@@ -12,6 +12,9 @@ const ESCaBundleKey = "es-ca-bundle"
 // AdminCaBundleKey is the admin CA cert key in the registration secret
 const AdminCaBundleKey = "ca-bundle"
 
+// FluentdESCaBundleKey is the CA cert key in the Verrazzano CRD fluentd Elasticsearch secret
+const FluentdESCaBundleKey = "ca-bundle"
+
 // KubeconfigKey is the kubeconfig key
 const KubeconfigKey = "admin-kubeconfig"
 

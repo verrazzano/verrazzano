@@ -7,9 +7,11 @@ import (
 	"context"
 	"fmt"
 
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	k8net "k8s.io/api/networking/v1beta1"
@@ -52,7 +54,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	secret.Type = corev1.SecretTypeOpaque
 
 	// Get the fluentd configuration for ES URL and secret
-	fluentdESURL, fluentdESSecretName, err := r.getFluentdESURLSecret()
+	fluentdESURL, fluentdESSecretName, err := r.getVzESURLSecret()
 	if err != nil {
 		return err
 	}
@@ -77,19 +79,25 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// Decide which ES secret to use for username/password and password.
 	// If the fluentd elasticsearchSecret is the default "verrazzano", use VerrazzanoESInternal secret for username/password, and adminCaBundle for ES CA bundle.
 	// if the fluentd elasticsearchSecret is not the default, meaning it is a custom secret, use its username/password and CA bundle.
-	esCaBundle := adminCaBundle
-	esSecretName := constants.VerrazzanoESInternal
+	var esCaBundle []byte
+	var esUsername []byte
+	var esPassword []byte
 	if fluentdESSecretName != "verrazzano" {
-		esSecretName = fluentdESSecretName
-		secretForCaBundle, err := r.getSecret(esSecretName)
+		esSecret, err := r.getSecret(fluentdESSecretName)
 		if err != nil {
 			return err
 		}
-		esCaBundle = secretForCaBundle.Data["ca-bundle"]
-	}
-	esSecret, err := r.getSecret(esSecretName)
-	if err != nil {
-		return err
+		esCaBundle = esSecret.Data[FluentdESCaBundleKey]
+		esUsername = esSecret.Data[UsernameKey]
+		esPassword = esSecret.Data[PasswordKey]
+	} else {
+		esSecret, err := r.getSecret(constants.VerrazzanoESInternal)
+		if err != nil {
+			return err
+		}
+		esCaBundle = adminCaBundle
+		esUsername = esSecret.Data[UsernameKey]
+		esPassword = esSecret.Data[PasswordKey]
 	}
 
 	// Get the keycloak URL
@@ -103,8 +111,8 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		ManagedClusterNameKey: []byte(manageClusterName),
 		ESURLKey:              []byte(esURL),
 		ESCaBundleKey:         esCaBundle,
-		UsernameKey:           esSecret.Data[UsernameKey],
-		PasswordKey:           esSecret.Data[PasswordKey],
+		UsernameKey:           esUsername,
+		PasswordKey:           esPassword,
 		KeycloakURLKey:        []byte(keycloakURL),
 		AdminCaBundleKey:      adminCaBundle,
 	}
@@ -117,44 +125,28 @@ func GetRegistrationSecretName(vmcName string) string {
 	return generateManagedResourceName(vmcName) + registrationSecretSuffix
 }
 
-func (r *VerrazzanoManagedClusterReconciler) getFluentdESURLSecret() (url string, secret string, err error) {
-	// find the fluentd DaemonSet
-	var daemonSet appsv1.DaemonSet
-	nsn := types.NamespacedName{
-		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      "fluentd",
-	}
-	if err := r.Get(context.TODO(), nsn, &daemonSet); err != nil {
-		return "", "", fmt.Errorf("Failed to fetch the DaemonSet %s/%s, %v", nsn.Namespace, nsn.Name, err)
+// getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
+func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret() (string, string, error) {
+	url := ""
+	secret := ""
+
+	vzList := vzapi.VerrazzanoList{}
+	err := r.List(context.TODO(), &vzList, &client.ListOptions{})
+	if err != nil {
+		return url, secret, err
 	}
 
-	// find the esURL from fluentd container env
-	fluentdIndex := -1
-	for i, container := range daemonSet.Spec.Template.Spec.Containers {
-		if container.Name == "fluentd" {
-			fluentdIndex = i
-			break
+	// what to do when there is more than one Verrazzano CR
+	for _, vz := range vzList.Items {
+		if len(vz.Spec.Components.Fluentd.ElasticsearchURL) > 0 {
+			url = vz.Spec.Components.Fluentd.ElasticsearchURL
 		}
-	}
-	if fluentdIndex == -1 {
-		return "", "", fmt.Errorf("fluentd container not found in fluentd daemonset: %s", daemonSet.Name)
-	}
-	esURL := ""
-	for _, env := range daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env {
-		if env.Name == constants.ElasticsearchURLEnvVar {
-			esURL = env.Value
+		if len(vz.Spec.Components.Fluentd.ElasticsearchSecret) > 0 {
+			secret = vz.Spec.Components.Fluentd.ElasticsearchSecret
 		}
 	}
 
-	// find the esSecret from secret-volume secretName
-	esSecret := ""
-	for _, volume := range daemonSet.Spec.Template.Spec.Volumes {
-		if volume.Name == "secret-volume" && volume.Secret != nil {
-			esSecret = volume.Secret.SecretName
-		}
-	}
-
-	return esURL, esSecret, nil
+	return url, secret, nil
 }
 
 // Get the VMI Elasticsearch URL.
@@ -190,15 +182,11 @@ func (r *VerrazzanoManagedClusterReconciler) getSecret(secretName string) (corev
 	return secret, nil
 }
 
-// Get the system-tls secret
+// Get the CA bundle used by system-tls
 func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) {
-	var secret corev1.Secret
-	nsn := types.NamespacedName{
-		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      constants.SystemTLS,
-	}
-	if err := r.Get(context.TODO(), nsn, &secret); err != nil {
-		return nil, fmt.Errorf("Failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
+	secret, err := r.getSecret(constants.SystemTLS)
+	if err != nil {
+		return nil, err
 	}
 	return secret.Data[CaCrtKey], nil
 }
