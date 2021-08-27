@@ -124,6 +124,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutatePrometheusConfigMap(vmc *clus
 						// cert configured for scraper - needs to be added to config map
 						configMap.Data[getCAKey(vmc)] = cacrtValue
 					}
+					// potential config may be needed if CA cert is omitted
 				}
 				existingReplaced = true
 			}
