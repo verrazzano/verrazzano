@@ -56,8 +56,8 @@ const finalizerName = "install.verrazzano.io"
 // Key into ConfigMap data for stored install Spec, the data for which will be used for update/upgrade purposes
 const configDataKey = "spec"
 
-// watchSet is needed to keep track of which Verrazzano CRs have a job watch created
-var watchSet = make(map[string]bool)
+// initializedSet is needed to keep track of which Verrazzano CRs have been initialized
+var initializedSet = make(map[string]bool)
 
 // Set to true during unit testing
 var unitTesting bool
@@ -85,8 +85,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// Watch for install/uinstall job events
-	result, err := r.ensureJobWatch(vz, log)
+	// Initialize once for this Verrazzano resrouce when the operator starts
+	result, err := r.initForVzResource(vz, log)
 	if err != nil {
 		log.Errorf("unable to set watch for Job resource: %v", err)
 		return result, err
@@ -948,7 +948,29 @@ func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *in
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
+// cleanupOld deltes the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
+// also includes the ClusterRoleBinding, which is outside the scope of namespace
+func (r *Reconciler) cleanupOld(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	// Delete ClusterRoleBinding
+	err := r.deleteClusterRoleBinding(ctx, log, vz)
+	if err != nil {
+		return err
+	}
+
+	// Delete install service account
+	err = r.deleteServiceAccount(ctx, log, vz, vzconst.DefaultNamespace)
+	if err != nil {
+		return err
+	}
+
+	// Delete the install config map
+	err = r.deleteConfigMap(ctx, log, vz, vzconst.DefaultNamespace)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1007,17 +1029,24 @@ func (r *Reconciler) watchJobs(namespace string, name string, log *zap.SugaredLo
 	return nil
 }
 
-// ensureJobWatch adds a watch for each Verrazzano resource so that the reconciler
-// gets called for that resource if an event happens on a job
-func (r *Reconciler) ensureJobWatch(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+// initForVzResource will do initialization for the given Verrazzano resource.
+// Clean up old resources from a 1.0 release where jobs, etc were in the default namespace
+// Add a watch for each Verrazzano resource
+func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
 	if unitTesting {
 		return ctrl.Result{}, nil
 	}
 
-	// Check if watch already created for this resource
-	_, ok := watchSet[vz.Name]
+	// Check if init done for this resource
+	_, ok := initializedSet[vz.Name]
 	if ok {
 		return ctrl.Result{}, nil
+	}
+
+	// Cleanup old resources that might be left around when the install used to be done
+	// in the default namespace
+	if err := r.cleanupOld(context.TODO(), log, vz); err != nil {
+		return newRequeueWithDelay(), err
 	}
 
 	// Watch the jobs in the operator namespace for this VZ CR
@@ -1027,7 +1056,7 @@ func (r *Reconciler) ensureJobWatch(vz *installv1alpha1.Verrazzano, log *zap.Sug
 	}
 
 	// Update the map indicating the resource is being watched
-	watchSet[vz.Name] = true
+	initializedSet[vz.Name] = true
 	return ctrl.Result{Requeue: true}, nil
 }
 
