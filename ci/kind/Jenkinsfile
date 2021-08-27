@@ -610,8 +610,8 @@ def saveConsoleScreenShots() {
 
         # Copy artifacts to workspace, ignore if copy fails
         mkdir -p ${WORKSPACE}/console/screenshots
-        find . -name 'Screenshot*.png' -print
-        find . -name 'Screenshot*.png' -print0 | xargs -0 cp ${WORKSPACE}/console/screenshots || true
+        ls 'Screenshot*.png'
+        cp 'Screenshot*.png' ${WORKSPACE}/console/screenshots || true
     """
 }
 
