@@ -598,7 +598,8 @@ def acceptanceTestsConsole() {
 
         # Copy artifacts to workspace, ignore if copy fails
         mkdir -p ${WORKSPACE}/console/screenshots
-        cp Screenshot*.png ${WORKSPACE}/console/screenshots || true
+        find . -name 'Screenshot*.png' -print
+        find . -name 'Screenshot*.png' -print0 | xargs -0 cp ${WORKSPACE}/console/screenshots || true
     """
 }
 
