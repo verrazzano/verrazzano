@@ -733,6 +733,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			resp := &http.Response{
 				StatusCode: http.StatusUnauthorized,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
 		})
@@ -762,6 +763,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
 		})
@@ -774,6 +776,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			resp := &http.Response{
 				StatusCode: http.StatusConflict,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
 		})
@@ -803,6 +806,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
 		})
@@ -827,6 +831,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			resp := &http.Response{
 				StatusCode: http.StatusBadRequest,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
 		})
@@ -856,6 +861,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
 		})
@@ -880,6 +886,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
 		})
@@ -892,6 +899,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			resp := &http.Response{
 				StatusCode: http.StatusUnsupportedMediaType,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
 			}
 			return resp, nil
 		})
@@ -945,6 +953,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 			resp := &http.Response{
 				StatusCode: http.StatusInternalServerError,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
 		}).Times(retrySteps)
@@ -1457,6 +1466,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
 		})
@@ -1501,6 +1511,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 				resp := &http.Response{
 					StatusCode: http.StatusOK,
 					Body:       r,
+					Request:    &http.Request{Method: http.MethodPost},
 				}
 				return resp, nil
 			})
@@ -1528,6 +1539,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
 		})
@@ -1542,6 +1554,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
 			}
 			return resp, nil
 		})

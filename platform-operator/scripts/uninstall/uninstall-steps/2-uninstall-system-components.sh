@@ -122,6 +122,13 @@ function delete_rancher() {
   kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
   kubectl -n cattle-system delete secret tls-ca --ignore-not-found=true
 
+  log "Deleting CRs from rancher"
+  kubectl api-resources --api-group=management.cattle.io --verbs=delete -o name \
+    | xargsr -n 1 kubectl get --all-namespaces --ignore-not-found -o custom-columns=":kind,:metadata.name,:metadata.namespace" \
+    | awk '{res="";if ($1 != "") res=tolower($1)".management.cattle.io "tolower($2); if ($3 != "<none>" && res != "") res=res" -n "$3; if (res != "") cmd="kubectl patch "res" -p \x027{\"metadata\":{\"finalizers\":null}}\x027 --type=merge;kubectl delete "res; print cmd}' \
+    | sh \
+    || err_return $? "Could not delete rancher CRs" || return $? # return on pipefail
+
   log "Deleting CRDs from rancher"
 
   local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')

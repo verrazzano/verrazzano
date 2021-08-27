@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -250,13 +248,7 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) (*http.Clie
 		TLSClientConfig: &tls.Config{
 			RootCAs:    ca,
 			MinVersion: tls.VersionTLS12},
-	}
-
-	proxyURL := getProxyURL()
-	if proxyURL != "" {
-		tURL := url.URL{}
-		tURLProxy, _ := tURL.Parse(proxyURL)
-		tr.Proxy = http.ProxyURL(tURLProxy)
+		Proxy: http.ProxyFromEnvironment,
 	}
 
 	// disable the custom DNS resolver
@@ -302,23 +294,6 @@ func getKeycloakCACert(kubeconfigPath string) ([]byte, error) {
 // getSystemVMICACert returns the system vmi CA cert
 func getSystemVMICACert(kubeconfigPath string) ([]byte, error) {
 	return doGetCACertFromSecret("system-tls", "verrazzano-system", kubeconfigPath)
-}
-
-// getProxyURL returns the proxy URL from the proxy env variables
-func getProxyURL() string {
-	if proxyURL := os.Getenv("https_proxy"); proxyURL != "" {
-		return proxyURL
-	}
-	if proxyURL := os.Getenv("HTTPS_PROXY"); proxyURL != "" {
-		return proxyURL
-	}
-	if proxyURL := os.Getenv("http_proxy"); proxyURL != "" {
-		return proxyURL
-	}
-	if proxyURL := os.Getenv("HTTP_PROXY"); proxyURL != "" {
-		return proxyURL
-	}
-	return ""
 }
 
 // doGetCACertFromSecret returns the CA cert from the specified kubernetes secret in the given cluster
