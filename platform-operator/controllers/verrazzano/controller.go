@@ -951,30 +951,6 @@ func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *in
 	return nil
 }
 
-// cleanupOld deltes the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
-// also includes the ClusterRoleBinding, which is outside the scope of namespace
-func (r *Reconciler) cleanupOld(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
-	// Delete ClusterRoleBinding
-	err := r.deleteClusterRoleBinding(ctx, log, vz, vzconst.DefaultNamespace)
-	if err != nil {
-		return err
-	}
-
-	// Delete install service account
-	err = r.deleteServiceAccount(ctx, log, vz, vzconst.DefaultNamespace)
-	if err != nil {
-		return err
-	}
-
-	// Delete the install config map
-	err = r.deleteConfigMap(ctx, log, vz, vzconst.DefaultNamespace)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // Create a new Result that will cause a reconcile requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
 	var seconds = rand.IntnRange(3, 5)

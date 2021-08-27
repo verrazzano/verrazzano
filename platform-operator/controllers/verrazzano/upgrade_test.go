@@ -528,10 +528,6 @@ func TestUpgradeCompleted(t *testing.T) {
 			return nil
 		})
 
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteConfigMap(mock, getInstallNamespace(), name)
-
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
 

@@ -4,7 +4,6 @@
 package verrazzano
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -59,10 +58,6 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 	log.Info(msg)
 	cr.Status.Version = targetVersion
 	err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
-
-	// Cleanup old resources left around when the install used to be done in the default namespace
-	// This is a best effort attempt, do not fail on errors
-	_ = r.cleanupOld(context.TODO(), log, cr)
 
 	return ctrl.Result{}, err
 }
