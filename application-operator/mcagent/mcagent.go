@@ -445,14 +445,14 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 
 // getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
 func (s *Syncer) getVzESURLSecret() (string, string, error) {
+	url := defaultElasticURL
+	secret := defaultSecretName
 	vzList := vzapi.VerrazzanoList{}
 	err := s.LocalClient.List(s.Context, &vzList, &client.ListOptions{})
 	if err != nil {
 		s.Log.Error(err, "Can not list Verrazzano CR")
-		return "", "", err
+		return url, secret, err
 	}
-	url := defaultElasticURL
-	secret := defaultSecretName
 	// what to do when there is more than one Verrazzano CR
 	for _, vz := range vzList.Items {
 		if len(vz.Spec.Components.Fluentd.ElasticsearchURL) > 0 {

@@ -490,28 +490,23 @@ func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 // THEN ensure that Fluentd daemonset is updated
 func TestSyncer_configureLogging(t *testing.T) {
 	type fields struct {
+		externalEs     bool
 		secretExists   bool
 		dsClusterName  string
 		dsEsURL        string
 		dsSecretName   string
 		expectUpdateDS bool
 	}
+	const externalEsURL = "externalEsURL"
+	const externalEsSecret = "externalEsSecret"
+	const regSecretEsURL = "secretEsURL"
+	const regSecretClusterName = "secretClusterName"
 	tests := []struct {
 		name   string
 		fields fields
 	}{
 		{
-			name: "new registration with override ca cert",
-			fields: fields{
-				secretExists:   true,
-				dsClusterName:  "",
-				dsEsURL:        "",
-				dsSecretName:   "",
-				expectUpdateDS: true,
-			},
-		},
-		{
-			name: "new registration well known CA certs",
+			name: "new registration",
 			fields: fields{
 				secretExists:   true,
 				dsClusterName:  "",
@@ -524,8 +519,8 @@ func TestSyncer_configureLogging(t *testing.T) {
 			name: "delete registration",
 			fields: fields{
 				secretExists:   false,
-				dsClusterName:  "secretClusterName",
-				dsEsURL:        "secretEsURL",
+				dsClusterName:  regSecretClusterName,
+				dsEsURL:        regSecretEsURL,
 				dsSecretName:   constants.MCRegistrationSecret,
 				expectUpdateDS: true,
 			},
@@ -535,7 +530,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				secretExists:   true,
 				dsClusterName:  "differentClusterName",
-				dsEsURL:        "secretEsURL",
+				dsEsURL:        regSecretEsURL,
 				dsSecretName:   constants.MCRegistrationSecret,
 				expectUpdateDS: true,
 			},
@@ -544,7 +539,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			name: "update registration daemonset ES URL changed",
 			fields: fields{
 				secretExists:   true,
-				dsClusterName:  "secretClusterName",
+				dsClusterName:  regSecretClusterName,
 				dsEsURL:        "differentEsURL",
 				dsSecretName:   constants.MCRegistrationSecret,
 				expectUpdateDS: true,
@@ -554,8 +549,8 @@ func TestSyncer_configureLogging(t *testing.T) {
 			name: "update registration daemonset secret name changed",
 			fields: fields{
 				secretExists:   true,
-				dsClusterName:  "secretClusterName",
-				dsEsURL:        "secretEsURL",
+				dsClusterName:  regSecretClusterName,
+				dsEsURL:        regSecretEsURL,
 				dsSecretName:   "differentSecret",
 				expectUpdateDS: true,
 			},
@@ -574,8 +569,41 @@ func TestSyncer_configureLogging(t *testing.T) {
 			name: "same registration",
 			fields: fields{
 				secretExists:   true,
-				dsClusterName:  "secretClusterName",
-				dsEsURL:        "secretEsURL",
+				dsClusterName:  regSecretClusterName,
+				dsEsURL:        regSecretEsURL,
+				dsSecretName:   constants.MCRegistrationSecret,
+				expectUpdateDS: false,
+			},
+		},
+		{
+			name: "new registration external ES",
+			fields: fields{
+				externalEs:     true,
+				secretExists:   true,
+				dsClusterName:  "",
+				dsEsURL:        "",
+				dsSecretName:   "",
+				expectUpdateDS: true,
+			},
+		},
+		{
+			name: "no registration external ES",
+			fields: fields{
+				externalEs:     true,
+				secretExists:   false,
+				dsClusterName:  defaultClusterName,
+				dsEsURL:        externalEsURL,
+				dsSecretName:   externalEsSecret,
+				expectUpdateDS: false,
+			},
+		},
+		{
+			name: "same registration external ES",
+			fields: fields{
+				externalEs:     true,
+				secretExists:   true,
+				dsClusterName:  regSecretClusterName,
+				dsEsURL:        regSecretEsURL,
 				dsSecretName:   constants.MCRegistrationSecret,
 				expectUpdateDS: false,
 			},
@@ -602,8 +630,8 @@ func TestSyncer_configureLogging(t *testing.T) {
 						secret.Namespace = constants.VerrazzanoSystemNamespace
 						secret.ResourceVersion = "secretVersion"
 						secret.Data = map[string][]byte{}
-						secret.Data[constants.ClusterNameData] = []byte("secretClusterName")
-						secret.Data[constants.ElasticsearchURLData] = []byte("secretEsURL")
+						secret.Data[constants.ClusterNameData] = []byte(regSecretClusterName)
+						secret.Data[constants.ElasticsearchURLData] = []byte(regSecretEsURL)
 						return nil
 					}
 					return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, constants.MCRegistrationSecret)
@@ -613,12 +641,18 @@ func TestSyncer_configureLogging(t *testing.T) {
 			mcMock.EXPECT().
 				List(gomock.Any(), &vzapi.VerrazzanoList{}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, list *vzapi.VerrazzanoList, opts ...*client.ListOptions) error {
+					url := defaultElasticURL
+					secret := defaultSecretName
+					if tt.fields.externalEs {
+						url = externalEsURL
+						secret = externalEsSecret
+					}
 					vz := vzapi.Verrazzano{
 						Spec: vzapi.VerrazzanoSpec{
 							Components: vzapi.ComponentSpec{
 								Fluentd: &vzapi.FluentdComponent{
-									ElasticsearchURL:    defaultElasticURL,
-									ElasticsearchSecret: defaultSecretName,
+									ElasticsearchURL:    url,
+									ElasticsearchSecret: secret,
 								},
 							},
 						},

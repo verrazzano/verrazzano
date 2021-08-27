@@ -20,6 +20,8 @@ import (
 )
 
 const vmiIngest = "vmi-system-es-ingest"
+const defaultElasticURL = "http://vmi-system-es-ingest-oidc:8775"
+const defaultSecretName = "verrazzano"
 
 // Create a registration secret with the managed cluster information.  This secret will
 // be used on the managed cluster to get information about itself, like the cluster name
@@ -127,15 +129,13 @@ func GetRegistrationSecretName(vmcName string) string {
 
 // getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
 func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret() (string, string, error) {
-	url := ""
-	secret := ""
-
+	url := defaultElasticURL
+	secret := defaultSecretName
 	vzList := vzapi.VerrazzanoList{}
 	err := r.List(context.TODO(), &vzList, &client.ListOptions{})
 	if err != nil {
 		return url, secret, err
 	}
-
 	// what to do when there is more than one Verrazzano CR
 	for _, vz := range vzList.Items {
 		if len(vz.Spec.Components.Fluentd.ElasticsearchURL) > 0 {
@@ -145,7 +145,6 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret() (string, string,
 			secret = vz.Spec.Components.Fluentd.ElasticsearchSecret
 		}
 	}
-
 	return url, secret, nil
 }
 
