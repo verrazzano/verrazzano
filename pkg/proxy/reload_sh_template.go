@@ -76,11 +76,11 @@ const OidcReloadFileTemplate = `#!/bin/bash
                 adminCABundleMD5="$md5Hash"
                 reload
             fi
-        else 
+        else
             if [ "$adminCABundleMD5" != "" ] ; then
                 reset_md5
                 local_cert_config
-            fi 
+            fi
         fi
     }
 

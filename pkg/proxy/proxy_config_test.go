@@ -58,7 +58,7 @@ func getProxyConfigOidcProxy() OidcProxyConfig {
 	return getProxyConfigOidcProxyWithParams("", false)
 }
 
-func generateConfigmapYaml(name, namespace string, labels, configs map[string]string) string {
+func generateConfigmapYaml(name, namespace string, labels, annotations, configs map[string]string) string {
 	yaml := "---"
 	yaml = fmt.Sprintf("%s\napiVersion: v1", yaml)
 	yaml = fmt.Sprintf("%s\nkind: ConfigMap", yaml)
@@ -67,6 +67,10 @@ func generateConfigmapYaml(name, namespace string, labels, configs map[string]st
 	yaml = fmt.Sprintf("%s\n  namespace: %s", yaml, namespace)
 	yaml = fmt.Sprintf("%s\n  labels:", yaml)
 	for key, value := range labels {
+		yaml = fmt.Sprintf("%s\n    %s: %s", yaml, key, value)
+	}
+	yaml = fmt.Sprintf("%s\n  annotations:", yaml)
+	for key, value := range annotations {
 		yaml = fmt.Sprintf("%s\n    %s: %s", yaml, key, value)
 	}
 	yaml = fmt.Sprintf("%s\ndata:\n", yaml)
@@ -197,7 +201,7 @@ func NotATestCreateAPIProxyConfigYaml(t *testing.T) {
 	labels := map[string]string{
 		"app": "verrazzano-api",
 	}
-	config := generateConfigmapYaml("api-nginx-conf", "verrazzano-system", labels, data)
+	config := generateConfigmapYaml("api-nginx-conf", "verrazzano-system", labels, nil, data)
 	err = checkForValidYaml(config)
 	if err != nil {
 		t.Fatalf("Invalid yaml for API configmap: %v", err)
@@ -212,10 +216,14 @@ func TestCreateOidcProxyConfigYaml(t *testing.T) {
 		t.Fatalf("Error getting config map data: %v", err)
 	}
 	labels := map[string]string{
-		"k8s-app":              "verrazzano.io",
-		"vmo.v1.verrazzano.io": "system",
+        "app": "verrazzano-api",
+        "app.kubernetes.io/managed-by": "Helm",
 	}
-	config := generateConfigmapYaml("api-nginx-conf", "verrazzano-system", labels, data)
+	annotations := map[string]string{
+        "meta.helm.sh/release-name": "verrazzano",
+        "meta.helm.sh/release-namespace": "verrazzano-system",
+    }
+	config := generateConfigmapYaml("api-nginx-conf", "verrazzano-system", labels, annotations, data)
 	err = checkForValidYaml(config)
 	if err != nil {
 		t.Fatalf("Invalid yaml for Oidc configmap: %v", err)

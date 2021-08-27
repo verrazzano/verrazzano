@@ -71,32 +71,32 @@ const OidcNginxConfFileTemplate = `#user  nobody;
 
         root     /opt/nginx/html;
 
-        # reject requests with no host header
-        server {
-            listen      80;
-            server_name "";
-            return      444;
-        }
+        ## # reject requests with no host header
+        ## server {
+        ##     listen      80;
+        ##     server_name "";
+        ##     return      444;
+        ## }
 
         # pass-thru servers for keycloak and rancher - no proxy authn/authz
         server {
-            listen 8775
+            listen       8775;
             server_name  "keycloak.{{ .EnvironmentDnsSuffix }}";
             location / {
-                proxy_pass keycloak-http.keycloak.svc.cluster.local:80;
+                proxy_pass http://keycloak-http.keycloak.svc.cluster.local:80;
             }
         }
         server {
-            listen 8775
+            listen       8775;
             server_name  "rancher.{{ .EnvironmentDnsSuffix }}";
             location / {
-                proxy_pass rancher.cattle-system.svc.cluster.local:80;
+                proxy_pass http://rancher.cattle-system.svc.cluster.local:80;
             }
         }
 
         # verrazzano api and console
         server {
-            listen 8775
+            listen       8775;
             server_name  "verrazzano.{{ .EnvironmentDnsSuffix }}";
 
             # api
@@ -104,7 +104,7 @@ const OidcNginxConfFileTemplate = `#user  nobody;
                 lua_ssl_verify_depth 2;
                 lua_ssl_trusted_certificate /etc/nginx/upstream.pem;
 
-                set $backend_name "verrazzano-api"
+                set $backend_name "verrazzano-api";
                 set $kubernetes_server_url "";
                 rewrite_by_lua_file /etc/nginx/conf.lua;
                 proxy_pass $kubernetes_server_url;
@@ -123,36 +123,36 @@ const OidcNginxConfFileTemplate = `#user  nobody;
 {{- if eq .SSLEnabled true }}
                 lua_ssl_verify_depth 2;
                 lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
-{{- end }}
-                set $backend_name "verrazzano-console"
+{{ end }}
+                set $backend_name "verrazzano-console";
                 set $backend_port "";
                 set $oidc_user "";
                 rewrite_by_lua_file /etc/nginx/conf.lua;
                 proxy_set_header  X-WEBAUTH-USER $oidc_user;
-                proxy_pass $backend_name.verrazzano-system.svc.cluster.local:$backend_port
+                proxy_pass http://$backend_name.verrazzano-system.svc.cluster.local:$backend_port;
             }
         }
 
         # vmi services
         server {
-            listen 8775
+            listen       8775;
+            # server_name regex could potentially match amy char for dots in EnvironmentDnsSuffix
             server_name  "~^(?<backend_name>.+)\.vmi\.system\.{{ .EnvironmentDnsSuffix }}$";
-
-{{- if eq .SSLEnabled true }}
-            lua_ssl_verify_depth 2;
-            lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
-{{- end }}
 
             # proxy_pass backend previously specified as an upstream server with parameters:
             #     server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;
             # Are those parameters still needed?
 
             location / {
+{{- if eq .SSLEnabled true }}
+                lua_ssl_verify_depth 2;
+                lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
+{{ end }}
                 set $backend_port "";
                 set $oidc_user "";
                 rewrite_by_lua_file /etc/nginx/conf.lua;
                 proxy_set_header  X-WEBAUTH-USER $oidc_user;
-                proxy_pass $backend_name.verrazzano-system.svc.cluster.local:$backend_port
+                proxy_pass http://$backend_name.verrazzano-system.svc.cluster.local:$backend_port;
             }
         }
     }

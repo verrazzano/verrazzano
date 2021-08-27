@@ -29,6 +29,8 @@ const OidcConfLuaFileTemplate = `local ingressUri = 'https://'..ngx.var.server_n
         logoutCallbackUri = ingressUri..logoutCallbackPath
     })
 
+    auth.info("Processing request ...")
+
     # TODO: is this needed here? Is it better done via/at ingress?
     # was previously only for oauth-proxy
     ngx.header["Access-Control-Allow-Headers"] = "authorization"
