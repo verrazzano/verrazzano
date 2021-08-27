@@ -17,7 +17,7 @@ function install_wls_operator {
   fi
 
   log "Checkout WebLogic Kubernetes operator"
-  git --git-dir=$TMP_DIR/weblogic-kubernetes-operator/.git --work-tree=$TMP_DIR/weblogic-kubernetes-operator checkout v3.2.5
+  git --git-dir=$TMP_DIR/weblogic-kubernetes-operator/.git --work-tree=$TMP_DIR/weblogic-kubernetes-operator checkout v3.3.0
   if [ $? -ne 0 ]; then
     error "Failed to checkout WebLogic Kubernetes operator."
     return 1
