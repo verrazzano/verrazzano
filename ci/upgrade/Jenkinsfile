@@ -202,6 +202,7 @@ pipeline {
                                 echo "------------------------------------------"
                             """
                             script {
+                                dumpVerrazzanoPlatformOperatorLogs("before-upgrade")
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
                             }
@@ -260,7 +261,7 @@ pipeline {
                     }
                     post {
                         always {
-                            dumpVerrazzanoPlatformOperatorLogs()
+                            dumpVerrazzanoPlatformOperatorLogs("after-upgrade")
                         }
                     }
                 }
@@ -348,7 +349,6 @@ pipeline {
                     dumpVerrazzanoSystemPods()
                     dumpCattleSystemPods()
                     dumpNginxIngressControllerLogs()
-                    dumpVerrazzanoPlatformOperatorLogs()
                     dumpVerrazzanoApplicationOperatorLogs()
                     dumpOamKubernetesRuntimeLogs()
                     dumpVerrazzanoApiLogs()
@@ -443,14 +443,12 @@ def dumpNginxIngressControllerLogs() {
     """
 }
 
-def dumpVerrazzanoPlatformOperatorLogs() {
+def dumpVerrazzanoPlatformOperatorLogs(stage) {
     sh """
         ## dump out verrazzano-platform-operator logs
         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
-        echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
+        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-${stage}-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-${stage}-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "------------------------------------------"
     """
 }
