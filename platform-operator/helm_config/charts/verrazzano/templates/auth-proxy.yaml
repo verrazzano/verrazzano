@@ -43,6 +43,7 @@ spec:
     metadata:
       annotations:
         sidecar.istio.io/inject: "true"
+        # Exclusde K8S API service ports to prevent intermittent 503 issues.
         traffic.sidecar.istio.io/excludeOutboundPorts: 443,6443
       labels:
         app: {{ .Values.authProxy.name }}
