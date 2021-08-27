@@ -236,19 +236,27 @@ pipeline {
                     }
                 }
 
-                stage('Run Acceptance Tests') {
+                stage('Verify Install') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+               }
+
+                stage('Run Acceptance Tests Infra') {
                     environment {
                         TEST_ENV = "KIND"
                     }
                     parallel {
-                        stage('verify-install') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-install')
-                            }
-                        }
                         stage('verify-scripts') {
                             steps {
                                 runGinkgo('scripts')
@@ -278,20 +286,50 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        stage('istio authorization policy') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-                            }
-                            steps {
-                                runGinkgo('istio/authz')
-                            }
-                        }
                         stage('security role based access') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
                             }
                             steps {
                                 runGinkgo('security/rbac')
+                            }
+                        }
+                        stage('system component metrics') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
+                            }
+                            steps {
+                                runGinkgo('metrics/syscomponents')
+                            }
+                        }
+                        stage ('console') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                            }
+                            steps {
+                                acceptanceTestsConsole()
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Run Acceptance Tests Deployments') {
+                    environment {
+                        TEST_ENV = "KIND"
+                    }
+                    parallel {
+                        stage('istio authorization policy') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
+                            }
+                            steps {
+                                runGinkgo('istio/authz')
                             }
                         }
                         stage('security network policies') {
@@ -312,14 +350,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('metrics/deploymetrics')
-                            }
-                        }
-                        stage('system component metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
-                            }
-                            steps {
-                                runGinkgo('metrics/syscomponents')
                             }
                         }
                         stage('examples logging helidon') {
@@ -389,14 +419,6 @@ pipeline {
                                 runGinkgo('ingress/console')
                             }
                         }
-                        stage ('console') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                            }
-                            steps {
-                                acceptanceTestsConsole()
-                            }
-                        }
                     }
                     post {
                         always {
@@ -405,6 +427,7 @@ pipeline {
                         }
                     }
                 }
+
             }
 
             post {
