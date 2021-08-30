@@ -576,7 +576,7 @@ pipeline {
 
             sh """
                 if [ "${params.EMIT_METRICS}" == "true" ] ; then
-                    ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e"
+                    ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e" || echo "Emit metrics failed, continuing with other post actions"
                 fi
                 if [ "${TEST_ENV}" == "ocidns_oke" ]; then
                   ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
