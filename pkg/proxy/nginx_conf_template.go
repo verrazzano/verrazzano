@@ -67,48 +67,29 @@ const OidcNginxConfFileTemplate = `#user  nobody;
 
         #charset koi8-r;
         expires           0;
-        add_header        Cache-Control private;
+        #add_header        Cache-Control private;
+        add_header        Cache-Control no-store always;
 
         root     /opt/nginx/html;
-
-        ## # reject requests with no host header
-        ## server {
-        ##     listen      80;
-        ##     server_name "";
-        ##     return      444;
-        ## }
-
-        # pass-thru servers for keycloak and rancher - no proxy authn/authz
-        server {
-            listen       8775;
-            server_name  "keycloak.{{ .EnvironmentDnsSuffix }}";
-            location / {
-                proxy_pass http://keycloak-http.keycloak.svc.cluster.local:80;
-            }
-        }
-        server {
-            listen       8775;
-            server_name  "rancher.{{ .EnvironmentDnsSuffix }}";
-            location / {
-                proxy_pass http://rancher.cattle-system.svc.cluster.local:80;
-            }
-        }
 
         # verrazzano api and console
         server {
             listen       8775;
-            server_name  "verrazzano.{{ .EnvironmentDnsSuffix }}";
+            server_name  verrazzano-proxy;
 
             # api
-            location /20210501/ {
+            location / {
                 lua_ssl_verify_depth 2;
                 lua_ssl_trusted_certificate /etc/nginx/upstream.pem;
+                # oauth-proxy ssl certs location: lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
 
-                set $backend_name "verrazzano-api";
-                set $kubernetes_server_url "";
+                set $oidc_user "";
+                set $backend_server_url "";
                 rewrite_by_lua_file /etc/nginx/conf.lua;
-                proxy_pass $kubernetes_server_url;
+                proxy_set_header X-WEBAUTH-USER $oidc_user;
+                proxy_pass $backend_server_url;
                 proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
+                # this should only happen for origin requests - move to conf.lua?
                 header_filter_by_lua_block {
                     local h, _ = ngx.req.get_headers()["origin"]
                     if h and h ~= "*" and  h ~= "null" then
@@ -116,43 +97,6 @@ const OidcNginxConfFileTemplate = `#user  nobody;
                     end
                     ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
                 }
-            }
-
-            # console
-            location / {
-{{- if eq .SSLEnabled true }}
-                lua_ssl_verify_depth 2;
-                lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
-{{ end }}
-                set $backend_name "verrazzano-console";
-                set $backend_port "";
-                set $oidc_user "";
-                rewrite_by_lua_file /etc/nginx/conf.lua;
-                proxy_set_header  X-WEBAUTH-USER $oidc_user;
-                proxy_pass http://$backend_name.verrazzano-system.svc.cluster.local:$backend_port;
-            }
-        }
-
-        # vmi services
-        server {
-            listen       8775;
-            # server_name regex could potentially match amy char for dots in EnvironmentDnsSuffix
-            server_name  "~^(?<backend_name>.+)\.vmi\.system\.{{ .EnvironmentDnsSuffix }}$";
-
-            # proxy_pass backend previously specified as an upstream server with parameters:
-            #     server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;
-            # Are those parameters still needed?
-
-            location / {
-{{- if eq .SSLEnabled true }}
-                lua_ssl_verify_depth 2;
-                lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
-{{ end }}
-                set $backend_port "";
-                set $oidc_user "";
-                rewrite_by_lua_file /etc/nginx/conf.lua;
-                proxy_set_header  X-WEBAUTH-USER $oidc_user;
-                proxy_pass http://$backend_name.verrazzano-system.svc.cluster.local:$backend_port;
             }
         }
     }

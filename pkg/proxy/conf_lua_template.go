@@ -16,29 +16,35 @@ package proxy
 const OidcConfLuaFilename = "conf.lua"
 
 // OidcConfLuaFileTemplate is the template of conf.lua file in OIDC proxy ConfigMap
-const OidcConfLuaFileTemplate = `local ingressUri = 'https://'..ngx.var.server_name
-    # can we trust server_name? it's been legit matched by a server config in nginx.conf
-    # but we're wildcarding the backend_name so we can use one server config for all the
-    # vmi backends. probably safe if we also check for a recognized backend_name, as we
-    # do later on. That check should be done before any token processing, though.
+const OidcConfLuaFileTemplate = `local ingressHost = ngx.req.get_headers()["x-forwarded-host"]
+    local ingressUri = 'https://'..ingressHost
     local callbackPath = "{{ .OidcCallbackPath }}"
     local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
 
     local auth = require("auth").config({
-        callbackUri = ingressUri..callbackPath
+        callbackUri = ingressUri..callbackPath,
         logoutCallbackUri = ingressUri..logoutCallbackPath
     })
 
-    auth.info("Processing request ...")
-
-    # TODO: is this needed here? Is it better done via/at ingress?
-    # was previously only for oauth-proxy
+    -- TODO: is this needed here? Is it better done via/at ingress?
+    -- This was previously enabled only for oauth-proxy, but there is similar
+    -- code in nginx.conf that was executed only for api-proxy but now executes
+    -- for both.
+    -- TODO: Rationalize OPTIONS method processing: do this only for OPTIONS requests (not all),
+    -- and do it all in one place (here or nginx.conf) for both api-proxy and oauth-proxy traffic
     ngx.header["Access-Control-Allow-Headers"] = "authorization"
 
     if ngx.req.get_method() == "OPTIONS" then
         ngx.status = 200
         ngx.exit(ngx.HTTP_OK)
     end
+
+    -- determine backend and set backend parameters
+
+    local backend = auth.getBackendNameFromIngressHost(ingressHost)
+    local backendUrl = auth.getBackendServerUrlFromName(backend)
+
+    auth.info("Processing request for backend '"..ingressHost.."'")
 
     local authHeader = ngx.req.get_headers()["authorization"]
     local token = nil
@@ -81,10 +87,11 @@ const OidcConfLuaFileTemplate = `local ingressUri = 'https://'..ngx.var.server_n
         auth.forbidden("Not authorized")
     end
 
-    if ngx.var.backend_name == 'verrazzano-api' then
+    if backend == 'verrazzano' then
         local args = ngx.req.get_uri_args()
         if args.cluster then
-            auth.handleExternalAPICall(token)
+            -- returns remote cluster server URL
+            backendUrl = auth.handleExternalAPICall(token)
         else
             auth.handleLocalAPICall(token)
         end
@@ -96,24 +103,8 @@ const OidcConfLuaFileTemplate = `local ingressUri = 'https://'..ngx.var.server_n
         -- set the oidc_user
         ngx.var.oidc_user = auth.usernameFromIdToken(token)
         auth.info("Authorized: oidc_user is "..ngx.var.oidc_user)
-
-        -- set the backend_name and backend_port
-        ngx.var.backend_name = 'vmi-system-' .. ngx.var.backend_name
-        if ngx.var.backend_name == 'verrazzano-console' then
-            ngx.var.backend_port = '8000'
-        elseif ngx.var.backend_name == 'grafana' then
-            ngx.var.backend_port = '3000'
-        elseif ngx.var.backend_name == 'prometheus' then
-            ngx.var.backend_port = '9090'
-        elseif ngx.var.backend_name == 'kibana' then
-            ngx.var.backend_port = '5601'
-        elseif ngx.var.backend_name == 'elasticsearch' then
-            ngx.var.backend_name = 'vmi-system-' .. 'es-ingest'
-            ngx.var.backend_port = '9200'
-        else
-            # TODO: consider checking for this condition up front, before we've done all the authn/authz processing
-            # Would a 500 error be more appropriate?
-            me.not_found("Invalid backend name '"..ngx.var.backend_name.."'")
-        end
     end
+
+    auth.info("Setting backend_server_url to '"..backendUrl.."'")
+    ngx.var.backend_server_url = backendUrl
 `

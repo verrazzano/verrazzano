@@ -210,6 +210,45 @@ const OidcAuthLuaFileTemplate = `local me = {}
         return false
     end
 
+    function me.getBackendNameFromIngressHost(ingressHost)
+        local backend_name = 'unknown'
+        if ingressHost then
+            me.info("ingressHost is '"..ingressHost.."'")
+            local start, last = ingressHost:find("%.")
+            me.info("find returned start '"..start.."'")
+            if start and start > 1 then
+                backend_name = ingressHost:sub(1, start-1)
+            end
+        end
+        me.info("returning backend_name '"..backend_name.."'")
+        return backend_name
+    end
+
+    function me.makeVmiBackendUrl(backend, port)
+        return 'http://vmi-system-'..backend..'.verrazzano-system.svc.cluster.local'..':'..port
+    end
+
+    function me.getBackendServerUrlFromName(backend)
+        local serverUrl = nil
+        if backend == 'verrazzano' then
+            -- assume we're going to the local server; if not, we'll fix up the url when we handle the remote call
+            -- TODO: this will get more complicated when we have to handle console requests as well
+            serverUrl = me.getLocalKubernetesApiUrl()
+        elseif backend == 'grafana' then
+            serverUrl = me.makeVmiBackendUrl(backend, '3000')
+        elseif backend == 'prometheus' then
+            serverUrl = me.makeVmiBackendUrl(backend, '9090')
+        elseif backend == 'kibana' then
+            serverUrl = me.makeVmiBackendUrl(backend, '5601')
+        elseif backend == 'elasticsearch' then
+            serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')
+        else
+            -- Would a 500 error be more appropriate here?
+            me.not_found("Invalid backend name '"..backend.."'")
+        end
+        return serverUrl
+    end
+
     -- console sends access token by itself (originally obtained via pkce client)
     function me.handleBearerToken(authHeader)
         local found, index = authHeader:find('Bearer')
@@ -664,7 +703,7 @@ const OidcAuthLuaFileTemplate = `local me = {}
       return serviceAccountToken
     end
 
-    function me.getLocalServerURL()
+    function me.getLocalKubernetesApiUrl()
       local host = os.getenv("KUBERNETES_SERVICE_HOST")
       local port = os.getenv("KUBERNETES_SERVICE_PORT")
       local serverUrl = "https://" .. host .. ":" .. port
@@ -711,7 +750,6 @@ const OidcAuthLuaFileTemplate = `local me = {}
             me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
             ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
         end
-        ngx.var.kubernetes_server_url = me.getLocalServerURL()
     end
 
     function me.handleExternalAPICall(token)
@@ -722,9 +760,8 @@ const OidcAuthLuaFileTemplate = `local me = {}
             me.unauthorized("Unable to fetch vmc api url for vmc " .. args.cluster)
         end
 
-        local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
         ngx.req.set_uri_args(args)
-        ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
+        local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion .. ngx.var.uri
 
         -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
         -- A secret is created in admin cluster during multi cluster setup that contains the ca certificate.
@@ -753,6 +790,8 @@ const OidcAuthLuaFileTemplate = `local me = {}
         if startIndex >= 1 and endIndex > startIndex then
             me.write_file("/etc/nginx/upstream.pem", string.sub(decodedSecret, startIndex, endIndex))
         end
+
+        return serverUrl
     end
 
     return me
