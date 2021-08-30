@@ -23,6 +23,8 @@ else
 endif
 
 # search for internal words that should not be in the repo
+# the actual command being executed in bash is "curl -sL https://bit.ly/3iIUcdL | grep -v '^\s*\(#\|$\)' | ..."
+# additional "$" is to escape literal value in makefile
 .PHONY: word-linter
 word-linter:
 	! curl -sL https://bit.ly/3iIUcdL | grep -v '^\s*\(#\|$$\)' | grep -f /dev/stdin -r *
