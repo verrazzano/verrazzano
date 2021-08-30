@@ -421,6 +421,12 @@ pipeline {
                         }
                     }
                     post {
+                        failure {
+                            script {
+                                saveConsoleScreenShots()
+                            }
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png', allowEmptyArchive: true
+                        }
                         always {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -618,9 +624,17 @@ def acceptanceTestsConsole() {
 
         # Run the tests
         make run-ui-tests
+    """
+}
+
+def saveConsoleScreenShots() {
+    sh """
+        # Temporarily clone the console repo until it is moved to the verrazzano repo
+        cd ${GO_REPO_PATH}/console
 
         # Copy artifacts to workspace, ignore if copy fails
         mkdir -p ${WORKSPACE}/console/screenshots
+        ls Screenshot*.png || true
         cp Screenshot*.png ${WORKSPACE}/console/screenshots || true
     """
 }
