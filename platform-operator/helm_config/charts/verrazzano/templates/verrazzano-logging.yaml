@@ -14,6 +14,9 @@ data:
   init.sh: |
     #!/bin/bash
     cat /etc/ssl/certs/ca-bundle.crt > /fluentd/cacerts/all-ca-certs.pem
+    if [ -f "/fluentd/secret/ca-bundle" ]; then
+      cat /fluentd/secret/ca-bundle >> /fluentd/cacerts/all-ca-certs.pem
+    fi
     if [ -f "/fluentd/secret/es-ca-bundle" ]; then
       cat /fluentd/secret/es-ca-bundle >> /fluentd/cacerts/all-ca-certs.pem
     fi
