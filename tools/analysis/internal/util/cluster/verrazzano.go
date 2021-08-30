@@ -114,10 +114,10 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 
 // IsVerrazzanoInstallJobPod returns true if the pod is an install job related pod for Verrazzano
 func IsVerrazzanoInstallJobPod(pod corev1.Pod) bool {
-	return pod.ObjectMeta.Namespace == "default" && verrazzanoInstallJobPodMatcher.MatchString(pod.ObjectMeta.Name)
+	return verrazzanoInstallJobPodMatcher.MatchString(pod.ObjectMeta.Name) && (pod.ObjectMeta.Namespace == "verrazzano-install" || pod.ObjectMeta.Namespace == "default")
 }
 
 // IsVerrazzanoUninstallJobPod returns true if the pod is an uninstall job related pod for Verrazzano
 func IsVerrazzanoUninstallJobPod(pod corev1.Pod) bool {
-	return pod.ObjectMeta.Namespace == "default" && verrazzanoUninstallJobPodMatcher.MatchString(pod.ObjectMeta.Name)
+	return verrazzanoUninstallJobPodMatcher.MatchString(pod.ObjectMeta.Name) && (pod.ObjectMeta.Namespace == "verrazzano-install" || pod.ObjectMeta.Namespace == "default")
 }
