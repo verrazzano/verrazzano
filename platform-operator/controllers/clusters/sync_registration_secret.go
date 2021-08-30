@@ -134,15 +134,18 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret() (string, string,
 	vzList := vzapi.VerrazzanoList{}
 	err := r.List(context.TODO(), &vzList, &client.ListOptions{})
 	if err != nil {
+		r.log.Error(err, "Can not list Verrazzano CR")
 		return url, secret, err
 	}
 	// what to do when there is more than one Verrazzano CR
 	for _, vz := range vzList.Items {
-		if len(vz.Spec.Components.Fluentd.ElasticsearchURL) > 0 {
-			url = vz.Spec.Components.Fluentd.ElasticsearchURL
-		}
-		if len(vz.Spec.Components.Fluentd.ElasticsearchSecret) > 0 {
-			secret = vz.Spec.Components.Fluentd.ElasticsearchSecret
+		if vz.Spec.Components.Fluentd != nil {
+			if len(vz.Spec.Components.Fluentd.ElasticsearchURL) > 0 {
+				url = vz.Spec.Components.Fluentd.ElasticsearchURL
+			}
+			if len(vz.Spec.Components.Fluentd.ElasticsearchSecret) > 0 {
+				secret = vz.Spec.Components.Fluentd.ElasticsearchSecret
+			}
 		}
 	}
 	return url, secret, nil
