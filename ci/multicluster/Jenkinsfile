@@ -75,6 +75,18 @@ pipeline {
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
+        string (name: 'TAGGED_TESTS',
+                defaultValue: '',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
+        string (name: 'INCLUDED_TESTS',
+                defaultValue: '.*',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                defaultValue: '_excluded_test',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
     }
 
     environment {
@@ -456,7 +468,7 @@ pipeline {
                                         export MANAGED_CLUSTER_NAME="managed${count-1}"
                                         export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-register/...
+                                        ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-register/...
                                     """
                                 }
                             }
@@ -474,7 +486,7 @@ pipeline {
                                         export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                                         export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -v -stream -keepGoing --noColor multicluster/verify-permissions/...
+                                        ginkgo -v -stream -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-permissions/...
                                     """
                                 }
                             }
@@ -499,7 +511,7 @@ pipeline {
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                                         export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                                         export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-                                        ginkgo -v -keepGoing --noColor multicluster/examples/helidon/...
+                                        ginkgo -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon/...
                                     """
                                 }
                             }
@@ -519,7 +531,7 @@ pipeline {
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                                         export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                                         export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-ns-ops"
-                                        ginkgo -v -keepGoing --noColor multicluster/examples/helidon-ns-ops/...
+                                        ginkgo -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon-ns-ops/...
                                     """
                                 }
                             }
@@ -536,7 +548,7 @@ pipeline {
                                         export MANAGED_CLUSTER_NAME="managed${count-1}"
                                         export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -v -keepGoing --noColor multicluster/verify-api/...
+                                        ginkgo -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-api/...
                                     """
                                 }
                             }
@@ -856,7 +868,7 @@ def runGinkgoRandomize(testSuitePath) {
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+                    ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
                 """
             }
         }
@@ -870,7 +882,7 @@ def runGinkgo(testSuitePath, kubeConfig, clusterCount) {
             export KUBECONFIG="${kubeConfig}"
             export CLUSTER_COUNT="${clusterCount}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
