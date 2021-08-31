@@ -72,6 +72,8 @@ const OidcNginxConfFileTemplate = `#user  nobody;
 
         root     /opt/nginx/html;
 
+        proxy_http_version 1.1;
+
         # verrazzano api and console
         server {
             listen       8775;
