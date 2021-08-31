@@ -226,9 +226,17 @@ pipeline {
                                 if (params.ENABLE_API_ENVOY_LOGGING) {
                                     sh '''
                                         vz_api_pod=\$(kubectl get pod -n verrazzano-system -l app=verrazzano-api --no-headers -o custom-columns=\":metadata.name\")
-                                        kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
+                                        if [ -z "\$vz_api_pod" ]; then
+                                          echo "Could not find verrazzano-api pod, not enabling debug logging"
+                                        else
+                                          kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
+                                        fi
                                         nginx_ing_pod=\$(kubectl get pod -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers -o custom-columns=\":metadata.name\")
-                                        kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
+                                        if [ -z "\$nginx_ing_pod" ]; then
+                                          echo "Could not find nginx ingress controller pod, not enabling debug logging"
+                                        else
+                                          kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
+                                        fi
                                     '''
                                 }
                             }
