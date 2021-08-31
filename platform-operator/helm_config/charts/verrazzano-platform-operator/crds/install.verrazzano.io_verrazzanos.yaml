@@ -172,6 +172,8 @@ spec:
                     description: Fluentd configuration
                     properties:
                       enabled:
+                        description: Specifies whether Fluentd is deployed or not
+                          on a cluster.  Default is true.
                         type: boolean
                       extraVolumeMounts:
                         items:
