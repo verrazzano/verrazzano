@@ -77,6 +77,100 @@ pipeline {
 
         stage ('Periodic Test Suites') {
             parallel {
+                stage('Multi Cluster Tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Uninstall Tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-uninstall-test/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('OCI DNS tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.17') {
+                    steps {
+                        script {
+                            build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17'),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.18') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.18'),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.19') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Upgrade tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-upgrade-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                    parameters: [
+                                            string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                            string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                    ], wait: true
+                        }
+                    }
+                }
                 stage('Kind Acceptance Tests on 1.19 Non-Calico') {
                     steps {
                         script {
