@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
@@ -26,7 +27,12 @@ func GetCurrentBomVersion() (*semver.SemVersion, error) {
 	if err != nil {
 		return nil, err
 	}
-	return semver.NewSemVersion(fmt.Sprintf("v%s", bom.GetVersion()))
+	v := bom.GetVersion()
+	if v == constants.BomVerrazzanoVersion {
+		// This will only happen during development testing, the value doesn't matter
+		v = "1.0.1"
+	}
+	return semver.NewSemVersion(fmt.Sprintf("v%s", v))
 }
 
 // ValidateVersion check that requestedVersion matches BOM requestedVersion
@@ -127,10 +133,10 @@ func ValidateInProgress(state StateType) error {
 func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 	if spec.Components.DNS != nil && spec.Components.DNS.OCI != nil {
 		secret := &corev1.Secret{}
-		err := client.Get(context.TODO(), types.NamespacedName{Name: spec.Components.DNS.OCI.OCIConfigSecret, Namespace: "default"}, secret)
+		err := client.Get(context.TODO(), types.NamespacedName{Name: spec.Components.DNS.OCI.OCIConfigSecret, Namespace: constants.VerrazzanoInstallNamespace}, secret)
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
-				return fmt.Errorf("secret \"%s\" must be created in the default namespace before installing Verrrazzano for OCI DNS", spec.Components.DNS.OCI.OCIConfigSecret)
+				return fmt.Errorf("The secret \"%s\" must be created in the %s namespace before installing Verrrazzano for OCI DNS", spec.Components.DNS.OCI.OCIConfigSecret, constants.VerrazzanoInstallNamespace)
 			}
 			return err
 		}

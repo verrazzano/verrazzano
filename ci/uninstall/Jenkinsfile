@@ -274,8 +274,8 @@ pipeline {
                     sh """
                         ## dump out install logs
                         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs
-                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
                         echo "Verrazzano Installation logs dumped to verrazzano-install.log"
                         echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                         echo "------------------------------------------"
@@ -423,8 +423,8 @@ pipeline {
                     sh """
                         ## dump out install logs
                         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs
-                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/verrazzano-reinstall.log --tail -1
-                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/verrazzano-reinstall-job-pod.out
+                        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/verrazzano-reinstall.log --tail -1
+                        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/verrazzano-reinstall-job-pod.out
                         echo "Verrazzano Installation logs dumped to verrazzano-reinstall.log"
                         echo "Verrazzano Install pod description dumped to verrazzano-reinstall-job-pod.out"
                         echo "------------------------------------------"

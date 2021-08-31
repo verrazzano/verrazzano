@@ -58,6 +58,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 	log.Info(msg)
 	cr.Status.Version = targetVersion
 	err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
+
 	return ctrl.Result{}, err
 }
 
