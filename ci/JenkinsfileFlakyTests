@@ -42,7 +42,7 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
-        BRANCH_NAME="tvlatas/FlakyTestJob"
+        BRANCH_NAME="master"
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
@@ -73,8 +73,7 @@ pipeline {
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                     // If the commit we were handed is not what the SCM says we are using, fail
                     if (!env.GIT_COMMIT.equals(GIT_COMMIT_TO_USE)) {
-                        // error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
-                        echo "FIXME BEFORE SUBMIT. Disabled this check it should work once this is in master and master last-stable-commit advances to have this support"
+                        error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
                     }
                 }
 
