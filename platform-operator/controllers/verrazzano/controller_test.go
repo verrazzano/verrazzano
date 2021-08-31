@@ -7,18 +7,18 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/config"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"testing"
 	"time"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
 	"github.com/golang/mock/gomock"
@@ -39,7 +39,7 @@ import (
 )
 
 // For unit testing
-const testBomFilePath = "testdata/test_bom.json"
+const testBomFilePath = "component/testdata/test_bom.json"
 
 // Generate mocks for the Kerberos Client and StatusWriter interfaces for use in tests.
 //go:generate mockgen -destination=../mocks/controller_mock.go -package=mocks -copyright_file=../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
@@ -128,9 +128,9 @@ func TestSuccessfulInstall(t *testing.T) {
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		bom.SetUnitTestBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -237,12 +237,13 @@ func TestCreateVerrazzano(t *testing.T) {
 		Name:      name,
 		Labels:    labels}
 
+	// Mark all in-operator components as installed before calling, to test happy path
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		bom.SetUnitTestBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -357,25 +358,19 @@ func TestCreateVerrazzano(t *testing.T) {
 
 func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 	statusMap := make(vzapi.ComponentStatusMap)
-	statusMap["verrazzano-application-operator"] = &vzapi.ComponentStatusDetails{
-		Name: "verrazzano-application-operator",
-		Conditions: []vzapi.Condition{
-			{
-				Type:   vzapi.InstallComplete,
-				Status: corev1.ConditionTrue,
-			},
-		},
-		State: vzapi.Ready,
-	}
-	statusMap["oam-kubernetes-runtime"] = &vzapi.ComponentStatusDetails{
-		Name: "oam-kubernetes-runtime",
-		Conditions: []vzapi.Condition{
-			{
-				Type:   vzapi.InstallComplete,
-				Status: corev1.ConditionTrue,
-			},
-		},
-		State: vzapi.Ready,
+	for _, comp := range component.GetComponents() {
+		if comp.IsOperatorInstallSupported() {
+			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
+				Name: comp.Name(),
+				Conditions: []vzapi.Condition{
+					{
+						Type:   vzapi.InstallComplete,
+						Status: corev1.ConditionTrue,
+					},
+				},
+				State: vzapi.Ready,
+			}
+		}
 	}
 	return statusMap
 }
@@ -415,9 +410,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		bom.SetUnitTestBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {

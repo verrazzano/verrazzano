@@ -517,4 +517,5 @@ type IngressType string
 
 func init() {
 	SchemeBuilder.Register(&Verrazzano{}, &VerrazzanoList{})
+	SchemeBuilder.Register(&VerrazzanoComponent{}, &VerrazzanoComponentList{})
 }

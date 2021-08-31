@@ -6,6 +6,7 @@ package component
 import (
 	"bytes"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"text/template"
 
 	"go.uber.org/zap"
@@ -39,15 +40,15 @@ type imageData struct {
 
 // appendKeycloakOverrides appends the Keycloak theme for the key keycloak.extraInitContainers.
 // A go template is used to replace the image in the init container spec.
-func appendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []keyValue) ([]keyValue, error) {
+func appendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Create a Bom and get the key value overrides
-	bom, err := NewBom(DefaultBomFilePath())
+	bomFile, err := bom.NewBom(bom.DefaultBomFilePath())
 	if err != nil {
 		return nil, err
 	}
 
 	// Get Keycloak theme images
-	images, err := bom.buildImageOverrides("keycloak-oracle-theme")
+	images, err := bomFile.BuildImageOverrides("keycloak-oracle-theme")
 	if err != nil {
 		return nil, err
 	}
@@ -63,16 +64,16 @@ func appendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string,
 	}
 
 	// Render the template
-	data := imageData{Image: images[0].value}
+	data := imageData{Image: images[0].Value}
 	err = t.Execute(&b, data)
 	if err != nil {
 		return nil, err
 	}
 
 	// Return a new key:value pair with the rendered value
-	kvs = append(kvs, keyValue{
-		key:   kcInitContainerKey,
-		value: b.String(),
+	kvs = append(kvs, bom.KeyValue{
+		Key:   kcInitContainerKey,
+		Value: b.String(),
 	})
 
 	return kvs, nil

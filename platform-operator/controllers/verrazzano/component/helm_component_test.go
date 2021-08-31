@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	"os/exec"
@@ -60,7 +61,7 @@ func TestUpgrade(t *testing.T) {
 	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
 	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3"
 
-	SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetUnitTestBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
@@ -141,7 +142,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
 	fakeOverrides = "pilot.image=myreg.io/myrepo/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3,global.hub=myreg.io/myrepo/verrazzano"
 
-	SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetUnitTestBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
@@ -175,7 +176,7 @@ func TestInstall(t *testing.T) {
 	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
 	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3"
 
-	SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetUnitTestBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
@@ -213,7 +214,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
 	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3"
 
-	SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetUnitTestBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
@@ -237,9 +238,9 @@ func TestInstallPreviousFailure(t *testing.T) {
 func TestInstallWithPreInstallFunc(t *testing.T) {
 	assert := assert.New(t)
 
-	preInstallKVPairs := []keyValue{
-		{key: "preInstall1", value: "value1"},
-		{key: "preInstall2", value: "value2"},
+	preInstallKVPairs := []bom.KeyValue{
+		{Key: "preInstall1", Value: "value1"},
+		{Key: "preInstall2", Value: "value2"},
 	}
 
 	comp := helmComponent{
@@ -248,7 +249,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 		chartNamespace:          "chartNS",
 		ignoreNamespaceOverride: true,
 		valuesFile:              "valuesFile",
-		preInstallFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]keyValue, error) {
+		preInstallFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error) {
 			return preInstallKVPairs, nil
 		},
 	}
@@ -260,16 +261,16 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 	var buffer bytes.Buffer
 	buffer.WriteString("pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3,")
 	for i, kv := range preInstallKVPairs {
-		buffer.WriteString(kv.key)
+		buffer.WriteString(kv.Key)
 		buffer.WriteString("=")
-		buffer.WriteString(kv.value)
+		buffer.WriteString(kv.Value)
 		if i != len(preInstallKVPairs)-1 {
 			buffer.WriteString(",")
 		}
 	}
 	expectedOverridesString := buffer.String()
 
-	SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetUnitTestBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {

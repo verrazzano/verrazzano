@@ -4,6 +4,7 @@ package component
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"go.uber.org/zap"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -15,7 +16,7 @@ import (
 //  WHEN I call with no extra kvs
 //  THEN the correct number of keyValue objects are returned and no errors occur
 func Test_appendWeblogicOperatorOverrides(t *testing.T) {
-	kvs, err := appendWeblogicOperatorOverrides(zap.S(), "weblogic-operator", "verrazzano-system", "", []keyValue{})
+	kvs, err := appendWeblogicOperatorOverrides(zap.S(), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 }
@@ -25,8 +26,8 @@ func Test_appendWeblogicOperatorOverrides(t *testing.T) {
 //  WHEN I pass in a keyValue list
 //  THEN the values passed in are preserved and no errors occur
 func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
-	kvs := []keyValue{
-		{key: "key", value: "value"},
+	kvs := []bom.KeyValue{
+		{Key: "key", Value: "value"},
 	}
 	var err error
 	kvs, err = appendWeblogicOperatorOverrides(zap.S(), "weblogic-operator", "verrazzano-system", "", kvs)

@@ -5,16 +5,15 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	config2 "github.com/verrazzano/verrazzano/pkg/config"
 	"os"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 
 	"github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
-	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
 	"go.uber.org/zap"
@@ -74,7 +73,7 @@ func main() {
 	setupLog := zap.S()
 
 	if len(bomOverride) > 0 {
-		component.SetUnitTestBomFilePath(bomOverride)
+		bom.SetUnitTestBomFilePath(bomOverride)
 	}
 
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
@@ -173,6 +172,17 @@ func main() {
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().CertDir = config.CertDir
+	}
+
+	// Setup the reconciler
+	componentReconciler := vzcontroller.ComponentReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		DryRun: config.DryRun,
+	}
+	if err = componentReconciler.SetupControllerWithManager(mgr); err != nil {
+		setupLog.Errorf("unable to create controller: %v", err)
+		os.Exit(1)
 	}
 
 	// +kubebuilder:scaffold:builder
