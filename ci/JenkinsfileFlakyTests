@@ -79,6 +79,7 @@ pipeline {
                 stage('TBD: Add flaky tests here, maybe triggers job with FLAKY=true?') {
                     steps {
                         script {
+                            echo "add flaky test here"
                         }
                     }
                     post {
@@ -95,6 +96,7 @@ pipeline {
     post {
         failure {
             script {
+                echo "add failure post here"
             }
         }
         cleanup {
