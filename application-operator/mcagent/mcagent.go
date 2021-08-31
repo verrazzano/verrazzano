@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -317,9 +316,12 @@ func (s *Syncer) updateLoggingDaemonSet(newSecretName string, newSecret corev1.S
 }
 
 const (
-	defaultClusterName = constants.DefaultClusterName
-	defaultElasticURL  = "http://vmi-system-es-ingest-oidc:8775"
-	defaultSecretName  = "verrazzano"
+	defaultClusterName   = constants.DefaultClusterName
+	defaultElasticURL    = "http://vmi-system-es-ingest-oidc:8775"
+	defaultSecretName    = "verrazzano"
+	esConfigMapName      = "fluentd-es-config"
+	esConfigMapURLKey    = "es-url"
+	esConfigMapSecretKey = "es-secret"
 )
 
 func updateEnv(newSecretName string, newSecret corev1.Secret, secretVersion, vzESURL, vzESSecret string, old []corev1.EnvVar) []corev1.EnvVar {
@@ -447,22 +449,16 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 func (s *Syncer) getVzESURLSecret() (string, string, error) {
 	url := defaultElasticURL
 	secret := defaultSecretName
-	vzList := vzapi.VerrazzanoList{}
-	err := s.LocalClient.List(s.Context, &vzList, &client.ListOptions{})
+	esConfig := corev1.ConfigMap{}
+	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: esConfigMapName, Namespace: constants.VerrazzanoSystemNamespace}, &esConfig)
 	if err != nil {
-		s.Log.Error(err, "Can not list Verrazzano CR")
-		return url, secret, err
+		s.Log.Info(fmt.Sprintf("Failed to find the ConfigMap %s/%s", constants.VerrazzanoSystemNamespace, esConfigMapName))
 	}
-	// what to do when there is more than one Verrazzano CR
-	for _, vz := range vzList.Items {
-		if vz.Spec.Components.Fluentd != nil {
-			if len(vz.Spec.Components.Fluentd.ElasticsearchURL) > 0 {
-				url = vz.Spec.Components.Fluentd.ElasticsearchURL
-			}
-			if len(vz.Spec.Components.Fluentd.ElasticsearchSecret) > 0 {
-				secret = vz.Spec.Components.Fluentd.ElasticsearchSecret
-			}
-		}
+	if len(esConfig.Data[esConfigMapURLKey]) > 0 {
+		url = esConfig.Data[esConfigMapURLKey]
+	}
+	if len(esConfig.Data[esConfigMapSecretKey]) > 0 {
+		secret = esConfig.Data[esConfigMapSecretKey]
 	}
 	return url, secret, nil
 }

@@ -24,6 +24,17 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: {{ .Values.logging.name }}-es-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.logging.name }}
+data:
+  es-url: {{ .Values.logging.elasticsearchURL }}
+  es-secret: {{ .Values.logging.elasticsearchSecret }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: {{ .Values.logging.name }}-config
   namespace: {{ .Release.Namespace }}
   labels:

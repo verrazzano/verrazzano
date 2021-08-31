@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"testing"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -639,29 +637,18 @@ func TestSyncer_configureLogging(t *testing.T) {
 
 			// Managed Cluster - expect call to list Verrazzano CR.
 			mcMock.EXPECT().
-				List(gomock.Any(), &vzapi.VerrazzanoList{}, gomock.Not(gomock.Nil())).
-				DoAndReturn(func(ctx context.Context, list *vzapi.VerrazzanoList, opts ...*client.ListOptions) error {
-					url := defaultElasticURL
-					secret := defaultSecretName
-					if tt.fields.externalEs {
-						url = externalEsURL
-						secret = externalEsSecret
-					}
-					vz := vzapi.Verrazzano{
-						Spec: vzapi.VerrazzanoSpec{
-							Components: vzapi.ComponentSpec{
-								Fluentd: &vzapi.FluentdComponent{
-									ElasticsearchURL:    url,
-									ElasticsearchSecret: secret,
-								},
-							},
-						},
-					}
-					list.Items = append(list.Items, vz)
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: esConfigMapName}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
+					cm.Name = esConfigMapName
+					cm.Namespace = constants.VerrazzanoSystemNamespace
+					var data = make(map[string]string)
+					data[esConfigMapURLKey] = dsEsURL
+					data[esConfigMapSecretKey] = dsSecretName
+					cm.Data = data
 					return nil
 				})
 
-			// Managed Cluster - expect call to get the fluentd deployment.
+			// Managed Cluster - expect call to get the fluentd daemonset.
 			mcMock.EXPECT().
 				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
