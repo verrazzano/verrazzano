@@ -389,7 +389,7 @@ spec:
             - name: AUTH_PROXY_SERVICE_NAME
               value: {{ .Values.api.name }}
             - name: AUTH_PROXY_SERVICE_PORT
-              value: {{ .Values.api.port }}
+              value: {{ .Values.api.port | quote }}
           livenessProbe:
             failureThreshold: 5
             httpGet:
