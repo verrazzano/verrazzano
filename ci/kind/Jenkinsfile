@@ -108,7 +108,6 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
 
         // used to emit metrics
-        SAURON_CRED = credentials('verrazzano-sauron')
         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
         TEST_ENV_LABEL = "kind"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
@@ -519,6 +518,7 @@ pipeline {
             }
         }
         cleanup {
+            emitBuildDurationMetric("${currentBuild.currentResult}", "${currentBuild.durationString.replace(' and counting', '')}")
             deleteDir()
         }
     }
@@ -697,9 +697,30 @@ def metricTimerEnd(metricName, status) {
                  'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
                  'kubernetes_version=\\"' + "${params.KUBERNETES_CLUSTER_VERSION}"+'\\",' +
                  'test_env=\\"kind\\"'
-        EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
-        echo "emit prometheus metrics: $EMIT"
-        return EMIT
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+            echo "emit prometheus metrics: $EMIT"
+            return EMIT
+        }
+    } else {
+        return ''
+    }
+}
+
+def emitBuildDurationMetric(status, time) {
+    testMetric = metricJobName('')
+    def metricValue = "0"
+    if (status.equals("SUCCESS")) {
+        metricValue = "1"
+    }
+    if (params.EMIT_METRICS) {
+        labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+                 'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
+                 'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_build ${env.BRANCH_NAME} $labels ${metricValue} ${time}")
+            return EMIT
+        }
     } else {
         return ''
     }
