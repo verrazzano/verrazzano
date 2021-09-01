@@ -91,6 +91,7 @@ func GetComponents() []Component {
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			resolveNamespaceFunc:    resolveVerrazzanoNamespace,
+			preUpgradeFunc:          verrazzanoPreUpgrade,
 		},
 		helmComponent{
 			releaseName:             "coherence-operator",

@@ -59,3 +59,21 @@ const ImageRepoOverrideEnvVar = "IMAGE_REPO"
 
 // VerrazzanoAppOperatorImageEnvVar is the environment variable used to override the Verrazzano Application Operator image
 const VerrazzanoAppOperatorImageEnvVar = "APP_OPERATOR_IMAGE"
+
+// The Kubernetes default namespace
+const DefaultNamespace = "default"
+
+const BomVerrazzanoVersion = "VERRAZZANO_VERSION"
+
+// ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
+const ClusterNameData = "managed-cluster-name"
+
+// ElasticsearchURLData - the field name in MCRegistrationSecret that contains the admin cluster's
+// Elasticsearch endpoint's URL
+const ElasticsearchURLData = "es-url"
+
+// ClusterNameEnvVar is the environment variable used to identify the managed cluster for fluentd
+const ClusterNameEnvVar = "CLUSTER_NAME"
+
+// ElasticsearchURLEnvVar is the environment variable used to identify the admin clusters Elasticsearch URL
+const ElasticsearchURLEnvVar = "ELASTICSEARCH_URL"

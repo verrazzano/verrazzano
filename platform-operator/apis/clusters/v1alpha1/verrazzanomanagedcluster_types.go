@@ -51,6 +51,22 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
+type RancherRegistrationStatus string
+
+const (
+	RegistrationCompleted RancherRegistrationStatus = "Completed"
+	RegistrationFailed    RancherRegistrationStatus = "Failed"
+)
+
+// RancherRegistration defines the Rancher registration state for a managed cluster
+type RancherRegistration struct {
+	// The status of the Rancher registration
+	Status RancherRegistrationStatus `json:"status"`
+	// Supporting message related to the Rancher registration status
+	// +optional
+	Message string `json:"message,omitempty"`
+}
+
 // VerrazzanoManagedClusterStatus defines the observed state of VerrazzanoManagedCluster
 type VerrazzanoManagedClusterStatus struct {
 	// The latest available observations of an object's current state.
@@ -62,6 +78,8 @@ type VerrazzanoManagedClusterStatus struct {
 	APIUrl string `json:"apiUrl,omitempty"`
 	// Prometheus Host for the managed cluster.
 	PrometheusHost string `json:"prometheusHost,omitempty"`
+	// State of Rancher registration for a managed cluster
+	RancherRegistration RancherRegistration `json:"rancherRegistration,omitempty"`
 }
 
 // VerrazzanoManagedCluster is the Schema for the Verrazzanomanagedclusters API
