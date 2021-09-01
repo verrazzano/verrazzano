@@ -69,20 +69,6 @@ const OidcAuthLuaFileTemplate = `local me = {}
 
         oidcIssuerUri = oidcProviderUri
         oidcIssuerUriLocal = oidcProviderInClusterUri
-        --[[
-        if oidcProviderUri then
-            me.info("set oidcProviderUri to "..oidcProviderUri)
-        end
-        if oidcProviderInClusterUri then
-            me.info("set oidcProviderInClusterUri to "..oidcProviderInClusterUri)
-        end
-        if oidcIssuerUri then
-            me.info("set oidcIssuerUri to "..oidcIssuerUri)
-        end
-        if oidcIssuerUri then
-            me.info("set oidcIssuerUriLocal to "..oidcIssuerUriLocal)
-        end
-        --]]
     end
 
     function me.log(logLevel, msg, name, value)
