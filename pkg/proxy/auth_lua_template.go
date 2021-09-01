@@ -58,13 +58,11 @@ const OidcAuthLuaFileTemplate = `local me = {}
             oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..oidcRealm
         end
 
-        if ngx.var.backend_name == 'verrazzano-api' then
-            local keycloakURL = me.read_file("/api-config/keycloak-url")
-            if keycloakURL and keycloakURL ~= "" then
-                me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
-                oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
-                oidcProviderInClusterUri = nil
-            end
+        local keycloakURL = me.read_file("/api-config/keycloak-url")
+        if keycloakURL and keycloakURL ~= "" then
+            me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
+            oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
+            oidcProviderInClusterUri = nil
         end
 
         oidcIssuerUri = oidcProviderUri
