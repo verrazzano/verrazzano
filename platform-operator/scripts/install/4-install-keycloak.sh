@@ -795,8 +795,10 @@ if [[ "$(is_vz_console_enabled)" == "true" ]]; then
   consoleArr+=("Verrazzano Console - https://verrazzano.${ENV_NAME}.${DNS_SUFFIX}")
 fi
 
+print_warning_for_secret="false"
 console_count=${#consoleArr[@]}
 if [ $console_count -gt 0 ];then
+  print_warning_for_secret="true"
   consoleout
   if [ $console_count -eq 1 ];then
     consoleout "Verrazzano provides the following user interface."
@@ -823,11 +825,18 @@ if [ $(is_rancher_enabled) == "true" ]; then
   consoleout "User: admin"
   consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
   consoleout
+  print_warning_for_secret="true"
 fi
 if [ $(is_keycloak_enabled) == "true" ]; then
   consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
   consoleout "User: keycloakadmin"
   consoleout "Password: kubectl get secret --namespace keycloak ${KCADMIN_SECRET} -o jsonpath={.data.password} | base64 --decode; echo"
+  print_warning_for_secret="true"
+fi
+if [ $print_warning_for_secret == "true" ]; then
+  consoleout
+  consoleout "WARNING: Do not edit one or more secrets mentioned above to reset the password. They are created to provide a convenient way to access various consoles."
+  consoleout
 fi
 if [ $(get_application_ingress_ip) == "null" ]; then
   consoleout
