@@ -26,6 +26,8 @@ cd ${TEST_SCRIPTS_DIR}
 if [ $? -ne 0 ]; then
     mkdir $WORKSPACE/kind-logs
     kind export logs $WORKSPACE/kind-logs
+    echo "Kind cluster creation failed"
+    exit 1
 fi
 
 if [ $INSTALL_CALICO == true ]; then
