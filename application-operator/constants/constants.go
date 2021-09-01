@@ -32,11 +32,11 @@ const ElasticsearchURLData = "es-url"
 
 // ElasticsearchUsernameData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch username
-const ElasticsearchUsernameData = "username"
+const ElasticsearchUsernameData = "es-username"
 
 // ElasticsearchPasswordData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch password
-const ElasticsearchPasswordData = "password"
+const ElasticsearchPasswordData = "es-password"
 
 // LabelVerrazzanoManaged - constant for a Kubernetes label that is applied by Verrazzano
 const LabelVerrazzanoManaged = "verrazzano-managed"
@@ -101,3 +101,9 @@ const FluentdElasticsearchUserEnvVar = "ELASTICSEARCH_USER"
 // FluentdElasticsearchPwdEnvVar is the environment variable name used to identify the admin cluster's
 // Elasticsearch password for fluentd
 const FluentdElasticsearchPwdEnvVar = "ELASTICSEARCH_PASSWORD"
+
+// VerrazzanoUsernameData - the field name in verrazzano secret that contains the username
+const VerrazzanoUsernameData = "username"
+
+// VerrazzanoPasswordData - the field name in verrazzano secret that contains the password
+const VerrazzanoPasswordData = "password"

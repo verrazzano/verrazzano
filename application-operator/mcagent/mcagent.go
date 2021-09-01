@@ -283,7 +283,7 @@ func (s *Syncer) configureLogging() {
 	// CreateOrUpdate updates the fluentd daemonset - if no changes to the daemonset after we mutate it in memory,
 	// controllerutil will not update it
 	controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
-		s.updateLoggingDaemonSet(constants.MCRegistrationSecret, regSecret, &daemonSet)
+		s.updateLoggingDaemonSet(regSecret, &daemonSet)
 		return nil
 	})
 }
@@ -299,18 +299,21 @@ func getEnvValue(containers *[]corev1.Container, envName string) string {
 	return ""
 }
 
-func (s *Syncer) updateLoggingDaemonSet(newSecretName string, newSecret corev1.Secret, ds *appsv1.DaemonSet) {
-	secretVersion := newSecret.ResourceVersion
+func (s *Syncer) updateLoggingDaemonSet(regSecret corev1.Secret, ds *appsv1.DaemonSet) {
+	isManaged := false
+	if regSecret.ResourceVersion != "" && regSecret.Data != nil {
+		isManaged = true
+	}
 
 	vzESURL, vzESSecret, err := s.getVzESURLSecret()
 	if err != nil {
 		return
 	}
 
-	ds.Spec.Template.Spec.Volumes = updateVolumes(newSecretName, secretVersion, vzESSecret, ds.Spec.Template.Spec.Volumes)
+	ds.Spec.Template.Spec.Volumes = updateLoggingDaemonsetVolumes(isManaged, vzESSecret, ds.Spec.Template.Spec.Volumes)
 	for i, c := range ds.Spec.Template.Spec.Containers {
 		if c.Name == "fluentd" {
-			ds.Spec.Template.Spec.Containers[i].Env = updateEnv(newSecretName, newSecret, secretVersion, vzESURL, vzESSecret, ds.Spec.Template.Spec.Containers[i].Env)
+			ds.Spec.Template.Spec.Containers[i].Env = updateLoggingDaemonsetEnv(regSecret, isManaged, vzESURL, vzESSecret, ds.Spec.Template.Spec.Containers[i].Env)
 		}
 	}
 }
@@ -324,15 +327,24 @@ const (
 	esConfigMapSecretKey = "es-secret"
 )
 
-func updateEnv(newSecretName string, newSecret corev1.Secret, secretVersion, vzESURL, vzESSecret string, old []corev1.EnvVar) []corev1.EnvVar {
-	secretName := newSecretName
-	esURL := vzESURL
-	clusterName := defaultClusterName
-	if secretVersion == "" {
-		secretName = vzESSecret
-	} else if newSecret.Data != nil {
-		clusterName = string(newSecret.Data[constants.ClusterNameData])
-		esURL = string(newSecret.Data[constants.ElasticsearchURLData])
+func updateLoggingDaemonsetEnv(regSecret corev1.Secret, isManaged bool, vzESURL, vzESSecret string, old []corev1.EnvVar) []corev1.EnvVar {
+	var esSecretName string
+	var esURL string
+	var clusterName string
+	var usernameKey string
+	var passwordKey string
+	if isManaged {
+		esSecretName = constants.MCRegistrationSecret
+		esURL = string(regSecret.Data[constants.ElasticsearchURLData])
+		clusterName = string(regSecret.Data[constants.ClusterNameData])
+		usernameKey = constants.ElasticsearchUsernameData
+		passwordKey = constants.ElasticsearchPasswordData
+	} else {
+		esSecretName = vzESSecret
+		esURL = vzESURL
+		clusterName = defaultClusterName
+		usernameKey = constants.VerrazzanoUsernameData
+		passwordKey = constants.VerrazzanoPasswordData
 	}
 
 	var new []corev1.EnvVar
@@ -353,9 +365,9 @@ func updateEnv(newSecretName string, newSecret corev1.Secret, secretVersion, vzE
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretName,
+							Name: esSecretName,
 						},
-						Key: constants.ElasticsearchUsernameData,
+						Key: usernameKey,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -368,9 +380,9 @@ func updateEnv(newSecretName string, newSecret corev1.Secret, secretVersion, vzE
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretName,
+							Name: esSecretName,
 						},
-						Key: constants.ElasticsearchPasswordData,
+						Key: passwordKey,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -384,9 +396,9 @@ func updateEnv(newSecretName string, newSecret corev1.Secret, secretVersion, vzE
 	return new
 }
 
-func updateVolumes(newSecretName, secretVersion, vzESSecret string, old []corev1.Volume) []corev1.Volume {
-	secretName := newSecretName
-	if secretVersion == "" {
+func updateLoggingDaemonsetVolumes(isManaged bool, vzESSecret string, old []corev1.Volume) []corev1.Volume {
+	secretName := constants.MCRegistrationSecret
+	if !isManaged {
 		secretName = vzESSecret
 	}
 	var new []corev1.Volume

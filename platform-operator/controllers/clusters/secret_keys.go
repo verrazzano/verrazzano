@@ -21,11 +21,17 @@ const KubeconfigKey = "admin-kubeconfig"
 // ManagedClusterNameKey is the key for the managed cluster name
 const ManagedClusterNameKey = "managed-cluster-name"
 
-// PasswordKey is the password key
-const PasswordKey = "password"
+// RegistrationPasswordKey is the password key in registration secret
+const RegistrationPasswordKey = "es-password"
 
-// UsernameKey is the username key
-const UsernameKey = "username"
+// RegistrationUsernameKey is the username key in registration secret
+const RegistrationUsernameKey = "es-username"
+
+// VerrazzanoPasswordKey is the password key in verrazzano secret
+const VerrazzanoPasswordKey = "password"
+
+// VerrazzanoUsernameKey is the username key in verrazzano secret
+const VerrazzanoUsernameKey = "username"
 
 // TokenKey is the key for the service account token
 const TokenKey = "token"

@@ -635,7 +635,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 					return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, constants.MCRegistrationSecret)
 				})
 
-			// Managed Cluster - expect call to list Verrazzano CR.
+			// Managed Cluster - expect call to get fluentd-es-config configmap
 			mcMock.EXPECT().
 				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: esConfigMapName}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
@@ -691,6 +691,15 @@ func TestSyncer_configureLogging(t *testing.T) {
 	}
 }
 func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSetSpec {
+	var usernameKey string
+	var passwordKey string
+	if secretName == constants.MCRegistrationSecret {
+		usernameKey = constants.ElasticsearchUsernameData
+		passwordKey = constants.ElasticsearchPasswordData
+	} else {
+		usernameKey = constants.VerrazzanoUsernameData
+		passwordKey = constants.VerrazzanoPasswordData
+	}
 	return appsv1.DaemonSetSpec{
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
@@ -713,7 +722,7 @@ func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSe
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: secretName,
 										},
-										Key: constants.ElasticsearchUsernameData,
+										Key: usernameKey,
 										Optional: func(opt bool) *bool {
 											return &opt
 										}(true),
@@ -727,7 +736,7 @@ func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSe
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: secretName,
 										},
-										Key: constants.ElasticsearchPasswordData,
+										Key: passwordKey,
 										Optional: func(opt bool) *bool {
 											return &opt
 										}(true),
@@ -742,11 +751,11 @@ func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSe
 	}
 }
 
-// Test_updateEnv tests updateEnv
+// Test_updateLoggingDaemonsetEnv tests updateLoggingDaemonsetEnv
 // GIVEN a request for a specified ENV array
 // WHEN the env array contains such an env
 // THEN updates its value, append the env name/value if not found
-func Test_updateEnv(t *testing.T) {
+func Test_updateLoggingDaemonsetEnv(t *testing.T) {
 	oldEnvs := []corev1.EnvVar{
 		{
 			Name:  "CLUSTER_NAME",
@@ -776,16 +785,17 @@ func Test_updateEnv(t *testing.T) {
 			constants.ClusterNameData:           []byte(newClusterName),
 			constants.ElasticsearchURLData:      []byte(newElasticURL),
 			constants.ElasticsearchUsernameData: []byte("someuser"),
+			constants.ElasticsearchPasswordData: []byte("somepassword"),
 		},
 	}
-	newEnvs := updateEnv(constants.MCRegistrationSecret, regSecret, "v2", defaultElasticURL, defaultSecretName, oldEnvs)
+	newEnvs := updateLoggingDaemonsetEnv(regSecret, true, defaultElasticURL, defaultSecretName, oldEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
 	asserts.Equal(t, newClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
 	asserts.Equal(t, newElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_USER", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_PASSWORD", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	//un-registration of setting secretVersion back to ""
-	newEnvs = updateEnv(constants.MCRegistrationSecret, regSecret, "", defaultElasticURL, defaultSecretName, newEnvs)
+	newEnvs = updateLoggingDaemonsetEnv(regSecret, false, defaultElasticURL, defaultSecretName, newEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
 	asserts.Equal(t, defaultClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
 	asserts.Equal(t, defaultElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
@@ -794,11 +804,11 @@ func Test_updateEnv(t *testing.T) {
 
 }
 
-// Test_updateVolumes tests updateVolumes
+// Test_updateLoggingDaemonsetVolumes tests updateLoggingDaemonsetVolumes
 // GIVEN a request for a specified volume array
 // WHEN the volume array contains such an volume
 // THEN updates its value, append the volume name/value if not found
-func Test_updateVolumes(t *testing.T) {
+func Test_updateLoggingDaemonsetVolumes(t *testing.T) {
 	oldVols := []corev1.Volume{
 		{
 			Name: "varlog",
@@ -825,12 +835,12 @@ func Test_updateVolumes(t *testing.T) {
 			},
 		},
 	}
-	newVols := updateVolumes(constants.MCRegistrationSecret, "v2", defaultSecretName, oldVols)
+	newVols := updateLoggingDaemonsetVolumes(true, defaultSecretName, oldVols)
 	asserts.NotNil(t, findVol("my-config", &newVols))
 	asserts.NotNil(t, findVol("varlog", &newVols))
 	asserts.Equal(t, constants.MCRegistrationSecret, findVol("secret-volume", &newVols).VolumeSource.Secret.SecretName)
 	//un-registration of setting secretVersion back to ""
-	newVols = updateVolumes(constants.MCRegistrationSecret, "", defaultSecretName, newVols)
+	newVols = updateLoggingDaemonsetVolumes(false, defaultSecretName, newVols)
 	asserts.Equal(t, defaultSecretName, findVol("secret-volume", &newVols).VolumeSource.Secret.SecretName)
 	asserts.NotNil(t, findVol("my-config", &newVols))
 	asserts.NotNil(t, findVol("varlog", &newVols))

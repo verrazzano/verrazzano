@@ -665,11 +665,11 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(clusterName)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				ManagedClusterNameKey: []byte(clusterName),
-				CaCrtKey:              []byte(caData),
-				UsernameKey:           []byte(userData),
-				PasswordKey:           []byte(passwordData),
-				ESURLKey:              []byte(urlData),
+				ManagedClusterNameKey:   []byte(clusterName),
+				CaCrtKey:                []byte(caData),
+				RegistrationUsernameKey: []byte(userData),
+				RegistrationPasswordKey: []byte(passwordData),
+				ESURLKey:                []byte(urlData),
 			}
 			return nil
 		})
@@ -1323,14 +1323,14 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			if externalES {
 				secret.Data = map[string][]byte{
-					UsernameKey:          []byte(externalUserData),
-					PasswordKey:          []byte(externalPasswordData),
-					FluentdESCaBundleKey: []byte(externalCaData),
+					VerrazzanoUsernameKey: []byte(externalUserData),
+					VerrazzanoPasswordKey: []byte(externalPasswordData),
+					FluentdESCaBundleKey:  []byte(externalCaData),
 				}
 			} else {
 				secret.Data = map[string][]byte{
-					UsernameKey: []byte(vzUserData),
-					PasswordKey: []byte(vzPasswordData),
+					VerrazzanoUsernameKey: []byte(vzUserData),
+					VerrazzanoPasswordKey: []byte(vzPasswordData),
 				}
 			}
 			return nil
@@ -1372,13 +1372,13 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			if externalES {
 				asserts.Equalf(externalEsURLData, string(secret.Data[ESURLKey]), "Incorrect ES URL in Registration secret ")
 				asserts.Equalf(externalCaData, string(secret.Data[ESCaBundleKey]), "Incorrect ES ca bundle in Registration secret ")
-				asserts.Equalf(externalUserData, string(secret.Data[UsernameKey]), "Incorrect ES user in Registration secret ")
-				asserts.Equalf(externalPasswordData, string(secret.Data[PasswordKey]), "Incorrect ES password in Registration secret ")
+				asserts.Equalf(externalUserData, string(secret.Data[RegistrationUsernameKey]), "Incorrect ES user in Registration secret ")
+				asserts.Equalf(externalPasswordData, string(secret.Data[RegistrationPasswordKey]), "Incorrect ES password in Registration secret ")
 			} else {
 				asserts.Equalf(vzEsURLData, string(secret.Data[ESURLKey]), "Incorrect ES URL in Registration secret ")
 				asserts.Equalf(vzCaData, string(secret.Data[ESCaBundleKey]), "Incorrect ES ca bundle in Registration secret ")
-				asserts.Equalf(vzUserData, string(secret.Data[UsernameKey]), "Incorrect ES user in Registration secret ")
-				asserts.Equalf(vzPasswordData, string(secret.Data[PasswordKey]), "Incorrect ES password in Registration secret ")
+				asserts.Equalf(vzUserData, string(secret.Data[RegistrationUsernameKey]), "Incorrect ES user in Registration secret ")
+				asserts.Equalf(vzPasswordData, string(secret.Data[RegistrationPasswordKey]), "Incorrect ES password in Registration secret ")
 			}
 			return nil
 		})
@@ -1411,11 +1411,11 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				ManagedClusterNameKey: []byte(clusterName),
-				CaCrtKey:              []byte(caData),
-				UsernameKey:           []byte(userData),
-				PasswordKey:           []byte(passwordData),
-				ESURLKey:              []byte(urlData),
+				ManagedClusterNameKey:   []byte(clusterName),
+				CaCrtKey:                []byte(caData),
+				RegistrationUsernameKey: []byte(userData),
+				RegistrationPasswordKey: []byte(passwordData),
+				ESURLKey:                []byte(urlData),
 			}
 			return nil
 		})
@@ -1512,7 +1512,7 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoPromInternal}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				PasswordKey: []byte("nRXlxXgMwN"),
+				VerrazzanoPasswordKey: []byte("nRXlxXgMwN"),
 			}
 			return nil
 		})

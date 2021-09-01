@@ -90,16 +90,16 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 			return err
 		}
 		esCaBundle = esSecret.Data[FluentdESCaBundleKey]
-		esUsername = esSecret.Data[UsernameKey]
-		esPassword = esSecret.Data[PasswordKey]
+		esUsername = esSecret.Data[VerrazzanoUsernameKey]
+		esPassword = esSecret.Data[VerrazzanoPasswordKey]
 	} else {
 		esSecret, err := r.getSecret(constants.VerrazzanoESInternal)
 		if err != nil {
 			return err
 		}
 		esCaBundle = adminCaBundle
-		esUsername = esSecret.Data[UsernameKey]
-		esPassword = esSecret.Data[PasswordKey]
+		esUsername = esSecret.Data[VerrazzanoUsernameKey]
+		esPassword = esSecret.Data[VerrazzanoPasswordKey]
 	}
 
 	// Get the keycloak URL
@@ -110,13 +110,13 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 
 	// Build the secret data
 	secret.Data = map[string][]byte{
-		ManagedClusterNameKey: []byte(manageClusterName),
-		ESURLKey:              []byte(esURL),
-		ESCaBundleKey:         esCaBundle,
-		UsernameKey:           esUsername,
-		PasswordKey:           esPassword,
-		KeycloakURLKey:        []byte(keycloakURL),
-		AdminCaBundleKey:      adminCaBundle,
+		ManagedClusterNameKey:   []byte(manageClusterName),
+		ESURLKey:                []byte(esURL),
+		ESCaBundleKey:           esCaBundle,
+		RegistrationUsernameKey: esUsername,
+		RegistrationPasswordKey: esPassword,
+		KeycloakURLKey:          []byte(keycloakURL),
+		AdminCaBundleKey:        adminCaBundle,
 	}
 	return nil
 }

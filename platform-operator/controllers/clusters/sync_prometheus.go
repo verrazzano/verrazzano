@@ -161,7 +161,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 	newScrapeConfigMappings := map[string]string{
 		"##JOB_NAME##":     vmc.Name,
 		"##HOST##":         vmc.Status.PrometheusHost,
-		"##PASSWORD##":     string(vzPromSecret.Data[PasswordKey]),
+		"##PASSWORD##":     string(vzPromSecret.Data[VerrazzanoPasswordKey]),
 		"##CLUSTER_NAME##": vmc.Name}
 	configTemplate := scrapeConfigTemplate
 	for key, value := range newScrapeConfigMappings {
