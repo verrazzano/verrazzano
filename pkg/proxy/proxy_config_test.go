@@ -14,51 +14,32 @@ import (
 	yaml "sigs.k8s.io/yaml"
 )
 
-const dnsSuffix = "example.com"
+// const dnsSuffix = "default.example.com"
+const dnsSuffix = "default.my.domain.nip.io"
 
-func getProxyConfigAPIProxyWithParams(providerHost string) OidcProxyConfig {
+func getProxyBaseConfig() OidcProxyConfig {
 	proxyConfig := OidcProxyConfig{}
 
-	proxyConfig.Mode = ProxyModeAPI
 	proxyConfig.OidcRealm = OidcRealmName
 	proxyConfig.PKCEClientID = OidcPkceClientID
 	proxyConfig.PGClientID = OidcPgClientID
 	proxyConfig.RequiredRealmRole = OidcRequiredRealmRole
 
-	proxyConfig.OidcProviderHost = providerHost
+	proxyConfig.OidcProviderHost = "keycloak." + dnsSuffix
 	proxyConfig.OidcProviderHostInCluster = "keycloak-http.keycloak.svc.cluster.local"
 
 	return proxyConfig
 }
 
-func getProxyConfigAPIProxy() OidcProxyConfig {
-	return getProxyConfigAPIProxyWithParams("keycloak.default." + dnsSuffix)
-}
-
-// getProxyConfigOidcProxy returns an OidcProxyConfig struct
-func getProxyConfigOidcProxyWithParams(ingressHost, verrazzanoURI, keycloakURL string, backendPort int, SSLEnabled bool) OidcProxyConfig {
-	proxyConfig := OidcProxyConfig{}
-
-	proxyConfig.Mode = ProxyModeOauth
-	proxyConfig.OidcRealm = OidcRealmName
-	proxyConfig.PKCEClientID = OidcPkceClientID
-	proxyConfig.PGClientID = OidcPgClientID
-	proxyConfig.RequiredRealmRole = OidcRequiredRealmRole
+// getProxyConfigWithParams returns an OidcProxyConfig struct
+func getProxyConfigWithParams(keycloakURL string) OidcProxyConfig {
+	proxyConfig := getProxyBaseConfig()
 
 	proxyConfig.OidcCallbackPath = OidcCallbackPath
 	proxyConfig.OidcLogoutCallbackPath = OidcLogoutCallbackPath
 	proxyConfig.AuthnStateTTL = OidcAuthnStateTTL
 
-	proxyConfig.Host = "localhost"
-	proxyConfig.Port = backendPort
-	proxyConfig.SSLEnabled = SSLEnabled
-
-	proxyConfig.Ingress = ingressHost
-
-	proxyConfig.OidcProviderHost = fmt.Sprintf("%s.%s", "keycloak", verrazzanoURI)
-	proxyConfig.OidcProviderHostInCluster = "keycloak-http.keycloak.svc.cluster.local"
-
-	// if keycloakURL is present, meanning it is a managed cluster, keycloakURL is the admin keycloak url
+	// if keycloakURL is present, meanning it is a managed cluster, keycloakURL is the admin cluster's keycloak url
 	if len(keycloakURL) > 0 {
 		u, err := url.Parse(keycloakURL)
 		if err == nil {
@@ -70,17 +51,11 @@ func getProxyConfigOidcProxyWithParams(ingressHost, verrazzanoURI, keycloakURL s
 	return proxyConfig
 }
 
-func getProxyConfigOidcProxy() OidcProxyConfig {
-	return getProxyConfigOidcProxyWithParams(
-		"grafana.vmi.system.default."+dnsSuffix,
-		"default."+dnsSuffix,
-		"",
-		3000,
-		false,
-	)
+func getProxyConfig() OidcProxyConfig {
+	return getProxyConfigWithParams("")
 }
 
-func generateConfigmapYaml(name, namespace string, labels, configs map[string]string) string {
+func generateConfigmapYaml(name, namespace string, labels, annotations, configs map[string]string) string {
 	yaml := "---"
 	yaml = fmt.Sprintf("%s\napiVersion: v1", yaml)
 	yaml = fmt.Sprintf("%s\nkind: ConfigMap", yaml)
@@ -89,6 +64,10 @@ func generateConfigmapYaml(name, namespace string, labels, configs map[string]st
 	yaml = fmt.Sprintf("%s\n  namespace: %s", yaml, namespace)
 	yaml = fmt.Sprintf("%s\n  labels:", yaml)
 	for key, value := range labels {
+		yaml = fmt.Sprintf("%s\n    %s: %s", yaml, key, value)
+	}
+	yaml = fmt.Sprintf("%s\n  annotations:", yaml)
+	for key, value := range annotations {
 		yaml = fmt.Sprintf("%s\n    %s: %s", yaml, key, value)
 	}
 	yaml = fmt.Sprintf("%s\ndata:\n", yaml)
@@ -151,20 +130,11 @@ func checkConfigMapData(data map[string]string, expectedCount int, config OidcPr
 				return fmt.Errorf("File %s, did not find expected substitution '%s'", file, expected)
 			}
 		} else if file == "conf.lua" {
-			expected := fmt.Sprintf(`local ingressUri = 'https://'..'%s'`, config.Ingress)
-			if !strings.Contains(content, expected) {
-				return fmt.Errorf("File %s, did not find expected substitution '%s'", file, expected)
-			}
-			expected = fmt.Sprintf(`local callbackPath = "%s"`, config.OidcCallbackPath)
+			expected := fmt.Sprintf(`local callbackPath = "%s"`, config.OidcCallbackPath)
 			if !strings.Contains(content, expected) {
 				return fmt.Errorf("File %s, did not find expected substitution '%s'", file, expected)
 			}
 			expected = fmt.Sprintf(`local logoutCallbackPath = "%s"`, config.OidcLogoutCallbackPath)
-			if !strings.Contains(content, expected) {
-				return fmt.Errorf("File %s, did not find expected substitution '%s'", file, expected)
-			}
-		} else if file == "nginx.conf" && config.Mode == ProxyModeOauth {
-			expected := fmt.Sprintf(`server %s:%v fail_timeout=30s max_fails=10;`, config.Host, config.Port)
 			if !strings.Contains(content, expected) {
 				return fmt.Errorf("File %s, did not find expected substitution '%s'", file, expected)
 			}
@@ -185,9 +155,9 @@ func checkForValidYaml(configMapYaml string) error {
 	return nil
 }
 
-func TestGetConfigMapDataAPIProxy(t *testing.T) {
-	config := getProxyConfigAPIProxy()
-	data, err := GetOidcProxyConfigMapData(config)
+func TestGetConfigmapData(t *testing.T) {
+	config := getProxyConfig()
+	data, err := GetProxyConfigmapData(config)
 	if err != nil {
 		t.Fatalf("Error getting proxy config map data: %v", err)
 	}
@@ -195,79 +165,40 @@ func TestGetConfigMapDataAPIProxy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Invalid map data: %v", err)
 	}
-	t.Log("Got expected API config map data")
+	t.Log("Got expected config map data")
 }
 
-func TestGetConfigMapDataOidcProxy(t *testing.T) {
-	config := getProxyConfigOidcProxy()
-	data, err := GetOidcProxyConfigMapData(config)
-	if err != nil {
-		t.Fatalf("Error getting proxy config map data: %v", err)
-	}
-	err = checkConfigMapData(data, 4, config)
-	if err != nil {
-		t.Fatalf("Invalid map data: %v", err)
-	}
-	t.Log("Got expected Oidc config map data")
-}
-
-func TestCreateAPIProxyConfigYaml(t *testing.T) {
-	data, err := GetOidcProxyConfigMapData(getProxyConfigAPIProxy())
+func TestCreateProxyConfigmapYaml(t *testing.T) {
+	data, err := GetProxyConfigmapData(getProxyConfig())
 	if err != nil {
 		t.Fatalf("Error getting config map data: %v", err)
 	}
 	labels := map[string]string{
-		"app": "verrazzano-api",
+		"app":                          "verrazzano-api",
+		"app.kubernetes.io/managed-by": "Helm",
 	}
-	config := generateConfigmapYaml("api-nginx-conf", "verrazzano-system", labels, data)
+	annotations := map[string]string{
+		"meta.helm.sh/release-name":      "verrazzano",
+		"meta.helm.sh/release-namespace": "verrazzano-system",
+	}
+	config := generateConfigmapYaml("api-nginx-conf", "verrazzano-system", labels, annotations, data)
 	err = checkForValidYaml(config)
 	if err != nil {
-		t.Fatalf("Invalid yaml for API configmap: %v", err)
+		t.Fatalf("Invalid yaml for configmap: %v", err)
 	}
-	t.Logf("Got expected API config map yaml: %p", &config)
+	t.Logf("Got expected config map yaml: %p", &config)
 	//t.Logf("\n%s", config)
 }
 
-func TestCreateOidcProxyConfigYaml(t *testing.T) {
-	data, err := GetOidcProxyConfigMapData(getProxyConfigOidcProxy())
-	if err != nil {
-		t.Fatalf("Error getting config map data: %v", err)
-	}
-	labels := map[string]string{
-		"k8s-app":              "verrazzano.io",
-		"vmo.v1.verrazzano.io": "system",
-	}
-	config := generateConfigmapYaml("vmi-system-grafana-oidc-config", "verrazzano-system", labels, data)
-	err = checkForValidYaml(config)
-	if err != nil {
-		t.Fatalf("Invalid yaml for Oidc configmap: %v", err)
-	}
-	t.Logf("Got expected Oidc config map yaml: %p", &config)
-	//t.Logf("\n%s", config)
-}
-
-func TestCreateAPIProxyConfigmap(t *testing.T) {
-	data, err := GetOidcProxyConfigMapData(getProxyConfigAPIProxy())
+func TestCreateProxyConfigmap(t *testing.T) {
+	data, err := GetProxyConfigmapData(getProxyConfig())
 	if err != nil {
 		t.Fatalf("Error getting config map data: %v", err)
 	}
 	configMap, err := generateConfigmap("testConfigMap", "testConfigMapNamespace", nil, data)
 	if err != nil {
-		t.Fatalf("Invalid configmap for API proxy: %v", err)
+		t.Fatalf("Invalid configmap for proxy: %v", err)
 	}
-	t.Logf("Got expected Oidc configmap: %p", &configMap)
-	//t.Logf("\n%v", configMap)
-}
-
-func TestCreateOidcProxyConfigmap(t *testing.T) {
-	data, err := GetOidcProxyConfigMapData(getProxyConfigOidcProxy())
-	if err != nil {
-		t.Fatalf("Error getting config map data: %v", err)
-	}
-	configMap, err := generateConfigmap("testConfigMap", "testConfigMapNamespace", nil, data)
-	if err != nil {
-		t.Fatalf("Invalid configmap for Oidc proxy: %v", err)
-	}
-	t.Logf("Got expected Oidc configmap: %p", &configMap)
+	t.Logf("Got expected configmap: %p", &configMap)
 	//t.Logf("\n%v", configMap)
 }

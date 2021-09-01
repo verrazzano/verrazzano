@@ -16,59 +16,66 @@ package proxy
 const OidcConfLuaFilename = "conf.lua"
 
 // OidcConfLuaFileTemplate is the template of conf.lua file in OIDC proxy ConfigMap
-const OidcConfLuaFileTemplate = `local ingressUri = 'https://'..'{{ .Ingress }}'
+const OidcConfLuaFileTemplate = `local ingressHost = ngx.req.get_headers()["x-forwarded-host"]
+    local ingressUri = 'https://'..ingressHost
     local callbackPath = "{{ .OidcCallbackPath }}"
     local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
 
     local auth = require("auth").config({
-        ingressUri = ingressUri,
-        callbackPath = callbackPath,
-        logoutCallbackPath = logoutCallbackPath,
-        callbackUri = ingressUri..callbackPath
+        callbackUri = ingressUri..callbackPath,
+        logoutCallbackUri = ingressUri..logoutCallbackPath
     })
 
-{{ if eq .Mode "oauth-proxy" }}
+    -- TODO: is this needed here? Is it better done via/at ingress?
+    -- This was previously enabled only for oauth-proxy, but there is similar
+    -- code in nginx.conf that was executed only for api-proxy but now executes
+    -- for both.
+    -- TODO: Rationalize OPTIONS method processing: do this only for OPTIONS requests (not all),
+    -- and do it all in one place (here or nginx.conf) for both api-proxy and oauth-proxy traffic
     ngx.header["Access-Control-Allow-Headers"] = "authorization"
-{{ end }}
 
     if ngx.req.get_method() == "OPTIONS" then
         ngx.status = 200
         ngx.exit(ngx.HTTP_OK)
     end
 
+    -- determine backend and set backend parameters
+
+    local backend = auth.getBackendNameFromIngressHost(ingressHost)
+    local backendUrl = auth.getBackendServerUrlFromName(backend)
+
+    auth.info("Processing request for backend '"..ingressHost.."'")
+
     local authHeader = ngx.req.get_headers()["authorization"]
     local token = nil
     if authHeader then
         if auth.hasCredentialType(authHeader, 'Bearer') then
             token = auth.handleBearerToken(authHeader)
-{{ if eq .Mode "oauth-proxy" }}
         elseif auth.hasCredentialType(authHeader, 'Basic') then
             token = auth.handleBasicAuth(authHeader)
-{{ end }}
         end
         if not token then
             auth.info("No recognized credentials in authorization header")
         end
     else
-{{ if eq .Mode "api-proxy" }}
         auth.info("No authorization header found")
-{{ else if eq .Mode "oauth-proxy" }}
-        if string.find(ngx.var.request_uri, callbackPath) then
+        if auth.requestUriMatches(ngx.var.request_uri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
             auth.oidcHandleCallback()
-        elseif string.find(ngx.var.request_uri, logoutCallbackPath) then
+        elseif auth.requestUriMatches(ngx.var.request_uri, logoutCallbackPath) then
             -- logout was triggered, and OP (always?) is calling our logout URL
             auth.oidcHandleLogoutCallback()
         end
-        -- still no token, check if caller has a valid token in session (cookie)
-        -- redirect after handling callback should end up here
+        -- no token yet, and the request is not progressing an OIDC flow.
+        -- check if caller has an existing session with a valid token.
         token = auth.getTokenFromSession()
+
+        -- still no token? redirect to OP to authenticate user
         if not token then
             -- no token, redirect to OP to authenticate
             auth.oidcAuthenticate()
         end
-{{ end }}
     end
 
     if not token then
@@ -80,20 +87,24 @@ const OidcConfLuaFileTemplate = `local ingressUri = 'https://'..'{{ .Ingress }}'
         auth.forbidden("Not authorized")
     end
 
-{{ if eq .Mode "api-proxy" }}
-    local args = ngx.req.get_uri_args()
-    if args.cluster then
-        auth.handleExternalAPICall(token)
+    if backend == 'verrazzano' then
+        local args = ngx.req.get_uri_args()
+        if args.cluster then
+            -- returns remote cluster server URL
+            backendUrl = auth.handleExternalAPICall(token)
+        else
+            auth.handleLocalAPICall(token)
+        end
     else
-        auth.handleLocalAPICall(token)
+        if auth.hasCredentialType(authHeader, 'Bearer') then
+            -- clear the auth header if it's a bearer token
+            ngx.req.clear_header("Authorization")
+        end
+        -- set the oidc_user
+        ngx.var.oidc_user = auth.usernameFromIdToken(token)
+        auth.info("Authorized: oidc_user is "..ngx.var.oidc_user)
     end
-{{ else if eq .Mode "oauth-proxy" }}
-    if auth.hasCredentialType(authHeader, 'Bearer') then
-        -- clear the auth header if it's a bearer token
-        ngx.req.clear_header("Authorization")
-    end
-    -- set the oidc_user
-    ngx.var.oidc_user = auth.usernameFromIdToken(token)
-    auth.info("Authorized: oidc_user is "..ngx.var.oidc_user)
-{{ end }}
+
+    auth.info("Setting backend_server_url to '"..backendUrl.."'")
+    ngx.var.backend_server_url = backendUrl
 `

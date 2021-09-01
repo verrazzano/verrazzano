@@ -19,17 +19,13 @@ const OidcNginxConfFilename = "nginx.conf"
 const OidcNginxConfFileTemplate = `#user  nobody;
     worker_processes  1;
 
-    #error_log  logs/error.log;
-    #error_log  logs/error.log  notice;
-    #error_log  logs/error.log  info;
-
+    error_log  logs/error.log info;
     pid        logs/nginx.pid;
-    {{- if eq .Mode "api-proxy" }}
+
     env KUBERNETES_SERVICE_HOST;
     env KUBERNETES_SERVICE_PORT;
     env VZ_API_HOST;
     env VZ_API_VERSION;
-    {{- end }}
 
     events {
         worker_connections  1024;
@@ -43,14 +39,14 @@ const OidcNginxConfFileTemplate = `#user  nobody;
         #                  '$status $body_bytes_sent "$http_referer" '
         #                  '"$http_user_agent" "$http_x_forwarded_for"';
 
-        error_log  logs/error.log  info;
-
         sendfile        on;
         #tcp_nopush     on;
 
-{{- if eq .Mode "oauth-proxy" }}
-        client_max_body_size 65m;
-{{- end }}
+        # TODO: This was previously set but only for oauth-proxy
+        # Do we need this here at all, or should we be enforcing
+        # this sort of constraint in the ingress controller?
+        #
+        # client_max_body_size 65m;
 
         #keepalive_timeout  0;
         keepalive_timeout  65;
@@ -60,50 +56,42 @@ const OidcNginxConfFileTemplate = `#user  nobody;
         lua_package_path '/usr/local/share/lua/5.1/?.lua;;';
         lua_package_cpath '/usr/local/lib/lua/5.1/?.so;;';
         resolver _NAMESERVER_;
+
         # cache for discovery metadata documents
         lua_shared_dict discovery 1m;
         #  cache for JWKs
         lua_shared_dict jwks 1m;
-{{- if eq .Mode "oauth-proxy" }}
-{{- if eq .SSLEnabled true }}
-        lua_ssl_verify_depth 2;
-        lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
-{{- end }}
 
-        upstream http_backend {
-            server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;
-        }
-{{- end }}
+        #access_log  logs/host.access.log  main;
+        server_tokens off;
 
+        #charset koi8-r;
+        expires           0;
+        #add_header        Cache-Control private;
+        add_header        Cache-Control no-store always;
+
+        root     /opt/nginx/html;
+
+        proxy_http_version 1.1;
+
+        # verrazzano api and console
         server {
             listen       8775;
-            server_name  apiserver;
-            root     /opt/nginx/html;
-            #charset koi8-r;
+            server_name  verrazzano-proxy;
 
-{{- if eq .Mode "oauth-proxy" }}
-            set $oidc_user "";
-            rewrite_by_lua_file /etc/nginx/conf.lua;
-{{- end }}
-
-            #access_log  logs/host.access.log  main;
-            expires           0;
-            add_header        Cache-Control private;
-
-{{- if eq .Mode "oauth-proxy" }}
-            proxy_set_header  X-WEBAUTH-USER $oidc_user;
-{{- end }}
-
+            # api
             location / {
-{{- if eq .Mode "oauth-proxy" }}
-                proxy_pass http://http_backend;
-{{- else if eq .Mode "api-proxy" }}
                 lua_ssl_verify_depth 2;
                 lua_ssl_trusted_certificate /etc/nginx/upstream.pem;
-                set $kubernetes_server_url "";
+                # oauth-proxy ssl certs location: lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
+
+                set $oidc_user "";
+                set $backend_server_url "";
                 rewrite_by_lua_file /etc/nginx/conf.lua;
-                proxy_pass $kubernetes_server_url;
+                proxy_set_header X-WEBAUTH-USER $oidc_user;
+                proxy_pass $backend_server_url;
                 proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
+                # this should only happen for origin requests - move to conf.lua?
                 header_filter_by_lua_block {
                     local h, _ = ngx.req.get_headers()["origin"]
                     if h and h ~= "*" and  h ~= "null" then
@@ -111,19 +99,6 @@ const OidcNginxConfFileTemplate = `#user  nobody;
                     end
                     ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
                 }
-{{- end }}
-            }
-
-            error_page 404 /404.html;
-                location = /40x.html {
-            }
-
-            #error_page  404              /404.html;
-            # redirect server error pages to the static page /50x.html
-            #
-            error_page   500 502 503 504  /50x.html;
-            location = /50x.html {
-                root   html;
             }
         }
     }
