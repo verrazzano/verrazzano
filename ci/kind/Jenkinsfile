@@ -218,6 +218,9 @@ pipeline {
                         """
                     }
                     post {
+                        failure {
+                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                        }
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                             sh """
