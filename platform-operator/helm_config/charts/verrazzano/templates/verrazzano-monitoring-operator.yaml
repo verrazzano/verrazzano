@@ -387,9 +387,9 @@ spec:
             - name: OIDC_AUTH_ENABLED
               value: {{ .Values.monitoringOperator.oidcAuthEnabled | quote }}
             - name: AUTH_PROXY_SERVICE_NAME
-              value: {{ .Values.authProxy.name }}
+              value: {{ .Values.api.name }}
             - name: AUTH_PROXY_SERVICE_PORT
-              value: {{ .Values.authProxy.port }}
+              value: {{ .Values.api.port }}
           livenessProbe:
             failureThreshold: 5
             httpGet:
