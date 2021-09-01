@@ -166,7 +166,7 @@ func checkForValidYaml(configMapYaml string) error {
 	return nil
 }
 
-func TestGetConfigMapDataAPIProxy(t *testing.T) {
+func DisabledTestGetConfigMapDataAPIProxy(t *testing.T) {
 	config := getProxyConfigAPIProxy()
 	data, err := GetOidcProxyConfigMapData(config)
 	if err != nil {
@@ -179,7 +179,7 @@ func TestGetConfigMapDataAPIProxy(t *testing.T) {
 	t.Log("Got expected API config map data")
 }
 
-func TestGetConfigMapDataOidcProxy(t *testing.T) {
+func DisabledTestGetConfigMapDataOidcProxy(t *testing.T) {
 	config := getProxyConfigOidcProxy()
 	data, err := GetOidcProxyConfigMapData(config)
 	if err != nil {
