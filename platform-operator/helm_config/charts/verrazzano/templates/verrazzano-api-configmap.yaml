@@ -12,59 +12,66 @@ metadata:
 data:
 {{- with .Values.api.proxy }}
   conf.lua: |
-    local ingressUri = 'https://'..'{{ .Ingress }}'
+    local ingressHost = ngx.req.get_headers()["x-forwarded-host"]
+    local ingressUri = 'https://'..ingressHost
     local callbackPath = "{{ .OidcCallbackPath }}"
     local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
 
     local auth = require("auth").config({
-        ingressUri = ingressUri,
-        callbackPath = callbackPath,
-        logoutCallbackPath = logoutCallbackPath,
-        callbackUri = ingressUri..callbackPath
+        callbackUri = ingressUri..callbackPath,
+        logoutCallbackUri = ingressUri..logoutCallbackPath
     })
 
-{{ if eq .Mode "oauth-proxy" }}
+    -- TODO: is this needed here? Is it better done via/at ingress?
+    -- This was previously enabled only for oauth-proxy, but there is similar
+    -- code in nginx.conf that was executed only for api-proxy but now executes
+    -- for both.
+    -- TODO: Rationalize OPTIONS method processing: do this only for OPTIONS requests (not all),
+    -- and do it all in one place (here or nginx.conf) for both api-proxy and oauth-proxy traffic
     ngx.header["Access-Control-Allow-Headers"] = "authorization"
-{{ end }}
 
     if ngx.req.get_method() == "OPTIONS" then
         ngx.status = 200
         ngx.exit(ngx.HTTP_OK)
     end
 
+    -- determine backend and set backend parameters
+
+    local backend = auth.getBackendNameFromIngressHost(ingressHost)
+    local backendUrl = auth.getBackendServerUrlFromName(backend)
+
+    auth.info("Processing request for backend '"..ingressHost.."'")
+
     local authHeader = ngx.req.get_headers()["authorization"]
     local token = nil
     if authHeader then
         if auth.hasCredentialType(authHeader, 'Bearer') then
             token = auth.handleBearerToken(authHeader)
-{{ if eq .Mode "oauth-proxy" }}
         elseif auth.hasCredentialType(authHeader, 'Basic') then
             token = auth.handleBasicAuth(authHeader)
-{{ end }}
         end
         if not token then
             auth.info("No recognized credentials in authorization header")
         end
     else
-{{ if eq .Mode "api-proxy" }}
         auth.info("No authorization header found")
-{{ else if eq .Mode "oauth-proxy" }}
-        if string.find(ngx.var.request_uri, callbackPath) then
+        if auth.requestUriMatches(ngx.var.request_uri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
             auth.oidcHandleCallback()
-        elseif string.find(ngx.var.request_uri, logoutCallbackPath) then
+        elseif auth.requestUriMatches(ngx.var.request_uri, logoutCallbackPath) then
             -- logout was triggered, and OP (always?) is calling our logout URL
             auth.oidcHandleLogoutCallback()
         end
-        -- still no token, check if caller has a valid token in session (cookie)
-        -- redirect after handling callback should end up here
+        -- no token yet, and the request is not progressing an OIDC flow.
+        -- check if caller has an existing session with a valid token.
         token = auth.getTokenFromSession()
+
+        -- still no token? redirect to OP to authenticate user
         if not token then
             -- no token, redirect to OP to authenticate
             auth.oidcAuthenticate()
         end
-{{ end }}
     end
 
     if not token then
@@ -76,22 +83,26 @@ data:
         auth.forbidden("Not authorized")
     end
 
-{{ if eq .Mode "api-proxy" }}
-    local args = ngx.req.get_uri_args()
-    if args.cluster then
-        auth.handleExternalAPICall(token)
+    if backend == 'verrazzano' then
+        local args = ngx.req.get_uri_args()
+        if args.cluster then
+            -- returns remote cluster server URL
+            backendUrl = auth.handleExternalAPICall(token)
+        else
+            auth.handleLocalAPICall(token)
+        end
     else
-        auth.handleLocalAPICall(token)
+        if auth.hasCredentialType(authHeader, 'Bearer') then
+            -- clear the auth header if it's a bearer token
+            ngx.req.clear_header("Authorization")
+        end
+        -- set the oidc_user
+        ngx.var.oidc_user = auth.usernameFromIdToken(token)
+        auth.info("Authorized: oidc_user is "..ngx.var.oidc_user)
     end
-{{ else if eq .Mode "oauth-proxy" }}
-    if auth.hasCredentialType(authHeader, 'Bearer') then
-        -- clear the auth header if it's a bearer token
-        ngx.req.clear_header("Authorization")
-    end
-    -- set the oidc_user
-    ngx.var.oidc_user = auth.usernameFromIdToken(token)
-    auth.info("Authorized: oidc_user is "..ngx.var.oidc_user)
-{{ end }}
+
+    auth.info("Setting backend_server_url to '"..backendUrl.."'")
+    ngx.var.backend_server_url = backendUrl
   auth.lua: |
     local me = {}
     local random = require("resty.random")
@@ -115,8 +126,6 @@ data:
     local oidcIssuerUri = nil
     local oidcIssuerUriLocal = nil
 
-    local logoutCallbackUri = nil
-
     function me.config(opts)
         for key, val in pairs(opts) do
             me[key] = val
@@ -136,16 +145,16 @@ data:
         if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
             oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..oidcRealm
         end
-{{ if eq .Mode "oauth-proxy" }}
-        logoutCallbackUri = me.ingressUri..me.logoutCallbackPath
-{{ else if eq .Mode "api-proxy" }}
-        local keycloakURL = me.read_file("/api-config/keycloak-url")
-        if keycloakURL and keycloakURL ~= "" then
-            me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
-            oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
-            oidcProviderInClusterUri = nil
+
+        if ngx.var.backend_name == 'verrazzano-api' then
+            local keycloakURL = me.read_file("/api-config/keycloak-url")
+            if keycloakURL and keycloakURL ~= "" then
+                me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
+                oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
+                oidcProviderInClusterUri = nil
+            end
         end
-{{ end }}
+
         oidcIssuerUri = oidcProviderUri
         oidcIssuerUriLocal = oidcProviderInClusterUri
         --[[
@@ -230,6 +239,13 @@ data:
         ngx.exit(ngx.HTTP_FORBIDDEN)
     end
 
+    function me.not_found(msg, err)
+        me.logJson(ngx.ERR, msg, err)
+        ngx.status = ngx.HTTP_NOT_FOUND
+        ngx.say("404 Not Found")
+        ngx.exit(ngx.HTTP_NOT_FOUND)
+    end
+
     function me.logout()
         local redirectArgs = ngx.encode_args({
             redirect_uri = me.logoutCallbackUri
@@ -267,6 +283,58 @@ data:
             end
         end
         return false
+    end
+
+    function me.requestUriMatches(requestUri, matchPath)
+        if requestUri then
+            if requestUri == matchPath then
+                return true
+            end
+            local start, _ = requestUri:find(matchPath..'?')
+            if start == 1 then
+                return true
+            end
+        end
+        return false
+    end
+
+    function me.getBackendNameFromIngressHost(ingressHost)
+        local backend_name = 'unknown'
+        if ingressHost then
+            me.info("ingressHost is '"..ingressHost.."'")
+            local start, last = ingressHost:find("%.")
+            me.info("find returned start '"..start.."'")
+            if start and start > 1 then
+                backend_name = ingressHost:sub(1, start-1)
+            end
+        end
+        me.info("returning backend_name '"..backend_name.."'")
+        return backend_name
+    end
+
+    function me.makeVmiBackendUrl(backend, port)
+        return 'http://vmi-system-'..backend..'.verrazzano-system.svc.cluster.local'..':'..port
+    end
+
+    function me.getBackendServerUrlFromName(backend)
+        local serverUrl = nil
+        if backend == 'verrazzano' then
+            -- assume we're going to the local server; if not, we'll fix up the url when we handle the remote call
+            -- TODO: this will get more complicated when we have to handle console requests as well
+            serverUrl = me.getLocalKubernetesApiUrl()
+        elseif backend == 'grafana' then
+            serverUrl = me.makeVmiBackendUrl(backend, '3000')
+        elseif backend == 'prometheus' then
+            serverUrl = me.makeVmiBackendUrl(backend, '9090')
+        elseif backend == 'kibana' then
+            serverUrl = me.makeVmiBackendUrl(backend, '5601')
+        elseif backend == 'elasticsearch' then
+            serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')
+        else
+            -- Would a 500 error be more appropriate here?
+            me.not_found("Invalid backend name '"..backend.."'")
+        end
+        return serverUrl
     end
 
     -- console sends access token by itself (originally obtained via pkce client)
@@ -709,7 +777,8 @@ data:
         return "-----BEGIN CERTIFICATE-----\n"..x5c[1].."\n-----END CERTIFICATE-----"
     end
 
-{{ if eq .Mode "api-proxy" }}
+    -- api-proxy - methods for handling multi-cluster k8s API requests
+
     local vzApiHost = os.getenv("VZ_API_HOST")
     local vzApiVersion = os.getenv("VZ_API_VERSION")
 
@@ -722,46 +791,12 @@ data:
       return serviceAccountToken
     end
 
-    function me.getLocalServerURL()
+    function me.getLocalKubernetesApiUrl()
       local host = os.getenv("KUBERNETES_SERVICE_HOST")
       local port = os.getenv("KUBERNETES_SERVICE_PORT")
       local serverUrl = "https://" .. host .. ":" .. port
       return serverUrl
     end
-
-    --[[
-
-    -- the next three functions appear to be unused, commenting out
-
-    function me.split(s, delimiter)
-      local result = {}
-      for match in (s..delimiter):gmatch("(.-)"..delimiter) do
-          table.insert(result, match)
-      end
-      return result
-    end
-
-    function me.contains(table, element)
-      for _, value in pairs(table) do
-        if value == element then
-          return true
-        end
-      end
-      return false
-    end
-
-    function me.capture(cmd, raw)
-      local f = assert(io.popen(cmd, 'r'))
-      local s = assert(f:read('*a'))
-      f:close()
-      if raw then return s end
-      s = string.gsub(s, '^%s+', '')
-      s = string.gsub(s, '%s+$', '')
-      s = string.gsub(s, '[\n\r]+', ' ')
-      return s
-    end
-
-    --]]
 
     function me.getK8SResource(resourcePath)
       local http = require "resty.http"
@@ -803,7 +838,6 @@ data:
             me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
             ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
         end
-        ngx.var.kubernetes_server_url = me.getLocalServerURL()
     end
 
     function me.handleExternalAPICall(token)
@@ -814,9 +848,8 @@ data:
             me.unauthorized("Unable to fetch vmc api url for vmc " .. args.cluster)
         end
 
-        local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
         ngx.req.set_uri_args(args)
-        ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
+        local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion .. ngx.var.uri
 
         -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
         -- A secret is created in admin cluster during multi cluster setup that contains the ca certificate.
@@ -845,25 +878,22 @@ data:
         if startIndex >= 1 and endIndex > startIndex then
             me.write_file("/etc/nginx/upstream.pem", string.sub(decodedSecret, startIndex, endIndex))
         end
+
+        return serverUrl
     end
-{{ end }}
 
     return me
   nginx.conf: |
     #user  nobody;
     worker_processes  1;
 
-    #error_log  logs/error.log;
-    #error_log  logs/error.log  notice;
-    #error_log  logs/error.log  info;
-
+    error_log  logs/error.log info;
     pid        logs/nginx.pid;
-    {{- if eq .Mode "api-proxy" }}
+
     env KUBERNETES_SERVICE_HOST;
     env KUBERNETES_SERVICE_PORT;
     env VZ_API_HOST;
     env VZ_API_VERSION;
-    {{- end }}
 
     events {
         worker_connections  1024;
@@ -877,14 +907,14 @@ data:
         #                  '$status $body_bytes_sent "$http_referer" '
         #                  '"$http_user_agent" "$http_x_forwarded_for"';
 
-        error_log  logs/error.log  info;
-
         sendfile        on;
         #tcp_nopush     on;
 
-{{- if eq .Mode "oauth-proxy" }}
-        client_max_body_size 65m;
-{{- end }}
+        # TODO: This was previously set but only for oauth-proxy
+        # Do we need this here at all, or should we be enforcing
+        # this sort of constraint in the ingress controller?
+        #
+        # client_max_body_size 65m;
 
         #keepalive_timeout  0;
         keepalive_timeout  65;
@@ -894,50 +924,42 @@ data:
         lua_package_path '/usr/local/share/lua/5.1/?.lua;;';
         lua_package_cpath '/usr/local/lib/lua/5.1/?.so;;';
         resolver _NAMESERVER_;
+
         # cache for discovery metadata documents
         lua_shared_dict discovery 1m;
         #  cache for JWKs
         lua_shared_dict jwks 1m;
-{{- if eq .Mode "oauth-proxy" }}
-{{- if eq .SSLEnabled true }}
-        lua_ssl_verify_depth 2;
-        lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
-{{- end }}
 
-        upstream http_backend {
-            server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;
-        }
-{{- end }}
+        #access_log  logs/host.access.log  main;
+        server_tokens off;
 
+        #charset koi8-r;
+        expires           0;
+        #add_header        Cache-Control private;
+        add_header        Cache-Control no-store always;
+
+        root     /opt/nginx/html;
+
+        proxy_http_version 1.1;
+
+        # verrazzano api and console
         server {
             listen       8775;
-            server_name  apiserver;
-            root     /opt/nginx/html;
-            #charset koi8-r;
+            server_name  verrazzano-proxy;
 
-{{- if eq .Mode "oauth-proxy" }}
-            set $oidc_user "";
-            rewrite_by_lua_file /etc/nginx/conf.lua;
-{{- end }}
-
-            #access_log  logs/host.access.log  main;
-            expires           0;
-            add_header        Cache-Control private;
-
-{{- if eq .Mode "oauth-proxy" }}
-            proxy_set_header  X-WEBAUTH-USER $oidc_user;
-{{- end }}
-
+            # api
             location / {
-{{- if eq .Mode "oauth-proxy" }}
-                proxy_pass http://http_backend;
-{{- else if eq .Mode "api-proxy" }}
                 lua_ssl_verify_depth 2;
                 lua_ssl_trusted_certificate /etc/nginx/upstream.pem;
-                set $kubernetes_server_url "";
+                # oauth-proxy ssl certs location: lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
+
+                set $oidc_user "";
+                set $backend_server_url "";
                 rewrite_by_lua_file /etc/nginx/conf.lua;
-                proxy_pass $kubernetes_server_url;
+                proxy_set_header X-WEBAUTH-USER $oidc_user;
+                proxy_pass $backend_server_url;
                 proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
+                # this should only happen for origin requests - move to conf.lua?
                 header_filter_by_lua_block {
                     local h, _ = ngx.req.get_headers()["origin"]
                     if h and h ~= "*" and  h ~= "null" then
@@ -945,19 +967,6 @@ data:
                     end
                     ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
                 }
-{{- end }}
-            }
-
-            error_page 404 /404.html;
-                location = /40x.html {
-            }
-
-            #error_page  404              /404.html;
-            # redirect server error pages to the static page /50x.html
-            #
-            error_page   500 502 503 504  /50x.html;
-            location = /50x.html {
-                root   html;
             }
         }
     }
@@ -976,28 +985,27 @@ data:
 
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
-{{- if eq .Mode "api-proxy" }}
+    # api-proxy
     cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/upstream.pem
-{{- else if eq .Mode "oauth-proxy" }}
+
+    # oidc-proxy
     # Create a pem file that contains all well known ca certs plus
     # the ca-bundle from the managed cluster registration secret.
     # It is valid for ca-bundle to be empty.
     cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/all-ca-certs.pem
     cat /secret/ca-bundle >> /etc/nginx/all-ca-certs.pem
-{{- end }}
 
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx -t
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
 
-{{- if eq .Mode "oauth-proxy" }}
     while [ $? -ne 0 ]; do
         sleep 20
         echo "retry nginx startup ..."
         /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
     done
-{{- else if eq .Mode "api-proxy" }}
+
     sh -c "$startupDir/reload.sh &"
-{{- end }}
+
     tail -f /etc/nginx/logs/error.log
   reload.sh: |
     #!/bin/bash
@@ -1056,11 +1064,11 @@ data:
                 adminCABundleMD5="$md5Hash"
                 reload
             fi
-        else 
+        else
             if [ "$adminCABundleMD5" != "" ] ; then
                 reset_md5
                 local_cert_config
-            fi 
+            fi
         fi
     }
 

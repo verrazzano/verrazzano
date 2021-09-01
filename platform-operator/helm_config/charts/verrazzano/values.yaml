@@ -94,8 +94,6 @@ api:
     OidcProviderHost: must-be-provided-during-install
     OidcProviderHostInCluster: keycloak-http.keycloak.svc.cluster.local
     AuthnStateTTL: "300"
-    SSLEnabled: false
-    EnvironmentDnsSuffix: envname.dns-suffix.to_be_set_by_install
 
 # OCI-related values
 oci:
