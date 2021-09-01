@@ -14,8 +14,7 @@ import (
 	yaml "sigs.k8s.io/yaml"
 )
 
-// const dnsSuffix = "default.example.com"
-const dnsSuffix = "default.172.18.255.101.nip.io"
+const dnsSuffix = "default.example.com"
 
 func getProxyConfigAPIProxy() OidcProxyConfig {
 	proxyConfig := OidcProxyConfig{}
@@ -167,7 +166,7 @@ func checkForValidYaml(configMapYaml string) error {
 	return nil
 }
 
-func NotATestGetConfigMapDataAPIProxy(t *testing.T) {
+func TestGetConfigMapDataAPIProxy(t *testing.T) {
 	config := getProxyConfigAPIProxy()
 	data, err := GetOidcProxyConfigMapData(config)
 	if err != nil {
@@ -180,7 +179,7 @@ func NotATestGetConfigMapDataAPIProxy(t *testing.T) {
 	t.Log("Got expected API config map data")
 }
 
-func NotATestGetConfigMapDataOidcProxy(t *testing.T) {
+func TestGetConfigMapDataOidcProxy(t *testing.T) {
 	config := getProxyConfigOidcProxy()
 	data, err := GetOidcProxyConfigMapData(config)
 	if err != nil {
@@ -193,7 +192,7 @@ func NotATestGetConfigMapDataOidcProxy(t *testing.T) {
 	t.Log("Got expected Oidc config map data")
 }
 
-func NotATestCreateAPIProxyConfigYaml(t *testing.T) {
+func TestCreateAPIProxyConfigYaml(t *testing.T) {
 	data, err := GetOidcProxyConfigMapData(getProxyConfigAPIProxy())
 	if err != nil {
 		t.Fatalf("Error getting config map data: %v", err)
@@ -216,23 +215,23 @@ func TestCreateOidcProxyConfigYaml(t *testing.T) {
 		t.Fatalf("Error getting config map data: %v", err)
 	}
 	labels := map[string]string{
-        "app": "verrazzano-api",
-        "app.kubernetes.io/managed-by": "Helm",
+		"app":                          "verrazzano-api",
+		"app.kubernetes.io/managed-by": "Helm",
 	}
 	annotations := map[string]string{
-        "meta.helm.sh/release-name": "verrazzano",
-        "meta.helm.sh/release-namespace": "verrazzano-system",
-    }
+		"meta.helm.sh/release-name":      "verrazzano",
+		"meta.helm.sh/release-namespace": "verrazzano-system",
+	}
 	config := generateConfigmapYaml("api-nginx-conf", "verrazzano-system", labels, annotations, data)
 	err = checkForValidYaml(config)
 	if err != nil {
 		t.Fatalf("Invalid yaml for Oidc configmap: %v", err)
 	}
-	//t.Logf("Got expected Oidc config map yaml: %p", &config)
-	t.Logf("\n%s", config)
+	t.Logf("Got expected Oidc config map yaml: %p", &config)
+	//t.Logf("\n%s", config)
 }
 
-func NotATestCreateAPIProxyConfigmap(t *testing.T) {
+func TestCreateAPIProxyConfigmap(t *testing.T) {
 	data, err := GetOidcProxyConfigMapData(getProxyConfigAPIProxy())
 	if err != nil {
 		t.Fatalf("Error getting config map data: %v", err)
@@ -245,7 +244,7 @@ func NotATestCreateAPIProxyConfigmap(t *testing.T) {
 	//t.Logf("\n%v", configMap)
 }
 
-func NotATestCreateOidcProxyConfigmap(t *testing.T) {
+func TestCreateOidcProxyConfigmap(t *testing.T) {
 	data, err := GetOidcProxyConfigMapData(getProxyConfigOidcProxy())
 	if err != nil {
 		t.Fatalf("Error getting config map data: %v", err)
