@@ -164,7 +164,6 @@ pipeline {
         //OC_TELEMETRY_URL = credentials('oci-telemetry-url')
 
         // used to emit metrics
-        SAURON_CRED = credentials('verrazzano-sauron')
         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
         K8S_VERSION_LABEL = "${params.OKE_CLUSTER_VERSION}"
@@ -873,9 +872,11 @@ def metricTimerEnd(metricName, status) {
         // OCI_MET=sh(returnStdout: true, script: "ci/scripts/oci_metric_emit.sh ${env.OC_TELEMETRY_URL} ${env.OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
 
         labels = getMetricLabels()
-        EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${metricName} $labels ${status} ${dur}")
-        echo "emit prometheus metrics: $EMIT"
-        return EMIT
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+            echo "emit prometheus metrics: $EMIT"
+            return EMIT
+        }
     } else {
         return ''
     }
@@ -892,6 +893,8 @@ def metricBuildDuration() {
     }
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
-        sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${testMetric}_job $labels ${metricValue} ${duration}")
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${duration}")
+        }
     }
 }
