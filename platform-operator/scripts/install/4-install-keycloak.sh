@@ -634,9 +634,9 @@ if [ $(is_keycloak_enabled) == "true" ]; then
 fi
 if [ $display_warning_for_secret == "true" ]; then
   consoleout
-  consoleout "WARNING: Editing the secrets above will not change the actual passwords for those accounts."
+  consoleout "WARNING: Editing the secrets will not change the passwords for those accounts."
   consoleout "To change a password, use the appropriate console (Keycloak or Rancher), then update the corresponding secret with the new password."
-  consoleout "You must update the secret if you change the password."
+  consoleout "If you change the password, then you must update the secret."
   consoleout
 fi
 if [ $(get_application_ingress_ip) == "null" ]; then
