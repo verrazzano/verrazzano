@@ -38,8 +38,6 @@ const OidcAuthLuaFileTemplate = `local me = {}
     local oidcIssuerUri = nil
     local oidcIssuerUriLocal = nil
 
-    local logoutCallbackUri = nil
-
     function me.config(opts)
         for key, val in pairs(opts) do
             me[key] = val
@@ -59,32 +57,16 @@ const OidcAuthLuaFileTemplate = `local me = {}
         if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
             oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..oidcRealm
         end
-{{ if eq .Mode "oauth-proxy" }}
-        logoutCallbackUri = me.ingressUri..me.logoutCallbackPath
-{{ else if eq .Mode "api-proxy" }}
+
         local keycloakURL = me.read_file("/api-config/keycloak-url")
         if keycloakURL and keycloakURL ~= "" then
             me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
             oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
             oidcProviderInClusterUri = nil
         end
-{{ end }}
+
         oidcIssuerUri = oidcProviderUri
         oidcIssuerUriLocal = oidcProviderInClusterUri
-        --[[
-        if oidcProviderUri then
-            me.info("set oidcProviderUri to "..oidcProviderUri)
-        end
-        if oidcProviderInClusterUri then
-            me.info("set oidcProviderInClusterUri to "..oidcProviderInClusterUri)
-        end
-        if oidcIssuerUri then
-            me.info("set oidcIssuerUri to "..oidcIssuerUri)
-        end
-        if oidcIssuerUri then
-            me.info("set oidcIssuerUriLocal to "..oidcIssuerUriLocal)
-        end
-        --]]
     end
 
     function me.log(logLevel, msg, name, value)
@@ -153,6 +135,13 @@ const OidcAuthLuaFileTemplate = `local me = {}
         ngx.exit(ngx.HTTP_FORBIDDEN)
     end
 
+    function me.not_found(msg, err)
+        me.logJson(ngx.ERR, msg, err)
+        ngx.status = ngx.HTTP_NOT_FOUND
+        ngx.say("404 Not Found")
+        ngx.exit(ngx.HTTP_NOT_FOUND)
+    end
+
     function me.logout()
         local redirectArgs = ngx.encode_args({
             redirect_uri = me.logoutCallbackUri
@@ -190,6 +179,58 @@ const OidcAuthLuaFileTemplate = `local me = {}
             end
         end
         return false
+    end
+
+    function me.requestUriMatches(requestUri, matchPath)
+        if requestUri then
+            if requestUri == matchPath then
+                return true
+            end
+            local start, _ = requestUri:find(matchPath..'?')
+            if start == 1 then
+                return true
+            end
+        end
+        return false
+    end
+
+    function me.getBackendNameFromIngressHost(ingressHost)
+        local backend_name = 'unknown'
+        if ingressHost then
+            me.info("ingressHost is '"..ingressHost.."'")
+            local start, last = ingressHost:find("%.")
+            me.info("find returned start '"..start.."'")
+            if start and start > 1 then
+                backend_name = ingressHost:sub(1, start-1)
+            end
+        end
+        me.info("returning backend_name '"..backend_name.."'")
+        return backend_name
+    end
+
+    function me.makeVmiBackendUrl(backend, port)
+        return 'http://vmi-system-'..backend..'.verrazzano-system.svc.cluster.local'..':'..port
+    end
+
+    function me.getBackendServerUrlFromName(backend)
+        local serverUrl = nil
+        if backend == 'verrazzano' then
+            -- assume we're going to the local server; if not, we'll fix up the url when we handle the remote call
+            -- TODO: this will get more complicated when we have to handle console requests as well
+            serverUrl = me.getLocalKubernetesApiUrl()
+        elseif backend == 'grafana' then
+            serverUrl = me.makeVmiBackendUrl(backend, '3000')
+        elseif backend == 'prometheus' then
+            serverUrl = me.makeVmiBackendUrl(backend, '9090')
+        elseif backend == 'kibana' then
+            serverUrl = me.makeVmiBackendUrl(backend, '5601')
+        elseif backend == 'elasticsearch' then
+            serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')
+        else
+            -- Would a 500 error be more appropriate here?
+            me.not_found("Invalid backend name '"..backend.."'")
+        end
+        return serverUrl
     end
 
     -- console sends access token by itself (originally obtained via pkce client)
@@ -632,7 +673,8 @@ const OidcAuthLuaFileTemplate = `local me = {}
         return "-----BEGIN CERTIFICATE-----\n"..x5c[1].."\n-----END CERTIFICATE-----"
     end
 
-{{ if eq .Mode "api-proxy" }}
+    -- api-proxy - methods for handling multi-cluster k8s API requests
+
     local vzApiHost = os.getenv("VZ_API_HOST")
     local vzApiVersion = os.getenv("VZ_API_VERSION")
 
@@ -645,46 +687,12 @@ const OidcAuthLuaFileTemplate = `local me = {}
       return serviceAccountToken
     end
 
-    function me.getLocalServerURL()
+    function me.getLocalKubernetesApiUrl()
       local host = os.getenv("KUBERNETES_SERVICE_HOST")
       local port = os.getenv("KUBERNETES_SERVICE_PORT")
       local serverUrl = "https://" .. host .. ":" .. port
       return serverUrl
     end
-
-    --[[
-
-    -- the next three functions appear to be unused, commenting out
-
-    function me.split(s, delimiter)
-      local result = {}
-      for match in (s..delimiter):gmatch("(.-)"..delimiter) do
-          table.insert(result, match)
-      end
-      return result
-    end
-
-    function me.contains(table, element)
-      for _, value in pairs(table) do
-        if value == element then
-          return true
-        end
-      end
-      return false
-    end
-
-    function me.capture(cmd, raw)
-      local f = assert(io.popen(cmd, 'r'))
-      local s = assert(f:read('*a'))
-      f:close()
-      if raw then return s end
-      s = string.gsub(s, '^%s+', '')
-      s = string.gsub(s, '%s+$', '')
-      s = string.gsub(s, '[\n\r]+', ' ')
-      return s
-    end
-
-    --]]
 
     function me.getK8SResource(resourcePath)
       local http = require "resty.http"
@@ -726,7 +734,6 @@ const OidcAuthLuaFileTemplate = `local me = {}
             me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
             ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
         end
-        ngx.var.kubernetes_server_url = me.getLocalServerURL()
     end
 
     function me.handleExternalAPICall(token)
@@ -737,9 +744,8 @@ const OidcAuthLuaFileTemplate = `local me = {}
             me.unauthorized("Unable to fetch vmc api url for vmc " .. args.cluster)
         end
 
-        local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
         ngx.req.set_uri_args(args)
-        ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
+        local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion .. ngx.var.uri
 
         -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
         -- A secret is created in admin cluster during multi cluster setup that contains the ca certificate.
@@ -768,8 +774,9 @@ const OidcAuthLuaFileTemplate = `local me = {}
         if startIndex >= 1 and endIndex > startIndex then
             me.write_file("/etc/nginx/upstream.pem", string.sub(decodedSecret, startIndex, endIndex))
         end
+
+        return serverUrl
     end
-{{ end }}
 
     return me
 `

@@ -67,6 +67,18 @@ pipeline {
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
+        string (name: 'TAGGED_TESTS',
+                defaultValue: '',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
+        string (name: 'INCLUDED_TESTS',
+                defaultValue: '.*',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                defaultValue: '_excluded_test',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
     }
 
     environment {
@@ -387,8 +399,8 @@ pipeline {
                         sh """
                             ## dump out install logs
                             mkdir -p ${WORKSPACE}/platform-operator/scripts/install/build/logs
-                            kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                            kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                            kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                            kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
                             echo "Verrazzano Installation logs dumped to verrazzano-install.log"
                             echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                             echo "------------------------------------------"
@@ -433,7 +445,7 @@ pipeline {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh """
                                 cd ${WORKSPACE}/tests/e2e
-                                ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor verify-install/...
+                                ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true verify-install/...
                             """
                         }
                     }
@@ -576,7 +588,7 @@ pipeline {
 
             sh """
                 if [ "${params.EMIT_METRICS}" == "true" ] ; then
-                    ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e"
+                    ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e" || echo "Emit metrics failed, continuing with other post actions"
                 fi
                 if [ "${TEST_ENV}" == "ocidns_oke" ]; then
                   ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
@@ -632,7 +644,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
@@ -641,7 +653,7 @@ def runGinkgoFailFast(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -v -failFast --noColor ${testSuitePath}/...
+            ginkgo -v -failFast --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }

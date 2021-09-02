@@ -30,27 +30,26 @@ const OidcStartupFileTemplate = `#!/bin/bash
 
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
-{{- if eq .Mode "api-proxy" }}
+    # api-proxy
     cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/upstream.pem
-{{- else if eq .Mode "oauth-proxy" }}
+
+    # oidc-proxy
     # Create a pem file that contains all well known ca certs plus
     # the ca-bundle from the managed cluster registration secret.
     # It is valid for ca-bundle to be empty.
     cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/all-ca-certs.pem
     cat /secret/ca-bundle >> /etc/nginx/all-ca-certs.pem
-{{- end }}
 
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx -t
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
 
-{{- if eq .Mode "oauth-proxy" }}
     while [ $? -ne 0 ]; do
         sleep 20
         echo "retry nginx startup ..."
         /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
     done
-{{- else if eq .Mode "api-proxy" }}
+
     sh -c "$startupDir/reload.sh &"
-{{- end }}
+
     tail -f /etc/nginx/logs/error.log
 `
