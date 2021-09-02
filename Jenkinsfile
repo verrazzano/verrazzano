@@ -483,10 +483,7 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                     expression {SKIP_TRIGGERED_TESTS == false}
-                    anyOf {
-                        branch 'release-*';
-                        expression{params.GENERATE_TARBALL == true}
-                    }
+                    expression{params.GENERATE_TARBALL == true}
                 }
             }
             stages{
