@@ -22,10 +22,10 @@ const KubeconfigKey = "admin-kubeconfig"
 const ManagedClusterNameKey = "managed-cluster-name"
 
 // RegistrationPasswordKey is the password key in registration secret
-const RegistrationPasswordKey = "es-password"
+const RegistrationPasswordKey = "password"
 
 // RegistrationUsernameKey is the username key in registration secret
-const RegistrationUsernameKey = "es-username"
+const RegistrationUsernameKey = "username"
 
 // VerrazzanoPasswordKey is the password key in verrazzano secret
 const VerrazzanoPasswordKey = "password"

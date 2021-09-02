@@ -32,11 +32,11 @@ const ElasticsearchURLData = "es-url"
 
 // ElasticsearchUsernameData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch username
-const ElasticsearchUsernameData = "es-username"
+const ElasticsearchUsernameData = "username"
 
 // ElasticsearchPasswordData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch password
-const ElasticsearchPasswordData = "es-password"
+const ElasticsearchPasswordData = "password"
 
 // LabelVerrazzanoManaged - constant for a Kubernetes label that is applied by Verrazzano
 const LabelVerrazzanoManaged = "verrazzano-managed"
