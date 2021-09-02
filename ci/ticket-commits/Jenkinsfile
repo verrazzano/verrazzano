@@ -55,9 +55,9 @@ pipeline {
 
                     sh """
                         # there are no changeSets on the first build of a branch or if the job is replayed, so if the commit string
-                        # is empty, fall back to using git log which will collect all of the commit ids just for this branch
+                        # is empty, fall back to using git log
                         if [ -z "${commitList}" ]; then
-                            git log --walk-reflogs --pretty=format:%H origin/${env.GIT_BRANCH} -- > ${tmpfile}
+                            git log --pretty=format:%H ${env.GIT_COMMIT}^.. -- > ${tmpfile}
                         else
                             printf "${commitList}" > ${tmpfile}
                         fi
