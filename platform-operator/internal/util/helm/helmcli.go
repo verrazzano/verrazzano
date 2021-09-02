@@ -48,6 +48,7 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		args = append(args, "--namespace")
 		args = append(args, namespace)
 	}
+	args = append(args, "--wait")
 
 	// Do not pass the --reuse-values arg to 'helm upgrade'.  Instead, pass the
 	// values retrieved from 'helm get values' with the -f arg to 'helm upgrade'. This is a workaround to avoid
