@@ -28,6 +28,7 @@ pipeline {
                     echo "${NODE_LABELS}"
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                     echo "Change ID: ${env.CHANGE_ID}"
+                    echo "Change author: ${env.CHANGE_AUTHOR}"
                     echo "Change author display name: ${env.CHANGE_AUTHOR_DISPLAY_NAME}"
                     echo "Change URL: ${env.CHANGE_URL}"
 
