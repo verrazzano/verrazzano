@@ -80,7 +80,7 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 			deploymentList, err := GetDeploymentList(log, files.FindFileInNamespace(clusterRoot, namespace, "deployments.json"))
 			if err != nil {
 				// Log the error and continue on
-				log.Errorf("Error getting deployments in %s", namespace, err)
+				log.Debugf("Error getting deployments in %s", namespace, err)
 			}
 			if deploymentList != nil && len(deploymentList.Items) > 0 {
 				for i, deployment := range deploymentList.Items {
