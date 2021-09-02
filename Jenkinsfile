@@ -548,6 +548,10 @@ pipeline {
             storePipelineArtifacts()
         }
         cleanup {
+            echo "Duration ${currentBuild.durationString}"
+            echo "Duration actual ${currentBuild.durationString.minus(' and counting')}"
+            echo "Duration actual another ${currentBuild.durationString.replace(' and counting', '')}"
+            echo "Duration actual ${currentBuild.duration}"
             metricBuildDuration()
             deleteDir()
         }
@@ -829,7 +833,7 @@ def metricTimerEnd(metricName, status) {
 // Emit the metrics indicating the duration and result of the build
 def metricBuildDuration() {
     def status = "${currentBuild.currentResult}"
-    def duration = "${currentBuild.durationString.replace(' and counting', '')}"
+    def duration = "${currentBuild.duration}"
     testMetric = metricJobName('')
     def metricValue = "0"
     if (status.equals("SUCCESS")) {

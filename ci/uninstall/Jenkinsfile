@@ -505,11 +505,13 @@ pipeline {
         always {
             archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-            sh """
-                if [ "${params.EMIT_METRICS}" == "true" ] ; then
-                    ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" || echo "Emit metrics failed, continuing with other post actions"
-                fi
-            """
+            if (params.EMIT_METRICS) {
+                withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                    sh """
+                        ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                    """
+                }
+            }
         }
         failure {
             script {
@@ -532,6 +534,11 @@ pipeline {
         }
         cleanup {
             sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+            echo "Duration ${currentBuild.durationString}"
+            echo "Duration actual ${currentBuild.durationString.minus(' and counting')}"
+            echo "Duration actual another ${currentBuild.durationString.replace(' and counting', '')}"
+            echo "Duration actual ${currentBuild.duration}"
+            echo "Build time trend ${env.BUILD_URL}/job/BranchBuild/buildTimeTrend"
             metricBuildDuration()
             deleteDir()
         }
@@ -701,7 +708,7 @@ def metricTimerEnd(metricName, status) {
 // Emit the metrics indicating the duration and result of the build
 def metricBuildDuration() {
     def status = "${currentBuild.currentResult}"
-    def duration = "${currentBuild.durationString.replace(' and counting', '')}"
+    def duration = "${currentBuild.duration}"
     testMetric = metricJobName('')
     def metricValue = "0"
     if (status.equals("SUCCESS")) {

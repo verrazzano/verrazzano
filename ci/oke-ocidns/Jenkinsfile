@@ -585,10 +585,14 @@ pipeline {
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
+            if (params.EMIT_METRICS) {
+                withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                    sh """
+                        ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                    """
+                }
+            }
             sh """
-                if [ "${params.EMIT_METRICS}" == "true" ] ; then
-                    ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e" || echo "Emit metrics failed, continuing with other post actions"
-                fi
                 if [ "${TEST_ENV}" == "ocidns_oke" ]; then
                   ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
                 fi
@@ -629,6 +633,10 @@ pipeline {
            }
        }
        cleanup {
+            echo "Duration ${currentBuild.durationString}"
+            echo "Duration actual ${currentBuild.durationString.minus(' and counting')}"
+            echo "Duration actual another ${currentBuild.durationString.replace(' and counting', '')}"
+            echo "Build time trend ${env.BUILD_URL}/job/BranchBuild/buildTimeTrend"
            metricBuildDuration()
            deleteDir()
        }
@@ -885,7 +893,7 @@ def metricTimerEnd(metricName, status) {
 // Emit the metrics indicating the duration and result of the build
 def metricBuildDuration() {
     def status = "${currentBuild.currentResult}"
-    def duration = "${currentBuild.durationString.replace(' and counting', '')}"
+    def duration = "${currentBuild.duration}"
     testMetric = metricJobName('')
     def metricValue = "0"
     if (status.equals("SUCCESS")) {
