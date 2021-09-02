@@ -170,6 +170,7 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
 
         // used to emit metrics
+        SAURON_CRED = credentials('verrazzano-sauron')
         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
         K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION}"
@@ -1161,6 +1162,7 @@ def metricJobName(stageName) {
     return job
 }
 
+// Construct the set of labels/dimensions for the metrics
 def getMetricLabels() {
     def kube_ver = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION }"
     labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
@@ -1171,6 +1173,7 @@ def getMetricLabels() {
     return labels
 }
 
+// Construct the set of labels/dimensions for the metrics
 def metricTimerStart(metricName) {
     def timerStartName = "${metricName}_START"
     env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
@@ -1184,18 +1187,16 @@ def metricTimerEnd(metricName, status) {
         long x = env."${timerStartName}" as long;
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
-        def kube_ver = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION }"
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
-            echo "emit prometheus metrics: $EMIT"
-            return EMIT
-        }
+        EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${metricName} $labels ${status} ${dur}")
+        echo "emit prometheus metrics: $EMIT"
+        return EMIT
     } else {
         return ''
     }
 }
 
+// Emit the metrics indicating the duration and result of the build
 def metricBuildDuration() {
     def status = "${currentBuild.currentResult}"
     def duration = "${currentBuild.durationString.replace(' and counting', '')}"
@@ -1206,8 +1207,6 @@ def metricBuildDuration() {
     }
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${duration}")
-        }
+        sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${testMetric}_job $labels ${metricValue} ${duration}")
     }
 }

@@ -101,6 +101,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
+        SAURON_CRED = credentials('verrazzano-sauron')
         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
     }
 
@@ -799,6 +800,7 @@ def metricTimerStart(metricName) {
     env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
 }
 
+// Construct the set of labels/dimensions for the metrics
 def getMetricLabels() {
     labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
@@ -815,16 +817,15 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
-            echo "emit prometheus metrics: $EMIT"
-            return EMIT
-        }
+        EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${metricName} $labels ${status} ${dur}")
+        echo "emit prometheus metrics: $EMIT"
+        return EMIT
     } else {
         return ''
     }
 }
 
+// Emit the metrics indicating the duration and result of the build
 def metricBuildDuration() {
     def status = "${currentBuild.currentResult}"
     def duration = "${currentBuild.durationString.replace(' and counting', '')}"
@@ -835,8 +836,6 @@ def metricBuildDuration() {
     }
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.GIT_BRANCH} $labels ${metricValue} ${duration}")
-        }
+        sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${testMetric}_job $labels ${metricValue} ${duration}")
     }
 }
