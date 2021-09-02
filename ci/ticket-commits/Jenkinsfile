@@ -27,6 +27,7 @@ pipeline {
                 sh """
                     echo "${NODE_LABELS}"
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                    echo "Change ID: ${env.CHANGE_ID}"
 
                     # repo is now in detached HEAD state, which confuses the verrazzano-helper, so checkout the branch
                     echo checking out branch so repo is no longer in detached HEAD state
