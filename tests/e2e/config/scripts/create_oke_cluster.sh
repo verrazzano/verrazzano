@@ -7,7 +7,7 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 PRIVATE_CLUSTER=${1:-false}
-INSTALL_CALICO=${2:-false}
+INSTALL_CALICO=${2:-true}
 
 set_private_access() {
   echo "Cluster access set to private."

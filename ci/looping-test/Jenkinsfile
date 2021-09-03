@@ -47,6 +47,7 @@ pipeline {
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
                       defaultValue: false,
                       description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)')
+        booleanParam (description: 'Whether to emit pipeline metrics', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -92,6 +93,8 @@ pipeline {
         INSTALL_CONFIG_FILE = "${GO_REPO_PATH}/verrazzano/platform-operator/config/samples/install-default.yaml"
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password')
         DATABASE_PSW = credentials('todo-mysql-password')
+
+        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
     }
 
     stages {
@@ -179,7 +182,11 @@ pipeline {
                 OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
-                listNamepacesAndPods('before installing Verrazzano')
+                script {
+                    listNamepacesAndPods('before installing Verrazzano')
+                    VZ_TEST_METRIC = metricJobName('')
+                    metricTimerStart("${VZ_TEST_METRIC}")
+                }
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
                         cd ${GO_REPO_PATH}/verrazzano
@@ -231,8 +238,8 @@ pipeline {
                     sh """
                         ## dump out install logs
                         mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
-                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
                         echo "Verrazzano install logs dumped to verrazzano-install.log"
                         echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                         echo "------------------------------------------"
@@ -372,6 +379,7 @@ pipeline {
                 fi
             """
             script {
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                 failureCount = params.failureCount as Integer
                 failureCount++
                 println("current failureCount: ${failureCount}")
@@ -409,6 +417,7 @@ pipeline {
         }
         aborted {
             script {
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                 abort = true
                 sh """
                     echo "Run aborted - ensuring deletion of VZ cluster and operator"
@@ -421,7 +430,13 @@ pipeline {
                 """
             }
         }
+        success {
+            script {
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+            }
+        }
         cleanup {
+            metricBuildDuration()
             deleteDir()
             script {
                 if (!abort) {
@@ -538,4 +553,66 @@ def listNamepacesAndPods(customMessage) {
         kubectl get all --all-namespaces
         echo "-----------------------------------------------------"
     """
+}
+
+def metricJobName(stageName) {
+    job = env.JOB_NAME.split("/")[0]
+    job = '_' + job.replaceAll('-','_')
+    if (stageName) {
+        job = job + '_' + stageName
+    }
+    return job
+}
+
+// Construct the set of labels/dimensions for the metrics
+def getMetricLabels() {
+    labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+             'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
+             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+             'kubernetes_version=\\"' + "${params.OKE_CLUSTER_VERSION}"+'\\",' +
+             'test_env=\\"' + "magicdns_oke"+'\\"'
+    return labels
+}
+
+def metricTimerStart(metricName) {
+    def timerStartName = "${metricName}_START"
+    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
+}
+
+def metricTimerEnd(metricName, status) {
+    def timerStartName = "${metricName}_START"
+    def timerEndName   = "${metricName}_END"
+    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
+    if (params.EMIT_METRICS) {
+        long x = env."${timerStartName}" as long;
+        long y = env."${timerEndName}" as long;
+        def dur = (y-x)
+        labels =  getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+            echo "emit prometheus metrics: $EMIT"
+            return EMIT
+        }
+    } else {
+        return ''
+    }
+}
+
+// Emit the metrics indicating the duration and result of the build
+def metricBuildDuration() {
+    def status = "${currentBuild.currentResult}"
+    long duration = "${currentBuild.duration}" as long;
+    long durationInMins = (duration/60000)
+    testMetric = metricJobName('')
+    def metricValue = "0"
+    if (status.equals("SUCCESS")) {
+        metricValue = "1"
+    }
+    if (params.EMIT_METRICS) {
+        labels =  getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInMins}")
+            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
+        }
+    }
 }

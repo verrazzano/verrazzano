@@ -1,6 +1,8 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+// +build unstable_test
+
 package socks
 
 import (
@@ -14,6 +16,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -108,10 +111,11 @@ var _ = Describe("Sock Shop Application", func() {
 	})
 
 	var hostname = ""
+	var err error
 	It("Get host from gateway.", func() {
-		Eventually(func() string {
-			hostname = pkg.GetHostnameFromGateway("sockshop", "")
-			return hostname
+		Eventually(func() (string, error) {
+			hostname, err = k8sutil.GetHostnameFromGateway("sockshop", "")
+			return hostname, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
 
@@ -124,9 +128,10 @@ var _ = Describe("Sock Shop Application", func() {
 	})
 
 	It("SockShop can log in with default user", func() {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%v/login", hostname)
-			kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
 			return pkg.GetWebPageWithBasicAuth(url, hostname, username, password, kubeconfigPath)
 		}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
 
@@ -311,7 +316,7 @@ var _ = AfterSuite(func() {
 
 // isSockShopServiceReady checks if the service is ready
 func isSockShopServiceReady(name string) bool {
-	clientset, err := pkg.GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Could not get Kubernetes clientset: %v\n", err.Error()))
 		return false

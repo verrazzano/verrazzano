@@ -3,6 +3,9 @@
 
 def GIT_COMMIT_TO_USE
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def TESTS_FAILED = false
+def tarfilePrefix="verrazzano_periodic"
+def storeLocation=""
 
 pipeline {
     options {
@@ -18,6 +21,21 @@ pipeline {
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
         }
+    }
+
+    parameters {
+        string (name: 'TAGGED_TESTS',
+                defaultValue: '',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
+        string (name: 'INCLUDED_TESTS',
+                defaultValue: '.*',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                defaultValue: '_excluded_test',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
     }
 
     environment {
@@ -67,12 +85,122 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
+                    storeLocation="${env.BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}.zip"
                 }
             }
         }
 
-        stage ('Kick off parallel tests') {
+        stage ('Periodic Test Suites') {
             parallel {
+                stage('Multi Cluster Tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Uninstall Tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-uninstall-test/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('OCI DNS tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.17') {
+                    steps {
+                        script {
+                            build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17'),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.18') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.18'),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.19') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.20') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Upgrade tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-upgrade-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
                 stage('Kind Acceptance Tests on 1.19 Non-Calico') {
                     steps {
                         script {
@@ -81,8 +209,18 @@ pipeline {
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
+                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                 ], wait: true
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
                         }
                     }
                 }
@@ -94,8 +232,18 @@ pipeline {
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: 'sslip.io')
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: 'sslip.io'),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                 ], wait: true
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
                         }
                     }
                 }
@@ -107,8 +255,18 @@ pipeline {
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'CERT_ISSUER', value: "acme"),
                                     string(name: 'ACME_ENVIRONMENT', value: "staging"),
-                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
+                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                 ], wait: true
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
                         }
                     }
                 }
@@ -121,17 +279,46 @@ pipeline {
                                     string(name: 'TEST_ENV', value: 'ocidns_oke'),
                                     string(name: 'ACME_ENVIRONMENT', value: "staging"),
                                     // Disable Calico with these runs temporarily
-                                    string(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
+                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                 ], wait: true
                         }
                     }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                    }
                 }*/
-                stage('Private registry tests') {
+            }
+        }
+        stage("Private Registry") {
+            when {
+                allOf {
+                    expression {TESTS_FAILED == false}
+                }
+            }
+            stages {
+                stage("Upload Periodic Run Artifacts") {
+                    steps {
+                        sh """
+                            if [ "${env.BRANCH_NAME}" == "master" ]; then
+                                ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${tarfilePrefix}
+                            fi
+                        """
+                    }
+                }
+                stage('Private Registry Tests') {
                     steps {
                         script {
                             build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation)
                                 ], wait: true
                         }
                     }
@@ -139,17 +326,32 @@ pipeline {
             }
         }
     }
-
     post {
-        success {
-            sh """
-                if [ "${env.BRANCH_NAME}" == "master" ]; then
-                    ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH}
-                fi
-            """
+        failure {
+            script {
+                if (isAlertingEnabled()) {
+                    mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
+                    subject: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
+                    body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n"
+                    if (env.JOB_NAME == "verrazzano-periodic-triggered-tests/master") {
+                        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY",
+                            incDescription: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
+                            incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                        slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n" )
+                    }
+                }
+            }
         }
         cleanup {
             deleteDir()
         }
     }
+}
+
+def isAlertingEnabled() {
+    if (NOTIFY_PERIODIC_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master"))) {
+        echo "Slack/Pager-Duty notifications enabled via global override setting"
+        return true
+    }
+    return false
 }

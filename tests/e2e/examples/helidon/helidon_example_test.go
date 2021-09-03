@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 )
@@ -80,14 +81,15 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 	})
 
 	var host = ""
+	var err error
 	// Get the host from the Istio gateway resource.
 	// GIVEN the Istio gateway for the hello-helidon namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	It("Get host from gateway.", func() {
-		Eventually(func() string {
-			host = pkg.GetHostnameFromGateway(testNamespace, "")
-			return host
+		Eventually(func() (string, error) {
+			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
+			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
 
@@ -173,7 +175,13 @@ func appEndpointAccessible(url string, hostname string) bool {
 		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
 		return false
 	}
-	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		return false
+	}
+
 	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))

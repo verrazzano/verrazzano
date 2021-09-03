@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	verrazzanoclientset "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/app"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/cluster"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/login"
@@ -28,29 +28,42 @@ type RootOptions struct {
 	genericclioptions.IOStreams
 }
 
-func (c *RootOptions) GetKubeConfig() *rest.Config {
-	kubeConfig, _ := pkg.GetKubeConfig()
-	return kubeConfig
+func (c *RootOptions) GetKubeConfig() (*rest.Config, error) {
+	return k8sutil.GetKubeConfig()
 }
 
 func (c *RootOptions) NewClustersClientSet() (clustersclientset.Interface, error) {
-	client, err := clustersclientset.NewForConfig(c.GetKubeConfig())
+	var client clustersclientset.Interface
+	kubeConfig, err := c.GetKubeConfig()
+	if err != nil {
+		return client, err
+	}
+	client, err = clustersclientset.NewForConfig(kubeConfig)
 	return client, err
 }
 
 func (c *RootOptions) NewProjectClientSet() (projectclientset.Interface, error) {
-	client, err := projectclientset.NewForConfig(c.GetKubeConfig())
+	var client projectclientset.Interface
+	kubeConfig, err := c.GetKubeConfig()
+	if err != nil {
+		return client, err
+	}
+	client, err = projectclientset.NewForConfig(kubeConfig)
 	return client, err
 }
 
 func (c *RootOptions) NewVerrazzanoClientSet() (verrazzanoclientset.Interface, error) {
-	client, err := verrazzanoclientset.NewForConfig(c.GetKubeConfig())
+	var client verrazzanoclientset.Interface
+	kubeConfig, err := c.GetKubeConfig()
+	if err != nil {
+		return client, err
+	}
+	client, err = verrazzanoclientset.NewForConfig(kubeConfig)
 	return client, err
 }
 
-func (c *RootOptions) NewClientSet() kubernetes.Interface {
-	clientset, _ := pkg.GetKubernetesClientset()
-	return clientset
+func (c *RootOptions) NewClientSet() (kubernetes.Interface, error) {
+	return k8sutil.GetKubernetesClientset()
 }
 
 func NewRootOptions(streams genericclioptions.IOStreams) *RootOptions {

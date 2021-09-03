@@ -14,6 +14,7 @@ set -eu
 
 VERRAZZANO_DEFAULT_SECRET_NAMESPACE="cert-manager"
 VERRAZZANO_DEFAULT_SECRET_NAME="verrazzano-ca-certificate-secret"
+VERRAZZANO_INSTALL_NS=verrazzano-install
 
 function install_nginx_ingress_controller()
 {
@@ -51,13 +52,10 @@ function install_nginx_ingress_controller()
 
       build_image_overrides ingress-nginx ${chartName}
 
-      helm upgrade ${chartName} ${NGINX_INGRESS_CHART_DIR} --install \
-        --namespace ${ingress_nginx_ns} \
+      helm_install_retry ${chartName} ${NGINX_INGRESS_CHART_DIR} ${ingress_nginx_ns} \
         -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
         ${EXTRA_NGINX_ARGUMENTS} \
         ${HELM_IMAGE_ARGS} \
-        --timeout 15m0s \
-        --wait \
         || return $?
     fi
 
@@ -95,8 +93,8 @@ function setup_cluster_issuer() {
     local OCI_DNS_ZONE_OCID=$(get_config_value ".dns.oci.dnsZoneOcid")
     local OCI_DNS_ZONE_NAME=$(get_config_value ".dns.oci.dnsZoneName")
 
-    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET ; then
-        fail "The OCI Configuration Secret $OCI_DNS_CONFIG_SECRET does not exist"
+    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n $VERRAZZANO_INSTALL_NS ; then
+        fail "The OCI Configuration Secret $OCI_DNS_CONFIG_SECRET does not exist in the namespace $VERRAZZANO_INSTALL_NS"
     fi
 
     acmeURL="https://acme-v02.api.letsencrypt.org/directory"
@@ -207,15 +205,11 @@ function install_cert_manager()
 
     build_image_overrides cert-manager ${chartName}
 
-    helm upgrade ${chartName} ${CERT_MANAGER_CHART_DIR} \
-        --install \
-        --namespace ${cert_manager_ns} \
+    helm_install_retry ${chartName} ${CERT_MANAGER_CHART_DIR} ${cert_manager_ns} \
         --version v1.2.0 \
         -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
         ${HELM_IMAGE_ARGS} \
         ${EXTRA_CERT_MANAGER_ARGUMENTS} \
-        --wait \
-        --timeout 10m0s \
         || return $?
 
     kubectl -n cert-manager rollout status -w deploy/cert-manager
@@ -236,11 +230,11 @@ function install_external_dns()
   local externalDNSNamespace=cert-manager
 
   if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n ${externalDNSNamespace} ; then
-    # secret does not exist, so copy the configured oci config secret from default namespace.
-    # Operator has already checked for existence of secret in default namespace
+    # secret does not exist, so copy the configured oci config secret from verrazzano-install namespace.
+    # Operator has already checked for existence of secret in verrazzano-install namespace
     # The DNS zone compartment will get appended to secret generated for cert external dns
     local dns_compartment=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
-    kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
+    kubectl get secret ${OCI_DNS_CONFIG_SECRET} -n ${VERRAZZANO_INSTALL_NS} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
         | sed '/^$/d' > $TMP_DIR/oci.yaml
     echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
     kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n ${externalDNSNamespace}
@@ -258,21 +252,18 @@ function install_external_dns()
 
     build_image_overrides external-dns ${chartName}
 
-    helm upgrade ${chartName} ${EXTERNAL_DNS_CHART_DIR} \
-        --install \
-        --namespace ${externalDNSNamespace} \
+    helm_install_retry ${chartName} ${EXTERNAL_DNS_CHART_DIR} ${externalDNSNamespace} \
         -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
         ${HELM_IMAGE_ARGS} \
         --set domainFilters[0]=${DNS_SUFFIX} \
         --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
-        --set txtOwnerId=v8o-local-${NAME} \
-        --set txtPrefix=_v8o-local-${NAME}_ \
+        --set txtOwnerId=v8o-local-${NAME}-${TIMESTAMP} \
+        --set txtPrefix=_v8o-local-${NAME}-${TIMESTAMP}_ \
         --set extraVolumes[0].name=config \
         --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
         --set extraVolumeMounts[0].name=config \
         --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
         ${extraExternalDNSArgs} \
-        --wait \
         || return $?
     fi
 }
@@ -403,45 +394,58 @@ function install_rancher()
         EXTRA_RANCHER_ARGUMENTS="${EXTRA_RANCHER_ARGUMENTS} --set systemDefaultRegistry=${sys_default_reg} --set useBundledSystemChart=true"
       fi
 
+      if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 > /dev/null ; then
+        log "Using ACME staging, create staging certs secret for Rancher"
+        local acme_staging_certs=${TMP_DIR}/ca-additional.pem
+        echo -n "" > ${acme_staging_certs}
+        curl_args=(--output ${TMP_DIR}/int-r3.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem")
+        call_curl 200 http_response http_status curl_args || true
+        if [ ${http_status:--1} -ne 200 ]; then
+          log "Error downloading LetsEncrypt Staging intermediate R3 cert"
+        else
+          cat ${TMP_DIR}/int-r3.pem >> ${acme_staging_certs}
+        fi
+        curl_args=(--output ${TMP_DIR}/int-e1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem")
+        call_curl 200 http_response http_status curl_args || true
+        if [ ${http_status:--1} -ne 200 ]; then
+          log "Error downloading LetsEncrypt Staging intermediate E1 cert"
+        else
+          cat ${TMP_DIR}/int-e1.pem >> ${acme_staging_certs}
+        fi
+        curl_args=(--output ${TMP_DIR}/root-x1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem")
+        call_curl 200 http_response http_status curl_args || true
+        if [ ${http_status:--1} -ne 200 ]; then
+          log "Error downloading LetsEncrypt Staging X1 Root cert"
+        else
+          cat ${TMP_DIR}/root-x1.pem >> ${acme_staging_certs}
+        fi
+        kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
+      fi
+
       local chart_name=rancher
       build_image_overrides rancher ${chart_name}
 
-      # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-      helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
-        --install --namespace cattle-system \
-        --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
-        --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
-        ${HELM_IMAGE_ARGS} \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        ${EXTRA_RANCHER_ARGUMENTS}
-    fi
-
-    if [ "$useAdditionalCAs" = "true" ] && ! kubectl -n cattle-system get secret tls-ca-additional 2>&1 > /dev/null ; then
-      log "Using ACME staging, create staging certs secret for Rancher"
-      local acme_staging_certs=${TMP_DIR}/ca-additional.pem
-      echo -n "" > ${acme_staging_certs}
-      curl_args=(--output ${TMP_DIR}/int-r3.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem")
-      call_curl 200 http_response http_status curl_args || true
-      if [ ${http_status:--1} -ne 200 ]; then
-        log "Error downloading LetsEncrypt Staging intermediate R3 cert"
+      # Check if this install is using a dns type "external".
+      if [ $(is_external_dns) == "true" ]; then
+        log "Installing cattle-system/${chart_name}"
+        # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
+        helm upgrade ${chart_name} ${RANCHER_CHART_DIR} \
+          --install --namespace cattle-system \
+          --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
+          --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+          ${HELM_IMAGE_ARGS} \
+          ${IMAGE_PULL_SECRETS_ARGUMENT} \
+          ${EXTRA_RANCHER_ARGUMENTS} \
+          || return $?
       else
-        cat ${TMP_DIR}/int-r3.pem >> ${acme_staging_certs}
+        helm_install_retry ${chart_name} ${RANCHER_CHART_DIR} cattle-system \
+          --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
+          --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
+          ${HELM_IMAGE_ARGS} \
+          ${IMAGE_PULL_SECRETS_ARGUMENT} \
+          ${EXTRA_RANCHER_ARGUMENTS} \
+          || return $?
       fi
-      curl_args=(--output ${TMP_DIR}/int-e1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem")
-      call_curl 200 http_response http_status curl_args || true
-      if [ ${http_status:--1} -ne 200 ]; then
-        log "Error downloading LetsEncrypt Staging intermediate E1 cert"
-      else
-        cat ${TMP_DIR}/int-e1.pem >> ${acme_staging_certs}
-      fi
-      curl_args=(--output ${TMP_DIR}/root-x1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem")
-      call_curl 200 http_response http_status curl_args || true
-      if [ ${http_status:--1} -ne 200 ]; then
-        log "Error downloading LetsEncrypt Staging X1 Root cert"
-      else
-        cat ${TMP_DIR}/root-x1.pem >> ${acme_staging_certs}
-      fi
-      kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
     fi
 
     # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
@@ -571,6 +575,7 @@ REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
 OCI_DNS_CONFIG_SECRET=$(get_config_value ".dns.oci.ociConfigSecret")
 NAME=$(get_config_value ".environmentName")
+TIMESTAMP=$(date +%s)
 DNS_TYPE=$(get_config_value ".dns.type")
 CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")
 

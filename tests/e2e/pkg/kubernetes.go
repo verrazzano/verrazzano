@@ -10,13 +10,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
-	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/authorization/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,7 +31,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/tools/remotecommand"
-	"k8s.io/client-go/util/homedir"
 )
 
 const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
@@ -42,47 +40,14 @@ func GetKubeConfigGivenPath(kubeconfigPath string) (*restclient.Config, error) {
 	return buildKubeConfig(kubeconfigPath)
 }
 
-// GetKubeConfig will get the kubeconfig from the TEST_KUBECONFIG env var if set, then the env var KUBECONFIG, if set,
-// or else from $HOME/.kube/config
-func GetKubeConfig() (*restclient.Config, error) {
-	kubeconfig := GetKubeConfigPathFromEnv()
-
-	return buildKubeConfig(kubeconfig)
-}
-
 func buildKubeConfig(kubeconfig string) (*restclient.Config, error) {
 	return clientcmd.BuildConfigFromFlags("", kubeconfig)
-}
-
-// GetKubeConfigPathFromEnv returns the path to the default kubernetes config file in use (from
-// the TEST_KUBECONFIG env var if set, then the env var KUBECONFIG, if set, or else from $HOME/.kube/config
-func GetKubeConfigPathFromEnv() string {
-	kubeconfig := ""
-	kubeconfigEnvVar := ""
-	testKubeConfigEnvVar := os.Getenv("TEST_KUBECONFIG")
-	if len(testKubeConfigEnvVar) > 0 {
-		kubeconfigEnvVar = testKubeConfigEnvVar
-	}
-
-	if kubeconfigEnvVar == "" {
-		// if the KUBECONFIG environment variable is set, use that
-		kubeconfigEnvVar = os.Getenv("KUBECONFIG")
-	}
-
-	if len(kubeconfigEnvVar) > 0 {
-		kubeconfig = kubeconfigEnvVar
-	} else {
-		// use $HOME/.kube/config
-		home := homedir.HomeDir()
-		kubeconfig = filepath.Join(home, ".kube", "config")
-	}
-	return kubeconfig
 }
 
 // DoesCRDExist returns whether a CRD with the given name exists for the cluster
 func DoesCRDExist(crdName string) (bool, error) {
 	// use the current context in the kubeconfig
-	config, err := GetKubeConfig()
+	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return false, err
 	}
@@ -109,7 +74,13 @@ func DoesCRDExist(crdName string) (bool, error) {
 
 // DoesNamespaceExist returns whether a namespace with the given name exists for the cluster set in the environment
 func DoesNamespaceExist(name string) (bool, error) {
-	return DoesNamespaceExistInCluster(name, GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false, err
+	}
+
+	return DoesNamespaceExistInCluster(name, kubeconfigPath)
 }
 
 // DoesNamespaceExistInCluster returns whether a namespace with the given name exists in the specified cluster
@@ -131,7 +102,7 @@ func DoesNamespaceExistInCluster(name string, kubeconfigPath string) (bool, erro
 
 // ListNamespaces returns a namespace list for the given list options
 func ListNamespaces(opts metav1.ListOptions) (*corev1.NamespaceList, error) {
-	client, err := GetKubernetesClientset()
+	client, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +111,7 @@ func ListNamespaces(opts metav1.ListOptions) (*corev1.NamespaceList, error) {
 
 // ListPods returns a pod list for the given namespace and list options
 func ListPods(namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
-	client, err := GetKubernetesClientset()
+	client, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +121,7 @@ func ListPods(namespace string, opts metav1.ListOptions) (*corev1.PodList, error
 // ListDeployments returns the list of deployments in a given namespace for the cluster
 func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +137,7 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 // ListNodes returns the list of nodes for the cluster
 func ListNodes() (*corev1.NodeList, error) {
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +176,7 @@ func ListPodsInCluster(namespace string, clientset *kubernetes.Clientset) (*core
 
 // DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
 func DoesPodExist(namespace string, name string) (bool, error) {
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return false, err
 	}
@@ -220,16 +191,6 @@ func DoesPodExist(namespace string, name string) (bool, error) {
 		}
 	}
 	return false, nil
-}
-
-// GetKubernetesClientset returns the Kubernetes clientset for the cluster set in the environment
-func GetKubernetesClientset() (*kubernetes.Clientset, error) {
-	// use the current context in the kubeconfig
-	config, err := GetKubeConfig()
-	if err != nil {
-		return nil, err
-	}
-	return createClientset(config)
 }
 
 // GetKubernetesClientsetForCluster returns the Kubernetes clientset for the cluster whose
@@ -250,7 +211,7 @@ func createClientset(config *restclient.Config) (*kubernetes.Clientset, error) {
 
 // GetVerrazzanoManagedClusterClientset returns the Kubernetes clientset for the VerrazzanoManagedCluster
 func GetVerrazzanoManagedClusterClientset() (*vmcClient.Clientset, error) {
-	config, err := GetKubeConfig()
+	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +220,7 @@ func GetVerrazzanoManagedClusterClientset() (*vmcClient.Clientset, error) {
 
 // GetDynamicClient returns a dynamic client needed to access Unstructured data
 func GetDynamicClient() (dynamic.Interface, error) {
-	config, err := GetKubeConfig()
+	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +254,13 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 
 // IsDevProfile returns true if the deployed resource is a 'dev' profile
 func IsDevProfile() bool {
-	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return false
 	}
@@ -305,7 +272,13 @@ func IsDevProfile() bool {
 
 // IsProdProfile returns true if the deployed resource is a 'prod' profile
 func IsProdProfile() bool {
-	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return false
 	}
@@ -317,7 +290,13 @@ func IsProdProfile() bool {
 
 // IsManagedClusterProfile returns true if the deployed resource is a 'managed-cluster' profile
 func IsManagedClusterProfile() bool {
-	vz, err := GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return false
 	}
@@ -341,7 +320,7 @@ func GetACMEEnvironment(kubeconfigPath string) (string, error) {
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apixv1beta1client.ApiextensionsV1beta1Client, error) {
-	config, err := GetKubeConfig()
+	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -352,7 +331,7 @@ func APIExtensionsClientSet() (*apixv1beta1client.ApiextensionsV1beta1Client, er
 // ListServices returns the list of services in a given namespace for the cluster
 func ListServices(namespace string) (*corev1.ServiceList, error) {
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -368,7 +347,7 @@ func ListServices(namespace string) (*corev1.ServiceList, error) {
 // GetNamespace returns a namespace
 func GetNamespace(name string) (*corev1.Namespace, error) {
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +368,7 @@ func GetNamespaceInCluster(name string, kubeconfigPath string) (*corev1.Namespac
 
 // CreateNamespace creates a namespace
 func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, error) {
-	if len(os.Getenv("TEST_KUBECONFIG")) > 0 {
+	if len(os.Getenv(k8sutil.EnvVarTestKubeConfig)) > 0 {
 		existingNamespace, err := GetNamespace(name)
 		if err != nil {
 			Log(Error, fmt.Sprintf("CreateNamespace %s, error while getting existing namespace: %v", name, err))
@@ -404,7 +383,7 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 	}
 
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -426,12 +405,18 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 
 // DeleteNamespace deletes a namespace in the cluster specified in the environment
 func DeleteNamespace(name string) error {
-	if len(os.Getenv("TEST_KUBECONFIG")) > 0 {
+	if len(os.Getenv(k8sutil.EnvVarTestKubeConfig)) > 0 {
 		Log(Info, fmt.Sprintf("DeleteNamespace %s, test is running with custom service account and therefore namespace won't be deleted by the test", name))
 		return nil
 	}
 
-	return DeleteNamespaceInCluster(name, GetKubeConfigPathFromEnv())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return err
+	}
+
+	return DeleteNamespaceInCluster(name, kubeconfigPath)
 }
 
 func DeleteNamespaceInCluster(name string, kubeconfigPath string) error {
@@ -451,7 +436,7 @@ func DeleteNamespaceInCluster(name string, kubeconfigPath string) error {
 // DoesClusterRoleExist returns whether a cluster role with the given name exists in the cluster
 func DoesClusterRoleExist(name string) (bool, error) {
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return false, err
 	}
@@ -468,7 +453,7 @@ func DoesClusterRoleExist(name string) (bool, error) {
 // GetClusterRole returns the cluster role with the given name
 func GetClusterRole(name string) (*rbacv1.ClusterRole, error) {
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -494,7 +479,7 @@ func DoesServiceAccountExist(namespace, name string) (bool, error) {
 // DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
 func DoesClusterRoleBindingExist(name string) (bool, error) {
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return false, err
 	}
@@ -511,7 +496,7 @@ func DoesClusterRoleBindingExist(name string) (bool, error) {
 // GetClusterRoleBinding returns the cluster role with the given name
 func GetClusterRoleBinding(name string) (*rbacv1.ClusterRoleBinding, error) {
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -528,7 +513,7 @@ func GetClusterRoleBinding(name string) (*rbacv1.ClusterRoleBinding, error) {
 // ListClusterRoleBindings returns the list of cluster role bindings for the cluster
 func ListClusterRoleBindings() (*rbacv1.ClusterRoleBindingList, error) {
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -545,7 +530,7 @@ func ListClusterRoleBindings() (*rbacv1.ClusterRoleBindingList, error) {
 // DoesRoleBindingContainSubject returns true if the RoleBinding exists and it contains the
 // specified subject
 func DoesRoleBindingContainSubject(namespace, name, subjectKind, subjectName string) (bool, error) {
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return false, err
 	}
@@ -594,7 +579,7 @@ func CreateRoleBinding(userOCID string, namespace string, rolebindingname string
 	}
 
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return err
 	}
@@ -610,7 +595,7 @@ func CreateRoleBinding(userOCID string, namespace string, rolebindingname string
 // DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
 func DoesRoleBindingExist(name string, namespace string) (bool, error) {
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return false, err
 	}
@@ -627,7 +612,7 @@ func DoesRoleBindingExist(name string, namespace string) (bool, error) {
 // Execute executes the given command on the pod and container identified by the given names and returns the
 // resulting stdout and stderr
 func Execute(podName, containerName, namespace string, command []string) (string, string, error) {
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return "", "", err
 	}
@@ -644,7 +629,7 @@ func Execute(podName, containerName, namespace string, command []string) (string
 		},
 		scheme.ParameterCodec,
 	)
-	client, err := GetKubeConfig()
+	client, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return "", "", err
 	}
@@ -658,19 +643,10 @@ func Execute(podName, containerName, namespace string, command []string) (string
 	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), err
 }
 
-// GetIstioClientset returns the clientset object for Istio
-func GetIstioClientset() (*istioClient.Clientset, error) {
-	client, err := GetKubeConfig()
-	if err != nil {
-		return nil, err
-	}
-	return istioClient.NewForConfig(client)
-}
-
 // GetConfigMap returns the config map for the passed in ConfigMap Name and Namespace
 func GetConfigMap(configMapName string, namespace string) (*corev1.ConfigMap, error) {
 	// Get the Kubernetes clientset
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -739,7 +715,7 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 		},
 	}
 
-	config, err := GetKubeConfig()
+	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return false, "", err
 	}
@@ -750,8 +726,15 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 		if err != nil {
 			return false, "", err
 		}
+
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+			return false, "", err
+		}
+
 		clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-			&clientcmd.ClientConfigLoadingRules{ExplicitPath: GetKubeConfigPathFromEnv()},
+			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
 			&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}})
 		rawConfig, err := clientConfig.RawConfig()
 		if err != nil {
@@ -816,7 +799,7 @@ func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 	}
 
 	secretName := serviceAccount.Secrets[0].Name
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -839,7 +822,7 @@ func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 }
 
 func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -852,7 +835,7 @@ func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
 }
 
 func GetPersistentVolumes(namespace string) (map[string]*corev1.PersistentVolumeClaim, error) {
-	clientset, err := GetKubernetesClientset()
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
@@ -863,8 +846,8 @@ func GetPersistentVolumes(namespace string) (map[string]*corev1.PersistentVolume
 
 	volumeClaims := make(map[string]*corev1.PersistentVolumeClaim)
 
-	for _, pvc := range pvcs.Items {
-		volumeClaims[pvc.Name] = &pvc
+	for i, pvc := range pvcs.Items {
+		volumeClaims[pvc.Name] = &pvcs.Items[i]
 	}
 	return volumeClaims, nil
 }

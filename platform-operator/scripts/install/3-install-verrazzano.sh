@@ -60,7 +60,7 @@ function check_ingress_ports() {
         log "Port $PORT is accessible on ingress address $INGRESS_IP.  Note that '404 page not found' is an expected response."
       else
         log "ERROR: Port $PORT is NOT accessible on ingress address $INGRESS_IP!  Check that security lists include an ingress rule for the node port $NODEPORT."
-        log "See install README for details(https://github.com/verrazzano/verrazzano/operator/blob/master/install/README.md#1-oke-missing-security-list-ingress-rules)."
+        log "For more detail please see https://verrazzano.io/docs/troubleshooting/troubleshooting/."
         exitvalue=1
       fi
     done
@@ -107,10 +107,7 @@ function install_verrazzano()
     build_image_overrides monitoring-init-images monitoring-init-images
     HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} ${image_args}"
 
-    helm \
-        upgrade --install ${chart_name} \
-        ${VZ_CHARTS_DIR}/verrazzano \
-        --namespace ${VERRAZZANO_NS} \
+    helm_install_retry ${chart_name} ${VZ_CHARTS_DIR}/verrazzano ${VERRAZZANO_NS} \
         --set image.pullPolicy=IfNotPresent \
         --set config.envName=${ENV_NAME} \
         --set config.dnsSuffix=${DNS_SUFFIX} \
@@ -162,13 +159,10 @@ function install_oam_operator {
     IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
 
-  log "Install OAM Kubernetes operator"
   local chart_name=oam-kubernetes-runtime
   build_image_overrides oam-kubernetes-runtime ${chart_name}
 
-  helm upgrade --install --wait ${chart_name} \
-    ${CHARTS_DIR}/oam-kubernetes-runtime \
-    --namespace "${VERRAZZANO_NS}" \
+  helm_install_retry ${chart_name} ${CHARTS_DIR}/oam-kubernetes-runtime ${VERRAZZANO_NS} \
     ${HELM_IMAGE_ARGS} \
     ${IMAGE_PULL_SECRETS_ARGUMENT} \
     || return $?
@@ -194,13 +188,10 @@ function install_application_operator {
     APP_OPERATOR_IMAGE_ARG=" --set image=${APP_OPERATOR_IMAGE}"
   fi
 
-  log "Install Verrazzano Kubernetes application operator"
   local chart_name=verrazzano-application-operator
   build_image_overrides verrazzano-application-operator ${chart_name}
 
-  helm upgrade --install --wait ${chart_name} \
-    $VZ_CHARTS_DIR/verrazzano-application-operator \
-    --namespace "${VERRAZZANO_NS}" \
+  helm_install_retry ${chart_name} ${VZ_CHARTS_DIR}/verrazzano-application-operator ${VERRAZZANO_NS} \
     ${HELM_IMAGE_ARGS} \
     ${IMAGE_PULL_SECRETS_ARGUMENT} \
     ${APP_OPERATOR_IMAGE_ARG} || return $?
@@ -230,13 +221,10 @@ function install_weblogic_operator {
     IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
 
-  log "Install WebLogic Kubernetes operator"
   local chart_name=weblogic-operator
   build_image_overrides weblogic-operator ${chart_name}
 
-  helm upgrade --install --wait ${chart_name} \
-    ${CHARTS_DIR}/weblogic-operator \
-    --namespace "${VERRAZZANO_NS}" \
+  helm_install_retry ${chart_name} ${CHARTS_DIR}/weblogic-operator ${VERRAZZANO_NS} \
     -f $VZ_OVERRIDES_DIR/weblogic-values.yaml \
     --set serviceAccount=weblogic-operator-sa \
     --set domainNamespaceSelectionStrategy=LabelSelector \
@@ -261,13 +249,10 @@ function install_coherence_operator {
     IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
 
-  log "Install the Coherence Kubernetes operator"
   local chart_name=coherence-operator
   build_image_overrides coherence-operator ${chart_name}
 
-  helm upgrade --install --wait ${chart_name} \
-    ${CHARTS_DIR}/coherence-operator \
-    --namespace "${VERRAZZANO_NS}" \
+  helm_install_retry ${chart_name} ${CHARTS_DIR}/coherence-operator ${VERRAZZANO_NS} \
     -f $VZ_OVERRIDES_DIR/coherence-values.yaml \
     ${HELM_IMAGE_ARGS} \
     ${IMAGE_PULL_SECRETS_ARGUMENT} \
@@ -329,5 +314,5 @@ fi
 action "Installing Verrazzano system components" install_verrazzano || exit 1
 action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
 action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
-action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
-action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1
+platform_operator_install_message "OAM Kubernetes operator"
+platform_operator_install_message "Verrazzano Application Kubernetes operator"

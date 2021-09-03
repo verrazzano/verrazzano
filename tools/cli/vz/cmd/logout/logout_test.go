@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/clientcmd"
@@ -52,8 +53,8 @@ func TestNewCmdLogout(t *testing.T) {
 	// Add fake clusters,usernames,contexts..
 	fakeVerrazzanoAPIURL := "verrazzano.fake.nip.io/12345"
 	fakeCAData := []byte("LS0tCmFwaVZlcnNpb246IHYxCmRhdGE6CiAgYWRtaW4ta3ViZWNvbmZpZzogWTJ4MWMzUmxjbk02Q2kwZ1kyeDFjM1JsY2pvS0lDQWdJR05sY25ScFptbGpZWFJsTFdGMWRHaHZjbWwwZVMxa1lYUmhPaUJNVXpCMFRGTXhRMUpWWkVwVWFVSkVVbFpL")
-	fakeAccessToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew"
-	fakeRefreshToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew"
+	fakeAccessToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew"  //nolint:gosec //#gosec G101
+	fakeRefreshToken := "fhuiewhfbudsefbiewbfewofnhoewnfoiewhfouewhbfgonewoifnewohfgoewnfgouewbugoewhfgojhew" //nolint:gosec //#gosec G101
 
 	// Set environment variable for kubeconfig
 	err = os.Setenv("KUBECONFIG", currentDirectory+"/fakekubeconfig")
@@ -144,7 +145,7 @@ func TestRepeatedLogout(t *testing.T) {
 }
 
 func createFakeKubeConfig(asserts *assert.Assertions) {
-	originalKubeConfigLocation, err := helpers.GetKubeConfigLocation()
+	originalKubeConfigLocation, err := k8sutil.GetKubeConfigLocation()
 	asserts.NoError(err)
 	originalKubeConfig, err := os.Open(originalKubeConfigLocation)
 	asserts.NoError(err)

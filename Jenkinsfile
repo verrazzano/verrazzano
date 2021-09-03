@@ -7,6 +7,8 @@ def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
 def SCAN_IMAGE_PATCH_OPERATOR = false
 def VERRAZZANO_DEV_VERSION = ""
+def tarfilePrefix=""
+def storeLocation=""
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
@@ -43,6 +45,7 @@ pipeline {
                 defaultValue: 'master',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -98,6 +101,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
+        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
     }
 
     stages {
@@ -219,16 +223,24 @@ pipeline {
         stage('Build') {
             when { not { buildingTag() } }
             steps {
-                buildImages("${DOCKER_IMAGE_TAG}")
+                script {
+                    VZ_BUILD_METRIC = metricJobName('build')
+                    metricTimerStart("${VZ_BUILD_METRIC}")
+                    buildImages("${DOCKER_IMAGE_TAG}")
+                }
             }
             post {
                 failure {
                     script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
                         SKIP_TRIGGERED_TESTS = true
                     }
                 }
                 success {
-                    archiveArtifacts artifacts: "generated-verrazzano-bom.json", allowEmptyArchive: true
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
+                        archiveArtifacts artifacts: "generated-verrazzano-bom.json", allowEmptyArchive: true
+                    }
                 }
             }
         }
@@ -396,7 +408,7 @@ pipeline {
             }
         }
 
-        stage('Kind Acceptance Tests on 1.18') {
+        stage('Kind Acceptance Tests on 1.20') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -410,22 +422,31 @@ pipeline {
 
             steps {
                 script {
+                    VZ_TEST_METRIC = metricJobName('kind_test')
+                    metricTimerStart("${VZ_TEST_METRIC}")
                     build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
-                            string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.18'),
+                            string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                             booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
                             booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
                             booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
-                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
+                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
+                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                         ], wait: true
                 }
             }
             post {
                 failure {
                     script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+                success {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                     }
                 }
             }
@@ -448,8 +469,48 @@ pipeline {
                     build job: "verrazzano-push-triggered-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                         ], wait: true
+                }
+            }
+        }
+        stage('Zip Build and Test') {
+            // If the tests are clean and this is a release branch or GENERATE_TARBALL == true,
+            // generate the Verrazzano full product zip and run the Private Registry tests
+            when {
+                allOf {
+                    not { buildingTag() }
+                    expression {SKIP_TRIGGERED_TESTS == false}
+                    expression{params.GENERATE_TARBALL == true}
+                }
+            }
+            stages{
+                stage("Build Product Zip") {
+                    steps {
+                        script {
+                            tarfilePrefix="verrazzano_${VERRAZZANO_DEV_VERSION}"
+                            storeLocation="${env.BRANCH_NAME}/${tarfilePrefix}.zip"
+                            generatedBOM="$WORKSPACE/generated-verrazzano-bom.json"
+                            echo "Building zipfile, prefix: ${tarfilePrefix}, location:  ${storeLocation}"
+                            sh """
+                                ci/scripts/generate_product_zip.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${env.BRANCH_NAME} ${tarfilePrefix} ${generatedBOM}
+                            """
+                        }
+                    }
+                }
+                stage("Private Registry Test") {
+                    steps {
+                        script {
+                            echo "Starting private registry test for ${storeLocation}, file prefix ${tarfilePrefix}"
+                            build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation)
+                                ], wait: true
+                        }
+                    }
                 }
             }
         }
@@ -481,9 +542,10 @@ pipeline {
             }
         }
         success {
-            storePipelineArtifacts(VERRAZZANO_DEV_VERSION)
+            storePipelineArtifacts()
         }
         cleanup {
+            metricBuildDuration()
             deleteDir()
         }
     }
@@ -499,33 +561,8 @@ def moveContentToGoRepoPath() {
 }
 
 // Called in final post success block of pipeline
-def storePipelineArtifacts(version) {
+def storePipelineArtifacts() {
     script {
-        tarfilePrefix="verrazzano_${version}"
-        tarfile="${tarfilePrefix}.tar.gz"
-        zipFile="${tarfilePrefix}.zip"
-        commitFile="${tarfilePrefix}-commit.txt"
-        sha256File="${tarfile}.sha256"
-        sh """
-            if [ "${params.GENERATE_TARBALL}" == "true" ] || [[ ${GIT_BRANCH} == release-* ]]; then
-                echo "Generating tar file ${tarfile} (SHA: ${sha256File}), commit file ${commitFile}"
-                mkdir ${WORKSPACE}/tar-files
-                chmod uog+w ${WORKSPACE}/tar-files
-                cp $WORKSPACE/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
-                cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
-                cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
-                mkdir -p ${WORKSPACE}/tar-files/charts
-                cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
-                tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/${tarfile}
-                cd ${WORKSPACE}
-                sha256sum ${tarfile} > ${sha256File}
-                echo "git-commit=${env.GIT_COMMIT}" > ${commitFile}
-                zip ${zipFile} ${commitFile} ${sha256File} ${tarfile}
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${commitFile} --file ${commitFile}
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${zipFile} --file ${zipFile}
-           fi
-        """
-
         // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
         sh """
             if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
@@ -743,4 +780,64 @@ def getSuspectList(commitList, userMappings) {
     }
     echo "returning suspect list: ${retValue}"
     return retValue
+}
+
+def metricJobName(stageName) {
+    job = env.JOB_NAME.split("/")[0]
+    job = '_' + job.replaceAll('-','_')
+    if (stageName) {
+        job = job + '_' + stageName
+    }
+    return job
+}
+
+def metricTimerStart(metricName) {
+    def timerStartName = "${metricName}_START"
+    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
+}
+
+// Construct the set of labels/dimensions for the metrics
+def getMetricLabels() {
+    labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+             'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
+             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
+    return labels
+}
+
+def metricTimerEnd(metricName, status) {
+    def timerStartName = "${metricName}_START"
+    def timerEndName   = "${metricName}_END"
+    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
+    if (params.EMIT_METRICS) {
+        long x = env."${timerStartName}" as long;
+        long y = env."${timerEndName}" as long;
+        def dur = (y-x)
+        labels = getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
+            echo "emit prometheus metrics: $EMIT"
+            return EMIT
+        }
+    } else {
+        return ''
+    }
+}
+
+// Emit the metrics indicating the duration and result of the build
+def metricBuildDuration() {
+    def status = "${currentBuild.currentResult}"
+    long duration = "${currentBuild.duration}" as long;
+    long durationInMins = (duration/60000)
+    testMetric = metricJobName('')
+    def metricValue = "0"
+    if (status.equals("SUCCESS")) {
+        metricValue = "1"
+    }
+    if (params.EMIT_METRICS) {
+        labels = getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.GIT_BRANCH} $labels ${metricValue} ${durationInMins}")
+            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
+        }
+    }
 }

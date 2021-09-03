@@ -70,6 +70,10 @@ function delete_cert_manager() {
   patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespace cert-manager" '/cert-manager/ {print $1}' '{"metadata":{"finalizers":null}}' \
     || return $? # return on pipefail
 
+  # delete cainjector config map
+  log "Deleting cainjector leader election configmap"
+  kubectl delete configmap cert-manager-cainjector-leader-election -n kube-system --ignore-not-found=true || err_return $? "Could not delete ConfigMap from kube-system" || return $?
+
   # delete namespace
   log "Deleting cert-manager namespace"
   kubectl delete namespace cert-manager --ignore-not-found=true || err_return $? "Could not delete namespace cert-manager" || return $?
@@ -117,6 +121,13 @@ function delete_rancher() {
   log "Delete the additional CA secret for Rancher"
   kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
   kubectl -n cattle-system delete secret tls-ca --ignore-not-found=true
+
+  log "Deleting CRs from rancher"
+  kubectl api-resources --api-group=management.cattle.io --verbs=delete -o name \
+    | xargsr -n 1 kubectl get --all-namespaces --ignore-not-found -o custom-columns=":kind,:metadata.name,:metadata.namespace" \
+    | awk '{res="";if ($1 != "") res=tolower($1)".management.cattle.io "tolower($2); if ($3 != "<none>" && res != "") res=res" -n "$3; if (res != "") cmd="kubectl patch "res" -p \x027{\"metadata\":{\"finalizers\":null}}\x027 --type=merge;kubectl delete "res; print cmd}' \
+    | sh \
+    || err_return $? "Could not delete rancher CRs" || return $? # return on pipefail
 
   log "Deleting CRDs from rancher"
 

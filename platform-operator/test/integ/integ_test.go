@@ -8,9 +8,9 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/k8s"
-	"github.com/verrazzano/verrazzano/platform-operator/test/integ/util"
 )
 
 const clusterAdmin = "cluster-admin"
@@ -21,7 +21,12 @@ var K8sClient k8s.Client
 
 var _ = ginkgo.BeforeSuite(func() {
 	var err error
-	K8sClient, err = k8s.NewClient(util.GetKubeconfig())
+	kc, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Unable to fetch Kubeconfig, error: %v", err))
+	}
+
+	K8sClient, err = k8s.NewClient(kc)
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
 	}

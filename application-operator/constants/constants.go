@@ -3,9 +3,6 @@
 
 package constants
 
-// VerrazzanoClustersGroup - clusters group
-const VerrazzanoClustersGroup = "clusters.verrazzano.io"
-
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
@@ -14,14 +11,14 @@ const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
 // MCAgentSecret contains information needed by the agent to access the admin cluster, such as the admin kubeconfig.
 // This secret is used by the MC agent running on the managed cluster.
-const MCAgentSecret = "verrazzano-cluster-agent"
+const MCAgentSecret = "verrazzano-cluster-agent" //nolint:gosec //#gosec G101
 
 // MCRegistrationSecret - the name of the secret that contains the cluster registration information
-const MCRegistrationSecret = "verrazzano-cluster-registration"
+const MCRegistrationSecret = "verrazzano-cluster-registration" //nolint:gosec //#gosec G101
 
 // MCLocalRegistrationSecret - the name of the local secret that contains the cluster registration information.
 // Thos is created at Verrazzano install.
-const MCLocalRegistrationSecret = "verrazzano-local-registration"
+const MCLocalRegistrationSecret = "verrazzano-local-registration" //nolint:gosec //#gosec G101
 
 // AdminKubeconfigData - the field name in MCRegistrationSecret that contains the admin cluster's kubeconfig
 const AdminKubeconfigData = "admin-kubeconfig"
@@ -41,9 +38,14 @@ const ElasticsearchUsernameData = "username"
 // cluster's Elasticsearch password
 const ElasticsearchPasswordData = "password"
 
-// ElasticsearchCABundleData - the field name in MCRegistrationSecret that contains the admin
-// cluster's Elasticsearch CA bundle
-const ElasticsearchCABundleData = "ca-bundle"
+// CaBundleKey is the CA cert key in a secret
+const CaBundleKey = "ca-bundle"
+
+// CaFileDefault is the default value for the CA_FILE environment variable
+const CaFileDefault = "/etc/ssl/certs/ca-bundle.crt"
+
+// CaFileOverride is the location when the registration secret contains a ca-bundle
+const CaFileOverride = "/fluentd/secret/ca-bundle"
 
 // LabelVerrazzanoManaged - constant for a Kubernetes label that is applied by Verrazzano
 const LabelVerrazzanoManaged = "verrazzano-managed"
@@ -93,3 +95,18 @@ const DefaultClusterName = "local"
 
 // VzPrometehusIngress - the name of the ingress for system vmi prometheus
 const VzPrometheusIngress = "vmi-system-prometheus"
+
+// ClusterNameEnvVar is the environment variable used to identify the managed cluster for fluentd
+const FluentdClusterNameEnvVar = "CLUSTER_NAME"
+
+// FluentdElasticsearchURLEnvVar is the environment variable name used to identify the admin cluster's
+// Elasticsearch URL for fluentd
+const FluentdElasticsearchURLEnvVar = "ELASTICSEARCH_URL"
+
+// FluentdElasticsearchUserEnvVar is the environment variable name used to identify the admin cluster's
+// Elasticsearch username for fluentd
+const FluentdElasticsearchUserEnvVar = "ELASTICSEARCH_USER"
+
+// FluentdElasticsearchPwdEnvVar is the environment variable name used to identify the admin cluster's
+// Elasticsearch password for fluentd
+const FluentdElasticsearchPwdEnvVar = "ELASTICSEARCH_PASSWORD"

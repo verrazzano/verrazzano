@@ -17,16 +17,23 @@ global:
   proxy:
     readinessFailureThreshold: 90
 
+pilot:
+  autoscaleEnabled: false
+
 gateways:
   istio-egressgateway:
     env:
       # Needed to route traffic via egress gateway if desired.
       ISTIO_META_REQUESTED_NETWORK_VIEW: "external"
+    autoscaleEnabled: false
+  istio-ingressgateway:
+    autoscaleEnabled: false
 
 istiocoredns:
   enabled: true
   # NOTE: The image you're looking for isn't here. The istio coredns images now come from
   # the bill of materials file (verrazzano-bom.json).
+  autoscaleEnabled: false
 
 meshConfig:
   enablePrometheusMerge: false

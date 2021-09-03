@@ -287,9 +287,9 @@ func (r *Reconciler) syncNetworkPolices(ctx context.Context, project *clustersv1
 	// Create or update policies that are in the project spec
 	// The project webhook validates that the network policies use project namespaces
 	desiredPolicySet := make(map[string]bool)
-	for _, policyTemplate := range project.Spec.Template.NetworkPolicies {
+	for i, policyTemplate := range project.Spec.Template.NetworkPolicies {
 		desiredPolicySet[policyTemplate.Metadata.Namespace+policyTemplate.Metadata.Name] = true
-		_, err := r.createOrUpdateNetworkPolicy(ctx, &policyTemplate)
+		_, err := r.createOrUpdateNetworkPolicy(ctx, &project.Spec.Template.NetworkPolicies[i])
 		if err != nil {
 			return err
 		}
@@ -320,7 +320,7 @@ func (r *Reconciler) deleteNetworkPolicies(ctx context.Context, project *cluster
 			return err
 		}
 		// Loop through the policies found in the namespace
-		for _, policy := range policies.Items {
+		for pi, policy := range policies.Items {
 			if desiredPolicySet != nil {
 				// Don't delete policy if it should be in the namespace
 				if _, ok := desiredPolicySet[policy.Namespace+policy.Name]; ok {
@@ -329,7 +329,7 @@ func (r *Reconciler) deleteNetworkPolicies(ctx context.Context, project *cluster
 			}
 
 			// Found a policy in the namespace that is not specified in the project.  Delete it
-			if err := r.Delete(ctx, &policy, &client.DeleteOptions{}); err != nil {
+			if err := r.Delete(ctx, &policies.Items[pi], &client.DeleteOptions{}); err != nil {
 				logger.Error(err, "Unable to delete NetworkPolicy during cleanup of project",
 					keyNamespace, policy.Namespace, keyPolicyName, policy.Name)
 			}

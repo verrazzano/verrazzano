@@ -40,12 +40,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	for _, comp := range component.GetComponents() {
-		if r.DryRun {
-			// Eventually, pass this down through Component.Upgrade() and into the helm command
-			log.Info("Dry run enabled, skipping upgrade")
-			break
-		}
-		err := comp.Upgrade(log, r, cr.Namespace)
+		err := comp.Upgrade(log, r, cr.Namespace, r.DryRun)
 		if err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
@@ -58,6 +53,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 	log.Info(msg)
 	cr.Status.Version = targetVersion
 	err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
+
 	return ctrl.Result{}, err
 }
 

@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -48,7 +49,12 @@ func (e *Elastic) PodsRunning() bool {
 
 // Connect checks if the elasticsearch cluster can be connected
 func (e *Elastic) Connect() bool {
-	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return false
+	}
+
 	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 	if err != nil {
 		return false
@@ -109,7 +115,12 @@ func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client
 // ListIndices lists elasticsearch indices
 func (e *Elastic) ListIndices() []string {
 	idx := []string{}
-	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return nil
+	}
+
 	for i := range e.getIndices(kubeconfigPath) {
 		idx = append(idx, i)
 	}

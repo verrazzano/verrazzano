@@ -8,15 +8,14 @@ import (
 	"fmt"
 	"testing"
 
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	appsv1 "k8s.io/api/apps/v1"
-
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -485,57 +484,150 @@ func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 
 // TestSyncer_configureLogging tests configuring logging by updating Fluentd daemonset
 // GIVEN a request to configure the logging
-// WHEN the cluster name in registration secret has been changed or the elasticsearch secret has been updated
+// WHEN the registration secret data doesn't match the daemonset,
 // THEN ensure that Fluentd daemonset is updated
 func TestSyncer_configureLogging(t *testing.T) {
 	type fields struct {
-		oldSecretVersion string
-		newSecretVersion string
+		secretExists    bool
+		dsSecretVersion string
+		expectCaFile    string
+		dsClusterName   string
+		dsEsURL         string
+		dsSecretName    string
+		dsCaFile        string
+		expectUpdateDS  bool
 	}
 	tests := []struct {
 		name   string
 		fields fields
 	}{
 		{
-			name: "new registration",
+			name: "new registration with override ca cert",
 			fields: fields{
-				oldSecretVersion: "",
-				newSecretVersion: "version1",
+				secretExists:    true,
+				dsSecretVersion: "",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "",
+				dsEsURL:         "",
+				dsSecretName:    "",
+				dsCaFile:        constants.CaFileDefault,
+				expectUpdateDS:  true,
+			},
+		},
+		{
+			name: "new registration well known CA certs",
+			fields: fields{
+				secretExists:    true,
+				dsSecretVersion: "",
+				expectCaFile:    constants.CaFileDefault,
+				dsClusterName:   "",
+				dsEsURL:         "",
+				dsSecretName:    "",
+				dsCaFile:        constants.CaFileDefault,
+				expectUpdateDS:  true,
 			},
 		},
 		{
 			name: "delete registration",
 			fields: fields{
-				oldSecretVersion: "version1",
-				newSecretVersion: "",
+				secretExists:    false,
+				dsSecretVersion: "version1",
+				expectCaFile:    constants.CaFileDefault,
+				dsClusterName:   "secretClusterName",
+				dsEsURL:         "secretEsURL",
+				dsSecretName:    constants.MCRegistrationSecret,
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  true,
 			},
 		},
 		{
-			name: "update registration",
+			name: "update registration secret version changed",
 			fields: fields{
-				oldSecretVersion: "version1",
-				newSecretVersion: "version2",
+				secretExists:    true,
+				dsSecretVersion: "differentVersion",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "secretClusterName",
+				dsEsURL:         "secretEsURL",
+				dsSecretName:    constants.MCRegistrationSecret,
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  true,
+			},
+		},
+		{
+			name: "update registration daemonset cluster name changed",
+			fields: fields{
+				secretExists:    true,
+				dsSecretVersion: "secretVersion",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "differentClusterName",
+				dsEsURL:         "secretEsURL",
+				dsSecretName:    constants.MCRegistrationSecret,
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  true,
+			},
+		},
+		{
+			name: "update registration daemonset ES URL changed",
+			fields: fields{
+				secretExists:    true,
+				dsSecretVersion: "secretVersion",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "secretClusterName",
+				dsEsURL:         "differentEsURL",
+				dsSecretName:    constants.MCRegistrationSecret,
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  true,
+			},
+		},
+		{
+			name: "update registration daemonset secret name changed",
+			fields: fields{
+				secretExists:    true,
+				dsSecretVersion: "secretVersion",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "secretClusterName",
+				dsEsURL:         "secretEsURL",
+				dsSecretName:    "differentSecret",
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  true,
 			},
 		},
 		{
 			name: "no registration",
 			fields: fields{
-				oldSecretVersion: "",
-				newSecretVersion: "",
+				secretExists:    false,
+				dsSecretVersion: "",
+				expectCaFile:    constants.CaFileDefault,
+				dsClusterName:   defaultClusterName,
+				dsEsURL:         defaultElasticURL,
+				dsSecretName:    defaultSecretName,
+				dsCaFile:        constants.CaFileDefault,
+				expectUpdateDS:  false,
 			},
 		},
 		{
 			name: "same registration",
 			fields: fields{
-				oldSecretVersion: "version1",
-				newSecretVersion: "version1",
+				secretExists:    true,
+				dsSecretVersion: "secretVersion",
+				expectCaFile:    constants.CaFileOverride,
+				dsClusterName:   "secretClusterName",
+				dsEsURL:         "secretEsURL",
+				dsSecretName:    constants.MCRegistrationSecret,
+				dsCaFile:        constants.CaFileOverride,
+				expectUpdateDS:  false,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			oldVersion := tt.fields.oldSecretVersion
-			newVersion := tt.fields.newSecretVersion
+			dsSecretVersion := tt.fields.dsSecretVersion
+			dsClusterName := tt.fields.dsClusterName
+			dsEsURL := tt.fields.dsEsURL
+			dsSecretName := tt.fields.dsSecretName
+			expectUpdateDS := tt.fields.expectUpdateDS
+			secretExists := tt.fields.secretExists
+			dsCaFile := tt.fields.dsCaFile
 
 			// Managed cluster mocks
 			mcMocker := gomock.NewController(t)
@@ -545,35 +637,52 @@ func TestSyncer_configureLogging(t *testing.T) {
 			mcMock.EXPECT().
 				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-					secret.Name = constants.MCRegistrationSecret
-					secret.Namespace = constants.VerrazzanoSystemNamespace
-					secret.ResourceVersion = newVersion
-					return nil
+					if secretExists {
+						secret.Name = constants.MCRegistrationSecret
+						secret.Namespace = constants.VerrazzanoSystemNamespace
+						secret.ResourceVersion = "secretVersion"
+						if tt.fields.expectCaFile == constants.CaFileOverride {
+							secret.Data = map[string][]byte{}
+							secret.Data[constants.CaBundleKey] = []byte("test")
+							secret.Data[constants.ClusterNameData] = []byte("secretClusterName")
+							secret.Data[constants.ElasticsearchURLData] = []byte("secretEsURL")
+						}
+						return nil
+					}
+					return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, constants.MCRegistrationSecret)
 				})
 
-			// Managed Cluster - expect call to get the verrazzano operator deployment.
+			// Managed Cluster - expect call to get the fluentd deployment.
 			mcMock.EXPECT().
 				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
 					ds.Name = "fluentd"
 					ds.Namespace = constants.VerrazzanoSystemNamespace
-					ds.Spec = getTestDaemonSetSpec(oldVersion)
+					ds.Spec = getTestDaemonSetSpec(dsSecretVersion, dsClusterName, dsEsURL, dsSecretName, dsCaFile)
 					return nil
 				})
-			// update only when registration is updated
-			if oldVersion != newVersion {
-				mcMock.EXPECT().
-					Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
-					DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
-						ds.Name = "fluentd"
-						ds.Namespace = constants.VerrazzanoSystemNamespace
-						ds.Spec = getTestDaemonSetSpec(oldVersion)
-						return nil
-					})
+
+			// we always call controllerutil.CreateOrUpdate in mcagent_test, which will do another get for fluentd
+			// daemonset. However, update will only be called if we changed the daemonset
+			mcMock.EXPECT().
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
+					ds.Name = "fluentd"
+					ds.Namespace = constants.VerrazzanoSystemNamespace
+					ds.Spec = getTestDaemonSetSpec(dsSecretVersion, dsClusterName, dsEsURL, dsSecretName, dsCaFile)
+					return nil
+				})
+			// update only when expected
+			if expectUpdateDS {
 				mcMock.EXPECT().
 					Update(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
-						asserts.Equal(t, newVersion, getEnvValue(&ds.Spec.Template.Spec.Containers, registrationSecretVersion), "expected env value for "+registrationSecretVersion)
+						expectedSecretVersion := ""
+						if secretExists {
+							expectedSecretVersion = "secretVersion"
+						}
+						asserts.Equal(t, expectedSecretVersion, getEnvValue(&ds.Spec.Template.Spec.Containers, registrationSecretVersion), "expected env value for "+registrationSecretVersion)
+						asserts.Equal(t, tt.fields.expectCaFile, getEnvValue(&ds.Spec.Template.Spec.Containers, caFile), "expected env value for "+registrationSecretVersion)
 						return nil
 					})
 			}
@@ -591,7 +700,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 		})
 	}
 }
-func getTestDaemonSetSpec(secretVersion string) appsv1.DaemonSetSpec {
+func getTestDaemonSetSpec(secretVersion, clusterName, esURL, secretName, caFileValue string) appsv1.DaemonSetSpec {
 	return appsv1.DaemonSetSpec{
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
@@ -602,6 +711,46 @@ func getTestDaemonSetSpec(secretVersion string) appsv1.DaemonSetSpec {
 							{
 								Name:  registrationSecretVersion,
 								Value: secretVersion,
+							},
+							{
+								Name:  constants.FluentdClusterNameEnvVar,
+								Value: clusterName,
+							},
+							{
+								Name:  constants.FluentdElasticsearchURLEnvVar,
+								Value: esURL,
+							},
+							{
+								Name: constants.FluentdElasticsearchUserEnvVar,
+								ValueFrom: &corev1.EnvVarSource{
+									SecretKeyRef: &corev1.SecretKeySelector{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: secretName,
+										},
+										Key: constants.ElasticsearchUsernameData,
+										Optional: func(opt bool) *bool {
+											return &opt
+										}(true),
+									},
+								},
+							},
+							{
+								Name: constants.FluentdElasticsearchPwdEnvVar,
+								ValueFrom: &corev1.EnvVarSource{
+									SecretKeyRef: &corev1.SecretKeySelector{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: secretName,
+										},
+										Key: constants.ElasticsearchPasswordData,
+										Optional: func(opt bool) *bool {
+											return &opt
+										}(true),
+									},
+								},
+							},
+							{
+								Name:  caFile,
+								Value: caFileValue,
 							},
 						},
 					},
@@ -638,14 +787,23 @@ func Test_updateEnv(t *testing.T) {
 			Value: "fluentd.conf",
 		},
 	}
-	newEnvs := updateEnv(constants.MCRegistrationSecret, "v2", oldEnvs)
+	const newClusterName = "newManagedClusterName"
+	const newElasticURL = "https://myNewElasticURL"
+	regSecret := corev1.Secret{
+		Data: map[string][]byte{
+			constants.ClusterNameData:           []byte(newClusterName),
+			constants.ElasticsearchURLData:      []byte(newElasticURL),
+			constants.ElasticsearchUsernameData: []byte("someuser"),
+		},
+	}
+	newEnvs := updateEnv(constants.MCRegistrationSecret, regSecret, "v2", oldEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
-	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("CLUSTER_NAME", &newEnvs).ValueFrom.SecretKeyRef.Name)
-	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_URL", &newEnvs).ValueFrom.SecretKeyRef.Name)
+	asserts.Equal(t, newClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
+	asserts.Equal(t, newElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_USER", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_PASSWORD", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	//un-registration of setting secretVersion back to ""
-	newEnvs = updateEnv(constants.MCRegistrationSecret, "", newEnvs)
+	newEnvs = updateEnv(constants.MCRegistrationSecret, regSecret, "", newEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
 	asserts.Equal(t, defaultClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
 	asserts.Equal(t, defaultElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)

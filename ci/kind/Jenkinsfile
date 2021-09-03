@@ -25,7 +25,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.18", "1.19", "1.20", "1.17" ])
+                choices: [ "1.20", "1.19", "1.18", "1.17" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -44,6 +44,20 @@ pipeline {
         string (name: 'CONSOLE_REPO_BRANCH',
                 defaultValue: 'master',
                 description: 'The branch to check out after cloning the console repository.',
+                trim: true)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
+        booleanParam (description: 'Whether to enable debug logging of the istio envoy in the VZ API pod', name: 'ENABLE_API_ENVOY_LOGGING', defaultValue: true)
+        string (name: 'TAGGED_TESTS',
+                defaultValue: '',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
+        string (name: 'INCLUDED_TESTS',
+                defaultValue: '.*',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                defaultValue: '_excluded_test',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
     }
 
@@ -92,6 +106,11 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
+
+        // used to emit metrics
+        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        TEST_ENV_LABEL = "kind"
+        K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
     }
 
     stages {
@@ -198,34 +217,68 @@ pipeline {
                         """
                     }
                     post {
+                        failure {
+                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                        }
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                             sh """
                                 ## dump out install logs
                                 mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
-                                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install.log --tail -1
-                                kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
+                                kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install.log --tail -1
+                                kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
                                 echo "Verrazzano Installation logs dumped to verrazzano-install.log"
                                 echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                                 echo "------------------------------------------"
                             """
+                            script {
+                                VZ_TEST_METRIC = metricJobName('')
+                                metricTimerStart("${VZ_TEST_METRIC}")
+                            }
+                            // enable debug logging of verrazzano api istio proxy
+                            script {
+                                if (params.ENABLE_API_ENVOY_LOGGING) {
+                                    sh '''
+                                        vz_api_pod=\$(kubectl get pod -n verrazzano-system -l app=verrazzano-api --no-headers -o custom-columns=\":metadata.name\")
+                                        if [ -z "\$vz_api_pod" ]; then
+                                          echo "Could not find verrazzano-api pod, not enabling debug logging"
+                                        else
+                                          kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
+                                        fi
+                                        nginx_ing_pod=\$(kubectl get pod -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers -o custom-columns=\":metadata.name\")
+                                        if [ -z "\$nginx_ing_pod" ]; then
+                                          echo "Could not find nginx ingress controller pod, not enabling debug logging"
+                                        else
+                                          kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
+                                        fi
+                                    '''
+                                }
+                            }
                         }
                     }
                 }
 
-                stage('Run Acceptance Tests') {
+                stage('Verify Install') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+               }
+
+                stage('Run Acceptance Tests Infra') {
                     environment {
                         TEST_ENV = "KIND"
                     }
                     parallel {
-                        stage('verify-install') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-install')
-                            }
-                        }
                         stage('verify-scripts') {
                             steps {
                                 runGinkgo('scripts')
@@ -255,20 +308,50 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        stage('istio authorization policy') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-                            }
-                            steps {
-                                runGinkgo('istio/authz')
-                            }
-                        }
                         stage('security role based access') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
                             }
                             steps {
                                 runGinkgo('security/rbac')
+                            }
+                        }
+                        stage('system component metrics') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
+                            }
+                            steps {
+                                runGinkgo('metrics/syscomponents')
+                            }
+                        }
+                        stage ('console') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                            }
+                            steps {
+                                acceptanceTestsConsole()
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Run Acceptance Tests Deployments') {
+                    environment {
+                        TEST_ENV = "KIND"
+                    }
+                    parallel {
+                        stage('istio authorization policy') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
+                            }
+                            steps {
+                                runGinkgo('istio/authz')
                             }
                         }
                         stage('security network policies') {
@@ -289,14 +372,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('metrics/deploymetrics')
-                            }
-                        }
-                        stage('system component metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
-                            }
-                            steps {
-                                runGinkgo('metrics/syscomponents')
                             }
                         }
                         stage('examples logging helidon') {
@@ -366,27 +441,27 @@ pipeline {
                                 runGinkgo('ingress/console')
                             }
                         }
-                        stage ('console') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                            }
-                            steps {
-                                acceptanceTestsConsole()
-                            }
-                        }
                     }
                     post {
+                        failure {
+                            script {
+                                saveConsoleScreenShots()
+                            }
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png', allowEmptyArchive: true
+                        }
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
                 }
+
             }
 
             post {
                 failure {
                     script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
                         }
@@ -394,6 +469,7 @@ pipeline {
                 }
                 success {
                     script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
                         }
@@ -418,7 +494,15 @@ pipeline {
             }
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-
+            script {
+                if (params.EMIT_METRICS) {
+                    withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                        sh """
+                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                        """
+                    }
+                }
+            }
             deleteCluster()
         }
         failure {
@@ -441,6 +525,7 @@ pipeline {
             }
         }
         cleanup {
+            metricBuildDuration()
             deleteDir()
         }
     }
@@ -450,7 +535,7 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
@@ -459,7 +544,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
@@ -569,6 +654,18 @@ def acceptanceTestsConsole() {
     """
 }
 
+def saveConsoleScreenShots() {
+    sh """
+        # Temporarily clone the console repo until it is moved to the verrazzano repo
+        cd ${GO_REPO_PATH}/console
+
+        # Copy artifacts to workspace, ignore if copy fails
+        mkdir -p ${WORKSPACE}/console/screenshots
+        ls Screenshot*.png || true
+        cp Screenshot*.png ${WORKSPACE}/console/screenshots || true
+    """
+}
+
 def deleteCluster() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -578,4 +675,66 @@ def deleteCluster() {
           exit 1
         fi
     """
+}
+
+def metricJobName(stageName) {
+    job = env.JOB_NAME.split("/")[0]
+    job = '_' + job.replaceAll('-','_')
+    if (stageName) {
+        job = job + '_' + stageName
+    }
+    return job
+}
+
+// Construct the set of labels/dimensions for the metrics
+def getMetricLabels() {
+    labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+             'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
+             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+             'kubernetes_version=\\"' + "${params.KUBERNETES_CLUSTER_VERSION}"+'\\",' +
+             'test_env=\\"kind\\"'
+    return labels
+}
+
+def metricTimerStart(metricName) {
+    def timerStartName = "${metricName}_START"
+    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
+}
+
+def metricTimerEnd(metricName, status) {
+    def timerStartName = "${metricName}_START"
+    def timerEndName   = "${metricName}_END"
+    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
+    if (params.EMIT_METRICS) {
+        long x = env."${timerStartName}" as long;
+        long y = env."${timerEndName}" as long;
+        def dur = (y-x)
+        labels = getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+            echo "emit prometheus metrics: $EMIT"
+            return EMIT
+        }
+    } else {
+        return ''
+    }
+}
+
+// Emit the metrics indicating the duration and result of the build
+def metricBuildDuration() {
+    def status = "${currentBuild.currentResult}"
+    long duration = "${currentBuild.duration}" as long;
+    long durationInMins = (duration/60000)
+    testMetric = metricJobName('')
+    def metricValue = "0"
+    if (status.equals("SUCCESS")) {
+        metricValue = "1"
+    }
+    if (params.EMIT_METRICS) {
+        labels = getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInMins}")
+            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
+        }
+    }
 }

@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	gabs "github.com/Jeffail/gabs/v2"
+	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -32,12 +32,12 @@ import (
 const (
 	rancherNamespace   = "cattle-system"
 	rancherIngressName = "rancher"
-	rancherAdminSecret = "rancher-admin-secret"
-	rancherTLSSecret   = "tls-rancher-ingress"
+	rancherAdminSecret = "rancher-admin-secret" //nolint:gosec //#gosec G101
+	rancherTLSSecret   = "tls-rancher-ingress"  //nolint:gosec //#gosec G101
 
 	clusterPath         = "/v3/cluster"
 	clustersByNamePath  = "/v3/clusters?name="
-	clusterRegTokenPath = "/v3/clusterregistrationtoken"
+	clusterRegTokenPath = "/v3/clusterregistrationtoken" //nolint:gosec //#gosec G101
 	manifestPath        = "/v3/import/"
 	loginPath           = "/v3-public/localProviders/local?action=login"
 
@@ -199,23 +199,16 @@ func importClusterToRancher(rc *rancherConfig, clusterName string, log *zap.Suga
 		return clusterID, nil
 	}
 
-	if response != nil && response.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("expected response code %d from POST but got %d: %v", http.StatusCreated, response.StatusCode, response)
-	}
 	if err != nil {
 		return "", err
 	}
 
-	jsonString, err := gabs.ParseJSON([]byte(responseBody))
+	err = httputil.ValidateResponseCode(response, http.StatusCreated)
 	if err != nil {
 		return "", err
 	}
 
-	if clusterID, ok := jsonString.Path("id").Data().(string); ok {
-		return clusterID, nil
-	}
-
-	return "", errors.New("unable to find cluster id in Rancher response")
+	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "id", "unable to find cluster id in Rancher response")
 }
 
 // getClusterIDFromRancher attempts to fetch the cluster from Rancher by name and pull out the cluster ID
@@ -230,22 +223,13 @@ func getClusterIDFromRancher(rc *rancherConfig, clusterName string, log *zap.Sug
 	if response != nil && response.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("tried to get cluster from Rancher but failed, response code: %d", response.StatusCode)
 	}
+
 	if err != nil {
 		return "", err
 	}
 
-	// parse cluster ID from response
-	jsonString, err := gabs.ParseJSON([]byte(responseBody))
-	if err != nil {
-		return "", err
-	}
+	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "data.0.id", "unable to find clusterId in Rancher response")
 
-	// response data is an array, but it should only contain one item
-	if clusterID, ok := jsonString.Path("data.0.id").Data().(string); ok {
-		return clusterID, nil
-	}
-
-	return "", errors.New("unable to find clusterId in Rancher response")
 }
 
 // getRegistrationYAMLFromRancher creates a registration token in Rancher for the managed cluster and uses the
@@ -259,22 +243,19 @@ func getRegistrationYAMLFromRancher(rc *rancherConfig, clusterName string, ranch
 
 	response, manifestContent, err := sendRequest(action, reqURL, headers, payload, rc, log)
 
-	if response != nil && response.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("expected response code %d from POST but got %d: %v", http.StatusCreated, response.StatusCode, response)
-	}
 	if err != nil {
 		return "", err
 	}
 
-	jsonString, err := gabs.ParseJSON([]byte(manifestContent))
+	err = httputil.ValidateResponseCode(response, http.StatusCreated)
 	if err != nil {
 		return "", err
 	}
 
 	// get the manifest token from the response, construct a URL, and fetch its contents
-	token, ok := jsonString.Path("token").Data().(string)
-	if !ok {
-		return "", errors.New("unable to find manifest token in Rancher response")
+	token, err := httputil.ExtractFieldFromResponseBodyOrReturnError(manifestContent, "token", "unable to find manifest token in Rancher response")
+	if err != nil {
+		return "", err
 	}
 
 	// Rancher 2.5.x added the cluster ID to the manifest URL.
@@ -283,9 +264,11 @@ func getRegistrationYAMLFromRancher(rc *rancherConfig, clusterName string, ranch
 	action = http.MethodGet
 	response, manifestContent, err = sendRequest(action, manifestURL, headers, "", rc, log)
 
-	if response != nil && response.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("expected response code %d from GET but got %d: %v", http.StatusOK, response.StatusCode, response)
+	if err != nil {
+		return "", err
 	}
+
+	err = httputil.ValidateResponseCode(response, http.StatusOK)
 	if err != nil {
 		return "", err
 	}
@@ -319,23 +302,16 @@ func getAdminTokenFromRancher(rdr client.Reader, rc *rancherConfig, log *zap.Sug
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	response, responseBody, err := sendRequest(action, reqURL, headers, payload, rc, log)
-
-	if response != nil && response.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("expected response code %d from POST but got %d: %v", http.StatusCreated, response.StatusCode, response)
-	}
 	if err != nil {
 		return "", err
 	}
 
-	jsonString, err := gabs.ParseJSON([]byte(responseBody))
+	err = httputil.ValidateResponseCode(response, http.StatusCreated)
 	if err != nil {
 		return "", err
 	}
-	if token, ok := jsonString.Path("token").Data().(string); ok {
-		return token, nil
-	}
 
-	return "", errors.New("unable to find token in Rancher response")
+	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "token", "unable to find token in Rancher response")
 }
 
 // getRancherIngressHostname gets the Rancher ingress host name. This is used to set the host for TLS.
@@ -410,6 +386,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log *zap.SugaredLogger) (*h
 	tlsConfig := &tls.Config{
 		RootCAs:    newCertPool(rc.certificateAuthorityData),
 		ServerName: rc.host,
+		MinVersion: tls.VersionTLS12,
 	}
 	tr := &http.Transport{
 		TLSClientConfig:       tlsConfig,

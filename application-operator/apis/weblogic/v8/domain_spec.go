@@ -20,6 +20,11 @@ type DomainSpec struct {
 	// cluster under the clusters field. Defaults to true.
 	AllowReplicasBelowMinDynClusterSize bool `json:"allowReplicasBelowMinDynClusterSize,omitempty"`
 
+	// Configure auxiliary image volumes including their respective mount paths. Auxiliary image volumes are in turn referenced by one or more
+	// serverPod.auxiliaryImages mounts, and are internally implemented using a Kubernetes emptyDir volume.
+	// +x-kubernetes-list-type=set
+	AuxiliaryImageVolumes []AuxiliaryImageVolume `json:"auxiliaryImageVolumes,omitempty"`
+
 	// Clusters contains configuration for the clusters
 	// +x-kubernetes-list-type=set
 	Clusters []Cluster `json:"clusters,omitempty"`

@@ -224,19 +224,21 @@ function get_deployment_status() {
 # $2 namespace
 # $3 chart location
 function reset_chart(){
-  local ns=$2
   local chartName=$1
+  local ns=$2
   local chartLocation=${3:-""}
   # status values: unknown, deployed, uninstalled, superseded, failed, uninstalling, pending-install, pending-upgrade or pending-rollback
   local deployment_status=$(get_deployment_status ${chartName} ${ns})
-  log "Deployment status for ${ns}/${chartName}: ${deployment_status}"
-  if [ "${deployment_status}" != "deployed" ]; then
-      log "Resetting chart state for ${ns}/${chartName} at ${chartLocation} if necessary"
-      helm template ${chartName} -n ${ns} ${chartLocation} 2>/dev/null |  kubectl delete -f - 2>/dev/null || true
-      helm uninstall -n ${ns} ${chartName} 2>/dev/null
-      return $?
+  if [ ! -z "${deployment_status}" ] ; then
+    if [ "${deployment_status}" != "deployed" ] ; then
+        log "Deployment status for ${ns}/${chartName}: ${deployment_status}"
+        log "Resetting chart state for ${ns}/${chartName} at ${chartLocation}"
+        helm template ${chartName} -n ${ns} ${chartLocation} 2>/dev/null |  kubectl delete -f - 2>/dev/null || true
+        helm uninstall -n ${ns} ${chartName} 2>/dev/null
+        return $?
+    fi
+    log "Chart ${ns}/${chartName} at ${chartLocation} status: ${deployment_status}"
   fi
-  log "Chart ${ns}/${chartName} at ${chartLocation} status: ${deployment_status}"
   return 0
 }
 
@@ -371,6 +373,64 @@ function generate_password() {
   [[ ${_pwsize} -lt ${_minsize} ]] && _pwsize=${_minsize}
   [[ ${_pwsize} -gt ${_maxsize} ]] && _pwsize=${_maxsize}
   dd if=/dev/urandom bs=${_pwsize} count=3 2>/dev/null | base64 | tr -d '+/=' | cut -c1-${_pwsize}
+}
+
+# Returns 0 if no slow image pulls are detected, otherwise returns 1
+# $1 the namespace to check
+function check_for_slow_image_pulls() {
+  local pulling_count=$(kubectl get events -n $1 | grep Pulling | wc -l)
+
+  # don't count any succesful pulls in the last 19 seconds to mitigate the issue where the
+  # helm install fails and the image pull succeeds before we can do this check
+  local pulled_count=$(kubectl get events -n $1 | grep 'Successfully pulled' | awk '$1 !~ /^1?[0-9]s/ {print $0}' | wc -l)
+
+  if [[ $pulling_count -eq $pulled_count ]]; then
+    return 0
+  fi
+
+  log "Slow image pulls detected for namepace $1 after install failure"
+  return 1
+}
+
+# Installs a helm chart, if the helm command fails, check for slow image pulls and retry as needed
+# $1 the chart name
+# $2 the chart directory
+# $3 the namespace
+function helm_install_retry() {
+  local chart_name=$1
+  local chart_dir=$2
+  local ns=$3
+  shift 3
+
+  local retries=0
+  local max_retries=1
+  while true ; do
+    log "Installing ${ns}/${chart_name}"
+    helm upgrade ${chart_name} ${chart_dir} \
+      --install --namespace ${ns} \
+      --wait --timeout 10m \
+      "$@" && break
+    local helm_status=$?
+    if [ "$retries" -eq "$max_retries" ] ; then
+      return $helm_status
+    fi
+    ((retries+=1))
+    check_for_slow_image_pulls ${ns} && return $helm_status
+    log "Retrying install of ${ns}/${chart_name} due to slow image pulls"
+    reset_chart ${chart_name} ${ns} ${chart_dir} || return $?
+  done
+}
+
+# Used to tell the user when a component install has been moved to the operator.
+function platform_operator_install_message() {
+  local componentName=$*
+
+  local msg="""
+Installation of ${componentName} has moved to the verrazzano-platform-operator.
+The status of that component is reported in the \".status.components\" field of the Verrazzano custom resource.
+
+"""
+  log ${msg}
 }
 
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano

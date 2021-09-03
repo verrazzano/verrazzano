@@ -1,0 +1,162 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+def GIT_COMMIT_TO_USE
+def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def TESTS_FAILED = false
+def tarfilePrefix="verrazzano_periodic"
+def storeLocation=""
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "${agentLabel}"
+        }
+    }
+
+    parameters {
+        string (name: 'TAGGED_TESTS',
+                defaultValue: 'unstable_test',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
+        string (name: 'INCLUDED_TESTS',
+                defaultValue: '.*',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                defaultValue: '_excluded_test',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
+    }
+
+    environment {
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
+        BRANCH_NAME="master"
+    }
+
+    // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
+    // commit has been stored in object storage. This job will fetch that commit from master and run tests that are known to
+    // be flaky and that which may also be disabled in the main test suites
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file ${WORKSPACE}/last-stable-commit.txt
+                """
+
+                script {
+                    def props = readProperties file: "${WORKSPACE}/last-stable-commit.txt"
+                    GIT_COMMIT_TO_USE = props['git-commit']
+                    echo "SCM checkout of ${GIT_COMMIT_TO_USE}"
+                    def scmInfo = checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: GIT_COMMIT_TO_USE]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                    // If the commit we were handed is not what the SCM says we are using, fail
+                    if (!env.GIT_COMMIT.equals(GIT_COMMIT_TO_USE)) {
+                        error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
+                    }
+                }
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    // update the description with some meaningful info
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
+                    storeLocation="${env.BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}.zip"
+                }
+            }
+        }
+
+        // Quick and dirty, get the suite/combinations in that are flaky, but should look at a better way to manage the
+        // list here based on parameters (ie: for now requires touching the Jenkinsfile)
+        stage ('Flaky Test Suites') {
+            parallel {
+                stage('Flaky Multi Cluster Tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Flaky Uninstall Tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-uninstall-test/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Flaky OCI DNS tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Flaky Kind Acceptance Tests on 1.20') {
+                    steps {
+                        script {
+                            build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        failure {
+            script {
+                echo "add failure post here"
+            }
+        }
+        cleanup {
+            deleteDir()
+        }
+    }
+}

@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "1.2.0-20210602163405-aac6bdf62",
+              "tag": "1.2.0-20210818200209-6bbae6645",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "1.2.0-20210510185040-aac6bdf62",
+              "tag": "1.2.0-20210818200159-6bbae6645",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "1.2.0-20210602163405-aac6bdf62",
+              "tag": "1.2.0-20210818200209-6bbae6645",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "1.2.0-20210602163405-aac6bdf62",
+              "tag": "1.2.0-20210818200209-6bbae6645",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.7.1-20201016205338-516bc8b2",
+              "tag": "v0.7.1-20210817193218-4d353845",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -232,7 +232,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.1.0-20210721203422-1c9c3b4",
+              "tag": "1.1.0-20210816150650-1ff4223",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -258,7 +258,7 @@
             },
             {
               "image": "verrazzano-monitoring-instance-eswait",
-              "tag": "0.15.0-20210527135645-9046e4b",
+              "tag": "1.1.0-20210816150650-1ff4223",
               "helmFullImageKey": "monitoringOperator.esWaitImage"
             },
             {
@@ -283,7 +283,7 @@
             },
             {
               "image": "console",
-              "tag": "1.1.0-20210728105539-ce613ef",
+              "tag": "1.1.0-20210812131321-65032b3",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -365,7 +365,7 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.2.5",
+              "tag": "3.3.0",
               "helmFullImageKey": "image"
             }
           ]

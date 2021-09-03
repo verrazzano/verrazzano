@@ -6,11 +6,9 @@ package helpers
 import (
 	"errors"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api/v1"
-	"k8s.io/client-go/util/homedir"
 	"sigs.k8s.io/yaml"
 )
 
@@ -36,25 +34,6 @@ type NamedKeycloakTokenInfo struct {
 type Config struct {
 	*clientcmdapi.Config `json:",inline"`
 	KeycloakTokenInfos   []NamedKeycloakTokenInfo `json:"keycloakTokenInfo,omitempty"`
-}
-
-// Helper function to obtain the default kubeConfig location
-func GetKubeConfigLocation() (string, error) {
-
-	var kubeConfig string
-	kubeConfigEnvVar := os.Getenv("KUBECONFIG")
-
-	if len(kubeConfigEnvVar) > 0 {
-		// Find using environment variables
-		kubeConfig = kubeConfigEnvVar
-	} else if home := homedir.HomeDir(); home != "" {
-		// Find in the ~/.kube/ directory
-		kubeConfig = filepath.Join(home, ".kube", "config")
-	} else {
-		// give up
-		return kubeConfig, errors.New("Unable to find kubeconfig")
-	}
-	return kubeConfig, nil
 }
 
 // Removes a context with given name from kubeconfig
@@ -227,10 +206,11 @@ func SetContextInKubeConfig(name string, clusterName string, userName string) er
 func ReadKubeConfig() (Config, error) {
 	// Obtain the default kubeconfig's location
 	kubeConfig := Config{}
-	kubeConfigLoc, err := GetKubeConfigLocation()
+	kubeConfigLoc, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return kubeConfig, err
 	}
+
 	byteSliceKubeconfig, err := ioutil.ReadFile(kubeConfigLoc)
 	if err != nil {
 		return kubeConfig, err
@@ -246,7 +226,7 @@ func ReadKubeConfig() (Config, error) {
 // Writes the given interface map to kubeconfig
 func WriteToKubeConfig(kubeConfig Config) error {
 	// Write the new configuration into the default kubeconfig file
-	kubeConfigLoc, err := GetKubeConfigLocation()
+	kubeConfigLoc, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return err
 	}
@@ -254,7 +234,7 @@ func WriteToKubeConfig(kubeConfig Config) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(kubeConfigLoc, byteSliceKubeConfig, 0644)
+	err = ioutil.WriteFile(kubeConfigLoc, byteSliceKubeConfig, 0600)
 	if err != nil {
 		return err
 	}

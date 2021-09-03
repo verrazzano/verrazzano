@@ -6,8 +6,9 @@ package component
 import (
 	"bytes"
 	"fmt"
-	"go.uber.org/zap"
 	"text/template"
+
+	"go.uber.org/zap"
 )
 
 // Define the keylcloak key:value pair for init container.

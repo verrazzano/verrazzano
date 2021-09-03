@@ -42,8 +42,10 @@ type badRunner struct {
 // WHEN a verrazzano version is empty
 // THEN ensure a condition with type UpgradeStarted is not added
 func TestUpgradeNoVersion(t *testing.T) {
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -73,6 +75,12 @@ func TestUpgradeNoVersion(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -90,8 +98,10 @@ func TestUpgradeNoVersion(t *testing.T) {
 // WHEN a verrazzano spec.version is the same as the status.version
 // THEN ensure a condition with type UpgradeStarted is not added
 func TestUpgradeSameVersion(t *testing.T) {
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -124,6 +134,12 @@ func TestUpgradeSameVersion(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -141,8 +157,10 @@ func TestUpgradeSameVersion(t *testing.T) {
 // WHEN upgrade has not been started and spec.version doesn't match status.version
 // THEN ensure a condition with type UpgradeStarted is added
 func TestUpgradeStarted(t *testing.T) {
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -177,6 +195,12 @@ func TestUpgradeStarted(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
@@ -206,8 +230,10 @@ func TestUpgradeStarted(t *testing.T) {
 // WHEN the current upgrade failed more than the failure limet
 // THEN ensure that upgrade is not started
 func TestUpgradeTooManyFailures(t *testing.T) {
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -255,6 +281,12 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -272,8 +304,10 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 // WHEN the total upgrade failures exceed the limit, but the current upgrade is under the limit
 // THEN ensure that upgrade is started
 func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -331,6 +365,12 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			}
 			return nil
 		})
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -361,8 +401,10 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 // WHEN the current upgrade failures exceeds the limit, but there was a previous upgrade success
 // THEN ensure that upgrade is not started
 func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -421,6 +463,12 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -438,8 +486,10 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 // WHEN spec.version doesn't match status.version
 // THEN ensure a condition with type UpgradeCompleted is added
 func TestUpgradeCompleted(t *testing.T) {
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	fname, _ := filepath.Abs(unitTestBomFile)
 	component.SetUnitTestBomFilePath(fname)
@@ -478,6 +528,12 @@ func TestUpgradeCompleted(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
@@ -493,6 +549,12 @@ func TestUpgradeCompleted(t *testing.T) {
 	// Inject a fake cmd runner to the real helm is not called
 	helm.SetCmdRunner(goodRunner{})
 	component.UpgradePrehooksEnabled = false
+
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -511,8 +573,10 @@ func TestUpgradeCompleted(t *testing.T) {
 // WHEN spec.version doesn't match status.version
 // THEN ensure a condition with type UpgradeCompleted is added
 func TestUpgradeHelmError(t *testing.T) {
+	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
 
 	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -549,6 +613,12 @@ func TestUpgradeHelmError(t *testing.T) {
 			}
 			return nil
 		})
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()

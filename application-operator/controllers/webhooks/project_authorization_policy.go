@@ -210,7 +210,7 @@ func (ap *AuthorizationPolicy) getAuthorizationPoliciesForProject(namespaceList 
 
 // updateAuthorizationPoliciesForProject updates Istio authorization policies for a project, if needed.
 func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicyList []v1beta1.AuthorizationPolicy, uniquePrincipals map[string]bool) error {
-	for _, authzPolicy := range authzPolicyList {
+	for i, authzPolicy := range authzPolicyList {
 		// If the principals specified for the authorization policy do not have the expected principals then
 		// we need to update them.
 		if !vzstring.UnorderedEqual(uniquePrincipals, authzPolicy.Spec.Rules[0].From[0].Source.Principals) {
@@ -220,7 +220,7 @@ func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicy
 			}
 			authzPolicy.Spec.Rules[0].From[0].Source.Principals = principals
 			apLogger.Info(fmt.Sprintf("Updating project Istio authorization policy: %s:%s", authzPolicy.Namespace, authzPolicy.Name))
-			_, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies(authzPolicy.Namespace).Update(context.TODO(), &authzPolicy, metav1.UpdateOptions{})
+			_, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies(authzPolicy.Namespace).Update(context.TODO(), &authzPolicyList[i], metav1.UpdateOptions{})
 			if err != nil {
 				return err
 			}

@@ -64,8 +64,21 @@ pipeline {
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
-        booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: false)
+        booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
+        string (name: 'TAGGED_TESTS',
+                defaultValue: '',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
+        string (name: 'INCLUDED_TESTS',
+                defaultValue: '.*',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                defaultValue: '_excluded_test',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
     }
 
     environment {
@@ -146,6 +159,14 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
+
+        //OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
+        //OC_TELEMETRY_URL = credentials('oci-telemetry-url')
+
+        // used to emit metrics
+        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        TEST_ENV_LABEL = "${params.TEST_ENV}"
+        K8S_VERSION_LABEL = "${params.OKE_CLUSTER_VERSION}"
     }
 
     stages {
@@ -373,15 +394,19 @@ pipeline {
             }
             post {
                 always {
-                    sh """
-                        ## dump out install logs
-                        mkdir -p ${WORKSPACE}/platform-operator/scripts/install/build/logs
-                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                        echo "------------------------------------------"
-                    """
+                    script {
+                        sh """
+                            ## dump out install logs
+                            mkdir -p ${WORKSPACE}/platform-operator/scripts/install/build/logs
+                            kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                            kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                            echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+                            echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+                            echo "------------------------------------------"
+                        """
+                        VZ_TEST_METRIC = metricJobName('')
+                        metricTimerStart("${VZ_TEST_METRIC}")
+                    }
                 }
             }
         }
@@ -419,7 +444,7 @@ pipeline {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh """
                                 cd ${WORKSPACE}/tests/e2e
-                                ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor verify-install/...
+                                ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true verify-install/...
                             """
                         }
                     }
@@ -559,6 +584,16 @@ pipeline {
             """
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            script {
+                if (params.EMIT_METRICS) {
+                    withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                        sh """
+                            ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                        """
+                    }
+                }
+            }
+
             sh """
                 if [ "${TEST_ENV}" == "ocidns_oke" ]; then
                   ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
@@ -585,6 +620,7 @@ pipeline {
                 rm archive.zip
             """
             script {
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                 if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
                     emailext recipientProviders: [[$class: 'CulpritsRecipientProvider'],[$class: 'RequesterRecipientProvider']],
                        subject: "Verrazzano: ${env.JOB_NAME} - Failed",
@@ -592,6 +628,15 @@ pipeline {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
            }
+       }
+       success {
+           script {
+               METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+           }
+       }
+       cleanup {
+           metricBuildDuration()
+           deleteDir()
        }
     }
 }
@@ -608,7 +653,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
@@ -617,7 +662,7 @@ def runGinkgoFailFast(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -v -failFast --noColor ${testSuitePath}/...
+            ginkgo -v -failFast --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
@@ -791,4 +836,73 @@ def getEffectiveDumpOnSuccess() {
         echo "Forcing dump on success based on global override setting"
     }
     return effectiveValue
+}
+
+def metricJobName(stageName) {
+    job = env.JOB_NAME.split("/")[0]
+    job = '_' + job.replaceAll('-','_')
+    if (stageName) {
+        job = job + '_' + stageName
+    }
+    return job
+}
+
+// Construct the set of labels/dimensions for the metrics
+def getMetricLabels() {
+    labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+             'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
+             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+             'kubernetes_version=\\"' + "${params.OKE_CLUSTER_VERSION}"+'\\",' +
+             'test_env=\\"' + "ocidns_oke"+'\\"'
+    return labels
+}
+
+def metricTimerStart(metricName) {
+    def timerStartName = "${metricName}_START"
+    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
+}
+
+def metricTimerEnd(metricName, status) {
+    def timerStartName = "${metricName}_START"
+    def timerEndName   = "${metricName}_END"
+    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
+    if (params.EMIT_METRICS) {
+        long x = env."${timerStartName}" as long;
+        long y = env."${timerEndName}" as long;
+        def dur = (y-x)
+
+        // OCI-Telemetry
+        // labels = '\\"number\\"=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+        //          '\\"commit_sha\\"=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+        //          '\\"test_env\\"=\\"' + "$testEnv"+'\\"'
+        // OCI_MET=sh(returnStdout: true, script: "ci/scripts/oci_metric_emit.sh ${env.OC_TELEMETRY_URL} ${env.OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+
+        labels = getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+            echo "emit prometheus metrics: $EMIT"
+            return EMIT
+        }
+    } else {
+        return ''
+    }
+}
+
+// Emit the metrics indicating the duration and result of the build
+def metricBuildDuration() {
+    def status = "${currentBuild.currentResult}"
+    long duration = "${currentBuild.duration}" as long;
+    long durationInMins = (duration/60000)
+    testMetric = metricJobName('')
+    def metricValue = "0"
+    if (status.equals("SUCCESS")) {
+        metricValue = "1"
+    }
+    if (params.EMIT_METRICS) {
+        labels = getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInMins}")
+            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
+        }
+    }
 }

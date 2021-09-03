@@ -40,10 +40,23 @@ pipeline {
                         defaultValue: 'nip.io',
                         description: 'This is the wildcard DNS domain',
                         trim: true)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
+        string (name: 'TAGGED_TESTS',
+                defaultValue: '',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
+        string (name: 'INCLUDED_TESTS',
+                defaultValue: '.*',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                defaultValue: '_excluded_test',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
     }
 
     environment {
-        KUBERNETES_VERSION = '1.17,1.19,1.20'
+        KUBERNETES_VERSION = '1.17,1.19,1.18'
     }
 
     stages {
@@ -106,7 +119,11 @@ pipeline {
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -118,7 +135,11 @@ pipeline {
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -130,7 +151,11 @@ pipeline {
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
+                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -143,7 +168,28 @@ pipeline {
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.18') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.18'),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -156,20 +202,11 @@ pipeline {
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
-                                ], wait: true
-                        }
-                    }
-                }
-                stage('Kind Acceptance Tests on 1.20') {
-                    steps {
-                        script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
-                                parameters: [
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -178,11 +215,15 @@ pipeline {
                     steps {
                         script {
                             build job: "/verrazzano-upgrade-tests/${BRANCH_NAME.replace("/", "%2F")}",
-                                    parameters: [
-                                            string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                            string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
-                                    ], wait: true
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
                         }
                     }
                 }

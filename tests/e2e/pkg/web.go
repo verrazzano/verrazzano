@@ -10,13 +10,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,7 +33,12 @@ type HTTPResponse struct {
 
 // GetWebPage makes an HTTP GET request using a retryable client configured with the Verrazzano cert bundle
 func GetWebPage(url string, hostHeader string) (*HTTPResponse, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -58,7 +62,12 @@ func GetWebPageWithBasicAuth(url string, hostHeader string, username string, pas
 
 // GetCertificates will return the server SSL certificates for the given URL.
 func GetCertificates(url string) ([]*x509.Certificate, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -82,7 +91,12 @@ func PostWithBasicAuth(url, body, username, password, kubeconfigPath string) (*H
 
 // PostWithHostHeader posts a request with a specified Host header
 func PostWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -92,7 +106,12 @@ func PostWithHostHeader(url, contentType string, hostHeader string, body io.Read
 
 // Delete executes an HTTP DELETE
 func Delete(url string, hostHeader string) (*HTTPResponse, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -164,7 +183,12 @@ func CheckNoServerHeader(resp *HTTPResponse) bool {
 
 // GetSystemVmiHTTPClient returns a retryable HTTP client configured with the system vmi CA cert
 func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	caCert, err := getSystemVMICACert(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -178,7 +202,12 @@ func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
 
 // PutWithHostHeader PUTs a request with a specified Host header
 func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
-	kubeconfigPath := GetKubeConfigPathFromEnv()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
 	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -215,13 +244,11 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) (*http.Clie
 	if err != nil {
 		return nil, err
 	}
-	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: ca}}
-
-	proxyURL := getProxyURL()
-	if proxyURL != "" {
-		tURL := url.URL{}
-		tURLProxy, _ := tURL.Parse(proxyURL)
-		tr.Proxy = http.ProxyURL(tURLProxy)
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs:    ca,
+			MinVersion: tls.VersionTLS12},
+		Proxy: http.ProxyFromEnvironment,
 	}
 
 	// disable the custom DNS resolver
@@ -267,23 +294,6 @@ func getKeycloakCACert(kubeconfigPath string) ([]byte, error) {
 // getSystemVMICACert returns the system vmi CA cert
 func getSystemVMICACert(kubeconfigPath string) ([]byte, error) {
 	return doGetCACertFromSecret("system-tls", "verrazzano-system", kubeconfigPath)
-}
-
-// getProxyURL returns the proxy URL from the proxy env variables
-func getProxyURL() string {
-	if proxyURL := os.Getenv("https_proxy"); proxyURL != "" {
-		return proxyURL
-	}
-	if proxyURL := os.Getenv("HTTPS_PROXY"); proxyURL != "" {
-		return proxyURL
-	}
-	if proxyURL := os.Getenv("http_proxy"); proxyURL != "" {
-		return proxyURL
-	}
-	if proxyURL := os.Getenv("HTTP_PROXY"); proxyURL != "" {
-		return proxyURL
-	}
-	return ""
 }
 
 // doGetCACertFromSecret returns the CA cert from the specified kubernetes secret in the given cluster

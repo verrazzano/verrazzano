@@ -66,8 +66,8 @@ func IsDeploymentProblematic(deployment *appsv1.Deployment) bool {
 
 // FindProblematicDeployments will find and return all deployments deemed problematic in the deploymentList
 func FindProblematicDeployments(deploymentList *appsv1.DeploymentList) (deployments []appsv1.Deployment) {
-	for _, deployment := range deploymentList.Items {
-		if IsDeploymentProblematic(&deployment) {
+	for i, deployment := range deploymentList.Items {
+		if IsDeploymentProblematic(&deploymentList.Items[i]) {
 			deployments = append(deployments, deployment)
 		}
 	}

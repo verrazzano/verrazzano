@@ -5,12 +5,11 @@ package wlsworkload
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
-	"strings"
-	"time"
+	"math/big"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -464,6 +463,10 @@ func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr
 	secret := &corev1.Secret{}
 	err := r.Get(ctx, client.ObjectKey{Namespace: namespaceName, Name: secretName}, secret)
 	if err != nil && k8serrors.IsNotFound(err) {
+		thePassword, err := genPassword(128)
+		if err != nil {
+			return err
+		}
 		secret = &corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
@@ -474,13 +477,13 @@ func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr
 				Name:      secretName,
 			},
 			Data: map[string][]byte{
-				"password": []byte(genPassword(10)),
+				"password": []byte(thePassword),
 			},
 		}
 
 		// Set the owner reference.
 		appConfig := &v1alpha2.ApplicationConfiguration{}
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: appName}, appConfig)
+		err = r.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: appName}, appConfig)
 		if err != nil {
 			return err
 		}
@@ -585,15 +588,17 @@ func updateIstioEnabled(labels map[string]string, u *unstructured.Unstructured) 
 	return unstructured.SetNestedField(u.Object, istioEnabled, specConfigurationIstioEnabledFields...)
 }
 
-var passwordChars = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func genPassword(passSize int) string {
-	rand.Seed(time.Now().UnixNano())
-	var b strings.Builder
+func genPassword(passSize int) (string, error) {
+	const passwordChars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	result := make([]byte, passSize)
 	for i := 0; i < passSize; i++ {
-		b.WriteRune(passwordChars[rand.Intn(len(passwordChars)-1)])
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(passwordChars))))
+		if err != nil {
+			return "", err
+		}
+		result[i] = passwordChars[num.Int64()]
 	}
-	return b.String()
+	return string(result), nil
 }
 
 // addDefaultMonitoringExporter adds monitoringExporter to the WebLogic spec if there is not one present

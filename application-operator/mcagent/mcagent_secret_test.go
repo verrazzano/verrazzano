@@ -22,7 +22,7 @@ import (
 )
 
 const testClusterName = "managed1"
-const testMCSecretNamespace = "unit-mcsecret-namespace"
+const testMCSecretNamespace = "unit-mcsecret-namespace" //nolint:gosec //#gosec G101
 const testMCSecretName = "unit-mcsecret"
 
 var mcSecretTestLabels = map[string]string{"label1": "test1"}
