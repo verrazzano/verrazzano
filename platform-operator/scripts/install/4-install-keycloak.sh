@@ -209,7 +209,10 @@ data:
   configure_keycloak_realms $VZ_SYS_REALM $VZ_ADMIN_GROUP $VZ_MONITOR_GROUP $VZ_USER_GROUP $VZ_SYSTEM_GROUP
 
   # Wait for TLS cert from Cert Manager to go into a ready state
-  kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
+  if ! kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready ; then
+    MESSAGE=$(kubectl get cert ${ENV_NAME}-secret -n keycloak -o jsonpath='{.status.conditions[-1].message}' || "Could not retrieve certificate status message")
+    error "Error waiting for cert ${ENV_NAME}-secret to be ready: ${MESSAGE}"
+  fi
 }
 
 function configure_keycloak_realms() {
