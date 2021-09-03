@@ -146,7 +146,7 @@ pipeline {
                         }
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                    imageRepoSubPath="verrazzano-private-registry/${env.GIT_BRANCH}/b${env.BUILD_NUMBER}"
+                    imageRepoSubPath="verrazzano-private-registry/${env.BRANCH_NAME}/b${env.BUILD_NUMBER}"
                     baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}"
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
