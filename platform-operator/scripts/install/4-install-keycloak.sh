@@ -594,8 +594,10 @@ if [[ "$(is_vz_console_enabled)" == "true" ]]; then
   consoleArr+=("Verrazzano Console - https://verrazzano.${ENV_NAME}.${DNS_SUFFIX}")
 fi
 
+display_warning_for_secret="false"
 console_count=${#consoleArr[@]}
 if [ $console_count -gt 0 ];then
+  display_warning_for_secret="true"
   consoleout
   if [ $console_count -eq 1 ];then
     consoleout "Verrazzano provides the following user interface."
@@ -622,11 +624,20 @@ if [ $(is_rancher_enabled) == "true" ]; then
   consoleout "User: admin"
   consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
   consoleout
+  display_warning_for_secret="true"
 fi
 if [ $(is_keycloak_enabled) == "true" ]; then
   consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
   consoleout "User: keycloakadmin"
   consoleout "Password: kubectl get secret --namespace keycloak ${KCADMIN_SECRET} -o jsonpath={.data.password} | base64 --decode; echo"
+  display_warning_for_secret="true"
+fi
+if [ $display_warning_for_secret == "true" ]; then
+  consoleout
+  consoleout "WARNING: Editing the secrets will not change the passwords for those accounts."
+  consoleout "To change a password, use the appropriate console (Keycloak or Rancher), then update the corresponding secret with the new password."
+  consoleout "If you change the password, then you must update the secret."
+  consoleout
 fi
 if [ $(get_application_ingress_ip) == "null" ]; then
   consoleout
