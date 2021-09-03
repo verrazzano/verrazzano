@@ -108,7 +108,12 @@ func GetComponents() []Component {
 			chartDir:                filepath.Join(thirdPartyChartsDir, "weblogic-operator"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
+			supportsOperatorInstall: true,
+			waitForInstall:          true,
+			imagePullSecretKeyname:  "imagePullSecrets[0].name",
 			valuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
+			preInstallFunc:          weblogicOperatorPreInstall,
+			appendOverridesFunc:     appendWeblogicOperatorOverrides,
 		},
 		helmComponent{
 			releaseName:             "oam-kubernetes-runtime",

@@ -40,6 +40,9 @@ type helmComponent struct {
 	// valuesFile is the helm chart values override file
 	valuesFile string
 
+	// preInstallFunc is an optional function to run before installing
+	preInstallFunc preInstallFuncSig
+
 	// preUpgradeFunc is an optional function to run before upgrading
 	preUpgradeFunc preUpgradeFuncSig
 
@@ -61,6 +64,9 @@ type helmComponent struct {
 
 // Verify that helmComponent implements Component
 var _ Component = helmComponent{}
+
+// preInstallFuncSig is the signature for the optional function to run before installing; any keyValue pairs should be prepended to the Helm overrides list
+type preInstallFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]keyValue, error)
 
 // preUpgradeFuncSig is the signature for the optional preUgrade function
 type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
@@ -112,6 +118,12 @@ func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 		helm.Uninstall(log, h.releaseName, resolvedNamespace, h.waitForInstall, dryRun)
 	}
 
+	if h.preInstallFunc != nil {
+		_, err := h.preInstallFunc(log, client, h.releaseName, resolvedNamespace, h.chartDir)
+		if err != nil {
+			return err
+		}
+	}
 	// check for global image pull secret
 	var kvs []keyValue
 	kvs, err = addGlobalImagePullSecretHelmOverride(log, client, resolvedNamespace, kvs, h.imagePullSecretKeyname)
