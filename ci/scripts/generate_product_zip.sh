@@ -51,11 +51,18 @@ tarfile="${ZIPFILE_PREFIX}.tar.gz"
 commitFile="${ZIPFILE_PREFIX}-commit.txt"
 sha256File="${tarfile}.sha256"
 zipFile="${ZIPFILE_PREFIX}.zip"
+readmeFile="readme.txt"
+
+cat <<EOF > ${WORKSPACE}/${readmeFile}
+Verrazzano Enterprise Container Platform archive for private registry install.
+
+See https://verrazzano.io/docs/setup/private-registry/private-registry for details.
+EOF
 
 tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/${tarfile}
 cd ${WORKSPACE}
 sha256sum ${tarfile} > ${sha256File}
 echo "git-commit=${GIT_COMMIT_USED}" > ${commitFile}
 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BUCKET_LABEL}/${commitFile} --file ${commitFile}
-zip ${zipFile} ${commitFile} ${sha256File} ${tarfile}
+zip ${zipFile} ${commitFile} ${sha256File} ${readmeFile} ${tarfile}
 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BUCKET_LABEL}/${zipFile} --file ${zipFile}
