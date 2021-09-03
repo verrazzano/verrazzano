@@ -40,11 +40,17 @@ type helmComponent struct {
 	// valuesFile is the helm chart values override file
 	valuesFile string
 
+	// preInstallFunc is an optional function to run before installing
+	preInstallFunc preInstallFuncSig
+
 	// preUpgradeFunc is an optional function to run before upgrading
 	preUpgradeFunc preUpgradeFuncSig
 
 	// appendOverridesFunc is an optional function get additional override values
 	appendOverridesFunc appendOverridesSig
+
+	// readyStatusFunc is an optional function override to do deeper checks on a component's ready state
+	readyStatusFunc readyStatusFuncSig
 
 	// resolveNamespaceFunc is an optional function to process the namespace name
 	resolveNamespaceFunc resolveNamespaceSig
@@ -57,10 +63,16 @@ type helmComponent struct {
 
 	// imagePullSecretKeyname is the Helm value key for the image pull secret for a chart
 	imagePullSecretKeyname string
+
+	// dependencies is a list of dependencies for this component, by component/release name
+	dependencies []string
 }
 
 // Verify that helmComponent implements Component
 var _ Component = helmComponent{}
+
+// preInstallFuncSig is the signature for the optional function to run before installing; any keyValue pairs should be prepended to the Helm overrides list
+type preInstallFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]keyValue, error)
 
 // preUpgradeFuncSig is the signature for the optional preUgrade function
 type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
@@ -74,6 +86,9 @@ type resolveNamespaceSig func(ns string) string
 // upgradeFuncSig is a function needed for unit test override
 type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error)
 
+// readyStatusFuncSig describes the function signature for doing deeper checks on a component's ready state
+type readyStatusFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool
+
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
 
@@ -85,20 +100,39 @@ func (h helmComponent) Name() string {
 	return h.releaseName
 }
 
+// GetDependencies returns the dependencies of this component
+func (h helmComponent) GetDependencies() []string {
+	return h.dependencies
+}
+
 // IsOperatorInstallSupported Returns true if the component supports direct install via the operator
 func (h helmComponent) IsOperatorInstallSupported() bool {
 	return h.supportsOperatorInstall
 }
 
-func (h helmComponent) IsInstalled() bool {
-	installed, _ := helm.IsReleaseInstalled(h.releaseName, h.chartNamespace)
+// IsInstalled Indicates whether or not the component is installed
+func (h helmComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) bool {
+	installed, _ := helm.IsReleaseInstalled(h.releaseName, resolveNamespace(h, namespace))
 	return installed
+}
+
+// IsReady Indicates whether or not a component is available and ready
+func (h helmComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
+	ns := resolveNamespace(h, namespace)
+	installed, _ := helm.IsReleaseInstalled(h.releaseName, resolveNamespace(h, namespace))
+	if installed {
+		if h.readyStatusFunc != nil {
+			return h.readyStatusFunc(log, client, h.releaseName, ns)
+		}
+		return true
+	}
+	return false
 }
 
 func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
 
 	// Resolve the namespace
-	resolvedNamespace := h.resolveNamespace(namespace)
+	resolvedNamespace := resolveNamespace(h, namespace)
 
 	failed, err := helm.IsReleaseFailed(h.releaseName, resolvedNamespace)
 	if err != nil {
@@ -112,6 +146,12 @@ func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 		helm.Uninstall(log, h.releaseName, resolvedNamespace, h.waitForInstall, dryRun)
 	}
 
+	if h.preInstallFunc != nil {
+		_, err := h.preInstallFunc(log, client, h.releaseName, resolvedNamespace, h.chartDir)
+		if err != nil {
+			return err
+		}
+	}
 	// check for global image pull secret
 	var kvs []keyValue
 	kvs, err = addGlobalImagePullSecretHelmOverride(log, client, resolvedNamespace, kvs, h.imagePullSecretKeyname)
@@ -136,7 +176,7 @@ func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 // BOM json file.  Each component also has the ability to add additional override parameters.
 func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
 	// Resolve the namespace
-	namespace := h.resolveNamespace(ns)
+	namespace := resolveNamespace(h, ns)
 
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(h.releaseName, namespace)
@@ -194,7 +234,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 	return err
 }
 
-func (h helmComponent) buildOverridesString(log *zap.SugaredLogger, client clipkg.Client, namespace string, additionalValues ...keyValue) (string, error) {
+func (h helmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Client, namespace string, additionalValues ...keyValue) (string, error) {
 	// Optionally create a second override file.  This will contain both image overridesString and any additional
 	// overridesString required by a component.
 	// Get image overridesString unless opt out
@@ -240,7 +280,7 @@ func (h helmComponent) buildOverridesString(log *zap.SugaredLogger, client clipk
 //
 // The need for this stems from an issue with the Verrazzano component and the fact
 // that component charts underneath VZ component need to have the ns overridden
-func (h helmComponent) resolveNamespace(ns string) string {
+func resolveNamespace(h helmComponent, ns string) string {
 	namespace := ns
 	if h.resolveNamespaceFunc != nil {
 		namespace = h.resolveNamespaceFunc(namespace)
