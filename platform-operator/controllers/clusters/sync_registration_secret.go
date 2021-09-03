@@ -65,7 +65,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// If the fluentd ELASTICSEARCH_URL is the default "http://vmi-system-es-ingest-oidc:8775", use VMI ES ingress URL.
 	// If the fluentd ELASTICSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
 	esURL := fluentdESURL
-	if esURL == "http://vmi-system-es-ingest-oidc:8775" {
+	if esURL == defaultElasticURL {
 		esURL, err = r.getVmiESURL()
 		if err != nil {
 			return err
