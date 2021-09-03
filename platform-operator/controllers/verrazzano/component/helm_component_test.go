@@ -14,7 +14,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
 )
 

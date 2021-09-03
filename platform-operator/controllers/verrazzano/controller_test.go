@@ -16,8 +16,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
 	"github.com/golang/mock/gomock"

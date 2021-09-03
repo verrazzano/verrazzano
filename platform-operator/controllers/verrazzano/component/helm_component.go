@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )

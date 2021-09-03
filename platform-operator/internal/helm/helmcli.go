@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/util/os"
+	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"go.uber.org/zap"
 )
 
