@@ -548,10 +548,6 @@ pipeline {
             storePipelineArtifacts()
         }
         cleanup {
-            echo "Duration ${currentBuild.durationString}"
-            echo "Duration actual ${currentBuild.durationString.minus(' and counting')}"
-            echo "Duration actual another ${currentBuild.durationString.replace(' and counting', '')}"
-            echo "Duration actual ${currentBuild.duration}"
             metricBuildDuration()
             deleteDir()
         }
@@ -833,7 +829,8 @@ def metricTimerEnd(metricName, status) {
 // Emit the metrics indicating the duration and result of the build
 def metricBuildDuration() {
     def status = "${currentBuild.currentResult}"
-    def duration = "${currentBuild.duration}"
+    long duration = "${currentBuild.duration}" as long;
+    long durationInMins = (duration/60000)
     testMetric = metricJobName('')
     def metricValue = "0"
     if (status.equals("SUCCESS")) {
@@ -842,7 +839,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.GIT_BRANCH} $labels ${metricValue} ${duration}")
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.GIT_BRANCH} $labels ${metricValue} ${durationInMins}")
+            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
 }
