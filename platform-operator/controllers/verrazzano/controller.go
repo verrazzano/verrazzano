@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"path/filepath"
@@ -611,6 +612,7 @@ func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Jo
 				conditionType = installv1alpha1.InstallComplete
 				log.Info(message)
 				vz.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, vz)
+				r.postInstall()
 			}
 		} else {
 			message = "Verrazzano install failed to complete"
@@ -1144,6 +1146,30 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log *zap.
 	// Update the map indicating the resource is being watched
 	initializedSet[vz.Name] = true
 	return ctrl.Result{Requeue: true}, nil
+}
+
+// postInstall Temporary workaround to perform some post-install processing
+//- restart some system pods to pick up the envoy sidecars
+func (r *Reconciler) postInstall() error {
+	deployments := [][]string{
+		{"weblogic-operator", "verrazzano-system"},
+	}
+	for _, deploymentName := range deployments {
+		namespacedName := types.NamespacedName{
+			Name:      deploymentName[0],
+			Namespace: deploymentName[1],
+		}
+		var depObj appsv1.Deployment
+		if err := r.Get(context.TODO(), namespacedName, &depObj); err != nil {
+			return err
+		}
+		if depObj.Spec.Template.ObjectMeta.Annotations == nil {
+			depObj.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		depObj.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+		r.Client.Update(context.TODO(), &depObj)
+	}
+	return nil
 }
 
 // This is needed for unit testing
