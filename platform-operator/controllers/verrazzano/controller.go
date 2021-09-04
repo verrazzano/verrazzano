@@ -785,15 +785,29 @@ func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log *z
 	var vzSystemNS corev1.Namespace
 	err := r.Get(ctx, types.NamespacedName{Name: vzconst.VerrazzanoSystemNamespace}, &vzSystemNS)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			vzSystemNS.Name = vzconst.VerrazzanoSystemNamespace
-			err = r.Create(ctx, &vzSystemNS)
-			if err == nil {
-				log.Infof("Namespace %v was successfully created", vzconst.VerrazzanoSystemNamespace)
-			}
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		vzSystemNS.Name = vzconst.VerrazzanoSystemNamespace
+		vzSystemNS.Labels = make(map[string]string)
+		vzSystemNS.Labels["istio-injection"] = "enabled"
+		if err := r.Create(ctx, &vzSystemNS); err != nil {
+			return err
+		}
+		log.Infof("Namespace %v was successfully created", vzconst.VerrazzanoSystemNamespace)
+		return nil
+	}
+	// Namespace exists, see if we need to add the label
+	if vzSystemNS.Labels == nil {
+		vzSystemNS.Labels = make(map[string]string)
+	}
+	if _, ok := vzSystemNS.Labels["istio-injection"]; !ok {
+		vzSystemNS.Labels["istio-injection"] = "enabled"
+		if err := r.Update(ctx, &vzSystemNS); err != nil {
+			return err
 		}
 	}
-	return err
+	return nil
 }
 
 // containsString checks for a string in a slice of strings

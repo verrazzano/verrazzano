@@ -105,7 +105,7 @@ func Uninstall(log *zap.SugaredLogger, releaseName string, namespace string, wai
 	// overrides that we used during the install.
 	args := []string{}
 
-	stdout, stderr, err = runHelm(log, releaseName, namespace, "", "uninstall", false, args, dryRun)
+	stdout, stderr, err = runHelm(log, releaseName, namespace, "", "uninstall", true, args, dryRun)
 	if err != nil {
 		return stdout, stderr, err
 	}
