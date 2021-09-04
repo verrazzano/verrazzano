@@ -5,20 +5,23 @@ package main
 
 import (
 	"flag"
+	"os"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
+
 	"github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/certificate"
 	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/netpolicy"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -39,6 +42,7 @@ func main() {
 
 	// config will hold the entire operator config
 	config := config2.Get()
+	var bomOverride string
 
 	flag.StringVar(&config.MetricsAddr, "metrics-addr", config.MetricsAddr, "The address the metric endpoint binds to.")
 	flag.BoolVar(&config.LeaderElectionEnabled, "enable-leader-election", config.LeaderElectionEnabled,
@@ -47,12 +51,14 @@ func main() {
 	flag.StringVar(&config.CertDir, "cert-dir", config.CertDir, "The directory containing tls.crt and tls.key.")
 	flag.BoolVar(&config.WebhooksEnabled, "enable-webhooks", config.WebhooksEnabled,
 		"Enable webhooks for the operator")
+	flag.BoolVar(&config.DryRun, "dry-run", config.DryRun, "Run operator in dry run mode.")
 	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
 		"Enable webhooks validation for the operator")
 	flag.BoolVar(&config.InitWebhooks, "init-webhooks", config.InitWebhooks,
 		"Initialize webhooks for the operator")
 	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
 		"Specify the root directory of verrazzano (used for development)")
+	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -66,6 +72,10 @@ func main() {
 	config2.Set(config)
 
 	setupLog := zap.S()
+
+	if len(bomOverride) > 0 {
+		component.SetUnitTestBomFilePath(bomOverride)
+	}
 
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
@@ -126,11 +136,10 @@ func main() {
 	}
 
 	// Setup the reconciler
-	_, dryRun := os.LookupEnv("VZ_DRY_RUN") // If this var is set, the install jobs are no-ops
 	reconciler := vzcontroller.Reconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		DryRun: dryRun,
+		DryRun: config.DryRun,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Errorf("unable to create controller: %v", err)

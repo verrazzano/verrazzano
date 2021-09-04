@@ -14,5 +14,15 @@ type Component interface {
 	Name() string
 
 	// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-	Upgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string) error
+	Upgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
+
+	// Install performs the initial install of a component
+	Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
+
+	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
+	// - scaffolding while we move components from the scripts to the operator
+	IsOperatorInstallSupported() bool
+
+	// IsInstalled Indicates whether or not the component is installed
+	IsInstalled() bool
 }

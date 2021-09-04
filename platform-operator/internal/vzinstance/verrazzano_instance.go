@@ -26,7 +26,7 @@ func GetInstanceInfo(client client.Client, cr *v1alpha1.Verrazzano) *v1alpha1.In
 		return nil
 	}
 	if len(ingressList.Items) == 0 {
-		zap.S().Errorf("No ingresses found, unable to build instance info")
+		zap.S().Warn("No ingresses found, unable to build instance info")
 		return nil
 	}
 

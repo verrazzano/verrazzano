@@ -45,6 +45,9 @@ type OperatorConfig struct {
 
 	// VerrazzanoRootDir is the root verrazzano directory in the image
 	VerrazzanoRootDir string
+
+	// DryRun Run installs in a dry-run mode
+	DryRun bool
 }
 
 // The singleton instance of the operator config

@@ -421,6 +421,18 @@ function helm_install_retry() {
   done
 }
 
+# Used to tell the user when a component install has been moved to the operator.
+function platform_operator_install_message() {
+  local componentName=$*
+
+  local msg="""
+Installation of ${componentName} has moved to the verrazzano-platform-operator.
+The status of that component is reported in the \".status.components\" field of the Verrazzano custom resource.
+
+"""
+  log ${msg}
+}
+
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
 
 VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"

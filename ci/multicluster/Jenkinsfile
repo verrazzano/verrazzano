@@ -170,7 +170,6 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
 
         // used to emit metrics
-        SAURON_CRED = credentials('verrazzano-sauron')
         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
         K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION}"
@@ -672,12 +671,16 @@ pipeline {
             }
             archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-            sh """
-                if [ "${params.EMIT_METRICS}" == "true" ] ; then
-                    ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" || echo "Emit metrics failed, continuing with other post actions"
-                fi
-            """
+
             script {
+                if (params.EMIT_METRICS) {
+                    withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                        sh """
+                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                        """
+                    }
+                }
+
                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
                 if (env.TEST_ENV == "kind") {
                     for(int count=1; count<=clusterCount; count++) {
@@ -708,6 +711,7 @@ pipeline {
             }
         }
         cleanup {
+            metricBuildDuration()
             deleteDir()
         }
     }
@@ -1161,6 +1165,18 @@ def metricJobName(stageName) {
     return job
 }
 
+// Construct the set of labels/dimensions for the metrics
+def getMetricLabels() {
+    def kube_ver = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION }"
+    labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+             'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
+             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+             'kubernetes_version=\\"' + kube_ver + '\\",' +
+             'test_env=\\"' + "${params.TEST_ENV}" + '\\"'
+    return labels
+}
+
+// Construct the set of labels/dimensions for the metrics
 def metricTimerStart(metricName) {
     def timerStartName = "${metricName}_START"
     env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
@@ -1174,16 +1190,32 @@ def metricTimerEnd(metricName, status) {
         long x = env."${timerStartName}" as long;
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
-        def kube_ver = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION }"
-        labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
-                 'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
-                 'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
-                 'kubernetes_version=\\"' + kube_ver + '\\",' +
-                 'test_env=\\"' + "${params.TEST_ENV}" + '\\"'
-        EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
-        echo "emit prometheus metrics: $EMIT"
-        return EMIT
+        labels = getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+            echo "emit prometheus metrics: $EMIT"
+            return EMIT
+        }
     } else {
         return ''
+    }
+}
+
+// Emit the metrics indicating the duration and result of the build
+def metricBuildDuration() {
+    def status = "${currentBuild.currentResult}"
+    long duration = "${currentBuild.duration}" as long;
+    long durationInMins = (duration/60000)
+    testMetric = metricJobName('')
+    def metricValue = "0"
+    if (status.equals("SUCCESS")) {
+        metricValue = "1"
+    }
+    if (params.EMIT_METRICS) {
+        labels = getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInMins}")
+            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
+        }
     }
 }
