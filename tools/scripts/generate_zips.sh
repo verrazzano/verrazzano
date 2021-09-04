@@ -16,12 +16,12 @@ if [ ! -d "$2" ]; then
   exit 1
 fi
 
-if [ -f "$3" ]; then
+if [ -f "$3" ] || [ -f "$4" ]; then
   echo "Output file already exists, please specify a new filename"
   exit 1
 fi
 
-if [ -d "$3" ]; then
+if [ -d "$3" ] || [ -d "$4" ]; then
   echo "Please specify a new filename not a directory"
   exit 1
 fi
@@ -101,7 +101,13 @@ function pull_and_save_images() {
       done
     done
   done
-  tar -czf $3 -C $2 .
+  # Generate the full Zip file
+  cd $2
+  zip -r $4 .
 }
 
-pull_and_save_images $1 $2 $3
+# Generate the min Zip file, without the docker images
+cd $2
+zip -r $3 .
+
+pull_and_save_images $1 $2 $3 $4

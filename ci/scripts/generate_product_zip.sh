@@ -47,22 +47,31 @@ cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
 mkdir -p ${WORKSPACE}/tar-files/charts
 cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
 
-tarfile="${ZIPFILE_PREFIX}.tar.gz"
-commitFile="${ZIPFILE_PREFIX}-commit.txt"
-sha256File="${tarfile}.sha256"
+#tarfile="${ZIPFILE_PREFIX}.tar.gz"
 zipFile="${ZIPFILE_PREFIX}.zip"
+minZipFile="${ZIPFILE_PREFIX}_min.zip"
+commitFile="${ZIPFILE_PREFIX}-commit.txt"
+sha256File="${zipFile}.sha256"
+sha256FileMin="${minZipFile}.sha256"
 readmeFile="readme.txt"
 
+# Generate a readme that keeps ARU tool happy
 cat <<EOF > ${WORKSPACE}/${readmeFile}
 Verrazzano Enterprise Container Platform archive for private registry install.
 
-See https://verrazzano.io/docs/setup/private-registry/private-registry for details.
+See README.md for details.
 EOF
 
-tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/${tarfile}
+echo "git-commit=${GIT_COMMIT_USED}" > ${WORKSPACE}/${commitFile}
+cp ${WORKSPACE}/${commitFile} ${WORKSPACE}/tar-files
+cp ${WORKSPACE}/${readmeFile} ${WORKSPACE}/tar-files
+
+tools/scripts/generate_zips.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/${minZipFile} ${WORKSPACE}/${zipFile}
 cd ${WORKSPACE}
-sha256sum ${tarfile} > ${sha256File}
-echo "git-commit=${GIT_COMMIT_USED}" > ${commitFile}
+sha256sum ${zipFile} > ${sha256File}
+sha256sum ${minZipFile} > ${sha256FileMin}
 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BUCKET_LABEL}/${commitFile} --file ${commitFile}
-zip ${zipFile} ${commitFile} ${sha256File} ${readmeFile} ${tarfile}
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BUCKET_LABEL}/${minZipFile} --file ${minZipFile}
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BUCKET_LABEL}/${sha256FileMin} --file ${sha256FileMin}
 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BUCKET_LABEL}/${zipFile} --file ${zipFile}
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BUCKET_LABEL}/${sha256File} --file ${sha256File}

@@ -6,6 +6,7 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def TESTS_FAILED = false
 def tarfilePrefix="verrazzano_periodic"
 def storeLocation=""
+def minStoreLocation=""
 
 pipeline {
     options {
@@ -86,6 +87,7 @@ pipeline {
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
                     storeLocation="${env.BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}.zip"
+                    minStoreLocation="${env.BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}_min.zip"
                 }
             }
         }
@@ -312,14 +314,31 @@ pipeline {
                         """
                     }
                 }
-                stage('Private Registry Tests') {
-                    steps {
-                        script {
-                            build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation)
-                                ], wait: true
+                stage("Run Registry Tests") {
+                    parallel {
+                        stage('Private Registry Tests Full Zip') {
+                            steps {
+                                script {
+                                    build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
+                                        parameters: [
+                                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                            string(name: 'ZIPFILE_LOCATION', value: storeLocation),
+                                            booleanParam(name: 'USE_FULL_ZIP', value: true)
+                                        ], wait: true
+                                }
+                            }
+                        }
+                        stage('Private Registry Tests Minimal Zip') {
+                            steps {
+                                script {
+                                    build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
+                                        parameters: [
+                                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                            string(name: 'ZIPFILE_LOCATION', value: minStoreLocation),
+                                            booleanParam(name: 'USE_FULL_ZIP', value: false)
+                                        ], wait: true
+                                }
+                            }
                         }
                     }
                 }

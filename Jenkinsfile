@@ -35,7 +35,7 @@ pipeline {
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
-        booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
+        booleanParam (description: 'Whether to generate the product Zip release artifacts', name: 'GENERATE_PRODUCT_ZIPS', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
@@ -476,13 +476,13 @@ pipeline {
             }
         }
         stage('Zip Build and Test') {
-            // If the tests are clean and this is a release branch or GENERATE_TARBALL == true,
+            // If the tests are clean and this is a release branch or GENERATE_PRODUCT_ZIPS == true,
             // generate the Verrazzano full product zip and run the Private Registry tests
             when {
                 allOf {
                     not { buildingTag() }
                     expression {SKIP_TRIGGERED_TESTS == false}
-                    expression{params.GENERATE_TARBALL == true}
+                    expression{params.GENERATE_PRODUCT_ZIPS == true}
                 }
             }
             stages{

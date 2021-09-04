@@ -10,6 +10,7 @@ def ocirRegion = "phx"
 def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
+def VERRAZZANO_DEV_VERSION = ""
 
 pipeline {
     options {
@@ -40,9 +41,10 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         string (name: 'ZIPFILE_LOCATION',
-                        defaultValue: 'master-last-clean-periodic-test/verrazzano_full.zip',
-                        description: 'The bucket location to use for the Zip file download',
+                        defaultValue: 'DEFAULT',
+                        description: 'The relative path to the bucket location of the Zip file to download',
                         trim: true)
+        booleanParam (description: 'Run private registry tests using full zip archive with images', name: 'USE_FULL_ZIP', defaultValue: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
@@ -146,6 +148,10 @@ pipeline {
                         }
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+
                     imageRepoSubPath="verrazzano-private-registry/${env.BRANCH_NAME}/b${env.BUILD_NUMBER}"
                     baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}"
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
@@ -224,47 +230,92 @@ pipeline {
             }
         }
 
-        stage('Download and extract Tarball') {
+        stage('Download and extract Product Zip file') {
             steps {
                 script {
-                    downloadLocation = "${WORKSPACE}/${params.ZIPFILE_LOCATION}"
+                    // remoteZipRelPath is the relative path to the zip file in ObjectStore
+                    remoteZipRelPath = params.ZIPFILE_LOCATION
+                    if (params.ZIPFILE_LOCATION == "DEFAULT") {
+                        // If not specified as a param, default to the last posted Zip file for the branch
+                        if (params.USE_FULL_ZIP == true) {
+                            // Use the min zip path, which will download the docker images from their default locations
+                            // and push to the private registry
+                            remoteZipRelPath = "${env.BRANCH_NAME}/verrazzano_${VERRAZZANO_DEV_VERSION}.zip"
+                        } else {
+                            // Use the full Zip with the embedded Docker image tarballs
+                            remoteZipRelPath = "${env.BRANCH_NAME}/verrazzano_${VERRAZZANO_DEV_VERSION}_min.zip"
+                        }
+                    }
+                    // remoteSHA256RelPath is the relative path to the checksum file path in ObjectStore
+                    remoteSHA256RelPath = "${remoteZipRelPath}.sha256"
+
                     baseFilename = sh (
-                        script: "basename ${params.ZIPFILE_LOCATION} .zip",
+                        script: "basename ${remoteZipRelPath}",
                         returnStdout: true
                         ).trim()
-                    tarfileName = "${baseFilename}.tar.gz"
-                    checksumFile = "${tarfileName}.sha256"
-                    echo "base name: $baseFilename, tar name: $tarfileName"
+                    checksumFile = "${baseFilename}.sha256"
+
+                    // localZipPath is the local path to the zip file after download
+                    localZipPath = "${WORKSPACE}/${baseFilename}"
+
+                    // localSHA256Path is the local checksum file path after download
+                    localSHA256Path = "${WORKSPACE}/${checksumFile}"
+
+                    echo "Downloading Zip file from ObjectStore path ${remoteZipRelPath}, checksum file ${remoteSHA256RelPath}"
+                    echo "Base name: ${baseFilename}, local Zip location: ${localZipPath}, checksum: ${localSHA256Path}"
 
                     zipDir = sh (
-                        script: "dirname $downloadLocation",
+                        script: "dirname $localZipPath",
                         returnStdout: true
                         ).trim()
 
                     sh """
                         mkdir -p $zipDir || true
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.ZIPFILE_LOCATION} --file ${downloadLocation}
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${remoteZipRelPath} --file ${localZipPath}
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${remoteSHA256RelPath} --file ${localSHA256Path}
                     """
 
+                    // Verify the checksum
+                    dir(env.WORKSPACE) {
+                        sh "sha256sum -c ${checksumFile}"
+                    }
+                    // Unzip the archive
                     dir(env.TARBALL_DIR) {
-                        unzip zipFile: downloadLocation
-                        sh "sha256sum -c $checksumFile"
-                        sh "tar xvf $tarfileName"
-                        }
+                        unzip zipFile: localZipPath
+                    }
                 }
             }
         }
         stage('Upload Verrazzano Images') {
             steps {
-                sh """
-                    # Create OCIR repos for the images in the tarballs in the test compartment
-                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                script {
+                    echo "full zip: ${params.USE_FULL_ZIP}"
                     echo "Upload OCIR region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
-                    # Run the image-helper to load the images into the OCIR registry in the runner's region
-                    cd ${TARBALL_DIR}
-                    ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
-                """
+                    sh """
+                        # Make sure that the scripts are executable
+                        chmod 755 ${TARBALL_DIR}/vz-registry-image-helper.sh
+                        chmod 755 ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh
+                    """
+
+                    if (params.USE_FULL_ZIP == true) {
+                        echo "Using local tar images for upload"
+                        dir(env.TARBALL_DIR) {
+                            // Create OCIR repos for the images in the tarballs in the test compartment
+                            sh "${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}"
+                            // Run the image-helper to load the images into the OCIR registry in the runner's region
+                            sh "./vz-registry-image-helper.sh -t ${ocirRegistry} -r ${baseImageRepo} -l ."
+                        }
+                    } else {
+                        echo "Pulling public images for upload"
+                        dir(env.TARBALL_DIR) {
+                            // Create OCIR repos for the images in the BOM in the archive
+                            sh "${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -c ${REPOSITORY_COMPARTMENT_OCID}"
+                            // Run the image-helper to load the images into the OCIR registry in the runner's region
+                            sh "./vz-registry-image-helper.sh -t ${ocirRegistry} -r ${baseImageRepo}"
+                        }
+                    }
+                }
             }
         }
         stage('Acceptance Tests') {
@@ -492,6 +543,12 @@ pipeline {
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
+                echo "Current execution region: $ocirRegion"
+                echo "OCIR Repository: ${ocirRegistry}"
+                echo "Image repo subpath: ${imageRepoSubPath}"
+                echo "Base image repo: ${baseImageRepo}"
+                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
+
                 cd ${GO_REPO_PATH}/verrazzano/platform-operator
                 make delete-cluster
                 cd ${WORKSPACE}/verrazzano
@@ -499,12 +556,6 @@ pipeline {
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
                 fi
-
-                echo "Current execution region: $ocirRegion"
-                echo "OCIR Repository: ${ocirRegistry}"
-                echo "Image repo subpath: ${imageRepoSubPath}"
-                echo "Base image repo: ${baseImageRepo}"
-                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
             """
         }
         cleanup {
