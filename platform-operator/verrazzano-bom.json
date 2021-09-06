@@ -220,8 +220,8 @@
           "name": "verrazzano",
           "images": [
             {
-              "image": "verrazzano-operator",
-              "tag": "1.1.0-20210721203425-f4d8b23",
+              "image": "verrazzano-operator-jenkins",
+              "tag": "1.1.0-20210906132229-7b9641d",
               "helmFullImageKey": "verrazzanoOperator.imageName",
               "helmTagKey": "verrazzanoOperator.imageVersion"
             },
