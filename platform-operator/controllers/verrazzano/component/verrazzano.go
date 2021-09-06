@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// resolveNamesapce will return the default verrzzano system namespace unless the namespace
+// resolveNamesapce will return the default verrazzano system namespace unless the namespace
 // is specified
 func resolveVerrazzanoNamespace(ns string) string {
 	if len(ns) > 0 && ns != "default" {

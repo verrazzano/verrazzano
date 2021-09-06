@@ -17,15 +17,15 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.6.8
 	github.com/jetstack/cert-manager v1.2.0
 	github.com/joshdk/go-junit v0.0.0-20210226021600-6145f504ca0d
-	github.com/onsi/ginkgo v1.12.1
-	github.com/onsi/gomega v1.10.1
+	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/gomega v1.13.0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	go.uber.org/zap v1.16.0
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
-	golang.org/x/tools v0.0.0-20200630223951-c138986dd9b9
+	golang.org/x/tools v0.0.0-20201224043029-2b0845dc783e
 	istio.io/api v0.0.0-20200911191701-0dc35ad5c478
 	istio.io/client-go v0.0.0-20200807182027-d287a5abb594
 	k8s.io/api v0.21.1
