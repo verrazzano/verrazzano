@@ -86,7 +86,7 @@ spec:
               verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app: auth-proxy
+              app: verrazzano-api
       ports:
         - port: 3000
           protocol: TCP
@@ -122,7 +122,7 @@ spec:
               verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app: auth-proxy
+              app: verrazzano-api
       ports:
         - port: 9090
           protocol: TCP

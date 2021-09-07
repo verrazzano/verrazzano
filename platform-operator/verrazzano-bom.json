@@ -257,8 +257,8 @@
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
-              "image": "verrazzano-monitoring-instance-eswait",
-              "tag": "1.1.0-20210816150650-1ff4223",
+              "image": "verrazzano-monitoring-instance-eswait-jenkins",
+              "tag": "1.1.0-20210902164423-09b544b",
               "helmFullImageKey": "monitoringOperator.esWaitImage"
             },
             {
