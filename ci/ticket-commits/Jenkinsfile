@@ -46,7 +46,6 @@ pipeline {
         }
 
         stage('Update JIRA tickets with commits') {
-            when { not { buildingTag() } }
             environment {
                 JIRA_USERNAME = credentials('jira-username')
                 JIRA_PASSWORD = credentials('jira-password')
@@ -68,7 +67,7 @@ pipeline {
                         echo Processing commits:
                         cat ${tmpfile}; echo
 
-                        verrazzano-helper update ticket-commits "${tmpfile}" --token unused --jira-env=prod
+                        verrazzano-helper update ticket-commits --commit-file "${tmpfile}" --token unused --jira-env=prod
                     """
                 }
             }
