@@ -23,6 +23,12 @@ echo "tests will execute" > ${TESTS_EXECUTED_FILE}
 echo "Create Kind cluster"
 cd ${TEST_SCRIPTS_DIR}
 ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true $INSTALL_CALICO
+if [ $? -ne 0 ]; then
+    mkdir $WORKSPACE/kind-logs
+    kind export logs $WORKSPACE/kind-logs
+    echo "Kind cluster creation failed"
+    exit 1
+fi
 
 if [ $INSTALL_CALICO == true ]; then
     echo "Install Calico"

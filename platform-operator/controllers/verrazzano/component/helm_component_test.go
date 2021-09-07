@@ -10,11 +10,12 @@ import (
 	"os/exec"
 	"testing"
 
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Needed for unit tests
@@ -61,7 +62,11 @@ func TestUpgrade(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
 	defer setDefaultUpgradeFunc()
-	err := comp.Upgrade(zap.S(), nil, "")
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	err := comp.Upgrade(zap.S(), nil, "", false)
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -96,12 +101,16 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
 	defer setDefaultUpgradeFunc()
-	err := comp.Upgrade(zap.S(), nil, "")
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	err := comp.Upgrade(zap.S(), nil, "", false)
 	assert.NoError(err, "Upgrade returned an error")
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, getValuesFile string) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiod" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
@@ -111,16 +120,14 @@ func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, c
 	if namespace != "chartNS" {
 		return []byte("error"), []byte(""), errors.New("Invalid chart namespace")
 	}
-	if overrideFile != "valuesFile" {
-		return []byte("error"), []byte(""), errors.New("Invalid values file")
+	for _, file := range overridesFiles {
+		if file != "valuesFile" && file == "" {
+			return []byte("error"), []byte(""), errors.New("Invalid values file")
+		}
 	}
 	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
 	if overrides != fakeOverrides {
 		return []byte("error"), []byte(""), errors.New("Invalid overrides")
-	}
-	// This string contains a temporary file containing the output from helm get values
-	if getValuesFile == "" {
-		return []byte("error"), []byte(""), errors.New("Invalid get values file")
 	}
 	return []byte("success"), []byte(""), nil
 }

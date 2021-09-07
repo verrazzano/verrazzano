@@ -77,3 +77,6 @@ const ClusterNameEnvVar = "CLUSTER_NAME"
 
 // ElasticsearchURLEnvVar is the environment variable used to identify the admin clusters Elasticsearch URL
 const ElasticsearchURLEnvVar = "ELASTICSEARCH_URL"
+
+// GlobalImagePullSecName is the name of the global image pull secret
+const GlobalImagePullSecName = "verrazzano-container-registry"

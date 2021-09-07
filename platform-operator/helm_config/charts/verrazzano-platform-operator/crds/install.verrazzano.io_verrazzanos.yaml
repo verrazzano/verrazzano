@@ -3631,6 +3631,48 @@ spec:
           status:
             description: VerrazzanoStatus defines the observed state of Verrazzano
             properties:
+              components:
+                additionalProperties:
+                  description: ComponentStatusDetails defines the observed state of
+                    a Verrazzano component
+                  properties:
+                    conditions:
+                      description: Information about the current state of a component
+                      items:
+                        description: Condition describes current state of an install.
+                        properties:
+                          lastTransitionTime:
+                            description: Last time the condition transitioned from
+                              one status to another.
+                            type: string
+                          message:
+                            description: Human readable message indicating details
+                              about last transition.
+                            type: string
+                          status:
+                            description: Status of the condition, one of True, False,
+                              Unknown.
+                            type: string
+                          type:
+                            description: Type of condition.
+                            type: string
+                        required:
+                        - status
+                        - type
+                        type: object
+                      type: array
+                    name:
+                      description: Name of the component
+                      type: string
+                    state:
+                      description: The version of Verrazzano that is installed
+                      type: string
+                    version:
+                      description: The version of Verrazzano that is installed
+                      type: string
+                  type: object
+                description: States of the individual installed components
+                type: object
               conditions:
                 description: The latest available observations of an object's current
                   state.
