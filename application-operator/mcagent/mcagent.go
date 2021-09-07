@@ -327,7 +327,7 @@ func updateLoggingDaemonSet(newSecretName string, newSecret corev1.Secret, ds *a
 
 const (
 	defaultClusterName = constants.DefaultClusterName
-	defaultElasticURL  = "http://vmi-system-es-ingest-oidc:8775"
+	defaultElasticURL  = "http://vmi-system-es-ingest:9200"
 	defaultSecretName  = "verrazzano"
 )
 
