@@ -19,7 +19,7 @@ pipeline {
     parameters {
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: '',
-                        description: 'Record all ticket commits starting with this commit hash',
+                        description: 'Record all ticket commits starting with this commit hash (defaults to HEAD)',
                         trim: true)
     }
 
@@ -37,7 +37,7 @@ pipeline {
 
                 script {
                     if (params.GIT_COMMIT_TO_USE == "") {
-                        echo "Specific GIT commit was not specified"
+                        echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
@@ -63,8 +63,8 @@ pipeline {
 
                 sh """
                     # repo is now in detached HEAD state, which confuses the verrazzano-helper, so checkout the branch
-                    #echo checking out branch so repo is no longer in detached HEAD state
-                    #git checkout ${env.GIT_BRANCH}
+                    echo checking out branch so repo is no longer in detached HEAD state
+                    git checkout ${env.GIT_BRANCH}
 
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
