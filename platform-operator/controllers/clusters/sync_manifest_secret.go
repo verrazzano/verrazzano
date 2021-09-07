@@ -26,7 +26,7 @@ const (
 // on the managed cluster to create resources needed there. The YAML has multiple Kubernetes
 // resources separated by 3 hyphens ( --- ), so that applying the YAML will create/update multiple
 // resources at once.  This YAML is stored in the Verrazzano manifest secret.
-func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
+func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster) error {
 	// Builder used to build up the full YAML
 	// For each secret, generate the YAML and append to the full YAML which contains multiple resources
 	var sb = strings.Builder{}
@@ -53,8 +53,12 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 	// Rancher YAML is applied on the managed cluster
 	// NOTE: If this errors we log it and do not fail the reconcile
 	if rancherYAML, err := registerManagedClusterWithRancher(r.Client, vmc.Name, r.log); err != nil {
+		msg := fmt.Sprintf("Registration of managed cluster failed: %v", err)
+		r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, msg)
 		r.log.Warn("Unable to register managed cluster with Rancher, manifest secret will not contain Rancher YAML")
 	} else {
+		msg := "Registration of managed cluster completed successfully"
+		r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, msg)
 		sb.WriteString(rancherYAML)
 	}
 
@@ -72,6 +76,16 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 	}
 
 	return nil
+}
+
+// Update the Rancher registration status
+func (r *VerrazzanoManagedClusterReconciler) updateRancherStatus(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster, status clusterapi.RancherRegistrationStatus, message string) {
+	vmc.Status.RancherRegistration.Status = status
+	vmc.Status.RancherRegistration.Message = message
+	err := r.Status().Update(ctx, vmc)
+	if err != nil {
+		r.log.Errorf("Failed to update Rancher registration status for VMC %s: %v", vmc.Name, err)
+	}
 }
 
 // Create or update the manifest secret

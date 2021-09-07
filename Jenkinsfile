@@ -101,7 +101,6 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
-        SAURON_CRED = credentials('verrazzano-sauron')
         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
     }
 
@@ -483,10 +482,7 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                     expression {SKIP_TRIGGERED_TESTS == false}
-                    anyOf {
-                        branch 'release-*';
-                        expression{params.GENERATE_TARBALL == true}
-                    }
+                    expression{params.GENERATE_TARBALL == true}
                 }
             }
             stages{
@@ -549,6 +545,7 @@ pipeline {
             storePipelineArtifacts()
         }
         cleanup {
+            metricBuildDuration()
             deleteDir()
         }
     }
@@ -799,6 +796,14 @@ def metricTimerStart(metricName) {
     env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
 }
 
+// Construct the set of labels/dimensions for the metrics
+def getMetricLabels() {
+    labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+             'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
+             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
+    return labels
+}
+
 def metricTimerEnd(metricName, status) {
     def timerStartName = "${metricName}_START"
     def timerEndName   = "${metricName}_END"
@@ -807,13 +812,32 @@ def metricTimerEnd(metricName, status) {
         long x = env."${timerStartName}" as long;
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
-        labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
-                 'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
-                 'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
-        EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${env.PROMETHEUS_GW_URL} ${env.SAURON_CRED} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
-        echo "emit prometheus metrics: $EMIT"
-        return EMIT
+        labels = getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
+            echo "emit prometheus metrics: $EMIT"
+            return EMIT
+        }
     } else {
         return ''
+    }
+}
+
+// Emit the metrics indicating the duration and result of the build
+def metricBuildDuration() {
+    def status = "${currentBuild.currentResult}"
+    long duration = "${currentBuild.duration}" as long;
+    long durationInMins = (duration/60000)
+    testMetric = metricJobName('')
+    def metricValue = "0"
+    if (status.equals("SUCCESS")) {
+        metricValue = "1"
+    }
+    if (params.EMIT_METRICS) {
+        labels = getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.GIT_BRANCH} $labels ${metricValue} ${durationInMins}")
+            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
+        }
     }
 }

@@ -60,7 +60,7 @@ function check_ingress_ports() {
         log "Port $PORT is accessible on ingress address $INGRESS_IP.  Note that '404 page not found' is an expected response."
       else
         log "ERROR: Port $PORT is NOT accessible on ingress address $INGRESS_IP!  Check that security lists include an ingress rule for the node port $NODEPORT."
-        log "See install README for details(https://github.com/verrazzano/verrazzano/operator/blob/master/install/README.md#1-oke-missing-security-list-ingress-rules)."
+        log "For more detail please see https://verrazzano.io/docs/troubleshooting/troubleshooting/."
         exitvalue=1
       fi
     done
@@ -314,5 +314,5 @@ fi
 action "Installing Verrazzano system components" install_verrazzano || exit 1
 action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
 action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
-action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
-action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1
+platform_operator_install_message "OAM Kubernetes operator"
+platform_operator_install_message "Verrazzano Application Kubernetes operator"
