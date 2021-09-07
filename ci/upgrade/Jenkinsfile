@@ -262,7 +262,7 @@ pipeline {
                             cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                             kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                             # wait for the upgrade to complete
-                            kubectl wait --timeout=5m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                            kubectl wait --timeout=10m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                             # ideally we don't need to wait here
                             sleep 15
