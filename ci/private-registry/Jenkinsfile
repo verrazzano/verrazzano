@@ -39,6 +39,10 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        string (name: 'ZIPFILE_LOCATION',
+                        defaultValue: 'master-last-clean-periodic-test/verrazzano_full.zip',
+                        description: 'The bucket location to use for the Zip file download',
+                        trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
@@ -130,7 +134,7 @@ pipeline {
                         }
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                    imageRepoSubPath="verrazzano-private-registry/${env.GIT_BRANCH}/b${env.BUILD_NUMBER}"
+                    imageRepoSubPath="verrazzano-private-registry/${env.BRANCH_NAME}/b${env.BUILD_NUMBER}"
                     baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}"
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
@@ -210,12 +214,32 @@ pipeline {
 
         stage('Download and extract Tarball') {
             steps {
-                sh """
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/tarball.tar.gz --file ${WORKSPACE}/vz-latest-tarball.tar.gz
-                    mkdir ${TARBALL_DIR} || true
-                    cd ${TARBALL_DIR}
-                    tar xvf ${WORKSPACE}/vz-latest-tarball.tar.gz
-                """
+                script {
+                    downloadLocation = "${WORKSPACE}/${params.ZIPFILE_LOCATION}"
+                    baseFilename = sh (
+                        script: "basename ${params.ZIPFILE_LOCATION} .zip",
+                        returnStdout: true
+                        ).trim()
+                    tarfileName = "${baseFilename}.tar.gz"
+                    checksumFile = "${tarfileName}.sha256"
+                    echo "base name: $baseFilename, tar name: $tarfileName"
+
+                    zipDir = sh (
+                        script: "dirname $downloadLocation",
+                        returnStdout: true
+                        ).trim()
+
+                    sh """
+                        mkdir -p $zipDir || true
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.ZIPFILE_LOCATION} --file ${downloadLocation}
+                    """
+
+                    dir(env.TARBALL_DIR) {
+                        unzip zipFile: downloadLocation
+                        sh "sha256sum -c $checksumFile"
+                        sh "tar xvf $tarfileName"
+                        }
+                }
             }
         }
         stage('Upload Verrazzano Images') {
