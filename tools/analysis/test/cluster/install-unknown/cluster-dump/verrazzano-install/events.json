@@ -1,0 +1,766 @@
+{
+    "kind": "EventList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "2571"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano-internal.16a0ca9a93363518",
+                "namespace": "verrazzano-install",
+                "uid": "38c6c772-e18b-497e-8113-7243814abe1e",
+                "resourceVersion": "1029",
+                "creationTimestamp": "2021-09-01T19:50:30Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T19:50:30Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "ConfigMap",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-install-my-verrazzano-internal",
+                "uid": "60e0f342-d00a-4fa8-9924-c5bcb32cc655",
+                "apiVersion": "v1"
+            },
+            "reason": "OwnerRefInvalidNamespace",
+            "message": "ownerRef [install.verrazzano.io/v1alpha1/Verrazzano, namespace: verrazzano-install, name: my-verrazzano, uid: 50be6655-2a27-47f4-9bef-401e94bb5b24] does not exist in namespace \"verrazzano-install\"",
+            "source": {
+                "component": "garbage-collector-controller"
+            },
+            "firstTimestamp": "2021-09-01T19:50:30Z",
+            "lastTimestamp": "2021-09-01T19:50:30Z",
+            "count": 1,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano-internal.16a0cb29f065996b",
+                "namespace": "verrazzano-install",
+                "uid": "d9bb1b4a-c2e2-4e76-8a87-b35d0295d5a2",
+                "resourceVersion": "2540",
+                "creationTimestamp": "2021-09-01T20:00:46Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T20:00:46Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "ConfigMap",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-install-my-verrazzano-internal",
+                "uid": "499489ad-53c4-40a7-9242-05320f31e7ce",
+                "apiVersion": "v1"
+            },
+            "reason": "OwnerRefInvalidNamespace",
+            "message": "ownerRef [install.verrazzano.io/v1alpha1/Verrazzano, namespace: verrazzano-install, name: my-verrazzano, uid: 50be6655-2a27-47f4-9bef-401e94bb5b24] does not exist in namespace \"verrazzano-install\"",
+            "source": {
+                "component": "garbage-collector-controller"
+            },
+            "firstTimestamp": "2021-09-01T20:00:46Z",
+            "lastTimestamp": "2021-09-01T20:00:46Z",
+            "count": 1,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano-p7mqx.16a0ca9a92bf6601",
+                "namespace": "verrazzano-install",
+                "uid": "9cdd5dd5-23bc-435d-b942-f2537dd48229",
+                "resourceVersion": "1026",
+                "creationTimestamp": "2021-09-01T19:50:30Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-scheduler",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T19:50:30Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-install-my-verrazzano-p7mqx",
+                "uid": "a5117b4b-3d18-40f7-9638-ac55a5ccdb4a",
+                "apiVersion": "v1",
+                "resourceVersion": "1022"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned verrazzano-install/verrazzano-install-my-verrazzano-p7mqx to verrazzano-control-plane",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "firstTimestamp": "2021-09-01T19:50:30Z",
+            "lastTimestamp": "2021-09-01T19:50:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano-p7mqx.16a0ca9ab6735e4c",
+                "namespace": "verrazzano-install",
+                "uid": "47ddab2a-dc6d-4ab9-9e76-7f8adede8fa0",
+                "resourceVersion": "1037",
+                "creationTimestamp": "2021-09-01T19:50:30Z",
+                "managedFields": [
+                    {
+                        "manager": "kubelet",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T19:50:30Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:fieldPath": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {},
+                                "f:host": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-install-my-verrazzano-p7mqx",
+                "uid": "a5117b4b-3d18-40f7-9638-ac55a5ccdb4a",
+                "apiVersion": "v1",
+                "resourceVersion": "1023",
+                "fieldPath": "spec.containers{install}"
+            },
+            "reason": "Created",
+            "message": "Created container install",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-09-01T19:50:30Z",
+            "lastTimestamp": "2021-09-01T19:50:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano-p7mqx.16a0ca9abaac3497",
+                "namespace": "verrazzano-install",
+                "uid": "320be831-b4d0-4db1-aee4-bbf63db9cd14",
+                "resourceVersion": "1039",
+                "creationTimestamp": "2021-09-01T19:50:31Z",
+                "managedFields": [
+                    {
+                        "manager": "kubelet",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T19:50:31Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:fieldPath": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {},
+                                "f:host": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-install-my-verrazzano-p7mqx",
+                "uid": "a5117b4b-3d18-40f7-9638-ac55a5ccdb4a",
+                "apiVersion": "v1",
+                "resourceVersion": "1023",
+                "fieldPath": "spec.containers{install}"
+            },
+            "reason": "Started",
+            "message": "Started container install",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-09-01T19:50:31Z",
+            "lastTimestamp": "2021-09-01T19:50:31Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano.16a0ca9a928a20b9",
+                "namespace": "verrazzano-install",
+                "uid": "5d03d516-853b-41bf-b2e5-3d404cc8cab4",
+                "resourceVersion": "1024",
+                "creationTimestamp": "2021-09-01T19:50:30Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T19:50:30Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Job",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-install-my-verrazzano",
+                "uid": "7862e66c-2210-4437-a33d-1673b71ee89a",
+                "apiVersion": "batch/v1",
+                "resourceVersion": "1019"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: verrazzano-install-my-verrazzano-p7mqx",
+            "source": {
+                "component": "job-controller"
+            },
+            "firstTimestamp": "2021-09-01T19:50:30Z",
+            "lastTimestamp": "2021-09-01T19:50:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano.16a0cb29ee9a5723",
+                "namespace": "verrazzano-install",
+                "uid": "7c6e858b-9652-4181-9eb1-67a05761a7c0",
+                "resourceVersion": "2536",
+                "creationTimestamp": "2021-09-01T20:00:46Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T20:00:46Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Job",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-install-my-verrazzano",
+                "uid": "7862e66c-2210-4437-a33d-1673b71ee89a",
+                "apiVersion": "batch/v1",
+                "resourceVersion": "1027"
+            },
+            "reason": "BackoffLimitExceeded",
+            "message": "Job has reached the specified backoff limit",
+            "source": {
+                "component": "job-controller"
+            },
+            "firstTimestamp": "2021-09-01T20:00:46Z",
+            "lastTimestamp": "2021-09-01T20:00:46Z",
+            "count": 1,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-c99d8c54b-29psf.16a0ca829f756afa",
+                "namespace": "verrazzano-install",
+                "uid": "2ae4902b-ca51-4201-961c-cbbf4f8d92b6",
+                "resourceVersion": "803",
+                "creationTimestamp": "2021-09-01T19:48:47Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-scheduler",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T19:48:47Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-c99d8c54b-29psf",
+                "uid": "9a1b295c-c207-4bb3-abb2-c286596598ce",
+                "apiVersion": "v1",
+                "resourceVersion": "797"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned verrazzano-install/verrazzano-platform-operator-c99d8c54b-29psf to verrazzano-control-plane",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "firstTimestamp": "2021-09-01T19:48:47Z",
+            "lastTimestamp": "2021-09-01T19:48:47Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-c99d8c54b-29psf.16a0ca83d6ace14a",
+                "namespace": "verrazzano-install",
+                "uid": "d72f2d56-1c57-44e6-b999-e7e52e8746bd",
+                "resourceVersion": "826",
+                "creationTimestamp": "2021-09-01T19:48:52Z",
+                "managedFields": [
+                    {
+                        "manager": "kubelet",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T19:48:52Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:fieldPath": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {},
+                                "f:host": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-c99d8c54b-29psf",
+                "uid": "9a1b295c-c207-4bb3-abb2-c286596598ce",
+                "apiVersion": "v1",
+                "resourceVersion": "800",
+                "fieldPath": "spec.initContainers{webhook-init}"
+            },
+            "reason": "Created",
+            "message": "Created container webhook-init",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-09-01T19:48:52Z",
+            "lastTimestamp": "2021-09-01T19:48:52Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-c99d8c54b-29psf.16a0ca850dcad839",
+                "namespace": "verrazzano-install",
+                "uid": "d50b3b7e-e6f2-49c9-b287-ae4b548bf42e",
+                "resourceVersion": "843",
+                "creationTimestamp": "2021-09-01T19:48:57Z",
+                "managedFields": [
+                    {
+                        "manager": "kubelet",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T19:48:57Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:fieldPath": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {},
+                                "f:host": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-c99d8c54b-29psf",
+                "uid": "9a1b295c-c207-4bb3-abb2-c286596598ce",
+                "apiVersion": "v1",
+                "resourceVersion": "800",
+                "fieldPath": "spec.containers{verrazzano-platform-operator}"
+            },
+            "reason": "Created",
+            "message": "Created container verrazzano-platform-operator",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-09-01T19:48:57Z",
+            "lastTimestamp": "2021-09-01T19:48:57Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-c99d8c54b-29psf.16a0ca8512ff6aca",
+                "namespace": "verrazzano-install",
+                "uid": "a568e882-0ab3-4329-a164-4467f1f47090",
+                "resourceVersion": "844",
+                "creationTimestamp": "2021-09-01T19:48:58Z",
+                "managedFields": [
+                    {
+                        "manager": "kubelet",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T19:48:58Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:fieldPath": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {},
+                                "f:host": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-c99d8c54b-29psf",
+                "uid": "9a1b295c-c207-4bb3-abb2-c286596598ce",
+                "apiVersion": "v1",
+                "resourceVersion": "800",
+                "fieldPath": "spec.containers{verrazzano-platform-operator}"
+            },
+            "reason": "Started",
+            "message": "Started container verrazzano-platform-operator",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-09-01T19:48:58Z",
+            "lastTimestamp": "2021-09-01T19:48:58Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-c99d8c54b.16a0ca829ef1db4a",
+                "namespace": "verrazzano-install",
+                "uid": "c6cc9162-b850-4518-ada8-056adf6a2588",
+                "resourceVersion": "799",
+                "creationTimestamp": "2021-09-01T19:48:47Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T19:48:47Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-c99d8c54b",
+                "uid": "ec9ff0bb-f8e7-45c7-84cd-84d5e1cc3533",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "793"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: verrazzano-platform-operator-c99d8c54b-29psf",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2021-09-01T19:48:47Z",
+            "lastTimestamp": "2021-09-01T19:48:47Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator.16a0ca829e878649",
+                "namespace": "verrazzano-install",
+                "uid": "3703f4a5-6a48-4302-81d0-cc3532e33af1",
+                "resourceVersion": "795",
+                "creationTimestamp": "2021-09-01T19:48:47Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-09-01T19:48:47Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Deployment",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator",
+                "uid": "0e797343-3943-44e9-801b-3a150dcfa827",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "792"
+            },
+            "reason": "ScalingReplicaSet",
+            "message": "Scaled up replica set verrazzano-platform-operator-c99d8c54b to 1",
+            "source": {
+                "component": "deployment-controller"
+            },
+            "firstTimestamp": "2021-09-01T19:48:47Z",
+            "lastTimestamp": "2021-09-01T19:48:47Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        }
+    ]
+}
