@@ -3,6 +3,7 @@
 
 pipeline {
     options {
+        skipDefaultCheckout true
         timestamps ()
     }
 
