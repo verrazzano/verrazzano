@@ -63,6 +63,7 @@ pipeline {
                     def commitList = getCommitList()
 
                     sh """
+                        git log -10
                         # if the commit hash is specified in the build params, get that commit and all commits after it
                         if [ -n "${params.GIT_COMMIT_TO_USE}" ]; then
                             git log --pretty=format:%H ${params.GIT_COMMIT_TO_USE}^.. -- > ${tmpfile}
