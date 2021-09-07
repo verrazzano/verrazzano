@@ -202,7 +202,7 @@ data:
 
   # Wait for TLS cert from Cert Manager to go into a ready state
   if ! kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready ; then
-    MESSAGE=$(kubectl get cert ${ENV_NAME}-secret -n keycloak -o jsonpath='{.status.conditions[-1].message}' || "Could not retrieve certificate status message")
+    MESSAGE=$(kubectl get cert ${ENV_NAME}-secret -n keycloak -o jsonpath='{.status.conditions[-1].message}' || echo "Could not retrieve certificate status message")
     error "Error waiting for cert ${ENV_NAME}-secret to be ready: ${MESSAGE}"
   fi
 }
