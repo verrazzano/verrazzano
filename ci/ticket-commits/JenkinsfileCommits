@@ -67,7 +67,7 @@ pipeline {
                         if [ -n "${params.GIT_COMMIT_TO_USE}" ]; then
                             git log --pretty=format:%H ${params.GIT_COMMIT_TO_USE}^.. -- > ${tmpfile}
                         else
-                            # there are no changeSets on the first build of a branch, so if the commit string is empty, fall back to using git log
+                            # there are no changeSets on the first build of a branch, so if the commit list string is empty, fall back to using git log
                             if [ -z "${commitList}" ]; then
                                 git log --pretty=format:%H ${branchOrigin}.. -- > ${tmpfile}
                             else
