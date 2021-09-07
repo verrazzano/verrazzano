@@ -232,7 +232,6 @@ func getReleaseState(releaseName string, namespace string) (string, error) {
 	if err := json.Unmarshal(stdout, &statusInfo); err != nil {
 		return "", err
 	}
-	fmt.Println(statusInfo)
 
 	var status string
 	for _, info := range statusInfo {
