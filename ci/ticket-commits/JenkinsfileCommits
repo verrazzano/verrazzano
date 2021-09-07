@@ -58,7 +58,7 @@ pipeline {
                 script {
                     def tmpfile=sh(returnStdout: true, script: "mktemp").trim()
 
-                    # get the commits from the change set
+                    // get the commits from the change set
                     def commitList = getCommitList()
 
                     sh """
