@@ -204,7 +204,6 @@ func getChartStatus(releaseName string, namespace string) (string, error) {
 	if err := json.Unmarshal(stdout, &statusInfo); err != nil {
 		return "", err
 	}
-	fmt.Println(statusInfo)
 
 	var info = statusInfo["info"].(map[string]interface{})
 	status := info["status"].(string)
