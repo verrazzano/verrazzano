@@ -12,7 +12,6 @@ metadata:
 data:
 {{- with .Values.api.proxy }}
   conf.lua: |
-    local ingressHost = ngx.req.get_headers()["x-forwarded-host"]
     local ingressUri = 'https://'..ingressHost
     local callbackPath = "{{ .OidcCallbackPath }}"
     local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
@@ -37,6 +36,7 @@ data:
 
     -- determine backend and set backend parameters
 
+    local ingressHost = auth.getHostFromRequest()
     local backend = auth.getBackendNameFromIngressHost(ingressHost)
     local backendUrl = auth.getBackendServerUrlFromName(backend)
 
@@ -292,6 +292,13 @@ data:
                 backend_name = ingressHost:sub(1, start-1)
             end
         end
+
+        -- Strip the auth proxy prefix from the extracted backend name if present
+        local authproxy_prefix = 'verrazzano-authproxy-'
+        if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
+          backend_name = string.sub(backend_name, #authproxy_prefix+1, -1)
+        end
+
         me.info("returning backend_name '"..backend_name.."'")
         return backend_name
     end
@@ -864,6 +871,24 @@ data:
         end
 
         return serverUrl
+    end
+
+    -- Returns the value of header x-forwarded-host if present in the request headers.
+    -- Otherwise returns the value of the host header.
+    function me.getHostFromRequest()
+      local headers = ngx.req.get_headers()
+      local host = headers["x-forwarded-host"]
+      if host then
+        me.info("Found host in x-forwarded-host header: "..host)
+        return host
+      end
+      host = headers["host"]
+      if host then
+        me.info("Found host in host header: "..host)
+        return host
+      end
+      me.info("Failed to find host in headers", headers)
+      return nil
     end
 
     return me
