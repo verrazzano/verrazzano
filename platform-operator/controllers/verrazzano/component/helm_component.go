@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -190,7 +190,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 	log.Infof("Created values file: %s", tmpFile.Name())
 
 	// Perform a helm upgrade --install
-	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, h.waitForInstall, dryRun, overridesString, h.valuesFile, tmpFile.Name())
+	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, true, dryRun, overridesString, h.valuesFile, tmpFile.Name())
 	return err
 }
 

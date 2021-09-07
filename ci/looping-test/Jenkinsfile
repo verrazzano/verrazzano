@@ -602,16 +602,19 @@ def metricTimerEnd(metricName, status) {
 def metricBuildDuration() {
     def status = "${currentBuild.currentResult}"
     long duration = "${currentBuild.duration}" as long;
-    long durationInMins = (duration/60000)
+    long durationInSec = (duration/1000)
     testMetric = metricJobName('')
     def metricValue = "0"
     if (status.equals("SUCCESS")) {
         metricValue = "1"
+    } else if (status.equals("ABORTED")) {
+        metricValue = "-1"
     }
     if (params.EMIT_METRICS) {
         labels =  getMetricLabels()
+        labels = labels + ',result=\\"' + "${status}"+'\\"'
         withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInMins}")
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

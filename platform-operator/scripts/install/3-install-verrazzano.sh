@@ -312,7 +312,7 @@ if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
 fi
 
 action "Installing Verrazzano system components" install_verrazzano || exit 1
-action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
+platform_operator_install_message "Coherence Kubernetes operator"
 action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
 platform_operator_install_message "OAM Kubernetes operator"
 platform_operator_install_message "Verrazzano Application Kubernetes operator"
