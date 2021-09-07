@@ -63,8 +63,8 @@ pipeline {
 
                     sh """
                         # if the commit hash is specified in the build params, get that commit and all commits after it
-                        if [ -n "${GIT_COMMIT_TO_USE}" ]; then
-                            git log --pretty=format:%H ${GIT_COMMIT_TO_USE}^.. -- > ${tmpfile}
+                        if [ -n "${params.GIT_COMMIT_TO_USE}" ]; then
+                            git log --pretty=format:%H ${params.GIT_COMMIT_TO_USE}^.. -- > ${tmpfile}
                         else
                             # there are no changeSets on the first build of a branch or if the job is replayed, so if the commit string
                             # is empty, fall back to using git log
