@@ -190,7 +190,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 	log.Infof("Created values file: %s", tmpFile.Name())
 
 	// Perform a helm upgrade --install
-	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, h.waitForInstall, dryRun, overridesString, h.valuesFile, tmpFile.Name())
+	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, true, dryRun, overridesString, h.valuesFile, tmpFile.Name())
 	return err
 }
 
