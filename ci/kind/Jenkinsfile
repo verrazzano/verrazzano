@@ -448,12 +448,6 @@ pipeline {
                         }
                     }
                     post {
-                        failure {
-                            script {
-                                saveConsoleScreenShots()
-                            }
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png', allowEmptyArchive: true
-                        }
                         always {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
