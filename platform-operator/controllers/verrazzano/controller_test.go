@@ -184,7 +184,7 @@ func TestSuccessfulInstall(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(3)
+		}).Times(4)
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
@@ -335,7 +335,7 @@ func TestCreateVerrazzano(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(3)
+		}).Times(4)
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
@@ -530,7 +530,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(3)
+		}).Times(4)
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
