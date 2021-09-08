@@ -48,14 +48,19 @@ basic_auth:
 // syncPrometheusScraper will create a scrape configuration for the cluster and update the prometheus config map.  There will also be an
 // entry for the cluster's CA cert added to the prometheus config map to allow for lookup of the CA cert by the scraper's HTTP client.
 func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	// read the configuration secret specified
 	var secret corev1.Secret
 	secretNsn := types.NamespacedName{
 		Namespace: vmc.Namespace,
-		Name:      vmc.Spec.CASecret,
 	}
-	if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
-		return fmt.Errorf("Failed to fetch the managed cluster CA secret %s/%s, %v", vmc.Namespace, vmc.Spec.CASecret, err)
+
+	// read the configuration secret specified
+	if len(vmc.Spec.CASecret) > 0 {
+		secretNsn.Name = vmc.Spec.CASecret
+
+		// validate secret if it exists
+		if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
+			return fmt.Errorf("Failed to fetch the managed cluster CA secret %s/%s, %v", vmc.Namespace, vmc.Spec.CASecret, err)
+		}
 	}
 
 	// Get the Prometheus configuration.  The ConfigMap may not exist if this delete is being called during an uninstall of Verrazzano.
