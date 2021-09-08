@@ -19,6 +19,9 @@ const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
 
 // helmComponent struct needed to implement a component
 type helmComponent struct {
+
+	// componentType is the component type
+	componentType string
 	// releaseName is the helm chart release name
 	releaseName string
 
@@ -49,7 +52,7 @@ type helmComponent struct {
 	// resolveNamespaceFunc is an optional function to process the namespace name
 	resolveNamespaceFunc resolveNamespaceSig
 
-	//supportsInstall Indicates whether or not the component supports install via the operator
+	//supportsOperatorInstall Indicates whether or not the component supports install via the operator
 	supportsOperatorInstall bool
 
 	//waitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
@@ -71,11 +74,11 @@ type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespa
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
 
-// upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error)
+// helmUpgradeFuncSig is a function needed for unit test override
+type helmUpgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error)
 
-// upgradeFunc is the default upgrade function
-var upgradeFunc upgradeFuncSig = helm.Upgrade
+// helmUpgradeFunc is the default upgrade function
+var helmUpgradeFunc helmUpgradeFuncSig = helm.Upgrade
 
 // UpgradePrehooksEnabled is needed so that higher level units tests can disable as needed
 var UpgradePrehooksEnabled = true
@@ -126,7 +129,7 @@ func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 	}
 
 	// Perform a helm upgrade --install
-	_, _, err = upgradeFunc(log, h.releaseName, resolvedNamespace, h.chartDir, h.waitForInstall, dryRun, overridesString, h.valuesFile)
+	_, _, err = helmUpgradeFunc(log, h.releaseName, resolvedNamespace, h.chartDir, h.waitForInstall, dryRun, overridesString, h.valuesFile)
 	return err
 }
 
@@ -190,7 +193,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 	log.Infof("Created values file: %s", tmpFile.Name())
 
 	// Perform a helm upgrade --install
-	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, h.waitForInstall, dryRun, overridesString, h.valuesFile, tmpFile.Name())
+	_, _, err = helmUpgradeFunc(log, h.releaseName, namespace, h.chartDir, h.waitForInstall, dryRun, overridesString, h.valuesFile, tmpFile.Name())
 	return err
 }
 
@@ -271,10 +274,10 @@ func getImageOverrides(subcomponentName string) ([]keyValue, error) {
 	return kvs, nil
 }
 
-func setUpgradeFunc(f upgradeFuncSig) {
-	upgradeFunc = f
+func setHelmUpgradeFunc(f helmUpgradeFuncSig) {
+	helmUpgradeFunc = f
 }
 
-func setDefaultUpgradeFunc() {
-	upgradeFunc = helm.Upgrade
+func setHelmDefaultUpgradeFunc() {
+	helmUpgradeFunc = helm.Upgrade
 }

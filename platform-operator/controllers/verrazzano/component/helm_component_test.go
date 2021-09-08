@@ -60,8 +60,8 @@ func TestUpgrade(t *testing.T) {
 	SetUnitTestBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
-	setUpgradeFunc(fakeUpgrade)
-	defer setDefaultUpgradeFunc()
+	setHelmUpgradeFunc(fakeUpgrade)
+	defer setHelmDefaultUpgradeFunc()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
@@ -99,8 +99,8 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	SetUnitTestBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
-	setUpgradeFunc(fakeUpgrade)
-	defer setDefaultUpgradeFunc()
+	setHelmUpgradeFunc(fakeUpgrade)
+	defer setHelmDefaultUpgradeFunc()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})

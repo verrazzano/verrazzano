@@ -58,6 +58,9 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			appendOverridesFunc:     appendIstioOverrides,
 		},
+		istioComponent{
+			componentName: "istio",
+		},
 		helmComponent{
 			releaseName:             "ingress-controller",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"),
