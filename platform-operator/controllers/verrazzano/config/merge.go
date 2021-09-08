@@ -20,8 +20,15 @@ func MergeProfiles(cr *vzapi.VerrazzanoSpec, profileFiles ...string) (*vzapi.Ver
 	}
 
 	// Now merge the the profiles on top of the Verrazzano CR
-	bYaml, err := yaml.Marshal(cr)
-	merged, err = vzyaml.MergeString(vzapi.VerrazzanoSpec{}, string(bYaml), merged)
+	bYAML, err := yaml.Marshal(cr)
+	if err != nil {
+		return nil, err
+	}
+	
+	merged, err = vzyaml.MergeString(vzapi.VerrazzanoSpec{}, string(bYAML), merged)
+	if err != nil {
+		return nil, err
+	}
 
 	// Return a new CR
 	var newCR vzapi.VerrazzanoSpec

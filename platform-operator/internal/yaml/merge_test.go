@@ -26,7 +26,7 @@ type nested1 struct {
 	Name string `json:"name"`
 	Host struct {
 		Name string `json:"name"`
-		IP   string `json:"name"`
+		IP   string `json:"IP"`
 	}
 }
 
@@ -35,7 +35,7 @@ type nested2 struct {
 	Name string `json:"name"`
 	Host struct {
 		Name string `json:"name"`
-		IP   string `json:"name"`
+		IP   string `json:"IP"`
 	}
 	Platform struct {
 		Vendor string `json:"vendor"`

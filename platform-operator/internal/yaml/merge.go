@@ -40,24 +40,24 @@ func MergeString(strategy PatchStrategy, yamls ...string) (string, error) {
 		return yamls[0], nil
 	}
 
-	var mergedJson []byte
+	var mergedJSON []byte
 	for _, yam := range yamls {
 		// First time through create the base JSON
-		overlayYaml := strings.TrimSpace(yam)
-		overlayJson, err := yaml.YAMLToJSON([]byte(overlayYaml))
+		overlayYAML := strings.TrimSpace(yam)
+		overlayJSON, err := yaml.YAMLToJSON([]byte(overlayYAML))
 		if err != nil {
 			return "", err
 		}
-		if len(mergedJson) == 0 {
-			mergedJson = overlayJson
+		if len(mergedJSON) == 0 {
+			mergedJSON = overlayJSON
 			continue
 		}
-		mergedJson, err = strategicpatch.StrategicMergePatch(mergedJson, overlayJson, strategy)
+		mergedJSON, err = strategicpatch.StrategicMergePatch(mergedJSON, overlayJSON, strategy)
 		if err != nil {
 			return "", err
 		}
 	}
-	mergedYaml, err := yaml.JSONToYAML([]byte(mergedJson))
+	mergedYaml, err := yaml.JSONToYAML([]byte(mergedJSON))
 	if err != nil {
 		return "", err
 	}
