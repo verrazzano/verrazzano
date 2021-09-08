@@ -60,6 +60,12 @@ const configDataKey = "spec"
 // initializedSet is needed to keep track of which Verrazzano CRs have been initialized
 var initializedSet = make(map[string]bool)
 
+// systemNamespaceLabels the verrazzano-system namespace labels required
+var systemNamespaceLabels = map[string]string{
+	"istio-injection":         "enabled",
+	"verrazzano.io/namespace": vzconst.VerrazzanoSystemNamespace,
+}
+
 // Set to true during unit testing
 var unitTesting bool
 
@@ -789,8 +795,7 @@ func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log *z
 			return err
 		}
 		vzSystemNS.Name = vzconst.VerrazzanoSystemNamespace
-		vzSystemNS.Labels = make(map[string]string)
-		vzSystemNS.Labels["istio-injection"] = "enabled"
+		vzSystemNS.Labels, _ = mergeMaps(nil, systemNamespaceLabels)
 		if err := r.Create(ctx, &vzSystemNS); err != nil {
 			return err
 		}
@@ -798,16 +803,31 @@ func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log *z
 		return nil
 	}
 	// Namespace exists, see if we need to add the label
-	if vzSystemNS.Labels == nil {
-		vzSystemNS.Labels = make(map[string]string)
+	var updated bool
+	vzSystemNS.Labels, updated = mergeMaps(vzSystemNS.Labels, systemNamespaceLabels)
+	if !updated {
+		return nil
 	}
-	if _, ok := vzSystemNS.Labels["istio-injection"]; !ok {
-		vzSystemNS.Labels["istio-injection"] = "enabled"
-		if err := r.Update(ctx, &vzSystemNS); err != nil {
-			return err
-		}
+	if err := r.Update(ctx, &vzSystemNS); err != nil {
+		return err
 	}
 	return nil
+}
+
+// mergeMaps Merge one map into another, creating new one if necessary; returns the updated map and true if it was modified
+func mergeMaps(to map[string]string, from map[string]string) (map[string]string, bool) {
+	mergedMap := to
+	if mergedMap == nil {
+		mergedMap = make(map[string]string)
+	}
+	var updated bool
+	for k, v := range from {
+		if _, ok := mergedMap[k]; !ok {
+			mergedMap[k] = v
+			updated = true
+		}
+	}
+	return mergedMap, updated
 }
 
 // containsString checks for a string in a slice of strings
