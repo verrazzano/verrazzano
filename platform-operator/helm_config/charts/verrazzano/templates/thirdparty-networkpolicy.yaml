@@ -88,7 +88,7 @@ spec:
             matchLabels:
               app: verrazzano-api
       ports:
-        - port: 3000
+        - port: 9200
           protocol: TCP
 {{- end }}
 {{- if .Values.prometheus.enabled}}
@@ -124,7 +124,7 @@ spec:
             matchLabels:
               app: verrazzano-api
       ports:
-        - port: 9090
+        - port: 9200
           protocol: TCP
 {{- end }}
 ---

@@ -301,6 +301,6 @@ spec:
             matchLabels:
               app: verrazzano-api
       ports:
-        - port: 5601
+        - port: 9200
           protocol: TCP
   {{- end }}
