@@ -10,8 +10,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -20,15 +18,9 @@ import (
 )
 
 const (
-	testLogPath     = "/foo/bar"
-	testParseRules  = "test-parse-rules"
-	testStorageName = "test-fluentd-volume"
-	testESURL       = "http://es-host:9999"
-	testESSecret    = "test-secret"
-
-	testESURLUpdate    = "http://es-host-update:1111"
-	testESSecretUpdate = "test-secret-update"
-
+	testLogPath      = "/foo/bar"
+	testParseRules   = "test-parse-rules"
+	testStorageName  = "test-fluentd-volume"
 	testWorkLoadType = "test-workload"
 )
 
@@ -71,7 +63,7 @@ func TestFluentdApply(t *testing.T) {
 	asserts.True(t, changesMade)
 	asserts.Nil(t, err)
 
-	testAssertFluentdPodForApply(t, fluentdPod, testESSecret)
+	testAssertFluentdPodForApply(t, fluentdPod)
 
 	mocker.Finish()
 }
@@ -171,7 +163,6 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 
-	managedClusterLoggingSecretKey := clusters.MCRegistrationSecretFullName
 	logInfo := createTestLogInfo(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
@@ -203,7 +194,7 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 	asserts.True(t, changesMade)
 	asserts.Nil(t, err)
 
-	testAssertFluentdPodForApply(t, fluentdPod, managedClusterLoggingSecretKey.Name)
+	testAssertFluentdPodForApply(t, fluentdPod)
 
 	mocker.Finish()
 }
@@ -241,7 +232,7 @@ func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, l
 }
 
 // testAssertFluentdPodForApply asserts FluentdPod state for Apply
-func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod, loggingSecretName string) {
+func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod) {
 	containers := fluentdPod.Containers
 	asserts.Len(t, containers, 2)
 
@@ -256,25 +247,6 @@ func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod, loggingS
 func testAssertFluentdPodForApplyUpdate(t *testing.T, fluentdPod *FluentdPod) {
 	containers := fluentdPod.Containers
 	asserts.Len(t, containers, 2)
-	success := false
-	for _, container := range containers {
-		if container.Name == FluentdStdoutSidecarName {
-			env := container.Env
-			for _, envVar := range env {
-				switch name := envVar.Name; name {
-				case elasticSearchURLEnv:
-					asserts.Equal(t, testESURLUpdate, envVar.Value)
-				case elasticSearchUserEnv:
-					asserts.Equal(t, testESSecretUpdate, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
-				case elasticSearchPwdEnv:
-					asserts.Equal(t, testESSecretUpdate, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
-				}
-
-			}
-			success = true
-		}
-	}
-	asserts.True(t, success)
 
 	volumes := fluentdPod.Volumes
 	asserts.Len(t, volumes, 3)
@@ -305,38 +277,6 @@ func createFluentdESEnv() []v1.EnvVar {
 		{
 			Name:  "FLUENT_ELASTICSEARCH_SED_DISABLE",
 			Value: "true",
-		},
-		{
-			Name:  elasticSearchURLEnv,
-			Value: testESURL,
-		},
-		{
-			Name: elasticSearchUserEnv,
-			ValueFrom: &v1.EnvVarSource{
-				SecretKeyRef: &v1.SecretKeySelector{
-					LocalObjectReference: v1.LocalObjectReference{
-						Name: testESSecret,
-					},
-					Key: constants.ElasticsearchUsernameData,
-					Optional: func(opt bool) *bool {
-						return &opt
-					}(true),
-				},
-			},
-		},
-		{
-			Name: elasticSearchPwdEnv,
-			ValueFrom: &v1.EnvVarSource{
-				SecretKeyRef: &v1.SecretKeySelector{
-					LocalObjectReference: v1.LocalObjectReference{
-						Name: testESSecret,
-					},
-					Key: constants.ElasticsearchPasswordData,
-					Optional: func(opt bool) *bool {
-						return &opt
-					}(true),
-				},
-			},
 		},
 	}
 }
