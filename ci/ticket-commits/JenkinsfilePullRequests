@@ -38,7 +38,7 @@ pipeline {
             }
         }
 
-        stage('Update JIRA tickets with commits') {
+        stage('Update JIRA tickets with pull request') {
             environment {
                 JIRA_USERNAME = credentials('jira-username')
                 JIRA_PASSWORD = credentials('jira-password')
