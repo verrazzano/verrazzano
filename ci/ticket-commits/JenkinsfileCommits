@@ -43,10 +43,6 @@ pipeline {
                         echo "${NODE_LABELS}"
                         echo "SCM checkout of ${scmInfo.GIT_BRANCH} at ${scmInfo.GIT_COMMIT}"
 
-                        # repo is now in detached HEAD state, which confuses the verrazzano-helper, so checkout the branch
-                        #echo checking out branch so repo is no longer in detached HEAD state
-                        #git checkout ${env.GIT_BRANCH}
-
                         cp -f "${NETRC_FILE}" $HOME/.netrc
                         chmod 600 $HOME/.netrc
 
@@ -66,6 +62,8 @@ pipeline {
             steps {
                 script {
                     def tmpfile=sh(returnStdout: true, script: "mktemp").trim()
+
+                    // branchOrigin is the commit that this branch was created from
                     def branchOrigin=sh(returnStdout: true, script: "/bin/bash -c 'git log --pretty=format:%H,%d | grep \"(origin\" | head -1 | cut -f 1 -d,'").trim()
 
                     // get the commits from the change set
