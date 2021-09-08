@@ -331,6 +331,11 @@ pipeline {
                             steps {
                                 acceptanceTestsConsole()
                             }
+                            post {
+                                failure {
+                                    saveConsoleScreenShots()
+                                }
+                            }
                         }
                     }
                     post {
@@ -443,12 +448,6 @@ pipeline {
                         }
                     }
                     post {
-                        failure {
-                            script {
-                                saveConsoleScreenShots()
-                            }
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png', allowEmptyArchive: true
-                        }
                         always {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -492,7 +491,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -656,7 +655,6 @@ def acceptanceTestsConsole() {
 
 def saveConsoleScreenShots() {
     sh """
-        # Temporarily clone the console repo until it is moved to the verrazzano repo
         cd ${GO_REPO_PATH}/console
 
         # Copy artifacts to workspace, ignore if copy fails
