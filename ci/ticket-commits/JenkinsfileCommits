@@ -35,6 +35,7 @@ pipeline {
                 script {
                     def scmInfo = checkout([
                             $class: 'GitSCM',
+                            branches: [[name: env.GIT_BRANCH]],
                             extensions: [[$class: 'LocalBranch']],
                             userRemoteConfigs: [[refspec: "+refs/heads/*:refs/remotes/origin/*", url: env.SCM_VERRAZZANO_GIT_URL]]])
 
