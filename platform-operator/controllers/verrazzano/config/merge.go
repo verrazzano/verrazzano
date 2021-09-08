@@ -24,7 +24,7 @@ func MergeProfiles(cr *vzapi.VerrazzanoSpec, profileFiles ...string) (*vzapi.Ver
 	if err != nil {
 		return nil, err
 	}
-	
+
 	merged, err = vzyaml.MergeString(vzapi.VerrazzanoSpec{}, string(bYAML), merged)
 	if err != nil {
 		return nil, err
