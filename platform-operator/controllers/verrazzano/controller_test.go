@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	appsv1 "k8s.io/api/apps/v1"
 	"testing"
 	"time"
 
@@ -185,7 +184,7 @@ func TestSuccessfulInstall(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(4)
+		}).Times(5)
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
@@ -194,19 +193,6 @@ func TestSuccessfulInstall(t *testing.T) {
 			ingressList.Items = []extv1beta1.Ingress{}
 			return nil
 		})
-
-	// Expect a call to restart the WKO deployment
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "weblogic-operator"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
-			dep.Name = "weblogic-operator"
-			dep.Namespace = "verrazzano-system"
-			return nil
-		}).Times(1)
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, _ *appsv1.Deployment, opts ...client.UpdateOption) error {
-			return nil
-		}).Times(1)
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
@@ -349,7 +335,7 @@ func TestCreateVerrazzano(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(4)
+		}).Times(5)
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
@@ -544,7 +530,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(4)
+		}).Times(5)
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
@@ -2051,6 +2037,8 @@ func expectGetVerrazzanoSystemNamespaceExists(mock *mocks.MockClient, asserts *a
 		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
 			ns.Name = constants.VerrazzanoSystemNamespace
+			ns.Labels = make(map[string]string)
+			ns.Labels["istio-injection"] = "enabled"
 			return nil
 		})
 }
