@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -22,7 +21,6 @@ import (
 // newMultiClusterApplicationConfigurationValidator creates a new MultiClusterApplicationConfigurationValidator
 func newMultiClusterApplicationConfigurationValidator() MultiClusterApplicationConfigurationValidator {
 	scheme := newScheme()
-	clustersv1alpha1.AddToScheme(scheme)
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := fake.NewFakeClientWithScheme(scheme)
 	v := MultiClusterApplicationConfigurationValidator{client: cli, decoder: decoder}
