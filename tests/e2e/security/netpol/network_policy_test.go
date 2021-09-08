@@ -288,10 +288,6 @@ var _ = Describe("Test Network Policies", func() {
 			},
 			func() {
 				pkg.Log(pkg.Info, "Negative test vmi-system-es-master ingress rules")
-//del				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 9200, false)
-//del				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-es-master ingress rules failed: reason = %s", err))
-//del				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 9200, false)
-//del				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-es-master ingress rules failed: reason = %s", err))
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 9200, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-es-master ingress rules failed: reason = %s", err))
 			},
