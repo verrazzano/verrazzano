@@ -123,6 +123,7 @@ function install_verrazzano()
         --set api.proxy.OidcProviderHost=keycloak.${ENV_NAME}.${DNS_SUFFIX} \
         --set api.proxy.OidcProviderHostInCluster=keycloak-http.keycloak.svc.cluster.local \
         $(get_fluentd_extra_volume_mounts) \
+        $(get_fluentd_elasticsearch_options) \
         ${HELM_IMAGE_ARGS} \
         ${PROFILE_VALUES_OVERRIDE} \
         ${EXTRA_V8O_ARGUMENTS} || return $?
@@ -130,7 +131,7 @@ function install_verrazzano()
 
   if [ $(is_vo_vmo_enabled) == "true" ]; then
     log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
-    kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
+    kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n ${VERRAZZANO_NS}
 
     log "Verifying that needed secrets are created"
     retries=0
@@ -275,6 +276,18 @@ kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_N
 
 log "Adding label for enabling istio sidecar injection by default to ${VERRAZZANO_NS} namespace"
 kubectl label namespace ${VERRAZZANO_NS} "istio-injection=enabled" --overwrite
+
+if [ ! -z "$(get_config_value '.fluentd')" ]; then
+  ES_SECRET_NAME=$(get_config_value '.fluentd.elasticsearchSecret')
+  if [ ${ES_SECRET_NAME} != "verrazzano" ]; then
+    log "Copying secret ${ES_SECRET_NAME} from verrazzano-install namespace to ${VERRAZZANO_NS} namespace"
+    if ! kubectl -n ${VERRAZZANO_NS} get secret ${ES_SECRET_NAME} && kubectl -n verrazzano-install get secret ${ES_SECRET_NAME} ; then
+      kubectl -n verrazzano-install get secret ${ES_SECRET_NAME} -o json \
+        | jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp)' \
+        | kubectl -n ${VERRAZZANO_NS} apply -f -
+    fi
+  fi
+fi
 
 if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
