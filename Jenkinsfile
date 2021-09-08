@@ -825,18 +825,22 @@ def metricTimerEnd(metricName, status) {
 
 // Emit the metrics indicating the duration and result of the build
 def metricBuildDuration() {
-    def status = "${currentBuild.currentResult}"
+    def status = "${currentBuild.currentResult}".trim()
     long duration = "${currentBuild.duration}" as long;
     long durationInSec = (duration/1000)
     testMetric = metricJobName('')
-    def metricValue = "0"
-    statusLabel = "F"
-    echo "Status $status"
+    def metricValue = "-1"
+    statusLabel = status.substring(0,1)
+    echo "Status $status Status"
+    echo "StatusLabel $statusLabel StatusLabel"
     if (status.equals("SUCCESS")) {
+        echo "I am here inside SUCCESS"
         metricValue = "1"
-        statusLabel = "S"
-    } else if (status.equals("ABORTED")) {
-        metricValue = "-1"
+    } else if (status.equals("FAILURE")) {
+        echo "I am here inside FAILURE"
+        metricValue = "0"
+    } else {
+        echo "I am here in else"
         statusLabel = "A"
     }
     if (params.EMIT_METRICS) {
