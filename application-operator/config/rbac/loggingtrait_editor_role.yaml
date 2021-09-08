@@ -1,0 +1,24 @@
+# permissions for end users to edit loggingtraits.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: loggingtrait-editor-role
+rules:
+- apiGroups:
+  - oam.verrazzano.io
+  resources:
+  - loggingtraits
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - oam.verrazzano.io
+  resources:
+  - loggingtraits/status
+  verbs:
+  - get

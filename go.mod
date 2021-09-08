@@ -19,6 +19,7 @@ require (
 	github.com/joshdk/go-junit v0.0.0-20210226021600-6145f504ca0d
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.7.1
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
@@ -30,10 +31,12 @@ require (
 	istio.io/client-go v0.0.0-20200807182027-d287a5abb594
 	k8s.io/api v0.21.1
 	k8s.io/apiextensions-apiserver v0.19.0
-	k8s.io/apimachinery v0.21.1
+	k8s.io/apimachinery v0.22.1
 	k8s.io/cli-runtime v0.21.1
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/code-generator v0.19.0
+	k8s.io/kube-openapi v0.0.0-20200805222855-6aeccd4b50c6
+	k8s.io/kubectl v0.19.0
 	sigs.k8s.io/controller-runtime v0.6.2
 	sigs.k8s.io/controller-tools v0.4.1
 	sigs.k8s.io/yaml v1.2.0
