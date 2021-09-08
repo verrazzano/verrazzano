@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vzcr "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 )
 
 // Empty struct for strategy
@@ -49,12 +48,11 @@ type nested2 struct {
 	Platform struct {
 		Vendor string `json:"vendor"`
 		OS     struct {
-			Name    string `json:"name"`
+			Name    string  `json:"name"`
 			Patches []Patch `json:"patches" patchStrategy:"merge" patchMergeKey:"version"`
 		}
 	}
 }
-
 
 //  patchesReplace specifies that the array will be replaced on a merge
 type patchesReplace struct {
@@ -65,7 +63,6 @@ type patchesReplace struct {
 type patchesMerge struct {
 	Patches []Patch `json:"patches" patchStrategy:"merge" patchMergeKey:"version"`
 }
-
 
 const nested1Base = `
 name: base
@@ -172,6 +169,7 @@ platform:
       version: 0.5.0
   vendor: company1
 `
+
 // yaml3 has same contents as yaml1 and yaml2 but different order
 // Note, array items have to be in same order
 const yaml3 = `
@@ -206,20 +204,20 @@ func TestProfiles(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "1",
-			base:    "./testdata/dev.yaml",
+			name:     "1",
+			base:     "./testdata/dev.yaml",
 			overlay:  "./testdata/managed.yaml",
 			expected: "./testdata/managed.yaml",
 		},
 		{
-			name: "2",
-			base:    "./testdata/managed.yaml",
+			name:     "2",
+			base:     "./testdata/managed.yaml",
 			overlay:  "./testdata/keycloak.yaml",
 			expected: "./testdata/managed_with_keycloak.yaml",
 		},
 		{
-			name: "3",
-			base:    "./testdata/cert_base.yaml",
+			name:     "3",
+			base:     "./testdata/cert_base.yaml",
 			overlay:  "./testdata/cert_overlay.yaml",
 			expected: "./testdata/cert_merged.yaml",
 		},
@@ -235,7 +233,6 @@ func TestProfiles(t *testing.T) {
 		})
 	}
 }
-
 
 const patches1 = `
 patches:

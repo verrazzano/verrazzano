@@ -11,8 +11,7 @@ import (
 	"strings"
 )
 
-type PatchStrategy interface {}
-
+type PatchStrategy interface{}
 
 // Merge merges the overlay YAML files onto the base YAML file and returns a YAML string.
 // The overlay has priority.
