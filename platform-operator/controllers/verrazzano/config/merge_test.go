@@ -33,12 +33,6 @@ func TestMergeSpec(t *testing.T) {
 			expected: "./testdata/managed.yaml",
 		},
 		{
-			name:     "2",
-			base:     "./testdata/managed.yaml",
-			overlay:  "./testdata/keycloak.yaml",
-			expected: "./testdata/managed_with_keycloak.yaml",
-		},
-		{
 			name:     "3",
 			base:     "./testdata/cert_base.yaml",
 			overlay:  "./testdata/cert_overlay.yaml",
