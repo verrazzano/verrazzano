@@ -38,8 +38,27 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
+	genericComponents := []component.Component{}
+
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	for _, comp := range component.GetComponents() {
+		switch c := comp.(type) {
+		case component.HelmComponent:
+			err := c.Upgrade(log, r, cr.Namespace, r.DryRun)
+			if err != nil {
+				log.Errorf("Error upgrading component %s: %v", c.Name(), err)
+				msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
+					fmtGeneration(cr.Generation), err.Error())
+				err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeFailed)
+				return ctrl.Result{}, err
+			}
+		case component.IstioComponent:
+			genericComponents = append(genericComponents, c)
+		default:
+			log.Errorf("Unknown component found: %s", c.Name())
+		}
+	}
+	for _, comp := range genericComponents {
 		err := comp.Upgrade(log, r, cr.Namespace, r.DryRun)
 		if err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)

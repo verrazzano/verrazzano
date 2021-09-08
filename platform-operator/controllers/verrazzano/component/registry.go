@@ -19,14 +19,14 @@ func GetComponents() []Component {
 
 	return []Component{
 		// TODO: remove istio helm components
-		helmComponent{
+		HelmComponent{
 			releaseName:             "istio-base",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			ignoreImageOverrides:    true,
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "istiod",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/istio-control/istio-discovery"),
 			chartNamespace:          "istio-system",
@@ -34,7 +34,7 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			appendOverridesFunc:     appendIstioOverrides,
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "istio-ingress",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/gateways/istio-ingress"),
 			chartNamespace:          "istio-system",
@@ -42,7 +42,7 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			appendOverridesFunc:     appendIstioOverrides,
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "istio-egress",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/gateways/istio-egress"),
 			chartNamespace:          "istio-system",
@@ -50,7 +50,7 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			appendOverridesFunc:     appendIstioOverrides,
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "istiocoredns",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/istiocoredns"),
 			chartNamespace:          "istio-system",
@@ -58,38 +58,38 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			appendOverridesFunc:     appendIstioOverrides,
 		},
-		istioComponent{
+		IstioComponent{
 			componentName: "istio",
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "ingress-controller",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"),
 			chartNamespace:          "ingress-nginx",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "ingress-nginx-values.yaml"),
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "cert-manager",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "cert-manager"),
 			chartNamespace:          "cert-manager",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "cert-manager-values.yaml"),
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "external-dns",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "external-dns"),
 			chartNamespace:          "cert-manager",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "external-dns-values.yaml"),
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "rancher",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "rancher"),
 			chartNamespace:          "cattle-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "rancher-values.yaml"),
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "verrazzano",
 			chartDir:                filepath.Join(helmChartsDir, "verrazzano"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
@@ -97,21 +97,21 @@ func GetComponents() []Component {
 			resolveNamespaceFunc:    resolveVerrazzanoNamespace,
 			preUpgradeFunc:          verrazzanoPreUpgrade,
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "coherence-operator",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "weblogic-operator",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "weblogic-operator"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "oam-kubernetes-runtime",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "oam-kubernetes-runtime"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
@@ -121,7 +121,7 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(overridesDir, "oam-kubernetes-runtime-values.yaml"),
 			imagePullSecretKeyname:  "imagePullSecrets[0].name",
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "verrazzano-application-operator",
 			chartDir:                filepath.Join(helmChartsDir, "verrazzano-application-operator"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
@@ -132,14 +132,14 @@ func GetComponents() []Component {
 			appendOverridesFunc:     appendApplicationOperatorOverrides,
 			imagePullSecretKeyname:  "global.imagePullSecrets[0]",
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "mysql",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "mysql"),
 			chartNamespace:          "keycloak",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),
 		},
-		helmComponent{
+		HelmComponent{
 			releaseName:             "keycloak",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "keycloak"),
 			chartNamespace:          "keycloak",
