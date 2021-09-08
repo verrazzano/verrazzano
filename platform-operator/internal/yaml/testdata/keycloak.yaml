@@ -1,5 +1,0 @@
-kind: Verrazzano
-spec:
-  components:
-    keycloak:
-      enabled: true

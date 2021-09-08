@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package yaml
@@ -9,22 +9,19 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	vzcr "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-// Empty struct for strategy
+// Patch specifies a compoent patch
+type Patch struct {
+	Version string `json:"version"`
+	Date    string `json:"date"`
+}
+
+// simple struct is used for trivial merges with no nested fields
 type simple struct {
 }
 
-const simpleBase = `
-name: base
-`
-const simpleOverlay = `
-name: overlay
-`
-const simpleMerged = `name: overlay`
-
-// Nested struct and test YAML
+// nested1 struct is used for testing nested merges
 type nested1 struct {
 	Name string `json:"name"`
 	Host struct {
@@ -33,12 +30,7 @@ type nested1 struct {
 	}
 }
 
-type Patch struct {
-	Version string `json:"version"`
-	Date    string `json:"date"`
-}
-
-// Nested struct and test YAML
+// nested2 struct is used for testing nested merges
 type nested2 struct {
 	Name string `json:"name"`
 	Host struct {
@@ -54,33 +46,69 @@ type nested2 struct {
 	}
 }
 
-//  patchesReplace specifies that the array will be replaced on a merge
+// patchesReplace specifies that the array will be replaced on a merge
 type patchesReplace struct {
 	Patches []Patch `json:"patches"`
 }
 
-//  patchesMerge specifies that the array will merge
+// patchesMerge specifies that the array will merge
 type patchesMerge struct {
 	Patches []Patch `json:"patches" patchStrategy:"merge" patchMergeKey:"version"`
 }
 
+// simpleBase is the base of a non-nested merge
+const simpleBase = `name: base`
+
+// simpleOverlay is the overlay of a non-nested merge
+const simpleOverlay = `name: overlay`
+
+// simpleOverlay is the result of non-nested merge
+const simpleMerged = `name: overlay`
+
+// TestMergeSimple tests the MergeString function
+// GIVEN a set of non-nested YAML strings
+// WHEN MergeString is called
+// THEN ensure that the merged result is correct.
+func TestMergeSimple(t *testing.T) {
+	assert := assert.New(t)
+	merged, err := MergeString(simple{}, simpleBase, simpleOverlay)
+	assert.NoError(err, merged, "error merging simple yaml")
+	assert.YAMLEq(simpleMerged, merged, "simple yaml should be equal")
+}
+
+// nested1Base is the base of a nested merge
 const nested1Base = `
 name: base
 host:
   name: example.com
 `
+
+// nested1Overlay is the overlay of a nested merge
 const nested1Overlay = `
 name: overlay
 host:
   ip: 1.2.3.4
 `
+
+// nested1Merged is the result of a nested merge
 const nested1Merged = `
 name: overlay
 host:
   name: example.com
   ip: 1.2.3.4`
 
-// Yaml with nested struct arrays
+// TestMergeNested1 tests the MergeString function with nested YAML
+// GIVEN a set of nested YAML strings
+// WHEN MergeString is called
+// THEN ensure that the merged result is correct.
+func TestMergeNested1(t *testing.T) {
+	assert := assert.New(t)
+	merged, err := MergeString(nested1{}, nested1Base, nested1Overlay)
+	assert.NoError(err, merged, "error merging nested yaml")
+	assert.YAMLEq(nested1Merged, merged, "nested yaml should be equal")
+}
+
+// nested2Base is the base of a nested merge with a list
 const nested2Base = `
 name: base
 host:
@@ -94,6 +122,8 @@ platform:
     - version: 0.5.0
       date: 01/01/2020
 `
+
+// nested2Base is the overlay of a nested merge with a list
 const nested2Overlay = `
 platform:
   os:
@@ -102,6 +132,7 @@ platform:
       date: 02/02/2022
 `
 
+// nested2Merged is the result of a nested merge with a list
 const nested2Merged = `
 name: base
 host:
@@ -118,27 +149,73 @@ platform:
       date: 01/01/2020
 `
 
-func TestMergeSimple(t *testing.T) {
-	assert := assert.New(t)
-	merged, err := MergeString(simpleBase, simpleOverlay, simple{})
-	assert.NoError(err, merged, "error merging simple yaml")
-	assert.YAMLEq(simpleMerged, merged, "simple yaml should be equal")
-}
-
-func TestMergeNested1(t *testing.T) {
-	assert := assert.New(t)
-	merged, err := MergeString(nested1Base, nested1Overlay, nested1{})
-	assert.NoError(err, merged, "error merging nested yaml")
-	assert.YAMLEq(nested1Merged, merged, "nested yaml should be equal")
-}
-
+// TestMergeNested2 tests the MergeString function with nested YAML
+// GIVEN a set of nested YAML strings with embedded lists
+// WHEN MergeString is called
+// THEN ensure that the merged result is correct.
 func TestMergeNested2(t *testing.T) {
 	assert := assert.New(t)
-	merged, err := MergeString(nested2Base, nested2Overlay, nested2{})
+	merged, err := MergeString(nested2{}, nested2Base, nested2Overlay)
 	assert.NoError(err, merged, "error merging nested yaml")
 	assert.YAMLEq(nested2Merged, merged, "nested yaml should be equal")
 }
 
+// patches1 specifies a list of patches
+const patches1 = `
+patches:
+- date: 01/01/2022
+  version: 0.1.0
+`
+
+// patches2 specifies a list of patches
+const patches2 = `
+patches:
+- date: 02/02/2020
+  version: 0.2.0
+`
+
+// patches3 specifies a list of patches with the same key as patches2
+const patches3 = `
+patches:
+- date: 02/22/2022
+  version: 0.2.0
+`
+
+// patches4 specifies a list of patches
+const patches4 = `
+patches:
+- date: 03/03/2022
+  version: 0.3.0
+`
+
+// patchesMerged specifies results of the merged patches
+const patchesMerged = `
+patches:
+- date: 03/03/2022
+  version: 0.3.0
+- date: 02/22/2022
+  version: 0.2.0
+- date: 01/01/2022
+  version: 0.1.0
+`
+
+// Test the profile merge
+func TestPatchesReplace(t *testing.T) {
+	assert := assert.New(t)
+	merged, err := MergeString(patchesReplace{}, patches1, patches2)
+	assert.NoError(err, merged, "error merging patches")
+	assert.YAMLEq(merged, string(patches2), "merged profile is incorrect ")
+}
+
+// Test the profile merge
+func TestPatchesMerge(t *testing.T) {
+	assert := assert.New(t)
+	merged, err := MergeString(patchesMerge{}, patches1, patches2, patches3, patches4)
+	assert.NoError(err, merged, "error merging patches")
+	assert.YAMLEq(merged, string(patchesMerged), "merged profile is incorrect ")
+}
+
+// yaml1 contains YAML that is equivalent to yaml2 and yaml3
 const yaml1 = `
 host:
   name: foo
@@ -154,6 +231,8 @@ platform:
       version: 0.5.0
   vendor: company1
 `
+
+// yaml2 contains YAML that is equivalent to yaml1 and yaml3
 const yaml2 = `
 host:
   ip: 1.2.3.4
@@ -170,8 +249,7 @@ platform:
   vendor: company1
 `
 
-// yaml3 has same contents as yaml1 and yaml2 but different order
-// Note, array items have to be in same order
+// yaml3 contains YAML that is equivalent to yaml1 and yaml2
 const yaml3 = `
 platform:
   os:
@@ -188,84 +266,54 @@ host:
 name: base
 `
 
-// Test the YamlEq function so we know that works
-// the YAMLEq function doesn't consider 2 lists to be equal if they are not in the same order
+// TestYamlEq tests the YAMLEq function
+// GIVEN YAML files with identical fields, but in different order
+// WHEN YAMLEq is called
+// THEN ensure that the boolean is correct
+// Note: the YAMLEq function doesn't consider 2 lists to be equal if they are not in the same order
 func TestYamlEq(t *testing.T) {
 	assert := assert.New(t)
 	assert.YAMLEq(yaml1, yaml2, "yaml should be equal")
 	assert.YAMLEq(yaml1, yaml3, "yaml should be equal")
 }
 
-func TestProfiles(t *testing.T) {
+// TestMergeFiles tests the MergeFiles function
+// GIVEN an array of tests, where each tests specifies files to merge
+// WHEN MergeFiles is called, with some contents being a list that should be merged
+// THEN ensure that the merged result is correct.
+func TestMergeFiles(t *testing.T) {
 	tests := []struct {
 		name     string
-		base     string
-		overlay  string
+		files    []string
 		expected string
 	}{
 		{
-			name:     "1",
-			base:     "./testdata/dev.yaml",
-			overlay:  "./testdata/managed.yaml",
-			expected: "./testdata/managed.yaml",
+			name: "1",
+			files: []string{
+				"./testdata/nested2base.yaml",
+				"./testdata/nested2base.yaml",
+			},
+			expected: "./testdata/nested2base.yaml",
 		},
 		{
-			name:     "2",
-			base:     "./testdata/managed.yaml",
-			overlay:  "./testdata/keycloak.yaml",
-			expected: "./testdata/managed_with_keycloak.yaml",
-		},
-		{
-			name:     "3",
-			base:     "./testdata/cert_base.yaml",
-			overlay:  "./testdata/cert_overlay.yaml",
-			expected: "./testdata/cert_merged.yaml",
+			// This case has a list of patches that we expect to be merged
+			name: "1",
+			files: []string{
+				"./testdata/nested2base.yaml",
+				"./testdata/nested2overlay1.yaml",
+				"./testdata/nested2overlay2.yaml",
+			},
+			expected: "./testdata/nested2merged.yaml",
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
-			merged, err := MergeFiles(test.base, test.overlay, vzcr.Verrazzano{})
+			merged, err := MergeFiles(nested2{}, test.files...)
 			assert.NoError(err, merged, "error merging profiles")
 			expected, err := ioutil.ReadFile(filepath.Join(test.expected))
 			assert.NoError(err, merged, "error reading profiles")
 			assert.YAMLEq(merged, string(expected), "merged profile is incorrect ")
 		})
 	}
-}
-
-const patches1 = `
-patches:
-- date: 02/02/2022
-  version: 0.6.0
-`
-
-const patches2 = `
-patches:
-- date: 01/01/2020
-  version: 0.5.0
-`
-
-const patchesMerged = `
-patches:
-- date: 01/01/2020
-  version: 0.5.0
-- date: 02/02/2022
-  version: 0.6.0
-`
-
-// Test the profile merge
-func TestPatchesReplace(t *testing.T) {
-	assert := assert.New(t)
-	merged, err := MergeString(patches1, patches2, patchesReplace{})
-	assert.NoError(err, merged, "error merging patches")
-	assert.YAMLEq(merged, string(patches2), "merged profile is incorrect ")
-}
-
-// Test the profile merge
-func TestPatchesMerge(t *testing.T) {
-	assert := assert.New(t)
-	merged, err := MergeString(patches1, patches2, patchesMerge{})
-	assert.NoError(err, merged, "error merging patches")
-	assert.YAMLEq(merged, string(patchesMerged), "merged profile is incorrect ")
 }

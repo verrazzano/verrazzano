@@ -1,8 +1,0 @@
-kind: Verrazzano
-spec:
-  components:
-    certManager:
-      certificate:
-        acme:
-          provider: letsEncrypt
-          environment: staging
