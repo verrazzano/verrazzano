@@ -904,6 +904,8 @@ data:
         # this sort of constraint in the ingress controller?
         #
         # client_max_body_size 65m;
+        # Posts from Fluentd can require more than the default 1m max body size
+        client_max_body_size 5m;
 
         #keepalive_timeout  0;
         keepalive_timeout  65;
