@@ -798,8 +798,7 @@ def metricTimerStart(metricName) {
 
 // Construct the set of labels/dimensions for the metrics
 def getMetricLabels() {
-    labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
-             'build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+    labels = 'build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
              'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
     return labels
@@ -831,7 +830,8 @@ def metricBuildDuration() {
     long durationInSec = (duration/1000)
     testMetric = metricJobName('')
     def metricValue = "0"
-    def statusLabel = "F"
+    statusLabel = "F"
+    echo "Status $status"
     if (status.equals("SUCCESS")) {
         metricValue = "1"
         statusLabel = "S"
@@ -842,6 +842,7 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
+        echo "Labels $labels"
         withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
             METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.GIT_BRANCH} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
