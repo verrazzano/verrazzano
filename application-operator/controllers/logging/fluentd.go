@@ -26,10 +26,6 @@ const (
 	confVolume               = "fluentd-config-volume"
 
 	scratchVolMountPath = "/scratch"
-
-	elasticSearchURLEnv  = "ELASTICSEARCH_URL"
-	elasticSearchUserEnv = "ELASTICSEARCH_USER"
-	elasticSearchPwdEnv  = "ELASTICSEARCH_PASSWORD"
 )
 
 // DefaultFluentdImage holds the default FLUENTD image that will be used if it is not specified in the logging logInfo

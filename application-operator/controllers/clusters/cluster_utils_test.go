@@ -24,63 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// TestFetchManagedClusterElasticSearchDetails_Exists tests fetching Elasticsearch details
-// when the ES secret exists
-// GIVEN the Elasticsearch secret exists
-// WHEN FetchManagedClusterElasticSearchDetails function is called
-// THEN expect that the returned ElasticsearchDetails has the correct URL and secret name fields
-func TestFetchManagedClusterElasticSearchDetails_Exists(t *testing.T) {
-	mocker := gomock.NewController(t)
-	cli := mocks.NewMockClient(mocker)
-
-	esURL := "https://someEsUrl"
-	esUser := "someEsUser"
-	esPwd := "xyzabc"
-	esSecret1 := v1.Secret{
-		Data: map[string][]byte{
-			constants.ElasticsearchURLData:      []byte(esURL),
-			constants.ElasticsearchUsernameData: []byte(esUser),
-			constants.ElasticsearchPasswordData: []byte(esPwd)},
-	}
-	esSecret1.Name = MCRegistrationSecretFullName.Name
-	esSecret1.Namespace = MCRegistrationSecretFullName.Namespace
-
-	cli.EXPECT().
-		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			secret.Name = esSecret1.Name
-			secret.Namespace = esSecret1.Namespace
-			secret.Data = esSecret1.Data
-			return nil
-		})
-
-	esDetails := FetchManagedClusterElasticSearchDetails(context.TODO(), cli)
-
-	asserts.Equal(t, esURL, esDetails.URL)
-	asserts.Equal(t, esSecret1.Name, esDetails.SecretName)
-	mocker.Finish()
-}
-
-// TestFetchManagedClusterElasticSearchDetails_DoesNotExist tests fetching Elasticsearch details
-// when the ES secret does not exist
-// GIVEN the Elasticsearch secret does not exist
-// WHEN FetchManagedClusterElasticSearchDetails function is called
-// THEN expect that the returned ElasticsearchDetails has empty values
-func TestFetchManagedClusterElasticSearchDetails_DoesNotExist(t *testing.T) {
-	mocker := gomock.NewController(t)
-	cli := mocks.NewMockClient(mocker)
-
-	cli.EXPECT().
-		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		Return(kerr.NewNotFound(schema.ParseGroupResource("Secret"), MCRegistrationSecretFullName.Name))
-
-	esDetails := FetchManagedClusterElasticSearchDetails(context.TODO(), cli)
-
-	asserts.Equal(t, "", esDetails.URL)
-	asserts.Equal(t, "", esDetails.SecretName)
-	mocker.Finish()
-}
-
 // TestGetClusterName tests fetching the cluster name from the managed cluster registration secret
 // GIVEN The managed cluster registration secret exists
 // WHEN GetClusterName function is called
