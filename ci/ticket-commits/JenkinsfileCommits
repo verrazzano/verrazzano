@@ -33,6 +33,10 @@ pipeline {
             }
             steps {
                 script {
+                    sh """
+                        echo "Branch is ${env.BRANCH_NAME}"
+                    """
+
                     def scmInfo = checkout([
                             $class: 'GitSCM',
                             branches: [[name: 'env.BRANCH_NAME']],
