@@ -831,22 +831,17 @@ def metricBuildDuration() {
     testMetric = metricJobName('')
     def metricValue = "-1"
     statusLabel = status.substring(0,1)
-    echo "Status $status Status"
-    echo "StatusLabel $statusLabel StatusLabel"
     if (status.equals("SUCCESS")) {
-        echo "I am here inside SUCCESS"
         metricValue = "1"
     } else if (status.equals("FAILURE")) {
-        echo "I am here inside FAILURE"
         metricValue = "0"
     } else {
-        echo "I am here in else"
+        // Consider every other status as a single label
         statusLabel = "A"
     }
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        echo "Labels $labels"
         withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
             METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.GIT_BRANCH} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
