@@ -33,13 +33,9 @@ pipeline {
             }
             steps {
                 script {
-                    sh """
-                        echo "Branch is ${env.BRANCH_NAME}"
-                    """
-
                     def scmInfo = checkout([
                             $class: 'GitSCM',
-                            branches: [[name: 'env.BRANCH_NAME']],
+                            branches: [[name: env.BRANCH_NAME]],
                             extensions: [[$class: 'LocalBranch']],
                             userRemoteConfigs: [[refspec: '+refs/heads/*:refs/remotes/origin/*', url: env.SCM_VERRAZZANO_GIT_URL]]])
 
