@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
@@ -123,11 +124,18 @@ func TestSuccessfulInstall(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
 
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
+
 	// Sample bom file for version validation functions
 	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
 		component.SetUnitTestBomFilePath("")
 	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -176,7 +184,7 @@ func TestSuccessfulInstall(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		})
+		}).Times(4)
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
@@ -228,11 +236,18 @@ func TestCreateVerrazzano(t *testing.T) {
 		Name:      name,
 		Labels:    labels}
 
+	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
+
 	// Sample bom file for version validation functions
 	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
 		component.SetUnitTestBomFilePath("")
 	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
@@ -320,7 +335,7 @@ func TestCreateVerrazzano(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		})
+		}).Times(4)
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
@@ -337,6 +352,31 @@ func TestCreateVerrazzano(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
+	statusMap := make(vzapi.ComponentStatusMap)
+	statusMap["verrazzano-application-operator"] = &vzapi.ComponentStatusDetails{
+		Name: "verrazzano-application-operator",
+		Conditions: []vzapi.Condition{
+			{
+				Type:   vzapi.InstallComplete,
+				Status: corev1.ConditionTrue,
+			},
+		},
+		State: vzapi.Ready,
+	}
+	statusMap["oam-kubernetes-runtime"] = &vzapi.ComponentStatusDetails{
+		Name: "oam-kubernetes-runtime",
+		Conditions: []vzapi.Condition{
+			{
+				Type:   vzapi.InstallComplete,
+				Status: corev1.ConditionTrue,
+			},
+		},
+		State: vzapi.Ready,
+	}
+	return statusMap
 }
 
 // TestCreateVerrazzanoWithOCIDNS tests the Reconcile method for the following use case
@@ -371,12 +411,18 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			DNSZoneName:            "test-dns-zone-name",
 		},
 	}
+	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
 	component.SetUnitTestBomFilePath(testBomFilePath)
 	defer func() {
 		component.SetUnitTestBomFilePath("")
 	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
@@ -484,7 +530,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		})
+		}).Times(4)
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
@@ -1942,6 +1988,7 @@ func newVerrazzanoReconciler(c client.Client) Reconciler {
 }
 
 func setupInstallInternalConfigMapExpectations(mock *mocks.MockClient, name string, namespace string) {
+
 	// Expect a call to get an existing configmap, but return a NotFound error.
 	mock.EXPECT().
 		Get(gomock.Any(), client.ObjectKey{Name: buildInternalConfigMapName(name), Namespace: getInstallNamespace()}, gomock.Not(gomock.Nil())).
@@ -2060,6 +2107,7 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 			verrazzano.TypeMeta = verrazzanoToUse.TypeMeta
 			verrazzano.ObjectMeta = verrazzanoToUse.ObjectMeta
 			verrazzano.Spec.Components.DNS = verrazzanoToUse.Spec.Components.DNS
+			verrazzano.Status = verrazzanoToUse.Status
 			return nil
 		})
 }

@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -48,6 +48,15 @@ type helmComponent struct {
 
 	// resolveNamespaceFunc is an optional function to process the namespace name
 	resolveNamespaceFunc resolveNamespaceSig
+
+	//supportsInstall Indicates whether or not the component supports install via the operator
+	supportsOperatorInstall bool
+
+	//waitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
+	waitForInstall bool
+
+	// imagePullSecretKeyname is the Helm value key for the image pull secret for a chart
+	imagePullSecretKeyname string
 }
 
 // Verify that helmComponent implements Component
@@ -63,7 +72,7 @@ type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespa
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overrideFile string, overrides string, existingValuesFile string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
@@ -76,19 +85,58 @@ func (h helmComponent) Name() string {
 	return h.releaseName
 }
 
+// IsOperatorInstallSupported Returns true if the component supports direct install via the operator
+func (h helmComponent) IsOperatorInstallSupported() bool {
+	return h.supportsOperatorInstall
+}
+
+func (h helmComponent) IsInstalled() bool {
+	installed, _ := helm.IsReleaseInstalled(h.releaseName, h.chartNamespace)
+	return installed
+}
+
+func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+
+	// Resolve the namespace
+	resolvedNamespace := h.resolveNamespace(namespace)
+
+	failed, err := helm.IsReleaseFailed(h.releaseName, resolvedNamespace)
+	if err != nil {
+		return err
+	}
+	if failed {
+		// Chart install failed, reset the chart to start over
+		// NOTE: we'll likely have to put in some more logic akin to what we do for the scripts, see
+		//       reset_chart() in the common.sh script.  Recovering chart state can be a bit difficult, we
+		//       may need to draw on both the 'ls' and 'status' output for that.
+		helm.Uninstall(log, h.releaseName, resolvedNamespace, h.waitForInstall, dryRun)
+	}
+
+	// check for global image pull secret
+	var kvs []keyValue
+	kvs, err = addGlobalImagePullSecretHelmOverride(log, client, resolvedNamespace, kvs, h.imagePullSecretKeyname)
+	if err != nil {
+		return err
+	}
+
+	// vz-specific chart overrides file
+	overridesString, err := h.buildOverridesString(log, client, resolvedNamespace, kvs...)
+	if err != nil {
+		return err
+	}
+
+	// Perform a helm upgrade --install
+	_, _, err = upgradeFunc(log, h.releaseName, resolvedNamespace, h.chartDir, h.waitForInstall, dryRun, overridesString, h.valuesFile)
+	return err
+}
+
 // Upgrade is done by using the helm chart upgrade command.  This command will apply the latest chart
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install. Along with the override files in helm_config, we need to generate image overrides using the
 // BOM json file.  Each component also has the ability to add additional override parameters.
-func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string) error {
+func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
 	// Resolve the namespace
-	namespace := ns
-	if h.resolveNamespaceFunc != nil {
-		namespace = h.resolveNamespaceFunc(namespace)
-	}
-	if h.ignoreNamespaceOverride {
-		namespace = h.chartNamespace
-	}
+	namespace := h.resolveNamespace(ns)
 
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(h.releaseName, namespace)
@@ -109,35 +157,9 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 		}
 	}
 
-	// Optionally create a second override file.  This will contain both image overrides and any additional
-	// overrides required by a component.
-	// Get image overrides unless opt out
-	var kvs []keyValue
-	if !h.ignoreImageOverrides {
-		kvs, err = getImageOverrides(h.releaseName)
-		if err != nil {
-			return err
-		}
-	}
-	// Append any additional overrides for the component (see Keycloak.go for example)
-	if h.appendOverridesFunc != nil {
-		kvs, err = h.appendOverridesFunc(log, h.releaseName, namespace, h.chartDir, kvs)
-		if err != nil {
-			return err
-		}
-	}
-
-	// If there are overrides the create a comma separated string
-	var overrides string
-	if len(kvs) > 0 {
-		bldr := strings.Builder{}
-		for i, kv := range kvs {
-			if i > 0 {
-				bldr.WriteString(",")
-			}
-			bldr.WriteString(fmt.Sprintf("%s=%s", kv.key, kv.value))
-		}
-		overrides = bldr.String()
+	overridesString, err := h.buildOverridesString(log, client, namespace)
+	if err != nil {
+		return err
 	}
 
 	stdout, err := helm.GetValues(log, h.releaseName, namespace)
@@ -167,9 +189,66 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 
 	log.Infof("Created values file: %s", tmpFile.Name())
 
-	// Do the upgrade
-	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, h.valuesFile, overrides, tmpFile.Name())
+	// Perform a helm upgrade --install
+	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, true, dryRun, overridesString, h.valuesFile, tmpFile.Name())
 	return err
+}
+
+func (h helmComponent) buildOverridesString(log *zap.SugaredLogger, client clipkg.Client, namespace string, additionalValues ...keyValue) (string, error) {
+	// Optionally create a second override file.  This will contain both image overridesString and any additional
+	// overridesString required by a component.
+	// Get image overridesString unless opt out
+	var kvs []keyValue
+	var err error
+	if !h.ignoreImageOverrides {
+		kvs, err = getImageOverrides(h.releaseName)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// Append any additional overridesString for the component (see Keycloak.go for example)
+	if h.appendOverridesFunc != nil {
+		overrideValues, err := h.appendOverridesFunc(log, h.releaseName, namespace, h.chartDir, []keyValue{})
+		if err != nil {
+			return "", err
+		}
+		kvs = append(kvs, overrideValues...)
+	}
+
+	// Append any special overrides passed in
+	if len(additionalValues) > 0 {
+		kvs = append(kvs, additionalValues...)
+	}
+
+	// If there are overridesString the create a comma separated string
+	var overridesString string
+	if len(kvs) > 0 {
+		bldr := strings.Builder{}
+		for i, kv := range kvs {
+			if i > 0 {
+				bldr.WriteString(",")
+			}
+			bldr.WriteString(fmt.Sprintf("%s=%s", kv.key, kv.value))
+		}
+		overridesString = bldr.String()
+	}
+	return overridesString, nil
+}
+
+// resolveNamespace Resolve/normalize the namespace for a Helm-based component
+//
+// The need for this stems from an issue with the Verrazzano component and the fact
+// that component charts underneath VZ component need to have the ns overridden
+func (h helmComponent) resolveNamespace(ns string) string {
+	namespace := ns
+	if h.resolveNamespaceFunc != nil {
+		namespace = h.resolveNamespaceFunc(namespace)
+	}
+	if h.ignoreNamespaceOverride {
+		namespace = h.chartNamespace
+	}
+	return namespace
 }
 
 // Get the image overrides from the BOM
