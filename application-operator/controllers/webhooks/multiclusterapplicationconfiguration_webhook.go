@@ -10,9 +10,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	k8sadmission "k8s.io/api/admission/v1beta1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -62,43 +59,61 @@ func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Conte
 // Validate that the namespace of the given multiclusterapplicationconfiguration resource is part
 // of a verrazzanoproject
 func validateNamespaceInProject(c client.Client, namespace string) error {
-	vzProjects := unstructured.UnstructuredList{}
-	vzProjects.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "clusters.verrazzano.io",
-		Version: "v1alpha1",
-		Kind:    "VerrazzanoProjectList",
-	})
-
-	// Get a list of verrazzanoproject resources
+	vzProjects := v1alpha1.VerrazzanoProjectList{}
 	err := c.List(context.TODO(), &vzProjects)
 	if err != nil {
 		return err
 	}
+
+	/*	vzProjects := unstructured.UnstructuredList{}
+		vzProjects.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   "clusters.verrazzano.io",
+			Version: "v1alpha1",
+			Kind:    "VerrazzanoProjectList",
+		})
+
+		// Get a list of verrazzanoproject resources
+		err = c.List(context.TODO(), &vzProjects)
+		if err != nil {
+			return err
+		}
+	*/
+
 	if len(vzProjects.Items) == 0 {
 		return fmt.Errorf("Namespace %s not specified in any verrazzanoproject resources.  No verrazzanoproject resources found.", namespace)
 	}
 
 	// Check verrazzanoProjects for a matching namespace
 	for _, proj := range vzProjects.Items {
-		namespaces, _, err := unstructured.NestedSlice(proj.Object, "spec", "template", "namespaces")
-		if err != nil {
-			return err
-		}
-		for _, ns := range namespaces {
-			u, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&ns)
-			if err != nil {
-				return err
-			}
-			name, _, err := unstructured.NestedString(u, "metadata", "name")
-			if err != nil {
-				return err
-			}
-			if name == namespace {
+		for _, ns := range proj.Spec.Template.Namespaces {
+			if ns.Metadata.Name == namespace {
 				return nil
 			}
 		}
 	}
 
+	/*
+		// Check verrazzanoProjects for a matching namespace
+		for _, proj := range vzProjects.Items {
+			namespaces, _, err := unstructured.NestedSlice(proj.Object, "spec", "template", "namespaces")
+			if err != nil {
+				return err
+			}
+			for _, ns := range namespaces {
+				u, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&ns)
+				if err != nil {
+					return err
+				}
+				name, _, err := unstructured.NestedString(u, "metadata", "name")
+				if err != nil {
+					return err
+				}
+				if name == namespace {
+					return nil
+				}
+			}
+		}
+	*/
 	// No matching namespace found so return error
 	return fmt.Errorf("Namespace %s not specified in any verrazzanoproject resources", namespace)
 }
