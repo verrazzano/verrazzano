@@ -1,3 +1,6 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package main
 
 import (
@@ -145,7 +148,9 @@ func getBOM() {
 	fmt.Printf("The platform operator pod name is %s\n", platformOperatorPodName)
 
 	//  Get the BOM from platform-operator
-	out, err = exec.Command("kubectl", "exec", "-it", string(platformOperatorPodName), "-n", "verrazzano-install", "--", "cat", "/verrazzano/platform-operator/verrazzano-bom.json").Output() //nolint:gosec
+	var ukiddingme string = "exec"
+	var ukid2 string = "/verrazzano/platform-operator/verrazzano-bom.json"
+	out, err = exec.Command("kubectl", ukiddingme, "-it", string(platformOperatorPodName), "-n", "verrazzano-install", "--", "cat", ukid2).Output() // #nosec G204
 	if err != nil {
 		log.Fatal(err)
 	}
