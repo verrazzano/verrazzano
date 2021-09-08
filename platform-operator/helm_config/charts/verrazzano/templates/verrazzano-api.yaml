@@ -124,7 +124,7 @@ spec:
     - name: auth-proxy
       port: 9200
       protocol: TCP
-      targetPort: 9200
+      targetPort: {{ .Values.api.port }}
   selector:
     app: {{ .Values.api.name }}
 ---
