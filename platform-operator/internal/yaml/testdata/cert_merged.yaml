@@ -1,0 +1,9 @@
+kind: Verrazzano
+spec:
+  components:
+    certManager:
+      certificate:
+        acme:
+          provider: letsEncrypt
+          environment: production
+          emailAddress: a.b@domain.com

@@ -1,0 +1,13 @@
+kind: Verrazzano
+spec:
+  components:
+    console:
+      enabled: false
+    elasticSearch:
+      enabled: false
+    grafana:
+      enabled: false
+    kibana:
+      enabled: false
+    keycloak:
+      enabled: false

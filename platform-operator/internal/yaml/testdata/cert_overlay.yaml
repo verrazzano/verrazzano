@@ -1,0 +1,8 @@
+kind: Verrazzano
+spec:
+  components:
+    certManager:
+      certificate:
+        acme:
+          environment: production
+          emailAddress: a.b@domain.com
