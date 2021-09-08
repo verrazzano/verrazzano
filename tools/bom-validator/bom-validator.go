@@ -139,13 +139,13 @@ func getBOM() {
 		log.Fatal(err)
 	}
 
-	var platform_operator_pod_name string
-	platform_operator_pod_name = string(out)
-	platform_operator_pod_name = strings.TrimSuffix(platform_operator_pod_name, "\n")
-	fmt.Printf("The platform operator pod name is %s\n", platform_operator_pod_name)
+	var platformOperatorPodName string
+	platformOperatorPodName = string(out)
+	platformOperatorPodName = strings.TrimSuffix(platformOperatorPodName, "\n")
+	fmt.Printf("The platform operator pod name is %s\n", platformOperatorPodName)
 
 	//  Get the BOM from platform-operator
-	out, err = exec.Command("kubectl", "exec", "-it", string(platform_operator_pod_name), "-n", "verrazzano-install", "--", "cat", "/verrazzano/platform-operator/verrazzano-bom.json").Output()
+	out, err = exec.Command("kubectl", "exec", "-it", string(platformOperatorPodName), "-n", "verrazzano-install", "--", "cat", "/verrazzano/platform-operator/verrazzano-bom.json").Output() //nolint:gosec
 	if err != nil {
 		log.Fatal(err)
 	}
