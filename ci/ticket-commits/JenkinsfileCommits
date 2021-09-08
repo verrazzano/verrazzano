@@ -66,21 +66,19 @@ pipeline {
             steps {
                 script {
                     def tmpfile=sh(returnStdout: true, script: "mktemp").trim()
-                    def branchOrigin=sh(returnStdout: true, script: "/bin/bash -c 'git log --pretty=format:%H,%d | grep \"(origin\" | head -1 | cut -f 1 -d,'")
+                    def branchOrigin=sh(returnStdout: true, script: "/bin/bash -c 'git log --pretty=format:%H,%d | grep \"(origin\" | head -1 | cut -f 1 -d,'").trim()
 
                     // get the commits from the change set
                     def commitList = getCommitList()
 
                     sh """
-                        git config --list
-                        git log -10 --decorate=short
                         # if the commit hash is specified in the build params, get that commit and all commits after it
                         if [ -n "${params.GIT_COMMIT_TO_USE}" ]; then
-                            git log --pretty=format:%H ${params.GIT_COMMIT_TO_USE}^.. -- > ${tmpfile}
+                            git log --pretty=format:%H ${params.GIT_COMMIT_TO_USE}^.. > ${tmpfile}
                         else
                             # there are no changeSets on the first build of a branch, so if the commit list string is empty, fall back to using git log
                             if [ -z "${commitList}" ]; then
-                                git log --pretty=format:%H ${branchOrigin}.. -- > ${tmpfile}
+                                git log --pretty=format:%H ${branchOrigin}.. > ${tmpfile}
                             else
                                 printf "${commitList}" > ${tmpfile}
                             fi
