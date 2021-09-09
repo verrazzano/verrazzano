@@ -190,7 +190,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
-// WHEN a VerrazzanoManagedCluster resource has been applied
+// WHEN a VerrazzanoManagedCluster resource has been applied with no CA Cert
 // THEN ensure all the objects are created
 func TestCreateVMCNoCACert(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
