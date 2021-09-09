@@ -1,5 +1,8 @@
 package istio
 
-func Upgrade() error {
+import "go.uber.org/zap"
+
+func Upgrade(log *zap.SugaredLogger) error {
+	log.Info("-------Reached istio upgrade function!!!!----------------")
 	return nil
 }

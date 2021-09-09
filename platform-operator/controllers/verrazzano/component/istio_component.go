@@ -17,7 +17,7 @@ type IstioComponent struct {
 // Verify that HelmComponent implements Component
 var _ Component = HelmComponent{}
 
-type istioUpgradeFuncSig func() error
+type istioUpgradeFuncSig func(log *zap.SugaredLogger) error
 
 // helmUpgradeFunc is the default upgrade function
 var istioUpgradeFunc istioUpgradeFuncSig = istio.Upgrade
@@ -40,5 +40,6 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, client clipkg.Client, na
 }
 
 func (i IstioComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
-	return nil
+	err := istioUpgradeFunc(log)
+	return err
 }
