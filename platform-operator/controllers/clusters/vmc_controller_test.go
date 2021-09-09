@@ -95,7 +95,7 @@ func TestCreateVMC(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -150,7 +150,7 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	expectVmcGetAndUpdate(t, mock, testManagedCluster)
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, true)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
@@ -277,7 +277,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
-	expectSyncRegistration(t, mock, testManagedCluster)
+	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
