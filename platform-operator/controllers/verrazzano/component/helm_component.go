@@ -19,9 +19,6 @@ const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
 
 // helmComponent struct needed to implement a component
 type helmComponent struct {
-
-	// componentType is the component type
-	componentType string
 	// releaseName is the helm chart release name
 	releaseName string
 
