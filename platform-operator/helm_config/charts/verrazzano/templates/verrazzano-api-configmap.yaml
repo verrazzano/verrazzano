@@ -905,7 +905,7 @@ data:
         #
         # client_max_body_size 65m;
         # Posts from Fluentd can require more than the default 1m max body size
-        client_max_body_size 5m;
+        client_max_body_size 32m;
 
         #keepalive_timeout  0;
         keepalive_timeout  65;
