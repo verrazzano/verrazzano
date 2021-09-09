@@ -80,7 +80,7 @@ func validateNamespaceInProject(c client.Client, namespace string) error {
 	*/
 
 	if len(vzProjects.Items) == 0 {
-		return fmt.Errorf("namespace %s not specified in any verrazzanoproject resources.  No verrazzanoproject resources found.", namespace)
+		return fmt.Errorf("namespace %s not specified in any verrazzanoproject resources - no verrazzanoproject resources found", namespace)
 	}
 
 	// Check verrazzanoProjects for a matching namespace
