@@ -68,8 +68,6 @@ func main() {
 	if !isBOMValid {
 		os.Exit(1)
 	}
-	// Success
-	os.Exit(0)
 }
 
 // Validate that KubeConfig is valued. This will point to the cluster being validated
