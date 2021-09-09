@@ -143,7 +143,7 @@ func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 		// NOTE: we'll likely have to put in some more logic akin to what we do for the scripts, see
 		//       reset_chart() in the common.sh script.  Recovering chart state can be a bit difficult, we
 		//       may need to draw on both the 'ls' and 'status' output for that.
-		helm.Uninstall(log, h.releaseName, resolvedNamespace, h.waitForInstall, dryRun)
+		helm.Uninstall(log, h.releaseName, resolvedNamespace, dryRun)
 	}
 
 	var kvs []keyValue
