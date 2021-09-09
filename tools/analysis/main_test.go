@@ -241,3 +241,25 @@ func TestPendingPods(t *testing.T) {
 	}
 	assert.True(t, problemsFound > 0)
 }
+
+// TestUnknownInstall Tests that analysis of a cluster dump where install failed without more info handled
+// GIVEN a call to analyze a cluster-dump
+// WHEN the cluster-dump shows pods with problems that are not known issues
+// THEN a report is generated with problem pod issues identified
+func TestUnknownInstall(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/install-unknown")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.InstallFailure {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}

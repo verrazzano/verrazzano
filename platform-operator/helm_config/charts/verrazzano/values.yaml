@@ -68,6 +68,7 @@ monitoringOperator:
 
 logging:
   name: fluentd
+  elasticsearchURL: http://verrazzano-authproxy-elasticsearch:9200
   # NOTE: The fluentd-kubernetes-daemonset image now comes from the bill of materials file (verrazzano-bom.json).
 
 fluentd:
