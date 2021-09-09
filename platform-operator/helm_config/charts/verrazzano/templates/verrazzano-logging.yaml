@@ -29,8 +29,12 @@ metadata:
   labels:
     app: {{ .Values.logging.name }}
 data:
+  {{- if .Values.logging.elasticsearchURL }}
   es-url: {{ .Values.logging.elasticsearchURL }}
+  {{- end }}
+  {{- if .Values.logging.elasticsearchSecret }}
   es-secret: {{ .Values.logging.elasticsearchSecret }}
+  {{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap
