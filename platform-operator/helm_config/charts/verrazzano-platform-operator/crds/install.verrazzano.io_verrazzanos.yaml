@@ -171,15 +171,6 @@ spec:
                   fluentd:
                     description: Fluentd configuration
                     properties:
-                      elasticsearchSecret:
-                        description: Specifies the secret containing the credentials for
-                          connecting to the Elasticsearch.  Default is "verrazzano".
-                        type: string
-                      elasticsearchURL:
-                        description: Specifies the Elasticsearch URL.  It can be a comma
-                          seprated list with multiple nodes.  Default is
-                          "http://vmi-system-es-ingest-oidc:8775".
-                        type: string
                       enabled:
                         description: Specifies whether Fluentd is deployed or not
                           on a cluster.  Default is true.
