@@ -26,23 +26,29 @@ type ChartStatusFnType func(releaseName string, namespace string) (string, error
 
 var chartStatusFn ChartStatusFnType = getChartStatus
 
+// SetChartStatusFunction Override the chart status function for unit testing
 func SetChartStatusFunction(f ChartStatusFnType) {
 	chartStatusFn = f
 }
+
+// SetDefaultChartStatusFunction Reset the chart status function
 func SetDefaultChartStatusFunction() {
 	chartStatusFn = getChartStatus
 }
 
 // Package-level var and functions to allow overriding getReleaseState for unit test purposes
-type ReleaseStateFnType func(releaseName string, namespace string) (string, error)
+type releaseStateFnType func(releaseName string, namespace string) (string, error)
 
-var ReleaseStateFn ReleaseStateFnType = getReleaseState
+var releaseStateFn releaseStateFnType = getReleaseState
 
-func SetChartStateFunction(f ReleaseStateFnType) {
-	ReleaseStateFn = f
+// SetChartStateFunction Override the chart state function for unit testing
+func SetChartStateFunction(f releaseStateFnType) {
+	releaseStateFn = f
 }
+
+// SetDefaultChartStateFunction Reset the chart state function
 func SetDefaultChartStateFunction() {
-	ReleaseStateFn = getChartStatus
+	releaseStateFn = getChartStatus
 }
 
 // GetValues will run 'helm get values' command and return the output from the command.
@@ -157,7 +163,7 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 // IsReleaseFailed Returns true if the chart release state is marked 'failed'
 func IsReleaseFailed(releaseName string, namespace string) (bool, error) {
 	log := zap.S()
-	releaseStatus, err := getReleaseState(releaseName, namespace)
+	releaseStatus, err := releaseStateFn(releaseName, namespace)
 	if err != nil {
 		log.Errorf("Getting status for chart %s/%s failed with stderr: %v\n", namespace, releaseName, err)
 		return false, err

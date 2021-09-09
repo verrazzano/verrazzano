@@ -146,14 +146,15 @@ func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 		helm.Uninstall(log, h.releaseName, resolvedNamespace, h.waitForInstall, dryRun)
 	}
 
+	var kvs []keyValue
 	if h.preInstallFunc != nil {
-		_, err := h.preInstallFunc(log, client, h.releaseName, resolvedNamespace, h.chartDir)
+		preInstallValues, err := h.preInstallFunc(log, client, h.releaseName, resolvedNamespace, h.chartDir)
 		if err != nil {
 			return err
 		}
+		kvs = append(kvs, preInstallValues...)
 	}
 	// check for global image pull secret
-	var kvs []keyValue
 	kvs, err = addGlobalImagePullSecretHelmOverride(log, client, resolvedNamespace, kvs, h.imagePullSecretKeyname)
 	if err != nil {
 		return err
