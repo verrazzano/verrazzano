@@ -368,6 +368,10 @@ type FluentdComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
 	ExtraVolumeMounts []VolumeMount `json:"extraVolumeMounts,omitempty"`
+	// +optional
+	ElasticsearchURL string `json:"elasticsearchURL,omitempty"`
+	// +optional
+	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.

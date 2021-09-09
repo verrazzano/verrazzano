@@ -102,6 +102,9 @@ func GetComponents() []Component {
 			chartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
+			supportsOperatorInstall: true,
+			waitForInstall:          true,
+			imagePullSecretKeyname:  "imagePullSecrets[0].name",
 			valuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
 		},
 		HelmComponent{

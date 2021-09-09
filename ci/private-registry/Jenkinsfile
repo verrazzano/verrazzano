@@ -517,7 +517,7 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
             ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
@@ -538,7 +538,7 @@ def runGinkgo(testSuitePath, String... extraArgs) {
         extraArgs.each { extraGinkgoArgs += it + " " }
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v ${extraGinkgoArgs} --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v ${extraGinkgoArgs} --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
             ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
