@@ -367,9 +367,19 @@ function install_rancher()
         if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
            [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
           EXTRA_RANCHER_ARGUMENTS="--set privateCA=true"
+          echo "Waiting for secret $VERRAZZANO_DEFAULT_SECRET_NAME in namespace $VERRAZZANO_DEFAULT_SECRET_NAMESPACE to be created."
+          retries=0
+          until [ "$retries" -ge 60 ]
+          do
+            kubectl -n $VERRAZZANO_DEFAULT_SECRET_NAMESPACE get secret $VERRAZZANO_DEFAULT_SECRET_NAME -o jsonpath='{.data.ca\.crt}' | base64 --decode > ${TMP_DIR}/cacerts.pem && break
+            retries=$(($retries+1))
+            sleep 1
+          done
+          if [ "$retries" -ge 60 ]; then
+            fail "Failed to get secret $VERRAZZANO_DEFAULT_SECRET_NAME in namespace $VERRAZZANO_DEFAULT_SECRET_NAMESPACE.";
+          fi
           echo "Copy CA certificate which is used by the Rancher Agent to validate the connection to the server."
-          kubectl -n $VERRAZZANO_DEFAULT_SECRET_NAMESPACE get secret $VERRAZZANO_DEFAULT_SECRET_NAME -o jsonpath='{.data.ca\.crt}' | base64 --decode > ${TMP_DIR}/cacerts.pem
-          kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem=${TMP_DIR}/cacerts.pem
+          kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem=${TMP_DIR}/cacerts.pem || return $?
         fi
         RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/cluster-issuer\":\"verrazzano-cluster-issuer\"}}}"
       else
