@@ -9,7 +9,7 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 #
 
 .PHONY: check
-check: install-linter
+check: install-linter word-linter
 	$(LINTER) --color never run
 
 # find or download golangci-lint
@@ -21,6 +21,15 @@ ifeq (, $(shell command -v golangci-lint))
 else
 	$(eval LINTER=$(shell command -v golangci-lint))
 endif
+
+# search for internal words that should not be in the repo
+# check fails if res from http req is not successful (200)
+# the actual command being executed in bash is "curl -sL https://bit.ly/3iIUcdL | grep -v '^\s*\(#\|$\)' | ..."
+# additional "$" is to escape literal value in makefile
+.PHONY: word-linter
+word-linter:
+	curl -sL -o /dev/null -w "%{http_code}" https://bit.ly/3iIUcdL | grep -q '200'
+	! curl -sL https://bit.ly/3iIUcdL | grep -v '^\s*\(#\|$$\)' | grep -f /dev/stdin -r *
 
 .PHONY: coverage
 coverage:

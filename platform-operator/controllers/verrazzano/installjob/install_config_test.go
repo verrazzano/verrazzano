@@ -1464,3 +1464,38 @@ func TestOKEInstallWithFluentdExtraVolumeMounts(t *testing.T) {
 		config.Fluentd.FluentdInstallArgs[8].Name, "Expected name did not match")
 	assert.Equalf(t, "false", config.Fluentd.FluentdInstallArgs[8].Value, "Expected ReadOnly did not match")
 }
+
+// TestFluentdInstallDefaults tests the creation of fluentd install configuration
+// GIVEN a verrazzano.install.verrazzano.io custom resource
+//  WHEN I call GetInstallConfig
+//  THEN the fluentd install configuration is created and verified
+func TestFluentdInstallDefaults(t *testing.T) {
+	vz := installv1alpha1.Verrazzano{}
+	config, err := GetInstallConfig(&vz)
+	assert.NoError(t, err)
+	assert.Equalf(t, "true", config.Rancher.Enabled, "Expected Fluentd enabled did not match")
+	assert.Equalf(t, defaultElasticsearchSecret, config.Fluentd.ElasticsearchSecret, "Expected ElasticsearchSecret did not match")
+	assert.Equalf(t, defaultElasticsearchURL, config.Fluentd.ElasticsearchURL, "Expected ElasticsearchURL did not match")
+}
+
+// TestFluentdInstallCustom tests the creation of fluentd install configuration
+// GIVEN a verrazzano.install.verrazzano.io custom resource
+//  WHEN I call GetInstallConfig
+//  THEN the fluentd install configuration is created and verified
+func TestFluentdInstallCustom(t *testing.T) {
+	vz := installv1alpha1.Verrazzano{
+		Spec: installv1alpha1.VerrazzanoSpec{
+			Components: installv1alpha1.ComponentSpec{
+				Fluentd: &installv1alpha1.FluentdComponent{
+					ElasticsearchSecret: "es-secret",
+					ElasticsearchURL:    "es-url",
+				},
+			},
+		},
+	}
+	config, err := GetInstallConfig(&vz)
+	assert.NoError(t, err)
+	assert.Equalf(t, "true", config.Rancher.Enabled, "Expected Fluentd enabled did not match")
+	assert.Equalf(t, "es-secret", config.Fluentd.ElasticsearchSecret, "Expected ElasticsearchSecret did not match")
+	assert.Equalf(t, "es-url", config.Fluentd.ElasticsearchURL, "Expected ElasticsearchURL did not match")
+}

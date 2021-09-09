@@ -201,7 +201,10 @@ data:
   configure_keycloak_realms $VZ_SYS_REALM $VZ_ADMIN_GROUP $VZ_MONITOR_GROUP $VZ_USER_GROUP $VZ_SYSTEM_GROUP
 
   # Wait for TLS cert from Cert Manager to go into a ready state
-  kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
+  if ! kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready ; then
+    MESSAGE=$(kubectl get cert ${ENV_NAME}-secret -n keycloak -o jsonpath='{.status.conditions[-1].message}' || echo "Could not retrieve certificate status message")
+    error "Error waiting for cert ${ENV_NAME}-secret to be ready: ${MESSAGE}"
+  fi
 }
 
 function configure_keycloak_realms() {
@@ -501,207 +504,6 @@ END
 END
     [ \$? -eq 0 ] || fail "Failed to create client"
 
-    log "Creating webui client"
-    kcadm.sh create clients -r $_VZ_REALM -f - <<\END
-{
-      "clientId" : "webui",
-      "enabled": true,
-      "surrogateAuthRequired": false,
-      "alwaysDisplayInConsole": false,
-      "clientAuthenticatorType": "client-secret",
-      "redirectUris": [
-        "https://verrazzano.$ENV_NAME.$DNS_SUFFIX/*",
-        "https://verrazzano.$ENV_NAME.$DNS_SUFFIX/verrazzano/authcallback",
-        "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
-        "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
-        "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
-        "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
-        "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
-        "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
-        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
-        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback"
-      ],
-      "webOrigins": [
-        "https://verrazzano.$ENV_NAME.$DNS_SUFFIX",
-        "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX",
-        "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX",
-        "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX",
-        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX"
-      ],
-      "notBefore": 0,
-      "bearerOnly": false,
-      "consentRequired": false,
-      "standardFlowEnabled": true,
-      "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false,
-      "publicClient": true,
-      "frontchannelLogout": false,
-      "protocol": "openid-connect",
-      "attributes": {
-        "saml.assertion.signature": "false",
-        "saml.multivalued.roles": "false",
-        "saml.force.post.binding": "false",
-        "saml.encrypt": "false",
-        "saml.server.signature": "false",
-        "saml.server.signature.keyinfo.ext": "false",
-        "exclude.session.state.from.auth.response": "false",
-        "saml_force_name_id_format": "false",
-        "saml.client.signature": "false",
-        "tls.client.certificate.bound.access.tokens": "false",
-        "saml.authnstatement": "false",
-        "display.on.consent.screen": "false",
-        "pkce.code.challenge.method": "S256",
-        "saml.onetimeuse.condition": "false"
-      },
-      "authenticationFlowBindingOverrides": {},
-      "fullScopeAllowed": true,
-      "nodeReRegistrationTimeout": -1,
-      "protocolMappers": [
-          {
-            "name": "groupmember",
-            "protocol": "openid-connect",
-            "protocolMapper": "oidc-group-membership-mapper",
-            "consentRequired": false,
-            "config": {
-              "full.path": "false",
-              "id.token.claim": "true",
-              "access.token.claim": "true",
-              "claim.name": "groups",
-              "userinfo.token.claim": "true"
-            }
-          },
-          {
-            "name": "realm roles",
-            "protocol": "openid-connect",
-            "protocolMapper": "oidc-usermodel-realm-role-mapper",
-            "consentRequired": false,
-            "config": {
-              "multivalued": "true",
-              "user.attribute": "foo",
-              "id.token.claim": "true",
-              "access.token.claim": "true",
-              "claim.name": "realm_access.roles",
-              "jsonType.label": "String"
-            }
-          }
-        ],
-      "defaultClientScopes": [
-        "web-origins",
-        "role_list",
-        "roles",
-        "profile",
-        "email"
-      ],
-      "optionalClientScopes": [
-        "address",
-        "phone",
-        "offline_access",
-        "microprofile-jwt"
-      ]
-}
-END
-    [ \$? -eq 0 ] || fail "Failed to create client"
-
-    log "Creating verrazzano-oauth-client client"
-    kcadm.sh create clients -r $_VZ_REALM -f - <<\END
-{
-      "clientId" : "verrazzano-oauth-client",
-      "enabled" : true,
-      "rootUrl" : "",
-      "adminUrl" : "",
-      "surrogateAuthRequired" : false,
-      "directAccessGrantsEnabled" : "true",
-      "clientAuthenticatorType" : "client-secret",
-      "secret" : "de05ccdc-67df-47f3-81f6-37e61d195aba",
-      "redirectUris" : [ ],
-      "webOrigins" : [ "+" ],
-      "notBefore" : 0,
-      "bearerOnly" : false,
-      "consentRequired" : false,
-      "standardFlowEnabled" : false,
-      "implicitFlowEnabled" : false,
-      "directAccessGrantsEnabled" : true,
-      "serviceAccountsEnabled" : false,
-      "publicClient" : true,
-      "frontchannelLogout" : false,
-      "protocol" : "openid-connect",
-      "attributes" : { },
-      "authenticationFlowBindingOverrides" : { },
-      "fullScopeAllowed" : true,
-      "nodeReRegistrationTimeout" : -1,
-      "protocolMappers" : [ {
-        "name" : "groups",
-        "protocol" : "openid-connect",
-        "protocolMapper" : "oidc-group-membership-mapper",
-        "consentRequired" : false,
-        "config" : {
-          "multivalued" : "true",
-          "userinfo.token.claim" : "false",
-          "id.token.claim" : "true",
-          "access.token.claim" : "true",
-          "claim.name" : "groups",
-          "jsonType.label" : "String"
-        }
-      }, {
-        "name": "realm roles",
-        "protocol": "openid-connect",
-        "protocolMapper": "oidc-usermodel-realm-role-mapper",
-        "consentRequired": false,
-        "config": {
-          "multivalued": "true",
-          "user.attribute": "foo",
-          "id.token.claim": "true",
-          "access.token.claim": "true",
-          "claim.name": "realm_access.roles",
-          "jsonType.label": "String"
-        }
-      }, {
-        "name" : "Client ID",
-        "protocol" : "openid-connect",
-        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
-        "consentRequired" : false,
-        "config" : {
-          "user.session.note" : "clientId",
-          "userinfo.token.claim" : "true",
-          "id.token.claim" : "true",
-          "access.token.claim" : "true",
-          "claim.name" : "clientId",
-          "jsonType.label" : "String"
-        }
-      }, {
-        "name" : "Client IP Address",
-        "protocol" : "openid-connect",
-        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
-        "consentRequired" : false,
-        "config" : {
-          "user.session.note" : "clientAddress",
-          "userinfo.token.claim" : "true",
-          "id.token.claim" : "true",
-          "access.token.claim" : "true",
-          "claim.name" : "clientAddress",
-          "jsonType.label" : "String"
-        }
-      }, {
-        "name" : "Client Host",
-        "protocol" : "openid-connect",
-        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
-        "consentRequired" : false,
-        "config" : {
-          "user.session.note" : "clientHost",
-          "userinfo.token.claim" : "true",
-          "id.token.claim" : "true",
-          "access.token.claim" : "true",
-          "claim.name" : "clientHost",
-          "jsonType.label" : "String"
-        }
-      } ],
-      "defaultClientScopes" : [ "web-origins", "role_list", "roles", "profile", "email" ],
-      "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
-}
-END
-    [ \$? -eq 0 ] || fail "Failed to create client"
-
     # default password policy
     POLICY="length(8) and notUsername"
 
@@ -795,8 +597,10 @@ if [[ "$(is_vz_console_enabled)" == "true" ]]; then
   consoleArr+=("Verrazzano Console - https://verrazzano.${ENV_NAME}.${DNS_SUFFIX}")
 fi
 
+display_warning_for_secret="false"
 console_count=${#consoleArr[@]}
 if [ $console_count -gt 0 ];then
+  display_warning_for_secret="true"
   consoleout
   if [ $console_count -eq 1 ];then
     consoleout "Verrazzano provides the following user interface."
@@ -823,11 +627,20 @@ if [ $(is_rancher_enabled) == "true" ]; then
   consoleout "User: admin"
   consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
   consoleout
+  display_warning_for_secret="true"
 fi
 if [ $(is_keycloak_enabled) == "true" ]; then
   consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
   consoleout "User: keycloakadmin"
   consoleout "Password: kubectl get secret --namespace keycloak ${KCADMIN_SECRET} -o jsonpath={.data.password} | base64 --decode; echo"
+  display_warning_for_secret="true"
+fi
+if [ $display_warning_for_secret == "true" ]; then
+  consoleout
+  consoleout "WARNING: Editing the secrets will not change the passwords for those accounts."
+  consoleout "To change a password, use the appropriate console (Keycloak or Rancher), then update the corresponding secret with the new password."
+  consoleout "If you change the password, then you must update the secret."
+  consoleout
 fi
 if [ $(get_application_ingress_ip) == "null" ]; then
   consoleout
@@ -838,7 +651,7 @@ fi
 if [ $(is_oci_dns) == "true" ]; then
   secret_name=$(get_config_value ".dns.oci.ociConfigSecret")
   consoleout
-  consoleout "NOTE: The secret \"${secret_name}\" created in the \"default\" namespace prior to installation is only used during the actual installation."
+  consoleout "NOTE: The secret \"${secret_name}\" created in the \"verrazzano-install\" namespace prior to installation is only used during the actual installation."
   consoleout "You may delete it now.  DO NOT delete the secret of the same name in the cert-manager namespace."
   consoleout
 fi

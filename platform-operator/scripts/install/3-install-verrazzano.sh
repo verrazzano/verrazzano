@@ -60,7 +60,7 @@ function check_ingress_ports() {
         log "Port $PORT is accessible on ingress address $INGRESS_IP.  Note that '404 page not found' is an expected response."
       else
         log "ERROR: Port $PORT is NOT accessible on ingress address $INGRESS_IP!  Check that security lists include an ingress rule for the node port $NODEPORT."
-        log "See install README for details(https://github.com/verrazzano/verrazzano/operator/blob/master/install/README.md#1-oke-missing-security-list-ingress-rules)."
+        log "For more detail please see https://verrazzano.io/docs/troubleshooting/troubleshooting/."
         exitvalue=1
       fi
     done
@@ -123,6 +123,7 @@ function install_verrazzano()
         --set api.proxy.OidcProviderHost=keycloak.${ENV_NAME}.${DNS_SUFFIX} \
         --set api.proxy.OidcProviderHostInCluster=keycloak-http.keycloak.svc.cluster.local \
         $(get_fluentd_extra_volume_mounts) \
+        $(get_fluentd_elasticsearch_options) \
         ${HELM_IMAGE_ARGS} \
         ${PROFILE_VALUES_OVERRIDE} \
         ${EXTRA_V8O_ARGUMENTS} || return $?
@@ -130,7 +131,7 @@ function install_verrazzano()
 
   if [ $(is_vo_vmo_enabled) == "true" ]; then
     log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
-    kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
+    kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n ${VERRAZZANO_NS}
 
     log "Verifying that needed secrets are created"
     retries=0
@@ -276,6 +277,18 @@ kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_N
 log "Adding label for enabling istio sidecar injection by default to ${VERRAZZANO_NS} namespace"
 kubectl label namespace ${VERRAZZANO_NS} "istio-injection=enabled" --overwrite
 
+if [ ! -z "$(get_config_value '.fluentd')" ]; then
+  ES_SECRET_NAME=$(get_config_value '.fluentd.elasticsearchSecret')
+  if [ ${ES_SECRET_NAME} != "verrazzano" ]; then
+    log "Copying secret ${ES_SECRET_NAME} from verrazzano-install namespace to ${VERRAZZANO_NS} namespace"
+    if ! kubectl -n ${VERRAZZANO_NS} get secret ${ES_SECRET_NAME} && kubectl -n verrazzano-install get secret ${ES_SECRET_NAME} ; then
+      kubectl -n verrazzano-install get secret ${ES_SECRET_NAME} -o json \
+        | jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp)' \
+        | kubectl -n ${VERRAZZANO_NS} apply -f -
+    fi
+  fi
+fi
+
 if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
 fi
@@ -312,7 +325,7 @@ if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
 fi
 
 action "Installing Verrazzano system components" install_verrazzano || exit 1
-action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
-action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
-action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
-action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1
+platform_operator_install_message "Coherence Kubernetes operator"
+platform_operator_install_message "WebLogic Kubernetes operator"
+platform_operator_install_message "OAM Kubernetes operator"
+platform_operator_install_message "Verrazzano Application Kubernetes operator"

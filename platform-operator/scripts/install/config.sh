@@ -421,6 +421,20 @@ function get_fluentd_extra_volume_mounts {
   fi
 }
 
+function get_fluentd_elasticsearch_options {
+  local helm_args=""
+  if [ ! -z "$(get_config_value '.fluentd')" ]; then
+    if [ ! -z "$(get_config_value '.fluentd.elasticsearchURL')" ]; then
+      helm_args="$helm_args --set logging.elasticsearchURL=$(get_config_value '.fluentd.elasticsearchURL')"
+    fi
+    if [ ! -z "$(get_config_value '.fluentd.elasticsearchSecret')" ]; then
+      helm_args="$helm_args --set logging.elasticsearchSecret=$(get_config_value '.fluentd.elasticsearchSecret')"
+    fi
+  fi
+  echo $helm_args
+  return 0
+}
+
 # Parse the verrazzanoInstallArgs from the config.json and return the value of the configuration value
 function parse_vz_install_args() {
   local install_args=$1

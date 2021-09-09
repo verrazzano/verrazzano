@@ -14,6 +14,7 @@ set -eu
 
 VERRAZZANO_DEFAULT_SECRET_NAMESPACE="cert-manager"
 VERRAZZANO_DEFAULT_SECRET_NAME="verrazzano-ca-certificate-secret"
+VERRAZZANO_INSTALL_NS=verrazzano-install
 
 function install_nginx_ingress_controller()
 {
@@ -92,8 +93,8 @@ function setup_cluster_issuer() {
     local OCI_DNS_ZONE_OCID=$(get_config_value ".dns.oci.dnsZoneOcid")
     local OCI_DNS_ZONE_NAME=$(get_config_value ".dns.oci.dnsZoneName")
 
-    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET ; then
-        fail "The OCI Configuration Secret $OCI_DNS_CONFIG_SECRET does not exist"
+    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n $VERRAZZANO_INSTALL_NS ; then
+        fail "The OCI Configuration Secret $OCI_DNS_CONFIG_SECRET does not exist in the namespace $VERRAZZANO_INSTALL_NS"
     fi
 
     acmeURL="https://acme-v02.api.letsencrypt.org/directory"
@@ -229,11 +230,11 @@ function install_external_dns()
   local externalDNSNamespace=cert-manager
 
   if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n ${externalDNSNamespace} ; then
-    # secret does not exist, so copy the configured oci config secret from default namespace.
-    # Operator has already checked for existence of secret in default namespace
+    # secret does not exist, so copy the configured oci config secret from verrazzano-install namespace.
+    # Operator has already checked for existence of secret in verrazzano-install namespace
     # The DNS zone compartment will get appended to secret generated for cert external dns
     local dns_compartment=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
-    kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
+    kubectl get secret ${OCI_DNS_CONFIG_SECRET} -n ${VERRAZZANO_INSTALL_NS} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
         | sed '/^$/d' > $TMP_DIR/oci.yaml
     echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
     kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n ${externalDNSNamespace}
