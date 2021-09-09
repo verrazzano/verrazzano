@@ -800,7 +800,7 @@ def metricTimerStart(metricName) {
 def getMetricLabels() {
     def buildNumber = String.format("%010d", env.BUILD_NUMBER.toInteger())
     labels = 'build_number=\\"' + "${buildNumber}"+'\\",' +
-             'jenkins_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+             'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
              'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
     return labels
