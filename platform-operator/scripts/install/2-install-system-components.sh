@@ -367,13 +367,12 @@ function install_rancher()
         if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
            [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
           EXTRA_RANCHER_ARGUMENTS="--set privateCA=true"
-          log "Waiting for secret $VERRAZZANO_DEFAULT_SECRET_NAME in namespace $VERRAZZANO_DEFAULT_SECRET_NAMESPACE to be created."
           local retries=0
           local max_retries=60
           until [ "$retries" -ge "$max_retries" ]
           do
-            kubectl -n $VERRAZZANO_DEFAULT_SECRET_NAMESPACE get secret $VERRAZZANO_DEFAULT_SECRET_NAME -o jsonpath='{.data.ca\.crt}'
-            if [ $? -eq 0 ]; then
+            log "Waiting for secret $VERRAZZANO_DEFAULT_SECRET_NAME in namespace $VERRAZZANO_DEFAULT_SECRET_NAMESPACE to be created."
+            if kubectl -n $VERRAZZANO_DEFAULT_SECRET_NAMESPACE get secret $VERRAZZANO_DEFAULT_SECRET_NAME >/dev/null 2>&1 ; then
               kubectl -n $VERRAZZANO_DEFAULT_SECRET_NAMESPACE get secret $VERRAZZANO_DEFAULT_SECRET_NAME -o jsonpath='{.data.ca\.crt}' | base64 --decode > ${TMP_DIR}/cacerts.pem || return $?
               break
             fi
