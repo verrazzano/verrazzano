@@ -1167,8 +1167,9 @@ def metricJobName(stageName) {
 
 // Construct the set of labels/dimensions for the metrics
 def getMetricLabels() {
-    def kube_ver = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION }"
-    labels = 'build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+    def buildNumber = String.format("%010d", env.BUILD_NUMBER.toInteger())
+    labels = 'build_number=\\"' + "${buildNumber}"+'\\",' +
+             'jenkins_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
              'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
              'kubernetes_version=\\"' + kube_ver + '\\",' +
