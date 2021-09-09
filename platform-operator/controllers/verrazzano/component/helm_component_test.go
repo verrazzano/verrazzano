@@ -30,7 +30,7 @@ type helmFakeRunner struct {
 //  WHEN I call Name
 //  THEN the correct verrazzano name is returned
 func TestGetName(t *testing.T) {
-	comp := HelmComponent{
+	comp := helmComponent{
 		releaseName: "release1",
 	}
 
@@ -45,7 +45,7 @@ func TestGetName(t *testing.T) {
 func TestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := HelmComponent{
+	comp := helmComponent{
 		releaseName:             "istiod",
 		chartDir:                "chartDir",
 		chartNamespace:          "chartNS",
@@ -77,7 +77,7 @@ func TestUpgrade(t *testing.T) {
 func TestUpgradeWithEnvOverrides(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := HelmComponent{
+	comp := helmComponent{
 		releaseName:             "istiod",
 		chartDir:                "chartDir",
 		chartNamespace:          "chartNS",

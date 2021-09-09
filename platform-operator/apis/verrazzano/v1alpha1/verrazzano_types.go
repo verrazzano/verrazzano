@@ -324,7 +324,6 @@ type IstioComponent struct {
 	// Arguments for installing Istio
 	// +optional
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty"`
-	UpgradeApps      *bool         `json:"upgradeApps,omitempty"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration

@@ -9,7 +9,7 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type IstioComponent struct {
+type istioComponent struct {
 	//componentName The name of the component
 	componentName string
 
@@ -17,8 +17,8 @@ type IstioComponent struct {
 	supportsOperatorInstall bool
 }
 
-// Verify that HelmComponent implements Component
-var _ Component = HelmComponent{}
+// Verify that istioComponent implements Component
+var _ Component = istioComponent{}
 
 type istioUpgradeFuncSig func(log *zap.SugaredLogger) error
 
@@ -26,23 +26,23 @@ type istioUpgradeFuncSig func(log *zap.SugaredLogger) error
 var istioUpgradeFunc istioUpgradeFuncSig = istio.Upgrade
 
 // Name returns the component name
-func (i IstioComponent) Name() string {
+func (i istioComponent) Name() string {
 	return i.componentName
 }
 
-func (i IstioComponent) IsOperatorInstallSupported() bool {
+func (i istioComponent) IsOperatorInstallSupported() bool {
 	return i.supportsOperatorInstall
 }
 
-func (i IstioComponent) IsInstalled() bool {
+func (i istioComponent) IsInstalled() bool {
 	return false
 }
 
-func (i IstioComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (i istioComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
 	return nil
 }
 
-func (i IstioComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
+func (i istioComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
 	err := istioUpgradeFunc(log)
 	return err
 }

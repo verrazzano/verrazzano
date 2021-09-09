@@ -17,8 +17,8 @@ import (
 
 const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
 
-// HelmComponent struct needed to implement a component
-type HelmComponent struct {
+// helmComponent struct needed to implement a component
+type helmComponent struct {
 
 	// componentType is the component type
 	componentType string
@@ -62,8 +62,8 @@ type HelmComponent struct {
 	imagePullSecretKeyname string
 }
 
-// Verify that HelmComponent implements Component
-var _ Component = HelmComponent{}
+// Verify that helmComponent implements Component
+var _ Component = helmComponent{}
 
 // preUpgradeFuncSig is the signature for the optional preUgrade function
 type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
@@ -84,21 +84,21 @@ var helmUpgradeFunc helmUpgradeFuncSig = helm.Upgrade
 var UpgradePrehooksEnabled = true
 
 // Name returns the component name
-func (h HelmComponent) Name() string {
+func (h helmComponent) Name() string {
 	return h.releaseName
 }
 
 // IsOperatorInstallSupported Returns true if the component supports direct install via the operator
-func (h HelmComponent) IsOperatorInstallSupported() bool {
+func (h helmComponent) IsOperatorInstallSupported() bool {
 	return h.supportsOperatorInstall
 }
 
-func (h HelmComponent) IsInstalled() bool {
+func (h helmComponent) IsInstalled() bool {
 	installed, _ := helm.IsReleaseInstalled(h.releaseName, h.chartNamespace)
 	return installed
 }
 
-func (h HelmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
 
 	// Resolve the namespace
 	resolvedNamespace := h.resolveNamespace(namespace)
@@ -137,7 +137,7 @@ func (h HelmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install. Along with the override files in helm_config, we need to generate image overrides using the
 // BOM json file.  Each component also has the ability to add additional override parameters.
-func (h HelmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
+func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
 	// Resolve the namespace
 	namespace := h.resolveNamespace(ns)
 
@@ -197,7 +197,7 @@ func (h HelmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 	return err
 }
 
-func (h HelmComponent) buildOverridesString(log *zap.SugaredLogger, client clipkg.Client, namespace string, additionalValues ...keyValue) (string, error) {
+func (h helmComponent) buildOverridesString(log *zap.SugaredLogger, client clipkg.Client, namespace string, additionalValues ...keyValue) (string, error) {
 	// Optionally create a second override file.  This will contain both image overridesString and any additional
 	// overridesString required by a component.
 	// Get image overridesString unless opt out
@@ -243,7 +243,7 @@ func (h HelmComponent) buildOverridesString(log *zap.SugaredLogger, client clipk
 //
 // The need for this stems from an issue with the Verrazzano component and the fact
 // that component charts underneath VZ component need to have the ns overridden
-func (h HelmComponent) resolveNamespace(ns string) string {
+func (h helmComponent) resolveNamespace(ns string) string {
 	namespace := ns
 	if h.resolveNamespaceFunc != nil {
 		namespace = h.resolveNamespaceFunc(namespace)
