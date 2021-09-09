@@ -1,0 +1,64 @@
+# Test, example, in-cluster URLs, etc...
+http://
+https://
+http://es-host-update:1111
+http://es-host:9999
+http://etcd-extdns:2379
+http://grafana:3000
+http://http_backend
+http://istiod
+http://prometheus
+http://prometheus:9090
+http://proxy:8080
+http://registry.example.com/
+http://test-ingest-host:9200
+http://tracing/jaeger
+http://vmi-system-es-ingest-oidc:8775
+http://zipkin
+https://1.2.3.4:1234
+https://elasticsearch.vmi.system
+https://etcd-extdns:2379
+https://grafana.vmi.system
+https://keycloak
+https://keycloak.default.11.22.33.44.xip.io
+https://keycloak.v8o-env.v8o-domain.com
+https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/auth?redirect_uri=abc
+https://keycloak.xyz.io:123/auth/realms/verrazzano-system/protocol/openid-connect/token
+https://keycloak.xyz.nio.io
+https://keycloak.xyz.nio.io/auth/realms/verrazzano-realm/protocol/openid-connect/auth?code_challenge_method=S256
+https://keycloak.xyz.nio.io/auth/realms/verrazzano-realm/protocol/openid-connect/token
+https://kibana.vmi.system
+https://mykeystone.example.net:5000/v3/
+https://prometheus.vmi.system
+https://rancher
+https://someEsUrl
+https://testUrl
+https://testhost:443
+https://testurl
+https://tpp.example.com/vedsdk
+https://vault.example.com:8200
+https://verrazzano
+https://verrazzano.example.com
+https://verrazzano.xyz.nip.io
+
+# Partial URLs (ie: things that get substitutions at runtime that result in valid URLs)
+https://github.com/jetstack/cert-manager/releases/download/v
+https://github.com/projectcalico/calico/releases/download/v
+https://github.com/verrazzano/verrazzano/releases/download/
+
+
+# In files we don't own/control
+https://keda.sh/docs/			./platform-operator/thirdparty/charts/ingress-nginx/templates/controller-keda.yaml
+
+# Valid but not something we can check without creds, etc...
+https://charts.bitnami.com/bitnami		403  (helm repo)
+https://charts.crossplane.io/master/		404  (helm repo)
+https://events.pagerduty.com/v2/enqueue		405  (internal access)
+
+# Skip checking known valid URLs (performance, ie: ones like the copyright license URL, or ones with a lot of redirects that are still valid)
+http://oss.oracle.com/licenses/upl
+https://oss.oracle.com/licenses/upl
+http://mozilla.org/MPL/2.0/
+http://www.iana.org/assignments/service-names
+
+https://oracle.github.io/coherence-operator/charts
