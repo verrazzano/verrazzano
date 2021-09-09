@@ -37,8 +37,10 @@ data:
 
     -- determine backend and set backend parameters
 
+    local requestUri = ngx.var.request_uri
     local backend = auth.getBackendNameFromIngressHost(ingressHost)
-    local backendUrl = auth.getBackendServerUrlFromName(backend)
+    local firstPathArgument = auth.getFirstPathArgument(backend, requestUri)
+    local backendUrl = auth.getBackendServerUrlFromName(backend, firstPathArgument)
 
     auth.info("Processing request for backend '"..ingressHost.."'")
 
@@ -55,11 +57,11 @@ data:
         end
     else
         auth.info("No authorization header found")
-        if auth.requestUriMatches(ngx.var.request_uri, callbackPath) then
+        if auth.requestUriMatches(requestUri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
             auth.oidcHandleCallback()
-        elseif auth.requestUriMatches(ngx.var.request_uri, logoutCallbackPath) then
+        elseif auth.requestUriMatches(requestUri, logoutCallbackPath) then
             -- logout was triggered, and OP (always?) is calling our logout URL
             auth.oidcHandleLogoutCallback()
         end
@@ -84,6 +86,12 @@ data:
     end
 
     if backend == 'verrazzano' then
+        if firstPathArgument == "20210501" then
+            -- Strip 20210501 from the uri
+            local uri = ngx.re.sub(ngx.var.uri, "^/20210501/(.*)", "/$1", "o")
+            ngx.req.set_uri(uri)
+            auth.info("NGX.VAR.URI "..ngx.var.uri)
+        end
         local args = ngx.req.get_uri_args()
         if args.cluster then
             -- returns remote cluster server URL
@@ -296,6 +304,40 @@ data:
         return backend_name
     end
 
+    function me.getFirstPathArgument(backend, urlPath)
+        local path_argument_first = ''
+        if backend  == "verrazzano" and urlPath then
+            me.info("Request uri " .. urlPath)
+            local start, last = urlPath:find("%/")
+            if start then
+                -- me.info("find returned start '"..start.."'")
+                urlPath = urlPath:sub(start+1)
+                -- me.info("path after removing slash " .. urlPath)
+                start, last = urlPath:find("%/")
+                if start then
+                    -- me.info("find returned start '"..start.."'")
+                    if start == 1 then
+                        path_argument_first = ''
+                    else
+                        path_argument_first = urlPath:sub(1, start-1)
+                    end
+                else
+                    path_argument_first = urlPath
+                end
+            else
+                path_argument_first = urlPath
+            end
+        end
+        if path_argument_first then
+            me.info("First path argument " .. path_argument_first)
+        end
+        return path_argument_first
+    end
+   
+    function me.makeConsoleBackendUrl(port)
+        return 'http://verrazzano-console.verrazzano-system.svc.cluster.local'..':'..port
+    end
+
     function me.makeVmiBackendUrl(backend, port)
         return 'http://vmi-system-'..backend..'.verrazzano-system.svc.cluster.local'..':'..port
     end
@@ -305,7 +347,13 @@ data:
         if backend == 'verrazzano' then
             -- assume we're going to the local server; if not, we'll fix up the url when we handle the remote call
             -- TODO: this will get more complicated when we have to handle console requests as well
-            serverUrl = me.getLocalKubernetesApiUrl()
+            if firstPathArgument == '20210501' then
+                -- TODO: Route request to k8s API
+                serverUrl = me.getLocalKubernetesApiUrl()
+            else
+                -- TODO: Route request to console
+                serverUrl = me.makeConsoleBackendUrl('8000')
+            end
         elseif backend == 'grafana' then
             serverUrl = me.makeVmiBackendUrl(backend, '3000')
         elseif backend == 'prometheus' then
