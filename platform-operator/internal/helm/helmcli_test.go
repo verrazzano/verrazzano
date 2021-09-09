@@ -247,6 +247,10 @@ func TestIsReleaseFailedError(t *testing.T) {
 	assert.False(failed)
 }
 
+// Test_getReleaseStateDeployed tests the getReleaseState fn
+// GIVEN a call to getReleaseState
+//  WHEN the chart state is deployed
+//  THEN the function returns ChartStatusDeployed and no error
 func Test_getReleaseStateDeployed(t *testing.T) {
 	jsonOut := []byte(`
 [
@@ -273,6 +277,10 @@ func Test_getReleaseStateDeployed(t *testing.T) {
 	assert.Equalf(t, ChartStatusDeployed, state, "unpexected state: %s", state)
 }
 
+// Test_getReleaseStateDeployed tests the getReleaseState fn
+// GIVEN a call to getReleaseState
+//  WHEN the chart state is pending-install
+//  THEN the function returns ChartStatusPendingInstall and no error
 func Test_getReleaseStatePendingInstall(t *testing.T) {
 	jsonOut := []byte(`
 [
@@ -299,6 +307,10 @@ func Test_getReleaseStatePendingInstall(t *testing.T) {
 	assert.Equalf(t, ChartStatusPendingInstall, state, "unpexected state: %s", state)
 }
 
+// Test_getReleaseStateChartNotFound tests the getReleaseState fn
+// GIVEN a call to getReleaseState
+//  WHEN the chart/release can not be found
+//  THEN the function returns "" and no error
 func Test_getReleaseStateChartNotFound(t *testing.T) {
 	jsonOut := []byte(`[]`)
 
@@ -313,6 +325,10 @@ func Test_getReleaseStateChartNotFound(t *testing.T) {
 	assert.Equalf(t, "", state, "unpexected state: %s", state)
 }
 
+// Test_getChartStatusDeployed tests the getChartStatus fn
+// GIVEN a call to getChartStatus
+//  WHEN Helm returns a deployed state
+//  THEN the function returns "deployed" and no error
 func Test_getChartStatusDeployed(t *testing.T) {
 	jsonOut := []byte(`
 {
@@ -356,6 +372,10 @@ func Test_getChartStatusDeployed(t *testing.T) {
 	assert.Equalf(t, ChartStatusDeployed, state, "unpexected state: %s", state)
 }
 
+// Test_getChartStatusNotFound tests the getChartStatus fn
+// GIVEN a call to getChartStatus
+//  WHEN the json structure does not have an status filed in the info section
+//  THEN the function returns an error
 func Test_getChartStatusNotFound(t *testing.T) {
 	jsonOut := []byte(`
 {
@@ -398,6 +418,10 @@ func Test_getChartStatusNotFound(t *testing.T) {
 	assert.Empty(t, state)
 }
 
+// Test_getChartStatusChartNotFound tests the getChartStatus fn
+// GIVEN a call to getChartStatus
+//  WHEN the Chart is not found
+//  THEN the function returns chart not found and no error
 func Test_getChartStatusChartNotFound(t *testing.T) {
 	stdout := []byte{}
 	stdErr := []byte("Error: release: not found")
@@ -413,6 +437,10 @@ func Test_getChartStatusChartNotFound(t *testing.T) {
 	assert.Equalf(t, ChartNotFound, state, "unpexected state: %s", state)
 }
 
+// Test_getChartStatusUnexpectedHelmError tests the getChartStatus fn
+// GIVEN a call to getChartStatus
+//  WHEN Helm returns an error
+//  THEN the function returns an error
 func Test_getChartStatusUnexpectedHelmError(t *testing.T) {
 	stdout := []byte{}
 	stdErr := []byte("Some unknown helm status error")
@@ -428,6 +456,10 @@ func Test_getChartStatusUnexpectedHelmError(t *testing.T) {
 	assert.Equalf(t, "", state, "unpexected state: %s", state)
 }
 
+// Test_getChartInfoNotFound tests the getChartStatus fn
+// GIVEN a call to getChartStatus
+//  WHEN the json structure does not have an info section
+//  THEN the function returns an error
 func Test_getChartInfoNotFound(t *testing.T) {
 	jsonOut := []byte(`
 {
