@@ -283,6 +283,10 @@ pipeline {
                 }
 
                 stage("validateBOM") {
+                    environment {
+                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                        OCI_OS_BUCKET="verrazzano-builds"
+                    }
                     steps {
                         sh """
                             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator--file ${WORKSPACE}/bom-validator
