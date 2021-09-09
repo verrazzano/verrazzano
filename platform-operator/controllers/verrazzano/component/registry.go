@@ -175,7 +175,7 @@ func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c Co
 		log.Error(err.Error())
 		return false
 	}
-	if trace == nil {
+	if len(trace) == 0 {
 		log.Infof("No dependencies declared for %s", c.Name())
 		return true
 	}
@@ -206,6 +206,7 @@ func checkDependencies(log *zap.SugaredLogger, client client.Client, c Component
 		}
 		if !dependency.IsReady(log, client, dependencyName) {
 			trace[dependencyName] = false // dependency is not ready
+			continue
 		}
 		trace[dependencyName] = true // dependency is ready
 	}

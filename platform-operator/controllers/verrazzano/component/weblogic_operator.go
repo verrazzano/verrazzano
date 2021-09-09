@@ -15,7 +15,7 @@ import (
 )
 
 // appendWeblogicOperatorOverrides appends the WKO-specific helm value overrides.
-func appendWeblogicOperatorOverrides(_ *zap.SugaredLogger, releaseName string, _ string, _ string, kvs []keyValue) ([]keyValue, error) {
+func appendWeblogicOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []keyValue) ([]keyValue, error) {
 	keyValueOverrides := []keyValue{
 		{
 			key:   "serviceAccount",
