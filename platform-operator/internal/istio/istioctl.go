@@ -11,9 +11,9 @@ import (
 // cmdRunner needed for unit tests
 var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
-func Upgrade(log *zap.SugaredLogger) error {
+func Upgrade(log *zap.SugaredLogger, componentName string) (stdout []byte, stderr []byte, err error) {
 	log.Info("-------Reached istio upgrade function!!!!----------------")
-	return nil
+	return []byte("success"), []byte(""), nil
 }
 
 // SetCmdRunner sets the command runner as needed by unit tests

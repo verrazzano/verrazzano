@@ -20,7 +20,7 @@ type istioComponent struct {
 // Verify that istioComponent implements Component
 var _ Component = istioComponent{}
 
-type istioUpgradeFuncSig func(log *zap.SugaredLogger) error
+type istioUpgradeFuncSig func(log *zap.SugaredLogger, componentName string) (stdout []byte, stderr []byte, err error)
 
 // istioUpgradeFunc is the default upgrade function
 var istioUpgradeFunc istioUpgradeFuncSig = istio.Upgrade
@@ -43,7 +43,7 @@ func (i istioComponent) Install(log *zap.SugaredLogger, client clipkg.Client, na
 }
 
 func (i istioComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
-	err := istioUpgradeFunc(log)
+	_, _, err := istioUpgradeFunc(log, i.componentName)
 	return err
 }
 

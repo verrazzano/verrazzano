@@ -4,6 +4,7 @@
 package component
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
@@ -38,36 +39,18 @@ func IstioTestUpgrade(t *testing.T) {
 	SetUnitTestBomFilePath(testBomFilePath)
 	istio.SetCmdRunner(istioFakeRunner{})
 	defer istio.SetDefaultRunner()
-	setIstioUpgradeFunc(fakeUpgrade)
-	defer setistioDefaultUpgradeFunc()
-	istio.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return istio.ChartStatusDeployed, nil
-	})
-	defer istio.SetDefaultChartStatusFunction()
+	setIstioUpgradeFunc(fakeIstioUpgrade)
+	defer setIstioDefaultUpgradeFunc()
 	err := comp.Upgrade(zap.S(), nil, "", false)
 	assert.NoError(err, "Upgrade returned an error")
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, componentName string) (stdout []byte, stderr []byte, err error) {
-	if releaseName != "istio" {
+func fakeIstioUpgrade(log *zap.SugaredLogger, componentName string) (stdout []byte, stderr []byte, err error) {
+	if componentName != "istio" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
-	if chartDir != "chartDir" {
-		return []byte("error"), []byte(""), errors.New("Invalid chart directory name")
-	}
-	if namespace != "chartNS" {
-		return []byte("error"), []byte(""), errors.New("Invalid chart namespace")
-	}
-	for _, file := range overridesFiles {
-		if file != "valuesFile" && file == "" {
-			return []byte("error"), []byte(""), errors.New("Invalid values file")
-		}
-	}
 	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
-	if overrides != fakeOverrides {
-		return []byte("error"), []byte(""), errors.New("Invalid overrides")
-	}
 	return []byte("success"), []byte(""), nil
 }
 
