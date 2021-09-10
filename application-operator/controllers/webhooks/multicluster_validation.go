@@ -6,13 +6,13 @@ package webhooks
 import (
 	"context"
 	"fmt"
-
 	clusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	clusterutil "github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	clusterutil "github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	core "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -71,29 +71,4 @@ func translateErrorToResponse(err error) admission.Response {
 		return admission.Allowed("")
 	}
 	return admission.Denied(err.Error())
-}
-
-// Validate that the namespace of a multiclusterXXX resource is part of a verrazzanoproject
-func validateNamespaceInProject(c client.Client, namespace string) error {
-	vzProjects := clusters.VerrazzanoProjectList{}
-	err := c.List(context.TODO(), &vzProjects)
-	if err != nil {
-		return err
-	}
-
-	if len(vzProjects.Items) == 0 {
-		return fmt.Errorf("namespace %s not specified in any verrazzanoproject resources - no verrazzanoproject resources found", namespace)
-	}
-
-	// Check verrazzanoProjects for a matching namespace
-	for _, proj := range vzProjects.Items {
-		for _, ns := range proj.Spec.Template.Namespaces {
-			if ns.Metadata.Name == namespace {
-				return nil
-			}
-		}
-	}
-
-	// No matching namespace found so return error
-	return fmt.Errorf("namespace %s not specified in any verrazzanoproject resources", namespace)
 }
