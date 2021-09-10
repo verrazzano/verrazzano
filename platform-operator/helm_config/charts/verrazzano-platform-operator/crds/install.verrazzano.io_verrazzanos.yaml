@@ -173,12 +173,11 @@ spec:
                     properties:
                       elasticsearchSecret:
                         description: Specifies the secret containing the credentials for
-                          connecting to the Elasticsearch.  Default is "verrazzano".
+                          connecting to the Elasticsearch.
                         type: string
                       elasticsearchURL:
                         description: Specifies the Elasticsearch URL.  It can be a comma
-                          seprated list with multiple nodes.  Default is
-                          "http://verrazzano-authproxy-elasticsearch:8775".
+                          separated list with multiple nodes.
                         type: string
                       enabled:
                         description: Specifies whether Fluentd is deployed or not

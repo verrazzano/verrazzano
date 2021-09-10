@@ -75,7 +75,6 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 		},
 	}
 	err := vz.ValidateCreate()
-
 	assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource")
 }
 
@@ -160,10 +159,20 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 // TestCreateMissingSecretName tests the validation of a VerrazzanoManagedCluster with a missing secret name
 // GIVEN a call validate VerrazzanoManagedCluster
 // WHEN the VerrazzanoManagedCluster is missing the secret name
-// THEN the validation should fail
+// THEN the validation should succeed and default to a well-known CA
 func TestCreateMissingSecretName(t *testing.T) {
 	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme(), verrazzanoList), nil
+		return fake.NewFakeClientWithScheme(newScheme(),
+			verrazzanoList,
+			&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      constants.AdminClusterConfigMapName,
+					Namespace: constants.VerrazzanoMultiClusterNamespace,
+				},
+				Data: map[string]string{
+					constants.ServerDataKey: "https://testUrl",
+				},
+			}), nil
 	}
 	defer func() { getClientFunc = getClient }()
 	vz := VerrazzanoManagedCluster{
@@ -174,8 +183,7 @@ func TestCreateMissingSecretName(t *testing.T) {
 		},
 	}
 	err := vz.ValidateCreate()
-	assert.EqualError(t, err, "The name of the CA secret in namespace verrazzano-mc must be specified",
-		"Expected correct error message for missing secret")
+	assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource with well-known CA")
 }
 
 // TestCreateMissingSecret tests the validation of a missing Prometheus secret in the MC namespace
