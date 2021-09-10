@@ -49,13 +49,13 @@ basic_auth:
 // entry for the cluster's CA cert added to the prometheus config map to allow for lookup of the CA cert by the scraper's HTTP client.
 func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	var secret corev1.Secret
-	secretNsn := types.NamespacedName{
-		Namespace: vmc.Namespace,
-	}
 
-	// read the configuration secret specified
+	// read the configuration secret specified if it exists
 	if len(vmc.Spec.CASecret) > 0 {
-		secretNsn.Name = vmc.Spec.CASecret
+		secretNsn := types.NamespacedName{
+			Namespace: vmc.Namespace,
+			Name:      vmc.Spec.CASecret,
+		}
 
 		// validate secret if it exists
 		if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {

@@ -251,7 +251,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
-// TestCreateVMC tests the Reconcile method for the following use case
+// TestCreateVMCNoCACert tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
 // WHEN a VerrazzanoManagedCluster resource has been applied with no CA Cert
 // THEN ensure all the objects are created
