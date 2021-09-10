@@ -144,6 +144,7 @@ func populateMapWithContainerImages(clusterImageMap map[string]string) {
 //    Not Found, OK based on profile
 //    InValid, image tags between BOM and cluster image do not mact
 func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string]string, imagesNotFound map[string]imageError, imageTagErrors map[string]imageError) bool {
+	var errorsFound bool = false
 	for _, component := range vBom.Components {
 		//		fmt.Printf("Verrazzano bom Component = %s\n", component)
 		for _, subcomponent := range component.Subcomponents {
@@ -157,7 +158,7 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string]string, imagesN
 						//	fmt.Println("Image Found and Tag matches")
 					} else {
 						imageTagErrors[image.Image] = imageError{image.Tag, tag}
-						return false
+						errorsFound = true
 					}
 				} else {
 					imagesNotFound[image.Image] = imageError{image.Tag, ""}
@@ -165,6 +166,9 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string]string, imagesN
 
 			}
 		}
+	}
+	if errorsFound {
+		return false
 	}
 	return true
 }
