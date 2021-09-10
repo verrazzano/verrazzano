@@ -64,6 +64,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 func TestCreateLoggingTrait(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
+	mgr := mocks.NewMockManager(mocker)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	testDeployment := k8sapps.Deployment{
@@ -134,7 +135,6 @@ func TestCreateLoggingTrait(t *testing.T) {
 			workloadDef.Name = name.Name
 			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
 				{APIVersion: "apps/v1", Kind: "Deployment", Selector: nil},
-				{APIVersion: "v1", Kind: "Service", Selector: nil},
 			}
 			return nil
 		})
@@ -146,29 +146,21 @@ func TestCreateLoggingTrait(t *testing.T) {
 			assert.Equal("Deployment", list.GetKind())
 			return appendAsUnstructured(list, testDeployment)
 		})
-	// Expect a call to list the child Service resources of the containerized workload definition
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Service", list.GetKind())
+
+	// Expect a call to patch the workload resource.
+	mockStatus.EXPECT().
+		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.LoggingTrait, patch client.Patch, option client.FieldOwner) error {
 			return nil
 		})
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-	// Expect a call to update the status of the IngressTrait.
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.LoggingTrait, opts ...client.UpdateOption) error {
-			assert.Len(trait.Status.Conditions, 1)
-			assert.Len(trait.Status.Resources, 3)
-			return nil
-		})
 
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
-	reconciler := newLoggingTraitReconciler(mock)
+	reconciler , err := newLoggingTraitReconciler(mock, mgr)
 	result, err := reconciler.Reconcile(request)
 
 	// Validate the results
@@ -180,17 +172,22 @@ func TestCreateLoggingTrait(t *testing.T) {
 
 // newMetricsTraitReconciler creates a new reconciler for testing
 // cli - The Kerberos client to inject into the reconciler
-func newLoggingTraitReconciler(cli client.Client) LoggingTraitReconciler {
+func newLoggingTraitReconciler(cli client.Client, mgr *mocks.MockManager) (LoggingTraitReconciler, error) {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 	scheme := runtime.NewScheme()
 	vzapi.AddToScheme(scheme)
+	discoveryCli, err := discovery.NewDiscoveryClientForConfig(&rest.Config{})
+	if err != nil {
+		return LoggingTraitReconciler{}, err
+	}
 	reconciler := LoggingTraitReconciler{
 		Client:  cli,
 		Log:     ctrl.Log,
 		Scheme:  scheme,
-		DiscoveryClient: discovery.DiscoveryClient{},
+		Record: event.NewNopRecorder(),
+		DiscoveryClient: *discoveryCli,
 	}
-	return reconciler
+	return reconciler, nil
 }
 
 // convertToUnstructured converts an object to an Unstructured version
