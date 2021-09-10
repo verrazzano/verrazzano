@@ -4,7 +4,6 @@
 # Network policy for Elasticsearch master single pod installation
 # Ingress: allow from auth proxy to port 9200
 #          allow from Kibana to port 9200
-#          allow from Fluentd to port 9200
 #          allow from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
   {{- if .Values.elasticSearch.enabled}}
@@ -39,28 +38,11 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-    # Allow ingress from Fluentd
-    - from:
-        - podSelector:
-            matchLabels:
-              app: fluentd
-      ports:
-        - protocol: TCP
-          port: 9200
-    # Allow ingress from Logging Journalbeat and Filebeat
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.binding: system
-      ports:
-        - protocol: TCP
-          port: 9200
     # Allow ingress from ES master to itself
     - from:
         - podSelector:
             matchLabels:
               app: system-es-master
-    # Allow ingress from anywhere since fluentd is in app ns (this will be removed once fluentd sidecars are gone)
     - ports:
       - protocol: TCP
         port: 9200
@@ -178,7 +160,6 @@ spec:
 # Ingress: allow from auth proxy to port 9200
 #          allow from ES master and ES data to port 9300
 #          allow from Kibana to port 9200
-#          allow from Fluentd to port 9200
 #          allow from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
@@ -219,14 +200,6 @@ spec:
         - podSelector:
             matchLabels:
               app: system-kibana
-      ports:
-        - protocol: TCP
-          port: 9200
-    # Allow ingress from Fluentd
-    - from:
-        - podSelector:
-            matchLabels:
-              app: fluentd
       ports:
         - protocol: TCP
           port: 9200
