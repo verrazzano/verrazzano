@@ -149,10 +149,10 @@ func processJunitReports() {
 	}
 	for _, suite := range suites {
 		testStatus := 0.0
-		statusLabel = "F"
+		statusLabel = "Failure"
 		if suite.Totals.Tests == suite.Totals.Passed {
 			testStatus = 1.0
-			statusLabel = "S"
+			statusLabel = "Success"
 		}
 		metricName := removeSpecialChars(suite.Name)
 		emitTestMetrics(metricName, statusSuffix, testStatus)
