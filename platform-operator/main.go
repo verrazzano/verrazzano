@@ -5,15 +5,12 @@ package main
 
 import (
 	"flag"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	config2 "github.com/verrazzano/verrazzano/pkg/config"
-	"os"
-
 	"github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
+	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
 	"go.uber.org/zap"
@@ -21,6 +18,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -40,7 +38,7 @@ func init() {
 func main() {
 
 	// config will hold the entire operator config
-	config := config2.Get()
+	config := internalconfig.Get()
 	var bomOverride string
 
 	flag.StringVar(&config.MetricsAddr, "metrics-addr", config.MetricsAddr, "The address the metric endpoint binds to.")
@@ -68,12 +66,15 @@ func main() {
 	log.InitLogs(opts)
 
 	// Save the config as immutable from this point on.
-	config2.Set(config)
+	internalconfig.Set(config)
 
 	setupLog := zap.S()
 
+	// Set the BOM file path for the operator
 	if len(bomOverride) > 0 {
-		bom.SetBomFilePathOverride(bomOverride)
+		internalconfig.SetDefaultBomFilePath(bomOverride)
+	} else {
+		internalconfig.SetDefaultBomFilePath(internalconfig.GetDefaultBOMFilePath())
 	}
 
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the

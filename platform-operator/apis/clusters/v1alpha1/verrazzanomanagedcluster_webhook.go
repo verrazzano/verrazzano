@@ -6,7 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"net/url"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"

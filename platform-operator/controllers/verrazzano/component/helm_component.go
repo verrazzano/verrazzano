@@ -6,6 +6,7 @@ package component
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -296,7 +297,7 @@ func resolveNamespace(h helmComponent, ns string) string {
 // Get the image overrides from the BOM
 func getImageOverrides(subcomponentName string) ([]bom.KeyValue, error) {
 	// Create a Bom and get the Key Value overrides
-	bomFile, err := bom.NewBom(bom.DefaultBomFilePath())
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
 		return nil, err
 	}

@@ -4,8 +4,7 @@
 package v1alpha1
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,9 +17,9 @@ import (
 // WHEN the version provided is a valid version
 // THEN no error is returned
 func TestCreateCallbackSuccessWithVersion(t *testing.T) {
-	bom.SetBomFilePathOverride(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		bom.SetBomFilePathOverride("")
+		config.SetDefaultBomFilePath("")
 	}()
 
 	getControllerRuntimeClient = func() (client.Client, error) {
@@ -42,9 +41,9 @@ func TestCreateCallbackSuccessWithVersion(t *testing.T) {
 // WHEN no version is provided
 // THEN no error is returned
 func TestCreateCallbackSuccessWithoutVersion(t *testing.T) {
-	bom.SetBomFilePathOverride(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		bom.SetBomFilePathOverride("")
+		config.SetDefaultBomFilePath("")
 	}()
 
 	getControllerRuntimeClient = func() (client.Client, error) {
@@ -80,9 +79,9 @@ func TestCreateCallbackWithInvalidVersionValidationDisabled(t *testing.T) {
 
 // runCreateCallbackWithInvalidVersion Shared test impl for cases with/without validation enbabled
 func runCreateCallbackWithInvalidVersion(t *testing.T) error {
-	bom.SetBomFilePathOverride(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		bom.SetBomFilePathOverride("")
+		config.SetDefaultBomFilePath("")
 	}()
 
 	getControllerRuntimeClient = func() (client.Client, error) {
@@ -105,9 +104,9 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 // WHEN a valid version is provided and is at the same bom value
 // THEN no error is returned
 func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
-	bom.SetBomFilePathOverride(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		bom.SetBomFilePathOverride("")
+		config.SetDefaultBomFilePath("")
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -128,9 +127,9 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 // WHEN valid versions exist in both specs, and the new version > old version
 // THEN no error is returned
 func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
-	bom.SetBomFilePathOverride(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		bom.SetBomFilePathOverride("")
+		config.SetDefaultBomFilePath("")
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -152,9 +151,9 @@ func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 // WHEN valid versions exist in both specs, and the new old > new version
 // THEN an error is returned
 func TestUpdateCallbackFailsWithOldGreaterThanNewVersion(t *testing.T) {
-	bom.SetBomFilePathOverride(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		bom.SetBomFilePathOverride("")
+		config.SetDefaultBomFilePath("")
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -191,9 +190,9 @@ func TestUpdateCallbackWithInvalidNewVersionValidationDisabled(t *testing.T) {
 
 // runUpdateWithInvalidVersionTest Shared test logic for update with invalid version
 func runUpdateWithInvalidVersionTest(t *testing.T) error {
-	bom.SetBomFilePathOverride(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		bom.SetBomFilePathOverride("")
+		config.SetDefaultBomFilePath("")
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -229,9 +228,9 @@ func TestUpdateCallbackChangeProfileValidationDisabled(t *testing.T) {
 
 // runUpdateCallbackChangedProfileTest Shared test logic for update with changed profile
 func runUpdateCallbackChangedProfileTest() error {
-	bom.SetBomFilePathOverride(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		bom.SetBomFilePathOverride("")
+		config.SetDefaultBomFilePath("")
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{

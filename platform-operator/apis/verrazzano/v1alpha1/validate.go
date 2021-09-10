@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"reflect"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -23,7 +23,7 @@ import (
 
 // GetCurrentBomVersion Get the version string from the bom and return it as a semver object
 func GetCurrentBomVersion() (*semver.SemVersion, error) {
-	bom, err := bom.NewBom(bom.DefaultBomFilePath())
+	bom, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
 		return nil, err
 	}

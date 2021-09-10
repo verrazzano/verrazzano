@@ -5,7 +5,7 @@ package component
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"

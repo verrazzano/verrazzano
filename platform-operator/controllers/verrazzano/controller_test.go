@@ -7,8 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 	"time"
 
@@ -127,9 +126,9 @@ func TestSuccessfulInstall(t *testing.T) {
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	bom.SetBomFilePathOverride(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		bom.SetBomFilePathOverride("")
+		config.SetDefaultBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -239,9 +238,9 @@ func TestCreateVerrazzano(t *testing.T) {
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	bom.SetBomFilePathOverride(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		bom.SetBomFilePathOverride("")
+		config.SetDefaultBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -414,9 +413,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	bom.SetBomFilePathOverride(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		bom.SetBomFilePathOverride("")
+		config.SetDefaultBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {

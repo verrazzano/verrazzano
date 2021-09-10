@@ -6,36 +6,25 @@ package bom
 import (
 	"encoding/json"
 	"errors"
-	"github.com/verrazzano/verrazzano/pkg/config"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
-const defaultBomFilename = "verrazzano-bom.json"
 const defaultImageKey = "image"
 const slash = "/"
 const tagSep = ":"
 
-// This is the BOM file path needed for unit tests
-var bomFilePathOverride string
-
-// SetBomFilePathOverride is used for unit tests
-func SetBomFilePathOverride(p string) {
-	bomFilePathOverride = p
-}
-
 // Bom contains information related to the bill of materials along with structures to process it.
 // The bom file is verrazzano-bom.json and it mainly has image information.
 type Bom struct {
-	// BomDoc contains the contents of the JSON bom, in go structure format.
-	BomDoc BomDoc
+	// bomDoc contains the contents of the JSON bom, in go structure format.
+	bomDoc BomDoc
 
-	// SubComponentMap is a map of subcomponents keyed by subcomponent name.
-	SubComponentMap map[string]*BomSubComponent
+	// subComponentMap is a map of subcomponents keyed by subcomponent name.
+	subComponentMap map[string]*BomSubComponent
 }
 
 // BomDoc contains product metadata for components installed by Verrazzano.
@@ -115,14 +104,6 @@ type KeyValue struct {
 	Value string
 }
 
-// DefaultBomFilePath returns the default path of the bom file
-func DefaultBomFilePath() string {
-	if bomFilePathOverride != "" {
-		return bomFilePathOverride
-	}
-	return filepath.Join(config.GetPlatformDir(), defaultBomFilename)
-}
-
 // Create a new bom from a JSON file
 func NewBom(bomPath string) (Bom, error) {
 	jsonBom, err := ioutil.ReadFile(bomPath)
@@ -130,7 +111,7 @@ func NewBom(bomPath string) (Bom, error) {
 		return Bom{}, err
 	}
 	bom := Bom{
-		SubComponentMap: make(map[string]*BomSubComponent),
+		subComponentMap: make(map[string]*BomSubComponent),
 	}
 	err = bom.init(string(jsonBom))
 	if err != nil {
@@ -143,26 +124,32 @@ func NewBom(bomPath string) (Bom, error) {
 // a map of subcomponents
 func (b *Bom) init(jsonBom string) error {
 	// Convert the json into a to bom
-	if err := json.Unmarshal([]byte(jsonBom), &b.BomDoc); err != nil {
+	if err := json.Unmarshal([]byte(jsonBom), &b.bomDoc); err != nil {
 		return err
 	}
 
 	// Build a map of subcomponents
-	for _, comp := range b.BomDoc.Components {
+	for _, comp := range b.bomDoc.Components {
 		for i, sub := range comp.SubComponents {
-			b.SubComponentMap[sub.Name] = &comp.SubComponents[i]
+			b.subComponentMap[sub.Name] = &comp.SubComponents[i]
 		}
 	}
 	return nil
 }
 
+// GetRegistry Gets the registry name
+func (b *Bom) GetRegistry() string {
+	return b.bomDoc.Registry
+}
+
+// GetVersion gets the BOM product version
 func (b *Bom) GetVersion() string {
-	return b.BomDoc.Version
+	return b.bomDoc.Version
 }
 
 // GetSubcomponent gets the bom subcomponent
 func (b *Bom) GetSubcomponent(subComponentName string) (*BomSubComponent, error) {
-	sc, ok := b.SubComponentMap[subComponentName]
+	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
 		return nil, errors.New("unknown subcomponent " + subComponentName)
 	}
@@ -180,7 +167,7 @@ func (b *Bom) GetSubcomponentImages(subComponentName string) ([]BomImage, error)
 
 // GetSubcomponentImageCount returns the number of subcomponent images
 func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
-	imageBom, ok := b.SubComponentMap[subComponentName]
+	imageBom, ok := b.subComponentMap[subComponentName]
 	if !ok {
 		return 0
 	}
@@ -190,7 +177,7 @@ func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
 // BuildImageOverrides builds the image overrides array for the subComponent.
 // Each override has an array of 1-n Helm Key:Value pairs
 func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
-	sc, ok := b.SubComponentMap[subComponentName]
+	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
 		return nil, errors.New("unknown subcomponent " + subComponentName)
 	}
@@ -276,7 +263,7 @@ func (b *Bom) ResolveRegistry(sc *BomSubComponent) string {
 	// Get the registry ENV override, if it doesn't exist use the default
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	if registry == "" {
-		registry = b.BomDoc.Registry
+		registry = b.bomDoc.Registry
 	}
 	return registry
 }
