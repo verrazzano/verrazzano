@@ -290,7 +290,7 @@ pipeline {
                             }
                         }
                         stage('Create OKE Clusters') {
-                            when { expression { return params.TEST_ENV == 'ocidns_oke' || params.TEST_ENV == 'magicdns_oke'} }
+                            when { expression { return params.TEST_ENV == 'ocidns_oke' || params.TEST_ENV == 'magicdns_oke' } }
                             steps {
                                 echo "OKE Cluster Prefix: ${OKE_CLUSTER_PREFIX}"
                                 createOKEClusters("${OKE_CLUSTER_PREFIX}")
@@ -319,7 +319,7 @@ pipeline {
                                     steps {
                                         script {
                                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                            for(int count=1; count<=clusterCount; count++) {
+                                            for (int count = 1; count <= clusterCount; count++) {
                                                 sh """
                                                     export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                                                     cd ${GO_REPO_PATH}/verrazzano
@@ -346,7 +346,7 @@ pipeline {
                         stage("Configure KinD") {
                             when { expression { return params.TEST_ENV == 'kind' } }
                             steps {
-                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                         stage("Configure OKE/MagicDNS") {
@@ -357,23 +357,22 @@ pipeline {
                         }
                     }
                 }
-                stage ('Install Verrazzano') {
+                stage('Install Verrazzano') {
                     steps {
                         script {
                             VZ_INSTALL_METRIC = metricJobName('install_v8o')
                             metricTimerStart("${VZ_INSTALL_METRIC}")
-                            // Either download the latest platform operator YAML from the master bucket, or create one
+                            // Either download the specified release of the platform operator YAML, or create one
                             // using the specific operator image provided by the user.
                             sh """
                                 echo "Platform Operator Configuration"
                                 cd ${GO_REPO_PATH}/verrazzano
                                 if [ "NONE" = "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-                                    echo "Using the latest master branch operator.yaml from object storage"
-                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                                else
                                     echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
                                     curl "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml" > ${WORKSPACE}/acceptance-test-operator.yaml
+                                else
+                                    echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
+                                    env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
                                 fi
                             """
                         }
@@ -383,9 +382,9 @@ pipeline {
                             // - clusters 2-max are managed clusters
                             def verrazzanoInstallStages = [:]
                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            for(int count=1; count<=clusterCount; count++) {
-                                def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                                def key = "vz-mgd-${count-1}"
+                            for (int count = 1; count <= clusterCount; count++) {
+                                def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                                def key = "vz-mgd-${count - 1}"
                                 if (count == 1) {
                                     key = "vz-admin"
                                 }
@@ -404,21 +403,21 @@ pipeline {
                         }
                         failure {
                             script {
-                                INSTALL_METRICS_PUSHED=metricTimerEnd("${VZ_INSTALL_METRIC}", '0')
+                                INSTALL_METRICS_PUSHED = metricTimerEnd("${VZ_INSTALL_METRIC}", '0')
                             }
                         }
                         success {
                             script {
-                                INSTALL_METRICS_PUSHED=metricTimerEnd("${VZ_INSTALL_METRIC}", '1')
+                                INSTALL_METRICS_PUSHED = metricTimerEnd("${VZ_INSTALL_METRIC}", '1')
                             }
                         }
                     }
                 }
-                stage ('Verify Install') {
+                stage('Verify Install') {
                     // NOTE: The stages are executed in parallel, however the tests themselves are executed against
                     //       each cluster in sequence. If possible, we should parallelize that as well.
                     parallel {
-                        stage ('multicluster/verify-install') {
+                        stage('multicluster/verify-install') {
                             steps {
                                 runGinkgoRandomize('multicluster/verify-install')
                             }
@@ -456,19 +455,19 @@ pipeline {
                         }
                     }
                 }
-                stage ('Register managed clusters') {
+                stage('Register managed clusters') {
                     steps {
                         registerManagedClusters()
                     }
                 }
-                stage ('Verify Register') {
+                stage('Verify Register') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
                                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                for(int count=2; count<=clusterCount; count++) {
+                                for (int count = 2; count <= clusterCount; count++) {
                                     sh """
-                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
+                                        export MANAGED_CLUSTER_NAME="managed${count - 1}"
                                         export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                                         ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-register/...
@@ -478,14 +477,14 @@ pipeline {
                         }
                     }
                 }
-                stage ('Verify Managed Cluster Permissions') {
+                stage('Verify Managed Cluster Permissions') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
                                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                for(int count=2; count<=clusterCount; count++) {
+                                for (int count = 2; count <= clusterCount; count++) {
                                     sh """
-                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
+                                        export MANAGED_CLUSTER_NAME="managed${count - 1}"
                                         export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                                         export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
@@ -496,23 +495,24 @@ pipeline {
                         }
                     }
                 }
-                stage ('Verify Metrics') {
+                stage('Verify Metrics') {
                     steps {
                         runGinkgoRandomize('metrics/syscomponents')
                     }
                 }
                 stage("upgrade-platform-operator") {
                     steps {
-                            upgradePlatformOperator()
-                        }
+                        upgradePlatformOperator()
                     }
+                }
 
                 stage("upgrade-verrazzano") {
                     steps {
                         upgradeVerrazzano()
                     }
                 }
-                
+            }
+            stages {
                 stage ('Example apps') {
                     parallel {
                         stage ('Examples Helidon') {
