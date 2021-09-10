@@ -164,8 +164,8 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 }
 
 // This is the real BOM file path needed for unit tests
-const realBomFilePath = "../../../verrazzano-bom.json"
-const testBomFilePath = "../testdata/test_bom.json"
+const realBomFilePath = "testdata/verrazzano-bom.json"
+const testBomFilePath = "testdata/test_bom.json"
 
 // TestFakeBom tests loading a fake bom json into a struct
 // GIVEN a json file
