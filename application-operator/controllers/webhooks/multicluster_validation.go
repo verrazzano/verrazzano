@@ -82,20 +82,6 @@ func validateNamespaceInProject(c client.Client, namespace string) error {
 		return err
 	}
 
-	/*	vzProjects := unstructured.UnstructuredList{}
-		vzProjects.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   "clusters.verrazzano.io",
-			Version: "v1alpha1",
-			Kind:    "VerrazzanoProjectList",
-		})
-
-		// Get a list of verrazzanoproject resources
-		err = c.List(context.TODO(), &vzProjects)
-		if err != nil {
-			return err
-		}
-	*/
-
 	if len(vzProjects.Items) == 0 {
 		return fmt.Errorf("namespace %s not specified in any verrazzanoproject resources - no verrazzanoproject resources found", namespace)
 	}
@@ -109,28 +95,6 @@ func validateNamespaceInProject(c client.Client, namespace string) error {
 		}
 	}
 
-	/*
-		// Check verrazzanoProjects for a matching namespace
-		for _, proj := range vzProjects.Items {
-			namespaces, _, err := unstructured.NestedSlice(proj.Object, "spec", "template", "namespaces")
-			if err != nil {
-				return err
-			}
-			for _, ns := range namespaces {
-				u, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&ns)
-				if err != nil {
-					return err
-				}
-				name, _, err := unstructured.NestedString(u, "metadata", "name")
-				if err != nil {
-					return err
-				}
-				if name == namespace {
-					return nil
-				}
-			}
-		}
-	*/
 	// No matching namespace found so return error
 	return fmt.Errorf("namespace %s not specified in any verrazzanoproject resources", namespace)
 }
