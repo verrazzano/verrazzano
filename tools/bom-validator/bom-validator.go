@@ -146,13 +146,8 @@ func populateMapWithContainerImages(clusterImageMap map[string]string) {
 func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string]string, imagesNotFound map[string]imageError, imageTagErrors map[string]imageError) bool {
 	var errorsFound bool = false
 	for _, component := range vBom.Components {
-		//		fmt.Printf("Verrazzano bom Component = %s\n", component)
 		for _, subcomponent := range component.Subcomponents {
-			//			fmt.Printf("Verrazzano bom SubComponent = %s\n", subcomponent)
 			for _, image := range subcomponent.Images {
-				//				fmt.Println("************************************************")
-				//				fmt.Printf("Verrazzano Image Name = %s\n", image.Image)
-				//				fmt.Printf("Verrazzano Image Tag = %s\n", image.Tag)
 				if tag, ok := clusterImageMap[image.Image]; ok {
 					if tag == image.Tag {
 						//	fmt.Println("Image Found and Tag matches")
@@ -203,9 +198,7 @@ func populateClusterImageMap(containerArray []string, clusterImageMap map[string
 		end := len(container)
 		containerName := container[begin+1 : end]
 		nameTag := strings.Split(containerName, ":")
-		if _, ok := clusterImageMap[nameTag[0]]; ok {
-			//			fmt.Println("Key  ", nameTag[0], " Already exists")
-		} else {
+		if _, ok := clusterImageMap[nameTag[0]]; !ok {
 			clusterImageMap[nameTag[0]] = nameTag[1]
 		}
 	}
