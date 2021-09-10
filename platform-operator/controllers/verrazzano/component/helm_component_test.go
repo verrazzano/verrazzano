@@ -4,10 +4,13 @@
 package component
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	"os/exec"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -70,6 +73,48 @@ func TestUpgrade(t *testing.T) {
 	assert.NoError(err, "Upgrade returned an error")
 }
 
+// TestUpgradeIsInstalledUnexpectedError tests the component upgrade
+// GIVEN a component
+//  WHEN I call Upgrade and the chart status function returns an error
+//  THEN the upgrade returns an error
+func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := helmComponent{}
+
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return nil, nil, nil
+	})
+	defer setDefaultUpgradeFunc()
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return "", fmt.Errorf("Unexpected error")
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	err := comp.Upgrade(zap.S(), nil, "", false)
+	assert.Error(err)
+}
+
+// TestUpgradeReleaseNotInstalled tests the component upgrade
+// GIVEN a component
+//  WHEN I call Upgrade and the chart is not installed
+//  THEN the upgrade returns no error
+func TestUpgradeReleaseNotInstalled(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := helmComponent{}
+
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return nil, nil, nil
+	})
+	defer setDefaultUpgradeFunc()
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	err := comp.Upgrade(zap.S(), nil, "", false)
+	assert.NoError(err)
+}
+
 // TestUpgradeWithEnvOverrides tests the component upgrade
 // GIVEN a component
 //  WHEN I call Upgrade when the registry and repo overrides are set
@@ -107,6 +152,244 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	defer helm.SetDefaultChartStatusFunction()
 	err := comp.Upgrade(zap.S(), nil, "", false)
 	assert.NoError(err, "Upgrade returned an error")
+}
+
+// TestInstall tests the component install
+// GIVEN a component
+//  WHEN I call Install and the chart is not installed
+//  THEN the install runs and returns no error
+func TestInstall(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := helmComponent{
+		releaseName:             "istiod",
+		chartDir:                "chartDir",
+		chartNamespace:          "chartNS",
+		ignoreNamespaceOverride: true,
+		valuesFile:              "valuesFile",
+		preUpgradeFunc:          fakePreUpgrade,
+	}
+
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
+	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3"
+
+	SetUnitTestBomFilePath(testBomFilePath)
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+	setUpgradeFunc(fakeUpgrade)
+	defer setDefaultUpgradeFunc()
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	helm.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStateFunction()
+	err := comp.Install(zap.S(), client, "default", false)
+	assert.NoError(err, "Upgrade returned an error")
+}
+
+// TestInstallPreviousFailure tests the component install
+// GIVEN a component
+//  WHEN I call Install and the chart release is in a failed status
+//  THEN the chart is uninstalled and then re-installed
+func TestInstallPreviousFailure(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := helmComponent{
+		releaseName:             "istiod",
+		chartDir:                "chartDir",
+		chartNamespace:          "chartNS",
+		ignoreNamespaceOverride: true,
+		valuesFile:              "valuesFile",
+		preUpgradeFunc:          fakePreUpgrade,
+	}
+
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
+	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3"
+
+	SetUnitTestBomFilePath(testBomFilePath)
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+	setUpgradeFunc(fakeUpgrade)
+	defer setDefaultUpgradeFunc()
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	helm.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusFailed, nil
+	})
+	defer helm.SetDefaultChartStateFunction()
+	err := comp.Install(zap.S(), client, "default", false)
+	assert.NoError(err, "Upgrade returned an error")
+}
+
+// TestInstallWithPreInstallFunc tests the component install
+// GIVEN a component
+//  WHEN I call Install and the component returns KVs from a preinstall func hook
+//  THEN the chart is installed with the additional preInstall helm values
+func TestInstallWithPreInstallFunc(t *testing.T) {
+	assert := assert.New(t)
+
+	preInstallKVPairs := []keyValue{
+		{key: "preInstall1", value: "value1"},
+		{key: "preInstall2", value: "value2"},
+	}
+
+	comp := helmComponent{
+		releaseName:             "istiod",
+		chartDir:                "chartDir",
+		chartNamespace:          "chartNS",
+		ignoreNamespaceOverride: true,
+		valuesFile:              "valuesFile",
+		preInstallFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]keyValue, error) {
+			return preInstallKVPairs, nil
+		},
+	}
+
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function,
+	// plus values returned from the preInstall function if present
+	var buffer bytes.Buffer
+	buffer.WriteString("pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3,")
+	for i, kv := range preInstallKVPairs {
+		buffer.WriteString(kv.key)
+		buffer.WriteString("=")
+		buffer.WriteString(kv.value)
+		if i != len(preInstallKVPairs)-1 {
+			buffer.WriteString(",")
+		}
+	}
+	expectedOverridesString := buffer.String()
+
+	SetUnitTestBomFilePath(testBomFilePath)
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
+		if overrides != expectedOverridesString {
+			return nil, nil, fmt.Errorf("Unexpected overrides string %s, expected %s", overrides, expectedOverridesString)
+		}
+		return []byte{}, []byte{}, nil
+	})
+	defer setDefaultUpgradeFunc()
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	helm.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStateFunction()
+	err := comp.Install(zap.S(), client, "default", false)
+	assert.NoError(err, "Upgrade returned an error")
+}
+
+// TestOperatorInstallSupported tests IsOperatorInstallSupported
+// GIVEN a component
+//  WHEN I call IsOperatorInstallSupported
+//  THEN the correct value based on the component definition is returned
+func TestOperatorInstallSupported(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := helmComponent{
+		supportsOperatorInstall: true,
+	}
+	assert.True(comp.IsOperatorInstallSupported())
+	assert.False(helmComponent{}.IsOperatorInstallSupported())
+}
+
+// TestGetDependencies tests GetDependencies
+// GIVEN a component
+//  WHEN I call GetDependencies
+//  THEN the correct value based on the component definition is returned
+func TestGetDependencies(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := helmComponent{
+		dependencies: []string{"comp1", "comp2"},
+	}
+	assert.Equal([]string{"comp1", "comp2"}, comp.GetDependencies())
+	assert.Nil(helmComponent{}.GetDependencies())
+}
+
+// TestGetDependencies tests IsInstalled
+// GIVEN a component
+//  WHEN I call GetDependencies
+//  THEN true is returned if it the helm release is deployed, false otherwise
+func TestIsInstalled(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := helmComponent{}
+	defer helm.SetDefaultChartStatusFunction()
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	assert.True(comp.IsInstalled(zap.S(), client, "default"))
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	assert.False(comp.IsInstalled(zap.S(), client, "default"))
+}
+
+// TestReady tests IsReady
+// GIVEN a component
+//  WHEN I call IsReady
+//  THEN true is returned based on chart status and the status check function if defined for the component
+func TestReady(t *testing.T) {
+	assert := assert.New(t)
+
+	defer helm.SetDefaultChartStatusFunction()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	comp := helmComponent{}
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	assert.True(comp.IsReady(zap.S(), client, "default"))
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	assert.False(comp.IsReady(zap.S(), client, "default"))
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusFailed, nil
+	})
+	assert.False(comp.IsReady(zap.S(), client, "default"))
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return "", fmt.Errorf("Unexpected error")
+	})
+	assert.False(comp.IsReady(zap.S(), client, "default"))
+
+	compInstalledWithNotReadyStatus := helmComponent{
+		readyStatusFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool {
+			return false
+		},
+	}
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	assert.False(compInstalledWithNotReadyStatus.IsReady(zap.S(), client, "default"))
+
+	compInstalledWithReadyStatus := helmComponent{
+		readyStatusFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool {
+			return true
+		},
+	}
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	assert.True(compInstalledWithReadyStatus.IsReady(zap.S(), client, "default"))
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade

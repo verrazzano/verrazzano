@@ -19,6 +19,7 @@ var runner vzos.CmdRunner = vzos.DefaultRunner{}
 // Helm chart status values: unknown, deployed, uninstalled, superseded, failed, uninstalling, pending-install, pending-upgrade or pending-rollback
 const ChartNotFound = "NotFound"
 const ChartStatusDeployed = "deployed"
+const ChartStatusPendingInstall = "pending-install"
 const ChartStatusFailed = "failed"
 
 // Package-level var and functions to allow overriding GetChartStatus for unit test purposes
@@ -26,23 +27,29 @@ type ChartStatusFnType func(releaseName string, namespace string) (string, error
 
 var chartStatusFn ChartStatusFnType = getChartStatus
 
+// SetChartStatusFunction Override the chart status function for unit testing
 func SetChartStatusFunction(f ChartStatusFnType) {
 	chartStatusFn = f
 }
+
+// SetDefaultChartStatusFunction Reset the chart status function
 func SetDefaultChartStatusFunction() {
 	chartStatusFn = getChartStatus
 }
 
 // Package-level var and functions to allow overriding getReleaseState for unit test purposes
-type ReleaseStateFnType func(releaseName string, namespace string) (string, error)
+type releaseStateFnType func(releaseName string, namespace string) (string, error)
 
-var ReleaseStateFn ReleaseStateFnType = getReleaseState
+var releaseStateFn releaseStateFnType = getReleaseState
 
-func SetChartStateFunction(f ReleaseStateFnType) {
-	ReleaseStateFn = f
+// SetChartStateFunction Override the chart state function for unit testing
+func SetChartStateFunction(f releaseStateFnType) {
+	releaseStateFn = f
 }
+
+// SetDefaultChartStateFunction Reset the chart state function
 func SetDefaultChartStateFunction() {
-	ReleaseStateFn = getChartStatus
+	releaseStateFn = getChartStatus
 }
 
 // GetValues will run 'helm get values' command and return the output from the command.
@@ -100,7 +107,7 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 
 // Upgrade will upgrade a Helm release with the specified charts.  The overrideFiles array
 // are in order with the first files in the array have lower precedence than latter files.
-func Uninstall(log *zap.SugaredLogger, releaseName string, namespace string, wait bool, dryRun bool) (stdout []byte, stderr []byte, err error) {
+func Uninstall(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
 	args := []string{}
@@ -157,7 +164,7 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 // IsReleaseFailed Returns true if the chart release state is marked 'failed'
 func IsReleaseFailed(releaseName string, namespace string) (bool, error) {
 	log := zap.S()
-	releaseStatus, err := getReleaseState(releaseName, namespace)
+	releaseStatus, err := releaseStateFn(releaseName, namespace)
 	if err != nil {
 		log.Errorf("Getting status for chart %s/%s failed with stderr: %v\n", namespace, releaseName, err)
 		return false, err
@@ -205,9 +212,12 @@ func getChartStatus(releaseName string, namespace string) (string, error) {
 		return "", err
 	}
 
-	var info = statusInfo["info"].(map[string]interface{})
-	status := info["status"].(string)
-	return strings.TrimSpace(status), nil
+	if info, infoFound := statusInfo["info"].(map[string]interface{}); infoFound {
+		if status, statusFound := info["status"].(string); statusFound {
+			return strings.TrimSpace(status), nil
+		}
+	}
+	return "", fmt.Errorf("No chart status found for %s/%s", namespace, releaseName)
 }
 
 // getReleaseState extracts the release state from an "ls -o json" command for a specific release/namespace
