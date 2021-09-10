@@ -73,8 +73,6 @@ func main() {
 	// Set the BOM file path for the operator
 	if len(bomOverride) > 0 {
 		internalconfig.SetDefaultBomFilePath(bomOverride)
-	} else {
-		internalconfig.SetDefaultBomFilePath(internalconfig.GetDefaultBOMFilePath())
 	}
 
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
