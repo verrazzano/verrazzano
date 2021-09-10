@@ -4,6 +4,7 @@
 package component
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"os"
 	"testing"
@@ -18,24 +19,24 @@ import (
 func TestAppendIstioOverrides(t *testing.T) {
 	assert := assert.New(t)
 
-	SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetBomFilePathOverride(testBomFilePath)
 
 	os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
 	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
 
 	kvs, err := appendIstioOverrides(nil, "istiod", "", "", nil)
 	assert.NoError(err, "appendIstioOverrides returned an error ")
-	assert.Len(kvs, 1, "appendIstioOverrides returned wrong number of key:value pairs")
-	assert.Equal(istioGlobalHubKey, kvs[0].key)
-	assert.Equal("myreg.io/verrazzano", kvs[0].value)
+	assert.Len(kvs, 1, "appendIstioOverrides returned wrong number of Key:Value pairs")
+	assert.Equal(istioGlobalHubKey, kvs[0].Key)
+	assert.Equal("myreg.io/verrazzano", kvs[0].Value)
 
 	os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
 	defer os.Unsetenv(constants.ImageRepoOverrideEnvVar)
 	kvs, err = appendIstioOverrides(nil, "istiod", "", "", nil)
 	assert.NoError(err, "appendIstioOverrides returned an error ")
-	assert.Len(kvs, 1, "appendIstioOverrides returned wrong number of key:value pairs")
-	assert.Equal(istioGlobalHubKey, kvs[0].key)
-	assert.Equal("myreg.io/myrepo/verrazzano", kvs[0].value)
+	assert.Len(kvs, 1, "appendIstioOverrides returned wrong number of Key:Value pairs")
+	assert.Equal(istioGlobalHubKey, kvs[0].Key)
+	assert.Equal("myreg.io/myrepo/verrazzano", kvs[0].Value)
 }
 
 // TestAppendIstioOverridesNoRegistryOverride tests the Istio override for the global hub when no registry override is specified
@@ -45,9 +46,9 @@ func TestAppendIstioOverrides(t *testing.T) {
 func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
 	assert := assert.New(t)
 
-	SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetBomFilePathOverride(testBomFilePath)
 
 	kvs, err := appendIstioOverrides(nil, "istiod", "", "", nil)
 	assert.NoError(err, "appendIstioOverrides returned an error ")
-	assert.Len(kvs, 0, "appendIstioOverrides returned wrong number of key:value pairs")
+	assert.Len(kvs, 0, "appendIstioOverrides returned wrong number of Key:Value pairs")
 }

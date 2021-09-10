@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const testBomFilePath = "../testdata/test_bom.json"
+
 // TestGetComponents tests getting the components
 // GIVEN a component
 //  WHEN I call GetComponents

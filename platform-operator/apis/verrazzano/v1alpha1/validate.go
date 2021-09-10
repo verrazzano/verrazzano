@@ -7,11 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/config"
 	"reflect"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/semver"
 
 	"go.uber.org/zap"
@@ -23,7 +23,7 @@ import (
 
 // GetCurrentBomVersion Get the version string from the bom and return it as a semver object
 func GetCurrentBomVersion() (*semver.SemVersion, error) {
-	bom, err := component.NewBom(component.DefaultBomFilePath())
+	bom, err := bom.NewBom(bom.DefaultBomFilePath())
 	if err != nil {
 		return nil, err
 	}

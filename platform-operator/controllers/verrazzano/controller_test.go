@@ -7,15 +7,15 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/config"
 	"testing"
 	"time"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -127,9 +127,9 @@ func TestSuccessfulInstall(t *testing.T) {
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetBomFilePathOverride(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		bom.SetBomFilePathOverride("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -239,9 +239,9 @@ func TestCreateVerrazzano(t *testing.T) {
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetBomFilePathOverride(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		bom.SetBomFilePathOverride("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -414,9 +414,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetBomFilePathOverride(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		bom.SetBomFilePathOverride("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {

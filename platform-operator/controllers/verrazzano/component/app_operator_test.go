@@ -4,6 +4,7 @@
 package component
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"os"
 	"testing"
 
@@ -14,7 +15,7 @@ import (
 // TestAppendAppOperatorOverrides tests the Keycloak override for the theme images
 // GIVEN an env override for the app operator image
 //  WHEN I call appendApplicationOperatorOverrides
-//  THEN the "image" key is set with the image override.
+//  THEN the "image" Key is set with the image override.
 func TestAppendAppOperatorOverrides(t *testing.T) {
 	assert := assert.New(t)
 
@@ -22,15 +23,15 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 
 	kvs, err := appendApplicationOperatorOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "appendApplicationOperatorOverrides returned an error ")
-	assert.Len(kvs, 0, "appendApplicationOperatorOverrides returned an unexpected number of key:value pairs")
+	assert.Len(kvs, 0, "appendApplicationOperatorOverrides returned an unexpected number of Key:Value pairs")
 
 	os.Setenv(constants.VerrazzanoAppOperatorImageEnvVar, customImage)
 	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
 
-	SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetBomFilePathOverride(testBomFilePath)
 	kvs, err = appendApplicationOperatorOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "appendApplicationOperatorOverrides returned an error ")
-	assert.Len(kvs, 1, "appendApplicationOperatorOverrides returned wrong number of key:value pairs")
-	assert.Equalf("image", kvs[0].key, "Did not get expected image key")
-	assert.Equalf(customImage, kvs[0].value, "Did not get expected image value")
+	assert.Len(kvs, 1, "appendApplicationOperatorOverrides returned wrong number of Key:Value pairs")
+	assert.Equalf("image", kvs[0].Key, "Did not get expected image Key")
+	assert.Equalf(customImage, kvs[0].Value, "Did not get expected image Value")
 }

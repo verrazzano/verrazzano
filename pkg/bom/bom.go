@@ -1,18 +1,18 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component
+package bom
 
 import (
 	"encoding/json"
 	"errors"
+	"github.com/verrazzano/verrazzano/pkg/config"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -21,21 +21,21 @@ const slash = "/"
 const tagSep = ":"
 
 // This is the BOM file path needed for unit tests
-var unitTestBomFilePath string
+var bomFilePathOverride string
 
-// SetUnitTestBomFilePath is used for unit tests
-func SetUnitTestBomFilePath(p string) {
-	unitTestBomFilePath = p
+// SetBomFilePathOverride is used for unit tests
+func SetBomFilePathOverride(p string) {
+	bomFilePathOverride = p
 }
 
 // Bom contains information related to the bill of materials along with structures to process it.
 // The bom file is verrazzano-bom.json and it mainly has image information.
 type Bom struct {
-	// bomDoc contains the contents of the JSON bom, in go structure format.
-	bomDoc BomDoc
+	// BomDoc contains the contents of the JSON bom, in go structure format.
+	BomDoc BomDoc
 
-	// subComponentMap is a map of subcomponents keyed by subcomponent name.
-	subComponentMap map[string]*BomSubComponent
+	// SubComponentMap is a map of subcomponents keyed by subcomponent name.
+	SubComponentMap map[string]*BomSubComponent
 }
 
 // BomDoc contains product metadata for components installed by Verrazzano.
@@ -69,7 +69,7 @@ type BomSubComponent struct {
 	Name string `json:"name"`
 
 	// Repository is the name of the repository within a registry.  This is combined
-	// with the registry value to form the image URL prefix, for example: ghcr.io/verrazzano,
+	// with the registry Value to form the image URL prefix, for example: ghcr.io/verrazzano,
 	// where ghci.io is the registry and verrazzano is the repository name.
 	Repository string `json:"repository"`
 
@@ -89,36 +89,36 @@ type BomImage struct {
 	// ImageTag specifies the name of the image tag, such as `0.46.0-20210510134749-abc2d2088`
 	ImageTag string `json:"tag"`
 
-	// HelmRegistryKey is the helm template key which identifies the image registry.  This is not
+	// HelmRegistryKey is the helm template Key which identifies the image registry.  This is not
 	// normally specified.  An example is `image.registry` in external-dns.  The default is empty string
 	HelmRegistryKey string `json:"helmRegKey"`
 
-	// HelmRepoKey is the helm template key which identifies the image repository.
+	// HelmRepoKey is the helm template Key which identifies the image repository.
 	HelmRepoKey string `json:"helmRepoKey"`
 
-	// HelmImageKey is the helm template key which identifies the image name.  There are a variety
+	// HelmImageKey is the helm template Key which identifies the image name.  There are a variety
 	// of keys used by the different helm charts, such as `api.imageName`.  The default is `image`
 	HelmImageKey string `json:"helmImageKey"`
 
-	// HelmTagKey is the helm template key which identifies the image tag.  There are a variety
+	// HelmTagKey is the helm template Key which identifies the image tag.  There are a variety
 	// of keys used by the different helm charts, such as `api.imageVersion`.
 	HelmTagKey string `json:"helmTagKey"`
 
-	// HelmFullImageKey is the helm path key which identifies the image name.  There are a variety
+	// HelmFullImageKey is the helm path Key which identifies the image name.  There are a variety
 	// of keys used by the different helm charts, such as `api.imageName`.
 	HelmFullImageKey string `json:"helmFullImageKey"`
 }
 
-// keyVal defines the key, value pair used to override a single helm value
-type keyValue struct {
-	key   string
-	value string
+// keyVal defines the Key, Value pair used to override a single helm Value
+type KeyValue struct {
+	Key   string
+	Value string
 }
 
 // DefaultBomFilePath returns the default path of the bom file
 func DefaultBomFilePath() string {
-	if unitTestBomFilePath != "" {
-		return unitTestBomFilePath
+	if bomFilePathOverride != "" {
+		return bomFilePathOverride
 	}
 	return filepath.Join(config.GetPlatformDir(), defaultBomFilename)
 }
@@ -130,7 +130,7 @@ func NewBom(bomPath string) (Bom, error) {
 		return Bom{}, err
 	}
 	bom := Bom{
-		subComponentMap: make(map[string]*BomSubComponent),
+		SubComponentMap: make(map[string]*BomSubComponent),
 	}
 	err = bom.init(string(jsonBom))
 	if err != nil {
@@ -143,26 +143,26 @@ func NewBom(bomPath string) (Bom, error) {
 // a map of subcomponents
 func (b *Bom) init(jsonBom string) error {
 	// Convert the json into a to bom
-	if err := json.Unmarshal([]byte(jsonBom), &b.bomDoc); err != nil {
+	if err := json.Unmarshal([]byte(jsonBom), &b.BomDoc); err != nil {
 		return err
 	}
 
 	// Build a map of subcomponents
-	for _, comp := range b.bomDoc.Components {
+	for _, comp := range b.BomDoc.Components {
 		for i, sub := range comp.SubComponents {
-			b.subComponentMap[sub.Name] = &comp.SubComponents[i]
+			b.SubComponentMap[sub.Name] = &comp.SubComponents[i]
 		}
 	}
 	return nil
 }
 
 func (b *Bom) GetVersion() string {
-	return b.bomDoc.Version
+	return b.BomDoc.Version
 }
 
 // GetSubcomponent gets the bom subcomponent
 func (b *Bom) GetSubcomponent(subComponentName string) (*BomSubComponent, error) {
-	sc, ok := b.subComponentMap[subComponentName]
+	sc, ok := b.SubComponentMap[subComponentName]
 	if !ok {
 		return nil, errors.New("unknown subcomponent " + subComponentName)
 	}
@@ -180,29 +180,29 @@ func (b *Bom) GetSubcomponentImages(subComponentName string) ([]BomImage, error)
 
 // GetSubcomponentImageCount returns the number of subcomponent images
 func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
-	imageBom, ok := b.subComponentMap[subComponentName]
+	imageBom, ok := b.SubComponentMap[subComponentName]
 	if !ok {
 		return 0
 	}
 	return len(imageBom.Images)
 }
 
-// buildImageOverrides builds the image overrides array for the subComponent.
-// Each override has an array of 1-n Helm key:value pairs
-func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
-	sc, ok := b.subComponentMap[subComponentName]
+// BuildImageOverrides builds the image overrides array for the subComponent.
+// Each override has an array of 1-n Helm Key:Value pairs
+func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
+	sc, ok := b.SubComponentMap[subComponentName]
 	if !ok {
 		return nil, errors.New("unknown subcomponent " + subComponentName)
 	}
 
-	registry := b.resolveRegistry(sc)
-	repo := b.resolveRepo(sc)
+	registry := b.ResolveRegistry(sc)
+	repo := b.ResolveRepo(sc)
 
 	// Loop through the images used by this subcomponent, building
-	// the list of key:value pairs.  At the very least, this will build
-	// a single value for the fully qualified image name in the format of
+	// the list of Key:Value pairs.  At the very least, this will build
+	// a single Value for the fully qualified image name in the format of
 	// registry/repository/image.tag
-	var kvs []keyValue
+	var kvs []KeyValue
 	for _, imageBom := range sc.Images {
 		fullImageBldr := strings.Builder{}
 
@@ -210,41 +210,41 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 		// However, there are exceptions like in external-dns, where the registry is a separate helm field,
 		// in which case the registry is omitted from the image full name.
 		if imageBom.HelmRegistryKey != "" {
-			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmRegistryKey,
-				value: registry,
+			kvs = append(kvs, KeyValue{
+				Key:   imageBom.HelmRegistryKey,
+				Value: registry,
 			})
 		} else {
 			fullImageBldr.WriteString(registry)
 			fullImageBldr.WriteString(slash)
 		}
 
-		// Either write the repo name key value, or append it to the full image path
+		// Either write the repo name Key Value, or append it to the full image path
 		if imageBom.HelmRepoKey != "" {
-			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmRepoKey,
-				value: repo,
+			kvs = append(kvs, KeyValue{
+				Key:   imageBom.HelmRepoKey,
+				Value: repo,
 			})
 		} else {
 			fullImageBldr.WriteString(repo)
 			fullImageBldr.WriteString(slash)
 		}
 
-		// Either write the image name key value, or append it to the full image path
+		// Either write the image name Key Value, or append it to the full image path
 		if imageBom.HelmImageKey != "" {
-			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmImageKey,
-				value: imageBom.ImageName,
+			kvs = append(kvs, KeyValue{
+				Key:   imageBom.HelmImageKey,
+				Value: imageBom.ImageName,
 			})
 		} else {
 			fullImageBldr.WriteString(imageBom.ImageName)
 		}
 
-		// Either write the tag name key value, or append it to the full image path
+		// Either write the tag name Key Value, or append it to the full image path
 		if imageBom.HelmTagKey != "" {
-			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmTagKey,
-				value: imageBom.ImageTag,
+			kvs = append(kvs, KeyValue{
+				Key:   imageBom.HelmTagKey,
+				Value: imageBom.ImageTag,
 			})
 		} else {
 			fullImageBldr.WriteString(tagSep)
@@ -253,36 +253,36 @@ func (b *Bom) buildImageOverrides(subComponentName string) ([]keyValue, error) {
 
 		fullImagePath := fullImageBldr.String()
 
-		// If the image path key is present the create the kv with the full image path
+		// If the image path Key is present the create the kv with the full image path
 		if imageBom.HelmFullImageKey != "" {
-			kvs = append(kvs, keyValue{
-				key:   imageBom.HelmFullImageKey,
-				value: fullImagePath,
+			kvs = append(kvs, KeyValue{
+				Key:   imageBom.HelmFullImageKey,
+				Value: fullImagePath,
 			})
 		}
-		// Default the image key if there are no specified tags.  Keycloak theme needs this
+		// Default the image Key if there are no specified tags.  Keycloak theme needs this
 		if len(kvs) == 0 {
-			kvs = append(kvs, keyValue{
-				key:   defaultImageKey,
-				value: fullImagePath,
+			kvs = append(kvs, KeyValue{
+				Key:   defaultImageKey,
+				Value: fullImagePath,
 			})
 		}
 	}
 	return kvs, nil
 }
 
-// resolveRegistry resolves the registry name using the ENV var if it exists.
-func (b *Bom) resolveRegistry(sc *BomSubComponent) string {
+// ResolveRegistry resolves the registry name using the ENV var if it exists.
+func (b *Bom) ResolveRegistry(sc *BomSubComponent) string {
 	// Get the registry ENV override, if it doesn't exist use the default
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	if registry == "" {
-		registry = b.bomDoc.Registry
+		registry = b.BomDoc.Registry
 	}
 	return registry
 }
 
-// resolveRepo resolves the repository name using the ENV var if it exists.
-func (b *Bom) resolveRepo(sc *BomSubComponent) string {
+// ResolveRepo resolves the repository name using the ENV var if it exists.
+func (b *Bom) ResolveRepo(sc *BomSubComponent) string {
 	// Get the repo ENV override.  This needs to get prepended to the bom repo
 	userRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
 	repo := sc.Repository

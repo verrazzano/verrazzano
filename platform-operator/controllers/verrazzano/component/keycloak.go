@@ -6,12 +6,13 @@ package component
 import (
 	"bytes"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"text/template"
 
 	"go.uber.org/zap"
 )
 
-// Define the keylcloak key:value pair for init container.
+// Define the keylcloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
 const kcInitContainerKey = "keycloak.extraInitContainers"
 const kcInitContainerValueTemplate = `
@@ -37,17 +38,17 @@ type imageData struct {
 	Image string
 }
 
-// appendKeycloakOverrides appends the Keycloak theme for the key keycloak.extraInitContainers.
+// appendKeycloakOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
 // A go template is used to replace the image in the init container spec.
-func appendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []keyValue) ([]keyValue, error) {
-	// Create a Bom and get the key value overrides
-	bom, err := NewBom(DefaultBomFilePath())
+func appendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// Create a Bom and get the Key Value overrides
+	bomFile, err := bom.NewBom(bom.DefaultBomFilePath())
 	if err != nil {
 		return nil, err
 	}
 
 	// Get Keycloak theme images
-	images, err := bom.buildImageOverrides("keycloak-oracle-theme")
+	images, err := bomFile.BuildImageOverrides("keycloak-oracle-theme")
 	if err != nil {
 		return nil, err
 	}
@@ -63,16 +64,16 @@ func appendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string,
 	}
 
 	// Render the template
-	data := imageData{Image: images[0].value}
+	data := imageData{Image: images[0].Value}
 	err = t.Execute(&b, data)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return a new key:value pair with the rendered value
-	kvs = append(kvs, keyValue{
-		key:   kcInitContainerKey,
-		value: b.String(),
+	// Return a new Key:Value pair with the rendered Value
+	kvs = append(kvs, bom.KeyValue{
+		Key:   kcInitContainerKey,
+		Value: b.String(),
 	})
 
 	return kvs, nil

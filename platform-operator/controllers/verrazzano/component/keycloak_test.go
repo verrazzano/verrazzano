@@ -4,6 +4,7 @@
 package component
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,13 +14,13 @@ import (
 // TestAppendKeycloakOverrides tests the Keycloak override for the theme images
 // GIVEN a Verrazzano BOM
 //  WHEN I call appendKeycloakOverrides
-//  THEN the Keycloak theme override is added to the key:value array.
+//  THEN the Keycloak theme override is added to the Key:Value array.
 func TestAppendKeycloakOverrides(t *testing.T) {
 	const defNs = constants.VerrazzanoSystemNamespace
 	assert := assert.New(t)
 
-	SetUnitTestBomFilePath(testBomFilePath)
+	bom.SetBomFilePathOverride(testBomFilePath)
 	kvs, err := appendKeycloakOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "appendKeycloakOverrides returned an error ")
-	assert.Len(kvs, 1, "appendKeycloakOverrides returned wrong number of key:value pairs")
+	assert.Len(kvs, 1, "appendKeycloakOverrides returned wrong number of Key:Value pairs")
 }
