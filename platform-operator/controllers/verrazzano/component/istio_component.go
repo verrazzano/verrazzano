@@ -22,7 +22,7 @@ var _ Component = istioComponent{}
 
 type istioUpgradeFuncSig func(log *zap.SugaredLogger) error
 
-// helmUpgradeFunc is the default upgrade function
+// istioUpgradeFunc is the default upgrade function
 var istioUpgradeFunc istioUpgradeFuncSig = istio.Upgrade
 
 // Name returns the component name
@@ -45,4 +45,12 @@ func (i istioComponent) Install(log *zap.SugaredLogger, client clipkg.Client, na
 func (i istioComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
 	err := istioUpgradeFunc(log)
 	return err
+}
+
+func setIstioUpgradeFunc(f istioUpgradeFuncSig) {
+	istioUpgradeFunc = f
+}
+
+func setIstioDefaultUpgradeFunc() {
+	istioUpgradeFunc = istio.Upgrade
 }

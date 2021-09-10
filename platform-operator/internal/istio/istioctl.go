@@ -3,9 +3,25 @@
 
 package istio
 
-import "go.uber.org/zap"
+import (
+	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+	"go.uber.org/zap"
+)
+
+// cmdRunner needed for unit tests
+var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
 func Upgrade(log *zap.SugaredLogger) error {
 	log.Info("-------Reached istio upgrade function!!!!----------------")
 	return nil
+}
+
+// SetCmdRunner sets the command runner as needed by unit tests
+func SetCmdRunner(r vzos.CmdRunner) {
+	runner = r
+}
+
+// SetDefaultRunner sets the command runner to default
+func SetDefaultRunner() {
+	runner = vzos.DefaultRunner{}
 }
