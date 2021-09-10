@@ -31,7 +31,7 @@ func (i istioComponent) IsOperatorInstallSupported() bool {
 	return false
 }
 
-func (i istioComponent) IsInstalled() bool {
+func (i istioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) bool {
 	return false
 }
 
@@ -50,4 +50,13 @@ func setIstioUpgradeFunc(f istioUpgradeFuncSig) {
 
 func setIstioDefaultUpgradeFunc() {
 	istioUpgradeFunc = istio.Upgrade
+}
+
+func (i istioComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
+	return true
+}
+
+// GetDependencies returns the dependencies of this component
+func (i istioComponent) GetDependencies() []string {
+	return []string{}
 }
