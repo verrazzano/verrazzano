@@ -5,7 +5,6 @@ package cluster
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -60,11 +59,6 @@ func (o *ClusterRegisterOptions) registerCluster(kubernetesInterface helpers.Kub
 	// If doesn't exist, create it
 	if err := o.checkConfigMap(kubernetesInterface); err != nil {
 		return err
-	}
-
-	// CA Secret name was not provided
-	if len(o.caSecret) == 0 {
-		return errors.New("CA secret is needed")
 	}
 
 	// Create the vmc resource for the managed cluster
