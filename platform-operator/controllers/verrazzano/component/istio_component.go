@@ -12,9 +12,6 @@ import (
 type istioComponent struct {
 	//componentName The name of the component
 	componentName string
-
-	//supportsOperatorInstall Indicates whether or not the component supports install via the operator
-	supportsOperatorInstall bool
 }
 
 // Verify that istioComponent implements Component
@@ -31,7 +28,7 @@ func (i istioComponent) Name() string {
 }
 
 func (i istioComponent) IsOperatorInstallSupported() bool {
-	return i.supportsOperatorInstall
+	return false
 }
 
 func (i istioComponent) IsInstalled() bool {
