@@ -21,7 +21,7 @@ const (
 	defaultCAClusterResourceName string = "cert-manager"
 	defaultCASecretName          string = "verrazzano-ca-certificate-secret" //nolint:gosec //#gosec G101
 
-	defaultElasticsearchURL    string = "http://vmi-system-es-ingest-oidc:8775"
+	defaultElasticsearchURL    string = "http://verrazzano-authproxy-elasticsearch:9200"
 	defaultElasticsearchSecret string = "verrazzano"
 
 	// Verrazzano Helm chart value names

@@ -33,6 +33,16 @@ spec:
               verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
+              app: fluentd
+      ports:
+        - protocol: TCP
+          port: 8775
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
               app: system-prometheus
       ports:
         - port: 15090

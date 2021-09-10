@@ -115,6 +115,20 @@ spec:
     app: {{ .Values.api.name }}
 ---
 apiVersion: v1
+kind: Service
+metadata:
+  name: verrazzano-authproxy-elasticsearch
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+    - name: auth-proxy
+      port: 9200
+      protocol: TCP
+      targetPort: {{ .Values.api.port }}
+  selector:
+    app: {{ .Values.api.name }}
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ .Values.api.name }}
