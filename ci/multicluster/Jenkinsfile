@@ -503,64 +503,13 @@ pipeline {
                 }
                 stage("upgrade-platform-operator") {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                for(int count=2; count<=clusterCount; count++) {
-                                    sh """
-                                        export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-
-                                        echo "Upgrading the Verrazzano platform operator"
-                                        # Download the operator.yaml for the target version that we are upgrading to
-                                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                                        kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
-                
-                                        # need to sleep since the old operator needs to transition to terminating state
-                                        sleep 15
-                
-                                        # ensure operator pod is up
-                                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                                    """
-                                }
-                            }
+                            upgradePlatformOperator()
                         }
                     }
-                }
 
                 stage("upgrade-verrazzano") {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                                // Download the bom for the target version that we are upgrading to, then extract the version
-                                // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
-                                VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
-
-                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                for(int count=2; count<=clusterCount; count++) {
-                                    sh """
-                                        export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-
-                                        echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
-                                        # Modify the version field in the verrazzano CR file to be this new verrazzano version
-                                        cd ${GO_REPO_PATH}/verrazzano
-                                        cp ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                                        ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                                        # Do the upgrade
-                                        echo "Following is the verrazano CR file with the new version:"
-                                        cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                                        kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                                        # wait for the upgrade to complete
-                                        kubectl wait --timeout=10m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-            
-                                        # ideally we don't need to wait here
-                                        sleep 15
-                                        echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-                                        helm list -A
-                                    """
-                                }
-                            }
-                        }
+                        upgradeVerrazzano()
                     }
                 }
                 
@@ -1292,6 +1241,67 @@ def metricBuildDuration() {
         withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
             METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
+        }
+    }
+}
+
+// Upgrade the verrazzano-platform-operator
+def upgradePlatformOperator() {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        script {
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            for (int count = 2; count <= clusterCount; count++) {
+                sh """
+                                        export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+
+                                        echo "Upgrading the Verrazzano platform operator"
+                                        # Download the operator.yaml for the target version that we are upgrading to
+                                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                                        kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+                
+                                        # need to sleep since the old operator needs to transition to terminating state
+                                        sleep 15
+                
+                                        # ensure operator pod is up
+                                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                                    """
+            }
+        }
+    }
+}
+
+// Upgrade Verrazzano
+def upgradeVerrazzano() {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        script {
+            // Download the bom for the target version that we are upgrading to, then extract the version
+            // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
+            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
+
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            for(int count=2; count<=clusterCount; count++) {
+                sh """
+                                        export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+
+                                        echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
+                                        # Modify the version field in the verrazzano CR file to be this new verrazzano version
+                                        cd ${GO_REPO_PATH}/verrazzano
+                                        cp ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                                        ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                                        # Do the upgrade
+                                        echo "Following is the verrazano CR file with the new version:"
+                                        cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                                        kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                                        # wait for the upgrade to complete
+                                        kubectl wait --timeout=10m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+            
+                                        # ideally we don't need to wait here
+                                        sleep 15
+                                        echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
+                                        helm list -A
+                                    """
+            }
         }
     }
 }
