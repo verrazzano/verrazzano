@@ -270,13 +270,13 @@ pipeline {
             }
         }
 
-        stage('Acceptance Tests') {
+        stage('Install and Configure') {
             when {
                 allOf {
                     not { buildingTag() }
                     anyOf {
                         branch 'master';
-                        expression {SKIP_ACCEPTANCE_TESTS == false};
+                        expression { SKIP_ACCEPTANCE_TESTS == false };
                     }
                 }
             }
@@ -505,13 +505,14 @@ pipeline {
                         upgradePlatformOperator()
                     }
                 }
-
                 stage("upgrade-verrazzano") {
                     steps {
                         upgradeVerrazzano()
                     }
                 }
             }
+        }
+        stage('Acceptance Tests') {
             stages {
                 stage ('Example apps') {
                     parallel {
