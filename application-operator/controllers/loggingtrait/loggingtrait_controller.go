@@ -6,10 +6,10 @@ package loggingtrait
 import (
 	"context"
 	"fmt"
+	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 
 	crossplanev1alpha1 "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam/discoverymapper"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam/util"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -75,14 +75,16 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	}
 
 	// Retrieve the workload the trait is related to
-	workload, err := util.FetchWorkload(ctx, r, log, &loggingtrait)
+	workload, err := vznav.FetchWorkloadFromTrait(ctx, r, log, &loggingtrait)
+	// workload, err := util.FetchWorkload(ctx, r, log, &loggingtrait)
 	if err != nil {
 		r.Record.Event(eventObject, event.Warning(util.ErrLocateWorkload, err))
 		return ctrl.Result{}, err
 	}
 
 	// Retrieve the child resources of the workload
-	resources, err := util.FetchWorkloadChildResources(ctx, log, r, &discoverymapper.DefaultDiscoveryMapper{}, workload)
+	resources, err := vznav.FetchWorkloadChildren(ctx, r, log, workload)
+	// resources, err := util.FetchWorkloadChildResources(ctx, log, r, &discoverymapper.DefaultDiscoveryMapper{}, workload)
 	if err != nil {
 		log.Error(err, "Error retrieving the workloads child resources", "workload", workload.UnstructuredContent())
 		r.Record.Event(eventObject, event.Warning(util.ErrFetchChildResources, err))
@@ -105,7 +107,7 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	r.Record.Event(eventObject, event.Normal("Logging sidecar containers applied",
 		fmt.Sprintf("Trait `%s` successfully patched logging sidecar to resource", loggingtrait.Name)))
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{Requeue: true}, nil
 }
 
 func (r *LoggingTraitReconciler) logResource(
