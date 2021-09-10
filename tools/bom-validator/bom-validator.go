@@ -162,10 +162,7 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string]string, imagesN
 			}
 		}
 	}
-	if errorsFound {
-		return false
-	}
-	return true
+	return !errorsFound
 }
 
 // Report out the findings
