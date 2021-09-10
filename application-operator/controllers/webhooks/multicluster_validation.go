@@ -73,8 +73,7 @@ func translateErrorToResponse(err error) admission.Response {
 	return admission.Denied(err.Error())
 }
 
-// Validate that the namespace of the given multiclusterapplicationconfiguration resource is part
-// of a verrazzanoproject
+// Validate that the namespace of a multiclusterXXX resource is part of a verrazzanoproject
 func validateNamespaceInProject(c client.Client, namespace string) error {
 	vzProjects := clusters.VerrazzanoProjectList{}
 	err := c.List(context.TODO(), &vzProjects)
