@@ -76,9 +76,9 @@ spec:
               verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app: verrazzano-api
       ports:
-        - port: 15090
+        - port: 3000
           protocol: TCP
     - from:
         - namespaceSelector:
@@ -86,9 +86,9 @@ spec:
               verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app: verrazzano-api
+              app: system-prometheus
       ports:
-        - port: 3000
+        - port: 15090
           protocol: TCP
 {{- end }}
 {{- if .Values.prometheus.enabled}}
@@ -110,19 +110,19 @@ spec:
     - Ingress
   ingress:
     - from:
-        - podSelector:
-            matchLabels:
-              app: system-grafana
-      ports:
-        - port: 9090
-          protocol: TCP
-    - from:
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
               app: verrazzano-api
+      ports:
+        - port: 9090
+          protocol: TCP
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-grafana
       ports:
         - port: 9090
           protocol: TCP
