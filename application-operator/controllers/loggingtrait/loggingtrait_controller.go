@@ -76,7 +76,6 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 	// Retrieve the workload the trait is related to
 	workload, err := vznav.FetchWorkloadFromTrait(ctx, r, log, &loggingtrait)
-	// workload, err := util.FetchWorkload(ctx, r, log, &loggingtrait)
 	if err != nil {
 		r.Record.Event(eventObject, event.Warning(util.ErrLocateWorkload, err))
 		return ctrl.Result{}, err
@@ -84,7 +83,6 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 	// Retrieve the child resources of the workload
 	resources, err := vznav.FetchWorkloadChildren(ctx, r, log, workload)
-	// resources, err := util.FetchWorkloadChildResources(ctx, log, r, &discoverymapper.DefaultDiscoveryMapper{}, workload)
 	if err != nil {
 		log.Error(err, "Error retrieving the workloads child resources", "workload", workload.UnstructuredContent())
 		r.Record.Event(eventObject, event.Warning(util.ErrFetchChildResources, err))
