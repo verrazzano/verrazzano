@@ -122,7 +122,7 @@ metadata:
 spec:
   ports:
     - name: auth-proxy
-      port: 9200
+      port: {{ .Values.api.port }}
       protocol: TCP
       targetPort: {{ .Values.api.port }}
   selector:

@@ -178,7 +178,7 @@ spec:
                       elasticsearchURL:
                         description: Specifies the Elasticsearch URL.  It can be a comma
                           seprated list with multiple nodes.  Default is
-                          "http://verrazzano-authproxy-elasticsearch:9200".
+                          "http://verrazzano-authproxy-elasticsearch:8775 ".
                         type: string
                       enabled:
                         description: Specifies whether Fluentd is deployed or not
