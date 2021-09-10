@@ -279,6 +279,7 @@ pipeline {
 
                 stage("validateBOM") {
                     environment {
+                        OCI_CLI_AUTH=“instance_principal”
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                         OCI_OS_BUCKET="verrazzano-builds"
                     }
