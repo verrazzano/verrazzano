@@ -17,17 +17,13 @@ import (
 // true if the image pull secret exists and was copied successfully.
 func checkImagePullSecret(client client.Client, targetNamespace string) (bool, error) {
 	var targetSecret v1.Secret
-	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: targetNamespace, Name: constants.GlobalImagePullSecName}, &targetSecret); err != nil {
-		if errors.IsAlreadyExists(err) {
-			// Global secret exists and was already copied to the target namespace
-			return true, nil
-		}
-		if !errors.IsNotFound(err) {
-			// Unexpected error
-			return false, err
-		}
+	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: targetNamespace, Name: constants.GlobalImagePullSecName}, &targetSecret); err == nil {
+		return true, nil
+	} else if !errors.IsNotFound(err) {
+		// Unexpected error
+		return false, err
 	}
-	// check for global image pull secret in default ns
+	// Did not find the secret in the target ns, check for global image pull secret in default ns to copy
 	var secret v1.Secret
 	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: constants.GlobalImagePullSecName}, &secret); err != nil {
 		if errors.IsNotFound(err) {

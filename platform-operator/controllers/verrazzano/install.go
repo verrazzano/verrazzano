@@ -4,6 +4,7 @@
 package verrazzano
 
 import (
+	"fmt"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"go.uber.org/zap"
@@ -22,12 +23,15 @@ func (r *Reconciler) reconcileInstall(log *zap.SugaredLogger, _ ctrl.Request, cr
 		}
 		// If component is enabled -- need to replicate scripts' config merging logic here
 		// If component is in deployed state, continue
-		if comp.IsInstalled() {
+		if comp.IsReady(log, r.Client, cr.Namespace) {
 			log.Infof("Component %s already installed")
 			if err := r.updateComponentStatus(log, cr, comp.Name(), "Update ready status", installv1alpha1.InstallComplete); err != nil {
 				return err
 			}
 			continue
+		}
+		if !component.ComponentDependenciesMet(log, r.Client, comp) {
+			return fmt.Errorf("Dependencies not met for %s: %v", comp.Name(), comp.GetDependencies())
 		}
 		if err := r.updateComponentStatus(log, cr, comp.Name(), "Install starting", installv1alpha1.InstallStarted); err != nil {
 			return err
