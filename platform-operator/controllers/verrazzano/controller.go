@@ -92,7 +92,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// Initialize once for this Verrazzano resrouce when the operator starts
+	// Initialize once for this Verrazzano resource when the operator starts
 	result, err := r.initForVzResource(vz, log)
 	if err != nil {
 		log.Errorf("unable to set watch for Job resource: %v", err)
@@ -101,6 +101,35 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if shouldRequeue(result) {
 		return result, nil
 	}
+
+	// Init the state to Ready if this CR has never been processed
+	// Always requeue to update cache, ignore error since requeue anyway
+	if len(vz.Status.State) == 0 {
+		r.updateState(log, vz, installv1alpha1.Ready)
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	// Process CR based on state
+	switch vz.Status.State {
+	case installv1alpha1.Installing:
+		return r.InstallingState(vz, log)
+	case installv1alpha1.Quiescing:
+		return r.QuiecingState(vz, log)
+	case installv1alpha1.Ready:
+		return r.ReadyState(vz, log)
+	case installv1alpha1.Uninstalling:
+		return r.UninstallingState(vz, log)
+	case installv1alpha1.Upgrading:
+		return r.UpgradingState(vz, log)
+	default:
+		panic("Invalid Verrazzano contoller state")
+	}
+	return ctrl.Result{}, nil
+}
+
+// ReadyState processes the CR while in the ready state
+func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	ctx := context.TODO()
 
 	// Ensure the required resources needed for both install and uninstall exist
 	if err := r.createServiceAccount(ctx, log, vz); err != nil {
@@ -120,7 +149,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// If the version is specified and different than the current version of the installation
 		// then proceed with upgrade
 		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
-			return r.reconcileUpgrade(log, req, vz)
+			return r.reconcileUpgrade(log, vz)
 		}
 		// nothing to do, installation already at target version
 		return ctrl.Result{}, nil
@@ -152,7 +181,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return newRequeueWithDelay(), err
 	}
 
-	if err := r.reconcileInstall(log, req, vz); err != nil {
+	if err := r.reconcileInstall(log, vz); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -171,6 +200,27 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
+// InstallingState processes the CR while in the installing state
+func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	return newRequeueWithDelay(), nil
+}
+
+// UninstallingState processes the CR while in the uninstalling state
+func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	return newRequeueWithDelay(), nil
+}
+
+// UpgradingState processes the CR while in the upgrading state
+func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	return newRequeueWithDelay(), nil
+}
+
+// QuiecingState processes the CR while in the quiecing state
+func (r *Reconciler) QuiecingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	return newRequeueWithDelay(), nil
+}
+
+// doesOCIDNSConfigSecretExist returns true if the DNS secret exists
 func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
 	// ensure the secret exists before proceeding
 	secret := &corev1.Secret{}
@@ -528,6 +578,21 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 	// Set the state of resource
 	cr.Status.State = checkCondtitionType(conditionType)
 	log.Infof("Setting verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
+
+	// Update the status
+	err := r.Status().Update(context.TODO(), cr)
+	if err != nil {
+		log.Errorf("Failed to update verrazzano resource status: %v", err)
+		return err
+	}
+	return nil
+}
+
+// updateState updates the status state in the verrazzano CR
+func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.StateType) error {
+	// Set the state of resource
+	cr.Status.State = state
+	log.Infof("Setting verrazzano state: %v/%v", cr.Status.State)
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
@@ -910,7 +975,7 @@ func getIngressIP(c client.Client) (string, error) {
 	} else if nginxService.Spec.Type == corev1.ServiceTypeNodePort {
 		return "127.0.0.1", nil
 	}
-	return "", fmt.Errorf("Unsupported service type %s for Nginx ingress", string(nginxService.Spec.Type))
+	return "", fmt.Errorf("Unsupported service type %s for Ingress ingress", string(nginxService.Spec.Type))
 }
 
 func configFluentdExtraVolumeMounts(vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {

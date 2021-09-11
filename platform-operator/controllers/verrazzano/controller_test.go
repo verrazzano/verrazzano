@@ -125,6 +125,7 @@ func TestSuccessfulInstall(t *testing.T) {
 	verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
 
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
+	verrazzanoToUse.Status.State = vzapi.Ready
 
 	// Sample bom file for version validation functions
 	component.SetUnitTestBomFilePath(testBomFilePath)
@@ -237,6 +238,7 @@ func TestCreateVerrazzano(t *testing.T) {
 		Labels:    labels}
 
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
+	vzToUse.Status.State = vzapi.Ready
 
 	// Sample bom file for version validation functions
 	component.SetUnitTestBomFilePath(testBomFilePath)
@@ -412,6 +414,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		},
 	}
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
+	vzToUse.Status.State = vzapi.Ready
 
 	// Sample bom file for version validation functions
 	component.SetUnitTestBomFilePath(testBomFilePath)
@@ -583,6 +586,7 @@ func TestUninstallComplete(t *testing.T) {
 				DeletionTimestamp: &deleteTime,
 				Finalizers:        []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready,
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.UninstallComplete,
@@ -665,6 +669,8 @@ func TestUninstallStarted(t *testing.T) {
 	labels := map[string]string{"label1": "test"}
 	var verrazzanoToUse vzapi.Verrazzano
 
+	verrazzanoToUse.Status.State = vzapi.Ready
+
 	deleteTime := metav1.Time{
 		Time: time.Now(),
 	}
@@ -689,6 +695,7 @@ func TestUninstallStarted(t *testing.T) {
 				DeletionTimestamp: &deleteTime,
 				Finalizers:        []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready,
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.UninstallStarted,
@@ -775,6 +782,8 @@ func TestUninstallFailed(t *testing.T) {
 				Name:              name.Name,
 				DeletionTimestamp: &deleteTime,
 				Finalizers:        []string{finalizerName}}
+			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready}
 			return nil
 		})
 
@@ -878,6 +887,8 @@ func TestUninstallSucceeded(t *testing.T) {
 				Name:              name.Name,
 				DeletionTimestamp: &deleteTime,
 				Finalizers:        []string{finalizerName}}
+			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready}
 			return nil
 		})
 
@@ -1033,6 +1044,8 @@ func TestServiceAccountGetError(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
+	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Ready}
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1059,6 +1072,7 @@ func TestServiceAccountGetError(t *testing.T) {
 // WHEN a there is a failure creating a ServiceAccount
 // THEN return error
 func TestServiceAccountCreateError(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -1076,6 +1090,8 @@ func TestServiceAccountCreateError(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
+	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Ready}
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1107,6 +1123,7 @@ func TestServiceAccountCreateError(t *testing.T) {
 // WHEN a there is an error getting the ClusterRoleBinding
 // THEN return error
 func TestClusterRoleBindingGetError(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -1124,6 +1141,8 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
+	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Ready}
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1153,6 +1172,7 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 // WHEN a there is a failure creating a ClusterRoleBinding
 // THEN return error
 func TestClusterRoleBindingCreateError(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -1170,6 +1190,8 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
+	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Ready}
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1204,6 +1226,7 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 // WHEN a there is an error getting the ConfigMap
 // THEN return error
 func TestConfigMapGetError(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -1221,6 +1244,8 @@ func TestConfigMapGetError(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
+	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Ready}
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1253,6 +1278,7 @@ func TestConfigMapGetError(t *testing.T) {
 // WHEN a there is a failure creating a ConfigMap
 // THEN return error
 func TestConfigMapCreateError(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -1270,6 +1296,8 @@ func TestConfigMapCreateError(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
+	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Ready}
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1307,6 +1335,7 @@ func TestConfigMapCreateError(t *testing.T) {
 // WHEN a there is an error getting the verrazzano system namespace
 // THEN return error
 func TestVZSystemNamespaceGetError(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -1324,6 +1353,8 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
+	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Ready}
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1360,6 +1391,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 // WHEN a there is an error creating the verrazzano system namespace
 // THEN return error
 func TestVZSystemNamespaceCreateError(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -1377,6 +1409,8 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
+	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Ready}
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1418,6 +1452,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 // WHEN a there is an error getting the Job
 // THEN return error
 func TestJobGetError(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -1435,6 +1470,8 @@ func TestJobGetError(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
+	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Ready}
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1473,6 +1510,7 @@ func TestJobGetError(t *testing.T) {
 // WHEN a there is an error getting the OCI Config secret
 // THEN return error
 func TestGetOCIConfigSecretError(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -1498,6 +1536,8 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 			DNSZoneName:            "test-dns-zone-name",
 		},
 	}
+	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Ready}
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1530,6 +1570,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 // WHEN a there is a failure creating a Job
 // THEN return error
 func TestJobCreateError(t *testing.T) {
+	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
@@ -1547,6 +1588,8 @@ func TestJobCreateError(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
+	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Ready}
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)

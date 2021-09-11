@@ -66,6 +66,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 				Name:       name.Name,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready,
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -124,6 +125,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State:   vzapi.Ready,
 				Version: "0.2.0",
 				Conditions: []vzapi.Condition{
 					{
@@ -186,6 +188,7 @@ func TestUpgradeStarted(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready,
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -260,6 +263,7 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready,
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -334,6 +338,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready,
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -431,6 +436,7 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready,
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -516,6 +522,7 @@ func TestUpgradeCompleted(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready,
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -602,6 +609,7 @@ func TestUpgradeHelmError(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready,
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
