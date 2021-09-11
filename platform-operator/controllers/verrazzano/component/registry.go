@@ -21,6 +21,7 @@ func GetComponents() []Component {
 	thirdPartyChartsDir := config.GetThirdPartyDir()
 
 	return []Component{
+		// TODO: remove istio helm components
 		helmComponent{
 			releaseName:             "istio-base",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
@@ -155,6 +156,9 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
 			appendOverridesFunc:     appendKeycloakOverrides,
+		},
+		istioComponent{
+			componentName: "istio",
 		},
 	}
 }
