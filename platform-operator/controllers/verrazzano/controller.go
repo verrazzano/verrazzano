@@ -124,7 +124,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	default:
 		panic("Invalid Verrazzano contoller state")
 	}
-	return ctrl.Result{}, nil
 }
 
 // ReadyState processes the CR while in the ready state
