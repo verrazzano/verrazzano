@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Reconcile upgrade will upgrade the components as required
+// Reconcile upgrade will install the components as required
 func (r *Reconciler) reconcileInstall(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) error {
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later

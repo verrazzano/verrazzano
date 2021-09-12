@@ -102,6 +102,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, nil
 	}
 
+	// Ensure the required resources needed for both install and uninstall exist
+	// This needs to be done for every state since the initForVzResource might have deleted
+	// role binding during old resource cleanup.
+	if err := r.createServiceAccount(ctx, log, vz); err != nil {
+		return newRequeueWithDelay(), err
+	}
+	if err := r.createClusterRoleBinding(ctx, log, vz); err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	// Init the state to Ready if this CR has never been processed
 	// Always requeue to update cache, ignore error since requeue anyway
 	if len(vz.Status.State) == 0 {
@@ -111,10 +121,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Process CR based on state
 	switch vz.Status.State {
+	case installv1alpha1.Failed:
+		return r.FailedState(vz, log)
 	case installv1alpha1.Installing:
 		return r.InstallingState(vz, log)
-	case installv1alpha1.Quiescing:
-		return r.QuiecingState(vz, log)
 	case installv1alpha1.Ready:
 		return r.ReadyState(vz, log)
 	case installv1alpha1.Uninstalling:
@@ -129,14 +139,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 // ReadyState processes the CR while in the ready state
 func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
 	ctx := context.TODO()
-
-	// Ensure the required resources needed for both install and uninstall exist
-	if err := r.createServiceAccount(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	}
-	if err := r.createClusterRoleBinding(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	}
 
 	// Check if verrazzano resource is being deleted
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -201,22 +203,51 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 
 // InstallingState processes the CR while in the installing state
 func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
-	return newRequeueWithDelay(), nil
+	ctx := context.TODO()
+
+	// Check if verrazzano resource is being deleted
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, vz)
+	}
+
+	if err := r.checkInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
+		return newRequeueWithDelay(), err
+	}
+
+	if err := r.reconcileInstall(log, vz); err != nil {
+		return newRequeueWithDelay(), err
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // UninstallingState processes the CR while in the uninstalling state
 func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
-	return newRequeueWithDelay(), nil
+	ctx := context.TODO()
+
+	// Update uninstall status
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, vz)
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // UpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
-	return newRequeueWithDelay(), nil
+	return r.reconcileUpgrade(log, vz)
 }
 
-// QuiecingState processes the CR while in the quiecing state
-func (r *Reconciler) QuiecingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
-	return newRequeueWithDelay(), nil
+// FailedState only allows uninstall
+func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	ctx := context.TODO()
+
+	// Update uninstall status
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, vz)
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // doesOCIDNSConfigSecretExist returns true if the DNS secret exists
@@ -443,6 +474,23 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 	vz.Status.Version = bomSemVer.ToString()
 	err = r.setInstallCondition(log, jobFound, vz)
 
+	return err
+}
+
+// checkInstallJob checks the installation job
+func (r *Reconciler) checkInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
+	// Check if the job for running the install scripts exist
+	jobFound := &batchv1.Job{}
+	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
+	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	// Update condition and status
+	err = r.setInstallCondition(log, jobFound, vz)
 	return err
 }
 
