@@ -840,6 +840,9 @@ data:
         ngx.req.set_uri_args(args)
         local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion .. ngx.var.uri
 
+        -- propagate the user's token as a bearer token, remote cluster won't have access to the session.
+        ngx.req.set_header("Authorization", "Bearer "..token)
+
         -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
         -- A secret is created in admin cluster during multi cluster setup that contains the ca certificate.
         -- Here we read the name of that secret from vmc spec and retrieve the secret from cluster and read the cacrt field.
