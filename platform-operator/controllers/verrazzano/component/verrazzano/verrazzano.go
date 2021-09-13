@@ -1,13 +1,11 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component
+package verrazzano
 
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
@@ -17,17 +15,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// resolveNamesapce will return the default verrazzano system namespace unless the namespace
+const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
+
+// ResolveVerrazzanoNamespace will return the default verrazzano system namespace unless the namespace
 // is specified
-func resolveVerrazzanoNamespace(ns string) string {
+func ResolveVerrazzanoNamespace(ns string) string {
 	if len(ns) > 0 && ns != "default" {
 		return ns
 	}
-	return helm.vzDefaultNamespace
+	return vzDefaultNamespace
 }
 
-// verrazzanoPreUpgrade contains code that is run prior to helm upgrade for the verrazzano helm chart
-func verrazzanoPreUpgrade(log *zap.SugaredLogger, client client.Client, _ string, namespace string, _ string) error {
+// VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the verrazzano helm chart
+func VerrazzanoPreUpgrade(log *zap.SugaredLogger, client client.Client, _ string, namespace string, _ string) error {
 	return fixupFluentdDaemonset(log, client, namespace)
 }
 

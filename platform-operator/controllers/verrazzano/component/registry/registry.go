@@ -5,10 +5,13 @@ package registry
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/app_oper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	"path/filepath"
@@ -99,8 +102,8 @@ func GetComponents() []spi.Component {
 			ChartDir:                filepath.Join(helmChartsDir, "verrazzano"),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
-			ResolveNamespaceFunc:    component.resolveVerrazzanoNamespace,
-			PreUpgradeFunc:          component.verrazzanoPreUpgrade,
+			ResolveNamespaceFunc:    verrazzano.ResolveVerrazzanoNamespace,
+			PreUpgradeFunc:          verrazzano.VerrazzanoPreUpgrade,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "coherence-operator",
@@ -121,8 +124,8 @@ func GetComponents() []spi.Component {
 			WaitForInstall:          true,
 			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
-			PreInstallFunc:          component.weblogicOperatorPreInstall,
-			AppendOverridesFunc:     component.appendWeblogicOperatorOverrides,
+			PreInstallFunc:          weblogic.WeblogicOperatorPreInstall,
+			AppendOverridesFunc:     weblogic.AppendWeblogicOperatorOverrides,
 			Dependencies:            []string{"istiod"},
 		},
 		helm.HelmComponent{
@@ -143,7 +146,7 @@ func GetComponents() []spi.Component {
 			SupportsOperatorInstall: true,
 			WaitForInstall:          true,
 			ValuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
-			AppendOverridesFunc:     component.appendApplicationOperatorOverrides,
+			AppendOverridesFunc:     app_oper.AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 		},
 		helm.HelmComponent{
@@ -159,7 +162,7 @@ func GetComponents() []spi.Component {
 			ChartNamespace:          "keycloak",
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
-			AppendOverridesFunc:     component.appendKeycloakOverrides,
+			AppendOverridesFunc:     keycloak.AppendKeycloakOverrides,
 		},
 		istio.IstioComponent{
 			ComponentName: "istio",

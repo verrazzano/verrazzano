@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -133,7 +132,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 		IgnoreNamespaceOverride: true,
 		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
-		AppendOverridesFunc:     istio.appendIstioOverrides,
+		AppendOverridesFunc:     istio.AppendIstioOverrides,
 	}
 
 	os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
