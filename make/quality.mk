@@ -9,7 +9,7 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 #
 
 .PHONY: check
-check: install-linter word-linter url-linter
+check: install-linter word-linter
 	$(LINTER) --color never run
 
 # find or download golangci-lint
@@ -30,10 +30,6 @@ endif
 word-linter:
 	curl -sL -o /dev/null -w "%{http_code}" https://bit.ly/3iIUcdL | grep -q '200'
 	! curl -sL https://bit.ly/3iIUcdL | grep -v '^\s*\(#\|$$\)' | grep -f /dev/stdin -r *
-
-.PHONY: url-linter
-url-linter:
-	${ROOT_DIR}/tools/url_linter/invalid_url_linter.sh ${ROOT_DIR}
 
 .PHONY: coverage
 coverage:
