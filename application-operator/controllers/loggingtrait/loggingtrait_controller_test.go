@@ -161,6 +161,9 @@ func TestCreateLoggingTrait(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler, err := newLoggingTraitReconciler(mock, mgr)
+	if err != nil {
+		log.Log.Error(err, "Error creating new reconciler")
+	}
 	result, err := reconciler.Reconcile(request)
 
 	// Validate the results
