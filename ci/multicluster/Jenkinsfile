@@ -368,7 +368,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '${WORKSPACE}/acceptance-test-operator.yaml', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/*-operator.yaml', allowEmptyArchive: true
                             script {
                                 dumpInstallLogs()
                                 VZ_TEST_METRIC = metricJobName('')
