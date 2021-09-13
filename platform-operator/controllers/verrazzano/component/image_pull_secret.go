@@ -4,6 +4,7 @@ package component
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
@@ -49,17 +50,17 @@ func checkImagePullSecret(client client.Client, targetNamespace string) (bool, e
 	return true, nil
 }
 
-// addGlobalImagePullSecretHelmOverride Adds a helm override key if the global image pull secret exists and was copied successfully to the target namespace
-func addGlobalImagePullSecretHelmOverride(log *zap.SugaredLogger, client client.Client, ns string, kvs []keyValue, keyName string) ([]keyValue, error) {
+// addGlobalImagePullSecretHelmOverride Adds a helm override Key if the global image pull secret exists and was copied successfully to the target namespace
+func addGlobalImagePullSecretHelmOverride(log *zap.SugaredLogger, client client.Client, ns string, kvs []bom.KeyValue, keyName string) ([]bom.KeyValue, error) {
 	secretExists, err := checkImagePullSecret(client, ns)
 	if err != nil {
 		log.Errorf("Error copying global image pull secret %s to %s namespace", constants.GlobalImagePullSecName, ns)
 		return kvs, err
 	}
 	if secretExists {
-		kvs = append(kvs, keyValue{
-			key:   keyName,
-			value: constants.GlobalImagePullSecName,
+		kvs = append(kvs, bom.KeyValue{
+			Key:   keyName,
+			Value: constants.GlobalImagePullSecName,
 		})
 	}
 	return kvs, nil

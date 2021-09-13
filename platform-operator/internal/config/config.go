@@ -16,6 +16,11 @@ const (
 	helmOverridesDirSuffix = "/platform-operator/helm_config/overrides"
 )
 
+const defaultBomFilename = "verrazzano-bom.json"
+
+// Global override for the default BOM file path
+var bomFilePathOverride string
+
 // TestHelmConfigDir is needed for unit tests
 var TestHelmConfigDir string
 
@@ -117,4 +122,17 @@ func GetPlatformDir() string {
 // GetThirdPartyDir returns the thirdparty dir
 func GetThirdPartyDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, thirdPartyDirSuffix)
+}
+
+// SetDefaultBomFilePath Sets the global default location for the BOM file
+func SetDefaultBomFilePath(p string) {
+	bomFilePathOverride = p
+}
+
+// GetDefaultBOMFilePath returns BOM file path for the platform operator
+func GetDefaultBOMFilePath() string {
+	if bomFilePathOverride != "" {
+		return bomFilePathOverride
+	}
+	return filepath.Join(GetPlatformDir(), defaultBomFilename)
 }
