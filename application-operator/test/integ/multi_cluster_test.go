@@ -44,12 +44,10 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 			gomega.Expect(stderr).To(gomega.Equal(""), fmt.Sprintf("Failed to apply CRD %v", crd))
 		}
 	})
-	ginkgo.It("VerrazzanoProject can be created ", func() {
+	ginkgo.It("Apply MultiClusterSecret creates K8S secret", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
-	})
-	ginkgo.It("Apply MultiClusterSecret creates K8S secret", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_secret_sample.yaml")
+		_, stderr = util.Kubectl("apply -f testdata/multi-cluster/multicluster_secret_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 		mcsecret, err := K8sClient.GetMultiClusterSecret(multiclusterTestNamespace, "mymcsecret")
 		gomega.Expect(err).To(gomega.BeNil())
@@ -58,7 +56,9 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply MultiClusterSecret with 2 placements remains pending", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_secret_2placements.yaml")
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""))
+		_, stderr = util.Kubectl("apply -f testdata/multi-cluster/multicluster_secret_2placements.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 		mcsecret, err := K8sClient.GetMultiClusterSecret(multiclusterTestNamespace, "mymcsecret2")
 		gomega.Expect(err).To(gomega.BeNil())
@@ -73,7 +73,9 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply MultiClusterComponent creates OAM component ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_component_sample.yaml")
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""))
+		_, stderr = util.Kubectl("apply -f testdata/multi-cluster/multicluster_component_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 		mcComp, err := K8sClient.GetMultiClusterComponent(multiclusterTestNamespace, "mymccomp")
 		gomega.Expect(err).To(gomega.BeNil())
@@ -85,7 +87,9 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 
 var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 	ginkgo.It("Apply MultiClusterConfigMap creates a ConfigMap ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
+		_, stderr = util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 		mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "mymcconfigmap")
 		gomega.Expect(err).To(gomega.BeNil())
@@ -103,7 +107,9 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply Invalid MultiClusterConfigMap results in Failed Status", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_INVALID.yaml")
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
+		_, stderr = util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_INVALID.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 		gomega.Eventually(func() bool {
 			// Expecting a failed state value in the MultiClusterConfigMap since creation of
@@ -122,8 +128,10 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 
 var _ = ginkgo.Describe("Testing MultiClusterApplicationConfiguration", func() {
 	ginkgo.It("MultiClusterApplicationConfiguration can be created ", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""))
 		// First apply the hello-component referenced in this MultiCluster application config
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_appconf_sample.yaml")
+		_, stderr = util.Kubectl("apply -f testdata/multi-cluster/multicluster_appconf_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""), "multicluster app config should be applied successfully")
 		mcAppConfig, err := K8sClient.GetMultiClusterAppConfig(multiclusterTestNamespace, "mymcappconf")
 		gomega.Expect(err).To(gomega.BeNil(), "multicluster app config mymcappconf should exist")
