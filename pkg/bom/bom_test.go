@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component
+package bom
 
 import (
 	"fmt"
@@ -10,15 +10,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// testSubComponent contains the override key values for a subcomponent.
+// testSubComponent contains the override Key values for a subcomponent.
 type testSubComponent struct {
-	// kvs is the map of helm key to expected helm value.  These values are used in helm overrides
+	// kvs is the map of helm Key to expected helm Value.  These values are used in helm overrides
 	// for the subcomponent chart
 	kvs map[string]string
 }
 
-// testSubcomponetHelmKeyValues are the key:values pairs that will be passed to helm as overrides.
-// The map key is the subcomponent name.
+// testSubcomponetHelmKeyValues are the Key:values pairs that will be passed to helm as overrides.
+// The map Key is the subcomponent name.
 // This list of subcomponents is in the verrazzano-bom.json file and it must stay in sync with that file
 // Keep this map in the same order as that JSON for review purposes.
 var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
@@ -164,8 +164,8 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 }
 
 // This is the real BOM file path needed for unit tests
-const realBomFilePath = "../../../verrazzano-bom.json"
-const testBomFilePath = "../testdata/test_bom.json"
+const realBomFilePath = "testdata/verrazzano-bom.json"
+const testBomFilePath = "testdata/test_bom.json"
 
 // TestFakeBom tests loading a fake bom json into a struct
 // GIVEN a json file
@@ -197,29 +197,29 @@ func TestRealBom(t *testing.T) {
 }
 
 // validateImages validates the images in the subcomponents.
-// Optionall check the image value.
+// Optionall check the image Value.
 func validateImages(assert *assert.Assertions, bom *Bom, checkImageVal bool) {
 	// Validate each component
 	for _, comp := range bom.bomDoc.Components {
 		for _, sub := range comp.SubComponents {
-			// Get the expected key:value pair overrides for this subcomponent
+			// Get the expected Key:Value pair overrides for this subcomponent
 			expectedSub := testSubcomponetHelmKeyValues[sub.Name]
 			if expectedSub == nil {
 				fmt.Println("Skipping subcomponent " + sub.Name)
 				continue
 			}
 
-			// Get the actual key value override list for this subcomponent
-			foundKvs, err := bom.buildImageOverrides(sub.Name)
-			assert.NoError(err, "error calling buildImageOverrides")
+			// Get the actual Key Value override list for this subcomponent
+			foundKvs, err := bom.BuildImageOverrides(sub.Name)
+			assert.NoError(err, "error calling BuildImageOverrides")
 			assert.Equal(len(expectedSub.kvs), len(foundKvs), "Incorrect override list len for "+sub.Name)
 
 			// Loop through the found kv pairs and make sure the actual kvs match the expected
 			for _, kv := range foundKvs {
-				expectedVal, ok := expectedSub.kvs[kv.key]
-				assert.True(ok, "Found unexpected key in override list for "+sub.Name)
+				expectedVal, ok := expectedSub.kvs[kv.Key]
+				assert.True(ok, "Found unexpected Key in override list for "+sub.Name)
 				if checkImageVal {
-					assert.Equal(expectedVal, kv.value, "Found unexpected value in override list for "+sub.Name)
+					assert.Equal(expectedVal, kv.Value, "Found unexpected Value in override list for "+sub.Name)
 				}
 			}
 		}

@@ -5,7 +5,6 @@ package v1alpha1
 
 import (
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"go.uber.org/zap"
