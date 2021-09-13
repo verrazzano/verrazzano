@@ -6,10 +6,9 @@ package v1alpha1
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/semver"
 
 	"github.com/stretchr/testify/assert"
@@ -30,9 +29,9 @@ const invalidPathTestBomFilePath = "../../../controllers//verrazzano/testdata/in
 // WHEN the new version is valid and the current version is not specified
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -49,9 +48,9 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 // WHEN the new version is valid and the current version is less than the current version
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Version: "v0.16.0",
@@ -69,9 +68,9 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 // WHEN the new version and the current version are at the latest version
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeNotNecessary(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Version: "v0.17.0",
@@ -89,9 +88,9 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 // WHEN the current version is not valid but the new version is
 // THEN ensure an error is returned from ValidateUpgradeRequest
 func TestValidateUpgradeBadOldVersion(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Version: "blah",
@@ -109,9 +108,9 @@ func TestValidateUpgradeBadOldVersion(t *testing.T) {
 // WHEN the current version is there and valid valid but the new version is not
 // THEN ensure an error is returned from ValidateUpgradeRequest
 func TestValidateUpgradeBadNewVersion(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Version: "v0.16.0",
@@ -129,9 +128,9 @@ func TestValidateUpgradeBadNewVersion(t *testing.T) {
 // WHEN the new version and the current version are not specified
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestNoVersionsSpecified(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -147,9 +146,9 @@ func TestNoVersionsSpecified(t *testing.T) {
 // WHEN the new version is valid and the profile field is changed
 // THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithProfileChange(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -166,9 +165,9 @@ func TestValidVersionWithProfileChange(t *testing.T) {
 // WHEN only the profile has changed
 // THEN no error is returned from ValidateUpgradeRequest
 func TestProfileChangeOnlyNoVersions(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -184,9 +183,9 @@ func TestProfileChangeOnlyNoVersions(t *testing.T) {
 // WHEN the old spec specifies a version but the new one does not
 // THEN an error is returned from ValidateUpgradeRequest
 func TestProfileChangeOnlyNoNewVersionString(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -205,9 +204,9 @@ func TestProfileChangeOnlyNoNewVersionString(t *testing.T) {
 // WHEN the new version is valid and the EnvironmentName field is changed
 // THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithEnvNameChange(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -225,9 +224,9 @@ func TestValidVersionWithEnvNameChange(t *testing.T) {
 // WHEN the new version is valid and the CertManagerComponent field is changed
 // THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithCertManagerChange(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -266,9 +265,9 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 // WHEN the new version is valid and the DNS component is added
 // THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithNewDNS(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -330,9 +329,9 @@ func TestValidVersionWithIngressChangeVersionCheckDisabled(t *testing.T) {
 
 // runValidateWithIngressChangeTest Shared test logic for ingress change validation
 func runValidateWithIngressChangeTest() error {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
@@ -393,9 +392,9 @@ func runValidateWithIngressChangeTest() error {
 // WHEN the version in the Bom is available
 // THEN no error is returned and a valid SemVersion representing the Bom version is returned
 func TestGetCurrentBomVersion(t *testing.T) {
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	expectedVersion, err := semver.NewSemVersion("v0.17.0")
 	assert.NoError(t, err)
@@ -410,9 +409,9 @@ func TestGetCurrentBomVersion(t *testing.T) {
 // WHEN an error occurs reading the BOM file from the filesystem
 // THEN an error is returned and nil is returned for the Bom SemVersion
 func TestGetCurrentBomVersionFileReadError(t *testing.T) {
-	component.SetUnitTestBomFilePath(invalidPathTestBomFilePath)
+	config.SetDefaultBomFilePath(invalidPathTestBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	version, err := GetCurrentBomVersion()
 	assert.Error(t, err)
@@ -424,9 +423,9 @@ func TestGetCurrentBomVersionFileReadError(t *testing.T) {
 // WHEN an error occurs reading in the BOM file as json
 // THEN an error is returned and nil is returned for the Bom SemVersion
 func TestGetCurrentBomVersionBadYAML(t *testing.T) {
-	component.SetUnitTestBomFilePath(invalidTestBomFilePath)
+	config.SetDefaultBomFilePath(invalidTestBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	version, err := GetCurrentBomVersion()
 	assert.Error(t, err)
@@ -457,9 +456,9 @@ func TestValidateVersionInvalidVersion(t *testing.T) {
 // WHEN the version provided is not valid version
 // THEN a json parsing error is returned
 func TestValidateVersionBadBomfile(t *testing.T) {
-	component.SetUnitTestBomFilePath(invalidTestBomFilePath)
+	config.SetDefaultBomFilePath(invalidTestBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	err := ValidateVersion("v0.17.0")
 	assert.Error(t, err)

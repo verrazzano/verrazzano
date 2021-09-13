@@ -5,12 +5,12 @@ package component
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 // GetComponents returns the list of components that are installable and upgradeable.
@@ -21,6 +21,7 @@ func GetComponents() []Component {
 	thirdPartyChartsDir := config.GetThirdPartyDir()
 
 	return []Component{
+		// TODO: remove istio helm components
 		helmComponent{
 			releaseName:             "istio-base",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
@@ -155,6 +156,9 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
 			appendOverridesFunc:     appendKeycloakOverrides,
+		},
+		istioComponent{
+			componentName: "istio",
 		},
 	}
 }

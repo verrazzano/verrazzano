@@ -5,6 +5,8 @@ package component
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -61,7 +63,7 @@ type helmComponent struct {
 	//waitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
 	waitForInstall bool
 
-	// imagePullSecretKeyname is the Helm value key for the image pull secret for a chart
+	// imagePullSecretKeyname is the Helm Value Key for the image pull secret for a chart
 	imagePullSecretKeyname string
 
 	// dependencies is a list of dependencies for this component, by component/release name
@@ -71,14 +73,14 @@ type helmComponent struct {
 // Verify that helmComponent implements Component
 var _ Component = helmComponent{}
 
-// preInstallFuncSig is the signature for the optional function to run before installing; any keyValue pairs should be prepended to the Helm overrides list
-type preInstallFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]keyValue, error)
+// preInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
+type preInstallFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error)
 
 // preUpgradeFuncSig is the signature for the optional preUgrade function
 type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
 
 // appendOverridesSig is an optional function called to generate additional overrides.
-type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, kvs []keyValue) ([]keyValue, error)
+type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
@@ -146,7 +148,7 @@ func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 		helm.Uninstall(log, h.releaseName, resolvedNamespace, dryRun)
 	}
 
-	var kvs []keyValue
+	var kvs []bom.KeyValue
 	if h.preInstallFunc != nil {
 		preInstallValues, err := h.preInstallFunc(log, client, h.releaseName, resolvedNamespace, h.chartDir)
 		if err != nil {
@@ -172,7 +174,7 @@ func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 }
 
 // Upgrade is done by using the helm chart upgrade command.  This command will apply the latest chart
-// that is included in the operator image, while retaining any helm value overrides that were applied during
+// that is included in the operator image, while retaining any helm Value overrides that were applied during
 // install. Along with the override files in helm_config, we need to generate image overrides using the
 // BOM json file.  Each component also has the ability to add additional override parameters.
 func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
@@ -235,11 +237,11 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 	return err
 }
 
-func (h helmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Client, namespace string, additionalValues ...keyValue) (string, error) {
+func (h helmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
 	// Optionally create a second override file.  This will contain both image overridesString and any additional
 	// overridesString required by a component.
 	// Get image overridesString unless opt out
-	var kvs []keyValue
+	var kvs []bom.KeyValue
 	var err error
 	if !h.ignoreImageOverrides {
 		kvs, err = getImageOverrides(h.releaseName)
@@ -250,7 +252,7 @@ func (h helmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Cli
 
 	// Append any additional overridesString for the component (see Keycloak.go for example)
 	if h.appendOverridesFunc != nil {
-		overrideValues, err := h.appendOverridesFunc(log, h.releaseName, namespace, h.chartDir, []keyValue{})
+		overrideValues, err := h.appendOverridesFunc(log, h.releaseName, namespace, h.chartDir, []bom.KeyValue{})
 		if err != nil {
 			return "", err
 		}
@@ -270,7 +272,7 @@ func (h helmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Cli
 			if i > 0 {
 				bldr.WriteString(",")
 			}
-			bldr.WriteString(fmt.Sprintf("%s=%s", kv.key, kv.value))
+			bldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
 		}
 		overridesString = bldr.String()
 	}
@@ -293,19 +295,19 @@ func resolveNamespace(h helmComponent, ns string) string {
 }
 
 // Get the image overrides from the BOM
-func getImageOverrides(subcomponentName string) ([]keyValue, error) {
-	// Create a Bom and get the key value overrides
-	bom, err := NewBom(DefaultBomFilePath())
+func getImageOverrides(subcomponentName string) ([]bom.KeyValue, error) {
+	// Create a Bom and get the Key Value overrides
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
 		return nil, err
 	}
 
-	numImages := bom.GetSubcomponentImageCount(subcomponentName)
+	numImages := bomFile.GetSubcomponentImageCount(subcomponentName)
 	if numImages == 0 {
-		return []keyValue{}, nil
+		return []bom.KeyValue{}, nil
 	}
 
-	kvs, err := bom.buildImageOverrides(subcomponentName)
+	kvs, err := bomFile.BuildImageOverrides(subcomponentName)
 	if err != nil {
 		return nil, err
 	}
