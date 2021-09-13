@@ -4,7 +4,6 @@
 package app_oper
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os"
 	"testing"
@@ -12,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
+
+const testBomFilePath = "../../testdata/test_bom.json"
 
 // TestAppendAppOperatorOverrides tests the Keycloak override for the theme images
 // GIVEN an env override for the app operator image
@@ -29,7 +30,7 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 	os.Setenv(constants.VerrazzanoAppOperatorImageEnvVar, customImage)
 	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
 
-	config.SetDefaultBomFilePath(registry.TestBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	kvs, err = AppendApplicationOperatorOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "AppendApplicationOperatorOverrides returned an error ")
 	assert.Len(kvs, 1, "AppendApplicationOperatorOverrides returned wrong number of Key:Value pairs")

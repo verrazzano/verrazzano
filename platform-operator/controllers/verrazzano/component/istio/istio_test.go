@@ -5,7 +5,6 @@ package istio
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os"
 	"testing"
@@ -20,7 +19,7 @@ import (
 func TestAppendIstioOverrides(t *testing.T) {
 	assert := assert.New(t)
 
-	config.SetDefaultBomFilePath(component.testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 
 	os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
 	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
@@ -47,7 +46,7 @@ func TestAppendIstioOverrides(t *testing.T) {
 func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
 	assert := assert.New(t)
 
-	config.SetDefaultBomFilePath(component.testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 
 	kvs, err := AppendIstioOverrides(nil, "istiod", "", "", nil)
 	assert.NoError(err, "AppendIstioOverrides returned an error ")

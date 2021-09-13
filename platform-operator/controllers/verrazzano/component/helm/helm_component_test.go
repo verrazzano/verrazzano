@@ -31,6 +31,8 @@ var fakeOverrides string
 type helmFakeRunner struct {
 }
 
+const testBomFilePath = "../../testdata/test_bom.json"
+
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
 //  WHEN I call Name
@@ -63,7 +65,7 @@ func TestUpgrade(t *testing.T) {
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
 	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3"
 
-	config.SetDefaultBomFilePath(component.testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
@@ -144,7 +146,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
 	fakeOverrides = "pilot.image=myreg.io/myrepo/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3,global.hub=myreg.io/myrepo/verrazzano"
 
-	config.SetDefaultBomFilePath(component.testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
@@ -178,7 +180,7 @@ func TestInstall(t *testing.T) {
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
 	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3"
 
-	config.SetDefaultBomFilePath(component.testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
@@ -216,7 +218,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
 	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3"
 
-	config.SetDefaultBomFilePath(component.testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
@@ -272,7 +274,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 	}
 	expectedOverridesString := buffer.String()
 
-	config.SetDefaultBomFilePath(component.testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {

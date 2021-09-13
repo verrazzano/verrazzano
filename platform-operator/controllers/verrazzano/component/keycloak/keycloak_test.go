@@ -4,13 +4,14 @@
 package keycloak
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 )
+
+const testBomFilePath = "../../testdata/test_bom.json"
 
 // TestAppendKeycloakOverrides tests the Keycloak override for the theme images
 // GIVEN a Verrazzano BOM
@@ -20,7 +21,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	const defNs = constants.VerrazzanoSystemNamespace
 	assert := assert.New(t)
 
-	config.SetDefaultBomFilePath(registry.testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	kvs, err := AppendKeycloakOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "AppendKeycloakOverrides returned an error ")
 	assert.Len(kvs, 1, "AppendKeycloakOverrides returned wrong number of Key:Value pairs")

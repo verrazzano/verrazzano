@@ -6,7 +6,6 @@ package istio
 import (
 	"errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
@@ -18,9 +17,11 @@ import (
 type istioFakeRunner struct {
 }
 
-var comp IstioComponent = IstioComponent{
+var comp = IstioComponent{
 	ComponentName: "istio",
 }
+
+const testBomFilePath = "../../testdata/test_bom.json"
 
 // IstioTestGetName tests the component name
 // GIVEN a Verrazzano component
@@ -38,7 +39,7 @@ func IstioTestGetName(t *testing.T) {
 func IstioTestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
-	config.SetDefaultBomFilePath(component.testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	istio.SetCmdRunner(istioFakeRunner{})
 	defer istio.SetDefaultRunner()
 	setIstioUpgradeFunc(fakeIstioUpgrade)

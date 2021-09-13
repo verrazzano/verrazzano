@@ -16,8 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
-
 // TestGetComponents tests getting the components
 // GIVEN a component
 //  WHEN I call GetComponents
