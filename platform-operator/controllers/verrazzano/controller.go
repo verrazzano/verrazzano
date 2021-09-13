@@ -639,7 +639,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.StateType) error {
 	// Set the state of resource
 	cr.Status.State = state
-	log.Infof("Setting verrazzano state: %v/%v", cr.Status.State)
+	log.Infof("Setting verrazzano state: %v", cr.Status.State)
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
@@ -1022,7 +1022,7 @@ func getIngressIP(c client.Client) (string, error) {
 	} else if nginxService.Spec.Type == corev1.ServiceTypeNodePort {
 		return "127.0.0.1", nil
 	}
-	return "", fmt.Errorf("Unsupported service type %s for Ingress ingress", string(nginxService.Spec.Type))
+	return "", fmt.Errorf("Unsupported service type %s for NGINX ingress", string(nginxService.Spec.Type))
 }
 
 func configFluentdExtraVolumeMounts(vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
