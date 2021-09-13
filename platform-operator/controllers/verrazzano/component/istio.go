@@ -4,7 +4,10 @@
 package component
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/types"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const istioGlobalHubKey = "global.hub"
@@ -37,4 +40,12 @@ func appendIstioOverrides(_ *zap.SugaredLogger, releaseName string, _ string, _ 
 	}
 
 	return kvs, nil
+}
+
+// istiodReadyCheck Determines if istiod is up and has a minimum number of available replicas
+func istiodReadyCheck(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string) bool {
+	deployments := []types.NamespacedName{
+		{Name: "istiod", Namespace: namespace},
+	}
+	return status.DeploymentsReady(log, client, deployments, 1)
 }

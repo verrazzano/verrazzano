@@ -60,8 +60,6 @@ spec:
                   the managed cluster. This field is managed by a Verrazzano Kubernetes
                   operator.
                 type: string
-            required:
-            - caSecret
             type: object
           status:
             description: VerrazzanoManagedClusterStatus defines the observed state
