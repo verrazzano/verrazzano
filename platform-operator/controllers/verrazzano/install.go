@@ -9,11 +9,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 
 	"go.uber.org/zap"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// Reconcile upgrade will upgrade the components as required
-func (r *Reconciler) reconcileInstall(log *zap.SugaredLogger, _ ctrl.Request, cr *installv1alpha1.Verrazzano) error {
+// Reconcile upgrade will install the components as required
+func (r *Reconciler) reconcileInstall(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) error {
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
