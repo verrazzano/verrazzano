@@ -6,6 +6,9 @@ package loggingtrait
 import (
 	"context"
 	"encoding/json"
+	"testing"
+	"time"
+
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -24,9 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"testing"
-	"time"
-
 	// +kubebuilder:scaffold:imports
 )
 
@@ -160,7 +160,7 @@ func TestCreateLoggingTrait(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
-	reconciler , err := newLoggingTraitReconciler(mock, mgr)
+	reconciler, err := newLoggingTraitReconciler(mock, mgr)
 	result, err := reconciler.Reconcile(request)
 
 	// Validate the results
@@ -181,10 +181,10 @@ func newLoggingTraitReconciler(cli client.Client, mgr *mocks.MockManager) (Loggi
 		return LoggingTraitReconciler{}, err
 	}
 	reconciler := LoggingTraitReconciler{
-		Client:  cli,
-		Log:     ctrl.Log,
-		Scheme:  scheme,
-		Record: event.NewNopRecorder(),
+		Client:          cli,
+		Log:             ctrl.Log,
+		Scheme:          scheme,
+		Record:          event.NewNopRecorder(),
 		DiscoveryClient: *discoveryCli,
 	}
 	return reconciler, nil
