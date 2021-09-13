@@ -6,6 +6,7 @@ package component
 import (
 	"errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
 	"os/exec"
@@ -36,7 +37,7 @@ func IstioTestGetName(t *testing.T) {
 func IstioTestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
-	SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	istio.SetCmdRunner(istioFakeRunner{})
 	defer istio.SetDefaultRunner()
 	setIstioUpgradeFunc(fakeIstioUpgrade)
