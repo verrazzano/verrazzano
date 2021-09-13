@@ -368,6 +368,7 @@ pipeline {
                     }
                     post {
                         always {
+                            archiveArtifacts artifacts: '${WORKSPACE}/acceptance-test-operator.yaml', allowEmptyArchive: true
                             script {
                                 dumpInstallLogs()
                                 VZ_TEST_METRIC = metricJobName('')
@@ -1228,7 +1229,7 @@ def getVerrazzanoOperatorYaml() {
         cd ${GO_REPO_PATH}/verrazzano
         if [ "NONE" = "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
             echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
-            curl "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml" -o ${WORKSPACE}/downloaded-release-operator.yaml
+            curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml" -o ${WORKSPACE}/downloaded-release-operator.yaml
             cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
         else
             echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
