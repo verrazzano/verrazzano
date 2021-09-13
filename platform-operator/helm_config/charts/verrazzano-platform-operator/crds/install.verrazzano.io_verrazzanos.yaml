@@ -90,6 +90,12 @@ spec:
                             type: object
                         type: object
                     type: object
+                  coherence:
+                    description: Coherence configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   console:
                     description: Console configuration
                     properties:
@@ -1994,6 +2000,12 @@ spec:
                     type: object
                   rancher:
                     description: Rancher configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
+                  weblogic:
+                    description: WebLogic configuration
                     properties:
                       enabled:
                         type: boolean
