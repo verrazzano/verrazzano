@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 	"log"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -21,9 +22,11 @@ var testReportDir string
 var gitCommit string
 var testEnvironment string
 var gitBranch string
-var buildNumber string
+var jenkinsBuildNumber string
+var buildForMetrics string
 var buildJobName string
 var k8sVersion string
+var statusLabel string
 
 // Credentials to push the metrics
 var user = ""
@@ -38,7 +41,8 @@ var prometheusJob = ""
 // constants
 const commitSha = "commit_sha"
 const branch = "branch"
-const jobNumber = "job_number"
+const jobNumber = "jenkins_build_number"
+const buildNumber = "build_number"
 const testEnv = "test_env"
 const kubernetestVersion = "kubernetes_version"
 const instance = "instance"
@@ -47,6 +51,7 @@ const jenkinsJob = "jenkins_job"
 const metricPrefix = "_verrazzano_test_"
 const statusSuffix = "_status"
 const timeSuffix = "_time"
+const testResult = "result"
 
 func main() {
 	processInput()
@@ -61,7 +66,7 @@ func processInput() (exitCode int) {
 	flag.StringVar(&gitCommit, "commit-sha", "", "Git commit sha")
 	flag.StringVar(&testEnvironment, "test-env", "", "Test environment")
 	flag.StringVar(&gitBranch, "branch-name", "", "Branch Name")
-	flag.StringVar(&buildNumber, "build-number", "", "Build Number")
+	flag.StringVar(&jenkinsBuildNumber, "build-number", "", "Build Number")
 	flag.StringVar(&buildJobName, "job-name", "", "Job Name")
 	flag.StringVar(&k8sVersion, "kubernetes-version", "", "Kubernetes Version")
 
@@ -110,11 +115,13 @@ func processInput() (exitCode int) {
 		return 1
 	}
 
-	if buildNumber == "" {
+	if jenkinsBuildNumber == "" {
 		fmt.Printf("\nRequired flag build-number is not specified, exiting.\n")
 		printUsage()
 		return 1
 	}
+	bldNum, _ := strconv.Atoi(jenkinsBuildNumber)
+	buildForMetrics = fmt.Sprintf("%010d", bldNum)
 
 	if buildJobName == "" {
 		fmt.Printf("\nRequired flag job-name is not specified, exiting.\n")
@@ -142,8 +149,10 @@ func processJunitReports() {
 	}
 	for _, suite := range suites {
 		testStatus := 0.0
+		statusLabel = "Failure"
 		if suite.Totals.Tests == suite.Totals.Passed {
 			testStatus = 1.0
+			statusLabel = "Success"
 		}
 		metricName := removeSpecialChars(suite.Name)
 		emitTestMetrics(metricName, statusSuffix, testStatus)
@@ -159,12 +168,14 @@ func emitTestMetrics(metricName string, metricSuffix string, metricValue float64
 		ConstLabels: prometheus.Labels{
 			commitSha:          gitCommit,
 			branch:             gitBranch,
-			jobNumber:          buildNumber,
+			buildNumber:        buildForMetrics,
+			jobNumber:          jenkinsBuildNumber,
 			testEnv:            testEnvironment,
 			instance:           inst,
 			testSuite:          metricName,
 			jenkinsJob:         buildJobName,
 			kubernetestVersion: k8sVersion,
+			testResult:         statusLabel,
 		},
 	})
 	testMetric.Set(metricValue)

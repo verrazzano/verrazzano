@@ -85,9 +85,7 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 
 var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 	ginkgo.It("Apply MultiClusterConfigMap creates a ConfigMap ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
-		_, stderr = util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 		mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "mymcconfigmap")
 		gomega.Expect(err).To(gomega.BeNil())
@@ -105,9 +103,7 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply Invalid MultiClusterConfigMap results in Failed Status", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
-		_, stderr = util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_INVALID.yaml")
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_INVALID.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 		gomega.Eventually(func() bool {
 			// Expecting a failed state value in the MultiClusterConfigMap since creation of

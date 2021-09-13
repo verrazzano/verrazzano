@@ -107,7 +107,7 @@ func TestValidationSuccessForMultiClusterComponentCreationTargetingExistingManag
 	mcc := v1alpha12.MultiClusterComponent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mccomponent-name",
-			Namespace: "application-ns",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: v1alpha12.MultiClusterComponentSpec{
 			Placement: v1alpha12.Placement{
@@ -115,26 +115,7 @@ func TestValidationSuccessForMultiClusterComponentCreationTargetingExistingManag
 			},
 		},
 	}
-	vp := v1alpha12.VerrazzanoProject{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-verrazzanoproject-name",
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-		Spec: v1alpha12.VerrazzanoProjectSpec{
-			Template: v1alpha12.ProjectTemplate{
-				Namespaces: []v1alpha12.NamespaceTemplate{
-					{
-						Metadata: metav1.ObjectMeta{
-							Name: "application-ns",
-						},
-					},
-				},
-			},
-		},
-	}
-
 	asrt.NoError(v.client.Create(context.TODO(), &mc))
-	asrt.NoError(v.client.Create(context.TODO(), &vp))
 
 	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
 	res := v.Handle(context.TODO(), req)
@@ -163,7 +144,7 @@ func TestValidationSuccessForMultiClusterComponentCreationWithoutTargetClustersO
 	mcc := v1alpha12.MultiClusterComponent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mccomponent-name",
-			Namespace: "application-ns",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 		Spec: v1alpha12.MultiClusterComponentSpec{
 			Placement: v1alpha12.Placement{
@@ -171,26 +152,7 @@ func TestValidationSuccessForMultiClusterComponentCreationWithoutTargetClustersO
 			},
 		},
 	}
-	vp := v1alpha12.VerrazzanoProject{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-verrazzanoproject-name",
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-		Spec: v1alpha12.VerrazzanoProjectSpec{
-			Template: v1alpha12.ProjectTemplate{
-				Namespaces: []v1alpha12.NamespaceTemplate{
-					{
-						Metadata: metav1.ObjectMeta{
-							Name: "application-ns",
-						},
-					},
-				},
-			},
-		},
-	}
-
 	asrt.NoError(v.client.Create(context.TODO(), &s))
-	asrt.NoError(v.client.Create(context.TODO(), &vp))
 
 	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
 	res := v.Handle(context.TODO(), req)
