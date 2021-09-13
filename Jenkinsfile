@@ -204,6 +204,16 @@ pipeline {
         }
 
         stage('BOM Validator Tool') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'release-*';
+                        expression {params.GENERATE_TOOL == true};
+                    }
+                }
+            }
             steps {
                 buildBOMValidatorTool()
             }

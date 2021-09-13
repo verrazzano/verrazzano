@@ -285,7 +285,7 @@ pipeline {
                     }
                     steps {
                         sh """
-                            # Just testing, wait for all pod restarts to complete
+                            # wait for all pod restarts to complete
                             sleep 5m
                             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
                             chmod +x ${WORKSPACE}/bom-validator
