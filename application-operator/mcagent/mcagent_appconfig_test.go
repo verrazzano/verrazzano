@@ -341,6 +341,8 @@ func TestSyncComponentList(t *testing.T) {
 	compName2 := "test-comp-2"
 	param1 := "parameter-1"
 	param2 := "parameter-2"
+	testLabel := "test-label"
+	testAnnot := "test-annotation"
 
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
@@ -348,7 +350,11 @@ func TestSyncComponentList(t *testing.T) {
 	// Create a fake client for the admin cluster
 	adminClient := fake.NewFakeClientWithScheme(newScheme(),
 		&oamv1alpha2.Component{
-			ObjectMeta: metav1.ObjectMeta{Name: compName1, Namespace: appNamespace},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        compName1,
+				Namespace:   appNamespace,
+				Labels:      map[string]string{"test": testLabel},
+				Annotations: map[string]string{"test": testAnnot}},
 			Spec: oamv1alpha2.ComponentSpec{
 				Parameters: []oamv1alpha2.ComponentParameter{
 					{
@@ -358,7 +364,11 @@ func TestSyncComponentList(t *testing.T) {
 			},
 		},
 		&oamv1alpha2.Component{
-			ObjectMeta: metav1.ObjectMeta{Name: compName2, Namespace: appNamespace},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        compName2,
+				Namespace:   appNamespace,
+				Labels:      map[string]string{"test": testLabel},
+				Annotations: map[string]string{"test": testAnnot}},
 			Spec: oamv1alpha2.ComponentSpec{
 				Parameters: []oamv1alpha2.ComponentParameter{
 					{
@@ -403,14 +413,19 @@ func TestSyncComponentList(t *testing.T) {
 	assert.NoError(err)
 
 	// Verify the components were created locally
-	component := &oamv1alpha2.Component{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: compName1, Namespace: appNamespace}, component)
+	component1 := &oamv1alpha2.Component{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: compName1, Namespace: appNamespace}, component1)
 	assert.NoError(err)
-	assert.Equal(param1, component.Spec.Parameters[0].Name)
+	assert.Equal(param1, component1.Spec.Parameters[0].Name)
+	assert.Equal(testLabel, component1.ObjectMeta.Labels["test"])
+	assert.Equal(testAnnot, component1.ObjectMeta.Annotations["test"])
 
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: compName2, Namespace: appNamespace}, component)
+	component2 := &oamv1alpha2.Component{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: compName2, Namespace: appNamespace}, component2)
 	assert.NoError(err)
-	assert.Equal(param2, component.Spec.Parameters[0].Name)
+	assert.Equal(param2, component2.Spec.Parameters[0].Name)
+	assert.Equal(testLabel, component2.ObjectMeta.Labels["test"])
+	assert.Equal(testAnnot, component2.ObjectMeta.Annotations["test"])
 }
 
 // getSampleMCAppConfig creates and returns a sample MultiClusterApplicationConfiguration used in tests
