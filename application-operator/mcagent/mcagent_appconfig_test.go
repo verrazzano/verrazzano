@@ -383,7 +383,7 @@ func TestSyncComponentList(t *testing.T) {
 	localClient := fake.NewFakeClientWithScheme(newScheme())
 
 	// MultiClusterApplicationConfiguration test data
-	mcAppConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{
+	mcAppConfig := clustersv1alpha1.MultiClusterApplicationConfiguration{
 		ObjectMeta: metav1.ObjectMeta{Name: appName, Namespace: appNamespace},
 		Spec: clustersv1alpha1.MultiClusterApplicationConfigurationSpec{
 			Template: clustersv1alpha1.ApplicationConfigurationTemplate{

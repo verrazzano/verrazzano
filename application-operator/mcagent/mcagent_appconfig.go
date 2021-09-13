@@ -25,7 +25,14 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 	}
 	for _, mcAppConfig := range allAdminMCAppConfigs.Items {
 		if s.isThisCluster(mcAppConfig.Spec.Placement) {
-			_, err := s.createOrUpdateMCAppConfig(mcAppConfig)
+			// Synchronize the components referenced by the application
+			err := s.syncComponentList(mcAppConfig)
+			if err != nil {
+				s.Log.Error(err, "Error syncing components referenced by object",
+					"MultiClusterApplicationConfiguration",
+					types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
+			}
+			_, err = s.createOrUpdateMCAppConfig(mcAppConfig)
 			if err != nil {
 				s.Log.Error(err, "Error syncing object",
 					"MultiClusterApplicationConfiguration",
@@ -98,7 +105,7 @@ func (s *Syncer) updateMultiClusterAppConfigStatus(name types.NamespacedName, ne
 }
 
 // syncComponentList - Synchronize the list of OAM Components contained in the MultiClusterApplicationConfiguration
-func (s *Syncer) syncComponentList(mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) error {
+func (s *Syncer) syncComponentList(mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration) error {
 	// Loop through the component list and get them one at a time.
 	for _, component := range mcAppConfig.Spec.Template.Spec.Components {
 		objectKey := types.NamespacedName{Name: component.ComponentName, Namespace: mcAppConfig.Namespace}
