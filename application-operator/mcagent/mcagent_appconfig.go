@@ -108,6 +108,9 @@ func (s *Syncer) syncComponentList(mcAppConfig *clustersv1alpha1.MultiClusterApp
 			return err
 		}
 		_, err = s.createOrUpdateComponent(*oamComp)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
