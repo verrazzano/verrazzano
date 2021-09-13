@@ -369,7 +369,8 @@ pipeline {
                                 cd ${GO_REPO_PATH}/verrazzano
                                 if [ "NONE" = "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
                                     echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
-                                    curl "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml" > ${WORKSPACE}/acceptance-test-operator.yaml
+                                    curl "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml" -o ${WORKSPACE}/downloaded-release-operator.yaml
+                                    cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                                 else
                                     echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
                                     env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
