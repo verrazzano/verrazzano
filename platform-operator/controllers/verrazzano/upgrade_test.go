@@ -6,8 +6,6 @@ package verrazzano
 import (
 	"context"
 	"errors"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/config"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -17,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,7 +47,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
 
-	bom.SetUnitTestBomFilePath(unitTestBomFile)
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -104,7 +103,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
 
-	bom.SetUnitTestBomFilePath(unitTestBomFile)
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -163,7 +162,7 @@ func TestUpgradeStarted(t *testing.T) {
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
 
-	bom.SetUnitTestBomFilePath(unitTestBomFile)
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -236,7 +235,7 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
 
-	bom.SetUnitTestBomFilePath(unitTestBomFile)
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -310,7 +309,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
 
-	bom.SetUnitTestBomFilePath(unitTestBomFile)
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -407,7 +406,7 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
 
-	bom.SetUnitTestBomFilePath(unitTestBomFile)
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -493,7 +492,7 @@ func TestUpgradeCompleted(t *testing.T) {
 	var verrazzanoToUse vzapi.Verrazzano
 
 	fname, _ := filepath.Abs(unitTestBomFile)
-	bom.SetUnitTestBomFilePath(fname)
+	component.SetUnitTestBomFilePath(fname)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -579,7 +578,7 @@ func TestUpgradeHelmError(t *testing.T) {
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
 
-	bom.SetUnitTestBomFilePath(unitTestBomFile)
+	component.SetUnitTestBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)

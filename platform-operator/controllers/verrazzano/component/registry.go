@@ -5,12 +5,12 @@ package component
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/config"
 	"go.uber.org/zap"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 // GetComponents returns the list of components that are installable and upgradeable.

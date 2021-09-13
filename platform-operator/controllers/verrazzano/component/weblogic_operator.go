@@ -5,7 +5,7 @@ package component
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/bom"
+
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -15,23 +15,23 @@ import (
 )
 
 // appendWeblogicOperatorOverrides appends the WKO-specific helm value overrides.
-func appendWeblogicOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	keyValueOverrides := []bom.KeyValue{
+func appendWeblogicOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []keyValue) ([]keyValue, error) {
+	keyValueOverrides := []keyValue{
 		{
-			Key:   "serviceAccount",
-			Value: "weblogic-operator-sa",
+			key:   "serviceAccount",
+			value: "weblogic-operator-sa",
 		},
 		{
-			Key:   "domainNamespaceSelectionStrategy",
-			Value: "LabelSelector",
+			key:   "domainNamespaceSelectionStrategy",
+			value: "LabelSelector",
 		},
 		{
-			Key:   "domainNamespaceLabelSelector",
-			Value: "verrazzano-managed",
+			key:   "domainNamespaceLabelSelector",
+			value: "verrazzano-managed",
 		},
 		{
-			Key:   "enableClusterRoleBinding",
-			Value: "true",
+			key:   "enableClusterRoleBinding",
+			value: "true",
 		},
 	}
 
@@ -40,17 +40,17 @@ func appendWeblogicOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _
 	return kvs, nil
 }
 
-func weblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string, _ string) ([]bom.KeyValue, error) {
+func weblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string, _ string) ([]keyValue, error) {
 	var serviceAccount corev1.ServiceAccount
 	const accountName = "weblogic-operator-sa"
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: accountName, Namespace: namespace}, &serviceAccount); err != nil {
 		if errors.IsAlreadyExists(err) {
 			// Service account already exists in the target namespace
-			return []bom.KeyValue{}, nil
+			return []keyValue{}, nil
 		}
 		if !errors.IsNotFound(err) {
 			// Unexpected error
-			return []bom.KeyValue{}, err
+			return []keyValue{}, err
 		}
 	}
 	serviceAccount = corev1.ServiceAccount{
@@ -60,7 +60,7 @@ func weblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ 
 		},
 	}
 	if err := client.Create(context.TODO(), &serviceAccount); err != nil {
-		return []bom.KeyValue{}, err
+		return []keyValue{}, err
 	}
-	return []bom.KeyValue{}, nil
+	return []keyValue{}, nil
 }

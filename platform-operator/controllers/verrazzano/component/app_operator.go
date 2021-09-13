@@ -4,7 +4,6 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"os"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -13,14 +12,14 @@ import (
 
 // appendApplicationOperatorOverrides Honor the APP_OPERATOR_IMAGE env var if set; this allows an explicit override
 // of the verrazzano-application-operator image when set.
-func appendApplicationOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func appendApplicationOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []keyValue) ([]keyValue, error) {
 	envImageOverride := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
 	if len(envImageOverride) == 0 {
 		return kvs, nil
 	}
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "image",
-		Value: envImageOverride,
+	kvs = append(kvs, keyValue{
+		key:   "image",
+		value: envImageOverride,
 	})
 	return kvs, nil
 }

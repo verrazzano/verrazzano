@@ -4,23 +4,14 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-type ComponentState struct {
-	State   v1alpha1.StateType
-	Message string
-}
 
 // Component interface defines the methods implemented by components
 type Component interface {
 	// Name returns the name of the Verrazzano component
 	Name() string
-
-	// Get the current state of the component
-	GetCurrentState() *ComponentState
 
 	// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
 	Upgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
@@ -40,7 +31,4 @@ type Component interface {
 
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
-
-	// Initiate an uninstall
-	Uninstall() *ComponentState
 }

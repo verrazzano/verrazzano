@@ -4,7 +4,6 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,7 +18,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	const defNs = constants.VerrazzanoSystemNamespace
 	assert := assert.New(t)
 
-	bom.SetUnitTestBomFilePath(testBomFilePath)
+	SetUnitTestBomFilePath(testBomFilePath)
 	kvs, err := appendKeycloakOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "appendKeycloakOverrides returned an error ")
 	assert.Len(kvs, 1, "appendKeycloakOverrides returned wrong number of key:value pairs")

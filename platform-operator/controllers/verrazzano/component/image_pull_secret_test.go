@@ -5,7 +5,6 @@ package component
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -178,9 +177,9 @@ func TestAddImagePullSecretUnexpectedError(t *testing.T) {
 			return fmt.Errorf("unexpected error")
 		})
 
-	kvs := []bom.KeyValue{
-		{Key: "key1", Value: "value1"},
-		{Key: "key2", Value: "value2"},
+	kvs := []keyValue{
+		{key: "key1", value: "value1"},
+		{key: "key2", value: "value2"},
 	}
 	retKVs, err := addGlobalImagePullSecretHelmOverride(zap.S(), mock, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
 	assert.NotNil(t, err)
@@ -198,16 +197,16 @@ func TestAddImagePullSecretTargetSecretAlreadyExists(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace},
 	},
 	)
-	kvs := []bom.KeyValue{
-		{Key: "key1", Value: "value1"},
-		{Key: "key2", Value: "value2"},
+	kvs := []keyValue{
+		{key: "key1", value: "value1"},
+		{key: "key2", value: "value2"},
 	}
 	retKVs, err := addGlobalImagePullSecretHelmOverride(zap.S(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
 	assert.Nil(t, err)
 	assert.Lenf(t, retKVs, 3, "Unexpected number of key/value pairs: %s", len(retKVs))
 	for _, kv := range retKVs {
-		assert.Containsf(t, []string{"key1", "key2", "helmKey"}, kv.Key, "Did not have key %s", kv.Key)
-		assert.Containsf(t, []string{"value1", "value2", constants.GlobalImagePullSecName}, kv.Value, "Did not have value", kv.Value)
+		assert.Containsf(t, []string{"key1", "key2", "helmKey"}, kv.key, "Did not have key %s", kv.key)
+		assert.Containsf(t, []string{"value1", "value2", constants.GlobalImagePullSecName}, kv.value, "Did not have value", kv.value)
 	}
 }
 
@@ -222,15 +221,15 @@ func TestAddImagePullSecretTargetSecretCopied(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace},
 	},
 	)
-	kvs := []bom.KeyValue{
-		{Key: "key1", Value: "value1"},
-		{Key: "key2", Value: "value2"},
+	kvs := []keyValue{
+		{key: "key1", value: "value1"},
+		{key: "key2", value: "value2"},
 	}
 	retKVs, err := addGlobalImagePullSecretHelmOverride(zap.S(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
 	assert.Nil(t, err)
 	assert.Lenf(t, retKVs, 3, "Unexpected number of key/value pairs: %s", len(retKVs))
 	for _, kv := range retKVs {
-		assert.Containsf(t, []string{"key1", "key2", "helmKey"}, kv.Key, "Did not have key %s", kv.Key)
-		assert.Containsf(t, []string{"value1", "value2", constants.GlobalImagePullSecName}, kv.Value, "Did not have value", kv.Value)
+		assert.Containsf(t, []string{"key1", "key2", "helmKey"}, kv.key, "Did not have key %s", kv.key)
+		assert.Containsf(t, []string{"value1", "value2", constants.GlobalImagePullSecName}, kv.value, "Did not have value", kv.value)
 	}
 }

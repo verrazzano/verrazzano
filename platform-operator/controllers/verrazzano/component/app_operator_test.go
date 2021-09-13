@@ -4,15 +4,12 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
-
-const testBomFilePath = "./testdata/test_bom.json"
 
 // TestAppendAppOperatorOverrides tests the Keycloak override for the theme images
 // GIVEN an env override for the app operator image
@@ -30,10 +27,10 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 	os.Setenv(constants.VerrazzanoAppOperatorImageEnvVar, customImage)
 	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
 
-	bom.SetUnitTestBomFilePath(testBomFilePath)
+	SetUnitTestBomFilePath(testBomFilePath)
 	kvs, err = appendApplicationOperatorOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "appendApplicationOperatorOverrides returned an error ")
 	assert.Len(kvs, 1, "appendApplicationOperatorOverrides returned wrong number of key:value pairs")
-	assert.Equalf("image", kvs[0].Key, "Did not get expected image key")
-	assert.Equalf(customImage, kvs[0].Value, "Did not get expected image value")
+	assert.Equalf("image", kvs[0].key, "Did not get expected image key")
+	assert.Equalf(customImage, kvs[0].value, "Did not get expected image value")
 }
