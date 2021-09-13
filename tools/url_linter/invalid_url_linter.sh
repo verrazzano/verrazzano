@@ -1,7 +1,13 @@
 #!/bin/bash
 #
-# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
+
+if [ -z $1 ] || [ ! -d $1 ]; then
+    echo "Please provide a valid directory to check for URLs"
+    exit 1
+fi
 
 #creating a temporary arrangement for linter
 URL_LINTER_TEMPDIR=""
@@ -32,7 +38,7 @@ ORANGE='\033[0;33m'
 NC='\033[0m'
 
 #fetching url from repo
-grep --exclude-dir '.git' --exclude-dir e2e --exclude-dir '*/thirdparty' --exclude-dir test* -Eorh "(http|https)://[a-zA-Z0-9./?=_%#:-]*" $1 | grep -v 'License' | grep -v 'REDACTED' | grep -v 'localhost' | grep -v 'Binary file' | grep -v '\%' | grep -v '127' | sort -u > $URL_LINTER_TEMPDIR/urls.out
+grep --exclude-dir '.git' --exclude-dir e2e --exclude-dir thirdparty --exclude-dir test* -Eorh "(http|https)://[a-zA-Z0-9./?=_%#:-]*" $1 | grep -v 'License' | grep -v 'REDACTED' | grep -v 'localhost' | grep -v 'Binary file' | grep -v '\%' | grep -v '127' | sort -u > $URL_LINTER_TEMPDIR/urls.out
 sed -i -e 's/\.$//g' $URL_LINTER_TEMPDIR/urls.out
 
 #calling the helper script in parallel to check for http response
