@@ -378,8 +378,6 @@ pipeline {
                             echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                             echo "------------------------------------------"
                         """
-                        VZ_TEST_METRIC = metricJobName('')
-                        metricTimerStart("${VZ_TEST_METRIC}")
                     }
                 }
             }
