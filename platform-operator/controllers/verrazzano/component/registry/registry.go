@@ -5,7 +5,7 @@ package registry
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/app_oper"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
@@ -146,7 +146,7 @@ func GetComponents() []spi.Component {
 			SupportsOperatorInstall: true,
 			WaitForInstall:          true,
 			ValuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
-			AppendOverridesFunc:     app_oper.AppendApplicationOperatorOverrides,
+			AppendOverridesFunc:     appoper.AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 		},
 		helm.HelmComponent{
