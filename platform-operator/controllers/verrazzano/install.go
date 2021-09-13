@@ -6,18 +6,17 @@ package verrazzano
 import (
 	"fmt"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 )
 
 // Reconcile upgrade will upgrade the components as required
 func (r *Reconciler) reconcileInstall(log *zap.SugaredLogger, _ ctrl.Request, cr *installv1alpha1.Verrazzano) error {
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
-	for _, comp := range component.GetComponents() {
+	for _, comp := range registry.GetComponents() {
 		if !comp.IsOperatorInstallSupported() {
 			continue
 		}
@@ -30,7 +29,7 @@ func (r *Reconciler) reconcileInstall(log *zap.SugaredLogger, _ ctrl.Request, cr
 			}
 			continue
 		}
-		if !component.ComponentDependenciesMet(log, r.Client, comp) {
+		if !registry.ComponentDependenciesMet(log, r.Client, comp) {
 			return fmt.Errorf("Dependencies not met for %s: %v", comp.Name(), comp.GetDependencies())
 		}
 		if err := r.updateComponentStatus(log, cr, comp.Name(), "Install starting", installv1alpha1.InstallStarted); err != nil {

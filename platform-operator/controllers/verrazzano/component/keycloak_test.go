@@ -4,6 +4,7 @@
 package component
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 
@@ -19,7 +20,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	const defNs = constants.VerrazzanoSystemNamespace
 	assert := assert.New(t)
 
-	config.SetDefaultBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(registry.testBomFilePath)
 	kvs, err := appendKeycloakOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "appendKeycloakOverrides returned an error ")
 	assert.Len(kvs, 1, "appendKeycloakOverrides returned wrong number of Key:Value pairs")

@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component
+package istio
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -14,9 +14,9 @@ import (
 
 const istioGlobalHubKey = "global.hub"
 
-// appendIstioOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
+// AppendIstioOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
 // A go template is used to replace the image in the init container spec.
-func appendIstioOverrides(_ *zap.SugaredLogger, releaseName string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendIstioOverrides(_ *zap.SugaredLogger, releaseName string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
@@ -44,8 +44,8 @@ func appendIstioOverrides(_ *zap.SugaredLogger, releaseName string, _ string, _ 
 	return kvs, nil
 }
 
-// istiodReadyCheck Determines if istiod is up and has a minimum number of available replicas
-func istiodReadyCheck(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string) bool {
+// IstiodReadyCheck Determines if istiod is up and has a minimum number of available replicas
+func IstiodReadyCheck(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: "istiod", Namespace: namespace},
 	}

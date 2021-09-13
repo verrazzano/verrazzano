@@ -6,6 +6,7 @@ package component
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -22,7 +23,7 @@ func resolveVerrazzanoNamespace(ns string) string {
 	if len(ns) > 0 && ns != "default" {
 		return ns
 	}
-	return vzDefaultNamespace
+	return helm.vzDefaultNamespace
 }
 
 // verrazzanoPreUpgrade contains code that is run prior to helm upgrade for the verrazzano helm chart

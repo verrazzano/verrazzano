@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"path/filepath"
@@ -654,7 +654,7 @@ func initializeComponentStatus(cr *installv1alpha1.Verrazzano) {
 		return
 	}
 	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
-	for _, comp := range component.GetComponents() {
+	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
 				Name: comp.Name(),

@@ -1,11 +1,12 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component
+package istio
 
 import (
 	"errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
@@ -17,8 +18,8 @@ import (
 type istioFakeRunner struct {
 }
 
-var comp istioComponent = istioComponent{
-	componentName: "istio",
+var comp IstioComponent = IstioComponent{
+	ComponentName: "istio",
 }
 
 // IstioTestGetName tests the component name
@@ -37,7 +38,7 @@ func IstioTestGetName(t *testing.T) {
 func IstioTestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
-	config.SetDefaultBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(component.testBomFilePath)
 	istio.SetCmdRunner(istioFakeRunner{})
 	defer istio.SetDefaultRunner()
 	setIstioUpgradeFunc(fakeIstioUpgrade)

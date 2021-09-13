@@ -1,9 +1,10 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component
+package registry
 
 import (
+	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
@@ -61,12 +62,12 @@ func TestFindComponent(t *testing.T) {
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN the true is returned if all depdencies are met
 func TestComponentDependenciesMet(t *testing.T) {
-	comp := helmComponent{
-		releaseName:     "foo",
-		chartDir:        "chartDir",
-		chartNamespace:  "bar",
-		readyStatusFunc: nil,
-		dependencies:    []string{"istiod"},
+	comp := helm2.HelmComponent{
+		ReleaseName:     "foo",
+		ChartDir:        "chartDir",
+		ChartNamespace:  "bar",
+		ReadyStatusFunc: nil,
+		Dependencies:    []string{"istiod"},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -93,12 +94,12 @@ func TestComponentDependenciesMet(t *testing.T) {
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN the false is returned if any depdencies are not met
 func TestComponentDependenciesNotMet(t *testing.T) {
-	comp := helmComponent{
-		releaseName:     "foo",
-		chartDir:        "chartDir",
-		chartNamespace:  "bar",
-		readyStatusFunc: nil,
-		dependencies:    []string{"istiod"},
+	comp := helm2.HelmComponent{
+		ReleaseName:     "foo",
+		ChartDir:        "chartDir",
+		ChartNamespace:  "bar",
+		ReadyStatusFunc: nil,
+		Dependencies:    []string{"istiod"},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -125,12 +126,12 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN the false is returned if the dependent chart isn't installed
 func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
-	comp := helmComponent{
-		releaseName:     "foo",
-		chartDir:        "chartDir",
-		chartNamespace:  "bar",
-		readyStatusFunc: nil,
-		dependencies:    []string{"istiod"},
+	comp := helm2.HelmComponent{
+		ReleaseName:     "foo",
+		ChartDir:        "chartDir",
+		ChartNamespace:  "bar",
+		ReadyStatusFunc: nil,
+		Dependencies:    []string{"istiod"},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	//	ObjectMeta: metav1.ObjectMeta{
@@ -157,12 +158,12 @@ func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN the false is returned if any depdencies are not met
 func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
-	comp := helmComponent{
-		releaseName:     "foo",
-		chartDir:        "chartDir",
-		chartNamespace:  "bar",
-		readyStatusFunc: nil,
-		dependencies:    []string{"istiod", "cert-manager"},
+	comp := helm2.HelmComponent{
+		ReleaseName:     "foo",
+		ChartDir:        "chartDir",
+		ChartNamespace:  "bar",
+		ReadyStatusFunc: nil,
+		Dependencies:    []string{"istiod", "cert-manager"},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -189,12 +190,12 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN the true is returned if all depdencies are met
 func TestComponentMultipleDependenciesMet(t *testing.T) {
-	comp := helmComponent{
-		releaseName:     "foo",
-		chartDir:        "chartDir",
-		chartNamespace:  "bar",
-		readyStatusFunc: nil,
-		dependencies:    []string{"istiod", "cert-manager"},
+	comp := helm2.HelmComponent{
+		ReleaseName:     "foo",
+		ChartDir:        "chartDir",
+		ChartNamespace:  "bar",
+		ReadyStatusFunc: nil,
+		Dependencies:    []string{"istiod", "cert-manager"},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -221,12 +222,12 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN it returns false if there's a cycle in the dependencies
 func TestComponentDependenciesCycle(t *testing.T) {
-	comp := helmComponent{
-		releaseName:     "foo",
-		chartDir:        "chartDir",
-		chartNamespace:  "bar",
-		readyStatusFunc: nil,
-		dependencies:    []string{"istiod", "cert-manager", "istiod"},
+	comp := helm2.HelmComponent{
+		ReleaseName:     "foo",
+		ChartDir:        "chartDir",
+		ChartNamespace:  "bar",
+		ReadyStatusFunc: nil,
+		Dependencies:    []string{"istiod", "cert-manager", "istiod"},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -253,10 +254,10 @@ func TestComponentDependenciesCycle(t *testing.T) {
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN it returns true if there are no dependencies
 func TestNoComponentDependencies(t *testing.T) {
-	comp := helmComponent{
-		releaseName:    "foo",
-		chartDir:       "chartDir",
-		chartNamespace: "bar",
+	comp := helm2.HelmComponent{
+		ReleaseName:    "foo",
+		ChartDir:       "chartDir",
+		ChartNamespace: "bar",
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	ready := ComponentDependenciesMet(zap.S(), client, comp)
