@@ -104,10 +104,10 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationTargeti
 			ServiceAccount:               "test-service-account",
 		},
 	}
-	mcc := v1alpha12.MultiClusterApplicationConfiguration{
+	mcac := v1alpha12.MultiClusterApplicationConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mcapplicationconfiguration-name",
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
+			Namespace: "application-ns",
 		},
 		Spec: v1alpha12.MultiClusterApplicationConfigurationSpec{
 			Placement: v1alpha12.Placement{
@@ -115,13 +115,32 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationTargeti
 			},
 		},
 	}
-	asrt.NoError(v.client.Create(context.TODO(), &mc))
+	vp := v1alpha12.VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-verrazzanoproject-name",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: v1alpha12.VerrazzanoProjectSpec{
+			Template: v1alpha12.ProjectTemplate{
+				Namespaces: []v1alpha12.NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "application-ns",
+						},
+					},
+				},
+			},
+		},
+	}
 
-	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
+	asrt.NoError(v.client.Create(context.TODO(), &mc))
+	asrt.NoError(v.client.Create(context.TODO(), &vp))
+
+	req := newAdmissionRequest(admissionv1beta1.Create, mcac)
 	res := v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster application configuration create validation to succeed.")
 
-	req = newAdmissionRequest(admissionv1beta1.Update, mcc)
+	req = newAdmissionRequest(admissionv1beta1.Update, mcac)
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster application configuration update validation to succeed.")
 }
@@ -141,10 +160,10 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}
-	mcc := v1alpha12.MultiClusterApplicationConfiguration{
+	mcac := v1alpha12.MultiClusterApplicationConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-mcapplicationconfiguration-name",
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
+			Namespace: "application-ns",
 		},
 		Spec: v1alpha12.MultiClusterApplicationConfigurationSpec{
 			Placement: v1alpha12.Placement{
@@ -152,13 +171,32 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 			},
 		},
 	}
-	asrt.NoError(v.client.Create(context.TODO(), &s))
+	vp := v1alpha12.VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-verrazzanoproject-name",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: v1alpha12.VerrazzanoProjectSpec{
+			Template: v1alpha12.ProjectTemplate{
+				Namespaces: []v1alpha12.NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "application-ns",
+						},
+					},
+				},
+			},
+		},
+	}
 
-	req := newAdmissionRequest(admissionv1beta1.Create, mcc)
+	asrt.NoError(v.client.Create(context.TODO(), &s))
+	asrt.NoError(v.client.Create(context.TODO(), &vp))
+
+	req := newAdmissionRequest(admissionv1beta1.Create, mcac)
 	res := v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster application configuration validation to succeed with missing placement information on managed cluster.")
 
-	req = newAdmissionRequest(admissionv1beta1.Update, mcc)
+	req = newAdmissionRequest(admissionv1beta1.Update, mcac)
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster application configuration validation to succeed with missing placement information on managed cluster.")
 }
