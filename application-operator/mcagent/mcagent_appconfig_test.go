@@ -9,16 +9,20 @@ import (
 	"path/filepath"
 	"testing"
 
+	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const testMCAppConfigName = "unit-mcappconfig"
@@ -326,6 +330,89 @@ func TestMCAppConfigPlacement(t *testing.T) {
 	assert.NoError(err)
 }
 
+// TestSyncComponentList tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterApplicationConfiguration objects
+// WHEN it contains a list of OAM Components
+// THEN ensure that the embedded OAM Components are created or updated
+func TestSyncComponentList(t *testing.T) {
+	appName := "test"
+	appNamespace := "test-ns"
+	compName1 := "test-comp-1"
+	compName2 := "test-comp-2"
+	param1 := "parameter-1"
+	param2 := "parameter-2"
+
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+
+	// Create a fake client for the admin cluster
+	adminClient := fake.NewFakeClientWithScheme(newScheme(),
+		&oamv1alpha2.Component{
+			ObjectMeta: metav1.ObjectMeta{Name: compName1, Namespace: appNamespace},
+			Spec: oamv1alpha2.ComponentSpec{
+				Parameters: []oamv1alpha2.ComponentParameter{
+					{
+						Name: param1,
+					},
+				},
+			},
+		},
+		&oamv1alpha2.Component{
+			ObjectMeta: metav1.ObjectMeta{Name: compName2, Namespace: appNamespace},
+			Spec: oamv1alpha2.ComponentSpec{
+				Parameters: []oamv1alpha2.ComponentParameter{
+					{
+						Name: param2,
+					},
+				},
+			},
+		},
+	)
+
+	// Create a fake client for the local cluster
+	localClient := fake.NewFakeClientWithScheme(newScheme())
+
+	// MultiClusterApplicationConfiguration test data
+	mcAppConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{
+		ObjectMeta: metav1.ObjectMeta{Name: appName, Namespace: appNamespace},
+		Spec: clustersv1alpha1.MultiClusterApplicationConfigurationSpec{
+			Template: clustersv1alpha1.ApplicationConfigurationTemplate{
+				Spec: oamv1alpha2.ApplicationConfigurationSpec{
+					Components: []oamv1alpha2.ApplicationConfigurationComponent{
+						{
+							ComponentName: compName1,
+						},
+						{
+							ComponentName: compName2,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminClient,
+		LocalClient:        localClient,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+	err := s.syncComponentList(mcAppConfig)
+	assert.NoError(err)
+
+	// Verify the components were created locally
+	component := &oamv1alpha2.Component{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: compName1, Namespace: appNamespace}, component)
+	assert.NoError(err)
+	assert.Equal(param1, component.Spec.Parameters[0].Name)
+
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: compName2, Namespace: appNamespace}, component)
+	assert.NoError(err)
+	assert.Equal(param2, component.Spec.Parameters[0].Name)
+}
+
 // getSampleMCAppConfig creates and returns a sample MultiClusterApplicationConfiguration used in tests
 func getSampleMCAppConfig(filePath string) (clustersv1alpha1.MultiClusterApplicationConfiguration, error) {
 	mcAppConfig := clustersv1alpha1.MultiClusterApplicationConfiguration{}
@@ -341,4 +428,10 @@ func getSampleMCAppConfig(filePath string) (clustersv1alpha1.MultiClusterApplica
 
 	err = json.Unmarshal(rawResource, &mcAppConfig)
 	return mcAppConfig, err
+}
+
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
+	return scheme
 }
