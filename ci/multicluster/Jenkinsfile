@@ -1229,7 +1229,7 @@ def getVerrazzanoOperatorYaml() {
         cd ${GO_REPO_PATH}/verrazzano
         if [ "NONE" = "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
             echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
-            curl -k -u ${GITHUB_RELEASE_USERID_USR}:${GITHUB_RELEASE_USERID_PSW} "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml" -o ${WORKSPACE}/downloaded-release-operator.yaml
+            wget "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml" -O ${WORKSPACE}/downloaded-release-operator.yaml
             cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
         else
             echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
