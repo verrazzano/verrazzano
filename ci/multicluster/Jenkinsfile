@@ -459,11 +459,11 @@ pipeline {
                     }
                 }
             }
-        }
-        post {
-            failure {
-                script {
-                    dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-install")
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-install")
+                    }
                 }
             }
         }
@@ -487,11 +487,11 @@ pipeline {
                     }
                 }
             }
-        }
-        post {
-            failure {
-                script {
-                    dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-verify-upgrade")
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-verify-upgrade")
+                    }
                 }
             }
         }
