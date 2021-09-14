@@ -541,8 +541,8 @@ data:
     end
 
     function me.oidcHandleLogoutCallback()
-        auth.deleteCookie("authn")
-        auth.unauthorized("User logged out")
+        me.deleteCookie("authn")
+        me.unauthorized("User logged out")
     end
 
     function me.oidcTokenRequest(formArgs)
