@@ -1,3 +1,72 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  namespace: istio-system
+spec:
+  components:
+    egressGateways:
+      - name: istio-egressgateway
+        enabled: true
+
+  # Global values passed through to helm global.yaml.
+  # Please keep this in sync with manifests/charts/global.yaml
+  values:
+    global:
+      global:
+        hub: ghcr.io/verrazzano
+        tag: 1.7.3
+        arch:
+          amd64: 2
+          s390x: 2
+          ppc64le: 2
+        multiCluster:
+          enabled: false
+        controlPlaneSecurityEnabled: true
+        enableHelmTest: false
+        istioNamespace: istio-system
+        imagePullPolicy: IfNotPresent
+        proxy:
+          readinessFailureThreshold: 90
+        # enable pod disruption budget for the control plane, which is used to ensure Istio control plane
+        # components are gradually upgraded or recovered.
+        # pod disruption budget(pdb) is disabled to allow upgrading worker nodes without violating pdb
+        defaultPodDisruptionBudget:
+          enabled: false
+
+      pilot:
+        autoscaleEnabled: false
+
+      gateways:
+        istio-egressgateway:
+          env:
+            # Needed to route traffic via egress gateway if desired.
+            ISTIO_META_REQUESTED_NETWORK_VIEW: "external"
+          autoscaleEnabled: false
+        istio-ingressgateway:
+          autoscaleEnabled: false
+
+      istiocoredns:
+        enabled: true
+        # NOTE: The image you're looking for isn't here. The istio coredns images now come from
+        # the bill of materials file (verrazzano-bom.json).
+        autoscaleEnabled: false
+
+      meshConfig:
+        enablePrometheusMerge: false
+        defaultConfig:
+          proxyMetadata: { }
+
+      sidecarInjectorWebhook:
+        rewriteAppHTTPProbe: true
+        neverInjectSelector:
+          - matchExpressions:
+              - { key: app, operator: In, values: [ verrazzano-application-operator, verrazzano-operator ] }
+          - matchExpressions:
+              - { key: control-plane, operator: In, values: [ coherence ] }
+          - matchExpressions:
+              - { key: app.kubernetes.io/name, operator: In, values: [ oam-kubernetes-runtime ] }
+          - matchExpressions:
+              - { key: k8s-app, operator: In, values: [ verrazzano-monitoring-operator ] }

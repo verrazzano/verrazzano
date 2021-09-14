@@ -357,7 +357,25 @@ type IstioComponent struct {
 	// Arguments for installing Istio
 	// +optional
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty"`
+
+	// Spec specifies the IstioOperator schema
+	// +optional
+	Spec IstioSpec
 }
+
+// IstioSpec specifies IstioOperator schema that is currently supported by Verrazzano
+type IstioSpec struct {
+	// Type of ingress.  Default is LoadBalancer
+	// +optional
+	Type IngressType `json:"type,omitempty"`
+	// Arguments for installing NGINX
+	// +optional
+	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty"`
+	// Ports to be used for NGINX
+	// +optional
+	Ports []corev1.ServicePort `json:"ports,omitempty"`
+}
+
 
 // KeycloakComponent specifies the Keycloak configuration
 type KeycloakComponent struct {
