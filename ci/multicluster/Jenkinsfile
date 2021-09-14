@@ -868,20 +868,20 @@ def upgradeVerrazzano() {
 
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
+                def v8oInstallFile="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                def v8oUpgradeFile="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
                 sh """
-                    export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                    export V8O_INSTALL_FILE="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                    export V8O_UPGRADE_FILE="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
+                    export KUBECONFIG=${KUBECONFIG_DIR}/${count}/kube_config
 
                     echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
                     # Modify the version field in the verrazzano CR file to be this new verrazzano version
                     cd ${GO_REPO_PATH}/verrazzano
-                    cp ${V8O_INSTALL_FILE} ${V8O_UPGRADE_FILE}
-                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${V8O_UPGRADE_FILE}
+                    cp ${v8oInstallFile} ${v8oUpgradeFile}
+                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${v8oUpgradeFile}
                     # Do the upgrade
                     echo "Following is the verrazano CR file with the new version:"
-                    cat ${V8O_UPGRADE_FILE}
-                    kubectl apply -f ${V8O_UPGRADE_FILE}
+                    cat ${v8oUpgradeFile}
+                    kubectl apply -f ${v8oUpgradeFile}
                     # wait for the upgrade to complete
                     kubectl wait --timeout=10m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
