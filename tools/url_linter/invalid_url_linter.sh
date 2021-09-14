@@ -53,7 +53,7 @@ else
     #cat $URL_LINTER_TEMPDIR/urls_404.out
     while read url_404; do
         echo -e "${RED}$url_404${NC} locations:"
-        grep --exclude-dir *url_linter_temp* -I -r $url_404 $1
+        grep --exclude-dir *url_linter_temp* --exclude-dir vendor -I -r $url_404 $1
     done < $URL_LINTER_TEMPDIR/urls_404.out
 fi
 
@@ -64,7 +64,7 @@ if [ ! -f $URL_LINTER_TEMPDIR/urls_301.out ]; then
 else
     while read url_301; do
         echo -e "${RED}$url_301${NC} locations:"
-        grep --exclude-dir *url_linter_temp* -I -r $url_301 $1
+        grep --exclude-dir *url_linter_temp* --exclude-dir vendor -I -r $url_301 $1
     done < $URL_LINTER_TEMPDIR/urls_301.out
 fi
 
