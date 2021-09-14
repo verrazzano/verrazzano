@@ -37,9 +37,7 @@ data:
 
     -- determine backend and set backend parameters
     
-    local requestUri = ngx.var.request_uri
-    local apiVersion = "20210501"
-    local backend = auth.getBackendNameFromIngressHost(ingressHost, requestUri, apiVersion)
+    local backend = auth.getBackendNameFromIngressHost(ingressHost)
     local backendUrl = auth.getBackendServerUrlFromName(backend)
 
     auth.info("Processing request for backend '"..ingressHost.."'")
@@ -57,11 +55,11 @@ data:
         end
     else
         auth.info("No authorization header found")
-        if auth.requestUriMatches(requestUri, callbackPath) then
+        if auth.requestUriMatches(ngx.var.request_uri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
             auth.oidcHandleCallback()
-        elseif auth.requestUriMatches(requestUri, logoutCallbackPath) then
+        elseif auth.requestUriMatches(ngx.var.request_uri, logoutCallbackPath) then
             -- logout was triggered, and OP (always?) is calling our logout URL
             auth.oidcHandleLogoutCallback()
         end
@@ -284,8 +282,9 @@ data:
         return false
     end
 
-    function me.getFirstPathArgument(uri)
+    function me.getFirstPathArgument()
         local first_path_argument = ''
+        local uri = ngx.var.uri
         if uri then
             me.info("Request uri " .. uri)
             local start, last = uri:find("%/")
@@ -312,14 +311,14 @@ data:
         return first_path_argument
     end
 
-    function me.setUriAfterRemovingApiVersion(uri, apiVersion)
+    function me.setUriAfterRemovingApiVersion()
         -- Strip api_version from the uri
-        uri = ngx.re.sub(uri, "^/"..apiVersion.."/(.*)", "/$1", "o")
+        uri = ngx.re.sub(ngx.uri.request_uri, "^/20210501/(.*)", "/$1", "o")
         ngx.req.set_uri(uri)
         me.info("ngx.var.uri "..ngx.var.uri)
     end
 
-    function me.getBackendNameFromIngressHost(ingressHost, requestUri, apiVersion)
+    function me.getBackendNameFromIngressHost(ingressHost)
         local backend_name = 'unknown'
         if ingressHost then
             me.info("ingressHost is '"..ingressHost.."'")
@@ -330,10 +329,9 @@ data:
             end
         end
         if backend_name == "verrazzano" then
-            local first_path_argument = me.getFirstPathArgument(requestUri)
-            if first_path_argument == apiVersion then
+            local first_path_argument = me.getFirstPathArgument()
+            if first_path_argument == "20210501" then
                 backend_name = "verrazzano"
-                me.setUriAfterRemovingApiVersion(requestUri, apiVersion)
             else
                 backend_name = "console"
             end
@@ -356,6 +354,8 @@ data:
             -- assume we're going to the local server; if not, we'll fix up the url when we handle the remote call
             -- Route request to k8s API
             serverUrl = me.getLocalKubernetesApiUrl()
+            -- Remove  api version from request_uri
+            me.setUriAfterRemovingApiVersion()
         elseif backend == 'console' then
             -- Route request to console
             serverUrl = me.makeConsoleBackendUrl('8000')
