@@ -3,7 +3,7 @@
 # Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-
+SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 if [ -z $1 ] || [ ! -d $1 ]; then
     echo "No valid directory provided to store suspect urls"
     exit 1
@@ -23,7 +23,7 @@ fi
 URL=${2?}
 
 #skipping urls that are supposed to be ignored
-grep $URL $(dirname "$0")/ignore_urls.txt > /dev/null
+grep $URL $SCRIPT_DIR/ignore_urls.txt > /dev/null
 if [ $? -eq 1 ]; then
     response=$(curl -Li --max-redirs 5 --write-out '%{http_code}' --silent --output /dev/null $URL)
     if [ "$response" -eq 404 ]; then

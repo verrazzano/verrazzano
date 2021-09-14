@@ -5,6 +5,7 @@ include make/quality.mk
 
 SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/build
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+TOOLS_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/tools
 
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-push create-test-deploy))
 ifndef DOCKER_REPO

@@ -33,7 +33,7 @@ word-linter:
 
 .PHONY: url-linter
 url-linter:
-	${ROOT_DIR}/tools/url_linter/invalid_url_linter.sh ${ROOT_DIR}
+	${TOOLS_DIR}/url_linter/invalid_url_linter.sh .
 
 .PHONY: coverage
 coverage:

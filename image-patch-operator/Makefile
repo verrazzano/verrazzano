@@ -5,6 +5,7 @@ include ../make/quality.mk
 include ../make/generate.mk
 
 SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
+TOOLS_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../tools
 
 NAME:=verrazzano-image-patch-operator
 REPO_NAME:=verrazzano-image-patch-operator
