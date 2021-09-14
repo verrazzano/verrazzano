@@ -191,9 +191,6 @@ type ComponentStatusDetails struct {
 type ConditionType string
 
 const (
-	// NotInstalled indicates a component is not currently installed
-	NotInstalled ConditionType = "NotInstalled"
-
 	// InstallStarted means an install is in progress.
 	InstallStarted ConditionType = "InstallStarted"
 
