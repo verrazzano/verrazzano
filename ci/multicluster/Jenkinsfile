@@ -845,63 +845,59 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
 // Upgrade the verrazzano-platform-operator
 def upgradePlatformOperator() {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        script {
-            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-            for (int count = 1; count <= clusterCount; count++) {
-                def upgradeOperatorFile="${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
-                sh """
-                    export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for (int count = 1; count <= clusterCount; count++) {
+            def upgradeOperatorFile="${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
+            sh """
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
 
-                    echo "Upgrading the Verrazzano platform operator"
-                    # Download the operator.yaml for the target version that we are upgrading to
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${upgradeOperatorFile}
-                    kubectl apply -f ${upgradeOperatorFile}
+                echo "Upgrading the Verrazzano platform operator"
+                # Download the operator.yaml for the target version that we are upgrading to
+                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${upgradeOperatorFile}
+                kubectl apply -f ${upgradeOperatorFile}
 
-                    # need to sleep since the old operator needs to transition to terminating state
-                    sleep 15
+                # need to sleep since the old operator needs to transition to terminating state
+                sleep 15
 
-                    # ensure operator pod is up
-                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                """
-            }
+                # ensure operator pod is up
+                kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+            """
         }
     }
 }
 
 // Upgrade Verrazzano
 def upgradeVerrazzano() {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        script {
-            // Download the bom for the target version that we are upgrading to, then extract the version
-            // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
-            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
+    script {
+        // Download the bom for the target version that we are upgrading to, then extract the version
+        // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
+        VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
 
-            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-            for(int count=1; count<=clusterCount; count++) {
-                def v8oInstallFile="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                def v8oUpgradeFile="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
-                sh """
-                    export KUBECONFIG=${KUBECONFIG_DIR}/${count}/kube_config
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            def v8oInstallFile="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+            def v8oUpgradeFile="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
+            sh """
+                export KUBECONFIG=${KUBECONFIG_DIR}/${count}/kube_config
 
-                    echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
-                    # Modify the version field in the verrazzano CR file to be this new verrazzano version
-                    cd ${GO_REPO_PATH}/verrazzano
-                    cp ${v8oInstallFile} ${v8oUpgradeFile}
-                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${v8oUpgradeFile}
-                    # Do the upgrade
-                    echo "Following is the verrazano CR file with the new version:"
-                    cat ${v8oUpgradeFile}
-                    kubectl apply -f ${v8oUpgradeFile}
-                    # wait for the upgrade to complete
-                    kubectl wait --timeout=10m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
+                # Modify the version field in the verrazzano CR file to be this new verrazzano version
+                cd ${GO_REPO_PATH}/verrazzano
+                cp ${v8oInstallFile} ${v8oUpgradeFile}
+                ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${v8oUpgradeFile}
+                # Do the upgrade
+                echo "Following is the verrazano CR file with the new version:"
+                cat ${v8oUpgradeFile}
+                kubectl apply -f ${v8oUpgradeFile}
+                # wait for the upgrade to complete
+                kubectl wait --timeout=10m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
-                    # ideally we don't need to wait here
-                    sleep 15
-                    echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-                    helm list -A
-                """
-            }
+                # ideally we don't need to wait here
+                sleep 15
+                echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
+                helm list -A
+            """
         }
     }
 }
