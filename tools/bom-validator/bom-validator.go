@@ -195,7 +195,7 @@ func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]i
 // Build out the cluster image map based off of the container array, filter dups
 func populateClusterImageMap(containerArray []string, clusterImageMap map[string][tagLen]string) {
 	// Loop through containers and populate hashmap
-	var i int = 0
+	var i int
 	for _, container := range containerArray {
 		begin := strings.LastIndex(container, "/")
 		end := len(container)
