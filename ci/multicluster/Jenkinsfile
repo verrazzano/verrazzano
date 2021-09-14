@@ -460,6 +460,14 @@ pipeline {
                 }
             }
         }
+        post {
+            failure {
+                script {
+                    dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-install")
+                }
+            }
+        }
+
         stage('Verify Upgrade') {
             // Rerun some stages to verify the upgrade
             parallel {
@@ -480,6 +488,14 @@ pipeline {
                 }
             }
         }
+        post {
+            failure {
+                script {
+                    dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-verify-upgrade")
+                }
+            }
+        }
+
         stage('Acceptance Tests') {
             stages {
                 stage ('Example apps') {
@@ -833,14 +849,14 @@ def upgradePlatformOperator() {
         script {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for (int count = 2; count <= clusterCount; count++) {
+                def upgradeOperatorFile="${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
                 sh """
                     export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
 
                     echo "Upgrading the Verrazzano platform operator"
                     # Download the operator.yaml for the target version that we are upgrading to
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/upgrade-operator.yaml
-                    cp ${WORKSPACE}/upgrade-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${upgradeOperatorFile}
+                    kubectl apply -f ${upgradeOperatorFile}
 
                     # need to sleep since the old operator needs to transition to terminating state
                     sleep 15
