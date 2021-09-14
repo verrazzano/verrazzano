@@ -440,20 +440,7 @@ pipeline {
                 }
                 stage ('Verify Managed Cluster Permissions') {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                for(int count=2; count<=clusterCount; count++) {
-                                    sh """
-                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
-                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                        export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
-                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -v -stream -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-permissions/...
-                                    """
-                                }
-                            }
-                        }
+                        verifyManagedClusterPermissions()
                     }
                 }
                 stage ('Verify Metrics') {
@@ -469,6 +456,26 @@ pipeline {
                 stage("upgrade-verrazzano") {
                     steps {
                         upgradeVerrazzano()
+                    }
+                }
+            }
+        }
+        stage('Verify Upgrade') {
+            // Rerun some stages to verify the upgrade
+            parallel {
+                stage ('Verify Register') {
+                    steps {
+                        verifyRegisterManagedClusters()
+                    }
+                }
+                stage ('Verify Managed Cluster Permissions') {
+                    steps {
+                        verifyManagedClusterPermissions()
+                    }
+                }
+                stage ('Verify Metrics') {
+                    steps {
+                        runGinkgoRandomize('metrics/syscomponents')
                     }
                 }
             }
@@ -948,6 +955,25 @@ def verifyRegisterManagedClusters() {
         }
     }
 }
+
+// Verify the managed cluster permissions
+def verifyManagedClusterPermissions() {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        script {
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            for(int count=2; count<=clusterCount; count++) {
+                sh """
+                    export MANAGED_CLUSTER_NAME="managed${count-1}"
+                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                    export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
+                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                    ginkgo -v -stream -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-permissions/...
+                """
+            }
+        }
+    }
+}
+
 
 // Run a test suite against all clusters
 def runGinkgoRandomize(testSuitePath) {
