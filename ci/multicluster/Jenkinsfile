@@ -848,7 +848,7 @@ def upgradePlatformOperator() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-            for (int count = 2; count <= clusterCount; count++) {
+            for (int count = 1; count <= clusterCount; count++) {
                 def upgradeOperatorFile="${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
                 sh """
                     export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
@@ -878,7 +878,7 @@ def upgradeVerrazzano() {
             VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
 
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-            for(int count=2; count<=clusterCount; count++) {
+            for(int count=1; count<=clusterCount; count++) {
                 def v8oInstallFile="${KUBECONFIG_DIR}/${count}/${installerFileName}"
                 def v8oUpgradeFile="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
                 sh """
