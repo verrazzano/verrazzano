@@ -1,13 +1,14 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component
+package helm
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
@@ -30,13 +31,15 @@ var fakeOverrides string
 type helmFakeRunner struct {
 }
 
+const testBomFilePath = "../../testdata/test_bom.json"
+
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
 //  WHEN I call Name
 //  THEN the correct verrazzano name is returned
 func TestGetName(t *testing.T) {
-	comp := helmComponent{
-		releaseName: "release1",
+	comp := HelmComponent{
+		ReleaseName: "release1",
 	}
 
 	assert := assert.New(t)
@@ -50,13 +53,13 @@ func TestGetName(t *testing.T) {
 func TestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := helmComponent{
-		releaseName:             "istiod",
-		chartDir:                "chartDir",
-		chartNamespace:          "chartNS",
-		ignoreNamespaceOverride: true,
-		valuesFile:              "valuesFile",
-		preUpgradeFunc:          fakePreUpgrade,
+	comp := HelmComponent{
+		ReleaseName:             "istiod",
+		ChartDir:                "ChartDir",
+		ChartNamespace:          "chartNS",
+		IgnoreNamespaceOverride: true,
+		ValuesFile:              "ValuesFile",
+		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
@@ -82,7 +85,7 @@ func TestUpgrade(t *testing.T) {
 func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := helmComponent{}
+	comp := HelmComponent{}
 
 	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
@@ -103,7 +106,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 func TestUpgradeReleaseNotInstalled(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := helmComponent{}
+	comp := HelmComponent{}
 
 	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
@@ -124,14 +127,14 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 func TestUpgradeWithEnvOverrides(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := helmComponent{
-		releaseName:             "istiod",
-		chartDir:                "chartDir",
-		chartNamespace:          "chartNS",
-		ignoreNamespaceOverride: true,
-		valuesFile:              "valuesFile",
-		preUpgradeFunc:          fakePreUpgrade,
-		appendOverridesFunc:     appendIstioOverrides,
+	comp := HelmComponent{
+		ReleaseName:             "istiod",
+		ChartDir:                "ChartDir",
+		ChartNamespace:          "chartNS",
+		IgnoreNamespaceOverride: true,
+		ValuesFile:              "ValuesFile",
+		PreUpgradeFunc:          fakePreUpgrade,
+		AppendOverridesFunc:     istio.AppendIstioOverrides,
 	}
 
 	os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
@@ -163,13 +166,13 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 func TestInstall(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := helmComponent{
-		releaseName:             "istiod",
-		chartDir:                "chartDir",
-		chartNamespace:          "chartNS",
-		ignoreNamespaceOverride: true,
-		valuesFile:              "valuesFile",
-		preUpgradeFunc:          fakePreUpgrade,
+	comp := HelmComponent{
+		ReleaseName:             "istiod",
+		ChartDir:                "ChartDir",
+		ChartNamespace:          "chartNS",
+		IgnoreNamespaceOverride: true,
+		ValuesFile:              "ValuesFile",
+		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
@@ -201,13 +204,13 @@ func TestInstall(t *testing.T) {
 func TestInstallPreviousFailure(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := helmComponent{
-		releaseName:             "istiod",
-		chartDir:                "chartDir",
-		chartNamespace:          "chartNS",
-		ignoreNamespaceOverride: true,
-		valuesFile:              "valuesFile",
-		preUpgradeFunc:          fakePreUpgrade,
+	comp := HelmComponent{
+		ReleaseName:             "istiod",
+		ChartDir:                "ChartDir",
+		ChartNamespace:          "chartNS",
+		IgnoreNamespaceOverride: true,
+		ValuesFile:              "ValuesFile",
+		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
@@ -244,13 +247,13 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 		{Key: "preInstall2", Value: "value2"},
 	}
 
-	comp := helmComponent{
-		releaseName:             "istiod",
-		chartDir:                "chartDir",
-		chartNamespace:          "chartNS",
-		ignoreNamespaceOverride: true,
-		valuesFile:              "valuesFile",
-		preInstallFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error) {
+	comp := HelmComponent{
+		ReleaseName:             "istiod",
+		ChartDir:                "ChartDir",
+		ChartNamespace:          "chartNS",
+		IgnoreNamespaceOverride: true,
+		ValuesFile:              "ValuesFile",
+		PreInstallFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error) {
 			return preInstallKVPairs, nil
 		},
 	}
@@ -300,11 +303,11 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 func TestOperatorInstallSupported(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := helmComponent{
-		supportsOperatorInstall: true,
+	comp := HelmComponent{
+		SupportsOperatorInstall: true,
 	}
 	assert.True(comp.IsOperatorInstallSupported())
-	assert.False(helmComponent{}.IsOperatorInstallSupported())
+	assert.False(HelmComponent{}.IsOperatorInstallSupported())
 }
 
 // TestGetDependencies tests GetDependencies
@@ -314,11 +317,11 @@ func TestOperatorInstallSupported(t *testing.T) {
 func TestGetDependencies(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := helmComponent{
-		dependencies: []string{"comp1", "comp2"},
+	comp := HelmComponent{
+		Dependencies: []string{"comp1", "comp2"},
 	}
 	assert.Equal([]string{"comp1", "comp2"}, comp.GetDependencies())
-	assert.Nil(helmComponent{}.GetDependencies())
+	assert.Nil(HelmComponent{}.GetDependencies())
 }
 
 // TestGetDependencies tests IsInstalled
@@ -328,7 +331,7 @@ func TestGetDependencies(t *testing.T) {
 func TestIsInstalled(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := helmComponent{}
+	comp := HelmComponent{}
 	defer helm.SetDefaultChartStatusFunction()
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 
@@ -354,7 +357,7 @@ func TestReady(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
-	comp := helmComponent{}
+	comp := HelmComponent{}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	assert.True(comp.IsReady(zap.S(), client, "default"))
 
@@ -373,8 +376,8 @@ func TestReady(t *testing.T) {
 	})
 	assert.False(comp.IsReady(zap.S(), client, "default"))
 
-	compInstalledWithNotReadyStatus := helmComponent{
-		readyStatusFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool {
+	compInstalledWithNotReadyStatus := HelmComponent{
+		ReadyStatusFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool {
 			return false
 		},
 	}
@@ -383,8 +386,8 @@ func TestReady(t *testing.T) {
 	})
 	assert.False(compInstalledWithNotReadyStatus.IsReady(zap.S(), client, "default"))
 
-	compInstalledWithReadyStatus := helmComponent{
-		readyStatusFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool {
+	compInstalledWithReadyStatus := HelmComponent{
+		ReadyStatusFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool {
 			return true
 		},
 	}
@@ -399,14 +402,14 @@ func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, c
 	if releaseName != "istiod" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
-	if chartDir != "chartDir" {
+	if chartDir != "ChartDir" {
 		return []byte("error"), []byte(""), errors.New("Invalid chart directory name")
 	}
 	if namespace != "chartNS" {
 		return []byte("error"), []byte(""), errors.New("Invalid chart namespace")
 	}
 	for _, file := range overridesFiles {
-		if file != "valuesFile" && file == "" {
+		if file != "ValuesFile" && file == "" {
 			return []byte("error"), []byte(""), errors.New("Invalid values file")
 		}
 	}
@@ -426,7 +429,7 @@ func fakePreUpgrade(log *zap.SugaredLogger, client clipkg.Client, release string
 	if release != "istiod" {
 		return fmt.Errorf("Incorrect release name %s", release)
 	}
-	if chartDir != "chartDir" {
+	if chartDir != "ChartDir" {
 		return fmt.Errorf("Incorrect chart directory %s", chartDir)
 	}
 	if namespace != "chartNS" {

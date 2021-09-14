@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"strconv"
 	"strings"
 
@@ -12,8 +13,6 @@ import (
 
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 )
 
 // The max upgrade failures for a given upgrade attempt is 2
@@ -39,7 +38,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
-	for _, comp := range component.GetComponents() {
+	for _, comp := range registry.GetComponents() {
 		err := comp.Upgrade(log, r, cr.Namespace, r.DryRun)
 		if err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)

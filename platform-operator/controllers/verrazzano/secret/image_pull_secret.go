@@ -1,6 +1,6 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package component
+package secret
 
 import (
 	"context"
@@ -50,8 +50,8 @@ func checkImagePullSecret(client client.Client, targetNamespace string) (bool, e
 	return true, nil
 }
 
-// addGlobalImagePullSecretHelmOverride Adds a helm override Key if the global image pull secret exists and was copied successfully to the target namespace
-func addGlobalImagePullSecretHelmOverride(log *zap.SugaredLogger, client client.Client, ns string, kvs []bom.KeyValue, keyName string) ([]bom.KeyValue, error) {
+// AddGlobalImagePullSecretHelmOverride Adds a helm override Key if the global image pull secret exists and was copied successfully to the target namespace
+func AddGlobalImagePullSecretHelmOverride(log *zap.SugaredLogger, client client.Client, ns string, kvs []bom.KeyValue, keyName string) ([]bom.KeyValue, error) {
 	secretExists, err := checkImagePullSecret(client, ns)
 	if err != nil {
 		log.Errorf("Error copying global image pull secret %s to %s namespace", constants.GlobalImagePullSecName, ns)

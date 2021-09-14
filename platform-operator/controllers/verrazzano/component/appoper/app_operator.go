@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component
+package appoper
 
 import (
 	"fmt"
@@ -12,9 +12,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// appendApplicationOperatorOverrides Honor the APP_OPERATOR_IMAGE env var if set; this allows an explicit override
+// AppendApplicationOperatorOverrides Honor the APP_OPERATOR_IMAGE env var if set; this allows an explicit override
 // of the verrazzano-application-operator image when set.
-func appendApplicationOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendApplicationOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	envImageOverride := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
 	if len(envImageOverride) == 0 {
 		return kvs, nil

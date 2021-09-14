@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"errors"
+	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os/exec"
 	"path/filepath"
@@ -15,7 +16,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -555,7 +555,7 @@ func TestUpgradeCompleted(t *testing.T) {
 
 	// Inject a fake cmd runner to the real helm is not called
 	helm.SetCmdRunner(goodRunner{})
-	component.UpgradePrehooksEnabled = false
+	helm2.UpgradePrehooksEnabled = false
 
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {

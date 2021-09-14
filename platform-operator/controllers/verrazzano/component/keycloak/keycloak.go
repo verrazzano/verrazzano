@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component
+package keycloak
 
 import (
 	"bytes"
@@ -39,9 +39,9 @@ type imageData struct {
 	Image string
 }
 
-// appendKeycloakOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
+// AppendKeycloakOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
 // A go template is used to replace the image in the init container spec.
-func appendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
