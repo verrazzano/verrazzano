@@ -13,6 +13,9 @@ data:
 {{- with .Values.api.proxy }}
   conf.lua: |
     local ingressHost = ngx.req.get_headers()["x-forwarded-host"]
+    if not(ingressHost) then
+      ingressHost = ngx.req.get_headers()["host"]
+    end
     local ingressUri = 'https://'..ingressHost
     local callbackPath = "{{ .OidcCallbackPath }}"
     local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
@@ -322,10 +325,12 @@ data:
         local backend_name = 'unknown'
         if ingressHost then
             me.info("ingressHost is '"..ingressHost.."'")
-            local start, last = ingressHost:find("%.")
-            -- me.info("find returned start '"..start.."'")
-            if start and start > 1 then
-                backend_name = ingressHost:sub(1, start-1)
+            -- Strip domain and/or port
+            _, _, backend_name = ingressHost:find("([^.:]+)")
+            -- Strip the auth proxy prefix from the extracted backend name if present
+            local authproxy_prefix = 'verrazzano-authproxy-'
+            if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
+              backend_name = string.sub(backend_name, #authproxy_prefix+1, -1)
             end
         end
         if backend_name == "verrazzano" then
@@ -888,6 +893,9 @@ data:
         ngx.req.set_uri_args(args)
         local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion .. ngx.var.uri
 
+        -- propagate the user's token as a bearer token, remote cluster won't have access to the session.
+        ngx.req.set_header("Authorization", "Bearer "..token)
+
         -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
         -- A secret is created in admin cluster during multi cluster setup that contains the ca certificate.
         -- Here we read the name of that secret from vmc spec and retrieve the secret from cluster and read the cacrt field.
@@ -947,11 +955,8 @@ data:
         sendfile        on;
         #tcp_nopush     on;
 
-        # TODO: This was previously set but only for oauth-proxy
-        # Do we need this here at all, or should we be enforcing
-        # this sort of constraint in the ingress controller?
-        #
-        # client_max_body_size 65m;
+        # Posts from Fluentd can require more than the default 1m max body size
+        client_max_body_size 65m;
 
         #keepalive_timeout  0;
         keepalive_timeout  65;

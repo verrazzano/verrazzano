@@ -203,6 +203,26 @@ pipeline {
             }
         }
 
+        stage('BOM Validator Tool') {
+            steps {
+                buildBOMValidatorTool()
+            }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+                success {
+                    sh """
+                        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
+                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/bom-validator --file ./out/linux_amd64/bom-validator
+                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ./out/linux_amd64/bom-validator
+                    """
+                }
+            }
+        }
+
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
@@ -535,7 +555,7 @@ pipeline {
             subject: "Verrazzano: ${env.JOB_NAME} - Failed",
             body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}"
             script {
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
+                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*" || env.JOB_NAME == "verrazzano/develop") {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
@@ -602,6 +622,14 @@ def buildAnalysisTool(dockerImageTag) {
         cd ${GO_REPO_PATH}/verrazzano/tools/analysis
         make go-build DOCKER_IMAGE_TAG=${dockerImageTag}
         ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
+    """
+}
+
+// Called in Stage Bom Validator Tool steps
+def buildBOMValidatorTool() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
+        make go-build
     """
 }
 
@@ -798,7 +826,9 @@ def metricTimerStart(metricName) {
 
 // Construct the set of labels/dimensions for the metrics
 def getMetricLabels() {
-    labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+    def buildNumber = String.format("%010d", env.BUILD_NUMBER.toInteger())
+    labels = 'build_number=\\"' + "${buildNumber}"+'\\",' +
+             'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
              'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
     return labels
@@ -825,18 +855,25 @@ def metricTimerEnd(metricName, status) {
 
 // Emit the metrics indicating the duration and result of the build
 def metricBuildDuration() {
-    def status = "${currentBuild.currentResult}"
+    def status = "${currentBuild.currentResult}".trim()
     long duration = "${currentBuild.duration}" as long;
-    long durationInMins = (duration/60000)
+    long durationInSec = (duration/1000)
     testMetric = metricJobName('')
-    def metricValue = "0"
+    def metricValue = "-1"
+    statusLabel = status.substring(0,1)
     if (status.equals("SUCCESS")) {
         metricValue = "1"
+    } else if (status.equals("FAILURE")) {
+        metricValue = "0"
+    } else {
+        // Consider every other status as a single label
+        statusLabel = "A"
     }
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
+        labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
         withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.GIT_BRANCH} $labels ${metricValue} ${durationInMins}")
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.GIT_BRANCH} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

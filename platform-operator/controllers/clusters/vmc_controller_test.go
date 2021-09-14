@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+
 	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -87,13 +89,13 @@ func TestCreateVMC(t *testing.T) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	expectVmcGetAndUpdate(t, mock, testManagedCluster)
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, true)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
-	expectSyncRegistration(t, mock, testManagedCluster)
+	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -106,6 +108,68 @@ func TestCreateVMC(t *testing.T) {
 		asserts.Equal(getPrometheusHost(),
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.Equal(prometheusConfigBasePath+"ca-test",
+			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
+		return nil
+	})
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+
+	// Create and make the request
+	request := newRequest(namespace, testManagedCluster)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestCreateVMC tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an VerrazzanoManagedCluster resource
+// WHEN a VerrazzanoManagedCluster resource has been applied on a verrazzano install configured with external ES
+// THEN ensure all the objects are created
+func TestCreateVMCWithExternalES(t *testing.T) {
+	namespace := constants.VerrazzanoMultiClusterNamespace
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	mockRequestSender := mocks.NewMockRequestSender(mocker)
+	savedRancherHTTPClient := rancherHTTPClient
+	defer func() {
+		rancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherHTTPClient = mockRequestSender
+
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
+
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, true)
+	expectSyncServiceAccount(t, mock, testManagedCluster, true)
+	expectSyncRoleBinding(t, mock, testManagedCluster, true)
+	expectSyncAgent(t, mock, testManagedCluster)
+	expectSyncRegistration(t, mock, testManagedCluster, true)
+	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+		asserts.Len(configMap.Data, 2, "no data found")
+		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
+		prometheusYaml := configMap.Data["prometheus.yml"]
+
+		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
+		asserts.Equal(getPrometheusHost(),
+			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
+		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
 			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
 		return nil
@@ -148,13 +212,13 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	expectVmcGetAndUpdate(t, mock, testManagedCluster)
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, true)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
-	expectSyncRegistration(t, mock, testManagedCluster)
+	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", true, "", func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.Empty(configMap.Data["ca-test"], "Cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -166,8 +230,68 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 		asserts.Equal(getPrometheusHost(),
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
 		asserts.Empty(scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
 
+		return nil
+	})
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+
+	// Create and make the request
+	request := newRequest(namespace, testManagedCluster)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestCreateVMCNoCACert tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an VerrazzanoManagedCluster resource
+// WHEN a VerrazzanoManagedCluster resource has been applied with no CA Cert
+// THEN ensure all the objects are created
+func TestCreateVMCNoCACert(t *testing.T) {
+	namespace := constants.VerrazzanoMultiClusterNamespace
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	mockRequestSender := mocks.NewMockRequestSender(mocker)
+	savedRancherHTTPClient := rancherHTTPClient
+	defer func() {
+		rancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherHTTPClient = mockRequestSender
+
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
+
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, false)
+	expectSyncServiceAccount(t, mock, testManagedCluster, true)
+	expectSyncRoleBinding(t, mock, testManagedCluster, true)
+	expectSyncAgent(t, mock, testManagedCluster)
+	expectSyncRegistration(t, mock, testManagedCluster, true)
+	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+		asserts.Len(configMap.Data, 2, "no data found")
+		prometheusYaml := configMap.Data["prometheus.yml"]
+
+		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
+		asserts.Equal(getPrometheusHost(),
+			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
+		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
 		return nil
 	})
 
@@ -217,13 +341,13 @@ scrape_configs:
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	expectVmcGetAndUpdate(t, mock, testManagedCluster)
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, true)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
-	expectSyncRegistration(t, mock, testManagedCluster)
+	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		// check for the modified entry
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -237,6 +361,7 @@ scrape_configs:
 		asserts.Equal(getPrometheusHost(),
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
 			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
 
@@ -289,13 +414,13 @@ scrape_configs:
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	expectVmcGetAndUpdate(t, mock, testManagedCluster)
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, true)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
-	expectSyncRegistration(t, mock, testManagedCluster)
+	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotNil(configMap.Data["ca-test"], "No cert entry found")
@@ -309,6 +434,7 @@ scrape_configs:
 		asserts.Equal(getPrometheusHost(),
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
 			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
 		asserts.Equal("https", scrapeConfig.Path("scheme").Data(), "wrong scheme")
@@ -353,13 +479,13 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	expectVmcGetAndUpdate(t, mock, testManagedCluster)
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, true)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
-	expectSyncRegistration(t, mock, testManagedCluster)
+	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -372,6 +498,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 		asserts.Equal(getPrometheusHost(),
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
 			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
 		return nil
@@ -407,7 +534,7 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	expectVmcGetAndUpdate(t, mock, testManagedCluster)
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, true)
 	expectSyncServiceAccount(t, mock, testManagedCluster, false)
 
 	// expect status updated with condition Ready=true
@@ -443,7 +570,7 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	expectVmcGetAndUpdate(t, mock, name)
+	expectVmcGetAndUpdate(t, mock, name, true)
 	expectSyncServiceAccount(t, mock, name, true)
 	expectSyncRoleBinding(t, mock, name, false)
 
@@ -602,11 +729,11 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(clusterName)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				ManagedClusterNameKey: []byte(clusterName),
-				CaCrtKey:              []byte(caData),
-				UsernameKey:           []byte(userData),
-				PasswordKey:           []byte(passwordData),
-				ESURLKey:              []byte(urlData),
+				ManagedClusterNameKey:   []byte(clusterName),
+				CaCrtKey:                []byte(caData),
+				RegistrationUsernameKey: []byte(userData),
+				RegistrationPasswordKey: []byte(passwordData),
+				ESURLKey:                []byte(urlData),
 			}
 			return nil
 		})
@@ -1013,13 +1140,13 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	expectVmcGetAndUpdate(t, mock, testManagedCluster)
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, true)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
-	expectSyncRegistration(t, mock, testManagedCluster)
+	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, expectedRancherYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -1032,6 +1159,7 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
 			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
 			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
 		return nil
@@ -1191,42 +1319,84 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string) {
 }
 
 // Expect syncRegistration related calls
-func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
+func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, externalES bool) {
+	const vzEsURLData = "https://vz-testhost:443"
+	const vzUserData = "vz-user"
+	const vzPasswordData = "vz-pw"
+	const vzCaData = "vz-ca"
+
+	const externalEsURLData = "https://external-testhost:443"
+	const externalUserData = "external-user"
+	const externalPasswordData = "external-pw"
+	const externalCaData = "external-ca"
+
+	fluentdESURL := "http://verrazzano-authproxy-elasticsearch:8775"
+	fluentdESSecret := "verrazzano"
+	esSecret := constants.VerrazzanoESInternal
+	if externalES {
+		fluentdESURL = externalEsURLData
+		fluentdESSecret = "some-external-es-secret"
+		esSecret = fluentdESSecret
+	}
+
 	asserts := assert.New(t)
-	caData := "ca"
-	userData := "user"
-	passwordData := "pw"
-	hostdata := "testhost"
-	urlData := "https://testhost:443"
 
 	// Expect a call to get the registration secret - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetRegistrationSecretName(name)))
 
-	// Expect a call to get the tls ingress and return the ingress.
+	// Expect a call to list Verrazzanos - return the Verrazzano configured with fluentd
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name}
-			ingress.Spec.Rules = []k8net.IngressRule{{
-				Host: hostdata,
-			}}
+		List(gomock.Any(), &vzapi.VerrazzanoList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *vzapi.VerrazzanoList, opts ...*client.ListOptions) error {
+			vz := vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{
+							ElasticsearchURL:    fluentdESURL,
+							ElasticsearchSecret: fluentdESSecret,
+						},
+					},
+				},
+			}
+			list.Items = append(list.Items, vz)
 			return nil
 		})
 
-	// Expect a call to get the Verrazzano Elasticsearch/FluentD secret, return the secret with the fields set
+	// Expect a call to get the tls ingress and return the ingress.
+	if !externalES {
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+				ingress.TypeMeta = metav1.TypeMeta{
+					APIVersion: "extensions/v1beta1",
+					Kind:       "ingress"}
+				ingress.ObjectMeta = metav1.ObjectMeta{
+					Namespace: name.Namespace,
+					Name:      name.Name}
+				ingress.Spec.Rules = []k8net.IngressRule{{
+					Host: "vz-testhost",
+				}}
+				return nil
+			})
+	}
+
+	// Expect a call to get the Elasticsearch secret, return the secret with the fields set
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoESInternal}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: esSecret}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				UsernameKey: []byte(userData),
-				PasswordKey: []byte(passwordData),
+			if externalES {
+				secret.Data = map[string][]byte{
+					VerrazzanoUsernameKey: []byte(externalUserData),
+					VerrazzanoPasswordKey: []byte(externalPasswordData),
+					FluentdESCaBundleKey:  []byte(externalCaData),
+				}
+			} else {
+				secret.Data = map[string][]byte{
+					VerrazzanoUsernameKey: []byte(vzUserData),
+					VerrazzanoPasswordKey: []byte(vzPasswordData),
+				}
 			}
 			return nil
 		})
@@ -1236,7 +1406,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.SystemTLS}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				CaCrtKey: []byte(caData),
+				CaCrtKey: []byte(vzCaData),
 			}
 			return nil
 		})
@@ -1261,16 +1431,20 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			clusterName := secret.Data[ManagedClusterNameKey]
-			asserts.Equalf(testManagedCluster, string(clusterName), "Incorrect cluster testManagedCluster in Elasticsearch secret ")
-			ca := secret.Data[CaBundleKey]
-			asserts.Equalf(caData, string(ca), "Incorrect cadata in Elasticsearch secret ")
-			user := secret.Data[UsernameKey]
-			asserts.Equalf(userData, string(user), "Incorrect user in Elasticsearch secret ")
-			pw := secret.Data[PasswordKey]
-			asserts.Equalf(passwordData, string(pw), "Incorrect password in Elasticsearch secret ")
-			url := secret.Data[ESURLKey]
-			asserts.Equalf(urlData, string(url), "Incorrect URL in Elasticsearch secret ")
+			asserts.Equalf(testManagedCluster, string(secret.Data[ManagedClusterNameKey]), "Incorrect cluster testManagedCluster in Registration secret ")
+			asserts.Equalf("https://keycloak", string(secret.Data[KeycloakURLKey]), "Incorrect admin ca bundle in Registration secret ")
+			asserts.Equalf(vzCaData, string(secret.Data[AdminCaBundleKey]), "Incorrect admin ca bundle in Registration secret ")
+			if externalES {
+				asserts.Equalf(externalEsURLData, string(secret.Data[ESURLKey]), "Incorrect ES URL in Registration secret ")
+				asserts.Equalf(externalCaData, string(secret.Data[ESCaBundleKey]), "Incorrect ES ca bundle in Registration secret ")
+				asserts.Equalf(externalUserData, string(secret.Data[RegistrationUsernameKey]), "Incorrect ES user in Registration secret ")
+				asserts.Equalf(externalPasswordData, string(secret.Data[RegistrationPasswordKey]), "Incorrect ES password in Registration secret ")
+			} else {
+				asserts.Equalf(vzEsURLData, string(secret.Data[ESURLKey]), "Incorrect ES URL in Registration secret ")
+				asserts.Equalf(vzCaData, string(secret.Data[ESCaBundleKey]), "Incorrect ES ca bundle in Registration secret ")
+				asserts.Equalf(vzUserData, string(secret.Data[RegistrationUsernameKey]), "Incorrect ES user in Registration secret ")
+				asserts.Equalf(vzPasswordData, string(secret.Data[RegistrationPasswordKey]), "Incorrect ES password in Registration secret ")
+			}
 			return nil
 		})
 }
@@ -1302,11 +1476,11 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				ManagedClusterNameKey: []byte(clusterName),
-				CaCrtKey:              []byte(caData),
-				UsernameKey:           []byte(userData),
-				PasswordKey:           []byte(passwordData),
-				ESURLKey:              []byte(urlData),
+				ManagedClusterNameKey:   []byte(clusterName),
+				CaCrtKey:                []byte(caData),
+				RegistrationUsernameKey: []byte(userData),
+				RegistrationPasswordKey: []byte(passwordData),
+				ESURLKey:                []byte(urlData),
 			}
 			return nil
 		})
@@ -1351,7 +1525,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 		})
 }
 
-func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string) {
+func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string, caSecretExists bool) {
 	asserts := assert.New(t)
 	labels := map[string]string{"label1": "test"}
 
@@ -1366,8 +1540,10 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Labels:    labels}
-			vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
-				CASecret: getCASecretName(name.Name),
+			if caSecretExists {
+				vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
+					CASecret: getCASecretName(name.Name),
+				}
 			}
 			vmc.Status = clustersapi.VerrazzanoManagedClusterStatus{
 				PrometheusHost: getPrometheusHost(),
@@ -1386,24 +1562,26 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string) {
 
 }
 
-func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometheusYaml string, cacrtSecretData string, f AssertFn) {
-	// Expect a call to get the prometheus secret - return it
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getCASecretName(vmcName)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometheusYaml string, caSecretExists bool, cacrtSecretData string, f AssertFn) {
+	if caSecretExists {
+		// Expect a call to get the prometheus secret - return it
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getCASecretName(vmcName)}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 
-			secret.Data = map[string][]byte{
-				"cacrt": []byte(cacrtSecretData),
-			}
-			return nil
-		})
+				secret.Data = map[string][]byte{
+					"cacrt": []byte(cacrtSecretData),
+				}
+				return nil
+			})
+	}
 
 	// Expect a call to get the Verrazzano Prometheus internal secret - return it
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoPromInternal}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				PasswordKey: []byte("nRXlxXgMwN"),
+				VerrazzanoPasswordKey: []byte("nRXlxXgMwN"),
 			}
 			return nil
 		})

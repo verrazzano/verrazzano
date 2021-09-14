@@ -18,7 +18,7 @@ type VerrazzanoManagedClusterSpec struct {
 
 	// The name of a secret that contains the ca certificate for accessing console
 	// and api endpoints on the managed cluster.
-	CASecret string `json:"caSecret"`
+	CASecret string `json:"caSecret,omitempty"`
 
 	// The name of the ServiceAccount that was generated for the managed cluster.
 	// This field is managed by a Verrazzano Kubernetes operator.

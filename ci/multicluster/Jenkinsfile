@@ -467,7 +467,7 @@ pipeline {
                                         export MANAGED_CLUSTER_NAME="managed${count-1}"
                                         export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-register/...
+                                        ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-register/...
                                     """
                                 }
                             }
@@ -485,7 +485,7 @@ pipeline {
                                         export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                                         export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -v -stream -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-permissions/...
+                                        ginkgo -v -stream -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-permissions/...
                                     """
                                 }
                             }
@@ -510,7 +510,7 @@ pipeline {
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                                         export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                                         export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-                                        ginkgo -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon/...
+                                        ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon/...
                                     """
                                 }
                             }
@@ -530,7 +530,7 @@ pipeline {
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                                         export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                                         export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-ns-ops"
-                                        ginkgo -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon-ns-ops/...
+                                        ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon-ns-ops/...
                                     """
                                 }
                             }
@@ -547,7 +547,7 @@ pipeline {
                                         export MANAGED_CLUSTER_NAME="managed${count-1}"
                                         export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                                         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-api/...
+                                        ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-api/...
                                     """
                                 }
                             }
@@ -872,7 +872,7 @@ def runGinkgoRandomize(testSuitePath) {
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+                    ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
                 """
             }
         }
@@ -886,7 +886,7 @@ def runGinkgo(testSuitePath, kubeConfig, clusterCount) {
             export KUBECONFIG="${kubeConfig}"
             export CLUSTER_COUNT="${clusterCount}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor -tags="${TAGGED_TESTS}" --focus="${INCLUDED_TESTS}" --skip="${EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
@@ -969,7 +969,7 @@ def createOKEClusters(clusterPrefix) {
             mkdir -p ${KUBECONFIG_DIR}
             echo "Create OKE cluster"
             cd ${TEST_SCRIPTS_DIR}
-            TF_VAR_label_prefix=${clusterPrefix} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${CREATE_CLUSTER_USE_CALICO}
+            TF_VAR_label_prefix=${clusterPrefix} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${params.CREATE_CLUSTER_USE_CALICO}
         """
     }
 }
@@ -1168,7 +1168,9 @@ def metricJobName(stageName) {
 // Construct the set of labels/dimensions for the metrics
 def getMetricLabels() {
     def kube_ver = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION }"
-    labels = 'number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+    def buildNumber = String.format("%010d", env.BUILD_NUMBER.toInteger())
+    labels = 'build_number=\\"' + "${buildNumber}"+'\\",' +
+             'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
              'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
              'kubernetes_version=\\"' + kube_ver + '\\",' +
@@ -1203,18 +1205,25 @@ def metricTimerEnd(metricName, status) {
 
 // Emit the metrics indicating the duration and result of the build
 def metricBuildDuration() {
-    def status = "${currentBuild.currentResult}"
+    def status = "${currentBuild.currentResult}".trim()
     long duration = "${currentBuild.duration}" as long;
-    long durationInMins = (duration/60000)
+    long durationInSec = (duration/1000)
     testMetric = metricJobName('')
-    def metricValue = "0"
+    def metricValue = "-1"
+    statusLabel = status.substring(0,1)
     if (status.equals("SUCCESS")) {
         metricValue = "1"
+    } else if (status.equals("FAILURE")) {
+        metricValue = "0"
+    } else {
+        // Consider every other status as a single label
+        statusLabel = "A"
     }
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
+        labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
         withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInMins}")
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

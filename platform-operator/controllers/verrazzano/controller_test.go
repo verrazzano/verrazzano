@@ -7,15 +7,14 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 	"time"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -127,9 +126,9 @@ func TestSuccessfulInstall(t *testing.T) {
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -184,7 +183,7 @@ func TestSuccessfulInstall(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(3)
+		}).Times(5)
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
@@ -239,9 +238,9 @@ func TestCreateVerrazzano(t *testing.T) {
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -335,7 +334,7 @@ func TestCreateVerrazzano(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(3)
+		}).Times(5)
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
@@ -414,9 +413,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
-	component.SetUnitTestBomFilePath(testBomFilePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
-		component.SetUnitTestBomFilePath("")
+		config.SetDefaultBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -530,7 +529,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(3)
+		}).Times(5)
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
@@ -2037,6 +2036,7 @@ func expectGetVerrazzanoSystemNamespaceExists(mock *mocks.MockClient, asserts *a
 		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
 			ns.Name = constants.VerrazzanoSystemNamespace
+			ns.Labels = systemNamespaceLabels
 			return nil
 		})
 }
@@ -2364,6 +2364,119 @@ func Test_addFluentdExtraVolumeMounts(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestMergeMapsNilSourceMap tests mergeMaps function
+// GIVEN an empty source map and a non-empty map to merge
+// WHEN the mergeMaps function is called
+// THEN true is returned and a new map with the merged values is created
+func TestMergeMapsNilSourceMap(t *testing.T) {
+	var mymap map[string]string
+	systemNamespaceLabels := map[string]string{
+		"istio-injection":         "enabled",
+		"verrazzano.io/namespace": constants.VerrazzanoSystemNamespace,
+	}
+	newMap, updated := mergeMaps(mymap, systemNamespaceLabels)
+	t.Logf("Merged map: %v", newMap)
+	assert.True(t, updated)
+	assert.Equal(t, systemNamespaceLabels, newMap)
+}
+
+// TestMergeNestedEmptyMap tests mergeMaps function
+// GIVEN an empty source map nested in a struct and a non-empty map to merge
+// WHEN the mergeMaps function is called
+// THEN true is returned and a new map with the merged values is created
+func TestMergeNestedEmptyMap(t *testing.T) {
+	type mytype struct {
+		MyMap map[string]string
+	}
+	systemNamespaceLabels := map[string]string{
+		"istio-injection":         "enabled",
+		"verrazzano.io/namespace": constants.VerrazzanoSystemNamespace,
+	}
+	var updated bool
+	myInstance := mytype{}
+	myInstance.MyMap, updated = mergeMaps(myInstance.MyMap, systemNamespaceLabels)
+	t.Logf("Merged map: %v", myInstance.MyMap)
+	assert.True(t, updated)
+	assert.Equal(t, systemNamespaceLabels, myInstance.MyMap)
+}
+
+// TestMergeNestedMapEntriesExist tests mergeMaps function
+// GIVEN an two maps are merged with the same values
+// WHEN the mergeMaps function is called
+// THEN false is returned the map is unchanged
+func TestMergeNestedMapEntriesExist(t *testing.T) {
+	type mytype struct {
+		MyMap map[string]string
+	}
+	systemNamespaceLabels := map[string]string{
+		"istio-injection":         "enabled",
+		"verrazzano.io/namespace": constants.VerrazzanoSystemNamespace,
+	}
+	var updated bool
+	myInstance := mytype{}
+	myInstance.MyMap = map[string]string{
+		"istio-injection":         "enabled",
+		"verrazzano.io/namespace": constants.VerrazzanoSystemNamespace,
+	}
+
+	myInstance.MyMap, updated = mergeMaps(myInstance.MyMap, systemNamespaceLabels)
+	assert.False(t, updated)
+	assert.Equal(t, systemNamespaceLabels, myInstance.MyMap)
+}
+
+// TestPartialMergeNestedMap tests mergeMaps function
+// GIVEN source map contains a subset of the map to merge
+// WHEN the mergeMaps function is called
+// THEN true is returned the new map has all expected values
+func TestPartialMergeNestedMap(t *testing.T) {
+	type mytype struct {
+		MyMap map[string]string
+	}
+	systemNamespaceLabels := map[string]string{
+		"istio-injection":         "enabled",
+		"verrazzano.io/namespace": constants.VerrazzanoSystemNamespace,
+	}
+	var updated bool
+	myInstance := mytype{}
+	myInstance.MyMap = map[string]string{
+		"istio-injection": "enabled",
+	}
+
+	myInstance.MyMap, updated = mergeMaps(myInstance.MyMap, systemNamespaceLabels)
+	assert.True(t, updated)
+	assert.Equal(t, systemNamespaceLabels, myInstance.MyMap)
+}
+
+// TestNonIntersectingMergeNestedMap tests mergeMaps function
+// GIVEN source map and map to merge contain non-intersecting values
+// WHEN the mergeMaps function is called
+// THEN true is returned the new map is a union of all values
+func TestNonIntersectingMergeNestedMap(t *testing.T) {
+	type mytype struct {
+		MyMap map[string]string
+	}
+	systemNamespaceLabels := map[string]string{
+		"istio-injection":         "enabled",
+		"verrazzano.io/namespace": constants.VerrazzanoSystemNamespace,
+	}
+	var updated bool
+	myInstance := mytype{}
+	myInstance.MyMap = map[string]string{
+		"mylabel": "someValue",
+	}
+
+	expectedMap := map[string]string{
+		"istio-injection":         "enabled",
+		"verrazzano.io/namespace": constants.VerrazzanoSystemNamespace,
+		"mylabel":                 "someValue",
+	}
+
+	myInstance.MyMap, updated = mergeMaps(myInstance.MyMap, systemNamespaceLabels)
+	assert.True(t, updated)
+	assert.Len(t, myInstance.MyMap, 3)
+	assert.Equal(t, expectedMap, myInstance.MyMap)
 }
 
 func collectVolumeMounts(vz *vzapi.Verrazzano) []string {

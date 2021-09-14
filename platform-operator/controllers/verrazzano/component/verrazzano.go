@@ -32,8 +32,8 @@ func verrazzanoPreUpgrade(log *zap.SugaredLogger, client client.Client, _ string
 
 // This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of verrazzano does
 // not fail.  Prior to Verrazzano v1.0.1, the mcagent would change the environment variables CLUSTER_NAME and
-// ELASTICSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a value. The helm chart
-// template for the fluentd daemonset expects a value.
+// ELASTICSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a Value. The helm chart
+// template for the fluentd daemonset expects a Value.
 func fixupFluentdDaemonset(log *zap.SugaredLogger, client client.Client, namespace string) error {
 	// Get the fluentd daemonset resource
 	fluentdNamespacedName := types.NamespacedName{Name: "fluentd", Namespace: namespace}
@@ -97,7 +97,7 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client client.Client, namespa
 		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.ElasticsearchURLData)
 	}
 
-	// Update the daemonset to use a value instead of the valueFrom
+	// Update the daemonset to use a Value instead of the valueFrom
 	if clusterNameIndex != -1 {
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[clusterNameIndex].Value = string(clusterName)
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[clusterNameIndex].ValueFrom = nil
@@ -106,7 +106,7 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client client.Client, namespa
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].Value = string(elasticsearchURL)
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].ValueFrom = nil
 	}
-	log.Infof("Updating fluentd daemonset to use valueFrom instead of value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
+	log.Infof("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
 	err = client.Update(context.TODO(), &daemonSet)
 
 	return err

@@ -6,11 +6,11 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"net/url"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -36,7 +36,7 @@ func (v *VerrazzanoManagedCluster) SetupWebhookWithManager(mgr ctrl.Manager) err
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (v *VerrazzanoManagedCluster) ValidateCreate() error {
 	log := zap.S().With("source", "webhook", "operation", "create", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
-	log.Info("Validate create")
+	log.Debug("Validate create")
 
 	if !config.Get().WebhookValidationEnabled {
 		log.Info("Validation disabled, skipping")
@@ -67,7 +67,7 @@ func (v *VerrazzanoManagedCluster) ValidateCreate() error {
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (v *VerrazzanoManagedCluster) ValidateUpdate(old runtime.Object) error {
 	log := zap.S().With("source", "webhook", "operation", "update", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
-	log.Info("Validate update")
+	log.Debug("Validate update")
 
 	if !config.Get().WebhookValidationEnabled {
 		log.Info("Validation disabled, skipping")
@@ -109,8 +109,12 @@ func newScheme() *runtime.Scheme {
 
 // validateSecret enforces that the CA secret name was specified and that the secret exists
 func (v VerrazzanoManagedCluster) validateSecret(client client.Client) error {
+	log := zap.S().With("source", "webhook", "operation", "update", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
+	log.Debug("Validate secret")
+
 	if len(v.Spec.CASecret) == 0 {
-		return fmt.Errorf("The name of the CA secret in namespace %s must be specified", constants.VerrazzanoMultiClusterNamespace)
+		log.Debugf("No CA secret in namespace %s defined, using well-known CA", constants.VerrazzanoMultiClusterNamespace)
+		return nil
 	}
 	secret := corev1.Secret{}
 	nsn := types.NamespacedName{

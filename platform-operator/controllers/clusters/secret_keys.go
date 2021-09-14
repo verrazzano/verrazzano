@@ -6,8 +6,14 @@ package clusters
 // CaCrtKey is the CA cert key in the system-tls secret
 const CaCrtKey = "ca.crt"
 
-// CaBundleKey is the CA cert key in the Elasticsearch secret
-const CaBundleKey = "ca-bundle"
+// ESCaBundleKey is the ES CA cert key in the registration secret
+const ESCaBundleKey = "es-ca-bundle"
+
+// AdminCaBundleKey is the admin CA cert key in the registration secret
+const AdminCaBundleKey = "ca-bundle"
+
+// FluentdESCaBundleKey is the CA cert key in the Verrazzano CRD fluentd Elasticsearch secret
+const FluentdESCaBundleKey = "ca-bundle"
 
 // KubeconfigKey is the kubeconfig key
 const KubeconfigKey = "admin-kubeconfig"
@@ -15,11 +21,17 @@ const KubeconfigKey = "admin-kubeconfig"
 // ManagedClusterNameKey is the key for the managed cluster name
 const ManagedClusterNameKey = "managed-cluster-name"
 
-// PasswordKey is the password key
-const PasswordKey = "password"
+// RegistrationPasswordKey is the password key in registration secret
+const RegistrationPasswordKey = "password"
 
-// UsernameKey is the username key
-const UsernameKey = "username"
+// RegistrationUsernameKey is the username key in registration secret
+const RegistrationUsernameKey = "username"
+
+// VerrazzanoPasswordKey is the password key in verrazzano secret
+const VerrazzanoPasswordKey = "password"
+
+// VerrazzanoUsernameKey is the username key in verrazzano secret
+const VerrazzanoUsernameKey = "username"
 
 // TokenKey is the key for the service account token
 const TokenKey = "token"

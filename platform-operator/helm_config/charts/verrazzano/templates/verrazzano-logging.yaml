@@ -6,6 +6,39 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: {{ .Values.logging.name }}-init
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.logging.name }}
+data:
+  init.sh: |
+    #!/bin/bash
+    cat /etc/ssl/certs/ca-bundle.crt > /fluentd/cacerts/all-ca-certs.pem
+    if [ -f "/fluentd/secret/ca-bundle" ]; then
+      cat /fluentd/secret/ca-bundle >> /fluentd/cacerts/all-ca-certs.pem
+    fi
+    if [ -f "/fluentd/secret/es-ca-bundle" ]; then
+      cat /fluentd/secret/es-ca-bundle >> /fluentd/cacerts/all-ca-certs.pem
+    fi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.logging.name }}-es-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.logging.name }}
+data:
+  {{- if .Values.logging.elasticsearchURL }}
+  es-url: {{ .Values.logging.elasticsearchURL }}
+  {{- end }}
+  {{- if .Values.logging.elasticsearchSecret }}
+  es-secret: {{ .Values.logging.elasticsearchSecret }}
+  {{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: {{ .Values.logging.name }}-config
   namespace: {{ .Release.Namespace }}
   labels:
@@ -451,6 +484,20 @@ spec:
       labels:
         app: fluentd
     spec:
+      initContainers:
+        - name: cacert-init
+          command: ["/init/init.sh"]
+          image: {{ .Values.logging.fluentdImage }}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /init
+              name: {{ .Values.logging.name }}-init
+              readOnly: true
+            - name: cacerts
+              mountPath: /fluentd/cacerts
+            - mountPath: /fluentd/secret
+              name: secret-volume
+              readOnly: true
       containers:
         - args:
             - -c
@@ -461,29 +508,43 @@ spec:
             - name: FLUENT_ELASTICSEARCH_SED_DISABLE
               value: "true"
             - name: ELASTICSEARCH_URL
+  {{- if .Values.logging.elasticsearchURL }}
+              value: {{ .Values.logging.elasticsearchURL }}
+  {{- else }}
               value: http://vmi-system-es-ingest-oidc:8775
+  {{- end }}
             - name: CLUSTER_NAME
               value: local
             - name: ELASTICSEARCH_USER
               valueFrom:
                 secretKeyRef:
                   key: username
+  {{- if .Values.logging.elasticsearchSecret }}
+                  name: {{ .Values.logging.elasticsearchSecret }}
+  {{- else }}
                   name: verrazzano
+  {{- end }}
                   optional: true
             - name: ELASTICSEARCH_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
+  {{- if .Values.logging.elasticsearchSecret }}
+                  name: {{ .Values.logging.elasticsearchSecret }}
+  {{- else }}
                   name: verrazzano
+  {{- end }}
                   optional: true
             - name: CA_FILE
-              value: /etc/ssl/certs/ca-bundle.crt
+              value: /fluentd/cacerts/all-ca-certs.pem
           image: {{ .Values.logging.fluentdImage }}
           imagePullPolicy: IfNotPresent
           name: {{ .Values.logging.name }}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           volumeMounts:
+            - name: cacerts
+              mountPath: /fluentd/cacerts
             - mountPath: /fluentd/secret
               name: secret-volume
               readOnly: true
@@ -510,9 +571,19 @@ spec:
       serviceAccountName: fluentd
       terminationGracePeriodSeconds: 30
       volumes:
+        - configMap:
+            defaultMode: 0744
+            name: {{ .Values.logging.name }}-init
+          name: {{ .Values.logging.name }}-init
+        - name: cacerts
+          emptyDir: {}
         - name: secret-volume
           secret:
+  {{- if .Values.logging.elasticsearchSecret }}
+            secretName: {{ .Values.logging.elasticsearchSecret }}
+  {{- else }}
             secretName: verrazzano
+  {{- end }}
         - configMap:
             name: {{ .Values.logging.name }}-config
           name: {{ .Values.logging.name }}-config

@@ -4,10 +4,13 @@
 package component
 
 import (
+	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"go.uber.org/zap"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 // GetComponents returns the list of components that are installable and upgradeable.
@@ -18,6 +21,7 @@ func GetComponents() []Component {
 	thirdPartyChartsDir := config.GetThirdPartyDir()
 
 	return []Component{
+		// TODO: remove istio helm components
 		helmComponent{
 			releaseName:             "istio-base",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
@@ -32,6 +36,7 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			appendOverridesFunc:     appendIstioOverrides,
+			readyStatusFunc:         istiodReadyCheck,
 		},
 		helmComponent{
 			releaseName:             "istio-ingress",
@@ -98,6 +103,9 @@ func GetComponents() []Component {
 			chartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
+			supportsOperatorInstall: true,
+			waitForInstall:          true,
+			imagePullSecretKeyname:  "imagePullSecrets[0].name",
 			valuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
 		},
 		helmComponent{
@@ -105,7 +113,13 @@ func GetComponents() []Component {
 			chartDir:                filepath.Join(thirdPartyChartsDir, "weblogic-operator"),
 			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
+			supportsOperatorInstall: true,
+			waitForInstall:          true,
+			imagePullSecretKeyname:  "imagePullSecrets[0].name",
 			valuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
+			preInstallFunc:          weblogicOperatorPreInstall,
+			appendOverridesFunc:     appendWeblogicOperatorOverrides,
+			dependencies:            []string{"istiod"},
 		},
 		helmComponent{
 			releaseName:             "oam-kubernetes-runtime",
@@ -143,5 +157,62 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
 			appendOverridesFunc:     appendKeycloakOverrides,
 		},
+		istioComponent{
+			componentName: "istio",
+		},
 	}
+}
+
+func FindComponent(releaseName string) (bool, Component) {
+	for _, comp := range GetComponents() {
+		if comp.Name() == releaseName {
+			return true, comp
+		}
+	}
+	return false, &helmComponent{}
+}
+
+// ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available
+func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c Component) bool {
+	trace, err := checkDependencies(log, client, c, nil)
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+	if len(trace) == 0 {
+		log.Infof("No dependencies declared for %s", c.Name())
+		return true
+	}
+	log.Infof("Trace results for %s: %v", c.Name(), trace)
+	for _, value := range trace {
+		if !value {
+			return false
+		}
+	}
+	return true
+}
+
+// checkDependencies Check the ready state of any dependencies and check for cycles
+func checkDependencies(log *zap.SugaredLogger, client client.Client, c Component, trace map[string]bool) (map[string]bool, error) {
+	for _, dependencyName := range c.GetDependencies() {
+		if trace == nil {
+			trace = make(map[string]bool)
+		}
+		if _, ok := trace[dependencyName]; ok {
+			return trace, fmt.Errorf("Illegal state, dependency cycle found for %s: %s", c.Name(), dependencyName)
+		}
+		found, dependency := FindComponent(dependencyName)
+		if !found {
+			return trace, fmt.Errorf("Illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
+		}
+		if trace, err := checkDependencies(log, client, dependency, trace); err != nil {
+			return trace, err
+		}
+		if !dependency.IsReady(log, client, dependencyName) {
+			trace[dependencyName] = false // dependency is not ready
+			continue
+		}
+		trace[dependencyName] = true // dependency is ready
+	}
+	return trace, nil
 }

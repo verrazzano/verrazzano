@@ -21,6 +21,9 @@ const (
 	defaultCAClusterResourceName string = "cert-manager"
 	defaultCASecretName          string = "verrazzano-ca-certificate-secret" //nolint:gosec //#gosec G101
 
+	defaultElasticsearchURL    string = "http://verrazzano-authproxy-elasticsearch:8775"
+	defaultElasticsearchSecret string = "verrazzano"
+
 	// Verrazzano Helm chart value names
 	esStorageValueName         string = "elasticSearch.nodes.data.requests.storage"
 	grafanaStorageValueName    string = "grafana.requests.storage"
@@ -178,8 +181,10 @@ type Rancher struct {
 
 // Fluentd configuration
 type Fluentd struct {
-	Enabled            string       `json:"enabled,omitempty"`
-	FluentdInstallArgs []InstallArg `json:"fluentdInstallArgs,omitempty"`
+	Enabled             string       `json:"enabled,omitempty"`
+	FluentdInstallArgs  []InstallArg `json:"fluentdInstallArgs,omitempty"`
+	ElasticsearchURL    string       `json:"elasticsearchURL,omitempty"`
+	ElasticsearchSecret string       `json:"elasticsearchSecret,omitempty"`
 }
 
 // InstallConfiguration - Verrazzano installation configuration options
@@ -729,7 +734,11 @@ func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeC
 
 func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {
 	if comp == nil {
-		return Fluentd{Enabled: "true"}
+		return Fluentd{
+			Enabled:             "true",
+			ElasticsearchURL:    defaultElasticsearchURL,
+			ElasticsearchSecret: defaultElasticsearchSecret,
+		}
 	}
 	fluentd := Fluentd{}
 	fluentd.FluentdInstallArgs = []InstallArg{}
@@ -763,6 +772,18 @@ func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {
 		enabled = "true"
 	}
 	fluentd.Enabled = enabled
+
+	if len(comp.ElasticsearchURL) > 0 {
+		fluentd.ElasticsearchURL = comp.ElasticsearchURL
+	} else {
+		fluentd.ElasticsearchURL = defaultElasticsearchURL
+	}
+
+	if len(comp.ElasticsearchSecret) > 0 {
+		fluentd.ElasticsearchSecret = comp.ElasticsearchSecret
+	} else {
+		fluentd.ElasticsearchSecret = defaultElasticsearchSecret
+	}
 
 	return fluentd
 }

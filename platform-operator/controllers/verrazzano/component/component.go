@@ -24,5 +24,11 @@ type Component interface {
 	IsOperatorInstallSupported() bool
 
 	// IsInstalled Indicates whether or not the component is installed
-	IsInstalled() bool
+	IsInstalled(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool
+
+	// IsReady Indicates whether or not a component is available and ready
+	IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool
+
+	// GetDependencies returns the dependencies of this component
+	GetDependencies() []string
 }

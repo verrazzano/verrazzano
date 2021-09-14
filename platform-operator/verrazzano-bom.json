@@ -221,7 +221,7 @@
           "images": [
             {
               "image": "verrazzano-operator",
-              "tag": "1.1.0-20210721203425-f4d8b23",
+              "tag": "1.1.0-20210907141728-f037a71",
               "helmFullImageKey": "verrazzanoOperator.imageName",
               "helmTagKey": "verrazzanoOperator.imageVersion"
             },
@@ -231,8 +231,8 @@
               "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
             },
             {
-              "image": "verrazzano-monitoring-operator",
-              "tag": "1.1.0-20210816150650-1ff4223",
+              "image": "verrazzano-monitoring-operator-jenkins",
+              "tag": "1.1.0-20210909160944-8924bbc",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -257,8 +257,8 @@
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
-              "image": "verrazzano-monitoring-instance-eswait",
-              "tag": "1.1.0-20210816150650-1ff4223",
+              "image": "verrazzano-monitoring-instance-eswait-jenkins",
+              "tag": "1.1.0-20210909160944-8924bbc",
               "helmFullImageKey": "monitoringOperator.esWaitImage"
             },
             {
@@ -381,7 +381,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.1",
+              "tag": "3.2.2",
               "helmFullImageKey": "image"
             }
           ]

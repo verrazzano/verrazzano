@@ -5,9 +5,9 @@ package webhooks
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"net/http"
 
+	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	k8sadmission "k8s.io/api/admission/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -42,7 +42,14 @@ func (v *MultiClusterConfigmapValidator) Handle(ctx context.Context, req admissi
 	if mccm.ObjectMeta.DeletionTimestamp.IsZero() {
 		switch req.Operation {
 		case k8sadmission.Create, k8sadmission.Update:
-			return translateErrorToResponse(validateMultiClusterResource(v.client, mccm))
+			err = validateMultiClusterResource(v.client, mccm)
+			if err != nil {
+				return admission.Denied(err.Error())
+			}
+			err = validateNamespaceInProject(v.client, mccm.Namespace)
+			if err != nil {
+				return admission.Denied(err.Error())
+			}
 		}
 	}
 	return admission.Allowed("")
