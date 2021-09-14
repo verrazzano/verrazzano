@@ -39,7 +39,6 @@ data:
     end
 
     -- determine backend and set backend parameters
-    
     local backend = auth.getBackendNameFromIngressHost(ingressHost)
     local backendUrl = auth.getBackendServerUrlFromName(backend)
 
@@ -285,42 +284,6 @@ data:
         return false
     end
 
-    function me.getFirstPathArgument()
-        local first_path_argument = ''
-        local uri = ngx.var.uri
-        if uri then
-            me.info("Request uri " .. uri)
-            local start, last = uri:find("%/")
-            if start then
-                -- me.info("find returned start '"..start.."'")
-                uri = uri:sub(start+1)
-                -- me.info("path after removing slash " .. uri)
-                start, last = uri:find("%/")
-                if start then
-                    -- me.info("find returned start '"..start.."'")
-                    if start == 1 then
-                        first_path_argument = ''
-                    else
-                        first_path_argument = uri:sub(1, start-1)
-                    end
-                else
-                    first_path_argument = uri
-                end
-            else
-                first_path_argument = uri
-            end
-        end
-        me.info("First path argument " .. first_path_argument)
-        return first_path_argument
-    end
-
-    function me.setUriAfterRemovingApiVersion()
-        -- Strip api_version from the uri
-        uri = ngx.re.sub(ngx.uri.request_uri, "^/20210501/(.*)", "/$1", "o")
-        ngx.req.set_uri(uri)
-        me.info("ngx.var.uri "..ngx.var.uri)
-    end
-
     function me.getBackendNameFromIngressHost(ingressHost)
         local backend_name = 'unknown'
         if ingressHost then
@@ -334,9 +297,13 @@ data:
             end
         end
         if backend_name == "verrazzano" then
-            local first_path_argument = me.getFirstPathArgument()
-            if first_path_argument == "20210501" then
+            local uri = ngx.var.request_uri
+            local start, end = uri:find("/20210501/")
+            if start and start == 1 then
                 backend_name = "verrazzano"
+                -- Strip api_version from the uri
+                uri = uri:sub(last)
+                ngx.req.set_uri(uri)
             else
                 backend_name = "console"
             end
@@ -359,8 +326,6 @@ data:
             -- assume we're going to the local server; if not, we'll fix up the url when we handle the remote call
             -- Route request to k8s API
             serverUrl = me.getLocalKubernetesApiUrl()
-            -- Remove  api version from request_uri
-            me.setUriAfterRemovingApiVersion()
         elseif backend == 'console' then
             -- Route request to console
             serverUrl = me.makeConsoleBackendUrl('8000')
