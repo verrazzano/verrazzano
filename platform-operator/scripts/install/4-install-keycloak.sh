@@ -645,7 +645,7 @@ fi
 if [ $(is_oci_dns) == "true" ]; then
   secret_name=$(get_config_value ".dns.oci.ociConfigSecret")
   consoleout
-  consoleout "NOTE: The secret \"${secret_name}\" created in the \"default\" namespace prior to installation is only used during the actual installation."
+  consoleout "NOTE: The secret \"${secret_name}\" created in the \"verrazzano-install\" namespace prior to installation is only used during the actual installation."
   consoleout "You may delete it now.  DO NOT delete the secret of the same name in the cert-manager namespace."
   consoleout
 fi
