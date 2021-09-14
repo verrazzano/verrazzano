@@ -154,6 +154,7 @@ func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1
 			})
 			if err != nil {
 				logger.Error(err, "create or update namespace failed", "namespace", nsTemplate.Metadata.Name, "opResult", opResult)
+				return err
 			}
 
 			if err = r.createOrUpdateRoleBindings(ctx, nsTemplate.Metadata.Name, vp, logger); err != nil {
