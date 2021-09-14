@@ -870,8 +870,8 @@ def upgradeVerrazzano() {
             for(int count=2; count<=clusterCount; count++) {
                 sh """
                     export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                    export V8O_INSTALL_FILE=${KUBECONFIG_DIR}/${count}/${installerFileName}
-                    export V8O_UPGRADE_FILE=${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml
+                    export V8O_INSTALL_FILE="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                    export V8O_UPGRADE_FILE="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
 
                     echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
                     # Modify the version field in the verrazzano CR file to be this new verrazzano version
