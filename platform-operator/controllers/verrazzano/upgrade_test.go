@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"errors"
+	"fmt"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os/exec"
@@ -575,6 +576,93 @@ func TestUpgradeCompleted(t *testing.T) {
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
+// TestUpgradeCompletedStatusReturnsError tests the reconcileUpgrade method for the following use case
+// GIVEN a request to reconcile an verrazzano resource after install is completed
+// WHEN the update of the VZ resource status fails and returns an error
+// THEN ensure an error is returned and a requeue is requested
+func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
+
+	fname, _ := filepath.Abs(unitTestBomFile)
+	config.SetDefaultBomFilePath(fname)
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	// Expect a call to get the verrazzano resource.  Return resource with version
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+			verrazzano.TypeMeta = metav1.TypeMeta{
+				APIVersion: "install.verrazzano.io/v1alpha1",
+				Kind:       "Verrazzano"}
+			verrazzano.ObjectMeta = metav1.ObjectMeta{
+				Namespace:  name.Namespace,
+				Name:       name.Name,
+				Finalizers: []string{finalizerName}}
+			verrazzano.Spec = vzapi.VerrazzanoSpec{
+				Version: "0.2.0"}
+			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready,
+				Conditions: []vzapi.Condition{
+					{
+						Type: vzapi.InstallComplete,
+					},
+					{
+						Type: vzapi.UpgradeStarted,
+					},
+				},
+			}
+			return nil
+		})
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
+			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeComplete, "Incorrect conditions")
+			return fmt.Errorf("Unexpected status error")
+		})
+
+	// Inject a fake cmd runner to the real helm is not called
+	helm.SetCmdRunner(goodRunner{})
+	helmcomp.UpgradePrehooksEnabled = false
+
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.Error(err)
+	asserts.Equal(true, result.Requeue)
+}
+
 // TestUpgradeHelmError tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile an verrazzano resource after install is completed
 // WHEN spec.version doesn't match status.version
@@ -702,10 +790,10 @@ func TestIsLastConditionTrue(t *testing.T) {
 	asserts.True(isLastCondition(st, vzapi.InstallFailed), "isLastCondition should have returned true")
 }
 
-func (r goodRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+func (r goodRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte("success"), []byte(""), nil
 }
 
-func (r badRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+func (r badRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte(""), []byte("failure"), errors.New("Helm Error")
 }

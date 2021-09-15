@@ -172,8 +172,8 @@ func IsReleaseFailed(releaseName string, namespace string) (bool, error) {
 	return releaseStatus == ChartStatusFailed, nil
 }
 
-// IsReleaseInstalled returns true if the release is installed
-func IsReleaseInstalled(releaseName string, namespace string) (found bool, err error) {
+// IsReleaseDeployed returns true if the release is installed
+func IsReleaseDeployed(releaseName string, namespace string) (found bool, err error) {
 	log := zap.S()
 	releaseStatus, err := chartStatusFn(releaseName, namespace)
 	if err != nil {
@@ -187,6 +187,30 @@ func IsReleaseInstalled(releaseName string, namespace string) (found bool, err e
 		return true, nil
 	}
 	return false, nil
+}
+
+// IsReleaseInstalled returns true if the release is installed
+func IsReleaseInstalled(releaseName string, namespace string) (found bool, err error) {
+	log := zap.S()
+
+	args := []string{"status", releaseName}
+	if namespace != "" {
+		args = append(args, "--namespace")
+		args = append(args, namespace)
+	}
+	cmd := exec.Command("helm", args...)
+	stdout, stderr, err := runner.Run(cmd)
+	log.Infof("helm status stdout: %s", string(stdout))
+	log.Infof("helm status stderr: %s", string(stderr))
+
+	if err == nil {
+		return true, nil
+	}
+	if strings.Contains(string(stderr), "not found") {
+		return false, nil
+	}
+	log.Errorf("helm status for release %s failed with stderr: %s\n", releaseName, string(stderr))
+	return false, err
 }
 
 // getChartStatus extracts the Helm deployment status of the specified chart from the JSON output as a string

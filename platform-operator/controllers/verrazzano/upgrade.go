@@ -51,9 +51,11 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
 	log.Info(msg)
 	cr.Status.Version = targetVersion
-	err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
+	if err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete); err != nil {
+		return ctrl.Result{Requeue: true}, err
+	}
 
-	return ctrl.Result{}, err
+	return ctrl.Result{}, nil
 }
 
 // Return true if verrazzano is installed
