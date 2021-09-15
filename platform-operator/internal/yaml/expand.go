@@ -22,7 +22,7 @@ import (
 //       annotations:
 //         service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
 //
-func Expand(name string, val string, indent int) (string, error) {
+func Expand(indent int, name string, vals ...string) (string, error) {
 	b := strings.Builder{}
 
 	// Remove trailing quote and split the string at a quote if is exists
@@ -50,19 +50,13 @@ func Expand(name string, val string, indent int) (string, error) {
 		// Create the padded indent
 		pad := strings.Repeat(" ", indent*i)
 
-		// Add the indent
-		if len(pad) > 0 {
-			if _, err := b.WriteString(pad); err != nil {
-				return "", err
-			}
-		}
-		// Write the name followed by colon
-		if _, err := b.WriteString(seg + ":"); err != nil {
+		// Write the indent padding, then name followed by colon
+		if _, err := b.WriteString(pad + seg + ":"); err != nil {
 			return "", err
 		}
 		// If this is the last segment then write the value, else LF
 		if i == len(nameSegs)-1 {
-			if _, err := b.WriteString(" " + val); err != nil {
+			if err := writeVals(&b, pad, vals...); err != nil {
 				return "", err
 			}
 		} else {
@@ -73,4 +67,27 @@ func Expand(name string, val string, indent int) (string, error) {
 	}
 	return b.String(), nil
 	// TODO add valueList
+}
+
+// writeVals writes a single value or a list of values to the string builder
+func writeVals(b *strings.Builder, pad string, vals ...string) error {
+	if len(vals) == 1 {
+		// Write the single value, for example:
+		// key: val1
+		_, err := b.WriteString(" " + vals[0])
+		return err
+	}
+	// Write the list of values, for example
+	//  key:
+	//    - val1
+	//    - val2
+	for _, val := range vals {
+		if _, err := b.WriteString("\n"); err != nil {
+			return err
+		}
+		if _, err := b.WriteString(pad + "  - " + val); err != nil {
+			return err
+		}
+	}
+	return nil
 }
