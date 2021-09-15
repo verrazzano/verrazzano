@@ -143,10 +143,11 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 				resourceContainers[repeatNo] = resourceContainers[len(resourceContainers)-1]
 				resourceContainers = resourceContainers[:len(resourceContainers)-1]
 			}
-			var containers = make(map[string]interface{})
-			containers["containers"] = resourceContainers
-
-			resource.SetUnstructuredContent(containers)
+			err = unstructured.SetNestedSlice(resource.Object, resourceContainers, containersFieldPath...)
+			if err != nil {
+				log.Error(err, "Unable to set resource containers")
+				return reconcile.Result{}, errors.Wrap(err, "Unable to set resource containers")
+			}
 
 			isCombined = true
 
@@ -188,10 +189,11 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 				resourceVolumes = resourceVolumes[:len(resourceVolumes)-1]
 			}
 
-			var volumes = make(map[string]interface{})
-			volumes["volumes"] = resourceVolumes
-
-			resource.SetUnstructuredContent(volumes)
+			err = unstructured.SetNestedSlice(resource.Object, resourceVolumes, volumesFieldPath...)
+			if err != nil {
+				log.Error(err, "Unable to set resource containers")
+				return reconcile.Result{}, errors.Wrap(err, "Unable to set resource containers")
+			}
 
 			isCombined = true
 
@@ -317,7 +319,11 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				log.Error(err, "Failed to unmarshal a container for logging")
 			}
 
-			unstructured.SetNestedSlice(uLoggingContainer.Object, resVolumeMounts, volumeMountFieldPath...)
+			err = unstructured.SetNestedSlice(uLoggingContainer.Object, resVolumeMounts, volumeMountFieldPath...)
+			if err != nil {
+				log.Error(err, "Unable to set container volumeMounts")
+				return reconcile.Result{}, true, errors.Wrap(err, "Unable to set container volumeMounts")
+			}
 
 			repeatNo := 0
 			repeat := false
@@ -334,7 +340,11 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				resourceContainers = append(resourceContainers, uLoggingContainer.Object)
 			}
 
-			unstructured.SetNestedSlice(resource.Object, resourceContainers, containersFieldPath...)
+			err = unstructured.SetNestedSlice(resource.Object, resourceContainers, containersFieldPath...)
+			if err != nil {
+				log.Error(err, "Unable to set resource containers")
+				return reconcile.Result{}, true, errors.Wrap(err, "Unable to set resource containers")
+			}
 
 			isCombined = true
 			isFound = true
@@ -382,7 +392,11 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				resourceVolumes = append(resourceVolumes, uLoggingVolume.Object)
 			}
 
-			unstructured.SetNestedSlice(resource.Object, resourceVolumes, volumesFieldPath...)
+			err = unstructured.SetNestedSlice(resource.Object, resourceVolumes, volumesFieldPath...)
+			if err != nil {
+				log.Error(err, "Unable to set resource volumes")
+				return reconcile.Result{}, true, errors.Wrap(err, "Unable to set resource volumes")
+			}
 
 			isFound = true
 			isCombined = true
