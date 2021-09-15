@@ -3,6 +3,7 @@
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def DOCKER_IMAGE_TAG
+def ociDnsBuild
 
 pipeline {
     options {
@@ -113,17 +114,29 @@ pipeline {
 
         stage('Execute release builds') {
             stages {
-                stage('Release OCI DNS Build') {
+                // only executed for full release
+                stage('OCI DNS Build') {
                     when {
                         expression { env.IS_PATCH_RELEASE == 'false' }
                     }
                     steps {
                         retry(count: env.BUILD_RETRIES) {
                             script {
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                ociDnsBuild = build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.COMMIT_TO_USE)
                                     ], wait: true
+                            }
+                        }
+                    }
+                    post {
+                        success {
+                            script {
+                                def buildEnvs = ociDnsBuild.getBuildVariables()
+                                def buildNumber = buildEnvs.BUILD_NUMBER
+                                def job = jenkins.model.Jenkins.instance.getItemByFullName("/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}", Job.class)
+                                def theBuild = job.getBuild(buildNumber)
+                                theBuild.keepLog(true)
                             }
                         }
                     }
