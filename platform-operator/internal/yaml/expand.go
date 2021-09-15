@@ -8,14 +8,29 @@ import (
 	"strings"
 )
 
-// Copyright (c) 2021, Oracle and/or its affiliates.
-// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
-// Expand a dot separated name to a YAML hierachical string
+// Expand a dot notated name to a YAML string.  The value can be a string or string list.
+// The simplest YAML is:
+// a: b
 //
-// Handle the case where the last segment of the name is a quoted string, for example:
+// Nested values are expanded as follows:
+//   a.b.c : v1
+//     expands to
+//   a:
+//     b:
+//       c: v1
 //
-//   controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
+// If there is more than one value then
+//   a.b : {v1,v2}
+//     expands to
+//   a:
+//     b:
+//       - v1
+//       - v2
+//
+// The last segment of the name might be a quoted string, for example:
+//
+//   controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape" : 10Mbps
+//
 // which translates to
 //   controller:
 //     service:
