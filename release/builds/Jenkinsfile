@@ -132,11 +132,11 @@ pipeline {
                     post {
                         success {
                             script {
-                                def buildEnvs = ociDnsBuild.getBuildVariables()
-                                def buildNumber = buildEnvs.BUILD_NUMBER
-                                def job = jenkins.model.Jenkins.instance.getItemByFullName("/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}", Job.class)
-                                def theBuild = job.getBuild(buildNumber)
-                                theBuild.keepLog(true)
+                                echo "${ociDnsBuild}"
+//                                 def buildNumber = ociDnsBuild.getNumber()
+//                                 def job = jenkins.model.Jenkins.instance.getItemByFullName("/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}", Job.class)
+//                                 def theBuild = job.getBuild(buildNumber)
+                                ociDnsBuild.getRawBuild().keepLog(true)
                             }
                         }
                     }
