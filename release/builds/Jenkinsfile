@@ -1,0 +1,134 @@
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def DOCKER_IMAGE_TAG
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "${agentLabel}"
+        }
+    }
+
+    parameters {
+        string (description: 'The source branch for the release', name: 'SOURCE_BRANCH', defaultValue: 'master', trim: true)
+        string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
+        string (description: 'The target version (release: #.#, patch: #.#.#)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
+        stirng (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
+    }
+
+    environment {
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        NETRC_FILE = credentials('netrc')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
+        OCR_REPO = 'container-registry.oracle.com'
+        GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        IS_PATCH_RELEASE = 'false'
+
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
+                script {
+                    if (params.COMMIT_TO_USE == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout scm
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        echo "SCM checkout of ${params.COMMIT_TO_USE}"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: params.COMMIT_TO_USE]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    // update the description with some meaningful info
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                }
+            }
+        }
+
+        stage('Release or Patch?') {
+            steps {
+                script {
+                    env.IS_PATCH_RELEASE = params.SOURCE_BRANCH.equals('master') ? 'false' : 'true'
+                    echo "Patch release? ${env.IS_PATCH_RELEASE}"
+                }
+            }
+        }
+
+        stage('Release validation check') {
+            stages {
+                stage('Incompatible CRD changes check') {
+                    steps {
+                        echo "Release:  Ensure that there have been no backward incompatible changes between the commit for the previous release and the commit you are about to release"
+                    }
+                }
+
+                stage('Additional Patch release checks') {
+                    when {
+                        expression { env.IS_PATCH_RELEASE == 'true' }
+                    }
+                    steps {
+                        echo "Patch: verify that all required fixes for the patch version have been backported, the version numbers correlate between charts and dev version, and that there are no incompatible CRD change"
+                    }
+                }
+            }
+        }
+
+        stage('Execute release builds') {
+            stages {
+                stage('Release OCI DNS Build') {
+                    when {
+                        expression { env.IS_PATCH_RELEASE == 'false' }
+                    }
+                    steps {
+                        retry(count: env.BUILD_RETRIES) {
+                            script {
+                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.COMMIT_TO_USE)
+                                    ], wait: true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
