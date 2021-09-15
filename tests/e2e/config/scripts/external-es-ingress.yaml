@@ -1,0 +1,31 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/target: verrazzano-ingress.default.172.18.0.231.nip.io
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 65M
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: ${service_name}.${namespace}.svc.cluster.local
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: external-es-auth-secret
+    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - external-es'
+    cert-manager.io/cluster-issuer: external-es-cluster-issuer
+  name: external-es-ingress
+  namespace: verrazzano-system
+spec:
+  rules:
+    - host: external-es.default.172.18.0.231.nip.io
+      http:
+        paths:
+          - backend:
+              serviceName: vmi-system-es-ingest
+              servicePort: 9200
+            path: /()(.*)
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - external-es.default.172.18.0.231.nip.io
+      secretName: external-es-tls
