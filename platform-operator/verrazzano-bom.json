@@ -257,11 +257,6 @@
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
-              "image": "verrazzano-monitoring-instance-eswait",
-              "tag": "1.1.0-20210816150650-1ff4223",
-              "helmFullImageKey": "monitoringOperator.esWaitImage"
-            },
-            {
               "image": "kibana",
               "tag": "7.6.1-20201130145840-7717e73",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
