@@ -6,15 +6,13 @@ package loggingtrait
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
-
-	crossplanev1alpha1 "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam/util"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,15 +29,14 @@ import (
 
 // Reconciler constants
 const (
-	loggingNamePart             = "logging-stdout"
-	errPatchTobeLoggingResource = "cannot patch the resource for logging container"
-	errLoggingResource          = "cannot add logging sidecar to the resource"
-	errQueryOpenAPI             = "failed to query openAPI"
-	configMapAPIVersion         = "v1"
-	configMapKind               = "ConfigMap"
-	loggingMountPath            = "/fluentd/etc/fluentd.conf"
-	loggingVolume               = "logging-stdout-volume"
-	loggingKey                  = "fluentd.conf"
+	loggingNamePart     = "logging-stdout"
+	errLoggingResource  = "cannot add logging sidecar to the resource"
+	errQueryOpenAPI     = "failed to query openAPI"
+	configMapAPIVersion = "v1"
+	configMapKind       = "ConfigMap"
+	loggingMountPath    = "/fluentd/etc/fluentd.conf"
+	loggingVolume       = "logging-stdout-volume"
+	loggingKey          = "fluentd.conf"
 )
 
 // LoggingTraitReconciler reconciles a LoggingTrait object
@@ -71,14 +68,29 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// If the trait no longer exists or is being deleted then return success.
-	if trait == nil || isTraitBeingDeleted(trait) {
-		return reconcile.Result{}, nil
+	if trait.DeletionTimestamp.IsZero() {
+		result, supported, err := r.reconcileTraitCreateOrUpdate(ctx, log, trait)
+		if err != nil {
+			return result, err
+		}
+		if !supported {
+			// If the workload kind is not supported then delete the trait
+			r.Log.V(1).Info(fmt.Sprintf("deleting trait %s because workload is not supported", trait.Name))
+
+			err = r.Client.Delete(context.TODO(), trait, &client.DeleteOptions{})
+
+		}
+		return result, err
 	}
 
+	return r.reconcileTraitDelete(ctx, log, trait)
+}
+
+// reconcileTraitDelete reconciles a logging trait that is being deleted.
+func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log logr.Logger, trait *oamv1alpha1.LoggingTrait) (ctrl.Result, error) {
 	// Retrieve the workload the trait is related to
 	workload, err := vznav.FetchWorkloadFromTrait(ctx, r, log, trait)
-	if err != nil {
+	if err != nil || workload == nil {
 		return reconcile.Result{}, err
 	}
 
@@ -86,7 +98,6 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	resources, err := vznav.FetchWorkloadChildren(ctx, r, log, workload)
 	if err != nil {
 		log.Error(err, "Error retrieving the workloads child resources", "workload", workload.UnstructuredContent())
-		return util.ReconcileWaitResult, util.PatchCondition(ctx, r, trait, crossplanev1alpha1.ReconcileError(fmt.Errorf(util.ErrFetchChildResources)))
 	}
 
 	// If there are no child resources fallback to the workload
@@ -94,20 +105,122 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		resources = append(resources, workload)
 	}
 
-	//Apply logging trait as sidecar to resources
-	result, err := r.logResource(ctx, log, trait, resources)
+	schema, err := r.DiscoveryClient.OpenAPISchema()
 	if err != nil {
-		log.Error(err, "Error patching logging to resources")
-		return result, err
+		return reconcile.Result{}, errors.Wrap(err, errQueryOpenAPI)
+	}
+	document, err := openapi.NewOpenAPIData(schema)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrap(err, errQueryOpenAPI)
+	}
+
+	for _, resource := range resources {
+		isCombined := false
+
+		if ok, containersFieldPath := locateContainersField(document, resource); ok {
+			resourceContainers, ok, err := unstructured.NestedSlice(resource.Object, containersFieldPath...)
+			if !ok || err != nil {
+				log.Error(err, "Failed to gather resource containers")
+				return reconcile.Result{}, errors.Wrap(err, "Failed to gather resource containers")
+			}
+
+			loggingContainer := &corev1.Container{
+				Name:            loggingNamePart,
+				Image:           trait.Spec.LoggingImage,
+				ImagePullPolicy: corev1.PullIfNotPresent,
+			}
+
+			repeatNo := 0
+			repeat := false
+			for i, resContainer := range resourceContainers {
+				if loggingContainer.Name == resContainer.(map[string]interface{})["name"] {
+					repeat = true
+					repeatNo = i
+					break
+				}
+			}
+			if repeat {
+				resourceContainers[repeatNo] = resourceContainers[len(resourceContainers)-1]
+				resourceContainers = resourceContainers[:len(resourceContainers)-1]
+			}
+			var containers = make(map[string]interface{})
+			containers["containers"] = resourceContainers
+
+			resource.SetUnstructuredContent(containers)
+
+			isCombined = true
+
+		}
+
+		if ok, volumesFieldPath := locateVolumesField(document, resource); ok {
+			resourceVolumes, ok, err := unstructured.NestedSlice(resource.Object, volumesFieldPath...)
+			if !ok || err != nil {
+				log.Error(err, "Failed to gather resource volumes")
+				return reconcile.Result{}, errors.Wrap(err, errLoggingResource)
+			}
+
+			loggingVolume := &corev1.Volume{
+				Name: loggingVolume,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: loggingNamePart + "-" + resource.GetName(),
+						},
+						DefaultMode: func(mode int32) *int32 {
+							return &mode
+						}(420),
+					},
+				},
+			}
+
+			repeatNo := 0
+			repeat := false
+			for i, resVolume := range resourceVolumes {
+				if loggingVolume.Name == resVolume.(map[string]interface{})["name"] {
+					log.Info("Volume was discarded because of duplicate names", "volume name", loggingVolume.Name)
+					repeat = true
+					repeatNo = i
+					break
+				}
+			}
+			if repeat {
+				resourceVolumes[repeatNo] = resourceVolumes[len(resourceVolumes)-1]
+				resourceVolumes = resourceVolumes[:len(resourceVolumes)-1]
+			}
+
+			var volumes = make(map[string]interface{})
+			volumes["volumes"] = resourceVolumes
+
+			resource.SetUnstructuredContent(volumes)
+
+			isCombined = true
+
+		}
+
+		if isCombined {
+			// make a copy of the resource spec since resource.Object will get overwritten in CreateOrUpdate
+			// if the resource exists
+			specCopy, _, err := unstructured.NestedFieldCopy(resource.Object, "spec")
+			if err != nil {
+				log.Error(err, "Unable to make a copy of the spec")
+				return reconcile.Result{}, err
+			}
+
+			_, err = controllerutil.CreateOrUpdate(ctx, r.Client, resource, func() error {
+				return unstructured.SetNestedField(resource.Object, specCopy, "spec")
+			})
+			if err != nil {
+				log.Error(err, "Error creating or updating resource")
+				return reconcile.Result{}, err
+			}
+			log.Info("Successfully removed logging from resource", "resource GVK", resource.GroupVersionKind().String())
+		}
+
+		r.deleteLoggingConfigMap(ctx, trait, resource)
+
 	}
 
 	return reconcile.Result{}, nil
-}
-
-// isTraitBeingDeleted determines if the trait is in the process of being deleted.
-// This is done checking for a non-nil deletion timestamp.
-func isTraitBeingDeleted(trait *oamv1alpha1.LoggingTrait) bool {
-	return trait != nil && trait.GetDeletionTimestamp() != nil
 }
 
 // fetchTrait attempts to get a trait given a namespaced name.
@@ -126,28 +239,44 @@ func (r *LoggingTraitReconciler) fetchTrait(ctx context.Context, name types.Name
 	return &trait, nil
 }
 
-func (r *LoggingTraitReconciler) logResource(
-	ctx context.Context, log logr.Logger, trait *oamv1alpha1.LoggingTrait, resources []*unstructured.Unstructured) (
-	ctrl.Result, error) {
+func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
+	ctx context.Context, log logr.Logger, trait *oamv1alpha1.LoggingTrait) (
+	ctrl.Result, bool, error) {
+
+	// Retrieve the workload the trait is related to
+	workload, err := vznav.FetchWorkloadFromTrait(ctx, r, log, trait)
+	if err != nil || workload == nil {
+		return reconcile.Result{}, true, err
+	}
+
+	// Retrieve the child resources of the workload
+	resources, err := vznav.FetchWorkloadChildren(ctx, r, log, workload)
+	if err != nil {
+		log.Error(err, "Error retrieving the workloads child resources", "workload", workload.UnstructuredContent())
+	}
+
+	// If there are no child resources fallback to the workload
+	if len(resources) == 0 {
+		resources = append(resources, workload)
+	}
 
 	schema, err := r.DiscoveryClient.OpenAPISchema()
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, errQueryOpenAPI)
+		return reconcile.Result{}, true, errors.Wrap(err, errQueryOpenAPI)
 	}
 	document, err := openapi.NewOpenAPIData(schema)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, errQueryOpenAPI)
+		return reconcile.Result{}, true, errors.Wrap(err, errQueryOpenAPI)
 	}
 	isFound := false
 	for _, resource := range resources {
 		isCombined := false
-		r.ensureLoggingConfigMapExists(ctx, trait, resource)
 
 		if ok, containersFieldPath := locateContainersField(document, resource); ok {
 			resourceContainers, ok, err := unstructured.NestedSlice(resource.Object, containersFieldPath...)
 			if !ok || err != nil {
 				log.Error(err, "Failed to gather resource containers")
-				return reconcile.Result{}, errors.Wrap(err, errPatchTobeLoggingResource)
+				return reconcile.Result{}, true, errors.Wrap(err, errLoggingResource)
 			}
 			loggingVolumeMount := &corev1.VolumeMount{
 				MountPath: loggingMountPath,
@@ -169,7 +298,7 @@ func (r *LoggingTraitReconciler) logResource(
 					resourceVolumeMounts, ok, err := unstructured.NestedSlice(res.Object, volumeMountsFieldPath...)
 					if !ok || err != nil {
 						log.Error(err, "Failed to gather resource container volumeMounts")
-						return reconcile.Result{}, errors.Wrap(err, errPatchTobeLoggingResource)
+						return reconcile.Result{}, true, errors.Wrap(err, errLoggingResource)
 					}
 
 					for _, resourceVolumeMount := range resourceVolumeMounts {
@@ -224,7 +353,7 @@ func (r *LoggingTraitReconciler) logResource(
 			resourceVolumes, ok, err := unstructured.NestedSlice(resource.Object, volumesFieldPath...)
 			if !ok || err != nil {
 				log.Error(err, "Failed to gather resource volumes")
-				return reconcile.Result{}, errors.Wrap(err, errPatchTobeLoggingResource)
+				return reconcile.Result{}, true, errors.Wrap(err, errLoggingResource)
 			}
 
 			loggingVolume := &corev1.Volume{
@@ -272,12 +401,16 @@ func (r *LoggingTraitReconciler) logResource(
 		}
 
 		if isCombined {
+			if isFound {
+				r.ensureLoggingConfigMapExists(ctx, trait, resource)
+			}
 			// make a copy of the resource spec since resource.Object will get overwritten in CreateOrUpdate
 			// if the resource exists
 			specCopy, _, err := unstructured.NestedFieldCopy(resource.Object, "spec")
 			if err != nil {
-				log.Error(err, "Unable to make a copy of the Coherence spec")
-				return reconcile.Result{}, err
+				log.Error(err, "Unable to make a copy of the spec")
+				r.deleteLoggingConfigMap(ctx, trait, resource)
+				return reconcile.Result{}, true, err
 			}
 
 			_, err = controllerutil.CreateOrUpdate(ctx, r.Client, resource, func() error {
@@ -285,26 +418,27 @@ func (r *LoggingTraitReconciler) logResource(
 			})
 			if err != nil {
 				log.Error(err, "Error creating or updating resource")
-				return reconcile.Result{}, err
+				r.deleteLoggingConfigMap(ctx, trait, resource)
+				return reconcile.Result{}, true, err
 			}
 			log.Info("Successfully deploy logging to resource", "resource GVK", resource.GroupVersionKind().String())
 		}
 
 		if !isFound {
 			log.Info("Cannot locate any resource", "total resources", len(resources))
-			return reconcile.Result{}, fmt.Errorf(errLoggingResource)
+			return reconcile.Result{}, false, fmt.Errorf(errLoggingResource)
 		}
 
 	}
 
-	return reconcile.Result{}, nil
+	return reconcile.Result{}, true, nil
 }
 
 // ensureLoggingConfigMapExists ensures that the FLUENTD configmap exists. If it already exists, there is nothing
 // to do. If it doesn't exist, create it.
 func (r *LoggingTraitReconciler) ensureLoggingConfigMapExists(ctx context.Context, trait *oamv1alpha1.LoggingTrait, resource *unstructured.Unstructured) error {
 	// check if configmap exists
-	configMapExists, err := resourceExists(ctx, r, configMapAPIVersion, configMapKind, loggingNamePart+"-"+resource.GetName(), resource.GetNamespace())
+	configMapExists, err := resourceExists(ctx, r, configMapAPIVersion, configMapKind, loggingNamePart+"-"+resource.GetName()+"-"+strings.ToLower(resource.GetKind()), resource.GetNamespace())
 	if err != nil {
 		return err
 	}
@@ -321,11 +455,20 @@ func (r *LoggingTraitReconciler) ensureLoggingConfigMapExists(ctx context.Contex
 func (r *LoggingTraitReconciler) createLoggingConfigMap(trait *oamv1alpha1.LoggingTrait, resource *unstructured.Unstructured) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      loggingNamePart + "-" + resource.GetName(),
+			Name:      loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind()),
 			Namespace: resource.GetNamespace(),
 		},
 		Data: trait.Spec.LoggingConfig,
 	}
+}
+
+func (r *LoggingTraitReconciler) deleteLoggingConfigMap(ctx context.Context, trait *oamv1alpha1.LoggingTrait, resource *unstructured.Unstructured) error {
+	// check if configmap exists
+	configMapExists, err := resourceExists(ctx, r, configMapAPIVersion, configMapKind, loggingNamePart+"-"+resource.GetName()+"-"+strings.ToLower(resource.GetKind()), resource.GetNamespace())
+	if configMapExists {
+		return r.Delete(ctx, r.createLoggingConfigMap(trait, resource), &client.DeleteOptions{})
+	}
+	return err
 }
 
 // resourceExists determines whether or not a resource of the given kind identified by the given name and namespace exists
