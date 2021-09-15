@@ -120,10 +120,11 @@ func postUpgradeFunc(log *zap.SugaredLogger, client clipkg.Client) error {
 }
 
 func patchPrometheusDeployment(log *zap.SugaredLogger, client clipkg.Client) error {
+	ctx := context.TODO()
 	// If Prometheus isn't deployed don't do anything.
 	promKey := clipkg.ObjectKey{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-0"}
 	promObj := k8sapps.Deployment{}
-	err := client.Get(context.Background(), promKey, &promObj)
+	err := client.Get(ctx, promKey, &promObj)
 	if errors.IsNotFound(err) {
 		log.Debugf("No Prometheus deployment found. Skip patching.")
 		return nil
@@ -136,11 +137,11 @@ func patchPrometheusDeployment(log *zap.SugaredLogger, client clipkg.Client) err
 	// If Keycloak isn't deployed configure Prometheus to avoid the Istio sidecar for metrics scraping.
 	kcKey := clipkg.ObjectKey{Namespace: "keycloak", Name: "keycloak"}
 	kcObj := k8sapps.StatefulSet{}
-	err = client.Get(context.Background(), kcKey, &kcObj)
+	err = client.Get(ctx, kcKey, &kcObj)
 	if errors.IsNotFound(err) {
 		// Set the Istio annotation on Prometheus to exclude all IP addresses.
 		promObj.Spec.Template.Annotations["traffic.sidecar.istio.io/excludeOutboundIPRanges"] = "0.0.0.0/0"
-		err = client.Update(context.TODO(), &promObj)
+		err = client.Update(ctx, &promObj)
 		if err != nil {
 			log.Errorf("Failed to update Istio annotations of Prometheus deployment: %s", err)
 			return err
@@ -156,13 +157,13 @@ func patchPrometheusDeployment(log *zap.SugaredLogger, client clipkg.Client) err
 	// The includeOutboundIPRanges implies all others are excluded.
 	svcKey := clipkg.ObjectKey{Namespace: "keycloak", Name: "keycloak-http"}
 	svcObj := k8score.Service{}
-	err = client.Get(context.Background(), svcKey, &svcObj)
+	err = client.Get(ctx, svcKey, &svcObj)
 	if errors.IsNotFound(err) {
 		log.Errorf("Failed to find HTTP Service for Keycloak: %s", err)
 		return err
 	}
 	promObj.Spec.Template.Annotations["traffic.sidecar.istio.io/includeOutboundIPRanges"] = fmt.Sprintf("%s/32", svcObj.Spec.ClusterIP)
-	err = client.Update(context.TODO(), &promObj)
+	err = client.Update(ctx, &promObj)
 	if err != nil {
 		log.Errorf("Failed to update Istio annotations of Prometheus deployment: %s", err)
 		return err
