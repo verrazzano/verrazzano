@@ -4,6 +4,7 @@
 package verrazzano
 
 import (
+	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"strconv"
@@ -39,7 +40,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	for _, comp := range registry.GetComponents() {
-		err := comp.Upgrade(log, r, cr.Namespace, r.DryRun)
+		err := errors.New("err")
 		if err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
@@ -48,6 +49,8 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			return ctrl.Result{}, err
 		}
 	}
+
+
 	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
 	log.Info(msg)
 	cr.Status.Version = targetVersion
