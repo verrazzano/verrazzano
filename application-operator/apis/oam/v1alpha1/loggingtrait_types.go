@@ -19,10 +19,6 @@ type LoggingTraitSpec struct {
 	// +optional
 	LoggingImage string `json:"loggingImage,omitempty"`
 
-	// LoggingImagePullSecret represents the optional secret provided by the user to pull a FluentD image
-	// +optional
-	LoggingImagePullSecret string `json:"loggingImagePullSecret,omitempty"`
-
 	// The WorkloadReference to the workload to which this trait applies.
 	// This value is populated by the OAM runtime when a ApplicationConfiguration
 	// resource is processed.  When the ApplicationConfiguration is processed a trait and
