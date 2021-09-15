@@ -49,9 +49,10 @@ func TestCreateMCAppConfig(t *testing.T) {
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
-	if err != nil {
-		assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
-	}
+	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+
+	testComponent, err := getSampleOamComponent("testdata/hello-component.yaml")
+	assert.NoError(err, "failed to read sample data for OAM Component")
 
 	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
 	adminMock.EXPECT().
@@ -59,6 +60,30 @@ func TestCreateMCAppConfig(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
+			return nil
+		})
+
+	// Admin Cluster - expect a call to get the OAM Component of the application
+	adminMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent.Namespace, Name: testComponent.Name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
+			component.ObjectMeta = testComponent.ObjectMeta
+			component.Spec = testComponent.Spec
+			return nil
+		})
+
+	// Managed Cluster - expect a call to get the OAM Component of the application - return that it does not exist
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent.Namespace, Name: testComponent.Name}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: testComponent.GroupVersionKind().Group, Resource: "Component"}, testComponent.Name))
+
+	// Managed Cluster - expect call to create a OAM Component
+	mcMock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, component *oamv1alpha2.Component, opts ...client.CreateOption) error {
+			assert.Equal(testComponent.Namespace, component.Namespace, "OAM component namespace did not match")
+			assert.Equal(testComponent.Name, component.Name, "OAM component name did not match")
+			assert.Equal(mcAppConfigTestLabels, component.Labels, "OAM component labels did not match")
 			return nil
 		})
 
@@ -127,12 +152,54 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	testMCAppConfigUpdate, err := getSampleMCAppConfig("testdata/multicluster-appconfig-update.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
 
+	testComponent1, err := getSampleOamComponent("testdata/hello-component.yaml")
+	assert.NoError(err, "failed to read sample data for OAM Component")
+
+	testComponent2, err := getSampleOamComponent("testdata/goodbye-component.yaml")
+	assert.NoError(err, "failed to read sample data for OAM Component")
+
 	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfigUpdate)
+			return nil
+		})
+
+	// Admin Cluster - expect a call to get the OAM Component of the application
+	adminMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent1.Namespace, Name: testComponent1.Name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
+			component.ObjectMeta = testComponent1.ObjectMeta
+			component.Spec = testComponent1.Spec
+			return nil
+		})
+
+	// Managed Cluster - expect a call to get the OAM Component of the application - return that it exists
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent1.Namespace, Name: testComponent1.Name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
+			component.ObjectMeta = testComponent1.ObjectMeta
+			component.Spec = testComponent1.Spec
+			return nil
+		})
+
+	// Admin Cluster - expect a call to get the second OAM Component of the application
+	adminMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent2.Namespace, Name: testComponent2.Name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
+			component.ObjectMeta = testComponent2.ObjectMeta
+			component.Spec = testComponent2.Spec
+			return nil
+		})
+
+	// Managed Cluster - expect a call to get the second OAM Component of the application - return that it exists
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent2.Namespace, Name: testComponent2.Name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
+			component.ObjectMeta = testComponent2.ObjectMeta
+			component.Spec = testComponent2.Spec
 			return nil
 		})
 
@@ -161,8 +228,8 @@ func TestUpdateMCAppConfig(t *testing.T) {
 			assert.Equal(2, len(mcAppConfig.Spec.Template.Spec.Components))
 			comp0 := mcAppConfig.Spec.Template.Spec.Components[0]
 			comp1 := mcAppConfig.Spec.Template.Spec.Components[1]
-			assert.Equal("hello-component-updated", comp0.ComponentName)
-			assert.Equal("hello-component-extra", comp1.ComponentName)
+			assert.Equal("hello-component", comp0.ComponentName)
+			assert.Equal("goodbye-component", comp1.ComponentName)
 			return nil
 		})
 
@@ -209,13 +276,14 @@ func TestDeleteMCAppConfig(t *testing.T) {
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
-	if err != nil {
-		assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
-	}
+	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+
 	testMCAppConfigOrphan, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
-	if err != nil {
-		assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
-	}
+	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+
+	testComponent, err := getSampleOamComponent("testdata/hello-component.yaml")
+	assert.NoError(err, "failed to read sample data for OAM Component")
+
 	testMCAppConfigOrphan.Name = "orphaned-resource"
 
 	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
@@ -224,6 +292,24 @@ func TestDeleteMCAppConfig(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
+			return nil
+		})
+
+	// Admin Cluster - expect a call to get the OAM Component of the application
+	adminMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent.Namespace, Name: testComponent.Name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
+			component.ObjectMeta = testComponent.ObjectMeta
+			component.Spec = testComponent.Spec
+			return nil
+		})
+
+	// Managed Cluster - expect a call to get the OAM Component of the application - return that it exists
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent.Namespace, Name: testComponent.Name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
+			component.ObjectMeta = testComponent.ObjectMeta
+			component.Spec = testComponent.Spec
 			return nil
 		})
 
@@ -443,6 +529,23 @@ func getSampleMCAppConfig(filePath string) (clustersv1alpha1.MultiClusterApplica
 
 	err = json.Unmarshal(rawResource, &mcAppConfig)
 	return mcAppConfig, err
+}
+
+// getSampleOamComponent creates and returns a sample OAM Component
+func getSampleOamComponent(filePath string) (oamv1alpha2.Component, error) {
+	component := oamv1alpha2.Component{}
+	sampleComponentFile, err := filepath.Abs(filePath)
+	if err != nil {
+		return component, err
+	}
+
+	rawResource, err := clusterstest.ReadYaml2Json(sampleComponentFile)
+	if err != nil {
+		return component, err
+	}
+
+	err = json.Unmarshal(rawResource, &component)
+	return component, err
 }
 
 func newScheme() *runtime.Scheme {
