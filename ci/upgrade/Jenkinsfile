@@ -290,8 +290,8 @@ pipeline {
                     }
                     steps {
                         sh """
-                            # wait for all pod restarts to complete
-                            sleep 5m
+                            # wait for Upgrade to Complete
+                            kubectl wait --for=condition=UpgradeComplete --timeout 10m vz --all
                             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
                             chmod +x ${WORKSPACE}/bom-validator
                             ${WORKSPACE}/bom-validator
