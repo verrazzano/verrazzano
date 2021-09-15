@@ -9,18 +9,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const name_1 = `aa`
-const val_1 = `val_1`
-const expanded_1 = `aa: val_1`
+const name1 = `aa`
+const val1 = `val_1`
+const expanded1 = `aa: val_1`
 
-const name_2 = `aa.bb`
-const val_2 = `val_2`
-const expanded_2 = `aa:
+const name2 = `aa.bb`
+const val2 = `val_2`
+const expanded2 = `aa:
   bb: val_2`
 
-const name_3 = `aa.bb."cc\.dd"`
-const val_3 = `val_3`
-const expanded_3 = `aa:
+const name3 = `aa.bb."cc\.dd"`
+const val3 = `val_3`
+const expanded3 = `aa:
   bb:
     cc.dd: val_3`
 
@@ -39,21 +39,21 @@ func TestExpand(t *testing.T) {
 	}{
 		{
 			testName: "1",
-			name:     name_1,
-			value:    val_1,
-			expected: expanded_1,
+			name:     name1,
+			value:    val1,
+			expected: expanded1,
 		},
 		{
 			testName: "2",
-			name:     name_2,
-			value:    val_2,
-			expected: expanded_2,
+			name:     name2,
+			value:    val2,
+			expected: expanded2,
 		},
 		{
 			testName: "3",
-			name:     name_3,
-			value:    val_3,
-			expected: expanded_3,
+			name:     name3,
+			value:    val3,
+			expected: expanded3,
 		},
 	}
 	for _, test := range tests {
