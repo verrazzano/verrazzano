@@ -289,27 +289,22 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				log.Error(err, "Failed to unmarshal a volumeMount for logging")
 			}
 
-			var resVolumeMounts []*unstructured.Unstructured
-
+			var volumeMountFieldPath []string
+			var resourceVolumeMounts []interface{}
 			for _, resContainer := range resourceContainers {
 				res := resContainer.(*unstructured.Unstructured)
 
 				if ok, volumeMountsFieldPath := locateVolumeMountsField(document, res); ok {
-					resourceVolumeMounts, ok, err := unstructured.NestedSlice(res.Object, volumeMountsFieldPath...)
+					volumeMounts, ok, err := unstructured.NestedSlice(res.Object, volumeMountsFieldPath...)
 					if !ok || err != nil {
 						log.Error(err, "Failed to gather resource container volumeMounts")
 						return reconcile.Result{}, true, errors.Wrap(err, errLoggingResource)
 					}
-
-					for _, resourceVolumeMount := range resourceVolumeMounts {
-						resVolumeMounts = append(resVolumeMounts, resourceVolumeMount.(*unstructured.Unstructured))
-					}
+					resourceVolumeMounts = append(resourceVolumeMounts, volumeMounts...)
 				}
 
 			}
-			resVolumeMounts = append(resVolumeMounts, &uLoggingVolumeMount)
-			var loggingVolumeMounts = make(map[string]interface{})
-			loggingVolumeMounts["volumeMounts"] = resVolumeMounts
+			resVolumeMounts := append(resourceVolumeMounts, uLoggingVolumeMount.Object)
 
 			loggingContainer := &corev1.Container{
 				Name:            loggingNamePart,
@@ -322,7 +317,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				log.Error(err, "Failed to unmarshal a container for logging")
 			}
 
-			uLoggingContainer.SetUnstructuredContent(loggingVolumeMounts)
+			unstructured.SetNestedSlice(uLoggingContainer.Object, resVolumeMounts, volumeMountFieldPath...)
 
 			repeatNo := 0
 			repeat := false
@@ -339,10 +334,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				resourceContainers = append(resourceContainers, uLoggingContainer.Object)
 			}
 
-			var containers = make(map[string]interface{})
-			containers["containers"] = resourceContainers
-
-			resource.SetUnstructuredContent(containers)
+			unstructured.SetNestedSlice(resource.Object, resourceContainers, containersFieldPath...)
 
 			isCombined = true
 			isFound = true
@@ -390,10 +382,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				resourceVolumes = append(resourceVolumes, uLoggingVolume.Object)
 			}
 
-			var volumes = make(map[string]interface{})
-			volumes["volumes"] = resourceVolumes
-
-			resource.SetUnstructuredContent(volumes)
+			unstructured.SetNestedSlice(resource.Object, resourceVolumes, volumesFieldPath...)
 
 			isFound = true
 			isCombined = true
