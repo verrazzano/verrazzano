@@ -54,7 +54,7 @@ pipeline {
                 choices: [ "1.19", "1.18", "1.17", "1.20" ])
         string (name: 'VERSION_FOR_INSTALL',
                 defaultValue: 'v1.0.0',
-                description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
+                description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.0.0 release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
