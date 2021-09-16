@@ -277,6 +277,10 @@ function config_array_to_helm_args {
       param_value=$(echo "$arg" | jq -r '.value')
       param_value_list=$(echo "$arg" | jq -rc '.valueList' | tr "\n" " ")
       param_set_string=$(echo "$arg" | jq -r '.setString')
+
+      log "value: $param_value"
+      log "valueList: $param_value_list"
+
       if [ ! -z "$param_name" ]; then
         if [ "$param_set_string" == "true" ]; then
           if [ ! -z "$param_value_list" ]; then
