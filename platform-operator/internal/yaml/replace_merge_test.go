@@ -54,7 +54,7 @@ platform:
 // THEN ensure that the merged result is correct.
 func TestMergeReplace(t *testing.T) {
 	assert := assert.New(t)
-	merged, err := MergeReplace(nested2Base, nested2Overlay)
+	merged, err := MergeReplace(rmBase, rmMerged)
 	assert.NoError(err, merged, "error merging nested yaml")
 	assert.YAMLEq(rmMerged, merged, "nested yaml should be equal")
 }
@@ -113,7 +113,6 @@ const rm7 = `
 k2:
   k4: rm7-k2.4
 `
-
 // rm4 merged on top of rm3
 const rm5_6_7 = `
 k1: rm5-v1

@@ -37,10 +37,12 @@ import (
 //       annotations:
 //         service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
 //
-func Expand(indent int, name string, vals ...string) (string, error) {
+func Expand(name string, vals ...string) (string, error) {
+	const indent = 2
 	b := strings.Builder{}
 
 	// Remove trailing quote and split the string at a quote if is exists
+	name = strings.TrimSpace(name)
 	name = strings.TrimRight(name, "\"")
 	quoteSegs := strings.Split(name, "\"")
 	if len(quoteSegs) > 2 {
