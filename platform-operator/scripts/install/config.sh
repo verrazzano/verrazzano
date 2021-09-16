@@ -277,19 +277,14 @@ function config_array_to_helm_args {
       param_value=$(echo "$arg" | jq -r '.value')
       param_set_string=$(echo "$arg" | jq -r '.setString')
 
+      log "name: $param_name"
+      log "value: $param_value"
+
       if [ ! -z "$param_name" ]; then
         if [ "$param_set_string" == "true" ]; then
-          if [[ $param_value =~ ^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then # regex for IPv4
-            helm_args="$helm_args --set-string $param_name={$param_value}"
-          else
-            helm_args="$helm_args --set-string $param_name=$param_value"
-          fi
+          helm_args="$helm_args --set-string $param_name=$param_value"
         else
-          if [[ $param_value =~ ^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then # regex for IPv4
-            helm_args="$helm_args --set $param_name={$param_value}"
-          else
-            helm_args="$helm_args --set $param_name=$param_value"
-          fi
+          helm_args="$helm_args --set $param_name=$param_value"
         fi
       fi
     done
