@@ -59,8 +59,6 @@ func TestMergeReplace(t *testing.T) {
 	assert.YAMLEq(rmMerged, merged, "nested yaml should be equal")
 }
 
-
-
 // Complete replace YAML
 const rm1 = `
 k1: rm1-v1
@@ -74,6 +72,7 @@ k2:
   k3: rm2-k2.3
   k4: rm2-k2.4
 `
+
 // rm2 merged on top of rm1
 const rm1_2 = `
 k1: rm2-v1
@@ -81,6 +80,7 @@ k2:
   k3: rm2-k2.3
   k4: rm2-k2.4
 `
+
 // Partial replace YAML
 const rm3 = `
 k1: rm3-v1
@@ -92,6 +92,7 @@ k1: rm4-v1
 k2:
   k3: rm4-k2.3
 `
+
 // rm4 merged on top of rm3
 const rm3_4 = `
 k1: rm4-v1
