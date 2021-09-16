@@ -247,6 +247,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// Add logging traits to the Domain if they exist
+	if err = r.addLoggingTrait(ctx, log, workload, u, &existingDomain); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// Add the monitoringExporter to the spec if not already present
 	if err = addDefaultMonitoringExporter(u); err != nil {
 		return reconcile.Result{}, err
@@ -625,4 +630,15 @@ func getDefaultMonitoringExporter() (interface{}, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+// addLoggingTrait adds the logging trait sidecar to the workload
+func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
+	loggingTrait, err := vznav.LoggingTraitFromWorkloadLabels(ctx, r.Client, log, workload.GetNamespace(), workload.ObjectMeta)
+	if err != nil {
+		return err
+	}
+	_ = loggingTrait.Spec.LoggingConfig //remove
+
+	return nil
 }

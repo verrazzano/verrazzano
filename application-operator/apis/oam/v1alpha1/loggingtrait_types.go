@@ -8,6 +8,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// LoggingTraitKind is the Kind of the LoggingTrait
+const LoggingTraitKind string = "LoggingTrait"
+
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // LoggingTraitSpec defines the desired state of LoggingTrait
