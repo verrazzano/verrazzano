@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 	"strconv"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 )
@@ -49,10 +51,17 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 			return ctrl.Result{}, err
 		}
 	}
+
+	// Invoke the global post upgrade function after all components are upgraded.
+	err := postUpgrade(log, r)
+	if err != nil {
+		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+	}
+
 	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
 	log.Info(msg)
 	cr.Status.Version = targetVersion
-	err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
+	err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
 
 	return ctrl.Result{}, err
 }
@@ -97,4 +106,12 @@ func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus, generation int64) 
 func fmtGeneration(gen int64) string {
 	s := strconv.FormatInt(gen, 10)
 	return "generation:" + s
+}
+
+func postUpgrade(log *zap.SugaredLogger, client clipkg.Client) error {
+	err := prometheus.FixupPrometheusDeployment(log, client)
+	if err != nil {
+		return err
+	}
+	return nil
 }
