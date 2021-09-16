@@ -497,18 +497,7 @@ pipeline {
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
-                                script {
-                                    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                    sh """
-                                        export MANAGED_CLUSTER_NAME="managed1"
-                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                        export CLUSTER_COUNT=$clusterCount
-                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                        export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-                                        ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon/...
-                                    """
-                                }
+                                testHelidonExample()
                             }
                         }
                         stage ('Delete Deployed App NS') {
@@ -981,6 +970,22 @@ def verifyManagedClusterPermissions() {
     }
 }
 
+// Test the multicluster Helidon example
+def testHelidonExample() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        sh """
+            export MANAGED_CLUSTER_NAME="managed1"
+            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export CLUSTER_COUNT=$clusterCount
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon/...
+        """
+    }
+
+}
 
 // Run a test suite against all clusters
 def runGinkgoRandomize(testSuitePath) {
