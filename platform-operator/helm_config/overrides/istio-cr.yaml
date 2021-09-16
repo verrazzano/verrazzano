@@ -3,8 +3,6 @@
 
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
-metadata:
-  namespace: istio-system
 spec:
   components:
     egressGateways:

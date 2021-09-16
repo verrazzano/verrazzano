@@ -9,9 +9,9 @@ import (
 	"strings"
 )
 
-// Merge merges the YAML files returns a YAML string.
+// ReplacementMerge merges the YAML files returns a YAML string.
 // The first YAML is overlayed by each subsequent YAML, lists are replaced
-func MergeReplace(yamls ...string) (string, error) {
+func ReplacementMerge(yamls ...string) (string, error) {
 	if len(yamls) == 0 {
 		return "", errors.New("At least 1 YAML file is required")
 	}

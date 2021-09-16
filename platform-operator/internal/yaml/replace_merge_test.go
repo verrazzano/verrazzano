@@ -48,13 +48,13 @@ platform:
       date: 02/02/2022
 `
 
-// TestMergeReplace tests the MergeReplace function with nested YAML
+// TestMergeReplace tests the ReplacementMerge function with nested YAML
 // GIVEN a set of nested YAML strings with embedded lists
-// WHEN MergeReplace is called
+// WHEN ReplacementMerge is called
 // THEN ensure that the merged result is correct.
 func TestMergeReplace(t *testing.T) {
 	assert := assert.New(t)
-	merged, err := MergeReplace(rmBase, rmMerged)
+	merged, err := ReplacementMerge(rmBase, rmMerged)
 	assert.NoError(err, merged, "error merging nested yaml")
 	assert.YAMLEq(rmMerged, merged, "nested yaml should be equal")
 }
@@ -113,6 +113,7 @@ const rm7 = `
 k2:
   k4: rm7-k2.4
 `
+
 // rm4 merged on top of rm3
 const rm5_6_7 = `
 k1: rm5-v1
@@ -121,9 +122,9 @@ k2:
   k4: rm7-k2.4
 `
 
-// TestReplaceMany tests the MergeReplace function
+// TestReplaceMany tests the ReplacementMerge function
 // GIVEN a set of yamls
-// WHEN MergeReplace is called
+// WHEN ReplacementMerge is called
 // THEN ensure that the result is correct.
 func TestReplaceMany(t *testing.T) {
 	const indent = 2
@@ -152,7 +153,7 @@ func TestReplaceMany(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			assert := assert.New(t)
-			s, err := MergeReplace(test.values...)
+			s, err := ReplacementMerge(test.values...)
 			assert.NoError(err, s, "error merging yamls")
 			assert.YAMLEq(test.expected, s, "Result does not match expected value")
 		})

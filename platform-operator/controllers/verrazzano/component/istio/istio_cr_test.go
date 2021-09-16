@@ -23,17 +23,29 @@ var cr1 = vzapi.IstioComponent{
 
 // Resulting YAML after the merge
 const cr1Yaml = `
-gateways:
-  istio-ingressgateway:
-    serviceAnnotations:
-      service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    egressGateways:
+      - name: istio-egressgateway
+        enabled: true
+
+  # Global values passed through to helm global.yaml.
+  # Please keep this in sync with manifests/charts/global.yaml
+  values:
+    global:
+      gateways:
+        istio-ingressgateway:
+          serviceAnnotations:
+            service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
 `
 
-// TestBuildOverrideCR tests the BuildOverrideCR function
+// TestBuildIstioOperatorYaml tests the BuildIstioOperatorYaml function
 // GIVEN an Verrazzano CR Istio component
-// WHEN BuildOverrideCR is called
+// WHEN BuildIstioOperatorYaml is called
 // THEN ensure that the result is correct.
-func TestBuildOverrideCR(t *testing.T) {
+func TestBuildIstioOperatorYaml(t *testing.T) {
 	const indent = 2
 
 	tests := []struct {
@@ -50,7 +62,7 @@ func TestBuildOverrideCR(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			assert := assert.New(t)
-			s, err := BuildOverrideCR(test.value)
+			s, err := BuildIstioOperatorYaml(test.value)
 			assert.NoError(err, s, "error merging yamls")
 			assert.YAMLEq(test.expected, s, "Result does not match expected value")
 		})
