@@ -24,7 +24,7 @@ func TestGetComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := GetComponents()
 
-	assert.Len(comps, 17, "Wrong number of components")
+	assert.Len(comps, 16, "Wrong number of components")
 	assert.Equal(comps[0].Name(), "istio-base")
 	assert.Equal(comps[1].Name(), "istiod")
 	assert.Equal(comps[2].Name(), "istio-ingress")
@@ -41,7 +41,6 @@ func TestGetComponents(t *testing.T) {
 	assert.Equal(comps[13].Name(), "verrazzano-application-operator")
 	assert.Equal(comps[14].Name(), "mysql")
 	assert.Equal(comps[15].Name(), "keycloak")
-	assert.Equal(comps[16].Name(), "istio")
 }
 
 // TestFindComponent tests FindComponent

@@ -4,7 +4,6 @@
 package istio
 
 import (
-	"errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
@@ -17,9 +16,7 @@ import (
 type istioFakeRunner struct {
 }
 
-var comp = IstioComponent{
-	ComponentName: "istio",
-}
+var comp = IstioComponent{}
 
 const testBomFilePath = "../../testdata/test_bom.json"
 
@@ -49,11 +46,8 @@ func IstioTestUpgrade(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeIstioUpgrade(log *zap.SugaredLogger, componentName string) (stdout []byte, stderr []byte, err error) {
-	if componentName != "istio" {
-		return []byte("error"), []byte(""), errors.New("Invalid release name")
-	}
-	// This string is built from the key:value arrary returned by the bom.buildImageOverrides() function
+func fakeIstioUpgrade(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+	//TODO: add testing
 	return []byte("success"), []byte(""), nil
 }
 
