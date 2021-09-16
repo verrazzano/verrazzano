@@ -6,6 +6,7 @@ package helm
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -130,7 +131,7 @@ func (h HelmComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, nam
 	return false
 }
 
-func (h HelmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (h HelmComponent) Install(log *zap.SugaredLogger, _ *installv1alpha1.Verrazzano, client clipkg.Client, namespace string, dryRun bool) error {
 
 	// Resolve the namespace
 	resolvedNamespace := resolveNamespace(h, namespace)
@@ -176,7 +177,7 @@ func (h HelmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 // that is included in the operator image, while retaining any helm Value overrides that were applied during
 // install. Along with the override files in helm_config, we need to generate image overrides using the
 // BOM json file.  Each component also has the ability to add additional override parameters.
-func (h HelmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
+func (h HelmComponent) Upgrade(log *zap.SugaredLogger, _ *installv1alpha1.Verrazzano, client clipkg.Client, ns string, dryRun bool) error {
 	// Resolve the namespace
 	namespace := resolveNamespace(h, ns)
 

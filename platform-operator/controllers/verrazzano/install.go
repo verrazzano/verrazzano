@@ -35,7 +35,7 @@ func (r *Reconciler) reconcileInstall(log *zap.SugaredLogger, cr *installv1alpha
 			return err
 		}
 		// If component is not installed,install it
-		if err := comp.Install(log, r, cr.Namespace, r.DryRun); err != nil {
+		if err := comp.Install(log, cr, r, cr.Namespace, r.DryRun); err != nil {
 			return err
 		}
 		if err := r.updateComponentStatus(log, cr, comp.Name(), "Install complete", installv1alpha1.InstallComplete); err != nil {

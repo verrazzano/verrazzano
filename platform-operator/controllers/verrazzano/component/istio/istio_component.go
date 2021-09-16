@@ -4,22 +4,27 @@
 package istio
 
 import (
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
+	"io/ioutil"
+	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // IstioComponent represents an Istio component
-type IstioComponent struct{}
+type IstioComponent struct {
+	ValuesFile string
+}
 
 // Verify that IstioComponent implements Component
 var _ spi.Component = IstioComponent{}
 
-type istioUpgradeFuncSig func(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
-// istioUpgradeFunc is the default upgrade function
-var istioUpgradeFunc istioUpgradeFuncSig = istio.Upgrade
+// upgradeFunc is the default upgrade function
+var upgradeFunc upgradeFuncSig = istio.Upgrade
 
 // Name returns the component name
 func (i IstioComponent) Name() string {
@@ -30,25 +35,53 @@ func (i IstioComponent) IsOperatorInstallSupported() bool {
 	return false
 }
 
-func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) bool {
+func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, _ string) bool {
 	return false
 }
 
-func (i IstioComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, _ clipkg.Client, _ string, _ bool) error {
 	return nil
 }
 
-func (i IstioComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
-	_, _, err := istioUpgradeFunc(log, i.Name())
+func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, _ clipkg.Client, _ string, _ bool) error {
+	var tmpFile *os.File
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "values-*.yaml")
+	if err != nil {
+		log.Errorf("Failed to create temporary file: %v", err)
+		return err
+	}
+
+	defer os.Remove(tmpFile.Name())
+
+	istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
+	if err != nil {
+		log.Errorf("Failed to Build IstioOperator YAML: %v", err)
+		return err
+	}
+
+	if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
+		log.Errorf("Failed to write to temporary file: %v", err)
+		return err
+	}
+
+	// Close the file
+	if err := tmpFile.Close(); err != nil {
+		log.Errorf("Failed to close temporary file: %v", err)
+		return err
+	}
+
+	log.Infof("Created values file: %s", tmpFile.Name())
+
+	_, _, err = upgradeFunc(log, i.ValuesFile, tmpFile.Name())
 	return err
 }
 
-func setIstioUpgradeFunc(f istioUpgradeFuncSig) {
-	istioUpgradeFunc = f
+func setUpgradeFunc(f upgradeFuncSig) {
+	upgradeFunc = f
 }
 
-func setIstioDefaultUpgradeFunc() {
-	istioUpgradeFunc = istio.Upgrade
+func setDefaultUpgradeFunc() {
+	upgradeFunc = istio.Upgrade
 }
 
 func (i IstioComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {

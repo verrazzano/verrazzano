@@ -4,6 +4,7 @@
 package spi
 
 import (
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -14,10 +15,10 @@ type Component interface {
 	Name() string
 
 	// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-	Upgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
+	Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, client clipkg.Client, namespace string, dryRun bool) error
 
 	// Install performs the initial install of a component
-	Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
+	Install(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, client clipkg.Client, namespace string, dryRun bool) error
 
 	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
 	// - scaffolding while we move components from the scripts to the operator
