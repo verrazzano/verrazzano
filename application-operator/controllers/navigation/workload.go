@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
@@ -34,14 +33,14 @@ var workloadToContainedGVKMap = map[string]schema.GroupVersionKind{
 // for example core.oam.dev/v1alpha2.ContainerizedWorkload would be converted to
 // containerizedworkloads.core.oam.dev.  Workload definitions are always found in the default
 // namespace.
-func FetchWorkloadDefinition(ctx context.Context, cli client.Reader, log logr.Logger, workload *unstructured.Unstructured) (*v1alpha2.WorkloadDefinition, error) {
+func FetchWorkloadDefinition(ctx context.Context, cli client.Reader, log logr.Logger, workload *unstructured.Unstructured) (*oamv1.WorkloadDefinition, error) {
 	if workload == nil {
 		return nil, fmt.Errorf("invalid workload reference")
 	}
 	workloadAPIVer, _, _ := unstructured.NestedString(workload.Object, "apiVersion")
 	workloadKind, _, _ := unstructured.NestedString(workload.Object, "kind")
 	workloadName := GetDefinitionOfResource(workloadAPIVer, workloadKind)
-	workloadDef := v1alpha2.WorkloadDefinition{}
+	workloadDef := oamv1.WorkloadDefinition{}
 	if err := cli.Get(ctx, workloadName, &workloadDef); err != nil {
 		log.Error(err, "Failed to fetch workload definition", "workload", workloadName)
 		return nil, err
@@ -56,7 +55,7 @@ func FetchWorkloadDefinition(ctx context.Context, cli client.Reader, log logr.Lo
 // The namespace of the workload is then searched for child resources of the supported types.
 func FetchWorkloadChildren(ctx context.Context, cli client.Reader, log logr.Logger, workload *unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
 	var err error
-	var workloadDefinition *v1alpha2.WorkloadDefinition
+	var workloadDefinition *oamv1.WorkloadDefinition
 
 	// Attempt to fetch workload definition based on the workload GVK.
 	if workloadDefinition, err = FetchWorkloadDefinition(ctx, cli, log, workload); err != nil {
@@ -101,7 +100,62 @@ func ComponentFromWorkloadLabels(ctx context.Context, cli client.Reader, namespa
 		}
 	}
 
-	return nil, errors.New("Unable to find application component for workload")
+	return nil, errors.New("unable to find application component for workload")
+}
+
+// LoggingTraitFromWorkloadLabels returns the LoggingTrait object associated with the workload or nil if
+// there is no associated logging trait for the workload. If there is an associated logging trait and the lookup of the
+// trait fails, an error is returned and the reconcile should be retried.
+func LoggingTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, workloadMeta v1.ObjectMeta) (*vzapi.LoggingTrait, error) {
+	log.Info(fmt.Sprintf("Getting logging trait from OAM labels: %v", workloadMeta.Labels))
+	component, err := ComponentFromWorkloadLabels(ctx, cli, namespace, workloadMeta.Labels)
+	if err != nil {
+		return nil, err
+	}
+
+	hasLoggingTrait := false
+	for _, t := range component.Traits {
+		u, err := ConvertRawExtensionToUnstructured(&t.Trait)
+		if err != nil {
+			return nil, err
+		}
+
+		if u.GetKind() == vzapi.LoggingTraitKind {
+			hasLoggingTrait = true
+			loggingTraitList := &vzapi.LoggingTraitList{}
+			loggingTraitList.APIVersion = u.GetAPIVersion()
+			loggingTraitList.Kind = u.GetKind()
+
+			if err := cli.List(ctx, loggingTraitList, client.InNamespace(namespace)); err != nil {
+				return nil, err
+			}
+
+			ownerUIDs := make(map[types.UID]struct{}, len(workloadMeta.OwnerReferences))
+			for _, owner := range workloadMeta.OwnerReferences {
+				ownerUIDs[owner.UID] = struct{}{}
+			}
+			log.Info(fmt.Sprintf("Workload owner UID's: %v", ownerUIDs))
+
+			for _, item := range loggingTraitList.Items {
+				for _, owner := range item.GetOwnerReferences() {
+					log.Info(fmt.Sprintf("Comparing logging trait owner with UID: %s and name: %s", owner.UID, item.Spec.WorkloadReference.Name))
+					if _, ok := ownerUIDs[owner.UID]; ok {
+						if workloadMeta.Name == item.Spec.WorkloadReference.Name {
+							log.Info("Matched Trait")
+							return &item, nil
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if hasLoggingTrait {
+		log.Info(fmt.Sprintf("Unable to lookup associated MetricTrait for workload %s", workloadMeta.Name))
+		return nil, fmt.Errorf("lookup of MetricTrait failed for workload %s", workloadMeta.Name)
+	}
+	log.Info(fmt.Sprintf("Workload %s has no associated metric trait", workloadMeta.Name))
+	return nil, nil
 }
 
 // MetricsTraitFromWorkloadLabels returns the MetricsTrait object associated with the workload or nil if
@@ -198,7 +252,7 @@ func WorkloadToContainedGVK(workload *unstructured.Unstructured) *schema.GroupVe
 func GetContainedWorkloadVersionKindName(workload *unstructured.Unstructured) (string, string, string, error) {
 	gvk := WorkloadToContainedGVK(workload)
 	if gvk == nil {
-		return "", "", "", fmt.Errorf("Unable to find contained GroupVersionKind for workload: %v", workload)
+		return "", "", "", fmt.Errorf("unable to find contained GroupVersionKind for workload: %v", workload)
 	}
 
 	apiVersion, kind := gvk.ToAPIVersionAndKind()
@@ -207,7 +261,7 @@ func GetContainedWorkloadVersionKindName(workload *unstructured.Unstructured) (s
 	// to the workload or component name
 	name, found, err := unstructured.NestedString(workload.Object, "spec", "template", "metadata", "name")
 	if !found || err != nil {
-		return "", "", "", errors.New("Unable to find metadata name in contained workload")
+		return "", "", "", errors.New("unable to find metadata name in contained workload")
 	}
 
 	return apiVersion, kind, name, nil
