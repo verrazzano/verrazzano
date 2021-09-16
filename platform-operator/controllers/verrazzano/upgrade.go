@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 	"strconv"
 	"strings"
 
@@ -54,7 +55,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 	// Invoke the global post upgrade function after all components are upgraded.
 	err := postUpgrade(log, r)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
 	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
@@ -108,7 +109,7 @@ func fmtGeneration(gen int64) string {
 }
 
 func postUpgrade(log *zap.SugaredLogger, client clipkg.Client) error {
-	err := component.FixupPrometheusDeployment(log, client)
+	err := prometheus.FixupPrometheusDeployment(log, client)
 	if err != nil {
 		return err
 	}
