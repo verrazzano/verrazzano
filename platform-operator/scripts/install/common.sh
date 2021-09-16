@@ -408,8 +408,7 @@ function helm_install_retry() {
     log "Installing ${ns}/${chart_name}"
     log "${chart_name} ${chart_dir}"
     helm upgrade ${chart_name} ${chart_dir} \
-      --install \
-      --namespace ${ns} \
+      --install --namespace ${ns} \
       --wait --timeout 10m \
       "$@" && break
     local helm_status=$?
