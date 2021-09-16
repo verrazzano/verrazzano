@@ -406,8 +406,10 @@ function helm_install_retry() {
   local max_retries=1
   while true ; do
     log "Installing ${ns}/${chart_name}"
+    log "${chart_name} ${chart_dir}"
     helm upgrade ${chart_name} ${chart_dir} \
-      --install --namespace ${ns} \
+      --install \
+      --namespace ${ns} \
       --wait --timeout 10m \
       "$@" && break
     local helm_status=$?
