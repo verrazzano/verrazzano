@@ -6,7 +6,7 @@ package verrazzano
 import (
 	"context"
 	"errors"
-	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os/exec"
 	"path/filepath"
@@ -555,7 +555,7 @@ func TestUpgradeCompleted(t *testing.T) {
 
 	// Inject a fake cmd runner to the real helm is not called
 	helm.SetCmdRunner(goodRunner{})
-	helm2.UpgradePrehooksEnabled = false
+	helmcomp.UpgradePrehooksEnabled = false
 
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {

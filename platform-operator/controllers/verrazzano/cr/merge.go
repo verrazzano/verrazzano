@@ -14,7 +14,7 @@ import (
 // The profiles must be in the VerrazzanoSpec format
 func MergeProfiles(cr *vzapi.VerrazzanoSpec, profileFiles ...string) (*vzapi.VerrazzanoSpec, error) {
 	// First merge the profiles
-	merged, err := vzyaml.MergeFiles(vzapi.VerrazzanoSpec{}, profileFiles...)
+	merged, err := vzyaml.StrategicMergeFiles(vzapi.VerrazzanoSpec{}, profileFiles...)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func MergeProfiles(cr *vzapi.VerrazzanoSpec, profileFiles ...string) (*vzapi.Ver
 		return nil, err
 	}
 
-	merged, err = vzyaml.MergeString(vzapi.VerrazzanoSpec{}, string(bYAML), merged)
+	merged, err = vzyaml.StrategicMerge(vzapi.VerrazzanoSpec{}, string(bYAML), merged)
 	if err != nil {
 		return nil, err
 	}
