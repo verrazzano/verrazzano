@@ -426,7 +426,7 @@ func undeployTestResources() {
 	// delete a OAM Component
 	pkg.Log(pkg.Info, "Deleting OAM Component")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/oam-component.yaml", &oamv1alpha2.Component{})
+		return DeleteResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete the test project
