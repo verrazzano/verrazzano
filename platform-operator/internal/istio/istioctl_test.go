@@ -62,6 +62,8 @@ func (r upgradeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err err
 	assert.Contains(cmd.Args[0], "istioctl", "args should contain istioctl")
 	assert.Contains(cmd.Args[1], "install", "args should contain install")
 	assert.Contains(cmd.Args[2], "-y", "args should contain -y")
+	assert.Contains(cmd.Args[3], "--set", "args should contain --set")
+	assert.Contains(cmd.Args[4], "revision=1-10-2", "args should contain revision=1-10-2")
 
 	return []byte("success"), []byte(""), nil
 }
