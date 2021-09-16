@@ -1,8 +1,11 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
-    external-dns.alpha.kubernetes.io/target: verrazzano-ingress.default.172.18.0.231.nip.io
+    external-dns.alpha.kubernetes.io/target: external-es.default.172.18.0.232.nip.io
     external-dns.alpha.kubernetes.io/ttl: "60"
     kubernetes.io/tls-acme: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: 65M
@@ -17,7 +20,7 @@ metadata:
   namespace: verrazzano-system
 spec:
   rules:
-    - host: external-es.default.172.18.0.231.nip.io
+    - host: external-es.default.172.18.0.232.nip.io
       http:
         paths:
           - backend:
@@ -27,5 +30,5 @@ spec:
             pathType: ImplementationSpecific
   tls:
     - hosts:
-        - external-es.default.172.18.0.231.nip.io
+        - external-es.default.172.18.0.232.nip.io
       secretName: external-es-tls
