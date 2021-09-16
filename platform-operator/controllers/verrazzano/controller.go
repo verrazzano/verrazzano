@@ -615,6 +615,7 @@ func buildInternalConfigMapName(name string) string {
 
 // updateStatus updates the status in the verrazzano CR
 func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
+	log.Infof("CDD Controller Update Status Func +%v", conditionType)
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,

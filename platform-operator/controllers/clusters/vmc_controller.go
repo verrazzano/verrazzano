@@ -281,7 +281,7 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 
 func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition) error {
 	var matchingCondition *clustersv1alpha1.Condition
-	r.log.Debugf("Entered updateStatus for VMC %s, existing conditions = %v", vmc.Name, vmc.Status.Conditions)
+	r.log.Infof("CDD Entered updateStatus for VMC %s, existing conditions = %v", vmc.Name, vmc.Status.Conditions)
 	for i, existingCondition := range vmc.Status.Conditions {
 		if condition.Type == existingCondition.Type &&
 			condition.Status == existingCondition.Status &&
