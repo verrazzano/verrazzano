@@ -79,7 +79,7 @@ func (r upgradeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err err
 	assert := assert.New(r.t)
 	assert.Contains(cmd.Path, "istioctl", "command should contain istioctl")
 	assert.Contains(cmd.Args[0], "istioctl", "args should contain istioctl")
-	assert.Contains(cmd.Args[1], "install", "args should contain upgrade")
+	assert.Contains(cmd.Args[1], "install", "args should contain install")
 	assert.Contains(cmd.Args[2], "-y", "args should contain -y")
 
 	return []byte("success"), []byte(""), nil
