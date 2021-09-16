@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component
+package istio
 
 import (
 	"errors"
@@ -17,9 +17,11 @@ import (
 type istioFakeRunner struct {
 }
 
-var comp istioComponent = istioComponent{
-	componentName: "istio",
+var comp = IstioComponent{
+	ComponentName: "istio",
 }
+
+const testBomFilePath = "../../testdata/test_bom.json"
 
 // IstioTestGetName tests the component name
 // GIVEN a Verrazzano component

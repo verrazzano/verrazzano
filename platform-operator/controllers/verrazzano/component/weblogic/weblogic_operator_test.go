@@ -1,6 +1,6 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package component
+package weblogic
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -11,18 +11,18 @@ import (
 	"testing"
 )
 
-// Test_appendWeblogicOperatorOverridesExtraKVs tests the appendWeblogicOperatorOverrides fn
-// GIVEN a call to appendWeblogicOperatorOverrides
+// Test_appendWeblogicOperatorOverridesExtraKVs tests the AppendWeblogicOperatorOverrides fn
+// GIVEN a call to AppendWeblogicOperatorOverrides
 //  WHEN I call with no extra kvs
 //  THEN the correct number of KeyValue objects are returned and no errors occur
 func Test_appendWeblogicOperatorOverrides(t *testing.T) {
-	kvs, err := appendWeblogicOperatorOverrides(zap.S(), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
+	kvs, err := AppendWeblogicOperatorOverrides(zap.S(), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 }
 
-// Test_appendWeblogicOperatorOverridesExtraKVs tests the appendWeblogicOperatorOverrides fn
-// GIVEN a call to appendWeblogicOperatorOverrides
+// Test_appendWeblogicOperatorOverridesExtraKVs tests the AppendWeblogicOperatorOverrides fn
+// GIVEN a call to AppendWeblogicOperatorOverrides
 //  WHEN I pass in a KeyValue list
 //  THEN the values passed in are preserved and no errors occur
 func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
@@ -30,18 +30,18 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 		{Key: "Key", Value: "Value"},
 	}
 	var err error
-	kvs, err = appendWeblogicOperatorOverrides(zap.S(), "weblogic-operator", "verrazzano-system", "", kvs)
+	kvs, err = AppendWeblogicOperatorOverrides(zap.S(), "weblogic-operator", "verrazzano-system", "", kvs)
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 5)
 }
 
-// Test_weblogicOperatorPreInstall tests the weblogicOperatorPreInstall fn
+// Test_weblogicOperatorPreInstall tests the WeblogicOperatorPreInstall fn
 // GIVEN a call to this fn
-//  WHEN I call weblogicOperatorPreInstall
+//  WHEN I call WeblogicOperatorPreInstall
 //  THEN no errors are returned
 func Test_weblogicOperatorPreInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	kvs, err := weblogicOperatorPreInstall(zap.S(), client, "weblogic-operator", "verrazzano-system", "")
+	kvs, err := WeblogicOperatorPreInstall(zap.S(), client, "weblogic-operator", "verrazzano-system", "")
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 0)
 }
