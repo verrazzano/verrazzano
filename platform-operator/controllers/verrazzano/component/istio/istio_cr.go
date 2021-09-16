@@ -11,10 +11,24 @@ import (
 	vzyaml "github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
 )
 
-
-
-// Define the keylcloak Key:Value pair for init container.
-// We need to replace image using the real image in the bom
+// Define the IstioOperator template which is used to insert the generated YAML values.
+//
+// NOTE: The go template rendering doesn't properly indent the multi-line YAML value
+// For example, the template fragment only indents the fist line of values
+//    global:
+//      {{.Values}}
+// so the result is
+//    global:
+//      line1:
+// line2:
+//   line3:
+// etc...
+//
+// A solution is to pre-indent each line of the values then insert it at column 0 as follows:
+//    global:
+// {{.Values}}
+// See the leftMargin usage in the code
+//
 const istioCrTempate = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
@@ -28,7 +42,7 @@ spec:
   # Please keep this in sync with manifests/charts/global.yaml
   values:
     global:
-      {{.Values}}
+{{.Values}}
 `
 
 // templateValues needed for template rendering
@@ -39,6 +53,9 @@ type templateValues struct {
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
 // Transform the Verrazzano CR IstioComponent provided by the user onto an IstioOperator formatted YAML
 func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
+	//
+	const leftMargin = 6
+
 	// Build a list of YAML strings from the IstioComponent initargs, one for each arg.
 	var yamls []string
 	for _, arg := range comp.IstioInstallArgs {
@@ -46,7 +63,7 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 		if len(values) == 0 {
 			values = []string{arg.Value}
 		}
-		yaml, err := vzyaml.Expand(arg.Name, values...)
+		yaml, err := vzyaml.Expand(leftMargin, arg.Name, values...)
 		if err != nil {
 			return "", err
 		}

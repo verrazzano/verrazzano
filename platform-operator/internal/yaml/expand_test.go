@@ -77,7 +77,7 @@ func TestExpand(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			assert := assert.New(t)
-			s, err := Expand(test.name, test.values...)
+			s, err := Expand(0, test.name, test.values...)
 			assert.NoError(err, s, "error merging profiles")
 			assert.Equal(test.expected, s, "Result does not match expected value")
 		})

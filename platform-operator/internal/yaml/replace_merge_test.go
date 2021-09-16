@@ -26,6 +26,8 @@ platform:
 
 // rmOverlay is the overlay of a nested merge with a list
 const rmOverlay = `
+host:
+  name: bar
 platform:
   os:
     patches:
@@ -38,7 +40,7 @@ const rmMerged = `
 name: base
 host:
   ip: 1.2.3.4
-  name: foo
+  name: bar
 platform:
   vendor: company1
   os:
@@ -54,7 +56,7 @@ platform:
 // THEN ensure that the merged result is correct.
 func TestMergeReplace(t *testing.T) {
 	assert := assert.New(t)
-	merged, err := ReplacementMerge(rmBase, rmMerged)
+	merged, err := ReplacementMerge(rmBase, rmOverlay)
 	assert.NoError(err, merged, "error merging nested yaml")
 	assert.YAMLEq(rmMerged, merged, "nested yaml should be equal")
 }
