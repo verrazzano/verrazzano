@@ -39,6 +39,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	for _, comp := range registry.GetComponents() {
+		log.Infof("CDD Upgrading Component", comp.Name())
 		err := comp.Upgrade(log, r, cr.Namespace, r.DryRun)
 		if err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
