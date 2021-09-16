@@ -237,7 +237,7 @@ pipeline {
 
                         # ensure operator pod is up
                         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-
+                        
                         # need to sleep since the old operator needs to transition to terminating state
                         sleep 15
                     """
