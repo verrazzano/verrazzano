@@ -142,9 +142,10 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	// We have seen from tests that doing a retry will eventually succeed if these 2 errors occur.
 	const maxRetry = 5
 	for i := 1; i <= maxRetry; i++ {
-		cmd := exec.Command("helm", cmdArgs...)
-		log.Infof("Running command: %s", cmd.String())
-		stdout, stderr, err = runner.Run(cmd)
+		stdout, err := exec.Command("helm", cmdArgs...).Output()
+		// log.Infof("Running command: %s", cmd.String())
+		//		stdout, stderr, err = runner.Run(cmd)
+		log.Infof("Successful Run of command")
 		if err == nil {
 			log.Infof("helm %s for %s succeeded: %s", operation, releaseName, stdout)
 			break
@@ -158,7 +159,7 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 
 	//  Log upgrade output
 	log.Infof("helm upgrade succeeded for %s", releaseName)
-	return stdout, stderr, nil
+	return stdout, nil, nil
 }
 
 // IsReleaseFailed Returns true if the chart release state is marked 'failed'
