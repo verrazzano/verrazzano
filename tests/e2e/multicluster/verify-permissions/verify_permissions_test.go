@@ -209,7 +209,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find OAM Component")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/oam-component.yaml", &oamv1alpha2.Component{})
+				err := CreateOrUpdateResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
@@ -218,7 +218,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/oam-component.yaml", &oamv1alpha2.Component{})
+				err := DeleteResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from DeleteResourceFromFile")
@@ -561,6 +561,7 @@ func getClustersClient() (client.Client, error) {
 	_ = vmcv1alpha1.AddToScheme(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
 	_ = v1.AddToScheme(scheme)
+	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {

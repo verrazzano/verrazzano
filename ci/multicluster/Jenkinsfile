@@ -438,11 +438,6 @@ pipeline {
                         verifyRegisterManagedClusters()
                     }
                 }
-                stage ('Verify Managed Cluster Permissions') {
-                    steps {
-                        verifyManagedClusterPermissions()
-                    }
-                }
                 stage ('Verify Metrics') {
                     steps {
                         runGinkgoRandomize('metrics/syscomponents')
