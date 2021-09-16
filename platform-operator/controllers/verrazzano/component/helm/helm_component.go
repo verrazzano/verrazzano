@@ -1,77 +1,76 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component
+package helm
 
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io/ioutil"
 	"os"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
+// HelmComponent struct needed to implement a component
+type HelmComponent struct {
+	// ReleaseName is the helm chart release name
+	ReleaseName string
 
-// helmComponent struct needed to implement a component
-type helmComponent struct {
-	// releaseName is the helm chart release name
-	releaseName string
+	// ChartDir is the helm chart directory
+	ChartDir string
 
-	// chartDir is the helm chart directory
-	chartDir string
+	// ChartNamespace is the namespace passed to the helm command
+	ChartNamespace string
 
-	// chartNamespace is the namespace passed to the helm command
-	chartNamespace string
-
-	// ignoreNamespaceOverride bool indicates that the namespace param passed to
+	// IgnoreNamespaceOverride bool indicates that the namespace param passed to
 	// Upgrade is ignored
-	ignoreNamespaceOverride bool
+	IgnoreNamespaceOverride bool
 
-	// ignoreImageOverrides bool indicates that the image overrides processing should be ignored
+	// IgnoreImageOverrides bool indicates that the image overrides processing should be ignored
 	// This should only be set to true if the component doesn't have images (like istio-base) in
 	// which case it is not in the bom
-	ignoreImageOverrides bool
+	IgnoreImageOverrides bool
 
-	// valuesFile is the helm chart values override file
-	valuesFile string
+	// ValuesFile is the helm chart values override file
+	ValuesFile string
 
-	// preInstallFunc is an optional function to run before installing
-	preInstallFunc preInstallFuncSig
+	// PreInstallFunc is an optional function to run before installing
+	PreInstallFunc preInstallFuncSig
 
-	// preUpgradeFunc is an optional function to run before upgrading
-	preUpgradeFunc preUpgradeFuncSig
+	// PreUpgradeFunc is an optional function to run before upgrading
+	PreUpgradeFunc preUpgradeFuncSig
 
-	// appendOverridesFunc is an optional function get additional override values
-	appendOverridesFunc appendOverridesSig
+	// AppendOverridesFunc is an optional function get additional override values
+	AppendOverridesFunc appendOverridesSig
 
-	// readyStatusFunc is an optional function override to do deeper checks on a component's ready state
-	readyStatusFunc readyStatusFuncSig
+	// ReadyStatusFunc is an optional function override to do deeper checks on a component's ready state
+	ReadyStatusFunc readyStatusFuncSig
 
-	// resolveNamespaceFunc is an optional function to process the namespace name
-	resolveNamespaceFunc resolveNamespaceSig
+	// ResolveNamespaceFunc is an optional function to process the namespace name
+	ResolveNamespaceFunc resolveNamespaceSig
 
-	//supportsInstall Indicates whether or not the component supports install via the operator
-	supportsOperatorInstall bool
+	//SupportsOperatorInstall Indicates whether or not the component supports install via the operator
+	SupportsOperatorInstall bool
 
-	//waitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
-	waitForInstall bool
+	//WaitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
+	WaitForInstall bool
 
-	// imagePullSecretKeyname is the Helm Value Key for the image pull secret for a chart
-	imagePullSecretKeyname string
+	// ImagePullSecretKeyname is the Helm Value Key for the image pull secret for a chart
+	ImagePullSecretKeyname string
 
-	// dependencies is a list of dependencies for this component, by component/release name
-	dependencies []string
+	// Dependencies is a list of Dependencies for this component, by component/release name
+	Dependencies []string
 }
 
-// Verify that helmComponent implements Component
-var _ Component = helmComponent{}
+// Verify that HelmComponent implements Component
+var _ spi.Component = HelmComponent{}
 
 // preInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
 type preInstallFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error)
@@ -98,45 +97,45 @@ var upgradeFunc upgradeFuncSig = helm.Upgrade
 var UpgradePrehooksEnabled = true
 
 // Name returns the component name
-func (h helmComponent) Name() string {
-	return h.releaseName
+func (h HelmComponent) Name() string {
+	return h.ReleaseName
 }
 
-// GetDependencies returns the dependencies of this component
-func (h helmComponent) GetDependencies() []string {
-	return h.dependencies
+// GetDependencies returns the Dependencies of this component
+func (h HelmComponent) GetDependencies() []string {
+	return h.Dependencies
 }
 
 // IsOperatorInstallSupported Returns true if the component supports direct install via the operator
-func (h helmComponent) IsOperatorInstallSupported() bool {
-	return h.supportsOperatorInstall
+func (h HelmComponent) IsOperatorInstallSupported() bool {
+	return h.SupportsOperatorInstall
 }
 
 // IsInstalled Indicates whether or not the component is installed
-func (h helmComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) bool {
-	installed, _ := helm.IsReleaseInstalled(h.releaseName, resolveNamespace(h, namespace))
+func (h HelmComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) bool {
+	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, resolveNamespace(h, namespace))
 	return installed
 }
 
 // IsReady Indicates whether or not a component is available and ready
-func (h helmComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
+func (h HelmComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
 	ns := resolveNamespace(h, namespace)
-	installed, _ := helm.IsReleaseInstalled(h.releaseName, resolveNamespace(h, namespace))
+	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, resolveNamespace(h, namespace))
 	if installed {
-		if h.readyStatusFunc != nil {
-			return h.readyStatusFunc(log, client, h.releaseName, ns)
+		if h.ReadyStatusFunc != nil {
+			return h.ReadyStatusFunc(log, client, h.ReleaseName, ns)
 		}
 		return true
 	}
 	return false
 }
 
-func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (h HelmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
 
 	// Resolve the namespace
 	resolvedNamespace := resolveNamespace(h, namespace)
 
-	failed, err := helm.IsReleaseFailed(h.releaseName, resolvedNamespace)
+	failed, err := helm.IsReleaseFailed(h.ReleaseName, resolvedNamespace)
 	if err != nil {
 		return err
 	}
@@ -145,19 +144,19 @@ func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 		// NOTE: we'll likely have to put in some more logic akin to what we do for the scripts, see
 		//       reset_chart() in the common.sh script.  Recovering chart state can be a bit difficult, we
 		//       may need to draw on both the 'ls' and 'status' output for that.
-		helm.Uninstall(log, h.releaseName, resolvedNamespace, dryRun)
+		helm.Uninstall(log, h.ReleaseName, resolvedNamespace, dryRun)
 	}
 
 	var kvs []bom.KeyValue
-	if h.preInstallFunc != nil {
-		preInstallValues, err := h.preInstallFunc(log, client, h.releaseName, resolvedNamespace, h.chartDir)
+	if h.PreInstallFunc != nil {
+		preInstallValues, err := h.PreInstallFunc(log, client, h.ReleaseName, resolvedNamespace, h.ChartDir)
 		if err != nil {
 			return err
 		}
 		kvs = append(kvs, preInstallValues...)
 	}
 	// check for global image pull secret
-	kvs, err = addGlobalImagePullSecretHelmOverride(log, client, resolvedNamespace, kvs, h.imagePullSecretKeyname)
+	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(log, client, resolvedNamespace, kvs, h.ImagePullSecretKeyname)
 	if err != nil {
 		return err
 	}
@@ -169,7 +168,7 @@ func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 	}
 
 	// Perform a helm upgrade --install
-	_, _, err = upgradeFunc(log, h.releaseName, resolvedNamespace, h.chartDir, h.waitForInstall, dryRun, overridesString, h.valuesFile)
+	_, _, err = upgradeFunc(log, h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, dryRun, overridesString, h.ValuesFile)
 	return err
 }
 
@@ -177,24 +176,24 @@ func (h helmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 // that is included in the operator image, while retaining any helm Value overrides that were applied during
 // install. Along with the override files in helm_config, we need to generate image overrides using the
 // BOM json file.  Each component also has the ability to add additional override parameters.
-func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
+func (h HelmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
 	// Resolve the namespace
 	namespace := resolveNamespace(h, ns)
 
 	// Check if the component is installed before trying to upgrade
-	found, err := helm.IsReleaseInstalled(h.releaseName, namespace)
+	found, err := helm.IsReleaseInstalled(h.ReleaseName, namespace)
 	if err != nil {
 		return err
 	}
 	if !found {
-		log.Infof("Skipping upgrade of component %s since it is not installed", h.releaseName)
+		log.Infof("Skipping upgrade of component %s since it is not installed", h.ReleaseName)
 		return nil
 	}
 
 	// Do the preUpgrade if the function is defined
-	if h.preUpgradeFunc != nil && UpgradePrehooksEnabled {
-		log.Infof("Running preUpgrade function for %s", h.releaseName)
-		err := h.preUpgradeFunc(log, client, h.releaseName, namespace, h.chartDir)
+	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
+		log.Infof("Running preUpgrade function for %s", h.ReleaseName)
+		err := h.PreUpgradeFunc(log, client, h.ReleaseName, namespace, h.ChartDir)
 		if err != nil {
 			return err
 		}
@@ -205,7 +204,7 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 		return err
 	}
 
-	stdout, err := helm.GetValues(log, h.releaseName, namespace)
+	stdout, err := helm.GetValues(log, h.ReleaseName, namespace)
 	if err != nil {
 		return err
 	}
@@ -233,26 +232,26 @@ func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 	log.Infof("Created values file: %s", tmpFile.Name())
 
 	// Perform a helm upgrade --install
-	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, true, dryRun, overridesString, h.valuesFile, tmpFile.Name())
+	_, _, err = upgradeFunc(log, h.ReleaseName, namespace, h.ChartDir, true, dryRun, overridesString, h.ValuesFile, tmpFile.Name())
 	return err
 }
 
-func (h helmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
+func (h HelmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
 	// Optionally create a second override file.  This will contain both image overridesString and any additional
 	// overridesString required by a component.
 	// Get image overridesString unless opt out
 	var kvs []bom.KeyValue
 	var err error
-	if !h.ignoreImageOverrides {
-		kvs, err = getImageOverrides(h.releaseName)
+	if !h.IgnoreImageOverrides {
+		kvs, err = getImageOverrides(h.ReleaseName)
 		if err != nil {
 			return "", err
 		}
 	}
 
 	// Append any additional overridesString for the component (see Keycloak.go for example)
-	if h.appendOverridesFunc != nil {
-		overrideValues, err := h.appendOverridesFunc(log, h.releaseName, namespace, h.chartDir, []bom.KeyValue{})
+	if h.AppendOverridesFunc != nil {
+		overrideValues, err := h.AppendOverridesFunc(log, h.ReleaseName, namespace, h.ChartDir, []bom.KeyValue{})
 		if err != nil {
 			return "", err
 		}
@@ -283,13 +282,13 @@ func (h helmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Cli
 //
 // The need for this stems from an issue with the Verrazzano component and the fact
 // that component charts underneath VZ component need to have the ns overridden
-func resolveNamespace(h helmComponent, ns string) string {
+func resolveNamespace(h HelmComponent, ns string) string {
 	namespace := ns
-	if h.resolveNamespaceFunc != nil {
-		namespace = h.resolveNamespaceFunc(namespace)
+	if h.ResolveNamespaceFunc != nil {
+		namespace = h.ResolveNamespaceFunc(namespace)
 	}
-	if h.ignoreNamespaceOverride {
-		namespace = h.chartNamespace
+	if h.IgnoreNamespaceOverride {
+		namespace = h.ChartNamespace
 	}
 	return namespace
 }

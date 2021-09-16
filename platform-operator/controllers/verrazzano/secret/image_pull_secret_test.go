@@ -1,6 +1,6 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package component
+package secret
 
 import (
 	"context"
@@ -159,7 +159,7 @@ func TestUnexpectedErrorGetSourceSecret(t *testing.T) {
 }
 
 // TestAddImagePullSecretUnexpectedError tests a deployment ready status check
-// GIVEN a call to addGlobalImagePullSecretHelmOverride
+// GIVEN a call to AddGlobalImagePullSecretHelmOverride
 // WHEN an unexpected error is returned from checkImagePullSecret
 // THEN an error is returned and the Key/Value pairs are unmodified
 func TestAddImagePullSecretUnexpectedError(t *testing.T) {
@@ -182,13 +182,13 @@ func TestAddImagePullSecretUnexpectedError(t *testing.T) {
 		{Key: "key1", Value: "value1"},
 		{Key: "key2", Value: "value2"},
 	}
-	retKVs, err := addGlobalImagePullSecretHelmOverride(zap.S(), mock, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
+	retKVs, err := AddGlobalImagePullSecretHelmOverride(zap.S(), mock, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
 	assert.NotNil(t, err)
 	assert.Equal(t, kvs, retKVs)
 }
 
 // TestAddImagePullSecretTargetSecretAlreadyExists tests a deployment ready status check
-// GIVEN a call to addGlobalImagePullSecretHelmOverride
+// GIVEN a call to AddGlobalImagePullSecretHelmOverride
 // WHEN the target secret already exists
 // THEN no error is returned and the target secret helm Key/Value pair have been added to the Key/Value list
 func TestAddImagePullSecretTargetSecretAlreadyExists(t *testing.T) {
@@ -202,7 +202,7 @@ func TestAddImagePullSecretTargetSecretAlreadyExists(t *testing.T) {
 		{Key: "key1", Value: "value1"},
 		{Key: "key2", Value: "value2"},
 	}
-	retKVs, err := addGlobalImagePullSecretHelmOverride(zap.S(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
+	retKVs, err := AddGlobalImagePullSecretHelmOverride(zap.S(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
 	assert.Nil(t, err)
 	assert.Lenf(t, retKVs, 3, "Unexpected number of Key/Value pairs: %s", len(retKVs))
 	for _, kv := range retKVs {
@@ -212,7 +212,7 @@ func TestAddImagePullSecretTargetSecretAlreadyExists(t *testing.T) {
 }
 
 // TestAddImagePullSecretTargetSecretCopied tests a deployment ready status check
-// GIVEN a call to addGlobalImagePullSecretHelmOverride
+// GIVEN a call to AddGlobalImagePullSecretHelmOverride
 // WHEN the target secret is successfully copied
 // THEN no error is returned and the target secret helm Key/Value pair have been added to the Key/Value list
 func TestAddImagePullSecretTargetSecretCopied(t *testing.T) {
@@ -226,7 +226,7 @@ func TestAddImagePullSecretTargetSecretCopied(t *testing.T) {
 		{Key: "key1", Value: "value1"},
 		{Key: "key2", Value: "value2"},
 	}
-	retKVs, err := addGlobalImagePullSecretHelmOverride(zap.S(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
+	retKVs, err := AddGlobalImagePullSecretHelmOverride(zap.S(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
 	assert.Nil(t, err)
 	assert.Lenf(t, retKVs, 3, "Unexpected number of Key/Value pairs: %s", len(retKVs))
 	for _, kv := range retKVs {
