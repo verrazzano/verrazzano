@@ -15,31 +15,9 @@ type upgradeRunner struct {
 	t *testing.T
 }
 
-// getValuesRunner is used to test istioctl get values without actually running an OS exec command
-type getValuesRunner struct {
-	t *testing.T
-}
-
 // badRunner is used to test istioctl errors without actually running an OS exec command
 type badRunner struct {
 	t *testing.T
-}
-
-// foundRunner is used to test istioctl status command
-type foundRunner struct {
-	t *testing.T
-}
-
-// genericTestRunner is used to run generic OS commands with expected results
-type genericTestRunner struct {
-	stdOut []byte
-	stdErr []byte
-	err    error
-}
-
-// Run genericTestRunner executor
-func (r genericTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return r.stdOut, r.stdErr, r.err
 }
 
 // TestUpgrade tests the istioctl upgrade command
