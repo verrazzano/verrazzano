@@ -270,7 +270,7 @@ pipeline {
                             kubectl get -o yaml verrazzano/my-verrazzano || true
                             
                             # ideally we don't need to wait here
-                            kubectl get verrazzano/my-verrazzano
+                            kubectl get verrazzano/my-verrazzano -o yaml
                             sleep 15
                             echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
                             helm list -A
