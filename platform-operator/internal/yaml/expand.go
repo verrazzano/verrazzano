@@ -37,7 +37,7 @@ import (
 //       annotations:
 //         service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
 //
-func Expand(globalIndent int, name string, vals ...string) (string, error) {
+func Expand(leftMargin int, name string, vals ...string) (string, error) {
 	const indent = 2
 	b := strings.Builder{}
 
@@ -65,7 +65,7 @@ func Expand(globalIndent int, name string, vals ...string) (string, error) {
 	//    controller, service, annotations, service.beta.kubernetes.io/oci-load-balancer-shape
 	for i, seg := range nameSegs {
 		// Create the padded indent
-		pad := strings.Repeat(" ", globalIndent+indent*i)
+		pad := strings.Repeat(" ", leftMargin+indent*i)
 
 		// Write the indent padding, then name followed by colon
 		if _, err := b.WriteString(pad + seg + ":"); err != nil {

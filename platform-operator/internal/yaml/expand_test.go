@@ -83,3 +83,38 @@ func TestExpand(t *testing.T) {
 		})
 	}
 }
+
+// Expanded results with a left margin of 4
+const lmExpanded4 = `    aa:
+      bb:
+        - val_4a
+        - val_4b
+        - val_4c`
+
+// TestLeftMargin tests the Expand function
+// GIVEN a set of dot seperated names
+// WHEN Expand is called with a non-zero left margin
+// THEN ensure that the expanded result is correct.
+func TestLeftMargin(t *testing.T) {
+	tests := []struct {
+		testName string
+		name     string
+		values   []string
+		expected string
+	}{
+		{
+			testName: "4",
+			name:     name4,
+			values:   []string{val4a, val4b, val4c},
+			expected: lmExpanded4,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.testName, func(t *testing.T) {
+			assert := assert.New(t)
+			s, err := Expand(4, test.name, test.values...)
+			assert.NoError(err, s, "error merging profiles")
+			assert.Equal(test.expected, s, "Result does not match expected value")
+		})
+	}
+}
