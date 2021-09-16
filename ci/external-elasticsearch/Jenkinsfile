@@ -4,14 +4,6 @@
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
-                          "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "sa-saopaulo-1", "uk-london-1" ]
-def acmeEnvironments = [ "staging", "production" ]
-Collections.shuffle(availableRegions)
-def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
-def dns_zone_ocid = 'dummy'
-def OKE_CLUSTER_PREFIX = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
 installerFileName = "install-verrazzano.yaml"
@@ -35,19 +27,7 @@ pipeline {
     parameters {
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
-                choices: ["kind", "magicdns_oke", "ocidns_oke"])
-        choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
-                choices: acmeEnvironments)
-        choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
-            // 1st choice is the default value
-            choices: availableRegions )
-        choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
-            // 1st choice is the default value
-            choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
-        choice (name: 'OKE_CLUSTER_VERSION',
-                description: 'Kubernetes Version for OKE Cluster',
-                // 1st choice is the default value
-                choices: [ "v1.18.10", "v1.19.7", "v1.17.13", "v1.19.12", "v1.20.8" ])
+                choices: ["kind"])
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
@@ -144,11 +124,6 @@ pipeline {
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
 
-        INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
-        OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
-        ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
-
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -161,6 +136,8 @@ pipeline {
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
+
+        EXTERNAL_ELASTICSEARCH = "true"
 
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
@@ -257,11 +234,6 @@ pipeline {
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
-
-                    if (params.TEST_ENV != "kind") {
-                        // derive the prefix for the OKE cluster
-                        OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
-                    }
                 }
             }
         }
@@ -285,70 +257,14 @@ pipeline {
                                 createKindClusters()
                             }
                         }
-                        stage('Create OKE Clusters') {
-                            when { expression { return params.TEST_ENV == 'ocidns_oke' || params.TEST_ENV == 'magicdns_oke'} }
-                            steps {
-                                echo "OKE Cluster Prefix: ${OKE_CLUSTER_PREFIX}"
-                                createOKEClusters("${OKE_CLUSTER_PREFIX}")
-                            }
-                        }
                     }
                 }
                 stage("Configure Clusters") {
                     parallel {
-                        stage("Configure OKE/OCI DNS") {
-                            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
-                            stages {
-                                stage('Create OCI DNS zone') {
-                                    steps {
-                                        script {
-                                            dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
-                                        }
-                                    }
-                                }
-                                stage('Configure OCI DNS Resources') {
-                                    environment {
-                                        OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
-                                        OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
-                                        OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
-                                    }
-                                    steps {
-                                        script {
-                                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                            for(int count=1; count<=clusterCount; count++) {
-                                                sh """
-                                                    export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                                                    cd ${GO_REPO_PATH}/verrazzano
-                                                    ./tests/e2e/config/scripts/create-test-oci-config-secret.sh
-                                                """
-                                            }
-                                        }
-                                    }
-                                }
-                                stage('Configure OCI DNS Installers') {
-                                    environment {
-                                        OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
-                                        OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
-                                        OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
-                                    }
-                                    steps {
-                                        script {
-                                            configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", "acme", params.ACME_ENVIRONMENT)
-                                        }
-                                    }
-                                }
-                            }
-                        }
                         stage("Configure KinD") {
                             when { expression { return params.TEST_ENV == 'kind' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                            }
-                        }
-                        stage("Configure OKE/MagicDNS") {
-                            when { expression { return params.TEST_ENV == 'magicdns_oke' } }
-                            steps {
-                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                     }
@@ -474,29 +390,6 @@ pipeline {
                         }
                     }
                 }
-                stage ('Verify Managed Cluster Permissions') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                for(int count=2; count<=clusterCount; count++) {
-                                    sh """
-                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
-                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                        export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
-                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -v -stream -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-permissions/...
-                                    """
-                                }
-                            }
-                        }
-                    }
-                }
-                stage ('Verify Metrics') {
-                    steps {
-                        runGinkgoRandomize('metrics/syscomponents')
-                    }
-                }
                 stage ('Example apps') {
                     parallel {
                         stage ('Examples Helidon') {
@@ -533,49 +426,6 @@ pipeline {
                                         ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon-ns-ops/...
                                     """
                                 }
-                            }
-                        }
-                    }
-                }
-                stage ('Multi-cluster Verify Api') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                for(int count=2; count<=clusterCount; count++) {
-                                    sh """
-                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
-                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-api/...
-                                    """
-                                }
-                            }
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump-pre-uninstall")
-                            }
-                        }
-                    }
-                }
-                stage ('CLI Tests') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                                // Running the CLI tests for only one managed cluster for now
-                                int count = params.TOTAL_CLUSTERS.toInteger()
-                                sh """
-                                    export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                                    export MANAGED_CLUSTER_DIR="${KUBECONFIG_DIR}/${count}"
-                                    export MANAGED_CLUSTER_NAME="managed${count-1}"
-                                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                    cd ${GO_REPO_PATH}/verrazzano
-                                    make cli
-                                    ./tools/cli/scripts/cli_test.sh
-                                """
                             }
                         }
                     }
@@ -795,11 +645,17 @@ def installVerrazzano(count, verrazzanoConfig) {
 
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
+                echo "Create external es secret on the admin cluster"
+                CLUSTER_NUMBER=${count} ./tests/e2e/config/scripts/create-external-es-secret.sh
+
                 echo "Applying \$verrazzanoConfig"
                 kubectl apply -f ${verrazzanoConfig}
 
                 # wait for Verrazzano install to complete
                 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+
+                echo "Create external es ingress on the admin cluster"
+                CLUSTER_NUMBER=${count} ./tests/e2e/config/scripts/create-external-es-ingress.sh
             """
         }
     }
@@ -955,22 +811,6 @@ def createKindClusters() {
         }
         // Execute steps in parallel
         //parallel clusterInstallStages
-    }
-}
-
-// Invoke the OKE cluster creation script for the desired number of clusters
-def createOKEClusters(clusterPrefix) {
-    script {
-        sh """
-            echo "tests will execute" > ${TESTS_EXECUTED_FILE}
-        """
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        sh """
-            mkdir -p ${KUBECONFIG_DIR}
-            echo "Create OKE cluster"
-            cd ${TEST_SCRIPTS_DIR}
-            TF_VAR_label_prefix=${clusterPrefix} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${params.CREATE_CLUSTER_USE_CALICO}
-        """
     }
 }
 
