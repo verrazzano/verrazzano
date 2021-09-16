@@ -172,7 +172,7 @@ func IsReleaseFailed(releaseName string, namespace string) (bool, error) {
 	return releaseStatus == ChartStatusFailed, nil
 }
 
-// IsReleaseDeployed returns true if the release is installed
+// IsReleaseDeployed returns true if the release is deployed
 func IsReleaseDeployed(releaseName string, namespace string) (found bool, err error) {
 	log := zap.S()
 	releaseStatus, err := chartStatusFn(releaseName, namespace)

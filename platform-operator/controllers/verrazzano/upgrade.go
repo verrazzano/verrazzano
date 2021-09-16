@@ -52,7 +52,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	log.Info(msg)
 	cr.Status.Version = targetVersion
 	if err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete); err != nil {
-		return ctrl.Result{Requeue: true}, err
+		return newRequeueWithDelay(), err
 	}
 
 	return ctrl.Result{}, nil

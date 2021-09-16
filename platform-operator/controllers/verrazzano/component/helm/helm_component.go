@@ -120,8 +120,7 @@ func (h HelmComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namesp
 // IsReady Indicates whether or not a component is available and ready
 func (h HelmComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
 	ns := resolveNamespace(h, namespace)
-	installed, _ := helm.IsReleaseDeployed(h.ReleaseName, resolveNamespace(h, namespace))
-	if installed {
+	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, resolveNamespace(h, namespace)); deployed {
 		if h.ReadyStatusFunc != nil {
 			return h.ReadyStatusFunc(log, client, h.ReleaseName, ns)
 		}
