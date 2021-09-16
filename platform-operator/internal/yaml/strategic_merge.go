@@ -14,6 +14,10 @@ import (
 
 type PatchStrategy interface{}
 
+type yamlMap struct {
+	yMap map[string]interface{}
+}
+
 // MergeFiles merges the YAML files returns a YAML string.
 // The first file is overlayed by each subsequent file
 // The strategy is a JSON annotated structure that represents the YAML structure
