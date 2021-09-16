@@ -5,6 +5,7 @@ include ../../make/quality.mk
 include ../../make/generate.mk
 
 SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
+TOOLS_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../../tools
 
 NAME:=verrazzano-weblogic-image-tool
 REPO_NAME:=verrazzano-weblogic-image-tool
