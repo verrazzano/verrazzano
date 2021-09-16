@@ -158,7 +158,7 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 
 	//  Log upgrade output
 	log.Infof("helm upgrade succeeded for %s", releaseName)
-	return stdout, nil, nil
+	return stdout, stderr, nil
 }
 
 // IsReleaseFailed Returns true if the chart release state is marked 'failed'
