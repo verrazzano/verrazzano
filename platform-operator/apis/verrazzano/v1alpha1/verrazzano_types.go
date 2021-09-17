@@ -200,6 +200,9 @@ type Condition struct {
 type StateType string
 
 const (
+	// Disabled is the state for when a component is not currently installed
+	Disabled StateType = "Disabled"
+
 	// Installing is the state when an install is in progress
 	Installing StateType = "Installing"
 
@@ -208,6 +211,12 @@ const (
 
 	// Upgrading is the state when an upgrade is in progress
 	Upgrading StateType = "Upgrading"
+
+	// Updating is the state when a component configuration update is being applied
+	Updating StateType = "Updating"
+
+	// Error is the state when a Verrazzano resource has experienced an error that may leave it in an unstable state
+	Error StateType = "Error"
 
 	// Ready is the state when a Verrazzano resource can perform an uninstall or upgrade
 	Ready StateType = "Ready"
