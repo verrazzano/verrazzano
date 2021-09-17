@@ -84,14 +84,6 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
 
-	// Managed cluster mocks
-	mcMocker := gomock.NewController(t)
-	mcMock := mocks.NewMockClient(mcMocker)
-
-	// Admin cluster mocks
-	adminMocker := gomock.NewController(t)
-	adminMock := mocks.NewMockClient(adminMocker)
-
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
@@ -105,94 +97,22 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	testComponent2, err := getSampleOamComponent("testdata/goodbye-component.yaml")
 	assert.NoError(err, "failed to read sample data for OAM Component")
 
-	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
-	adminMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
-			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfigUpdate)
-			return nil
-		})
+	adminClient := fake.NewFakeClientWithScheme(newScheme(),
+		&clustersv1alpha1.MultiClusterApplicationConfigurationList{
+			Items: []clustersv1alpha1.MultiClusterApplicationConfiguration{testMCAppConfigUpdate}},
+		&testComponent1,
+		&testComponent2)
 
-	// Admin Cluster - expect a call to get the OAM Component of the application
-	adminMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent1.Namespace, Name: testComponent1.Name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
-			component.ObjectMeta = testComponent1.ObjectMeta
-			component.Spec = testComponent1.Spec
-			return nil
-		})
-
-	// Managed Cluster - expect a call to get the OAM Component of the application - return that it exists
-	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent1.Namespace, Name: testComponent1.Name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
-			component.ObjectMeta = testComponent1.ObjectMeta
-			component.Spec = testComponent1.Spec
-			return nil
-		})
-
-	// Admin Cluster - expect a call to get the second OAM Component of the application
-	adminMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent2.Namespace, Name: testComponent2.Name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
-			component.ObjectMeta = testComponent2.ObjectMeta
-			component.Spec = testComponent2.Spec
-			return nil
-		})
-
-	// Managed Cluster - expect a call to get the second OAM Component of the application - return that it exists
-	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent2.Namespace, Name: testComponent2.Name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
-			component.ObjectMeta = testComponent2.ObjectMeta
-			component.Spec = testComponent2.Spec
-			return nil
-		})
-
-	// Managed Cluster - expect call to get a MultiClusterApplicationConfiguration from the list returned by the admin cluster
-	//                   Return the resource with some values different than what the admin cluster returned
-	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testMCAppConfigNamespace, Name: testMCAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) error {
-			testMCAppConfig.DeepCopyInto(mcAppConfig)
-			return nil
-		})
-
-	// Managed Cluster - expect call to update a MultiClusterApplicationConfiguration
-	//                   Verify request had the updated values
-	mcMock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.UpdateOption) error {
-			assert.Equal(testMCAppConfigNamespace, mcAppConfig.Namespace, "mcappconfig namespace did not match")
-			assert.Equal(testMCAppConfigName, mcAppConfig.Name, "mcappconfig name did not match")
-			assert.Equal(mcAppConfigTestUpdatedLabels, mcAppConfig.Labels, "mcappconfig labels did not match")
-
-			// assert app config metadata annotations updated
-			assert.Equal("Hello application updated", mcAppConfig.Spec.Template.Metadata.Annotations["description"])
-
-			// assert component information in the app config is updated
-			assert.Equal(2, len(mcAppConfig.Spec.Template.Spec.Components))
-			comp0 := mcAppConfig.Spec.Template.Spec.Components[0]
-			comp1 := mcAppConfig.Spec.Template.Spec.Components[1]
-			assert.Equal("hello-component", comp0.ComponentName)
-			assert.Equal("goodbye-component", comp1.ComponentName)
-			return nil
-		})
-
-	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration objects - return same list as admin
-	mcMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
-			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
-			return nil
-		})
+	localClient := fake.NewFakeClientWithScheme(newScheme(),
+		&clustersv1alpha1.MultiClusterApplicationConfigurationList{
+			Items: []clustersv1alpha1.MultiClusterApplicationConfiguration{testMCAppConfig}},
+		&testComponent1,
+		&testComponent2)
 
 	// Make the request
 	s := &Syncer{
-		AdminClient:        adminMock,
-		LocalClient:        mcMock,
+		AdminClient:        adminClient,
+		LocalClient:        localClient,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -200,9 +120,19 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
 
 	// Validate the results
-	adminMocker.Finish()
-	mcMocker.Finish()
 	assert.NoError(err)
+
+	// Verify the MultiClusterApplicationConfiguration on the managed cluster is equal to the one on the admin cluster
+	mcAppConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfig.Name, Namespace: testMCAppConfig.Namespace}, mcAppConfig)
+	assert.NoError(err)
+	assert.Equal(mcAppConfigTestUpdatedLabels, mcAppConfig.Labels, "mcappconfig labels did not match")
+	assert.Equal("Hello application updated", mcAppConfig.Spec.Template.Metadata.Annotations["description"])
+	assert.Equal(2, len(mcAppConfig.Spec.Template.Spec.Components))
+	comp0 := mcAppConfig.Spec.Template.Spec.Components[0]
+	comp1 := mcAppConfig.Spec.Template.Spec.Components[1]
+	assert.Equal("hello-component", comp0.ComponentName)
+	assert.Equal("goodbye-component", comp1.ComponentName)
 }
 
 // TestDeleteMCAppConfig tests the synchronization method for the following use case.
