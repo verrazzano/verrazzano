@@ -229,7 +229,7 @@ pipeline {
                     }
                     steps {
                         sh """
-                        echo "Upgrading the Verrazzano platform operator" 
+                        echo "Upgrading the Verrazzano platform operator"
                         # Download the operator.yaml for the target version that we are upgrading to
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                         cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
