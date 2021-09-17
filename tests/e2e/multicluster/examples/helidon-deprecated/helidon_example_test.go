@@ -21,9 +21,9 @@ const (
 	pollingInterval      = 5 * time.Second
 	waitTimeout          = 5 * time.Minute
 	consistentlyDuration = 1 * time.Minute
-	projectfile          = "testdata/mc-hello-helidon-app.yaml"
-	compFile             = "testdata/mc-hello-helidon-comp.yaml"
-	appFile              = "testdata/verrazzano-project.yaml"
+	projectfile          = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/verrazzano-project.yaml"
+	compFile             = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/mc-hello-helidon-comp.yaml"
+	appFile              = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/mc-hello-helidon-app.yaml"
 	testNamespace        = "hello-helidon-dep"
 	testProjectName      = "hello-helidon-dep"
 )
