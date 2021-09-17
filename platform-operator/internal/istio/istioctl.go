@@ -4,6 +4,7 @@
 package istio
 
 import (
+	"fmt"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"go.uber.org/zap"
 	"os/exec"
@@ -41,6 +42,7 @@ func runIstioctl(log *zap.SugaredLogger, cmdArgs []string, operationName string)
 	log.Infof("Running command: %s", cmd.String())
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
+		fmt.Printf("HERE=============     %v", err)
 		log.Errorf("istioctl %s failed: %s", operationName, stderr)
 		return stdout, stderr, err
 	}
