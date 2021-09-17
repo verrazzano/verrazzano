@@ -3,7 +3,7 @@
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def DOCKER_IMAGE_TAG
-def ociDnsBuild
+def patchBuild
 
 pipeline {
     options {
@@ -24,6 +24,7 @@ pipeline {
     parameters {
         string (description: 'The source branch for the release', name: 'SOURCE_BRANCH', defaultValue: 'master', trim: true)
         string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
+        string (description: 'The Verrazzano master branch build number for the release (required for full release)', name: 'RELEASE_BUILD_NUMBER', defaultValue: 'NONE', trim: true )
         string (description: 'The target version (release: #.#, patch: #.#.#)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
     }
@@ -34,7 +35,7 @@ pipeline {
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_REPO = 'ghcr.io'
         IS_PATCH_RELEASE = 'false'
-        TRIGGERED_IMAGE_BUILD = '/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}'
+        RELEASE_JOB = '/verrazzano/${SOURCE_BRANCH.replace("/", "%2F")}'
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
     }
@@ -110,21 +111,47 @@ pipeline {
             }
         }
 
-        stage('Execute release builds') {
+        stage('Push images to OCR') {
             stages {
-                // only executed for full release
-                stage('OCI DNS Build') {
+                // only executed for patch release
+                stage('Patch Only: Verrazzano Build') {
                     when {
-                        expression { env.IS_PATCH_RELEASE == 'false' }
+                        expression { env.IS_PATCH_RELEASE == 'true' }
                     }
                     steps {
                         retry(count: env.BUILD_RETRIES) {
                             script {
-                                ociDnsBuild = build job: "${env.TRIGGERED_IMAGE_BUILD}",
+                                echo "Triggering Verrazzano build for patch release"
+                                patchBuild = build job: "${env.RELEASE_JOB}",
                                     parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.COMMIT_TO_USE)
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.COMMIT_TO_USE),
+                                        string(name: 'RUN_ACCEPTANCE_TESTS', value: 'true')
+                                        string(name: 'RUN_SLOW_TESTS', value: 'true')
+                                        string(name: 'TRIGGER_FULL_TESTS', value: 'true')
+                                        string(name: 'GENERATE_TARBALL', value: 'true')
+                                        string(name: 'GENERATE_TOOL', value: 'true')
                                     ], wait: true
                             }
+                        }
+                    }
+                    post {
+                        success {
+                            script {
+                                echo "${patchBuild}"
+                                patchBuild.getRawBuild().keepLog(true)
+                            }
+                        }
+                    }
+                }
+                stage('Keep associated build') {
+                    steps {
+                        script {
+                             def job = jenkins.model.Jenkins.instance.getItemByFullName("${env.RELEASE_JOB}"}, Job.class)
+                             def theBuild = job.getBuild("${env.RELEASE_BUILD_NUMBER}")
+                             def commit = b.getAction(hudson.plugins.git.util.BuildData.class).getLastBuiltRevision().getSha1String()
+                             if (!commit.equals("${env.SOURCE_BRANCH}") {
+                                error("Build number and commit to use do not correlate")
+                             }
                         }
                     }
                 }

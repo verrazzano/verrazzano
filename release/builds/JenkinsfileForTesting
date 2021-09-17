@@ -5,7 +5,7 @@ pipeline {
     agent any
 
     parameters {
-        booleanParam (description: 'Whether to keep the build forever', name: 'KEEP_BUILD', defaultValue: false)
+        booleanParam (description: 'Whether to keep the build forever', name: 'KEEP_BUILD_IF_SUCCESSFUL', defaultValue: false)
     }
 
     stages {
@@ -29,7 +29,7 @@ pipeline {
     post {
         success {
             script {
-                if ("${KEEP_BUILD}" == "true") {
+                if ("${KEEP_BUILD_IF_SUCCESSFUL}" == "true") {
                     currentBuild.setKeepLog(true)
                 }
             }
