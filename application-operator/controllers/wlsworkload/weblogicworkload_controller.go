@@ -41,8 +41,6 @@ const (
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
 	loggingNamePart           = "logging-stdout"
-	configMapAPIVersion       = "v1"
-	configMapKind             = "ConfigMap"
 	loggingMountPath          = "/fluentd/etc/fluentd.conf"
 	loggingVolume             = "logging-stdout-volume"
 	loggingKey                = "fluentd.conf"

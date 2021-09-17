@@ -81,8 +81,6 @@ const (
 	destinationRuleKind       = "DestinationRule"
 	coherenceExtendPort       = 9000
 	loggingNamePart           = "logging-stdout"
-	configMapAPIVersion       = "v1"
-	configMapKind             = "ConfigMap"
 	loggingMountPath          = "/fluentd/etc/fluentd.conf"
 	loggingKey                = "fluentd.conf"
 )
