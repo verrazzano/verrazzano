@@ -150,6 +150,7 @@ pipeline {
                              if ( job != null) {
                                  def theBuild = job.getBuild(params.RELEASE_BUILD_NUMBER)
                                  def commit = theBuild.getAction(hudson.plugins.git.util.BuildData.class).getLastBuiltRevision().getSha1String()
+                                 echo "commit for selected build: ${commit}"
                                  if (!commit.equals(params.COMMIT_TO_USE)) {
                                     error("Build number and commit to use do not correlate")
                                  }
