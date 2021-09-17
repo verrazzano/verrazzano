@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -162,15 +161,18 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 
 		It("admin cluster Fluentd should point to the correct ES", func() {
 			useExternalElasticsearch := false
-			b, err := strconv.ParseBool(os.Getenv("EXTERNAL_ELASTICSEARCH"))
-			if err == nil {
-				useExternalElasticsearch = b
+			if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
+				useExternalElasticsearch = true
 			}
 			fluentdDaemonset, _ := pkg.GetFluentdDaemonset()
 			if useExternalElasticsearch {
-				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, "https://external-es.default.172.18.0.232.nip.io", "external-es-secret")
+				Eventually(func() bool {
+					return pkg.AssertFluentdURLAndSecret(fluentdDaemonset, externalEsURL, "external-es-secret")
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
 			} else {
-				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, pkg.VmiESURL, pkg.VmiESSecret)
+				Eventually(func() bool {
+					return pkg.AssertFluentdURLAndSecret(fluentdDaemonset, pkg.VmiESURL, pkg.VmiESSecret)
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in admin cluster fluentd Daemonset setting")
 			}
 		})
 	})
@@ -236,15 +238,18 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 
 		It("managed cluster Fluentd should point to the correct ES", func() {
 			useExternalElasticsearch := false
-			b, err := strconv.ParseBool(os.Getenv("EXTERNAL_ELASTICSEARCH"))
-			if err == nil {
-				useExternalElasticsearch = b
+			if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
+				useExternalElasticsearch = true
 			}
 			fluentdDaemonset, _ := pkg.GetFluentdDaemonset()
 			if useExternalElasticsearch {
-				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, "https://external-es.default.172.18.0.232.nip.io", "verrazzano-cluster-registration")
+				Eventually(func() bool {
+					return pkg.AssertFluentdURLAndSecret(fluentdDaemonset, externalEsURL, "verrazzano-cluster-registration")
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in managed cluster fluentd Daemonset setting")
 			} else {
-				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, "https://elasticsearch.vmi.system.default.172.18.0.232.nip.io", "verrazzano-cluster-registration")
+				Eventually(func() bool {
+					return pkg.AssertFluentdURLAndSecret(fluentdDaemonset, vmiEsURL, "verrazzano-cluster-registration")
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES  in managed cluster fluentd Daemonset setting")
 			}
 		})
 	})
@@ -328,5 +333,22 @@ func assertRegistrationSecret() {
 	Expect(err).To(BeNil())
 	Expect(secret).To(Not(BeNil()))
 	// todo assert secret has correct es-url, username, password, and es-ca-bundle
-	//Expect(secret.Data[])
+	useExternalElasticsearch := false
+	if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
+		useExternalElasticsearch = true
+	}
+	if useExternalElasticsearch {
+		Expect(string(secret.Data["es-url"])).To(Equal(externalEsURL))
+		Expect(string(secret.Data["username"])).To(Equal("es-username"))
+		Expect(string(secret.Data["password"])).To(Equal("es-password"))
+	} else {
+		Expect(string(secret.Data["es-url"])).To(Equal(vmiEsURL))
+		Expect(string(secret.Data["username"])).To(Equal("verrazzano"))
+		Expect(string(secret.Data["password"])).To(Equal(os.Getenv(pkg.GetVerrazzanoPasswordInCluster("ADMIN_KUBECONFIG"))))
+	}
 }
+
+const externalEsURL = "https://external-es.default.172.18.0.232.nip.io"
+
+// todo do not hard code VMI ingress url
+const vmiEsURL = "https://elasticsearch.vmi.system.admin.172.18.0.232.nip.io:443"

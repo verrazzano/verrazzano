@@ -5,7 +5,6 @@ package fluentd_test
 
 import (
 	"os"
-	"strconv"
 	"time"
 
 	appv1 "k8s.io/api/apps/v1"
@@ -22,32 +21,17 @@ const verrazzanoNamespace string = "verrazzano-system"
 var (
 	vzCR             *v1alpha1.Verrazzano
 	fluentdDaemonset *appv1.DaemonSet
-	// false unless vzCR.Spec.EnvironmentName == "admin"
-	isAdmin bool
-	// false unless env var EXTERNAL_ELASTICSEARCH is set to true
-	useExternalElasticsearch bool
-	waitTimeout              = 10 * time.Minute
-	pollingInterval          = 5 * time.Second
+	waitTimeout      = 10 * time.Minute
+	pollingInterval  = 5 * time.Second
 )
 
 var _ = BeforeSuite(func() {
 	var err error
 
-	useExternalElasticsearch = false
-	b, err := strconv.ParseBool(os.Getenv("EXTERNAL_ELASTICSEARCH"))
-	if err == nil {
-		useExternalElasticsearch = b
-	}
-
 	Eventually(func() (*v1alpha1.Verrazzano, error) {
 		vzCR, err = verrazzanoCR()
 		return vzCR, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-
-	isAdmin = false
-	if vzCR.Spec.EnvironmentName == "admin" {
-		isAdmin = true
-	}
 
 	Eventually(func() (*appv1.DaemonSet, error) {
 		fluentdDaemonset, err = pkg.GetFluentdDaemonset()
@@ -63,21 +47,25 @@ var _ = Describe("Eluentd", func() {
 		Eventually(podsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
 	})
 
-	if isAdmin {
-		if useExternalElasticsearch {
-			It("Fluentd should point to external ES", func() {
-				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, "https://external-es.default.172.18.0.232.nip.io", "external-es-secret")
-			})
-		} else {
-			It("Fluentd should point to VMI ES", func() {
-				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, pkg.VmiESURL, pkg.VmiESSecret)
-			})
+	It("managed cluster Fluentd should point to the correct ES", func() {
+		useExternalElasticsearch := false
+		if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
+			useExternalElasticsearch = true
 		}
-	} else {
-		It("Fluentd should point to VMI ES", func() {
-			pkg.AssertFluentdURLAndSecret(fluentdDaemonset, pkg.VmiESURL, pkg.VmiESSecret)
-		})
-	}
+		isAdmin := false
+		if vzCR != nil && vzCR.Spec.EnvironmentName == "admin" {
+			isAdmin = true
+		}
+		if isAdmin && useExternalElasticsearch {
+			Eventually(func() bool {
+				return pkg.AssertFluentdURLAndSecret(fluentdDaemonset, "https://external-es.default.172.18.0.232.nip.io", "external-es-secret")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in fluentd Daemonset setting")
+		} else {
+			Eventually(func() bool {
+				return pkg.AssertFluentdURLAndSecret(fluentdDaemonset, pkg.VmiESURL, pkg.VmiESSecret)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in fluentd Daemonset setting")
+		}
+	})
 })
 
 func verrazzanoCR() (*v1alpha1.Verrazzano, error) {
