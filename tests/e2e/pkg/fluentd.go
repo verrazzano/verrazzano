@@ -5,8 +5,8 @@ package pkg
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	appv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,31 +29,41 @@ func GetFluentdDaemonset() (*appv1.DaemonSet, error) {
 	return ds, nil
 }
 
-func AssertFluentdURLAndSecret(fluentdDaemonset *appv1.DaemonSet, expectedURL, expectSecret string) {
+func AssertFluentdURLAndSecret(fluentdDaemonset *appv1.DaemonSet, expectedURL, expectedSecret string) bool {
 	urlFound := ""
 	usernameSecretFound := ""
 	passwordSecretFound := ""
-	secretVolumeFound := ""
+	volumeSecretFound := ""
 	containers := fluentdDaemonset.Spec.Template.Spec.Containers
-	gomega.Expect(len(containers)).To(gomega.Equal(1))
-	for _, env := range containers[0].Env {
-		if env.Name == "ELASTICSEARCH_URL" {
-			urlFound = env.Value
-		}
-		if env.Name == "ELASTICSEARCH_USER" {
-			usernameSecretFound = env.ValueFrom.SecretKeyRef.Name
-		}
-		if env.Name == "ELASTICSEARCH_PASSWORD" {
-			passwordSecretFound = env.ValueFrom.SecretKeyRef.Name
+	if len(containers) > 0 {
+		for _, env := range containers[0].Env {
+			if env.Name == "ELASTICSEARCH_URL" {
+				urlFound = env.Value
+			}
+			if env.Name == "ELASTICSEARCH_USER" {
+				usernameSecretFound = env.ValueFrom.SecretKeyRef.Name
+			}
+			if env.Name == "ELASTICSEARCH_PASSWORD" {
+				passwordSecretFound = env.ValueFrom.SecretKeyRef.Name
+			}
 		}
 	}
 	for _, vol := range fluentdDaemonset.Spec.Template.Spec.Volumes {
 		if vol.Name == "secret-volume" {
-			secretVolumeFound = vol.Secret.SecretName
+			volumeSecretFound = vol.Secret.SecretName
 		}
 	}
-	gomega.Expect(urlFound).To(gomega.Equal(expectedURL))
-	gomega.Expect(usernameSecretFound).To(gomega.Equal(expectSecret))
-	gomega.Expect(passwordSecretFound).To(gomega.Equal(expectSecret))
-	gomega.Expect(secretVolumeFound).To(gomega.Equal(expectSecret))
+	if urlFound != expectedURL {
+		Log(Info, fmt.Sprintf("ES URL in fluentdDaemonset %s doesn't match expected %s", urlFound, expectedURL))
+	}
+	if usernameSecretFound != expectedSecret {
+		Log(Info, fmt.Sprintf("ES user secret in fluentdDaemonset %s doesn't match expected %s", usernameSecretFound, expectedSecret))
+	}
+	if passwordSecretFound != expectedSecret {
+		Log(Info, fmt.Sprintf("ES password secret in fluentdDaemonset %s doesn't match expected %s", passwordSecretFound, expectedSecret))
+	}
+	if volumeSecretFound != expectedSecret {
+		Log(Info, fmt.Sprintf("ES volume secret in fluentdDaemonset %s doesn't match expected %s", volumeSecretFound, expectedSecret))
+	}
+	return urlFound == expectedURL && usernameSecretFound == expectedSecret && passwordSecretFound == expectedSecret && volumeSecretFound == expectedSecret
 }
