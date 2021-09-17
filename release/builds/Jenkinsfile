@@ -33,10 +33,8 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_REPO = 'ghcr.io'
-        OCR_REPO = 'container-registry.oracle.com'
-        GOPATH = '/home/opc/go'
-        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         IS_PATCH_RELEASE = 'false'
+        TRIGGERED_IMAGE_BUILD = '/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}'
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
     }
@@ -122,21 +120,10 @@ pipeline {
                     steps {
                         retry(count: env.BUILD_RETRIES) {
                             script {
-                                ociDnsBuild = build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                ociDnsBuild = build job: "${env.TRIGGERED_IMAGE_BUILD}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.COMMIT_TO_USE)
                                     ], wait: true
-                            }
-                        }
-                    }
-                    post {
-                        success {
-                            script {
-                                echo "${ociDnsBuild}"
-//                                 def buildNumber = ociDnsBuild.getNumber()
-//                                 def job = jenkins.model.Jenkins.instance.getItemByFullName("/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}", Job.class)
-//                                 def theBuild = job.getBuild(buildNumber)
-                                ociDnsBuild.getRawBuild().keepLog(true)
                             }
                         }
                     }

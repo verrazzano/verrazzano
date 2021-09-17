@@ -1,0 +1,36 @@
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+    agent any
+
+    parameters {
+        booleanParam (description: 'Whether to keep the build forever', name: 'KEEP_BUILD', defaultValue: false)
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building..'
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Testing..'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying....'
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                currentBuild.keepLog(env.KEEP_BUILD.toBoolean())
+            }
+        }
+    }
+}
