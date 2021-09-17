@@ -4,7 +4,6 @@
 package yaml
 
 import (
-	"errors"
 	"sigs.k8s.io/yaml"
 	"strings"
 )
@@ -13,7 +12,7 @@ import (
 // The first YAML is overlayed by each subsequent YAML, lists are replaced
 func ReplacementMerge(yamls ...string) (string, error) {
 	if len(yamls) == 0 {
-		return "", errors.New("At least 1 YAML file is required")
+		return "", nil
 	}
 	if len(yamls) == 1 {
 		return yamls[0], nil
