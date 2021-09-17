@@ -18,10 +18,6 @@ import (
 )
 
 const verrazzanoNamespace string = "verrazzano-system"
-const externalESURL = "https://external-es.default.172.18.0.232.nip.io"
-const externalESSecretName = "external-es-secret"
-const vmiESURL = "http://vmi-system-es-ingest-oidc:8775"
-const vmiESSecretName = "verrazzano"
 
 var (
 	vzCR             *v1alpha1.Verrazzano
@@ -70,16 +66,16 @@ var _ = Describe("Eluentd", func() {
 	if isAdmin {
 		if useExternalElasticsearch {
 			It("Fluentd should point to external ES", func() {
-				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, externalESURL, externalESSecretName)
+				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, "https://external-es.default.172.18.0.232.nip.io", "external-es-secret")
 			})
 		} else {
 			It("Fluentd should point to VMI ES", func() {
-				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, vmiESURL, vmiESSecretName)
+				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, pkg.VmiESURL, pkg.VmiESSecret)
 			})
 		}
 	} else {
 		It("Fluentd should point to VMI ES", func() {
-			pkg.AssertFluentdURLAndSecret(fluentdDaemonset, vmiESURL, vmiESSecretName)
+			pkg.AssertFluentdURLAndSecret(fluentdDaemonset, pkg.VmiESURL, pkg.VmiESSecret)
 		})
 	}
 })

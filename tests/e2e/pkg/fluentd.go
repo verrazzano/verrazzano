@@ -14,6 +14,8 @@ import (
 
 const verrazzanoNamespace string = "verrazzano-system"
 const fluentdDaemonsetName string = "fluentd"
+const VmiESURL = "http://vmi-system-es-ingest-oidc:8775"
+const VmiESSecret = "verrazzano"
 
 func GetFluentdDaemonset() (*appv1.DaemonSet, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()

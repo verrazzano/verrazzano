@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -158,6 +159,20 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 				return pkg.MetricsExist("up", "managed_cluster", managedClusterName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a metrics from managed cluster")
 		})
+
+		It("admin cluster Fluentd should point to the correct ES", func() {
+			useExternalElasticsearch := false
+			b, err := strconv.ParseBool(os.Getenv("EXTERNAL_ELASTICSEARCH"))
+			if err == nil {
+				useExternalElasticsearch = b
+			}
+			fluentdDaemonset, _ := pkg.GetFluentdDaemonset()
+			if useExternalElasticsearch {
+				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, "https://external-es.default.172.18.0.232.nip.io", "external-es-secret")
+			} else {
+				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, pkg.VmiESURL, pkg.VmiESSecret)
+			}
+		})
 	})
 
 	Context("Managed Cluster", func() {
@@ -176,6 +191,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 					Eventually(func() bool {
 						return findSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret verrazzano-cluster-registration")
+					assertRegistrationSecret()
 				},
 			)
 		})
@@ -216,6 +232,20 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find role binding view")
 				},
 			)
+		})
+
+		It("managed cluster Fluentd should point to the correct ES", func() {
+			useExternalElasticsearch := false
+			b, err := strconv.ParseBool(os.Getenv("EXTERNAL_ELASTICSEARCH"))
+			if err == nil {
+				useExternalElasticsearch = b
+			}
+			fluentdDaemonset, _ := pkg.GetFluentdDaemonset()
+			if useExternalElasticsearch {
+				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, "https://external-es.default.172.18.0.232.nip.io", "verrazzano-cluster-registration")
+			} else {
+				pkg.AssertFluentdURLAndSecret(fluentdDaemonset, "https://elasticsearch.vmi.system.default.172.18.0.232.nip.io", "verrazzano-cluster-registration")
+			}
 		})
 	})
 })
@@ -291,4 +321,12 @@ func findVerrazzanoProject(projectName string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func assertRegistrationSecret() {
+	secret, err := pkg.GetSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
+	Expect(err).To(BeNil())
+	Expect(secret).To(Not(BeNil()))
+	// todo assert secret has correct es-url, username, password, and es-ca-bundle
+	//Expect(secret.Data[])
 }
