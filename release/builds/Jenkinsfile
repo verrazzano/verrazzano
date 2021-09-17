@@ -125,10 +125,10 @@ pipeline {
                                 patchBuild = build job: "${env.RELEASE_JOB}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.COMMIT_TO_USE),
-                                        string(name: 'RUN_ACCEPTANCE_TESTS', value: 'true')
-                                        string(name: 'RUN_SLOW_TESTS', value: 'true')
-                                        string(name: 'TRIGGER_FULL_TESTS', value: 'true')
-                                        string(name: 'GENERATE_TARBALL', value: 'true')
+                                        string(name: 'RUN_ACCEPTANCE_TESTS', value: 'true'),
+                                        string(name: 'RUN_SLOW_TESTS', value: 'true'),
+                                        string(name: 'TRIGGER_FULL_TESTS', value: 'true'),
+                                        string(name: 'GENERATE_TARBALL', value: 'true'),
                                         string(name: 'GENERATE_TOOL', value: 'true')
                                     ], wait: true
                             }
