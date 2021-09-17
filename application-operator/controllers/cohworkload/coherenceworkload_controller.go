@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -79,6 +80,11 @@ const (
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
 	coherenceExtendPort       = 9000
+	loggingNamePart           = "logging-stdout"
+	configMapAPIVersion       = "v1"
+	configMapKind             = "ConfigMap"
+	loggingMountPath          = "/fluentd/etc/fluentd.conf"
+	loggingKey                = "fluentd.conf"
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -180,6 +186,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Add the Fluentd sidecar container required for logging to the Coherence StatefulSet
 	if err = r.addLogging(ctx, log, workload, upgradeApp, spec, &existingCoherence); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Add logging traits to the Domain if they exist
+	if err = r.addLoggingTrait(ctx, log, workload, u, spec); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -579,5 +590,97 @@ func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload 
 		workload.Status.CurrentUpgradeVersion = workload.Labels[constants.LabelUpgradeVersion]
 		return r.Status().Update(ctx, workload)
 	}
+	return nil
+}
+
+// addLoggingTrait adds the logging trait sidecar to the workload
+func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, coherence *unstructured.Unstructured, coherenceSpec map[string]interface{}) error {
+	loggingTrait, err := vznav.LoggingTraitFromWorkloadLabels(ctx, r.Client, log, workload.GetNamespace(), workload.ObjectMeta)
+	if err != nil {
+		return err
+	}
+	configMapName := loggingNamePart + "-" + coherence.GetName() + "-" + strings.ToLower(coherence.GetKind())
+	configMap := &corev1.ConfigMap{}
+	err = r.Get(ctx, client.ObjectKey{Namespace: coherence.GetNamespace(), Name: configMapName}, configMap)
+	if err != nil && k8serrors.IsNotFound(err) {
+		configMap = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      loggingNamePart + "-" + coherence.GetName() + "-" + strings.ToLower(coherence.GetKind()),
+				Namespace: coherence.GetNamespace(),
+				Labels:    coherence.GetLabels(),
+			},
+			Data: loggingTrait.Spec.LoggingConfig,
+		}
+		err = controllerutil.SetControllerReference(workload, configMap, r.Scheme)
+		if err != nil {
+			return err
+		}
+		log.Info(fmt.Sprintf("Creating logging trait configmap %s:%s", coherence.GetNamespace(), configMapName))
+		err = r.Create(ctx, configMap)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("logging trait configmap %s:%s already exist", coherence.GetNamespace(), configMapName))
+
+	// extract just enough of the WebLogic data into concrete types so we can merge with
+	// the logging trait data
+	var extracted containersMountsVolumes
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(coherenceSpec, &extracted); err != nil {
+		return errors.New("unable to extract containers, volumes, and volume mounts from Coherence spec")
+	}
+
+	loggingVolumeMount := &corev1.VolumeMount{
+		MountPath: loggingMountPath,
+		Name:      configMapName,
+		SubPath:   loggingKey,
+		ReadOnly:  true,
+	}
+	extracted.VolumeMounts = append(extracted.VolumeMounts, *loggingVolumeMount)
+	loggingVolumeMountUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingVolumeMount)
+	if err != nil {
+		return err
+	}
+	if configMapVolumes, found := coherenceSpec["configMapVolumes"]; !found {
+		coherenceSpec["configMapVolumes"] = []interface{}{loggingVolumeMountUnstructured}
+	} else {
+		vols := configMapVolumes.([]interface{})
+		coherenceSpec["configMapVolumes"] = append(vols, loggingVolumeMountUnstructured)
+	}
+
+	loggingContainer := &corev1.Container{
+		Name:            loggingNamePart,
+		Image:           loggingTrait.Spec.LoggingImage,
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		VolumeMounts:    extracted.VolumeMounts,
+	}
+	extracted.SideCars = append(extracted.SideCars, *loggingContainer)
+
+	loggingVolume := &corev1.Volume{
+		Name: configMapName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: configMapName,
+				},
+				DefaultMode: func(mode int32) *int32 {
+					return &mode
+				}(420),
+			},
+		},
+	}
+	extracted.Volumes = append(extracted.Volumes, *loggingVolume)
+	// convert the containers, volumes, and mounts in extracted to unstructured and set
+	// the values in the spec
+	extractedUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(extracted)
+	if err != nil {
+		return err
+	}
+	coherenceSpec["sideCars"] = extractedUnstructured["sidecars"]
+	coherenceSpec["volumes"] = extractedUnstructured["volumes"]
+	coherenceSpec["volumeMounts"] = extractedUnstructured["volumeMounts"]
+
 	return nil
 }

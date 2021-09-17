@@ -363,7 +363,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: loggingNamePart + "-" + resource.GetName(),
+							Name: loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind()),
 						},
 						DefaultMode: func(mode int32) *int32 {
 							return &mode
@@ -460,6 +460,7 @@ func (r *LoggingTraitReconciler) createLoggingConfigMap(trait *oamv1alpha1.Loggi
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind()),
 			Namespace: resource.GetNamespace(),
+			Labels:    resource.GetLabels(),
 		},
 		Data: trait.Spec.LoggingConfig,
 	}
