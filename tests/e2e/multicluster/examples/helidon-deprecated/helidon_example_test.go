@@ -21,9 +21,11 @@ const (
 	pollingInterval      = 5 * time.Second
 	waitTimeout          = 5 * time.Minute
 	consistentlyDuration = 1 * time.Minute
-	sourceDir            = "hello-helidon"
-	testNamespace        = "hello-helidon"
-	testProjectName      = "hello-helidon"
+	projectfile          = "testdata/mc-hello-helidon-app.yaml"
+	compFile             = "testdata/mc-hello-helidon-comp.yaml"
+	appFile              = "testdata/verrazzano-project.yaml"
+	testNamespace        = "hello-helidon-dep"
+	testProjectName      = "hello-helidon-dep"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -42,16 +44,22 @@ var _ = AfterEach(func() {
 var _ = BeforeSuite(func() {
 	// deploy the VerrazzanoProject
 	Eventually(func() error {
-		return examples.DeployHelloHelidonProject(adminKubeconfig, sourceDir)
+		return pkg.CreateOrUpdateResourceFromFileInCluster(projectfile, adminKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// wait for the namespace to be created on the cluster before deploying app
 	Eventually(func() bool {
-		return examples.HelidonNamespaceExists(adminKubeconfig, sourceDir)
+		return examples.HelidonNamespaceExists(adminKubeconfig, testNamespace)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
+	// deploy the multicluster components
 	Eventually(func() error {
-		return examples.DeployHelloHelidonApp(adminKubeconfig, sourceDir)
+		return pkg.CreateOrUpdateResourceFromFileInCluster(compFile, adminKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	// deploy the multicluster app
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFileInCluster(appFile, adminKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 })
 
@@ -258,15 +266,15 @@ var _ = AfterSuite(func() {
 })
 
 func cleanUp(kubeconfigPath string) error {
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(projectfile, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon application resource: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-comp.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(compFile, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon component resources: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(appFile, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete hello-helidon project resource: %v", err)
 	}
 	return nil
