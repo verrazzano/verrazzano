@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,19 +32,11 @@ var mcAppConfigTestUpdatedLabels = map[string]string{"label1": "test1updated"}
 
 // TestCreateMCAppConfig tests the synchronization method for the following use case.
 // GIVEN a request to sync MultiClusterApplicationConfiguration objects
-// WHEN the a new object exists
-// THEN ensure that the MultiClusterApplicationConfiguration is created.
+// WHEN the new object exists
+// THEN ensure that the MultiClusterApplicationConfiguration and its associated OAM Component are created.
 func TestCreateMCAppConfig(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
-
-	// Managed cluster mocks
-	mcMocker := gomock.NewController(t)
-	mcMock := mocks.NewMockClient(mcMocker)
-
-	// Admin cluster mocks
-	adminMocker := gomock.NewController(t)
-	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -54,69 +45,17 @@ func TestCreateMCAppConfig(t *testing.T) {
 	testComponent, err := getSampleOamComponent("testdata/hello-component.yaml")
 	assert.NoError(err, "failed to read sample data for OAM Component")
 
-	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
-	adminMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
-			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
-			return nil
-		})
+	adminClient := fake.NewFakeClientWithScheme(newScheme(),
+		&clustersv1alpha1.MultiClusterApplicationConfigurationList{
+			Items: []clustersv1alpha1.MultiClusterApplicationConfiguration{testMCAppConfig}},
+		&testComponent)
 
-	// Admin Cluster - expect a call to get the OAM Component of the application
-	adminMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent.Namespace, Name: testComponent.Name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
-			component.ObjectMeta = testComponent.ObjectMeta
-			component.Spec = testComponent.Spec
-			return nil
-		})
-
-	// Managed Cluster - expect a call to get the OAM Component of the application - return that it does not exist
-	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent.Namespace, Name: testComponent.Name}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: testComponent.GroupVersionKind().Group, Resource: "Component"}, testComponent.Name))
-
-	// Managed Cluster - expect call to create a OAM Component
-	mcMock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, component *oamv1alpha2.Component, opts ...client.CreateOption) error {
-			assert.Equal(testComponent.Namespace, component.Namespace, "OAM component namespace did not match")
-			assert.Equal(testComponent.Name, component.Name, "OAM component name did not match")
-			assert.Equal(mcAppConfigTestLabels, component.Labels, "OAM component labels did not match")
-			return nil
-		})
-
-	// Managed Cluster - expect call to get a MultiClusterApplicationConfiguration from the list returned by the admin cluster
-	//                   Return the resource does not exist
-	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testMCAppConfigNamespace, Name: testMCAppConfigName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterApplicationConfiguration"}, testMCAppConfigName))
-
-	// Managed Cluster - expect call to create a MultiClusterApplicationConfiguration
-	mcMock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.CreateOption) error {
-			assert.Equal(testMCAppConfigNamespace, mcAppConfig.Namespace, "mcappconfig namespace did not match")
-			assert.Equal(testMCAppConfigName, mcAppConfig.Name, "mcappconfig name did not match")
-			assert.Equal(mcAppConfigTestLabels, mcAppConfig.Labels, "mcappconfig labels did not match")
-			assert.Equal(testClusterName, mcAppConfig.Spec.Placement.Clusters[0].Name, "mcappconfig does not contain expected placement")
-			return nil
-		})
-
-	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration objects - return same list as admin
-	mcMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
-			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
-			return nil
-		})
+	localClient := fake.NewFakeClientWithScheme(newScheme())
 
 	// Make the request
 	s := &Syncer{
-		AdminClient:        adminMock,
-		LocalClient:        mcMock,
+		AdminClient:        adminClient,
+		LocalClient:        localClient,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -124,8 +63,16 @@ func TestCreateMCAppConfig(t *testing.T) {
 	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
 
 	// Validate the results
-	adminMocker.Finish()
-	mcMocker.Finish()
+	assert.NoError(err)
+
+	// Verify the associated OAM component got created on local cluster
+	component := &oamv1alpha2.Component{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testComponent.Name, Namespace: testComponent.Namespace}, component)
+	assert.NoError(err)
+
+	// Verify MultiClusterApplicationConfiguration got created on local cluster
+	mcApp := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfig.Name, Namespace: testMCAppConfig.Namespace}, mcApp)
 	assert.NoError(err)
 }
 
