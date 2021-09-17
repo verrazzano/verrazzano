@@ -497,7 +497,12 @@ pipeline {
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
-                                testHelidonExample()
+                                testHelidonExample("multicluster/examples/helidon")
+                            }
+                        }
+                        stage ('Examples Helidon Deprecated') {
+                            steps {
+                                testHelidonExample("multicluster/examples/helidon-deprecated")
                             }
                         }
                         stage ('Delete Deployed App NS') {
@@ -971,7 +976,7 @@ def verifyManagedClusterPermissions() {
 }
 
 // Test the multicluster Helidon example
-def testHelidonExample() {
+def testHelidonExample(testSuitePath) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         sh """
@@ -981,7 +986,7 @@ def testHelidonExample() {
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon/...
+            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 
