@@ -71,9 +71,11 @@ func TestCreateMCAppConfig(t *testing.T) {
 	assert.NoError(err)
 
 	// Verify MultiClusterApplicationConfiguration got created on local cluster
-	mcApp := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfig.Name, Namespace: testMCAppConfig.Namespace}, mcApp)
+	mcAppConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfig.Name, Namespace: testMCAppConfig.Namespace}, mcAppConfig)
 	assert.NoError(err)
+	assert.Equal(mcAppConfigTestLabels, mcAppConfig.Labels, "mcappconfig labels did not match")
+	assert.Equal(testClusterName, mcAppConfig.Spec.Placement.Clusters[0].Name, "mcappconfig does not contain expected placement")
 }
 
 // TestUpdateMCAppConfig tests the synchronization method for the following use case.
