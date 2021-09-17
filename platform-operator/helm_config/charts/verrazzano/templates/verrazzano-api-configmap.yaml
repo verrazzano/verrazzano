@@ -903,7 +903,7 @@ data:
         #tcp_nopush     on;
 
         # Posts from Fluentd can require more than the default 1m max body size
-        client_max_body_size 65m;
+        client_max_body_size {{ .MaxRequestSize | default "65m" | quote }};
 
         #keepalive_timeout  0;
         keepalive_timeout  65;
