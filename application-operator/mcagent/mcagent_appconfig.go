@@ -31,15 +31,16 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 				s.Log.Error(err, "Error syncing components referenced by object",
 					"MultiClusterApplicationConfiguration",
 					types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
-			} else {
-				// Synchronize the MultiClusterApplicationConfiguration if there were no errors
-				// handling the application components.
-				_, err = s.createOrUpdateMCAppConfig(mcAppConfig)
-				if err != nil {
-					s.Log.Error(err, "Error syncing object",
-						"MultiClusterApplicationConfiguration",
-						types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
-				}
+			}
+			// Synchronize the MultiClusterApplicationConfiguration even if there were errors
+			// handling the application components.  For compatibility with v1.0.0 it is valid
+			// for none of the OAM Components to be found because they may all be wrapped in
+			// an MultiClusterComponent resource.
+			_, err = s.createOrUpdateMCAppConfig(mcAppConfig)
+			if err != nil {
+				s.Log.Error(err, "Error syncing object",
+					"MultiClusterApplicationConfiguration",
+					types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
 			}
 		}
 	}
