@@ -6,7 +6,6 @@ package verrazzano
 import (
 	"context"
 	"errors"
-	"fmt"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os/exec"
@@ -549,12 +548,7 @@ func TestUpgradeCompleted(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			fmt.Printf("HERE====    %v", verrazzano.Status.Conditions)
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[0], "", verrazzano.Status.Conditions[0])
-			asserts.Equal(verrazzano.Status.Conditions[1], "", verrazzano.Status.Conditions[1])
-			asserts.Equal(verrazzano.Status.Conditions[2], "", verrazzano.Status.Conditions[2])
-
 			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeComplete, "Incorrect conditions")
 			return nil
 		})

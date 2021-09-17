@@ -52,7 +52,6 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 	}
 
 	defer os.Remove(tmpFile.Name())
-
 	if vz.Spec.Components.Istio != nil {
 		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
 		if err != nil {
@@ -73,7 +72,9 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 
 		log.Infof("Created values file: %s", tmpFile.Name())
 	}
-	_, _, err = upgradeFunc(log, i.ValuesFile, tmpFile.Name())
+	//_, _, err = upgradeFunc(log, i.ValuesFile, tmpFile.Name())
+	_, _, err = upgradeFunc(log, i.ValuesFile)
+
 	return err
 }
 
