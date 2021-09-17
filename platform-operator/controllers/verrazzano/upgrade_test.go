@@ -8,6 +8,7 @@ import (
 	"errors"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -555,6 +556,7 @@ func TestUpgradeCompleted(t *testing.T) {
 
 	// Inject a fake cmd runner to the real helm is not called
 	helm.SetCmdRunner(goodRunner{})
+	istio.SetCmdRunner(goodRunner{})
 	helmcomp.UpgradePrehooksEnabled = false
 
 	// Stubout the call to check the chart status
