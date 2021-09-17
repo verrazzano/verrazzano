@@ -149,7 +149,7 @@ pipeline {
                              def job = jenkins.model.Jenkins.instance.getItemByFullName("verrazzano/master", Job.class)
                              if ( job != null) {
                                  def theBuild = job.getBuild(params.RELEASE_BUILD_NUMBER)
-                                 def commit = b.getAction(hudson.plugins.git.util.BuildData.class).getLastBuiltRevision().getSha1String()
+                                 def commit = theBuild.getAction(hudson.plugins.git.util.BuildData.class).getLastBuiltRevision().getSha1String()
                                  if (!commit.equals(params.COMMIT_TO_USE)) {
                                     error("Build number and commit to use do not correlate")
                                  }
