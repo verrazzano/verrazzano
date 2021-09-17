@@ -5,9 +5,10 @@ package fluentd_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
-	"testing"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
