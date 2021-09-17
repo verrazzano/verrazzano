@@ -17,6 +17,7 @@ spec:
       labels:
         app: {{ .Values.name }}
     spec:
+      terminationGracePeriodSeconds: 0
       initContainers:
         - name: webhook-init
           image: {{ .Values.image }}
