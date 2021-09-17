@@ -28,13 +28,8 @@ pipeline {
 
     post {
         success {
-            when {
-                expression {
-                    env.KEEP_BUILD.toBoolean()
-                }
-            }
             script {
-                currentBuild.keepLog(true)
+                currentBuild.keepLog(param.KEEP_BUILD.toBoolean())
             }
         }
     }
