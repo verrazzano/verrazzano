@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -39,6 +40,12 @@ const (
 	specField                 = "spec"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
+	loggingNamePart           = "logging-stdout"
+	configMapAPIVersion       = "v1"
+	configMapKind             = "ConfigMap"
+	loggingMountPath          = "/fluentd/etc/fluentd.conf"
+	loggingVolume             = "logging-stdout-volume"
+	loggingKey                = "fluentd.conf"
 )
 
 const defaultMonitoringExporterData = `
@@ -248,7 +255,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Add logging traits to the Domain if they exist
-	if err = r.addLoggingTrait(ctx, log, workload, u, &existingDomain); err != nil {
+	if err = r.addLoggingTrait(ctx, log, workload, u); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -633,12 +640,97 @@ func getDefaultMonitoringExporter() (interface{}, error) {
 }
 
 // addLoggingTrait adds the logging trait sidecar to the workload
-func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
+func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured) error {
 	loggingTrait, err := vznav.LoggingTraitFromWorkloadLabels(ctx, r.Client, log, workload.GetNamespace(), workload.ObjectMeta)
 	if err != nil {
 		return err
 	}
-	_ = loggingTrait.Spec.LoggingConfig //remove
+	configMap := &corev1.ConfigMap{}
+	err = r.Get(ctx, client.ObjectKey{Namespace: weblogic.GetNamespace(), Name: loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind())}, configMap)
+	if err != nil && k8serrors.IsNotFound(err) {
+		configMap = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind()),
+				Namespace: weblogic.GetNamespace(),
+				Labels:    weblogic.GetLabels(),
+			},
+			Data: loggingTrait.Spec.LoggingConfig,
+		}
+		err = controllerutil.SetControllerReference(workload, configMap, r.Scheme)
+		if err != nil {
+			return err
+		}
+		log.Info(fmt.Sprintf("Creating logging trait configmap %s:%s", weblogic.GetNamespace(), loggingNamePart+"-"+weblogic.GetName()+"-"+strings.ToLower(weblogic.GetKind())))
+		err = r.Create(ctx, configMap)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("logging trait configmap %s:%s already exist", weblogic.GetNamespace(), loggingNamePart+"-"+weblogic.GetName()+"-"+strings.ToLower(weblogic.GetKind())))
+
+	// extract just enough of the WebLogic data into concrete types so we can merge with
+	// the logging trait data
+	var extracted containersMountsVolumes
+	if serverPod, found, _ := unstructured.NestedMap(weblogic.Object, specServerPodFields...); found {
+		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(serverPod, &extracted); err != nil {
+			return errors.New("unable to extract containers, volumes, and volume mounts from WebLogic spec")
+		}
+	}
+
+	loggingVolumeMount := &corev1.VolumeMount{
+		MountPath: loggingMountPath,
+		Name:      loggingVolume,
+		SubPath:   loggingKey,
+		ReadOnly:  true,
+	}
+	extracted.VolumeMounts = append(extracted.VolumeMounts, *loggingVolumeMount)
+
+	loggingContainer := &corev1.Container{
+		Name:            loggingNamePart,
+		Image:           loggingTrait.Spec.LoggingImage,
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		VolumeMounts:    extracted.VolumeMounts,
+	}
+	extracted.Containers = append(extracted.Containers, *loggingContainer)
+
+	loggingVolume := &corev1.Volume{
+		Name: loggingVolume,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind()),
+				},
+				DefaultMode: func(mode int32) *int32 {
+					return &mode
+				}(420),
+			},
+		},
+	}
+	extracted.Volumes = append(extracted.Volumes, *loggingVolume)
+	// convert the containers, volumes, and mounts in extracted to unstructured and set
+	// the values in the spec
+	extractedUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(extracted)
+	if err != nil {
+		return err
+	}
+
+	err = unstructured.SetNestedSlice(weblogic.Object, extractedUnstructured["containers"].([]interface{}), specServerPodContainersFields...)
+	if err != nil {
+		log.Error(err, "Unable to set serverPod containers")
+		return err
+	}
+	err = unstructured.SetNestedSlice(weblogic.Object, extractedUnstructured["volumes"].([]interface{}), specServerPodVolumesFields...)
+	if err != nil {
+		log.Error(err, "Unable to set serverPod volumes")
+		return err
+	}
+	err = unstructured.SetNestedField(weblogic.Object, extractedUnstructured["volumeMounts"].([]interface{}), specServerPodVolumeMountsFields...)
+	if err != nil {
+		log.Error(err, "Unable to set serverPod volumeMounts")
+		return err
+	}
 
 	return nil
 }
