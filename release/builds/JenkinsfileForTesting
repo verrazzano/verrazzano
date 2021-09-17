@@ -30,7 +30,7 @@ pipeline {
         success {
             script {
                 if ("${KEEP_BUILD}" == "true") {
-                    currentBuild.keepLog(true)
+                    currentBuild.setKeepLog(true)
                 }
             }
         }
