@@ -29,7 +29,7 @@ pipeline {
     post {
         success {
             script {
-                if "${param.KEEP_BUILD}" == "true" {
+                if ("${param.KEEP_BUILD}" == "true") {
                     currentBuild.keepLog(true)
                 }
             }
