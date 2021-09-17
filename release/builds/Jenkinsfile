@@ -146,7 +146,7 @@ pipeline {
                 stage('Keep associated build') {
                     steps {
                         script {
-                             def job = jenkins.model.Jenkins.instance.getItemByFullName(env.RELEASE_JOB), Job.class)
+                             def job = jenkins.model.Jenkins.instance.getItemByFullName(env.RELEASE_JOB, Job.class)
                              def theBuild = job.getBuild(env.RELEASE_BUILD_NUMBER)
                              def commit = b.getAction(hudson.plugins.git.util.BuildData.class).getLastBuiltRevision().getSha1String()
                              if (!commit.equals("${env.SOURCE_BRANCH}") {
