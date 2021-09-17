@@ -16,9 +16,9 @@ spec:
 {{- if $gateway.loadBalancerIP }}
   loadBalancerIP: "{{ $gateway.loadBalancerIP }}"
 {{- end }}
-{{- if $spec.externalIPs }}
+{{- if $gateway.externalIPs }}
   externalIPs:
-{{ toYaml $spec.externalIPs | indent 4 }}
+{{ toYaml $gateway.externalIPs | indent 4 }}
 {{- end }}
 {{- if $gateway.loadBalancerSourceRanges }}
   loadBalancerSourceRanges:
