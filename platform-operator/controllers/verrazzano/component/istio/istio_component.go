@@ -53,25 +53,26 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 
 	defer os.Remove(tmpFile.Name())
 
-	istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
-	if err != nil {
-		log.Errorf("Failed to Build IstioOperator YAML: %v", err)
-		return err
+	if vz.Spec.Components.Istio != nil {
+		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
+		if err != nil {
+			log.Errorf("Failed to Build IstioOperator YAML: %v", err)
+			return err
+		}
+
+		if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
+			log.Errorf("Failed to write to temporary file: %v", err)
+			return err
+		}
+
+		// Close the file
+		if err := tmpFile.Close(); err != nil {
+			log.Errorf("Failed to close temporary file: %v", err)
+			return err
+		}
+
+		log.Infof("Created values file: %s", tmpFile.Name())
 	}
-
-	if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
-		log.Errorf("Failed to write to temporary file: %v", err)
-		return err
-	}
-
-	// Close the file
-	if err := tmpFile.Close(); err != nil {
-		log.Errorf("Failed to close temporary file: %v", err)
-		return err
-	}
-
-	log.Infof("Created values file: %s", tmpFile.Name())
-
 	_, _, err = upgradeFunc(log, i.ValuesFile, tmpFile.Name())
 	return err
 }
