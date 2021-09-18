@@ -28,7 +28,7 @@ spec:
                 spec:
                   rules:
                     - paths:
-                        - path: "/greet"
+                        - path: "/greet-dep"
                           pathType: Prefix
   placement:
     clusters:
