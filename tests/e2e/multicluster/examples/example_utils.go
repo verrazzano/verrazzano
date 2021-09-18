@@ -73,10 +73,10 @@ func changePlacement(kubeConfigPath string, patchFile string) error {
 	return nil
 }
 
-// changePlacementV100 patches the hello-helidon example with the given patch file
+// ChangePlacementV100 patches the hello-helidon example with the given patch file
 // and uses the given kubeConfigPath as the cluster in which to do the patch
 // v1.0.0 variant of this function - requires edit to placement in mcComp resources
-func changePlacementV100(kubeConfigPath string, patchFile string) error {
+func ChangePlacementV100(kubeConfigPath string, patchFile string) error {
 	mcCompGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.MultiClusterComponentResource)
 	mcAppGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.MultiClusterAppConfigResource)
 	vpGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.VerrazzanoProjectResource)

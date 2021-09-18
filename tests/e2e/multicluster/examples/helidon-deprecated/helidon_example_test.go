@@ -16,16 +16,18 @@ import (
 )
 
 const (
-	longPollingInterval  = 20 * time.Second
-	longWaitTimeout      = 10 * time.Minute
-	pollingInterval      = 5 * time.Second
-	waitTimeout          = 5 * time.Minute
-	consistentlyDuration = 1 * time.Minute
-	projectfile          = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/verrazzano-project.yaml"
-	compFile             = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/mc-hello-helidon-comp.yaml"
-	appFile              = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/mc-hello-helidon-app.yaml"
-	testNamespace        = "hello-helidon-dep"
-	testProjectName      = "hello-helidon-dep"
+	longPollingInterval          = 20 * time.Second
+	longWaitTimeout              = 10 * time.Minute
+	pollingInterval              = 5 * time.Second
+	waitTimeout                  = 5 * time.Minute
+	consistentlyDuration         = 1 * time.Minute
+	projectfile                  = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/verrazzano-project.yaml"
+	compFile                     = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/mc-hello-helidon-comp.yaml"
+	appFile                      = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/mc-hello-helidon-app.yaml"
+	changePlacementToAdminFile   = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/patch-change-placement-to-admin.yaml"
+	changePlacementToManagedFile = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/patch-return-placement-to-managed1.yaml"
+	testNamespace                = "hello-helidon-dep"
+	testProjectName              = "hello-helidon-dep"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -70,7 +72,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 		// THEN expect that the multi-cluster resources have been created on the admin cluster
 		It("Has multi cluster resources", func() {
 			Eventually(func() bool {
-				return examples.VerifyMCResources(adminKubeconfig, true, false, testNamespace)
+				return examples.VerifyMCResourcesV100(adminKubeconfig, true, false, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		// GIVEN an admin cluster
@@ -89,7 +91,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 		// THEN expect that the multi-cluster resources have been created on the managed cluster
 		It("Has multi cluster resources", func() {
 			Eventually(func() bool {
-				return examples.VerifyMCResources(managedKubeconfig, false, true, testNamespace)
+				return examples.VerifyMCResourcesV100(managedKubeconfig, false, true, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		// GIVEN an admin cluster and at least one managed cluster
@@ -119,7 +121,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
 			It("Does not have multi cluster resources", func() {
 				Eventually(func() bool {
-					return examples.VerifyMCResources(kubeconfig, false, false, testNamespace)
+					return examples.VerifyMCResourcesV100(kubeconfig, false, false, testNamespace)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 			It("Does not have application placed", func() {
@@ -170,14 +172,14 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	Context("Change Placement of app to Admin Cluster", func() {
 		It("Apply patch to change placement to admin cluster", func() {
 			Eventually(func() error {
-				return examples.ChangePlacementToAdminCluster(adminKubeconfig)
+				return examples.ChangePlacementV100(adminKubeconfig, changePlacementToAdminFile)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		It("MC Resources should be removed from managed cluster", func() {
 			Eventually(func() bool {
 				// app should not be placed in the managed cluster
-				return examples.VerifyMCResources(managedKubeconfig, false, false, testNamespace)
+				return examples.VerifyMCResourcesV100(managedKubeconfig, false, false, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
@@ -203,7 +205,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	Context("Return the app to Managed Cluster", func() {
 		It("Apply patch to change placement back to managed cluster", func() {
 			Eventually(func() error {
-				return examples.ChangePlacementToManagedCluster(adminKubeconfig)
+				return examples.ChangePlacementV100(adminKubeconfig, changePlacementToManagedFile)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
