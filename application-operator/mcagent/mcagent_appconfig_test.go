@@ -21,7 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const testMCAppConfigName = "unit-mcappconfig"
 const testMCAppConfigNamespace = "unit-mcappconfig-namespace"
 
 var mcAppConfigTestLabels = map[string]string{"label1": "test1"}
