@@ -33,6 +33,18 @@ type helmFakeRunner struct {
 
 const testBomFilePath = "../../testdata/test_bom.json"
 
+// genericHelmTestRunner is used to run generic OS commands with expected results
+type genericHelmTestRunner struct {
+	stdOut []byte
+	stdErr []byte
+	err    error
+}
+
+// Run genericHelmTestRunner executor
+func (r genericHelmTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return r.stdOut, r.stdErr, r.err
+}
+
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
 //  WHEN I call Name
@@ -91,10 +103,14 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 		return nil, nil, nil
 	})
 	defer setDefaultUpgradeFunc()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return "", fmt.Errorf("Unexpected error")
+
+	helm.SetCmdRunner(genericHelmTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte("What happened?"),
+		err:    fmt.Errorf("Unexpected error"),
 	})
-	defer helm.SetDefaultChartStatusFunction()
+	defer helm.SetDefaultRunner()
+
 	err := comp.Upgrade(zap.S(), nil, "", false)
 	assert.Error(err)
 }
@@ -111,11 +127,11 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
-	defer setDefaultUpgradeFunc()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartNotFound, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer config.SetDefaultBomFilePath("")
+
 	err := comp.Upgrade(zap.S(), nil, "", false)
 	assert.NoError(err)
 }
@@ -335,12 +351,19 @@ func TestIsInstalled(t *testing.T) {
 	defer helm.SetDefaultChartStatusFunction()
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	helm.SetCmdRunner(genericHelmTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte(""),
+		err:    nil,
 	})
+	defer helm.SetDefaultRunner()
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer config.SetDefaultBomFilePath("")
 	assert.True(comp.IsInstalled(zap.S(), client, "default"))
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartNotFound, nil
+	helm.SetCmdRunner(genericHelmTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte(""),
+		err:    fmt.Errorf("Not installed"),
 	})
 	assert.False(comp.IsInstalled(zap.S(), client, "default"))
 }

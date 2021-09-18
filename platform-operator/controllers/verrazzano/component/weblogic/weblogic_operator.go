@@ -6,6 +6,7 @@ package weblogic
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -14,6 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const wlsOperatorDeploymentName = "weblogic-operator"
 
 // AppendWeblogicOperatorOverrides appends the WKO-specific helm Value overrides.
 func AppendWeblogicOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -64,4 +67,11 @@ func WeblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ 
 		return []bom.KeyValue{}, err
 	}
 	return []bom.KeyValue{}, nil
+}
+
+func IsWeblogicOperatorReady(log *zap.SugaredLogger, c clipkg.Client, _ string, namespace string) bool {
+	deployments := []types.NamespacedName{
+		{Name: wlsOperatorDeploymentName, Namespace: namespace},
+	}
+	return status.DeploymentsReady(log, c, deployments, 1)
 }
