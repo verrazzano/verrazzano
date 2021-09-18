@@ -10,17 +10,14 @@ import (
 	"testing"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
-	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -45,10 +42,7 @@ func TestCreateMCAppConfig(t *testing.T) {
 	testComponent, err := getSampleOamComponent("testdata/hello-component.yaml")
 	assert.NoError(err, "failed to read sample data for OAM Component")
 
-	adminClient := fake.NewFakeClientWithScheme(newScheme(),
-		&clustersv1alpha1.MultiClusterApplicationConfigurationList{
-			Items: []clustersv1alpha1.MultiClusterApplicationConfiguration{testMCAppConfig}},
-		&testComponent)
+	adminClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfig, &testComponent)
 
 	localClient := fake.NewFakeClientWithScheme(newScheme())
 
@@ -99,17 +93,9 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	testComponent2, err := getSampleOamComponent("testdata/goodbye-component.yaml")
 	assert.NoError(err, "failed to read sample data for OAM Component")
 
-	adminClient := fake.NewFakeClientWithScheme(newScheme(),
-		&clustersv1alpha1.MultiClusterApplicationConfigurationList{
-			Items: []clustersv1alpha1.MultiClusterApplicationConfiguration{testMCAppConfigUpdate}},
-		&testComponent1,
-		&testComponent2)
+	adminClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfigUpdate, &testComponent1, &testComponent2)
 
-	localClient := fake.NewFakeClientWithScheme(newScheme(),
-		&clustersv1alpha1.MultiClusterApplicationConfigurationList{
-			Items: []clustersv1alpha1.MultiClusterApplicationConfiguration{testMCAppConfig}},
-		&testComponent1,
-		&testComponent2)
+	localClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfig, &testComponent1, &testComponent2)
 
 	// Make the request
 	s := &Syncer{
@@ -145,14 +131,6 @@ func TestDeleteMCAppConfig(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
 
-	// Managed cluster mocks
-	mcMocker := gomock.NewController(t)
-	mcMock := mocks.NewMockClient(mcMocker)
-
-	// Admin cluster mocks
-	adminMocker := gomock.NewController(t)
-	adminMock := mocks.NewMockClient(adminMocker)
-
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
@@ -165,61 +143,14 @@ func TestDeleteMCAppConfig(t *testing.T) {
 
 	testMCAppConfigOrphan.Name = "orphaned-resource"
 
-	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
-	adminMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
-			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
-			return nil
-		})
+	adminClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfig, &testComponent)
 
-	// Admin Cluster - expect a call to get the OAM Component of the application
-	adminMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent.Namespace, Name: testComponent.Name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
-			component.ObjectMeta = testComponent.ObjectMeta
-			component.Spec = testComponent.Spec
-			return nil
-		})
-
-	// Managed Cluster - expect a call to get the OAM Component of the application - return that it exists
-	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testComponent.Namespace, Name: testComponent.Name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1alpha2.Component) error {
-			component.ObjectMeta = testComponent.ObjectMeta
-			component.Spec = testComponent.Spec
-			return nil
-		})
-
-	// Managed Cluster - expect call to get a MultiClusterApplicationConfiguration from the list returned by the admin cluster
-	//                   Return the resource
-	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testMCAppConfigNamespace, Name: testMCAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) error {
-			testMCAppConfig.DeepCopyInto(mcAppConfig)
-			return nil
-		})
-
-	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list including an orphaned object
-	mcMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
-			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
-			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfigOrphan)
-			return nil
-		})
-
-	// Managed Cluster - expect a call to delete a MultiClusterApplicationConfiguration object
-	mcMock.EXPECT().
-		Delete(gomock.Any(), gomock.Eq(&testMCAppConfigOrphan), gomock.Any()).
-		Return(nil)
+	localClient := fake.NewFakeClientWithScheme(newScheme(), &testComponent, &testMCAppConfig, &testMCAppConfigOrphan)
 
 	// Make the request
 	s := &Syncer{
-		AdminClient:        adminMock,
-		LocalClient:        mcMock,
+		AdminClient:        adminClient,
+		LocalClient:        localClient,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -227,9 +158,12 @@ func TestDeleteMCAppConfig(t *testing.T) {
 	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
 
 	// Validate the results
-	adminMocker.Finish()
-	mcMocker.Finish()
 	assert.NoError(err)
+
+	// Expect the orphaned MultiClusterApplicationConfiguration object to be deleted from the local cluster
+	appConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfigOrphan.Name, Namespace: testMCAppConfigOrphan.Namespace}, appConfig)
+	assert.True(errors.IsNotFound(err))
 }
 
 // TestMCAppConfigPlacement tests the synchronization method for the following use case.
@@ -248,13 +182,9 @@ func TestMCAppConfigPlacement(t *testing.T) {
 	loclaMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
 
-	adminClient := fake.NewFakeClientWithScheme(newScheme(),
-		&clustersv1alpha1.MultiClusterApplicationConfigurationList{
-			Items: []clustersv1alpha1.MultiClusterApplicationConfiguration{adminMCAppConfig}})
+	adminClient := fake.NewFakeClientWithScheme(newScheme(), &adminMCAppConfig)
 
-	localClient := fake.NewFakeClientWithScheme(newScheme(),
-		&clustersv1alpha1.MultiClusterApplicationConfigurationList{
-			Items: []clustersv1alpha1.MultiClusterApplicationConfiguration{loclaMCAppConfig}})
+	localClient := fake.NewFakeClientWithScheme(newScheme(), &loclaMCAppConfig)
 
 	// Make the request
 	s := &Syncer{
