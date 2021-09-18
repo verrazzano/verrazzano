@@ -178,12 +178,12 @@ func TestMCAppConfigPlacement(t *testing.T) {
 	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
 	adminMCAppConfig.Spec.Placement.Clusters[0].Name = "not-my-cluster"
 
-	loclaMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
+	localMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
 
 	adminClient := fake.NewFakeClientWithScheme(newScheme(), &adminMCAppConfig)
 
-	localClient := fake.NewFakeClientWithScheme(newScheme(), &loclaMCAppConfig)
+	localClient := fake.NewFakeClientWithScheme(newScheme(), &localMCAppConfig)
 
 	// Make the request
 	s := &Syncer{
@@ -198,7 +198,7 @@ func TestMCAppConfigPlacement(t *testing.T) {
 	// Verify the local MultiClusterApplicationConiguration was deleted
 	assert.NoError(err)
 	delAppConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: loclaMCAppConfig.Name, Namespace: loclaMCAppConfig.Namespace}, delAppConfig)
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: localMCAppConfig.Name, Namespace: localMCAppConfig.Namespace}, delAppConfig)
 	assert.True(errors.IsNotFound(err))
 }
 
