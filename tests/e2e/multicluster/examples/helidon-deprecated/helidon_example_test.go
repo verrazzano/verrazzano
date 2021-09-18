@@ -172,7 +172,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	Context("Change Placement of app to Admin Cluster", func() {
 		It("Apply patch to change placement to admin cluster", func() {
 			Eventually(func() error {
-				return examples.ChangePlacementV100(adminKubeconfig, changePlacementToAdminFile)
+				return examples.ChangePlacementV100(adminKubeconfig, changePlacementToAdminFile, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
@@ -205,7 +205,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	Context("Return the app to Managed Cluster", func() {
 		It("Apply patch to change placement back to managed cluster", func() {
 			Eventually(func() error {
-				return examples.ChangePlacementV100(adminKubeconfig, changePlacementToManagedFile)
+				return examples.ChangePlacementV100(adminKubeconfig, changePlacementToManagedFile, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 

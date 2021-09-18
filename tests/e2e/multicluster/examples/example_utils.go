@@ -76,18 +76,18 @@ func changePlacement(kubeConfigPath string, patchFile string) error {
 // ChangePlacementV100 patches the hello-helidon example with the given patch file
 // and uses the given kubeConfigPath as the cluster in which to do the patch
 // v1.0.0 variant of this function - requires edit to placement in mcComp resources
-func ChangePlacementV100(kubeConfigPath string, patchFile string) error {
+func ChangePlacementV100(kubeConfigPath string, patchFile string, namespace string, projName string) error {
 	mcCompGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.MultiClusterComponentResource)
 	mcAppGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.MultiClusterAppConfigResource)
 	vpGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.VerrazzanoProjectResource)
 
-	if err := pkg.PatchResourceFromFileInCluster(mcCompGvr, TestNamespace, componentName, patchFile, kubeConfigPath); err != nil {
+	if err := pkg.PatchResourceFromFileInCluster(mcCompGvr, namespace, componentName, patchFile, kubeConfigPath); err != nil {
 		return fmt.Errorf("failed to change placement of multicluster hello-helidon component resource: %v", err)
 	}
-	if err := pkg.PatchResourceFromFileInCluster(mcAppGvr, TestNamespace, appConfigName, patchFile, kubeConfigPath); err != nil {
+	if err := pkg.PatchResourceFromFileInCluster(mcAppGvr, namespace, appConfigName, patchFile, kubeConfigPath); err != nil {
 		return fmt.Errorf("failed to change placement of multicluster hello-helidon application resource: %v", err)
 	}
-	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projectName, patchFile, kubeConfigPath); err != nil {
+	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projName, patchFile, kubeConfigPath); err != nil {
 		return fmt.Errorf("failed to create VerrazzanoProject resource: %v", err)
 	}
 	return nil
