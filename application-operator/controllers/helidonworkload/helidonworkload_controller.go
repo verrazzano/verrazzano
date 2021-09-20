@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -25,13 +26,17 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
 )
 
 const (
-	labelKey = "verrazzanohelidonworkloads.oam.verrazzano.io"
+	labelKey         = "verrazzanohelidonworkloads.oam.verrazzano.io"
+	loggingNamePart  = "logging-stdout"
+	loggingMountPath = "/fluentd/etc/fluentd.conf"
+	loggingKey       = "fluentd.conf"
 )
 
 var (
@@ -104,6 +109,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			log.Error(err, "An error occurred trying to obtain an existing deployment")
 			return reconcile.Result{}, err
 		}
+	}
+
+	if err = r.addLoggingTrait(ctx, log, &workload, deploy); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	if err = r.addMetrics(ctx, log, req.NamespacedName.Namespace, &workload, deploy); err != nil {
@@ -341,6 +350,45 @@ func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace 
 	finalAnnotations := mergeMapOverrideWithDest(helidon.Spec.Template.Annotations, annotations)
 	log.Info(fmt.Sprintf("Setting annotations on %s: %v", workload.Name, finalAnnotations))
 	helidon.Spec.Template.Annotations = finalAnnotations
+
+	return nil
+}
+
+func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoHelidonWorkload, helidon *appsv1.Deployment) error {
+	log.Info(fmt.Sprintf("Adding logging trait for workload: %s", workload.Name))
+	loggingTrait, err := vznav.LoggingTraitFromWorkloadLabels(ctx, r.Client, log, workload.GetNamespace(), workload.ObjectMeta)
+	if err != nil {
+		return err
+	}
+	if loggingTrait == nil {
+		log.Info("Workload has no associated LoggingTrait, nothing to do")
+		return nil
+	}
+	configMapName := loggingNamePart + "-" + helidon.GetName() + "-" + strings.ToLower(helidon.Kind)
+	configMap := &corev1.ConfigMap{}
+	err = r.Get(ctx, client.ObjectKey{Namespace: helidon.GetNamespace(), Name: configMapName}, configMap)
+	if err != nil && k8serrors.IsNotFound(err) {
+		configMap = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      loggingNamePart + "-" + helidon.GetName() + "-" + strings.ToLower(helidon.Kind),
+				Namespace: helidon.GetNamespace(),
+				Labels:    helidon.GetLabels(),
+			},
+			Data: loggingTrait.Spec.LoggingConfig,
+		}
+		err = controllerutil.SetControllerReference(workload, configMap, r.Scheme)
+		if err != nil {
+			return err
+		}
+		log.Info(fmt.Sprintf("Creating logging trait configmap %s:%s", helidon.GetNamespace(), configMapName))
+		err = r.Create(ctx, configMap)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("logging trait configmap %s:%s already exist", helidon.GetNamespace(), configMapName))
 
 	return nil
 }
