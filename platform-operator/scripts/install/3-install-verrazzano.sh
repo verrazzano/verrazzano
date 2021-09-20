@@ -87,7 +87,9 @@ function install_verrazzano()
   local PROFILE_VALUES_OVERRIDE=" -f ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml"
 
   # Get the endpoint for the Kubernetes API server.  The endpoint returned has the format of IP:PORT
+  # For OLCNE, there is a comma separated list of IP:PORT pairs, so split on the comma
   local ENDPOINT=$(kubectl get endpoints --namespace default kubernetes --no-headers | awk '{ print $2}')
+  ENDPOINT=$(echo $ENDPOINT | tr "," "\n")
   local ENDPOINT_ARRAY=(${ENDPOINT//:/ })
 
   local DNS_TYPE=$(get_config_value ".dns.type")
