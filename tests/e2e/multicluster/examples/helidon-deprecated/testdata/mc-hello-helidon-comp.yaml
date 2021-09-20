@@ -4,7 +4,7 @@ apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterComponent
 metadata:
   name: hello-helidon-component
-  namespace: hello-helidon
+  namespace: hello-helidon-dep
 spec:
   template:
     spec:
@@ -13,7 +13,7 @@ spec:
         kind: VerrazzanoHelidonWorkload
         metadata:
           name: hello-helidon-workload
-          namespace: hello-helidon
+          namespace: hello-helidon-dep
           labels:
             app: hello-helidon
         spec:

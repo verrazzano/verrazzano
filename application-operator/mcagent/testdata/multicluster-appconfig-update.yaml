@@ -17,8 +17,8 @@ spec:
         description: "Hello application updated"
     spec:
       components:
-        - componentName: hello-component-updated
-        - componentName: hello-component-extra
+        - componentName: hello-component
+        - componentName: goodbye-component
   placement:
     clusters:
       - name: managed1
