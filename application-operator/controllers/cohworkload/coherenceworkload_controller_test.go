@@ -25,12 +25,10 @@ import (
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -134,7 +132,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
-			return errors.NewNotFound(k8sschema.GroupResource{}, "")
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the Coherence CR
 	cli.EXPECT().
@@ -235,7 +233,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
-			return errors.NewNotFound(k8sschema.GroupResource{}, "")
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the Coherence CR
 	cli.EXPECT().
@@ -664,7 +662,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
-			return errors.NewNotFound(k8sschema.GroupResource{}, "")
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the Coherence CR
 	cli.EXPECT().
@@ -762,7 +760,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
-			return errors.NewNotFound(k8sschema.GroupResource{}, "")
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the Coherence CR and return an error
 	cli.EXPECT().
@@ -853,7 +851,7 @@ func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
 	// Expect a call to get a destination rule and return that it is not found.
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "DestinationRule"}, "test-space-myapp-dr"))
+		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "test-space", Resource: "DestinationRule"}, "test-space-myapp-dr"))
 
 	// Expect a call to get the appconfig resource to set the owner reference
 	cli.EXPECT().
