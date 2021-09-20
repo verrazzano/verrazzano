@@ -243,12 +243,12 @@
             },
             {
               "image": "grafana",
-              "tag": "v6.4.4",
+              "tag": "v7.2.1",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
               "image": "prometheus",
-              "tag": "v2.13.1",
+              "tag": "v2.21.0",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
