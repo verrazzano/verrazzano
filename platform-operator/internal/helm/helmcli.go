@@ -20,6 +20,7 @@ var runner vzos.CmdRunner = vzos.DefaultRunner{}
 const ChartNotFound = "NotFound"
 const ChartStatusDeployed = "deployed"
 const ChartStatusPendingInstall = "pending-install"
+const ChartStatusPendingUpgrade = "pending-upgrade"
 const ChartStatusFailed = "failed"
 
 // Package-level var and functions to allow overriding GetChartStatus for unit test purposes
@@ -49,7 +50,7 @@ func SetChartStateFunction(f releaseStateFnType) {
 
 // SetDefaultChartStateFunction Reset the chart state function
 func SetDefaultChartStateFunction() {
-	releaseStateFn = getChartStatus
+	releaseStateFn = GetChartStatus
 }
 
 // GetValues will run 'helm get values' command and return the output from the command.
@@ -102,6 +103,15 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		return stdout, stderr, err
 	}
 
+	return stdout, stderr, nil
+}
+
+func Rollback(log *zap.SugaredLogger, releaseName string, namespace string, wait bool, dryRun bool) (stdout []byte, stderr []byte, err error) {
+	// Helm rollback command rollback to the previously installed release
+	stdout, stderr, err = runHelm(log, releaseName, namespace, "", "rollback", wait, []string{}, dryRun)
+	if err != nil {
+		return stdout, stderr, err
+	}
 	return stdout, stderr, nil
 }
 
@@ -213,7 +223,12 @@ func IsReleaseInstalled(releaseName string, namespace string) (found bool, err e
 	return false, err
 }
 
-// getChartStatus extracts the Helm deployment status of the specified chart from the JSON output as a string
+// GetChartStatus extracts the Helm deployment status of the specified chart from the JSON output as a string
+func GetChartStatus(releaseName string, namespace string) (string, error) {
+	return chartStatusFn(releaseName, namespace)
+}
+
+// GetChartStatus extracts the Helm deployment status of the specified chart from the JSON output as a string
 func getChartStatus(releaseName string, namespace string) (string, error) {
 	args := []string{"status", releaseName}
 	if namespace != "" {

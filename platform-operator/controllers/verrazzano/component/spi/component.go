@@ -39,7 +39,7 @@ type Component interface {
 	PostInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
 
 	// IsInstalled Indicates whether or not the component is installed
-	IsInstalled(log *zap.SugaredLogger, client clipkg.Client, namespace string) (bool, error)
+	IsInstalled(log *zap.SugaredLogger, client clipkg.Client, namespace string) (installed bool, err error)
 
 	// IsReady Indicates whether or not a component is available and ready
 	IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool

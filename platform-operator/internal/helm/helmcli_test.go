@@ -353,8 +353,8 @@ func Test_getReleaseStateChartNotFound(t *testing.T) {
 	assert.Equalf(t, "", state, "unpexected state: %s", state)
 }
 
-// Test_getChartStatusDeployed tests the getChartStatus fn
-// GIVEN a call to getChartStatus
+// Test_getChartStatusDeployed tests the GetChartStatus fn
+// GIVEN a call to GetChartStatus
 //  WHEN Helm returns a deployed state
 //  THEN the function returns "deployed" and no error
 func Test_getChartStatusDeployed(t *testing.T) {
@@ -395,13 +395,13 @@ func Test_getChartStatusDeployed(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	state, err := getChartStatus("weblogic-operator", "verrazzano-system")
+	state, err := GetChartStatus("weblogic-operator", "verrazzano-system")
 	assert.NoError(t, err)
 	assert.Equalf(t, ChartStatusDeployed, state, "unpexected state: %s", state)
 }
 
-// Test_getChartStatusNotFound tests the getChartStatus fn
-// GIVEN a call to getChartStatus
+// Test_getChartStatusNotFound tests the GetChartStatus fn
+// GIVEN a call to GetChartStatus
 //  WHEN the json structure does not have an status filed in the info section
 //  THEN the function returns an error
 func Test_getChartStatusNotFound(t *testing.T) {
@@ -441,13 +441,13 @@ func Test_getChartStatusNotFound(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	state, err := getChartStatus("weblogic-operator", "verrazzano-system")
+	state, err := GetChartStatus("weblogic-operator", "verrazzano-system")
 	assert.Error(t, err)
 	assert.Empty(t, state)
 }
 
-// Test_getChartStatusChartNotFound tests the getChartStatus fn
-// GIVEN a call to getChartStatus
+// Test_getChartStatusChartNotFound tests the GetChartStatus fn
+// GIVEN a call to GetChartStatus
 //  WHEN the Chart is not found
 //  THEN the function returns chart not found and no error
 func Test_getChartStatusChartNotFound(t *testing.T) {
@@ -460,13 +460,13 @@ func Test_getChartStatusChartNotFound(t *testing.T) {
 		err:    fmt.Errorf("Error running status command"),
 	})
 	defer SetDefaultRunner()
-	state, err := getChartStatus("weblogic-operator", "verrazzano-system")
+	state, err := GetChartStatus("weblogic-operator", "verrazzano-system")
 	assert.NoError(t, err)
 	assert.Equalf(t, ChartNotFound, state, "unpexected state: %s", state)
 }
 
-// Test_getChartStatusUnexpectedHelmError tests the getChartStatus fn
-// GIVEN a call to getChartStatus
+// Test_getChartStatusUnexpectedHelmError tests the GetChartStatus fn
+// GIVEN a call to GetChartStatus
 //  WHEN Helm returns an error
 //  THEN the function returns an error
 func Test_getChartStatusUnexpectedHelmError(t *testing.T) {
@@ -479,13 +479,13 @@ func Test_getChartStatusUnexpectedHelmError(t *testing.T) {
 		err:    fmt.Errorf("Unexpected error running status command"),
 	})
 	defer SetDefaultRunner()
-	state, err := getChartStatus("weblogic-operator", "verrazzano-system")
+	state, err := GetChartStatus("weblogic-operator", "verrazzano-system")
 	assert.Error(t, err)
 	assert.Equalf(t, "", state, "unpexected state: %s", state)
 }
 
-// Test_getChartInfoNotFound tests the getChartStatus fn
-// GIVEN a call to getChartStatus
+// Test_getChartInfoNotFound tests the GetChartStatus fn
+// GIVEN a call to GetChartStatus
 //  WHEN the json structure does not have an info section
 //  THEN the function returns an error
 func Test_getChartInfoNotFound(t *testing.T) {
@@ -519,7 +519,7 @@ func Test_getChartInfoNotFound(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	state, err := getChartStatus("weblogic-operator", "verrazzano-system")
+	state, err := GetChartStatus("weblogic-operator", "verrazzano-system")
 	assert.Error(t, err)
 	assert.Empty(t, state)
 }

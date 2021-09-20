@@ -735,6 +735,7 @@ func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Jo
 				conditionType = installv1alpha1.InstallComplete
 				log.Info(message)
 				vz.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, vz)
+				r.logComponentStatus(log, vz)
 			}
 		} else {
 			message = "Verrazzano install failed to complete"
@@ -752,6 +753,21 @@ func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Jo
 	}
 
 	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.InstallStarted)
+}
+
+func (r *Reconciler) logComponentStatus(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) {
+	for _, comp := range registry.GetComponents() {
+		isInstalled, err := comp.IsInstalled(log, r.Client, vz.Namespace)
+		if err != nil {
+			log.Errorf("Unexpected error checking release status for %s: %s", comp.Name(), err.Error())
+			continue
+		}
+		if !isInstalled {
+			log.Infof("Component %s is not installed", comp.Name())
+			continue
+		}
+		log.Infof("Component %s installed successfully", comp.Name())
+	}
 }
 
 // checkComponentReadyState returns true if all component-level status' are "Ready"

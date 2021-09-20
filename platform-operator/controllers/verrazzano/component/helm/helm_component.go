@@ -244,6 +244,26 @@ func (h HelmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 }
 
 func (h HelmComponent) PreUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	resolvedNamespace := resolveNamespace(h, namespace)
+	chartStatus, err := helm.GetChartStatus(h.ReleaseName, resolvedNamespace)
+	if err != nil {
+		return err
+	}
+	switch chartStatus {
+	case helm.ChartStatusPendingUpgrade:
+		log.Infof("Pre-upgrade, detected pending-upgrade status for %s, rolling back", h.ReleaseName)
+		if stdout, stderr, err := helm.Rollback(log, h.ReleaseName, resolvedNamespace, true, false); err != nil {
+			log.Errorf("Unable to rollback %s, stdout: %s, stderr: %s", string(stdout), string(stderr))
+			return err
+		}
+		postRollbackStatus, err := helm.GetChartStatus(h.ReleaseName, resolvedNamespace)
+		if err != nil {
+			return err
+		}
+		if postRollbackStatus != helm.ChartStatusDeployed {
+			return fmt.Errorf("Unable to recover chart state for %s, current state: %s", h.ReleaseName, postRollbackStatus)
+		}
+	}
 	return nil
 }
 

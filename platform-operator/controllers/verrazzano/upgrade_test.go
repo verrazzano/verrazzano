@@ -731,6 +731,12 @@ func TestUpgradeHelmError(t *testing.T) {
 	// Inject a bad cmd runner to the real helm is not called
 	helm.SetCmdRunner(badRunner{})
 
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
