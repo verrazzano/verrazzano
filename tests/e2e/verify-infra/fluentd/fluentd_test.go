@@ -50,6 +50,7 @@ var _ = Describe("Eluentd", func() {
 		}
 		if isAdmin && useExternalElasticsearch {
 			Eventually(func() bool {
+				// todo do not hard code IP
 				return pkg.AssertFluentdURLAndSecret("https://external-es.default.172.18.0.232.nip.io", "external-es-secret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in fluentd Daemonset setting")
 		} else {
