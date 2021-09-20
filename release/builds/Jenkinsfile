@@ -157,7 +157,6 @@ pipeline {
                                         println('commit data : '  + it.getRevision() + ' ' + it.getAuthor() + ' ' + it.getMsg())
                                         if (it.getRevision().equals(params.COMMIT_TO_USE)) {
                                             found = true
-                                            break
                                         }
                                      }
                                  }
