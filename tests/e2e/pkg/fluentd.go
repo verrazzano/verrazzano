@@ -17,7 +17,7 @@ const fluentdDaemonsetName string = "fluentd"
 const VmiESURL = "http://vmi-system-es-ingest-oidc:8775"
 const VmiESSecret = "verrazzano"
 
-func GetFluentdDaemonset() (*appv1.DaemonSet, error) {
+func getFluentdDaemonset() (*appv1.DaemonSet, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
@@ -29,11 +29,18 @@ func GetFluentdDaemonset() (*appv1.DaemonSet, error) {
 	return ds, nil
 }
 
-func AssertFluentdURLAndSecret(fluentdDaemonset *appv1.DaemonSet, expectedURL, expectedSecret string) bool {
+func AssertFluentdURLAndSecret(expectedURL, expectedSecret string) bool {
 	urlFound := ""
 	usernameSecretFound := ""
 	passwordSecretFound := ""
 	volumeSecretFound := ""
+	fluentdDaemonset, err := getFluentdDaemonset()
+	if err != nil {
+		return false
+	}
+	if fluentdDaemonset == nil {
+		return false
+	}
 	containers := fluentdDaemonset.Spec.Template.Spec.Containers
 	if len(containers) > 0 {
 		for _, env := range containers[0].Env {
