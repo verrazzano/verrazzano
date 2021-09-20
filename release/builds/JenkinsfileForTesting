@@ -5,7 +5,11 @@ pipeline {
     agent any
 
     parameters {
-        booleanParam (description: 'Whether to keep the build forever', name: 'KEEP_BUILD_IF_SUCCESSFUL', defaultValue: false)
+        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
+        booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
     }
 
     stages {
@@ -26,13 +30,4 @@ pipeline {
         }
     }
 
-    post {
-        success {
-            script {
-                if ("${KEEP_BUILD_IF_SUCCESSFUL}" == "true") {
-                    currentBuild.setKeepLog(true)
-                }
-            }
-        }
-    }
 }

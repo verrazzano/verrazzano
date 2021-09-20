@@ -3,7 +3,7 @@
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def DOCKER_IMAGE_TAG
-def patchBuild
+def releaseBuild
 
 pipeline {
     options {
@@ -24,7 +24,6 @@ pipeline {
     parameters {
         string (description: 'The source branch for the release', name: 'SOURCE_BRANCH', defaultValue: 'master', trim: true)
         string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
-        string (description: 'The Verrazzano master branch build number for the release (required for full release)', name: 'RELEASE_BUILD_NUMBER', defaultValue: 'NONE', trim: true )
         string (description: 'The target version (release: #.#, patch: #.#.#)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
     }
@@ -108,23 +107,71 @@ pipeline {
                         echo "Patch: verify that all required fixes for the patch version have been backported, the version numbers correlate between charts and dev version, and that there are no incompatible CRD change"
                     }
                 }
+
+//                 stage('Validate provided inputs') {
+//                     steps {
+//                         script {
+//                              def job = jenkins.model.Jenkins.instance.getItemByFullName("verrazzano/master", Job.class)
+//                              if ( job != null) {
+//                                  def theBuild = job.getBuild(params.RELEASE_BUILD_NUMBER)
+//                                  def found = false
+//                                  theBuild.getChangeSets().each {
+//                                      println('Number of commits associated with build ' + (it.getLogs()).size() )
+//
+//                                      it.getLogs().any { logEntry ->
+//                                         if (logEntry.getRevision().equals(params.COMMIT_TO_USE)) {
+//                                             println('commit found: '  + logEntry.getRevision() + ' ' + logEntry.getAuthor() + ' ' + logEntry.getMsg())
+//                                             found = true
+//                                         }
+//                                         return found
+//                                      }
+//                                  }
+//                                  if (!found) {
+//                                     error("Build number and commit to use do not correlate. Requested commit: ${params.COMMIT_TO_USE}")
+//                                  }
+//                              } else {
+//                                 error ("Could not retrieve job")
+//                              }
+//                         }
+//                     }
+//                 }
             }
         }
 
-        stage('Push images to OCR') {
+        stage('Trigger release build') {
             stages {
-                // only executed for patch release
-                stage('Patch Only: Verrazzano Build') {
+                stage('Create release branch') {
                     when {
-                        expression { env.IS_PATCH_RELEASE == 'true' }
+                        expression { env.IS_PATCH_RELEASE == 'false' }
                     }
                     steps {
+                        script {
+                            sh """
+                                ${WORKSPACE}/verrazzano/release.scripts/create_branch.sh -c ${param.COMMIT_TO_USE} -v ${param.TARGET_VERSION}
+                            """
+                        }
+                    }
+
+                }
+
+                stage('Verrazzano Build') {
+                    steps {
+                        script {
+                            // trigger scan and wait for branch to appear if it doesn't exist
+                            if (Jenkins.instance.getItemByFullName(env.RELEASE_JOB) == null) {
+                                Jenkins.instance.getItemByFullName('verrazzano').scheduleBuild() {
+                                    while (Jenkins.instance.getItemByFullName(env.RELEASE_JOB) == null) {
+                                        sleep(1)
+                                    }
+                                }
+                            }
+                        }
+
                         retry(count: env.BUILD_RETRIES) {
                             script {
-                                echo "Triggering Verrazzano build for patch release"
-                                patchBuild = build job: "${env.RELEASE_JOB}",
+                                echo "Triggering Verrazzano build for release"
+                                releaseBuild = build job: "${env.RELEASE_JOB}",
                                     parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.COMMIT_TO_USE),
                                         string(name: 'RUN_ACCEPTANCE_TESTS', value: 'true'),
                                         string(name: 'RUN_SLOW_TESTS', value: 'true'),
                                         string(name: 'TRIGGER_FULL_TESTS', value: 'true'),
@@ -137,36 +184,9 @@ pipeline {
                     post {
                         success {
                             script {
-                                echo "${patchBuild}"
-                                patchBuild.getRawBuild().keepLog(true)
+                                echo "${releaseBuild}"
+                                releaseBuild.getRawBuild().keepLog(true)
                             }
-                        }
-                    }
-                }
-                stage('Keep associated build') {
-                    steps {
-                        script {
-                             def job = jenkins.model.Jenkins.instance.getItemByFullName("verrazzano/master", Job.class)
-                             if ( job != null) {
-                                 def theBuild = job.getBuild(params.RELEASE_BUILD_NUMBER)
-                                 def found = false
-                                 theBuild.getChangeSets().each {
-                                     println('Number of commits associated with build ' + (it.getLogs()).size() )
-
-                                     it.getLogs().any { logEntry ->
-                                        if (logEntry.getRevision().equals(params.COMMIT_TO_USE)) {
-                                            println('commit data : '  + logEntry.getRevision() + ' ' + logEntry.getAuthor() + ' ' + logEntry.getMsg())
-                                            found = true
-                                        }
-                                        return found
-                                     }
-                                 }
-                                 if (!found) {
-                                    error("Build number and commit to use do not correlate. Requested commit: ${params.COMMIT_TO_USE}")
-                                 }
-                             } else {
-                                error ("Could not retrieve job")
-                             }
                         }
                     }
                 }

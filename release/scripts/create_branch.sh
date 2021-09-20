@@ -44,7 +44,7 @@ parts=( ${VERSION//./ } )
 MAJOR="${parts[0]}"
 MINOR="${parts[1]}"
 PATCH="${parts[2]}"
-BRANCH=release-${MAJOR}.${MINOR}
+BRANCH=mock-release-${MAJOR}.${MINOR}
 
 # if this is a patch release skip branch creation
 if [ "${PATCH}" != "" ]; then
