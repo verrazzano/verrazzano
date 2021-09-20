@@ -13,7 +13,8 @@ import (
 	"strings"
 )
 
-const tagLen = 10 // The number of unique tags for a specific image
+const tagLen = 10                                                          // The number of unique tags for a specific image
+const platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
 
 // Struct based on Verrazzano BOM JSON
 type verrazzanoBom struct {
@@ -93,12 +94,25 @@ func validateKubeConfig() bool {
 
 // Get the BOM from the platform operator in the cluster and build the BOM structure from it
 func getBOM(vBom *verrazzanoBom) {
+	var platformOperatorPodName string = ""
+
 	out, err := exec.Command("kubectl", "get", "pod", "-o", "name", "--no-headers=true", "-n", "verrazzano-install").Output()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	platformOperatorPodName := string(out)
+	vzInstallPods := string(out)
+	vzInstallPodArray := strings.Split(vzInstallPods, "\n")
+	for _, podName := range vzInstallPodArray {
+		if strings.Contains(podName, platformOperatorPodNameSearchString) {
+			platformOperatorPodName = podName
+			break
+		}
+	}
+	if platformOperatorPodName == "" {
+		log.Fatal("Platform Operator Pod Name not found in verrazzano-install namespace!")
+	}
+
 	platformOperatorPodName = strings.TrimSuffix(platformOperatorPodName, "\n")
 	fmt.Printf("The platform operator pod name is %s\n", platformOperatorPodName)
 
