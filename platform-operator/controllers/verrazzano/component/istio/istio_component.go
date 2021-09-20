@@ -4,11 +4,16 @@
 package istio
 
 import (
+	"context"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
 	"io/ioutil"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -17,6 +22,8 @@ import (
 type IstioComponent struct {
 	ValuesFile string
 }
+
+const istioRevision = "1-10-2"
 
 // Verify that IstioComponent implements Component
 var _ spi.Component = IstioComponent{}
@@ -43,7 +50,7 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 	return nil
 }
 
-func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, _ clipkg.Client, _ string, _ bool) error {
+func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, client clipkg.Client, _ string, _ bool) error {
 	var tmpFile *os.File
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "values-*.yaml")
 	if err != nil {
@@ -74,7 +81,6 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 	}
 	//_, _, err = upgradeFunc(log, i.ValuesFile, tmpFile.Name())
 	_, _, err = upgradeFunc(log, i.ValuesFile)
-
 	return err
 }
 
@@ -93,4 +99,29 @@ func (i IstioComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, na
 // GetDependencies returns the dependencies of this component
 func (i IstioComponent) GetDependencies() []string {
 	return []string{}
+}
+
+// createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
+func upgradePlatformNS(ctx context.Context, log *zap.SugaredLogger, client clipkg.Client) error {
+	istioPlatformNamespaces := []string{constants.VerrazzanoSystemNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
+	var platformNS corev1.Namespace
+	for _, ns := range istioPlatformNamespaces {
+		err := client.Get(ctx, types.NamespacedName{Name: ns}, &platformNS)
+		if err != nil {
+			if !errors.IsNotFound(err) {
+				return err
+			}
+			nsLabels := platformNS.Labels
+
+			// add istio.io/rev label
+			nsLabels["istio.io/rev"] = istioRevision
+			delete(nsLabels, "istio-injection")
+			platformNS.Labels = nsLabels
+
+			log.Infof("Relabeled namespace %v for istio upgrade", platformNS.Name)
+
+			platformNS.GetObjectMeta()
+		}
+	}
+	return nil
 }
