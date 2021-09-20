@@ -164,14 +164,13 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
 				useExternalElasticsearch = true
 			}
-			fluentdDaemonset, _ := pkg.GetFluentdDaemonset()
 			if useExternalElasticsearch {
 				Eventually(func() bool {
-					return pkg.AssertFluentdURLAndSecret(fluentdDaemonset, externalEsURL, "external-es-secret")
+					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
 			} else {
 				Eventually(func() bool {
-					return pkg.AssertFluentdURLAndSecret(fluentdDaemonset, pkg.VmiESURL, pkg.VmiESSecret)
+					return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESSecret)
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in admin cluster fluentd Daemonset setting")
 			}
 		})
@@ -241,14 +240,13 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
 				useExternalElasticsearch = true
 			}
-			fluentdDaemonset, _ := pkg.GetFluentdDaemonset()
 			if useExternalElasticsearch {
 				Eventually(func() bool {
-					return pkg.AssertFluentdURLAndSecret(fluentdDaemonset, externalEsURL, "verrazzano-cluster-registration")
+					return pkg.AssertFluentdURLAndSecret(externalEsURL, "verrazzano-cluster-registration")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in managed cluster fluentd Daemonset setting")
 			} else {
 				Eventually(func() bool {
-					return pkg.AssertFluentdURLAndSecret(fluentdDaemonset, vmiEsURL, "verrazzano-cluster-registration")
+					return pkg.AssertFluentdURLAndSecret(vmiEsURL, "verrazzano-cluster-registration")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES  in managed cluster fluentd Daemonset setting")
 			}
 		})
