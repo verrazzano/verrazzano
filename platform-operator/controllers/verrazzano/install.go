@@ -5,15 +5,17 @@ package verrazzano
 
 import (
 	"context"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"go.uber.org/zap"
 )
 
 // reconcileComponents Reconcile components individually
-func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogger, cr *vzapi.Verrazzano) (ctrl.Result, error) {
 
 	result := ctrl.Result{}
 
@@ -24,14 +26,18 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 		}
 		componentState := cr.Status.Components[comp.Name()].State
 		switch componentState {
-		case installv1alpha1.Ready:
+		case vzapi.Ready:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			continue
-		case installv1alpha1.Disabled:
-			r.updateComponentStatus(log, cr, comp.Name(), "Install started", installv1alpha1.InstallStarted)
+		case vzapi.Disabled:
+			if !isComponentEnabled(cr, comp.Name()) {
+				// User has disabled component in Verrazzano CR, don't install
+				continue
+			}
+			r.updateComponentStatus(log, cr, comp.Name(), "Install started", vzapi.InstallStarted)
 			result.Requeue = true
 			continue
-		case installv1alpha1.Installing:
+		case vzapi.Installing:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			// If component is enabled -- need to replicate scripts' config merging logic here
 			// If component is in deployed state, continue
@@ -40,7 +46,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 					return newRequeueWithDelay(), err
 				}
 				log.Infof("Component %s successfully installed")
-				if err := r.updateComponentStatus(log, cr, comp.Name(), "Install complete", installv1alpha1.InstallComplete); err != nil {
+				if err := r.updateComponentStatus(log, cr, comp.Name(), "Install complete", vzapi.InstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
 				result.Requeue = true
@@ -51,7 +57,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				result.Requeue = true
 				continue
 			}
-			if err := r.updateComponentStatus(log, cr, comp.Name(), "Install starting", installv1alpha1.InstallStarted); err != nil {
+			if err := r.updateComponentStatus(log, cr, comp.Name(), "Install starting", vzapi.InstallStarted); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			if err := comp.PreInstall(log, r, cr.Namespace, r.DryRun); err != nil {
@@ -61,12 +67,30 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 			if err := comp.Install(log, r, cr.Namespace, r.DryRun); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
-			//case installv1alpha1.Failed, installv1alpha1.Error:
-			//case installv1alpha1.Disabled:
-			//case installv1alpha1.Upgrading:
-			//case installv1alpha1.Updating:
-			//case installv1alpha1.Quiescing:
+			//case vzapi.Failed, vzapi.Error:
+			//case vzapi.Disabled:
+			//case vzapi.Upgrading:
+			//case vzapi.Updating:
+			//case vzapi.Quiescing:
 		}
 	}
 	return result, nil
+}
+
+// IsEnabled returns true if the component spec has enabled set to true
+// Enabled=true is the default
+func isComponentEnabled(cr *vzapi.Verrazzano, componentName string) bool {
+	switch componentName {
+	case coherence.ComponentName:
+		if cr.Spec.Components.Coherence == nil || cr.Spec.Components.Coherence.Enabled == nil {
+			return true
+		}
+		return *cr.Spec.Components.Coherence.Enabled
+	case weblogic.ComponentName:
+		if cr.Spec.Components.WebLogic == nil || cr.Spec.Components.WebLogic.Enabled == nil {
+			return true
+		}
+		return *cr.Spec.Components.WebLogic.Enabled
+	}
+	return true
 }

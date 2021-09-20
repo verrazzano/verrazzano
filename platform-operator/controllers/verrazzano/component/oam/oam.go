@@ -1,5 +1,6 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package oam
 
 import (
@@ -9,7 +10,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const oamOperatorDeploymentName = "oam-kubernetes-runtime"
+// ComponentName is the name of the component
+const ComponentName = "oam-kubernetes-runtime"
+
+const oamOperatorDeploymentName = ComponentName
 
 // IsOAMReady checks if the OAM operator deployment is ready
 func IsOAMReady(log *zap.SugaredLogger, c client.Client, _ string, namespace string) bool {
