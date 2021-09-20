@@ -15,7 +15,7 @@ spec:
   values:
     global:
       hub: ghcr.io/verrazzano
-      tag: 1.7.3
+      tag: 1.10.2
       arch:
         amd64: 2
         s390x: 2
