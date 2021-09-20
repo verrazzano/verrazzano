@@ -327,25 +327,33 @@ func findVerrazzanoProject(projectName string) (bool, error) {
 }
 
 func assertRegistrationSecret() {
-	secret, err := pkg.GetSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
+	regSecret, err := pkg.GetSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
 	Expect(err).To(BeNil())
-	Expect(secret).To(Not(BeNil()))
-	// todo assert secret has correct es-url, username, password, and es-ca-bundle
+	Expect(regSecret).To(Not(BeNil()))
 	useExternalElasticsearch := false
 	if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
 		useExternalElasticsearch = true
 	}
 	if useExternalElasticsearch {
-		Expect(string(secret.Data["es-url"])).To(Equal(externalEsURL))
-		Expect(string(secret.Data["username"])).To(Equal("es-username"))
-		Expect(string(secret.Data["password"])).To(Equal("es-password"))
+		Expect(string(regSecret.Data["es-url"])).To(Equal(externalEsURL))
+		esSecret, err := pkg.GetSecretInCluster("verrazzano-system", "external-es-secret", os.Getenv("ADMIN_KUBECONFIG"))
+		Expect(err).To(BeNil())
+		Expect(regSecret.Data["username"]).To(Equal(esSecret.Data["username"]))
+		Expect(regSecret.Data["password"]).To(Equal(esSecret.Data["password"]))
+		Expect(regSecret.Data["es-ca-bundle"]).To(Equal(esSecret.Data["ca-bundle"]))
 	} else {
-		Expect(string(secret.Data["es-url"])).To(Equal(vmiEsURL))
-		Expect(string(secret.Data["username"])).To(Equal("verrazzano"))
-		Expect(string(secret.Data["password"])).To(Equal(os.Getenv(pkg.GetVerrazzanoPasswordInCluster("ADMIN_KUBECONFIG"))))
+		Expect(string(regSecret.Data["es-url"])).To(Equal(vmiEsURL))
+		vmiEsInternalSecret, err := pkg.GetSecretInCluster("verrazzano-system", "verrazzano-es-internal", os.Getenv("ADMIN_KUBECONFIG"))
+		Expect(err).To(BeNil())
+		Expect(regSecret.Data["username"]).To(Equal(vmiEsInternalSecret.Data["username"]))
+		Expect(regSecret.Data["password"]).To(Equal(vmiEsInternalSecret.Data["password"]))
+		vmiTLSSecret, err := pkg.GetSecretInCluster("verrazzano-system", "system-tls", os.Getenv("ADMIN_KUBECONFIG"))
+		Expect(err).To(BeNil())
+		Expect(regSecret.Data["es-ca-bundle"]).To(Equal(vmiTLSSecret.Data["ca.crt"]))
 	}
 }
 
+// todo do not hard code IP
 const externalEsURL = "https://external-es.default.172.18.0.232.nip.io"
 
 // todo do not hard code VMI ingress url

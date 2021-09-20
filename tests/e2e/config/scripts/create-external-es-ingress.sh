@@ -6,7 +6,7 @@
 #
 
 if [ $EXTERNAL_ELASTICSEARCH != "true" ]; then
-  echo "Skipping creating external es secret when not using EXTERNAL_ELASTICSEARCH"
+  echo "Skipping creating external es ingress when not using EXTERNAL_ELASTICSEARCH"
   exit 0
 fi
 
@@ -30,6 +30,6 @@ spec:
     secretName: external-es-root-ca
 ")
 
-# create ing, external-es-ingress
+# create ingress, external-es-ingress
 kubectl apply -f ${SCRIPT_DIR}/external-es-ingress.yaml
 kubectl -n verrazzano-system get ingress external-es-ingress -o yaml
