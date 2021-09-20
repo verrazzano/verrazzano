@@ -424,11 +424,6 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        stage('verify-infra fluentd') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/fluentd')
-                            }
-                        }
                     }
                     post {
                         always {

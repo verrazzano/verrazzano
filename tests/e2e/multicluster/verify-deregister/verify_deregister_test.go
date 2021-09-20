@@ -20,9 +20,32 @@ const pollingInterval = 10 * time.Second
 
 const verrazzanoSystemNamespace = "verrazzano-system"
 
-var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+// todo do not hard code IP
+const externalEsURL = "https://external-es.default.172.18.0.232.nip.io"
 
 var _ = Describe("Multi Cluster Verify Deregister", func() {
+	Context("Admin Cluster", func() {
+		BeforeEach(func() {
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
+		})
+
+		It("admin cluster Fluentd should point to the correct ES", func() {
+			useExternalElasticsearch := false
+			if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
+				useExternalElasticsearch = true
+			}
+			if useExternalElasticsearch {
+				Eventually(func() bool {
+					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
+			} else {
+				Eventually(func() bool {
+					return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESSecret)
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in admin cluster fluentd Daemonset setting")
+			}
+		})
+	})
+
 	Context("Managed Cluster", func() {
 		BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
@@ -31,7 +54,7 @@ var _ = Describe("Multi Cluster Verify Deregister", func() {
 		It("managed cluster has the expected secrets", func() {
 			Eventually(func() bool {
 				return missingSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret verrazzano-cluster-registration")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected secret verrazzano-cluster-registration gone")
 		})
 
 		It("managed cluster Fluentd should point to the correct ES", func() {
@@ -48,7 +71,7 @@ func missingSecret(namespace, name string) bool {
 		if errors.IsNotFound(err) {
 			return true
 		}
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
+		pkg.Log(pkg.Info, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
 	}
 	return false
 }

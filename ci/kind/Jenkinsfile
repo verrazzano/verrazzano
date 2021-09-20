@@ -309,14 +309,6 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        stage('verify-infra fluentd') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-fluentd"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/fluentd')
-                            }
-                        }
                         stage('security role based access') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
