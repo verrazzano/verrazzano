@@ -153,9 +153,9 @@ pipeline {
                                  theBuild.getChangeSets().each {
                                      println('Number of commits associated with build ' + (it.getLogs()).size() )
 
-                                     it.getLogs().any { it ->
-                                        if (it.getRevision().equals(params.COMMIT_TO_USE)) {
-                                            println('commit data : '  + it.getRevision() + ' ' + it.getAuthor() + ' ' + it.getMsg())
+                                     it.getLogs().any { logEntry ->
+                                        if (logEntry.getRevision().equals(params.COMMIT_TO_USE)) {
+                                            println('commit data : '  + logEntry.getRevision() + ' ' + logEntry.getAuthor() + ' ' + logEntry.getMsg())
                                             found = true
                                         }
                                         return found
