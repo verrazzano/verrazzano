@@ -51,10 +51,10 @@ var _ = Describe("Multi Cluster Verify Deregister", func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
-		It("managed cluster has the expected secrets", func() {
+		It("managed cluster should not have verrazzano-cluster-registration secret", func() {
 			Eventually(func() bool {
 				return missingSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected secret verrazzano-cluster-registration gone")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected secret verrazzano-cluster-registration gone in managed cluster")
 		})
 
 		It("managed cluster Fluentd should point to the correct ES", func() {
