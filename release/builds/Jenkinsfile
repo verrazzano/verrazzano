@@ -149,9 +149,20 @@ pipeline {
                              def job = jenkins.model.Jenkins.instance.getItemByFullName("verrazzano/master", Job.class)
                              if ( job != null) {
                                  def theBuild = job.getBuild(params.RELEASE_BUILD_NUMBER)
-                                 def commit = theBuild.getAction(hudson.plugins.git.util.BuildData.class).getLastBuiltRevision().getSha1String()
-                                 if (!commit.equals(params.COMMIT_TO_USE)) {
-                                    error("Build number and commit to use do not correlate. Requested commit: ${params.COMMIT_TO_USE}, found commit: ${commit}")
+                                 def found = false
+                                 theBuild.getChangeSets().each {
+                                     println('Number of commits associated with build ' + (it.getLogs()).size() )
+
+                                     it.getLogs().each {
+                                        println('commit data : '  + it.getRevision() + ' ' + it.getAuthor() + ' ' + it.getMsg())
+                                        if (it.getRevision.equals(params.COMMIT_TO_USE) {
+                                            found = true
+                                            break
+                                        }
+                                     }
+                                 }
+                                 if (!found)) {
+                                    error("Build number and commit to use do not correlate. Requested commit: ${params.COMMIT_TO_USE}")
                                  }
                              } else {
                                 error ("Could not retrieve job")
