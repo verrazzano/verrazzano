@@ -16,7 +16,10 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const wlsOperatorDeploymentName = "weblogic-operator"
+// ComponentName is the name of the component
+const ComponentName = "weblogic-operator"
+
+const wlsOperatorDeploymentName = ComponentName
 
 // AppendWeblogicOperatorOverrides appends the WKO-specific helm Value overrides.
 func AppendWeblogicOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
