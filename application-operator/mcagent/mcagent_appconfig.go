@@ -6,6 +6,7 @@ package mcagent
 import (
 	"fmt"
 
+	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/types"
@@ -24,7 +25,18 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 	}
 	for _, mcAppConfig := range allAdminMCAppConfigs.Items {
 		if s.isThisCluster(mcAppConfig.Spec.Placement) {
-			_, err := s.createOrUpdateMCAppConfig(mcAppConfig)
+			// Synchronize the components referenced by the application
+			err := s.syncComponentList(mcAppConfig)
+			if err != nil {
+				s.Log.Error(err, "Error syncing components referenced by object",
+					"MultiClusterApplicationConfiguration",
+					types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
+			}
+			// Synchronize the MultiClusterApplicationConfiguration even if there were errors
+			// handling the application components.  For compatibility with v1.0.0 it is valid
+			// for none of the OAM Components to be found because they may all be wrapped in
+			// an MultiClusterComponent resource.
+			_, err = s.createOrUpdateMCAppConfig(mcAppConfig)
 			if err != nil {
 				s.Log.Error(err, "Error syncing object",
 					"MultiClusterApplicationConfiguration",
@@ -94,4 +106,40 @@ func (s *Syncer) updateMultiClusterAppConfigStatus(name types.NamespacedName, ne
 	fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)
 	clusters.SetClusterLevelStatus(&fetched.Status, newClusterStatus)
 	return s.AdminClient.Status().Update(s.Context, &fetched)
+}
+
+// syncComponentList - Synchronize the list of OAM Components contained in the MultiClusterApplicationConfiguration
+func (s *Syncer) syncComponentList(mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration) error {
+	// Loop through the component list and get them one at a time.
+	for _, component := range mcAppConfig.Spec.Template.Spec.Components {
+		objectKey := types.NamespacedName{Name: component.ComponentName, Namespace: mcAppConfig.Namespace}
+		oamComp := &oamv1alpha2.Component{}
+		err := s.AdminClient.Get(s.Context, objectKey, oamComp)
+		if err != nil {
+			return err
+		}
+		_, err = s.createOrUpdateComponent(*oamComp)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Syncer) createOrUpdateComponent(srcComp oamv1alpha2.Component) (controllerutil.OperationResult, error) {
+	var oamComp oamv1alpha2.Component
+	oamComp.Namespace = srcComp.Namespace
+	oamComp.Name = srcComp.Name
+
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &oamComp, func() error {
+		s.mutateComponent(srcComp, &oamComp)
+		return nil
+	})
+}
+
+// mutateComponent mutates the OAM component to reflect the contents of the parent MultiClusterComponent
+func (s *Syncer) mutateComponent(srcComp oamv1alpha2.Component, localComp *oamv1alpha2.Component) {
+	localComp.Spec = srcComp.Spec
+	localComp.Labels = srcComp.Labels
+	localComp.Annotations = srcComp.Annotations
 }

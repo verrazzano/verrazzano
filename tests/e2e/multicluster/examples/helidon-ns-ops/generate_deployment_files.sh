@@ -11,7 +11,7 @@ mkdir -p $NS_SOURCE_DIR
 yq eval ".metadata.name"=\"hello-helidon-ns\" $HH_SOURCE_DIR/verrazzano-project.yaml > $NS_SOURCE_DIR/verrazzano-project.yaml
 yq -i eval ".spec.template.namespaces[0].metadata.name"=\"hello-helidon-ns\" $NS_SOURCE_DIR/verrazzano-project.yaml
 # create component file
-yq eval ".spec.template.spec.workload.metadata.namespace"=\"hello-helidon-ns\" $HH_SOURCE_DIR/mc-hello-helidon-comp.yaml > $NS_SOURCE_DIR/mc-hello-helidon-comp.yaml
-yq -i eval ".metadata.namespace"=\"hello-helidon-ns\" $NS_SOURCE_DIR/mc-hello-helidon-comp.yaml
+yq eval ".spec.template.spec.workload.metadata.namespace"=\"hello-helidon-ns\" $HH_SOURCE_DIR/hello-helidon-comp.yaml > $NS_SOURCE_DIR/hello-helidon-comp.yaml
+yq -i eval ".metadata.namespace"=\"hello-helidon-ns\" $NS_SOURCE_DIR/hello-helidon-comp.yaml
 # create app file
 yq eval ".metadata.namespace"=\"hello-helidon-ns\" $HH_SOURCE_DIR/mc-hello-helidon-app.yaml > $NS_SOURCE_DIR/mc-hello-helidon-app.yaml

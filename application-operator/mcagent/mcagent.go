@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -213,6 +214,7 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	scheme := runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = platformopclusters.AddToScheme(scheme)
+	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
 
 	clientset, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
