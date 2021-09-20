@@ -1,0 +1,239 @@
+==== START logs for container install of pod default/verrazzano-install-my-verrazzano-lg7lf ====
+Output redirected to /verrazzano/platform-operator/scripts/install/build/logs/1-install-istio.sh.log
+2021-08-05 08:04:07 UTC Reading installation config file /config/config.json
+Checking Kubernetes version                                                  [ .... ]
+2021-08-05 08:04:07 UTC ------Begin Kubernetes Version Info----
+2021-08-05 08:04:07 UTC {
+  "clientVersion": {
+    "major": "1",
+    "minor": "18",
+    "gitVersion": "v1.18.18+2.el7",
+    "gitCommit": "2703f125e16512f335a7bd201778f6304dc851d2",
+    "gitTreeState": "clean",
+    "buildDate": "2021-04-28T16:58:28Z",
+    "goVersion": "go1.15.10",
+    "compiler": "gc",
+    "platform": "linux/amd64"
+  },
+  "serverVersion": {
+    "major": "1",
+    "minor": "20",
+    "gitVersion": "v1.20.8",
+    "gitCommit": "50317190d44dbdb51ae7ff430917b32ba96188b5",
+    "gitTreeState": "clean",
+    "buildDate": "2021-06-30T14:20:31Z",
+    "goVersion": "go1.15.13 BoringCrypto",
+    "compiler": "gc",
+    "platform": "linux/amd64"
+  }
+}
+2021-08-05 08:04:07 UTC ------End Kubernetes Version Info----
+Checking Kubernetes version                                                  [  OK  ]
+Checking Helm version                                                        [ .... ]
+2021-08-05 08:04:07 UTC Helm version is v3.3.4+g82f031c
+Checking Helm version                                                        [  OK  ]
+Waiting for all Kubernetes nodes to exist in cluster                         [ .... ]
+Waiting for all Kubernetes nodes to exist in cluster                         [  OK  ]
+2021-08-05 08:04:08 UTC Kubernetes nodes exist
+Waiting for all Kubernetes nodes to be ready                                 [ .... ]
+Waiting for all Kubernetes nodes to be ready                                 [  OK  ]
+2021-08-05 08:04:08 UTC Adding label needed by network policies to kube-system namespace
+Creating istio-system namespace                                              [ .... ]
+Creating istio-system namespace                                              [  OK  ]
+2021-08-05 08:04:09 UTC Adding label needed by network policies to istio-system namespace
+Generating Istio CA bundle                                                   [ .... ]
+2021-08-05 08:04:10 UTC Generating CA bundle for Istio
+Generating Istio CA bundle                                                   [  OK  ]
+Installing Istio                                                             [ .... ]
+2021-08-05 08:04:13 UTC Deployment status for istio-system/istio-base: 
+2021-08-05 08:04:13 UTC Resetting chart state for istio-system/istio-base at /verrazzano/platform-operator/thirdparty/charts/istio/base if necessary
+2021-08-05 08:04:14 UTC Installing Istio base
+2021-08-05 08:04:24 UTC Deployment status for istio-system/istiod: 
+2021-08-05 08:04:24 UTC Resetting chart state for istio-system/istiod at /verrazzano/platform-operator/thirdparty/charts/istio/istio-control/istio-discovery if necessary
+2021-08-05 08:04:25 UTC Installing Istio discovery
+2021-08-05 08:04:35 UTC Generate Istio ingress specific configuration
+2021-08-05 08:04:36 UTC Deployment status for istio-system/istio-ingress: 
+2021-08-05 08:04:36 UTC Resetting chart state for istio-system/istio-ingress at /verrazzano/platform-operator/thirdparty/charts/istio/gateways/istio-ingress if necessary
+2021-08-05 08:04:36 UTC Installing Istio ingress
+2021-08-05 08:04:38 UTC Deployment status for istio-system/istio-egress: 
+2021-08-05 08:04:38 UTC Resetting chart state for istio-system/istio-egress at /verrazzano/platform-operator/thirdparty/charts/istio/gateways/istio-egress if necessary
+2021-08-05 08:04:39 UTC Installing Istio egress
+2021-08-05 08:04:40 UTC Deployment status for istio-system/istiocoredns: 
+2021-08-05 08:04:40 UTC Resetting chart state for istio-system/istiocoredns at /verrazzano/platform-operator/thirdparty/charts/istio/istiocoredns if necessary
+2021-08-05 08:04:40 UTC Installing istiocoredns
+2021-08-05 08:04:42 UTC Setting Istio global mesh policy to STRICT mode
+2021-08-05 08:04:45 UTC Adding Istio server header network filter
+2021-08-05 08:04:46 UTC Waiting for all the pods in istio-system namespace to reach ready state
+Installing Istio                                                             [  OK  ]
+Output redirected to /verrazzano/platform-operator/scripts/install/build/logs/2-install-system-components.sh.log
+2021-08-05 08:05:05 UTC Reading installation config file /config/config.json
+Installing NGINX Ingress Controller                                          [ .... ]
+2021-08-05 08:05:05 UTC Deployment status for ingress-nginx/ingress-controller: 
+2021-08-05 08:05:05 UTC Resetting chart state for ingress-nginx/ingress-controller at /verrazzano/platform-operator/thirdparty/charts/ingress-nginx if necessary
+Installing NGINX Ingress Controller                                          [FAILED]
+
+A failure occurred. Exiting with code 1. See /verrazzano/platform-operator/scripts/install/build/logs/2-install-system-components.sh.log for details.
+**************************************************************
+ Dumping the installation logs contained in install/build/logs
+**************************************************************
+[2021-08-05 08:04:07 UTC] Output captured for /verrazzano/platform-operator/scripts/install/1-install-istio.sh
+[2021-08-05 08:04:07 UTC] 2021-08-05 08:04:07 UTC Reading installation config file /config/config.json
+[2021-08-05 08:04:07 UTC] Checking Kubernetes version                                                  [ .... ]
+[2021-08-05 08:04:07 UTC] 2021-08-05 08:04:07 UTC ------Begin Kubernetes Version Info----
+[2021-08-05 08:04:07 UTC] 2021-08-05 08:04:07 UTC {
+[2021-08-05 08:04:07 UTC]   "clientVersion": {
+[2021-08-05 08:04:07 UTC]     "major": "1",
+[2021-08-05 08:04:07 UTC]     "minor": "18",
+[2021-08-05 08:04:07 UTC]     "gitVersion": "v1.18.18+2.el7",
+[2021-08-05 08:04:07 UTC]     "gitCommit": "2703f125e16512f335a7bd201778f6304dc851d2",
+[2021-08-05 08:04:07 UTC]     "gitTreeState": "clean",
+[2021-08-05 08:04:07 UTC]     "buildDate": "2021-04-28T16:58:28Z",
+[2021-08-05 08:04:07 UTC]     "goVersion": "go1.15.10",
+[2021-08-05 08:04:07 UTC]     "compiler": "gc",
+[2021-08-05 08:04:07 UTC]     "platform": "linux/amd64"
+[2021-08-05 08:04:07 UTC]   },
+[2021-08-05 08:04:07 UTC]   "serverVersion": {
+[2021-08-05 08:04:07 UTC]     "major": "1",
+[2021-08-05 08:04:07 UTC]     "minor": "20",
+[2021-08-05 08:04:07 UTC]     "gitVersion": "v1.20.8",
+[2021-08-05 08:04:07 UTC]     "gitCommit": "50317190d44dbdb51ae7ff430917b32ba96188b5",
+[2021-08-05 08:04:07 UTC]     "gitTreeState": "clean",
+[2021-08-05 08:04:07 UTC]     "buildDate": "2021-06-30T14:20:31Z",
+[2021-08-05 08:04:07 UTC]     "goVersion": "go1.15.13 BoringCrypto",
+[2021-08-05 08:04:07 UTC]     "compiler": "gc",
+[2021-08-05 08:04:07 UTC]     "platform": "linux/amd64"
+[2021-08-05 08:04:07 UTC]   }
+[2021-08-05 08:04:07 UTC] }
+[2021-08-05 08:04:07 UTC] 2021-08-05 08:04:07 UTC ------End Kubernetes Version Info----
+[2021-08-05 08:04:07 UTC] Checking Kubernetes version                                                  [  OK  ]
+[2021-08-05 08:04:07 UTC] Checking Helm version                                                        [ .... ]
+[2021-08-05 08:04:07 UTC] WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:07 UTC] WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:07 UTC] 2021-08-05 08:04:07 UTC Helm version is v3.3.4+g82f031c
+[2021-08-05 08:04:07 UTC] Checking Helm version                                                        [  OK  ]
+[2021-08-05 08:04:07 UTC] Waiting for all Kubernetes nodes to exist in cluster                         [ .... ]
+[2021-08-05 08:04:08 UTC] NAME          STATUS   ROLES   AGE     VERSION
+[2021-08-05 08:04:08 UTC] Waiting for all Kubernetes nodes to exist in cluster                         [  OK  ]
+[2021-08-05 08:04:08 UTC] 2021-08-05 08:04:08 UTC Kubernetes nodes exist
+[2021-08-05 08:04:08 UTC] Waiting for all Kubernetes nodes to be ready                                 [ .... ]
+[2021-08-05 08:04:08 UTC] node/10.0.10.131 condition met
+[2021-08-05 08:04:08 UTC] node/10.0.10.244 condition met
+[2021-08-05 08:04:08 UTC] node/10.0.10.42 condition met
+[2021-08-05 08:04:08 UTC] Waiting for all Kubernetes nodes to be ready                                 [  OK  ]
+[2021-08-05 08:04:08 UTC] 2021-08-05 08:04:08 UTC Adding label needed by network policies to kube-system namespace
+[2021-08-05 08:04:08 UTC] namespace/kube-system labeled
+[2021-08-05 08:04:09 UTC] Creating istio-system namespace                                              [ .... ]
+[2021-08-05 08:04:09 UTC] namespace/istio-system created
+[2021-08-05 08:04:09 UTC] Creating istio-system namespace                                              [  OK  ]
+[2021-08-05 08:04:09 UTC] 2021-08-05 08:04:09 UTC Adding label needed by network policies to istio-system namespace
+[2021-08-05 08:04:09 UTC] namespace/istio-system labeled
+[2021-08-05 08:04:10 UTC] Generating Istio CA bundle                                                   [ .... ]
+[2021-08-05 08:04:10 UTC] 2021-08-05 08:04:10 UTC Generating CA bundle for Istio
+[2021-08-05 08:04:10 UTC] Generating RSA private key, 4096 bit long modulus
+[2021-08-05 08:04:12 UTC] ............................................................................................................................................................................................................................................................................................++
+[2021-08-05 08:04:12 UTC] ...................................................................................................................................................++
+[2021-08-05 08:04:12 UTC] e is 65537 (0x10001)
+[2021-08-05 08:04:12 UTC] Generating RSA private key, 4096 bit long modulus
+[2021-08-05 08:04:13 UTC] ..........................++
+[2021-08-05 08:04:13 UTC] ..............................++
+[2021-08-05 08:04:13 UTC] e is 65537 (0x10001)
+[2021-08-05 08:04:13 UTC] Using configuration from /verrazzano/platform-operator/scripts/install/config/istio_root_ca_config.txt
+[2021-08-05 08:04:13 UTC] Check that the request matches the signature
+[2021-08-05 08:04:13 UTC] Signature ok
+[2021-08-05 08:04:13 UTC] The Subject's Distinguished Name is as follows
+[2021-08-05 08:04:13 UTC] countryName           :PRINTABLE:'US'
+[2021-08-05 08:04:13 UTC] stateOrProvinceName   :ASN.1 12:'CA'
+[2021-08-05 08:04:13 UTC] organizationName      :ASN.1 12:'Oracle Corporation'
+[2021-08-05 08:04:13 UTC] commonName            :ASN.1 12:'Intermediate CA'
+[2021-08-05 08:04:13 UTC] Certificate is to be certified until Aug  3 08:04:13 2031 GMT (3650 days)
+[2021-08-05 08:04:13 UTC] 
+[2021-08-05 08:04:13 UTC] Write out database with 1 new entries
+[2021-08-05 08:04:13 UTC] Data Base Updated
+[2021-08-05 08:04:13 UTC] secret/cacerts created
+[2021-08-05 08:04:13 UTC] Generating Istio CA bundle                                                   [  OK  ]
+[2021-08-05 08:04:13 UTC] Installing Istio                                                             [ .... ]
+[2021-08-05 08:04:13 UTC] 2021-08-05 08:04:13 UTC Deployment status for istio-system/istio-base: 
+[2021-08-05 08:04:13 UTC] 2021-08-05 08:04:13 UTC Resetting chart state for istio-system/istio-base at /verrazzano/platform-operator/thirdparty/charts/istio/base if necessary
+[2021-08-05 08:04:14 UTC] 2021-08-05 08:04:14 UTC Installing Istio base
+[2021-08-05 08:04:14 UTC] WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:14 UTC] WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:14 UTC] Release "istio-base" does not exist. Installing it now.
+[2021-08-05 08:04:24 UTC] NAME: istio-base
+[2021-08-05 08:04:24 UTC] LAST DEPLOYED: Thu Aug  5 08:04:20 2021
+[2021-08-05 08:04:24 UTC] NAMESPACE: istio-system
+[2021-08-05 08:04:24 UTC] STATUS: deployed
+[2021-08-05 08:04:24 UTC] REVISION: 1
+[2021-08-05 08:04:24 UTC] TEST SUITE: None
+[2021-08-05 08:04:24 UTC] 2021-08-05 08:04:24 UTC Deployment status for istio-system/istiod: 
+[2021-08-05 08:04:24 UTC] 2021-08-05 08:04:24 UTC Resetting chart state for istio-system/istiod at /verrazzano/platform-operator/thirdparty/charts/istio/istio-control/istio-discovery if necessary
+[2021-08-05 08:04:25 UTC] 2021-08-05 08:04:25 UTC Installing Istio discovery
+[2021-08-05 08:04:25 UTC] WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:25 UTC] WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:26 UTC] Release "istiod" does not exist. Installing it now.
+[2021-08-05 08:04:35 UTC] NAME: istiod
+[2021-08-05 08:04:35 UTC] LAST DEPLOYED: Thu Aug  5 08:04:29 2021
+[2021-08-05 08:04:35 UTC] NAMESPACE: istio-system
+[2021-08-05 08:04:35 UTC] STATUS: deployed
+[2021-08-05 08:04:35 UTC] REVISION: 1
+[2021-08-05 08:04:35 UTC] TEST SUITE: None
+[2021-08-05 08:04:35 UTC] 2021-08-05 08:04:35 UTC Generate Istio ingress specific configuration
+[2021-08-05 08:04:36 UTC] 2021-08-05 08:04:36 UTC Deployment status for istio-system/istio-ingress: 
+[2021-08-05 08:04:36 UTC] 2021-08-05 08:04:36 UTC Resetting chart state for istio-system/istio-ingress at /verrazzano/platform-operator/thirdparty/charts/istio/gateways/istio-ingress if necessary
+[2021-08-05 08:04:36 UTC] 2021-08-05 08:04:36 UTC Installing Istio ingress
+[2021-08-05 08:04:37 UTC] WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:37 UTC] WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:37 UTC] Release "istio-ingress" does not exist. Installing it now.
+[2021-08-05 08:04:38 UTC] NAME: istio-ingress
+[2021-08-05 08:04:38 UTC] LAST DEPLOYED: Thu Aug  5 08:04:37 2021
+[2021-08-05 08:04:38 UTC] NAMESPACE: istio-system
+[2021-08-05 08:04:38 UTC] STATUS: deployed
+[2021-08-05 08:04:38 UTC] REVISION: 1
+[2021-08-05 08:04:38 UTC] TEST SUITE: None
+[2021-08-05 08:04:38 UTC] 2021-08-05 08:04:38 UTC Deployment status for istio-system/istio-egress: 
+[2021-08-05 08:04:38 UTC] 2021-08-05 08:04:38 UTC Resetting chart state for istio-system/istio-egress at /verrazzano/platform-operator/thirdparty/charts/istio/gateways/istio-egress if necessary
+[2021-08-05 08:04:39 UTC] 2021-08-05 08:04:39 UTC Installing Istio egress
+[2021-08-05 08:04:39 UTC] WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:39 UTC] WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:39 UTC] Release "istio-egress" does not exist. Installing it now.
+[2021-08-05 08:04:40 UTC] NAME: istio-egress
+[2021-08-05 08:04:40 UTC] LAST DEPLOYED: Thu Aug  5 08:04:39 2021
+[2021-08-05 08:04:40 UTC] NAMESPACE: istio-system
+[2021-08-05 08:04:40 UTC] STATUS: deployed
+[2021-08-05 08:04:40 UTC] REVISION: 1
+[2021-08-05 08:04:40 UTC] TEST SUITE: None
+[2021-08-05 08:04:40 UTC] 2021-08-05 08:04:40 UTC Deployment status for istio-system/istiocoredns: 
+[2021-08-05 08:04:40 UTC] 2021-08-05 08:04:40 UTC Resetting chart state for istio-system/istiocoredns at /verrazzano/platform-operator/thirdparty/charts/istio/istiocoredns if necessary
+[2021-08-05 08:04:40 UTC] 2021-08-05 08:04:40 UTC Installing istiocoredns
+[2021-08-05 08:04:41 UTC] WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:41 UTC] WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:04:41 UTC] Release "istiocoredns" does not exist. Installing it now.
+[2021-08-05 08:04:42 UTC] NAME: istiocoredns
+[2021-08-05 08:04:42 UTC] LAST DEPLOYED: Thu Aug  5 08:04:41 2021
+[2021-08-05 08:04:42 UTC] NAMESPACE: istio-system
+[2021-08-05 08:04:42 UTC] STATUS: deployed
+[2021-08-05 08:04:42 UTC] REVISION: 1
+[2021-08-05 08:04:42 UTC] TEST SUITE: None
+[2021-08-05 08:04:42 UTC] 2021-08-05 08:04:42 UTC Setting Istio global mesh policy to STRICT mode
+[2021-08-05 08:04:45 UTC] peerauthentication.security.istio.io/default created
+[2021-08-05 08:04:45 UTC] 2021-08-05 08:04:45 UTC Adding Istio server header network filter
+[2021-08-05 08:04:46 UTC] envoyfilter.networking.istio.io/server-header-filter created
+[2021-08-05 08:04:46 UTC] 2021-08-05 08:04:46 UTC Waiting for all the pods in istio-system namespace to reach ready state
+[2021-08-05 08:05:05 UTC] pod/istio-egressgateway-8549989759-spnsr condition met
+[2021-08-05 08:05:05 UTC] pod/istio-ingressgateway-7bb5fb7b66-222pz condition met
+[2021-08-05 08:05:05 UTC] pod/istiocoredns-fddffc4-dqjwh condition met
+[2021-08-05 08:05:05 UTC] pod/istiod-695b54f4bf-25x7n condition met
+[2021-08-05 08:05:05 UTC] Installing Istio                                                             [  OK  ]
+[2021-08-05 08:05:05 UTC] Output captured for /verrazzano/platform-operator/scripts/install/2-install-system-components.sh
+[2021-08-05 08:05:05 UTC] 2021-08-05 08:05:05 UTC Reading installation config file /config/config.json
+[2021-08-05 08:05:05 UTC] Installing NGINX Ingress Controller                                          [ .... ]
+[2021-08-05 08:05:05 UTC] 2021-08-05 08:05:05 UTC Deployment status for ingress-nginx/ingress-controller: 
+[2021-08-05 08:05:05 UTC] 2021-08-05 08:05:05 UTC Resetting chart state for ingress-nginx/ingress-controller at /verrazzano/platform-operator/thirdparty/charts/ingress-nginx if necessary
+[2021-08-05 08:05:06 UTC] Error from server (NotFound): namespaces "ingress-nginx" not found
+[2021-08-05 08:05:07 UTC] namespace/ingress-nginx created
+[2021-08-05 08:05:07 UTC] namespace/ingress-nginx labeled
+[2021-08-05 08:05:07 UTC] WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:05:07 UTC] WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /home/verrazzano/kubeconfig
+[2021-08-05 08:05:07 UTC] Release "ingress-controller" does not exist. Installing it now.
+[2021-08-05 08:20:08 UTC] Error: timed out waiting for the condition
+[2021-08-05 08:20:08 UTC] Installing NGINX Ingress Controller                                          [FAILED]
+==== END logs for container install of pod default/verrazzano-install-my-verrazzano-lg7lf ====
