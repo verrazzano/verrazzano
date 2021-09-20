@@ -70,7 +70,7 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 			return err
 		}
 
-		log.Infof("Created values file: %s", tmpFile.Name())
+		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 	//_, _, err = upgradeFunc(log, i.ValuesFile, tmpFile.Name())
 	_, _, err = upgradeFunc(log, i.ValuesFile)
