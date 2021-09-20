@@ -359,6 +359,8 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	containersFieldPath := []string{"spec", "template", "spec", "containers"}
 	volumeMountsFieldPath := []string{"volumeMounts"}
 	volumesFieldPath := []string{"spec", "template", "spec", "volumes"}
+	configMapName := loggingNamePart + "-" + helidon.GetName() + "-" + strings.ToLower(reflect.TypeOf(helidon).Name())
+	configMap := &corev1.ConfigMap{}
 
 	log.Info(fmt.Sprintf("Adding logging trait for workload: %s", workload.Name))
 	loggingTrait, err := vznav.LoggingTraitFromWorkloadLabels(ctx, r.Client, log, workload.GetNamespace(), workload.ObjectMeta)
@@ -370,8 +372,6 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		return nil
 	}
 
-	configMapName := loggingNamePart + "-" + helidon.GetName() + "-" + strings.ToLower(reflect.TypeOf(helidon).Name())
-	configMap := &corev1.ConfigMap{}
 	err = r.Get(ctx, client.ObjectKey{Namespace: helidon.GetNamespace(), Name: configMapName}, configMap)
 	if err != nil && k8serrors.IsNotFound(err) {
 		configMap = &corev1.ConfigMap{
@@ -394,6 +394,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	} else if err != nil {
 		return err
 	}
+
 	log.Info(fmt.Sprintf("logging trait configmap %s:%s already exist", helidon.GetNamespace(), configMapName))
 
 	uDeploy, err := runtime.DefaultUnstructuredConverter.ToUnstructured(helidon)
