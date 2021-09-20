@@ -22,13 +22,4 @@ if [ $INSTALL_PROFILE == "dev" ]; then
   yq -i eval ".spec.components.keycloak.mysql.mysqlInstallArgs.[0].name = \"persistence.enabled\"" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.keycloak.mysql.mysqlInstallArgs.[0].value = \"false\"" ${INSTALL_CONFIG_TO_EDIT}
 fi
-
-if [ $VZ_ENVIRONMENT_NAME == "admin" ] && [ $EXTERNAL_ELASTICSEARCH == "true" ]; then
-  EXTERNAL_ES_SECRET=external-es-secret
-  # TODO how to get nginx ingress IP before nginx installation
-  EXTERNAL_ES_URL=https://external-es.default.172.18.0.232.nip.io
-  yq -i eval ".spec.components.fluentd.elasticsearchSecret = \"${EXTERNAL_ES_SECRET}\"" ${INSTALL_CONFIG_TO_EDIT}
-  yq -i eval ".spec.components.fluentd.elasticsearchURL = \"${EXTERNAL_ES_URL}\"" ${INSTALL_CONFIG_TO_EDIT}
-fi
-
 cat ${INSTALL_CONFIG_TO_EDIT}
