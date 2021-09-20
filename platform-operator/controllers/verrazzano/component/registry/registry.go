@@ -168,9 +168,8 @@ func GetComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
 			AppendOverridesFunc:     keycloak.AppendKeycloakOverrides,
 		},
-		istio.IstioComponent{
-			ComponentName: "istio",
-		},
+		// istio upgrade code still in development so cannot have IstioComponent instance in the registry yet
+		// istio.IstioComponent{},
 	}
 }
 
