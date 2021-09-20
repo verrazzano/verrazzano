@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -355,6 +356,10 @@ func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace 
 }
 
 func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoHelidonWorkload, helidon *appsv1.Deployment) error {
+	containersFieldPath := []string{"spec", "template", "spec", "containers"}
+	volumeMountsFieldPath := []string{"volumeMounts"}
+	volumesFieldPath := []string{"spec", "template", "spec", "volumes"}
+
 	log.Info(fmt.Sprintf("Adding logging trait for workload: %s", workload.Name))
 	loggingTrait, err := vznav.LoggingTraitFromWorkloadLabels(ctx, r.Client, log, workload.GetNamespace(), workload.ObjectMeta)
 	if err != nil {
@@ -364,13 +369,14 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		log.Info("Workload has no associated LoggingTrait, nothing to do")
 		return nil
 	}
-	configMapName := loggingNamePart + "-" + helidon.GetName() + "-" + strings.ToLower(helidon.Kind)
+
+	configMapName := loggingNamePart + "-" + helidon.GetName() + "-" + strings.ToLower(reflect.TypeOf(helidon).Name())
 	configMap := &corev1.ConfigMap{}
 	err = r.Get(ctx, client.ObjectKey{Namespace: helidon.GetNamespace(), Name: configMapName}, configMap)
 	if err != nil && k8serrors.IsNotFound(err) {
 		configMap = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      loggingNamePart + "-" + helidon.GetName() + "-" + strings.ToLower(helidon.Kind),
+				Name:      loggingNamePart + "-" + helidon.GetName() + "-" + strings.ToLower(reflect.TypeOf(helidon).Name()),
 				Namespace: helidon.GetNamespace(),
 				Labels:    helidon.GetLabels(),
 			},
@@ -389,6 +395,118 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		return err
 	}
 	log.Info(fmt.Sprintf("logging trait configmap %s:%s already exist", helidon.GetNamespace(), configMapName))
+
+	uDeploy, err := runtime.DefaultUnstructuredConverter.ToUnstructured(helidon)
+	if err != nil {
+		return err
+	}
+	uContainers, ok, err := unstructured.NestedSlice(uDeploy, containersFieldPath...)
+	if !ok || err != nil {
+		return err
+	}
+	loggingVolumeMount := &corev1.VolumeMount{
+		MountPath: loggingMountPath,
+		Name:      configMapName,
+		SubPath:   loggingKey,
+		ReadOnly:  true,
+	}
+	uLoggingVolumeMount, err := runtime.DefaultUnstructuredConverter.ToUnstructured(loggingVolumeMount)
+	if err != nil {
+		return err
+	}
+	var containerVolumeMounts []interface{}
+	for _, container := range uContainers {
+		uc := container.(*unstructured.Unstructured)
+		volumeMounts, ok, err := unstructured.NestedSlice(uc.Object, volumeMountsFieldPath...)
+		if !ok || err != nil {
+			return err
+		}
+		containerVolumeMounts = append(containerVolumeMounts, volumeMounts...)
+	}
+	containerVolumeMounts = append(containerVolumeMounts, uLoggingVolumeMount)
+
+	loggingContainer := &corev1.Container{
+		Name:            loggingNamePart,
+		Image:           loggingTrait.Spec.LoggingImage,
+		ImagePullPolicy: corev1.PullIfNotPresent,
+	}
+
+	uLoggingContainer, err := runtime.DefaultUnstructuredConverter.ToUnstructured(loggingContainer)
+	if err != nil {
+		log.Error(err, "Failed to unmarshal a container for logging")
+	}
+
+	err = unstructured.SetNestedSlice(uLoggingContainer, containerVolumeMounts, volumeMountsFieldPath...)
+	if err != nil {
+		return err
+	}
+
+	repeatNo := 0
+	repeat := false
+	for i, c := range uContainers {
+		if loggingContainer.Name == c.(map[string]interface{})["name"] {
+			repeat = true
+			repeatNo = i
+			break
+		}
+	}
+	if repeat {
+		uContainers[repeatNo] = uLoggingContainer
+	} else {
+		uContainers = append(uContainers, uLoggingContainer)
+	}
+
+	err = unstructured.SetNestedSlice(uDeploy, uContainers, containersFieldPath...)
+	if err != nil {
+		return err
+	}
+
+	uVolumes, ok, err := unstructured.NestedSlice(uDeploy, volumesFieldPath...)
+	if !ok || err != nil {
+		return err
+	}
+	loggingVolume := &corev1.Volume{
+		Name: configMapName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: configMapName,
+				},
+				DefaultMode: func(mode int32) *int32 {
+					return &mode
+				}(420),
+			},
+		},
+	}
+	uLoggingVolume, err := runtime.DefaultUnstructuredConverter.ToUnstructured(loggingVolume)
+	if err != nil {
+		return err
+	}
+	repeatNo = 0
+	repeat = false
+	for i, v := range uVolumes {
+		if loggingVolume.Name == v.(map[string]interface{})["name"] {
+			log.Info("Volume was discarded because of duplicate names", "volume name", loggingVolume.Name)
+			repeat = true
+			repeatNo = i
+			break
+		}
+	}
+	if repeat {
+		uVolumes[repeatNo] = uLoggingVolume
+	} else {
+		uVolumes = append(uVolumes, uLoggingVolume)
+	}
+
+	err = unstructured.SetNestedSlice(uDeploy, uVolumes, volumesFieldPath...)
+	if err != nil {
+		return err
+	}
+
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(uDeploy, helidon)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
