@@ -246,7 +246,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in managed cluster fluentd Daemonset setting")
 			} else {
 				Eventually(func() bool {
-					return pkg.AssertFluentdURLAndSecret(vmiEsURL, "verrazzano-cluster-registration")
+					return pkg.AssertFluentdURLAndSecret(vmiEsIngressURL, "verrazzano-cluster-registration")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES  in managed cluster fluentd Daemonset setting")
 			}
 		})
@@ -342,7 +342,7 @@ func assertRegistrationSecret() {
 		Expect(regSecret.Data["password"]).To(Equal(esSecret.Data["password"]))
 		Expect(regSecret.Data["es-ca-bundle"]).To(Equal(esSecret.Data["ca-bundle"]))
 	} else {
-		Expect(string(regSecret.Data["es-url"])).To(Equal(vmiEsURL))
+		Expect(string(regSecret.Data["es-url"])).To(Equal(vmiEsIngressURL))
 		vmiEsInternalSecret, err := pkg.GetSecretInCluster("verrazzano-system", "verrazzano-es-internal", os.Getenv("ADMIN_KUBECONFIG"))
 		Expect(err).To(BeNil())
 		Expect(regSecret.Data["username"]).To(Equal(vmiEsInternalSecret.Data["username"]))
@@ -357,4 +357,4 @@ func assertRegistrationSecret() {
 const externalEsURL = "https://external-es.default.172.18.0.232.nip.io"
 
 // todo do not hard code VMI ingress url
-const vmiEsURL = "https://elasticsearch.vmi.system.admin.172.18.0.232.nip.io:443"
+const vmiEsIngressURL = "https://elasticsearch.vmi.system.admin.172.18.0.232.nip.io:443"
