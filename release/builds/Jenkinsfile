@@ -148,6 +148,10 @@ pipeline {
                     steps {
                         script {
                             sh """
+                                ls -l ${WORKSPACE}
+                                ls -l ${WORKSPACE}/verrazzano
+                                ls -l ${WORKSPACE}/verrazzano/release
+                                ls -l ${WORKSPACE}/verrazzano/release/scripts
                                 ${WORKSPACE}/verrazzano/release/scripts/create_branch.sh -c ${params.COMMIT_TO_USE} -v ${params.TARGET_VERSION}
                             """
                         }
