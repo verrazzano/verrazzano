@@ -161,7 +161,7 @@ pipeline {
                                         }
                                      }
                                  }
-                                 if (!found)) {
+                                 if (!found) {
                                     error("Build number and commit to use do not correlate. Requested commit: ${params.COMMIT_TO_USE}")
                                  }
                              } else {
