@@ -1,6 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+//TODO:  should we just use 2.8 for this pipline?
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def DOCKER_IMAGE_TAG
 def releaseBuild
@@ -85,7 +86,7 @@ pipeline {
         stage('Release or Patch?') {
             steps {
                 script {
-                    env.IS_PATCH_RELEASE = params.SOURCE_BRANCH.equals('master') ? 'false' : 'true'
+                    env.IS_PATCH_RELEASE = params.SOURCE_BRANCH.equals('master') || params.SOURCE_BRANCH.equals('jmaron/VZ-3509')? 'false' : 'true'
                     echo "Patch release? ${env.IS_PATCH_RELEASE}"
                 }
             }
