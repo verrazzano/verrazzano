@@ -579,6 +579,11 @@ pipeline {
                         }
                     }
                 }
+                stage ('verify deregister') {
+                    steps {
+                        verifyDeregisterManagedClusters()
+                    }
+                }
                 stage ('Uninstall Verrazzano') {
                     steps {
                         script {
@@ -966,6 +971,23 @@ def verifyRegisterManagedClusters() {
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                     ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-register/...
+                """
+            }
+        }
+    }
+}
+
+// Verify the deregister of the managed clusters
+def verifyDeregisterManagedClusters() {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        script {
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            for(int count=2; count<=clusterCount; count++) {
+                sh """
+                    export MANAGED_CLUSTER_NAME="managed${count-1}"
+                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                    ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-deregister/...
                 """
             }
         }
