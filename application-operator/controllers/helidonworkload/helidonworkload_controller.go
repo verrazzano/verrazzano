@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -426,9 +427,15 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	containerVolumeMounts = append(containerVolumeMounts, uLoggingVolumeMount)
 
+	var image string
+	if len(loggingTrait.Spec.LoggingImage) != 0 {
+		image = loggingTrait.Spec.LoggingImage
+	} else {
+		image = os.Getenv("DEFAULT_FLUENTD_IMAGE")
+	}
 	loggingContainer := &corev1.Container{
 		Name:            loggingNamePart,
-		Image:           loggingTrait.Spec.LoggingImage,
+		Image:           image,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 	}
 
