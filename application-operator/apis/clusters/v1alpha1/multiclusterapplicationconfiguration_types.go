@@ -16,8 +16,11 @@ type MultiClusterApplicationConfigurationSpec struct {
 	// The embedded OAM ApplicationConfiguration
 	Template ApplicationConfigurationTemplate `json:"template"`
 
-	// Clusters in which the secret is to be placed
+	// Clusters in which the application is to be placed
 	Placement Placement `json:"placement"`
+
+	// List of secrets used by the application
+	Secrets map[string]string `json:"secrets,omitempty"`
 }
 
 // ApplicationConfigurationTemplate has the metadata and spec of the underlying

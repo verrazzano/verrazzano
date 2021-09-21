@@ -44,7 +44,7 @@ spec:
               state of MultiClusterApplicationConfiguration
             properties:
               placement:
-                description: Clusters in which the secret is to be placed
+                description: Clusters in which the application is to be placed
                 properties:
                   clusters:
                     items:
@@ -59,6 +59,11 @@ spec:
                     type: array
                 required:
                 - clusters
+                type: object
+              secrets:
+                additionalProperties:
+                  type: string
+                description: List of secrets used by the application
                 type: object
               template:
                 description: The embedded OAM ApplicationConfiguration
