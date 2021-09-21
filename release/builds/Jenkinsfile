@@ -149,8 +149,8 @@ pipeline {
                     steps {
                         script {
                             sh """
-                                cd ${WORKSPACE}
-                                ./create_branch.sh -c ${params.COMMIT_TO_USE} -v ${params.TARGET_VERSION}
+                                cd ${WORKSPACE}/verrazzano
+                                ./release/scripts/create_branch.sh -c ${params.COMMIT_TO_USE} -v ${params.TARGET_VERSION}
                             """
                         }
                     }
