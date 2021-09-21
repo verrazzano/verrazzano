@@ -3,12 +3,16 @@
 package weblogic
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 // Test_appendWeblogicOperatorOverridesExtraKVs tests the AppendWeblogicOperatorOverrides fn
@@ -44,4 +48,46 @@ func Test_weblogicOperatorPreInstall(t *testing.T) {
 	kvs, err := WeblogicOperatorPreInstall(zap.S(), client, "weblogic-operator", "verrazzano-system", "")
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 0)
+}
+
+// TestIsWeblogicOperatorReady tests the IsWeblogicOperatorReady function
+// GIVEN a call to IsWeblogicOperatorReady
+//  WHEN the deployment object has enough replicas available
+//  THEN true is returned
+func TestIsWeblogicOperatorReady(t *testing.T) {
+
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      wlsOperatorDeploymentName,
+		},
+		Status: appsv1.DeploymentStatus{
+			Replicas:            1,
+			ReadyReplicas:       1,
+			AvailableReplicas:   1,
+			UnavailableReplicas: 0,
+		},
+	})
+	assert.True(t, IsWeblogicOperatorReady(zap.S(), fakeClient, "", constants.VerrazzanoSystemNamespace))
+}
+
+// TestIsWeblogicOperatorNotReady tests the IsWeblogicOperatorReady function
+// GIVEN a call to IsWeblogicOperatorReady
+//  WHEN the deployment object does NOT have enough replicas available
+//  THEN false is returned
+func TestIsWeblogicOperatorNotReady(t *testing.T) {
+
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      wlsOperatorDeploymentName,
+		},
+		Status: appsv1.DeploymentStatus{
+			Replicas:            1,
+			ReadyReplicas:       0,
+			AvailableReplicas:   0,
+			UnavailableReplicas: 1,
+		},
+	})
+	assert.False(t, IsWeblogicOperatorReady(zap.S(), fakeClient, "", constants.VerrazzanoSystemNamespace))
 }

@@ -5,12 +5,12 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"strconv"
 	"strings"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -60,9 +60,11 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
 	log.Info(msg)
 	cr.Status.Version = targetVersion
-	err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
+	if err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete); err != nil {
+		return newRequeueWithDelay(), err
+	}
 
-	return ctrl.Result{}, err
+	return ctrl.Result{}, nil
 }
 
 // Return true if verrazzano is installed

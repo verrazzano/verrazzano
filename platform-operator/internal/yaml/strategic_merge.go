@@ -14,10 +14,14 @@ import (
 
 type PatchStrategy interface{}
 
-// MergeFiles merges the YAML files returns a YAML string.
+type yamlMap struct {
+	yMap map[string]interface{}
+}
+
+// StrategicMergeFiles merges the YAML files returns a YAML string.
 // The first file is overlayed by each subsequent file
 // The strategy is a JSON annotated structure that represents the YAML structure
-func MergeFiles(strategy PatchStrategy, yamlFiles ...string) (string, error) {
+func StrategicMergeFiles(strategy PatchStrategy, yamlFiles ...string) (string, error) {
 	var yamls []string
 	for _, f := range yamlFiles {
 		yam, err := ioutil.ReadFile(filepath.Join(f))
@@ -26,13 +30,13 @@ func MergeFiles(strategy PatchStrategy, yamlFiles ...string) (string, error) {
 		}
 		yamls = append(yamls, string(yam))
 	}
-	return MergeString(strategy, yamls...)
+	return StrategicMerge(strategy, yamls...)
 }
 
-// MergeString merges the YAML files returns a YAML string.
+// StrategicMerge merges the YAML files returns a YAML string.
 // The first YAML is overlayed by each subsequent YAML
 // The strategy is a JSON annotated structure that represents the YAML structure
-func MergeString(strategy PatchStrategy, yamls ...string) (string, error) {
+func StrategicMerge(strategy PatchStrategy, yamls ...string) (string, error) {
 	if len(yamls) == 0 {
 		return "", errors.New("At least 1 YAML file is required")
 	}
