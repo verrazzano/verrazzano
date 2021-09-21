@@ -9,12 +9,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 )
 
 // IstioComponent represents an Istio component
@@ -154,9 +156,16 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for _, deploy := range deploymentList.Items {
-		if contains(i.InjectedSystemNamespaces, deploy.Namespace) {
-			err = client.Update(context.TODO(), deploy.DeepCopyObject())
+	for _, deployment := range deploymentList.Items {
+		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
+			if deployment.Spec.Paused {
+				return errors.Newf("Deployment %v can't be restarted because it is paused", deployment.Name)
+			}
+			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			err = client.Update(context.TODO(), deployment.DeepCopyObject())
 			if err != nil {
 				return err
 			}
@@ -172,6 +181,10 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	}
 	for _, statefulSet := range statefulSetList.Items {
 		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
+			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
+				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			statefulSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
 			err = client.Update(context.TODO(), statefulSet.DeepCopyObject())
 			if err != nil {
 				return err
@@ -186,9 +199,13 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for _, deploy := range daemonSetList.Items {
-		if contains(i.InjectedSystemNamespaces, deploy.Namespace) {
-			err = client.Update(context.TODO(), deploy.DeepCopyObject())
+	for _, daemonSet := range daemonSetList.Items {
+		if contains(i.InjectedSystemNamespaces, daemonSet.Namespace) {
+			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
+				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			daemonSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			err = client.Update(context.TODO(), daemonSet.DeepCopyObject())
 			if err != nil {
 				return err
 			}
