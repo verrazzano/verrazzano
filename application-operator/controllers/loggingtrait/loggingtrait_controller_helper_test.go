@@ -4,6 +4,15 @@
 package loggingtrait
 
 import (
+	"fmt"
+	"github.com/gogo/protobuf/proto"
+	openapi_v2 "github.com/googleapis/gnostic/openapiv2"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/discovery"
+	restclient "k8s.io/client-go/rest"
+	"mime"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"testing"
 
@@ -21,9 +30,38 @@ func Test_struct2Unmarshal(t *testing.T) {
 		want    unstructured.Unstructured
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "volumeMountJSON",
+			args: args{
+				obj: &corev1.VolumeMount{
+					MountPath: loggingMountPath,
+					Name:      loggingVolume,
+					SubPath:   loggingKey,
+					ReadOnly:  true,
+				},
+			},
+			want: unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"mountPath": loggingMountPath,
+					"name":      loggingVolume,
+					"subPath":   loggingKey,
+					"readOnly":  true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "nilJSON",
+			args: args{
+				obj: nil,
+			},
+			want: unstructured.Unstructured{
+				Object: nil,
+			},
+			wantErr: false,
+		},
 	}
-	for _, tt := range tests {
+		for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := struct2Unmarshal(tt.args.obj)
 			if (err != nil) != tt.wantErr {
@@ -43,15 +81,44 @@ func Test_locateField(t *testing.T) {
 		res        *unstructured.Unstructured
 		fieldPaths [][]string
 	}
+
+	server, err := openapiSchemaFakeServer(t)
+	if err != nil {
+		t.Fatalf("Could not create fake server from openapi, %v", err)
+	}
+
+	client := discovery.NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
+	schema, err := client.OpenAPISchema()
+	if err != nil {
+		t.Fatalf("Could not create the schema for the discoveryClient, %v", err)
+	}
+	document, err := openapi.NewOpenAPIData(schema)
+	if err != nil {
+		t.Fatalf("Could not get document from given schema: %v", err)
+	}
+
+	resource1 := unstructured.Unstructured{}
+	resource1.SetAPIVersion("core/v1")
+	resource1.SetKind("namespace")
+
 	tests := []struct {
 		name  string
 		args  args
 		want  bool
 		want1 []string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "test1",
+			args: args{
+				document:   document,
+				res:        &resource1,
+				fieldPaths: [][]string{{"fake.type.1"}},
+			},
+			want: true,
+			want1: []string{"test"},
+		},
 	}
-	for _, tt := range tests {
+		for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got1 := locateField(tt.args.document, tt.args.res, tt.args.fieldPaths)
 			if got != tt.want {
@@ -139,5 +206,115 @@ func Test_locateVolumeMountsField(t *testing.T) {
 				t.Errorf("locateVolumeMountsField() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
+	}
+}
+
+
+func openapiSchemaFakeServer(t *testing.T) (*httptest.Server, error) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path != "/openapi/v2" {
+			errMsg := fmt.Sprintf("Unexpected url %v", req.URL)
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(errMsg))
+			t.Errorf("testing should fail as %s", errMsg)
+			return
+		}
+		if req.Method != "GET" {
+			errMsg := fmt.Sprintf("Unexpected method %v", req.Method)
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			w.Write([]byte(errMsg))
+			t.Errorf("testing should fail as %s", errMsg)
+			return
+		}
+		decipherableFormat := req.Header.Get("Accept")
+		if decipherableFormat != "application/com.github.proto-openapi.spec.v2@v1.0+protobuf" {
+			errMsg := fmt.Sprintf("Unexpected accept mime type %v", decipherableFormat)
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+			w.Write([]byte(errMsg))
+			t.Errorf("testing should fail as %s", errMsg)
+			return
+		}
+
+		mime.AddExtensionType(".pb-v1", "application/com.github.googleapis.gnostic.OpenAPIv2@68f4ded+protobuf")
+
+		output, err := proto.Marshal(returnedOpenAPI())
+		if err != nil {
+			errMsg := fmt.Sprintf("Unexpected marshal error: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(errMsg))
+			t.Errorf("testing should fail as %s", errMsg)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write(output)
+	}))
+
+	return server, nil
+}
+
+func returnGVKYaml() string {
+	return `
+- group: core
+  version: v1
+  kind: namespace`
+}
+
+func returnedOpenAPI() *openapi_v2.Document {
+	return &openapi_v2.Document{
+		Definitions: &openapi_v2.Definitions{
+			AdditionalProperties: []*openapi_v2.NamedSchema{
+				{
+					Name: "namespace",
+					Value: &openapi_v2.Schema{
+						Properties: &openapi_v2.Properties{
+							AdditionalProperties: []*openapi_v2.NamedSchema{
+								{
+									Name: "metadata",
+									Value: &openapi_v2.Schema{
+										Properties: &openapi_v2.Properties{
+											AdditionalProperties: []*openapi_v2.NamedSchema{
+												{
+													Name: "name",
+													Value: &openapi_v2.Schema{
+														Type: &openapi_v2.TypeItem{
+															Value: []string{"string"},
+														},
+													},
+												},
+												{
+													Name: "labels",
+													Value: &openapi_v2.Schema{
+														Properties: &openapi_v2.Properties{
+															AdditionalProperties: []*openapi_v2.NamedSchema{
+																{
+																	Name: "name",
+																	Value: &openapi_v2.Schema{
+																		Type: &openapi_v2.TypeItem{
+																			Value: []string{"string"},
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						VendorExtension: []*openapi_v2.NamedAny{
+							{
+								Name: "x-kubernetes-group-version-kind",
+								Value: &openapi_v2.Any{
+									Yaml: returnGVKYaml(),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }
