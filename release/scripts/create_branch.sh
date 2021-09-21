@@ -55,6 +55,7 @@ else
     echo "creating branch"
     # ensure we are branching off of a verrazzano master branch
     CURRENT_REPO=$(basename `git rev-parse --show-toplevel`)
+    echo "Current Repo: ${CURRENT_REPO}"
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
     if [ "${CURRENT_REPO}" != "${EXPECTED_SOURCE_REPO}" ]; then
