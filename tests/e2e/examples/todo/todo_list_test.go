@@ -234,18 +234,18 @@ var _ = Describe("Verify ToDo List example application.", func() {
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that metrics are being collected
 		It("Retrieve Prometheus scraped metrics", func() {
-			//			pkg.Concurrently(
-			//				func() {
-			Eventually(func() bool {
-				return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_name", "todo-appconf")
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find metrics for todo-list")
-			//				},
-			//				func() {
-			Eventually(func() bool {
-				return pkg.MetricsExist("wls_scrape_mbeans_count_total", "app_oam_dev_name", "todo-appconf")
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find metrics for todo-list")
-			//				},
-			//			)
+			pkg.Concurrently(
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_name", "todo-appconf")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find metrics for todo-list")
+				},
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "app_oam_dev_name", "todo-appconf")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find metrics for todo-list")
+				},
+			)
 		})
 	})
 
