@@ -1,3 +1,6 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 ==== START logs for container install of pod default/verrazzano-install-my-verrazzano-lg7lf ====
 Output redirected to /verrazzano/platform-operator/scripts/install/build/logs/1-install-istio.sh.log
 2021-08-05 08:04:07 UTC Reading installation config file /config/config.json
