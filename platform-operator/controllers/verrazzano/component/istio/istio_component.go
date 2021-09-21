@@ -10,11 +10,15 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
 	"io/ioutil"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 // IstioComponent represents an Istio component
@@ -126,20 +130,32 @@ func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client cli
 			nsLabels["istio.io/rev"] = i.Revision
 			delete(nsLabels, "istio-injection")
 			platformNS.Labels = nsLabels
-
+			client.Update(context.TODO(), platformNS.DeepCopyObject())
 			log.Infof("Relabeled namespace %v for istio upgrade", platformNS.Name)
 		}
 	}
 	return nil
 }
 
-/*func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, client clipkg.Client) error {
+func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, client clipkg.Client) error {
 	deploymentList := &appsv1.DeploymentList{}
-	for _, ns := range i.InjectedSystemNamespaces {
-		opts := []clipkg.ListOption{clipkg.InNamespace(ns)}
-
-		listOptions := clipkg.ListOptions{}
-		listOption := clipkg.ListOption()
-		err := client.List(context.TODO(), deploymentList, opts)
+	err := client.List(context.TODO(), deploymentList)
+	if err != nil {
+		return err
 	}
-}*/
+	for _, deploy := range deploymentList.Items {
+		if contains(i.InjectedSystemNamespaces, deploy.Namespace) {
+			client.Update(context.TODO(), deploy.DeepCopyObject())
+		}
+	}
+}
+
+// contains is a helper function that should be a build-in
+func contains(arr []string, s string) bool {
+	for _, str := range arr {
+		if str == s {
+			return true
+		}
+	}
+	return false
+}
