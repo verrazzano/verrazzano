@@ -12,13 +12,9 @@ import (
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 // IstioComponent represents an Istio component
@@ -87,11 +83,22 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 
 		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
+
 	_, _, err = upgradeFunc(log, i.ValuesFile, tmpFile.Name())
 	if err != nil {
 		return err
 	}
+
 	err = i.labelSystemNamespaces(log, client)
+	if err != nil {
+		return err
+	}
+
+	err = i.restartSystemNamespaceResources(log, client)
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -115,39 +122,80 @@ func (i IstioComponent) GetDependencies() []string {
 // createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
 func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client clipkg.Client) error {
 	var platformNS corev1.Namespace
-	//var deploymentList appsv1.DeploymentList
-	//var statefulSetList appsv1.DeploymentList
-	//var daemonSetList appsv1.DeploymentList
 	for _, ns := range i.InjectedSystemNamespaces {
 		err := client.Get(context.TODO(), types.NamespacedName{Name: ns}, &platformNS)
 		if err != nil {
-			if !errors.IsNotFound(err) {
-				return err
-			}
-			nsLabels := platformNS.Labels
-
-			// add istio.io/rev label
-			nsLabels["istio.io/rev"] = i.Revision
-			delete(nsLabels, "istio-injection")
-			platformNS.Labels = nsLabels
-			client.Update(context.TODO(), platformNS.DeepCopyObject())
-			log.Infof("Relabeled namespace %v for istio upgrade", platformNS.Name)
+			return err
 		}
+
+		nsLabels := platformNS.Labels
+
+		// add istio.io/rev label
+		nsLabels["istio.io/rev"] = i.Revision
+		delete(nsLabels, "istio-injection")
+		platformNS.Labels = nsLabels
+
+		// update namespace
+		err = client.Update(context.TODO(), platformNS.DeepCopyObject())
+		if err != nil {
+			return err
+		}
+		log.Infof("Relabeled namespace %v for istio upgrade", platformNS.Name)
 	}
 	return nil
 }
 
+// restartSystemNamespaceResources restarts all the deployments, StatefulSets, and DaemonSets
+// in all of the Istio injected system namespaces
 func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, client clipkg.Client) error {
-	deploymentList := &appsv1.DeploymentList{}
-	err := client.List(context.TODO(), deploymentList)
+	// Restart all the deployments in the injected system namespaces
+	var deploymentList appsv1.DeploymentList
+	err := client.List(context.TODO(), &deploymentList)
 	if err != nil {
 		return err
 	}
 	for _, deploy := range deploymentList.Items {
 		if contains(i.InjectedSystemNamespaces, deploy.Namespace) {
-			client.Update(context.TODO(), deploy.DeepCopyObject())
+			err = client.Update(context.TODO(), deploy.DeepCopyObject())
+			if err != nil {
+				return err
+			}
 		}
 	}
+	log.Info("Restarted system deployments in istio injected namespaces")
+
+	// Restart all the StatefulSet in the injected system namespaces
+	var statefulSetList appsv1.StatefulSetList
+	err = client.List(context.TODO(), &statefulSetList)
+	if err != nil {
+		return err
+	}
+	for _, statefulSet := range statefulSetList.Items {
+		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
+			err = client.Update(context.TODO(), statefulSet.DeepCopyObject())
+			if err != nil {
+				return err
+			}
+		}
+	}
+	log.Info("Restarted system Statefulsets in istio injected namespaces")
+
+	// Restart all the DaemonSets in the injected system namespaces
+	var daemonSetList appsv1.DaemonSetList
+	err = client.List(context.TODO(), &daemonSetList)
+	if err != nil {
+		return err
+	}
+	for _, deploy := range daemonSetList.Items {
+		if contains(i.InjectedSystemNamespaces, deploy.Namespace) {
+			err = client.Update(context.TODO(), deploy.DeepCopyObject())
+			if err != nil {
+				return err
+			}
+		}
+	}
+	log.Info("Restarted system DaemonSets in istio injected namespaces")
+	return nil
 }
 
 // contains is a helper function that should be a build-in
