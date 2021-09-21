@@ -86,6 +86,7 @@ pipeline {
         stage('Release or Patch?') {
             steps {
                 script {
+                    //TODO:  remove the second check for my branch
                     env.IS_PATCH_RELEASE = params.SOURCE_BRANCH.equals('master') || params.SOURCE_BRANCH.equals('jmaron/VZ-3509')? 'false' : 'true'
                     echo "Patch release? ${env.IS_PATCH_RELEASE}"
                 }
@@ -148,11 +149,7 @@ pipeline {
                     steps {
                         script {
                             sh """
-                                ls -l ${WORKSPACE}
-                                ls -l ${WORKSPACE}/verrazzano
-                                ls -l ${WORKSPACE}/verrazzano/release
-                                ls -l ${WORKSPACE}/verrazzano/release/scripts
-                                ${WORKSPACE}/verrazzano/release/scripts/create_branch.sh -c ${params.COMMIT_TO_USE} -v ${params.TARGET_VERSION}
+                                ${WORKSPACE}/release/scripts/create_branch.sh -c ${params.COMMIT_TO_USE} -v ${params.TARGET_VERSION}
                             """
                         }
                     }
@@ -193,6 +190,20 @@ pipeline {
                                 releaseBuild.getRawBuild().keepLog(true)
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        stage('Push images to OCR') {
+            steps {
+                retry(count: env.BUILD_RETRIES) {
+                    script {
+                        echo "Triggering OCR Image push build"
+                        build job: "publish-release-images-to-ocr",
+                            parameters: [
+                                string(name: 'IMAGES_TO_PUBLISH_JOB_NAME', value: '${env.RELEASE_JOB}'),
+                            ], wait: true
                     }
                 }
             }
