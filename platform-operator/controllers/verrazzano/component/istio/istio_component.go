@@ -124,19 +124,11 @@ func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client cli
 		nsLabels["istio.io/rev"] = i.Revision
 		delete(nsLabels, "istio-injection")
 		platformNS.Labels = nsLabels
-		client.Update(context.TODO(), platformNS.DeepCopyObject())
+		err = client.Update(context.TODO(), platformNS.DeepCopyObject())
+		if err != nil {
+			return err
+		}
 		log.Infof("Relabeled namespace %v for istio upgrade", platformNS.Name)
 	}
 	return nil
 }
-
-/*func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, client clipkg.Client) error {
-	deploymentList := &appsv1.DeploymentList{}
-	for _, ns := range i.InjectedSystemNamespaces {
-		opts := []clipkg.ListOption{clipkg.InNamespace(ns)}
-
-		listOptions := clipkg.ListOptions{}
-		listOption := clipkg.ListOption()
-		err := client.List(context.TODO(), deploymentList, opts)
-	}
-}*/
