@@ -22,13 +22,23 @@ func struct2Unmarshal(obj interface{}) (unstructured.Unstructured, error) {
 	return c, err
 }
 
+func apiVersion2GroupVersion(str string) (string, string) {
+	strs := strings.Split(str, "/")
+	if len(strs) == 2 {
+		return strs[0], strs[1]
+	}
+	// core type
+	return "", strs[0]
+}
+
 //locateField of a given resource and try to see if it has fields of type array.
 func locateField(document openapi.Resources, res *unstructured.Unstructured, fieldPaths [][]string) (bool, []string) {
 
-	groupVersion := strings.Split(res.GetAPIVersion(), "/")
+	g, v := apiVersion2GroupVersion(res.GetAPIVersion())
+
 	schema := document.LookupResource(schema.GroupVersionKind{
-		Group:   groupVersion[0],
-		Version: groupVersion[1],
+		Group:   g,
+		Version: v,
 		Kind:    res.GetKind(),
 	})
 
