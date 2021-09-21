@@ -58,7 +58,7 @@ else
     # check remote repo
     COMMIT_REPO=$(basename `git config --get remote.origin.url`)
     echo "Commit Repo: ${COMMIT_REPO}"
-    COMMIT_BRANCH=$(git branch -r --contains ${RELEASE_COMMIT})
+    COMMIT_BRANCH=$(git branch -r --contains ${RELEASE_COMMIT}  | tr -d '[:space:]')
     echo "Remote commit branch: ${COMMIT_BRANCH}"
 
     if [ "${COMMIT_REPO}" != "${EXPECTED_SOURCE_REPO}" ]; then
