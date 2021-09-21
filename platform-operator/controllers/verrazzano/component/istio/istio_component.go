@@ -11,22 +11,19 @@ import (
 )
 
 // IstioComponent represents an Istio component
-type IstioComponent struct {
-	//ComponentName The name of the component
-	ComponentName string
-}
+type IstioComponent struct{}
 
 // Verify that IstioComponent implements Component
 var _ spi.Component = IstioComponent{}
 
-type istioUpgradeFuncSig func(log *zap.SugaredLogger, componentName string) (stdout []byte, stderr []byte, err error)
+type istioUpgradeFuncSig func(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 // istioUpgradeFunc is the default upgrade function
 var istioUpgradeFunc istioUpgradeFuncSig = istio.Upgrade
 
 // Name returns the component name
 func (i IstioComponent) Name() string {
-	return i.ComponentName
+	return "istio"
 }
 
 func (i IstioComponent) IsOperatorInstallSupported() bool {
@@ -42,7 +39,7 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, client clipkg.Client, na
 }
 
 func (i IstioComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
-	_, _, err := istioUpgradeFunc(log, i.ComponentName)
+	_, _, err := istioUpgradeFunc(log, i.Name())
 	return err
 }
 
