@@ -5,6 +5,7 @@
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def DOCKER_IMAGE_TAG
 def releaseBuild
+def RELEASE_JOB_NAME
 
 pipeline {
     options {
@@ -35,7 +36,6 @@ pipeline {
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_REPO = 'ghcr.io'
         IS_PATCH_RELEASE = 'false'
-        RELEASE_JOB = '/verrazzano/${SOURCE_BRANCH.replace("/", "%2F")}'
         GITHUB_CREDENTIALS = credentials('github-markxnelns-private-access-token')
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -166,9 +166,16 @@ pipeline {
                     steps {
                         script {
                             // trigger scan and wait for branch to appear if it doesn't exist
-                            while (Jenkins.instance.getItemByFullName(env.RELEASE_JOB) == null) {
+                            if (env.IS_PATCH_RELEASE == 'true') {
+                                RELEASE_JOB_NAME = 'verrazzano/' + env.SOURCE_BRANCH
+                            } else {
+                                RELEASE_JOB_NAME = 'verrazzano/mock-release-' + params.TARGET_VERSION
+                            }
+                            if (Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME) == null) {
                                 Jenkins.instance.getItemByFullName('verrazzano').scheduleBuild()
-                                sleep(5)
+                                while (Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME) == null) {
+                                    sleep(1)
+                                }
                             }
                             echo "Release build exists"
                         }
@@ -176,7 +183,7 @@ pipeline {
                         retry(count: env.BUILD_RETRIES) {
                             script {
                                 echo "Triggering Verrazzano build for release"
-                                releaseBuild = build job: "${env.RELEASE_JOB}",
+                                releaseBuild = build job: "${RELEASE_JOB_NAME}",
                                     parameters: [
                                         string(name: 'RUN_ACCEPTANCE_TESTS', value: 'true'),
                                         string(name: 'RUN_SLOW_TESTS', value: 'true'),
@@ -206,7 +213,7 @@ pipeline {
                         echo "Triggering OCR Image push build"
                         build job: "publish-release-images-to-ocr",
                             parameters: [
-                                string(name: 'IMAGES_TO_PUBLISH_JOB_NAME', value: '${env.RELEASE_JOB}'),
+                                string(name: 'IMAGES_TO_PUBLISH_JOB_NAME', value: '${RELEASE_JOB_NAME}'),
                             ], wait: true
                     }
                 }
