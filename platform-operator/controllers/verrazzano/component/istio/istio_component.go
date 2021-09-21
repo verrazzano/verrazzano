@@ -11,7 +11,6 @@ import (
 	"go.uber.org/zap"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -84,6 +83,7 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 	_, _, err = upgradeFunc(log, i.ValuesFile, tmpFile.Name())
+	log.Info("Upgrade function ran")
 	if err != nil {
 		return err
 	}
@@ -110,25 +110,22 @@ func (i IstioComponent) GetDependencies() []string {
 
 // createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
 func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client clipkg.Client) error {
+	log.Info("labelSystemNamespaces function called")
 	var platformNS corev1.Namespace
-	//var deploymentList appsv1.DeploymentList
-	//var statefulSetList appsv1.DeploymentList
-	//var daemonSetList appsv1.DeploymentList
 	for _, ns := range i.InjectedSystemNamespaces {
+		log.Infof("Iterating through %v", ns)
 		err := client.Get(context.TODO(), types.NamespacedName{Name: ns}, &platformNS)
 		if err != nil {
-			if !errors.IsNotFound(err) {
-				return err
-			}
-			nsLabels := platformNS.Labels
-
-			// add istio.io/rev label
-			nsLabels["istio.io/rev"] = i.Revision
-			delete(nsLabels, "istio-injection")
-			platformNS.Labels = nsLabels
-
-			log.Infof("Relabeled namespace %v for istio upgrade", platformNS.Name)
+			return err
 		}
+		nsLabels := platformNS.Labels
+
+		// add istio.io/rev label
+		nsLabels["istio.io/rev"] = i.Revision
+		delete(nsLabels, "istio-injection")
+		platformNS.Labels = nsLabels
+
+		log.Infof("Relabeled namespace %v for istio upgrade", platformNS.Name)
 	}
 	return nil
 }
