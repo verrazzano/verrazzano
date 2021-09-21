@@ -27,7 +27,7 @@ function is_in_remote() {
 
 VERSION=""
 RELEASE_COMMIT=""
-EXPECTED_SOURCE_BRANCH="master"
+EXPECTED_SOURCE_BRANCH="jmaron/VZ-3509"
 EXPECTED_SOURCE_REPO="verrazzano"
 
 while getopts v:c:h flag
