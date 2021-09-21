@@ -43,7 +43,7 @@ spec:
           - backend:
               serviceName: {{ .Values.api.name }}
               servicePort: {{ .Values.api.port }}
-            path: /20210501(/|$)(.*)
+            path: /()(.*)
   tls:
     - hosts:
         - verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
