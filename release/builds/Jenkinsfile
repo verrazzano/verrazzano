@@ -62,7 +62,7 @@ pipeline {
                             doGenerateSubmoduleConfigurations: false,
                             extensions: scm.extensions + [[$class: 'LocalBranch'], [$class: 'WipeWorkspace']],
                             submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL, credentialsId:'github-markxnelns-private-access-token']])
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL, credentialsId:'github-markxnelns-private-access-token']]])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
@@ -70,6 +70,11 @@ pipeline {
                             echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
                             exit 1
                         }
+                        // required for branch creation to succeed:
+                        sh """
+                            git config user.email "${env.GITHUB_RELEASE_EMAIL}"
+                            git config user.name "${env.GITHUB_RELEASE_USERID}"
+                        """
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
