@@ -145,7 +145,6 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 		cmd := exec.Command("helm", cmdArgs...)
 		log.Infof("Running command: %s", cmd.String())
 		stdout, stderr, err = runner.Run(cmd)
-		fmt.Printf("HERE!!!!!=======    %v", string(stdout))
 		if err == nil {
 			log.Infof("helm %s for %s succeeded: %s", operation, releaseName, stdout)
 			break
