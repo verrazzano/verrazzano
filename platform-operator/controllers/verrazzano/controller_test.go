@@ -633,8 +633,8 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			asserts.Equalf(getInstallNamespace(), configMap.Namespace, "ConfigMap namespace did not match")
 			asserts.Equalf(buildConfigMapName(name), configMap.Name, "ConfigMap name did not match")
 			asserts.Equalf(labels, configMap.Labels, "ConfigMap labels did not match")
-			asserts.NotNil(configMap.Data["config.json"], "CR entry not found")
-			asserts.NotNil(configMap.Data[vzapi.OciPrivateKeyFileName], "OCI CR entry not found")
+			asserts.NotNil(configMap.Data["config.json"], "Configuration entry not found")
+			asserts.NotNil(configMap.Data[vzapi.OciPrivateKeyFileName], "OCI Config entry not found")
 			return nil
 		})
 

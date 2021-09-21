@@ -14,6 +14,7 @@ import (
 type VerrazzanoV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	VerrazzanosGetter
+	VerrazzanoComponentsGetter
 }
 
 // VerrazzanoV1alpha1Client is used to interact with features provided by the install.verrazzano.io group.
@@ -23,6 +24,10 @@ type VerrazzanoV1alpha1Client struct {
 
 func (c *VerrazzanoV1alpha1Client) Verrazzanos(namespace string) VerrazzanoInterface {
 	return newVerrazzanos(c, namespace)
+}
+
+func (c *VerrazzanoV1alpha1Client) VerrazzanoComponents(namespace string) VerrazzanoComponentInterface {
+	return newVerrazzanoComponents(c, namespace)
 }
 
 // NewForConfig creates a new VerrazzanoV1alpha1Client for the given config.

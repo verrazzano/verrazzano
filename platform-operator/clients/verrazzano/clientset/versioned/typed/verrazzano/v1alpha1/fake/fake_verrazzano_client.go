@@ -19,6 +19,10 @@ func (c *FakeVerrazzanoV1alpha1) Verrazzanos(namespace string) v1alpha1.Verrazza
 	return &FakeVerrazzanos{c, namespace}
 }
 
+func (c *FakeVerrazzanoV1alpha1) VerrazzanoComponents(namespace string) v1alpha1.VerrazzanoComponentInterface {
+	return &FakeVerrazzanoComponents{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeVerrazzanoV1alpha1) RESTClient() rest.Interface {
