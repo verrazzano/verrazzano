@@ -62,7 +62,7 @@ pipeline {
                             doGenerateSubmoduleConfigurations: false,
                             extensions: scm.extensions + [[$class: 'LocalBranch'], [$class: 'WipeWorkspace']],
                             submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL, credentialsId:'github-markxnelns-private-access-token']]]])
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL, credentialsId:'github-markxnelns-private-access-token']])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
