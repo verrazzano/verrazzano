@@ -183,8 +183,8 @@ func FindComponent(releaseName string) (bool, spi.Component) {
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available
-func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c spi.Component) bool {
-	trace, err := checkDependencies(log, client, c, nil)
+func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c spi.Component, dryRun bool) bool {
+	trace, err := checkDependencies(log, client, c, dryRun, nil)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -203,7 +203,7 @@ func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c sp
 }
 
 // checkDependencies Check the ready state of any dependencies and check for cycles
-func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Component, trace map[string]bool) (map[string]bool, error) {
+func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Component, dryRun bool, trace map[string]bool) (map[string]bool, error) {
 	for _, dependencyName := range c.GetDependencies() {
 		if trace == nil {
 			trace = make(map[string]bool)
@@ -215,10 +215,10 @@ func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Compo
 		if !found {
 			return trace, fmt.Errorf("Illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
 		}
-		if trace, err := checkDependencies(log, client, dependency, trace); err != nil {
+		if trace, err := checkDependencies(log, client, dependency, dryRun, trace); err != nil {
 			return trace, err
 		}
-		if !dependency.IsReady(log, client, dependencyName) {
+		if !dependency.IsReady(log, client, dependencyName, dryRun) {
 			trace[dependencyName] = false // dependency is not ready
 			continue
 		}

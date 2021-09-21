@@ -35,7 +35,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			// If component is enabled -- need to replicate scripts' config merging logic here
 			// If component is in deployed state, continue
-			if comp.IsReady(log, r.Client, cr.Namespace) {
+			if comp.IsReady(log, r.Client, cr.Namespace, r.DryRun) {
 				if err := comp.PostInstall(log, r, cr.Namespace, r.DryRun); err != nil {
 					return newRequeueWithDelay(), err
 				}
@@ -46,7 +46,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				result.Requeue = true
 				continue
 			}
-			if !registry.ComponentDependenciesMet(log, r.Client, comp) {
+			if !registry.ComponentDependenciesMet(log, r.Client, comp, r.DryRun) {
 				log.Infof("Dependencies not met for %s: %v", comp.Name(), comp.GetDependencies())
 				result.Requeue = true
 				continue

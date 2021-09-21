@@ -82,7 +82,7 @@ func TestComponentDependenciesMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(zap.S(), client, comp, false)
 	assert.True(t, ready)
 }
 
@@ -114,7 +114,7 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(zap.S(), client, comp, false)
 	assert.False(t, ready)
 }
 
@@ -146,7 +146,7 @@ func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
 		return helm.ChartStatusPendingInstall, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(zap.S(), client, comp, false)
 	assert.False(t, ready)
 }
 
@@ -178,7 +178,7 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(zap.S(), client, comp, false)
 	assert.False(t, ready)
 }
 
@@ -210,7 +210,7 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(zap.S(), client, comp, false)
 	assert.True(t, ready)
 }
 
@@ -242,7 +242,7 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(zap.S(), client, comp, false)
 	assert.False(t, ready)
 }
 
@@ -257,6 +257,6 @@ func TestNoComponentDependencies(t *testing.T) {
 		ChartNamespace: "bar",
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(zap.S(), client, comp, false)
 	assert.True(t, ready)
 }

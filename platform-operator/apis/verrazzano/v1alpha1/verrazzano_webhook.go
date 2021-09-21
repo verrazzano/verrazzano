@@ -39,6 +39,11 @@ func (v *Verrazzano) ValidateCreate() error {
 		return nil
 	}
 
+	// Verify only one instance of the operator is running
+	if err := v.verifyPlatformOperatorSingleton(); err != nil {
+		return err
+	}
+
 	client, err := getControllerRuntimeClient()
 	if err != nil {
 		return err
@@ -71,6 +76,7 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 		return nil
 	}
 
+	// Verify only one instance of the operator is running
 	if err := v.verifyPlatformOperatorSingleton(); err != nil {
 		return err
 	}
@@ -98,6 +104,9 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	return nil
 }
 
+// verifyPlatformOperatorSingleton Verifies that only one instance of the VPO is running; when upgrading operators,
+// if the terminationGracePeriod for the pod is > 0 there's a chance that an old version may try to handle resource
+// updates before terminating.
 func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 	runtimeClient, err := getControllerRuntimeClient()
 	if err != nil {
@@ -108,7 +117,7 @@ func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 		client.InNamespace(constants.VerrazzanoInstallNamespace),
 		client.MatchingLabels{"app": "verrazzano-platform-operator"})
 	if len(podList.Items) > 1 {
-		return fmt.Errorf("Found more than one running")
+		return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
 	}
 	return nil
 }

@@ -30,7 +30,7 @@ func (i IstioComponent) IsOperatorInstallSupported() bool {
 	return false
 }
 
-func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) (bool, error) {
+func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string, dryRun bool) (bool, error) {
 	return false, nil
 }
 
@@ -51,7 +51,7 @@ func setIstioDefaultUpgradeFunc() {
 	istioUpgradeFunc = istio.Upgrade
 }
 
-func (i IstioComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
+func (i IstioComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) bool {
 	return true
 }
 

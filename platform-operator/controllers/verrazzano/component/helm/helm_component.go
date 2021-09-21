@@ -112,13 +112,19 @@ func (h HelmComponent) IsOperatorInstallSupported() bool {
 }
 
 // IsInstalled Indicates whether or not the component is installed
-func (h HelmComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) (bool, error) {
+func (h HelmComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string, dryRun bool) (bool, error) {
+	if dryRun {
+		return true, nil
+	}
 	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, resolveNamespace(h, namespace))
 	return installed, nil
 }
 
 // IsReady Indicates whether or not a component is available and ready
-func (h HelmComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
+func (h HelmComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) bool {
+	if dryRun {
+		return true
+	}
 	ns := resolveNamespace(h, namespace)
 	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, resolveNamespace(h, namespace)); deployed {
 		if h.ReadyStatusFunc != nil {
