@@ -71,15 +71,6 @@ else
       exit 1
     fi
 
-    # check that the local branch is up to date
-    git fetch
-    HEAD=$(git rev-parse HEAD)
-    UPSTREAM=$(git rev-parse @{u})
-    if [ "${HEAD}" != "${UPSTREAM}" ]; then
-      echo "Branch is not up to date.  Performing a pull"
-      git pull
-    fi
-
     git checkout -b ${RELEASE_BRANCH} ${RELEASE_COMMIT}
     git push origin ${RELEASE_BRANCH}
   else
