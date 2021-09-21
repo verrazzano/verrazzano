@@ -166,6 +166,7 @@ func GetComponents() []spi.Component {
 		},
 		istio.IstioComponent{
 			ValuesFile: filepath.Join(overridesDir, "istio-cr.yaml"),
+			Revision:   "1-10-2",
 		},
 	}
 }

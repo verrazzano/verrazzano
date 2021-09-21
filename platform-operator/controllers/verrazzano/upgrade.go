@@ -4,14 +4,8 @@
 package verrazzano
 
 import (
-	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 
@@ -102,35 +96,4 @@ func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus, generation int64) 
 func fmtGeneration(gen int64) string {
 	s := strconv.FormatInt(gen, 10)
 	return "generation:" + s
-}
-
-// createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
-func upgradePlatformNS(ctx context.Context, log *zap.SugaredLogger, client clipkg.Client) error {
-	istioPlatformNamespaces := []string{constants.VerrazzanoSystemNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
-	var plaformNS corev1.Namespace
-
-	for _, ns := range istioPlatformNamespaces {
-		err := client.Get(ctx, types.NamespacedName{Name: ns}, &plaformNS)
-		if err != nil {
-			if !errors.IsNotFound(err) {
-				return err
-			}
-			plaformNS.Labels, _ = mergeMaps(nil, systemNamespaceLabels)
-			if err := r.Create(ctx, &vzSystemNS); err != nil {
-				return err
-			}
-			log.Infof("Namespace %v was successfully created", vzconst.VerrazzanoSystemNamespace)
-			return nil
-		}
-		// Namespace exists, see if we need to add the label
-		var updated bool
-		vzSystemNS.Labels, updated = mergeMaps(vzSystemNS.Labels, systemNamespaceLabels)
-		if !updated {
-			return nil
-		}
-		if err := r.Update(ctx, &vzSystemNS); err != nil {
-			return err
-		}
-	}
-	return nil
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
 	"io/ioutil"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,10 +21,12 @@ import (
 
 // IstioComponent represents an Istio component
 type IstioComponent struct {
+	// ValuesFile contains the path to the IstioOperator CR values file
 	ValuesFile string
-}
 
-const istioRevision = "1-10-2"
+	// Revision is the istio install revision
+	Revision string
+}
 
 // Verify that IstioComponent implements Component
 var _ spi.Component = IstioComponent{}
@@ -79,8 +82,7 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 
 		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
-	//_, _, err = upgradeFunc(log, i.ValuesFile, tmpFile.Name())
-	_, _, err = upgradeFunc(log, i.ValuesFile)
+	_, _, err = upgradeFunc(log, i.ValuesFile, tmpFile.Name())
 	return err
 }
 
@@ -102,9 +104,12 @@ func (i IstioComponent) GetDependencies() []string {
 }
 
 // createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
-func upgradePlatformNS(ctx context.Context, log *zap.SugaredLogger, client clipkg.Client) error {
+func upgradePlatformNS(ctx context.Context, log *zap.SugaredLogger, client clipkg.Client, istioRevision string) error {
 	istioPlatformNamespaces := []string{constants.VerrazzanoSystemNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
 	var platformNS corev1.Namespace
+	var deploymentList appsv1.DeploymentList
+	//var statefulSetList appsv1.DeploymentList
+	//var daemonSetList appsv1.DeploymentList
 	for _, ns := range istioPlatformNamespaces {
 		err := client.Get(ctx, types.NamespacedName{Name: ns}, &platformNS)
 		if err != nil {
@@ -120,7 +125,7 @@ func upgradePlatformNS(ctx context.Context, log *zap.SugaredLogger, client clipk
 
 			log.Infof("Relabeled namespace %v for istio upgrade", platformNS.Name)
 
-			platformNS.GetObjectMeta()
+			client.List(ctx, &deploymentList)
 		}
 	}
 	return nil
