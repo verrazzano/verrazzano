@@ -152,13 +152,6 @@ pipeline {
     post {
         failure {
             script {
-                echo "add failure post here"
-            }
-        }
-    }
-    post {
-        failure {
-            script {
                 if (isAlertingEnabled()) {
                     mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
                     subject: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
