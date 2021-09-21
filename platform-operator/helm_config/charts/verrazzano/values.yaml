@@ -92,7 +92,7 @@ api:
     OidcCallbackPath: /_authentication_callback
     OidcLogoutCallbackPath: /_logout
     AuthnStateTTL: "300"
-    MaxRequestSize: 65m 
+    MaxRequestSize: 65m
 
 # OCI-related values
 oci:
