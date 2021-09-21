@@ -349,8 +349,8 @@ pipeline {
 }
 
 def isAlertingEnabled() {
-    if (NOTIFY_PERIODIC_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master"))) {
-        echo "Slack/Pager-Duty notifications enabled via global override setting"
+    if (env.BRANCH_NAME.equals("master")) {
+        echo "Slack/Pager-Duty notifications enabled for master"
         return true
     }
     return false

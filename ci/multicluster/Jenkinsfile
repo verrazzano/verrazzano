@@ -1251,12 +1251,18 @@ def dumpInstallLogs() {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
             LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
+
+            // This function may run on older versions of Verrazzano that have the logs stored in the default namespace
+            def namespace = "verrazzano-install"
+            if (params.VERSION_FOR_INSTALL.startsWith("v1.0.0") || params.VERSION_FOR_INSTALL.startsWith("v1.0.1")) {
+                namespace = "default"
+            }
             sh """
                 ## dump verrazzano install logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
-                kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
-                kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
+                kubectl -n ${namespace} logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
+                kubectl -n ${namespace} describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
                 echo "------------------------------------------"
             """
         }
