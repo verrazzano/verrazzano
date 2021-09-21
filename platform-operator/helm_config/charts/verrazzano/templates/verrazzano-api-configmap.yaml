@@ -298,7 +298,7 @@ data:
         end
         if backend_name == "verrazzano" then
             local uri = ngx.var.request_uri
-            local start, end = uri:find("/20210501/")
+            local start, last = uri:find("/20210501/")
             if start and start == 1 then
                 backend_name = "verrazzano"
                 -- Strip api_version from the uri
@@ -737,7 +737,7 @@ data:
             end
         else
             ckValue = me.aes256:encrypt(cjson.encode(cookiePairs))
-        ckValue = base64.encode_base64url(ckValue)
+            ckValue = base64.encode_base64url(ckValue)
         end
         cookie:set({key=ckName, value=ckValue, path="/", secure=true, httponly=httponly, expires=expires})
     end
