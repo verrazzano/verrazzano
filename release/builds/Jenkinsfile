@@ -36,8 +36,7 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         IS_PATCH_RELEASE = 'false'
         RELEASE_JOB = '/verrazzano/${SOURCE_BRANCH.replace("/", "%2F")}'
-        GITHUB_RELEASE_USERID = credentials('github-userid-release')
-        GITHUB_RELEASE_EMAIL = credentials('github-email-release')
+        GITHUB_CREDENTIALS = credentials('github-markxnelns-private-access-token')
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
     }
@@ -71,6 +70,7 @@ pipeline {
                             exit 1
                         }
                     }
+                    sh "git config credential.https://github.com.username ${GITHUB_CREDENTIALS_USR}"
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
 
