@@ -6,6 +6,7 @@ package loggingtrait
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -124,9 +125,16 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 				return reconcile.Result{}, errors.Wrap(err, "Failed to gather resource containers")
 			}
 
+			var image string
+			if len(trait.Spec.LoggingImage) != 0 {
+				image = trait.Spec.LoggingImage
+			} else {
+				image = os.Getenv("DEFAULT_FLUENTD_IMAGE")
+			}
+
 			loggingContainer := &corev1.Container{
 				Name:            loggingNamePart,
-				Image:           trait.Spec.LoggingImage,
+				Image:           image,
 				ImagePullPolicy: corev1.PullIfNotPresent,
 			}
 

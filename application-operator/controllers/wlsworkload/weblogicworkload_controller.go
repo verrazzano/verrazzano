@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -684,10 +685,16 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		ReadOnly:  true,
 	}
 	extracted.VolumeMounts = append(extracted.VolumeMounts, *loggingVolumeMount)
+	var image string
+	if len(loggingTrait.Spec.LoggingImage) != 0 {
+		image = loggingTrait.Spec.LoggingImage
+	} else {
+		image = os.Getenv("DEFAULT_FLUENTD_IMAGE")
+	}
 
 	loggingContainer := &corev1.Container{
 		Name:            loggingNamePart,
-		Image:           loggingTrait.Spec.LoggingImage,
+		Image:           image,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		VolumeMounts:    extracted.VolumeMounts,
 	}
