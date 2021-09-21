@@ -13,10 +13,12 @@ import (
 	"mime"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"reflect"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	prototest "k8s.io/kube-openapi/pkg/util/proto/testing"
 	"k8s.io/kubectl/pkg/util/openapi"
 )
 
@@ -61,7 +63,7 @@ func Test_struct2Unmarshal(t *testing.T) {
 			wantErr: false,
 		},
 	}
-		for _, tt := range tests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := struct2Unmarshal(tt.args.obj)
 			if (err != nil) != tt.wantErr {
@@ -82,24 +84,18 @@ func Test_locateField(t *testing.T) {
 		fieldPaths [][]string
 	}
 
-	server, err := openapiSchemaFakeServer(t)
-	if err != nil {
-		t.Fatalf("Could not create fake server from openapi, %v", err)
-	}
+	// Set Up DiscoveryClient server and document resource
+	document := createDocumentResource(t)
 
-	client := discovery.NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
-	schema, err := client.OpenAPISchema()
-	if err != nil {
-		t.Fatalf("Could not create the schema for the discoveryClient, %v", err)
-	}
-	document, err := openapi.NewOpenAPIData(schema)
-	if err != nil {
-		t.Fatalf("Could not get document from given schema: %v", err)
-	}
+	// Create Deployment resource
+	deployment_resource := unstructured.Unstructured{}
+	deployment_resource.SetAPIVersion("apps/v1beta1")
+	deployment_resource.SetKind("Deployment")
 
-	resource1 := unstructured.Unstructured{}
-	resource1.SetAPIVersion("core/v1")
-	resource1.SetKind("namespace")
+	// Create Pod resource
+	pod_resource := unstructured.Unstructured{}
+	pod_resource.SetAPIVersion("v1")
+	pod_resource.SetKind("Pod")
 
 	tests := []struct {
 		name  string
@@ -108,17 +104,37 @@ func Test_locateField(t *testing.T) {
 		want1 []string
 	}{
 		{
-			name: "test1",
+			name: "deployment_test",
 			args: args{
 				document:   document,
-				res:        &resource1,
-				fieldPaths: [][]string{{"fake.type.1"}},
+				res:        &deployment_resource,
+				fieldPaths: [][]string{
+								//This is the path to the containers field of the Pod resource
+								{"spec", "containers"},
+								//This is the path to the containers field of the Deployments,StatefulSet,ReplicaSet resource
+								{"spec", "template", "spec", "containers"},
+							},
 			},
 			want: true,
-			want1: []string{"test"},
+			want1: []string{"spec", "template", "spec", "containers"},
+		},
+		{
+			name: "pod_test",
+			args: args{
+				document:   document,
+				res:        &pod_resource,
+				fieldPaths: [][]string{
+					//This is the path to the containers field of the Pod resource
+					{"spec", "containers"},
+					//This is the path to the containers field of the Deployments,StatefulSet,ReplicaSet resource
+					{"spec", "template", "spec", "containers"},
+				},
+			},
+			want: true,
+			want1: []string{"spec", "containers"},
 		},
 	}
-		for _, tt := range tests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got1 := locateField(tt.args.document, tt.args.res, tt.args.fieldPaths)
 			if got != tt.want {
@@ -136,15 +152,46 @@ func Test_locateContainersField(t *testing.T) {
 		document openapi.Resources
 		res      *unstructured.Unstructured
 	}
+
+	// Set Up DiscoveryClient server and document resource
+	document := createDocumentResource(t)
+
+	// Create Deployment resource
+	deployment_resource := unstructured.Unstructured{}
+	deployment_resource.SetAPIVersion("apps/v1beta1")
+	deployment_resource.SetKind("Deployment")
+
+	// Create Pod resource
+	pod_resource := unstructured.Unstructured{}
+	pod_resource.SetAPIVersion("v1")
+	pod_resource.SetKind("Pod")
+
 	tests := []struct {
 		name  string
 		args  args
 		want  bool
 		want1 []string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "deployment_test",
+			args: args{
+				document:   document,
+				res:        &deployment_resource,
+			},
+			want: true,
+			want1: []string{"spec", "template", "spec", "containers"},
+		},
+		{
+			name: "pod_test",
+			args: args{
+				document:   document,
+				res:        &pod_resource,
+			},
+			want: true,
+			want1: []string{"spec", "containers"},
+		},
 	}
-	for _, tt := range tests {
+		for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got1 := locateContainersField(tt.args.document, tt.args.res)
 			if got != tt.want {
@@ -162,13 +209,44 @@ func Test_locateVolumesField(t *testing.T) {
 		document openapi.Resources
 		res      *unstructured.Unstructured
 	}
+
+	// Set Up DiscoveryClient server and document resource
+	document := createDocumentResource(t)
+
+	// Create Deployment resource
+	deployment_resource := unstructured.Unstructured{}
+	deployment_resource.SetAPIVersion("apps/v1beta1")
+	deployment_resource.SetKind("Deployment")
+
+	// Create Pod resource
+	pod_resource := unstructured.Unstructured{}
+	pod_resource.SetAPIVersion("v1")
+	pod_resource.SetKind("Pod")
+
 	tests := []struct {
 		name  string
 		args  args
 		want  bool
 		want1 []string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "deployment_test",
+			args: args{
+				document:   document,
+				res:        &deployment_resource,
+			},
+			want: true,
+			want1: []string{"spec", "template", "spec", "volumes"},
+		},
+		{
+			name: "pod_test",
+			args: args{
+				document:   document,
+				res:        &pod_resource,
+			},
+			want: true,
+			want1: []string{"spec", "volumes"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -188,13 +266,30 @@ func Test_locateVolumeMountsField(t *testing.T) {
 		document openapi.Resources
 		res      *unstructured.Unstructured
 	}
+
+	// Set Up DiscoveryClient server and document resource
+	document := createDocumentResource(t)
+
+	// Create Deployment resource
+	container_resource := unstructured.Unstructured{}
+	container_resource.SetAPIVersion("v1")
+	container_resource.SetKind("Container")
+
 	tests := []struct {
 		name  string
 		args  args
 		want  bool
 		want1 []string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "container_test",
+			args: args{
+				document:   document,
+				res:        &container_resource,
+			},
+			want: true,
+			want1: []string{"volumeMounts"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -208,7 +303,6 @@ func Test_locateVolumeMountsField(t *testing.T) {
 		})
 	}
 }
-
 
 func openapiSchemaFakeServer(t *testing.T) (*httptest.Server, error) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -237,7 +331,7 @@ func openapiSchemaFakeServer(t *testing.T) (*httptest.Server, error) {
 
 		mime.AddExtensionType(".pb-v1", "application/com.github.googleapis.gnostic.OpenAPIv2@68f4ded+protobuf")
 
-		output, err := proto.Marshal(returnedOpenAPI())
+		output, err := proto.Marshal(returnedOpenAPI(t))
 		if err != nil {
 			errMsg := fmt.Sprintf("Unexpected marshal error: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -252,69 +346,28 @@ func openapiSchemaFakeServer(t *testing.T) (*httptest.Server, error) {
 	return server, nil
 }
 
-func returnGVKYaml() string {
-	return `
-- group: core
-  version: v1
-  kind: namespace`
+func returnedOpenAPI(t *testing.T) *openapi_v2.Document {
+	var fakeSchema = prototest.Fake{Path: filepath.Join("testdata", "swagger.json")}
+	document, err := fakeSchema.OpenAPISchema()
+	if err != nil {
+		t.Fatalf("Could not open schema from file, %v", err)
+	}
+	return document
 }
 
-func returnedOpenAPI() *openapi_v2.Document {
-	return &openapi_v2.Document{
-		Definitions: &openapi_v2.Definitions{
-			AdditionalProperties: []*openapi_v2.NamedSchema{
-				{
-					Name: "namespace",
-					Value: &openapi_v2.Schema{
-						Properties: &openapi_v2.Properties{
-							AdditionalProperties: []*openapi_v2.NamedSchema{
-								{
-									Name: "metadata",
-									Value: &openapi_v2.Schema{
-										Properties: &openapi_v2.Properties{
-											AdditionalProperties: []*openapi_v2.NamedSchema{
-												{
-													Name: "name",
-													Value: &openapi_v2.Schema{
-														Type: &openapi_v2.TypeItem{
-															Value: []string{"string"},
-														},
-													},
-												},
-												{
-													Name: "labels",
-													Value: &openapi_v2.Schema{
-														Properties: &openapi_v2.Properties{
-															AdditionalProperties: []*openapi_v2.NamedSchema{
-																{
-																	Name: "name",
-																	Value: &openapi_v2.Schema{
-																		Type: &openapi_v2.TypeItem{
-																			Value: []string{"string"},
-																		},
-																	},
-																},
-															},
-														},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-						VendorExtension: []*openapi_v2.NamedAny{
-							{
-								Name: "x-kubernetes-group-version-kind",
-								Value: &openapi_v2.Any{
-									Yaml: returnGVKYaml(),
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+func createDocumentResource(t *testing.T) openapi.Resources {
+	server, err := openapiSchemaFakeServer(t)
+	if err != nil {
+		t.Fatalf("Could not create fake server from openapi, %v", err)
 	}
+	client := discovery.NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
+	schema, err := client.OpenAPISchema()
+	if err != nil {
+		t.Fatalf("Could not create the schema for the discoveryClient, %v", err)
+	}
+	document, err := openapi.NewOpenAPIData(schema)
+	if err != nil {
+		t.Fatalf("Could not get document from given schema: %v", err)
+	}
+	return document
 }
