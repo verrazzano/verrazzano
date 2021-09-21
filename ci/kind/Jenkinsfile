@@ -195,6 +195,7 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
+                    setDisplayName()
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
             }
@@ -743,5 +744,21 @@ def metricBuildDuration() {
             METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
+    }
+}
+
+def setDisplayName() {
+    for (cause in manager.build.causes) {
+        if (cause.class.toString().contains("UpstreamCause")) {
+             def upstreamCause = cause.toString()
+             println "This job was caused by " + upstreamCause
+             if (upstreamCause.contains("verrazzano-periodic-triggered-tests")) {
+                 currentBuild.displayName = env.BUILD_NUMBER + " : PERIODIC"
+             } else if (upstreamCause.contains("verrazzano-flaky-tests")) {
+                 currentBuild.displayName = env.BUILD_NUMBER + " : FLAKY"
+             } else if (upstreamCause.contains("tvlatas")) {
+                 currentBuild.displayName = env.BUILD_NUMBER + " : TONY-BRANCH-TEST"
+             }
+         }
     }
 }
