@@ -98,7 +98,7 @@
                 "dnsPolicy": "ClusterFirst",
                 "serviceAccountName": "verrazzano-install-my-verrazzano",
                 "serviceAccount": "verrazzano-install-my-verrazzano",
-                "nodeName": "10.0.10.131",
+                "nodeName": "REDACTED-IP4-ADDRESS",
                 "securityContext": {},
                 "imagePullSecrets": [
                     {}
@@ -154,11 +154,11 @@
                         "lastTransitionTime": "2021-08-05T08:04:03Z"
                     }
                 ],
-                "hostIP": "10.0.10.131",
-                "podIP": "10.244.1.131",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.1.131"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-08-05T08:04:03Z",
