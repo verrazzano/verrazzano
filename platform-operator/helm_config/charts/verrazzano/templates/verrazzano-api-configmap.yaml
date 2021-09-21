@@ -688,6 +688,10 @@ data:
             -- at = tokenRes.access_token,
             it = tokenRes.id_token
         }
+        -- Cookie to save username and email with http-only diabled
+        local userCookiePairs = {
+            username = ""
+        }
         local id_token = jwt:load_jwt(tokenRes.id_token)
         local expires_in = tonumber(tokenRes.expires_in)
         local refresh_expires_in = tonumber(tokenRes.refresh_expires_in)
@@ -701,24 +705,41 @@ data:
                     issued_at = tonumber(id_token.payload.auth_time)
                 end
             end
-            -- if id_token.payload.email then
-            --     cookiePairs.email = id_token.payload.email
-            -- end
+            if id_token.payload.username then
+                userCookiePairs.username = id_token.payload.username
+            end
         end
         local skew = now - issued_at
         -- Expire 30 secs before actual time
         local expiryBuffer = 30
         cookiePairs.expiry = now + expires_in - skew - expiryBuffer
         cookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
-        me.setCookie("authn", cookiePairs, tonumber(tokenRes.refresh_expires_in)-expiryBuffer)
+        userCookiePairs.expiry = now + expires_in - skew - expiryBuffer
+        userCookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
+        local expiresInSec = tonumber(tokenRes.refresh_expires_in)-expiryBuffer
+        me.setCookie("authn", cookiePairs, expiresInSec, true)
+        me.setCookie("userinfo", userCookiePairs, expiresInSec, false)
     end
 
-    function me.setCookie(ckName, cookiePairs, expiresInSec)
+    function me.setCookie(ckName, cookiePairs, expiresInSec, httponly)
+        local ck = require "resty.cookie"
+        local cookie, err = ck:new()
+        if not cookie then
+            me.logJson(ngx.ERR, "Error setting cookie "..ckName, err)
+            return
+        end
         local expires = ngx.cookie_time(ngx.time() + expiresInSec)
-        local attributes = "; Path=/; Secure; HttpOnly; Expires="..expires
-        local encrypted = me.aes256:encrypt(cjson.encode(cookiePairs))
-        local cookie = base64.encode_base64url(encrypted)
-        ngx.header["Set-Cookie"] = ckName..'='..cookie..attributes
+        local ckValue = ""
+        if ckName == "userinfo" then
+            -- No need to encrypt in case of userinfo
+            for key, value in pairs(cookiePairs) do
+                ckValue = ckValue..key.."="..value..","
+            end
+        else
+            ckValue = me.aes256:encrypt(cjson.encode(cookiePairs))
+        ckValue = base64.encode_base64url(ckValue)
+        end
+        cookie:set({key=ckName, value=ckValue, path="/", secure=true, httponly=httponly, expires=expires})
     end
 
     function me.deleteCookie(ckName)
