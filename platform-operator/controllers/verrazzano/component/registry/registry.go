@@ -5,6 +5,7 @@ package registry
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -16,8 +17,6 @@ import (
 	"go.uber.org/zap"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 )
 
 // GetComponents returns the list of components that are installable and upgradeable.
@@ -26,6 +25,7 @@ func GetComponents() []spi.Component {
 	overridesDir := config.GetHelmOverridesDir()
 	helmChartsDir := config.GetHelmChartsDir()
 	thirdPartyChartsDir := config.GetThirdPartyDir()
+	injectedSystemNamespaces := getInjectedSystemNamespaces()
 
 	return []spi.Component{
 		// TODO: remove istio helm components
@@ -165,8 +165,9 @@ func GetComponents() []spi.Component {
 			AppendOverridesFunc:     keycloak.AppendKeycloakOverrides,
 		},
 		istio.IstioComponent{
-			ValuesFile: filepath.Join(overridesDir, "istio-cr.yaml"),
-			Revision:   "1-10-2",
+			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
+			Revision:                 "1-10-2",
+			InjectedSystemNamespaces: injectedSystemNamespaces,
 		},
 	}
 }
@@ -223,4 +224,8 @@ func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Compo
 		trace[dependencyName] = true // dependency is ready
 	}
 	return trace, nil
+}
+
+func getInjectedSystemNamespaces() []string {
+	return []string{constants.VerrazzanoSystemNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
 }

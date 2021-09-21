@@ -6,12 +6,10 @@ package istio
 import (
 	"context"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
 	"io/ioutil"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,6 +24,9 @@ type IstioComponent struct {
 
 	// Revision is the istio install revision
 	Revision string
+
+	// InjectedSystemNamespaces are the system namespaces injected with istio
+	InjectedSystemNamespaces []string
 }
 
 // Verify that IstioComponent implements Component
@@ -83,6 +84,10 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 	_, _, err = upgradeFunc(log, i.ValuesFile, tmpFile.Name())
+	if err != nil {
+		return err
+	}
+	err = i.labelSystemNamespaces(log, client)
 	return err
 }
 
@@ -104,14 +109,13 @@ func (i IstioComponent) GetDependencies() []string {
 }
 
 // createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
-func upgradePlatformNS(ctx context.Context, log *zap.SugaredLogger, client clipkg.Client, istioRevision string) error {
-	istioPlatformNamespaces := []string{constants.VerrazzanoSystemNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
+func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client clipkg.Client) error {
 	var platformNS corev1.Namespace
-	var deploymentList appsv1.DeploymentList
+	//var deploymentList appsv1.DeploymentList
 	//var statefulSetList appsv1.DeploymentList
 	//var daemonSetList appsv1.DeploymentList
-	for _, ns := range istioPlatformNamespaces {
-		err := client.Get(ctx, types.NamespacedName{Name: ns}, &platformNS)
+	for _, ns := range i.InjectedSystemNamespaces {
+		err := client.Get(context.TODO(), types.NamespacedName{Name: ns}, &platformNS)
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				return err
@@ -119,14 +123,23 @@ func upgradePlatformNS(ctx context.Context, log *zap.SugaredLogger, client clipk
 			nsLabels := platformNS.Labels
 
 			// add istio.io/rev label
-			nsLabels["istio.io/rev"] = istioRevision
+			nsLabels["istio.io/rev"] = i.Revision
 			delete(nsLabels, "istio-injection")
 			platformNS.Labels = nsLabels
 
 			log.Infof("Relabeled namespace %v for istio upgrade", platformNS.Name)
-
-			client.List(ctx, &deploymentList)
 		}
 	}
 	return nil
 }
+
+/*func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, client clipkg.Client) error {
+	deploymentList := &appsv1.DeploymentList{}
+	for _, ns := range i.InjectedSystemNamespaces {
+		opts := []clipkg.ListOption{clipkg.InNamespace(ns)}
+
+		listOptions := clipkg.ListOptions{}
+		listOption := clipkg.ListOption()
+		err := client.List(context.TODO(), deploymentList, opts)
+	}
+}*/
