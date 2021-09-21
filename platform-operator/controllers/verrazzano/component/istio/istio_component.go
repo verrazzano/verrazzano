@@ -124,7 +124,7 @@ func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client cli
 		nsLabels["istio.io/rev"] = i.Revision
 		delete(nsLabels, "istio-injection")
 		platformNS.Labels = nsLabels
-
+		client.Update(context.TODO(), platformNS.DeepCopyObject())
 		log.Infof("Relabeled namespace %v for istio upgrade", platformNS.Name)
 	}
 	return nil
