@@ -155,7 +155,6 @@ pipeline {
                         script {
                             sh """
                                 cd ${WORKSPACE}
-                                ls -l
                                 ./release/scripts/create_branch.sh -c ${params.COMMIT_TO_USE} -v ${params.TARGET_VERSION}
                             """
                         }
@@ -167,13 +166,11 @@ pipeline {
                     steps {
                         script {
                             // trigger scan and wait for branch to appear if it doesn't exist
-                            if (Jenkins.instance.getItemByFullName(env.RELEASE_JOB) == null) {
-                                Jenkins.instance.getItemByFullName('verrazzano').scheduleBuild() {
-                                    while (Jenkins.instance.getItemByFullName(env.RELEASE_JOB) == null) {
-                                        sleep(1)
-                                    }
-                                }
+                            while (Jenkins.instance.getItemByFullName(env.RELEASE_JOB) == null) {
+                                Jenkins.instance.getItemByFullName('verrazzano').scheduleBuild()
+                                sleep(5)
                             }
+                            echo "Release build exists"
                         }
 
                         retry(count: env.BUILD_RETRIES) {
