@@ -27,7 +27,7 @@ function is_in_remote() {
 
 VERSION=""
 RELEASE_COMMIT=""
-EXPECTED_SOURCE_BRANCH="jmaron/VZ-3509"
+EXPECTED_SOURCE_BRANCH="origin/jmaron/VZ-3509"
 EXPECTED_SOURCE_REPO="verrazzano"
 
 while getopts v:c:h flag
@@ -44,26 +44,29 @@ parts=( ${VERSION//./ } )
 MAJOR="${parts[0]}"
 MINOR="${parts[1]}"
 PATCH="${parts[2]}"
-BRANCH=mock-release-${MAJOR}.${MINOR}
+RELEASE_BRANCH=mock-release-${MAJOR}.${MINOR}
 
 # if this is a patch release skip branch creation
 if [ "${PATCH}" != "" ]; then
   echo "This is a patch release. No branch creation required"
   exit 0
 else
-  if ! is_in_remote ${BRANCH} ; then
+  if ! is_in_remote ${RELEASE_BRANCH} ; then
     echo "creating branch"
     # ensure we are branching off of a verrazzano master branch
-    CURRENT_REPO=$(basename `git rev-parse --show-toplevel`)
-    echo "Current Repo: ${CURRENT_REPO}"
-    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    
+    # check remote repo
+    COMMIT_REPO=$(basename `git config --get remote.origin.url`)
+    echo "Commit Repo: ${COMMIT_REPO}"
+    COMMIT_BRANCH=$(git branch -r --contains ${RELEASE_COMMIT})
+    echo "Remote commit branch: ${COMMIT_BRANCH}"
 
-    if [ "${CURRENT_REPO}" != "${EXPECTED_SOURCE_REPO}" ]; then
+    if [ "${COMMIT_REPO}" != "${EXPECTED_SOURCE_REPO}" ]; then
       echo "Not in the correct repo"
       exit 1
     fi
 
-    if [ "${CURRENT_BRANCH}" != "${EXPECTED_SOURCE_BRANCH}" ]; then
+    if [ "${COMMIT_BRANCH}" != "${EXPECTED_SOURCE_BRANCH}" ]; then
       echo "Not using the master branch as the source branch.  Please checkout the master branch and make sure to pull the latest code"
       exit 1
     fi
@@ -77,8 +80,8 @@ else
       git pull
     fi
 
-    git checkout -b ${BRANCH} ${RELEASE_COMMIT}
-    git push origin ${BRANCH}
+    git checkout -b ${RELEASE_BRANCH} ${RELEASE_COMMIT}
+    git push origin ${RELEASE_BRANCH}
   else
     echo "Release branch exists"
     exit 0

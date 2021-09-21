@@ -58,7 +58,7 @@ pipeline {
                             $class: 'GitSCM',
                             branches: [[name: params.COMMIT_TO_USE]],
                             doGenerateSubmoduleConfigurations: false,
-                            extensions: [[$class: 'LocalBranch', localBranch: '']],
+                            extensions: [],
                             submoduleCfg: [],
                             userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
