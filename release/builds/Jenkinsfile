@@ -142,7 +142,7 @@ pipeline {
 
         stage('Trigger release build') {
             stages {
-                stage('Create release branch') {
+                stage('Release Only: Create branch') {
                     when {
                         expression { env.IS_PATCH_RELEASE == 'false' }
                     }
