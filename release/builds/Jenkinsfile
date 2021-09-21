@@ -70,7 +70,10 @@ pipeline {
                             exit 1
                         }
                     }
-                    sh "git config credential.https://github.com.username ${GITHUB_CREDENTIALS_USR}"
+                    sh """
+                        git config credential.https://github.com.username ${GITHUB_CREDENTIALS_USR}
+                        git config credential.helper '/bin/bash \${WORKSPACE}/release/scripts/credential_helper.sh"
+                    """
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
 
