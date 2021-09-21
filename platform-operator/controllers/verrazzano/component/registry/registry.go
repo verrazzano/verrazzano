@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -22,9 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 )
 
 // GetComponents returns the list of components that are installable and upgradeable.
@@ -187,8 +185,8 @@ func FindComponent(releaseName string) (bool, spi.Component) {
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available
-func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c spi.Component) bool {
-	trace, err := checkDependencies(log, client, c, nil)
+func ComponentDependenciesMet(log *zap.SugaredLogger, c spi.Component, context *spi.ComponentContext) bool {
+	trace, err := checkDependencies(log, c, context, nil)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -207,7 +205,7 @@ func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c sp
 }
 
 // checkDependencies Check the ready state of any dependencies and check for cycles
-func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Component, trace map[string]bool) (map[string]bool, error) {
+func checkDependencies(log *zap.SugaredLogger, c spi.Component, context *spi.ComponentContext, trace map[string]bool) (map[string]bool, error) {
 	for _, dependencyName := range c.GetDependencies() {
 		if trace == nil {
 			trace = make(map[string]bool)
@@ -219,10 +217,10 @@ func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Compo
 		if !found {
 			return trace, fmt.Errorf("Illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
 		}
-		if trace, err := checkDependencies(log, client, dependency, trace); err != nil {
+		if trace, err := checkDependencies(log, dependency, context, trace); err != nil {
 			return trace, err
 		}
-		if !dependency.IsReady(log, client, dependencyName) {
+		if !dependency.IsReady(log, context) {
 			trace[dependencyName] = false // dependency is not ready
 			continue
 		}

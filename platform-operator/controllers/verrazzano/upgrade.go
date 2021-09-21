@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"strconv"
 	"strings"
 
@@ -40,11 +41,17 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
-		if err := comp.PreUpgrade(log, r, cr.Namespace, r.DryRun); err != nil {
+		if err := comp.PreUpgrade(log, nil); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}
-		err := comp.Upgrade(log, r, cr.Namespace, r.DryRun)
+		upgradeContext := &spi.ComponentContext{
+			Client:          r,
+			DryRun:          r.DryRun,
+			Config:          cr,
+			EffectiveConfig: cr,
+		}
+		err := comp.Upgrade(log, upgradeContext)
 		if err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
@@ -52,7 +59,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeFailed)
 			return ctrl.Result{}, err
 		}
-		if err := comp.PostUpgrade(log, r, cr.Namespace, r.DryRun); err != nil {
+		if err := comp.PostUpgrade(log, nil); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}

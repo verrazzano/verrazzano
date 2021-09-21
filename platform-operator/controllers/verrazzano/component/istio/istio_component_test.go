@@ -41,7 +41,7 @@ func IstioTestUpgrade(t *testing.T) {
 	defer istio.SetDefaultRunner()
 	setIstioUpgradeFunc(fakeIstioUpgrade)
 	defer setIstioDefaultUpgradeFunc()
-	err := comp.Upgrade(zap.S(), nil, "", false)
+	err := comp.Upgrade(zap.S(), nil)
 	assert.NoError(err, "Upgrade returned an error")
 }
 

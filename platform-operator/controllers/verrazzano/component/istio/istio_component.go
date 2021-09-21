@@ -7,7 +7,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // IstioComponent represents an Istio component
@@ -30,15 +29,15 @@ func (i IstioComponent) IsOperatorInstallSupported() bool {
 	return false
 }
 
-func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) (bool, error) {
+func (i IstioComponent) IsInstalled(log *zap.SugaredLogger, context *spi.ComponentContext) (bool, error) {
 	return false, nil
 }
 
-func (i IstioComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (i IstioComponent) Install(log *zap.SugaredLogger, context *spi.ComponentContext) error {
 	return nil
 }
 
-func (i IstioComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string, dryRun bool) error {
+func (i IstioComponent) Upgrade(log *zap.SugaredLogger, context *spi.ComponentContext) error {
 	_, _, err := istioUpgradeFunc(log, i.Name())
 	return err
 }
@@ -51,7 +50,7 @@ func setIstioDefaultUpgradeFunc() {
 	istioUpgradeFunc = istio.Upgrade
 }
 
-func (i IstioComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
+func (i IstioComponent) IsReady(log *zap.SugaredLogger, context *spi.ComponentContext) bool {
 	return true
 }
 
@@ -60,18 +59,18 @@ func (i IstioComponent) GetDependencies() []string {
 	return []string{}
 }
 
-func (i IstioComponent) PreUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (i IstioComponent) PreUpgrade(log *zap.SugaredLogger, context *spi.ComponentContext) error {
 	return nil
 }
 
-func (i IstioComponent) PostUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (i IstioComponent) PostUpgrade(log *zap.SugaredLogger, context *spi.ComponentContext) error {
 	return nil
 }
 
-func (i IstioComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (i IstioComponent) PreInstall(log *zap.SugaredLogger, context *spi.ComponentContext) error {
 	return nil
 }
 
-func (i IstioComponent) PostInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (i IstioComponent) PostInstall(log *zap.SugaredLogger, context *spi.ComponentContext) error {
 	return nil
 }

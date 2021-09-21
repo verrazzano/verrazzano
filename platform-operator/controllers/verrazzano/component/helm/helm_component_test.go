@@ -8,8 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	"os/exec"
@@ -86,7 +89,7 @@ func TestUpgrade(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	err := comp.Upgrade(zap.S(), nil, "", false)
+	err := comp.Upgrade(zap.S(), &spi.ComponentContext{EffectiveConfig: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}})
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -111,7 +114,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 	})
 	defer helm.SetDefaultRunner()
 
-	err := comp.Upgrade(zap.S(), nil, "", false)
+	err := comp.Upgrade(zap.S(), &spi.ComponentContext{EffectiveConfig: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}})
 	assert.Error(err)
 }
 
@@ -132,7 +135,7 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
 
-	err := comp.Upgrade(zap.S(), nil, "", false)
+	err := comp.Upgrade(zap.S(), &spi.ComponentContext{EffectiveConfig: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}})
 	assert.NoError(err)
 }
 
@@ -171,7 +174,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	err := comp.Upgrade(zap.S(), nil, "", false)
+	err := comp.Upgrade(zap.S(), &spi.ComponentContext{EffectiveConfig: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}})
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -209,7 +212,12 @@ func TestInstall(t *testing.T) {
 		return helm.ChartNotFound, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(zap.S(), client, "default", false)
+	err := comp.Install(zap.S(), &spi.ComponentContext{
+		Client:          client,
+		DryRun:          false,
+		Config:          nil,
+		EffectiveConfig: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}},
+	})
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -247,7 +255,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 		return helm.ChartStatusFailed, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(zap.S(), client, "default", false)
+	err := comp.Install(zap.S(), &spi.ComponentContext{Client: client, EffectiveConfig: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}})
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -308,7 +316,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 		return helm.ChartNotFound, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(zap.S(), client, "default", false)
+	err := comp.Install(zap.S(), &spi.ComponentContext{Client: client, EffectiveConfig: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}})
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -359,13 +367,13 @@ func TestIsInstalled(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
-	assert.True(comp.IsInstalled(zap.S(), client, "default"))
+	assert.True(comp.IsInstalled(zap.S(), &spi.ComponentContext{Client: client, EffectiveConfig: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}}))
 	helm.SetCmdRunner(genericHelmTestRunner{
 		stdOut: []byte(""),
 		stdErr: []byte(""),
 		err:    fmt.Errorf("Not installed"),
 	})
-	assert.False(comp.IsInstalled(zap.S(), client, "default"))
+	assert.False(comp.IsInstalled(zap.S(), &spi.ComponentContext{Client: client, EffectiveConfig: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}}))
 }
 
 // TestReady tests IsReady
@@ -382,22 +390,24 @@ func TestReady(t *testing.T) {
 	})
 	comp := HelmComponent{}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	assert.True(comp.IsReady(zap.S(), client, "default"))
+	compContext := spi.ComponentContext{Client: client, EffectiveConfig: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}}
+
+	assert.True(comp.IsReady(zap.S(), &compContext))
 
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartNotFound, nil
 	})
-	assert.False(comp.IsReady(zap.S(), client, "default"))
+	assert.False(comp.IsReady(zap.S(), &compContext))
 
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusFailed, nil
 	})
-	assert.False(comp.IsReady(zap.S(), client, "default"))
+	assert.False(comp.IsReady(zap.S(), &compContext))
 
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return "", fmt.Errorf("Unexpected error")
 	})
-	assert.False(comp.IsReady(zap.S(), client, "default"))
+	assert.False(comp.IsReady(zap.S(), &compContext))
 
 	compInstalledWithNotReadyStatus := HelmComponent{
 		ReadyStatusFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool {
@@ -407,7 +417,7 @@ func TestReady(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
-	assert.False(compInstalledWithNotReadyStatus.IsReady(zap.S(), client, "default"))
+	assert.False(compInstalledWithNotReadyStatus.IsReady(zap.S(), &compContext))
 
 	compInstalledWithReadyStatus := HelmComponent{
 		ReadyStatusFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool {
@@ -417,7 +427,7 @@ func TestReady(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
-	assert.True(compInstalledWithReadyStatus.IsReady(zap.S(), client, "default"))
+	assert.True(compInstalledWithReadyStatus.IsReady(zap.S(), &compContext))
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
