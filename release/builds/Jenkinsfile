@@ -147,13 +147,11 @@ pipeline {
                         expression { env.IS_PATCH_RELEASE == 'false' }
                     }
                     steps {
-                        dir("${env.WORKSPACE}") {
-                            script {
-                                sh """
-
-                                    ${WORKSPACE}/release/scripts/create_branch.sh -c ${params.COMMIT_TO_USE} -v ${params.TARGET_VERSION}
-                                """
-                            }
+                        script {
+                            sh """
+                                cd ${WORKSPACE}
+                                ./create_branch.sh -c ${params.COMMIT_TO_USE} -v ${params.TARGET_VERSION}
+                            """
                         }
                     }
 
