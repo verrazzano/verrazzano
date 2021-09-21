@@ -70,11 +70,6 @@ pipeline {
                             echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
                             exit 1
                         }
-                        // required for branch creation to succeed:
-                        sh """
-                            git config user.email "${env.GITHUB_RELEASE_EMAIL}"
-                            git config user.name "${env.GITHUB_RELEASE_USERID}"
-                        """
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
