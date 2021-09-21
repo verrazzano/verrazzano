@@ -15,9 +15,9 @@ import (
 	vzyaml "github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
 )
 
-// TestMergeSpec tests the MergeFiles function for a list of VerrazzanoSpecs
+// TestMergeSpec tests the StrategicMergeFiles function for a list of VerrazzanoSpecs
 // GIVEN an array of tests, where each tests specifies files to merge
-// WHEN MergeFiles is called, with some contents being a list that should be merged
+// WHEN StrategicMergeFiles is called, with some contents being a list that should be merged
 // THEN ensure that the merged result is correct.
 func TestMergeSpec(t *testing.T) {
 	tests := []struct {
@@ -42,7 +42,7 @@ func TestMergeSpec(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
-			merged, err := vzyaml.MergeFiles(vzapi.VerrazzanoSpec{}, test.base, test.overlay)
+			merged, err := vzyaml.StrategicMergeFiles(vzapi.VerrazzanoSpec{}, test.base, test.overlay)
 			assert.NoError(err, merged, "error merging profiles")
 			expected, err := ioutil.ReadFile(filepath.Join(test.expected))
 			assert.NoError(err, merged, "error reading profiles")
