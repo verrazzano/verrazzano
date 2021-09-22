@@ -261,49 +261,6 @@ func Test_locateVolumesField(t *testing.T) {
 	}
 }
 
-func Test_locateVolumeMountsField(t *testing.T) {
-	type args struct {
-		document openapi.Resources
-		res      *unstructured.Unstructured
-	}
-
-	// Set Up DiscoveryClient server and document resource
-	document := createDocumentResource(t)
-
-	// Create Deployment resource
-	container_resource := unstructured.Unstructured{}
-	container_resource.SetAPIVersion("v1")
-	container_resource.SetKind("Container")
-
-	tests := []struct {
-		name  string
-		args  args
-		want  bool
-		want1 []string
-	}{
-		{
-			name: "container_test",
-			args: args{
-				document:   document,
-				res:        &container_resource,
-			},
-			want: true,
-			want1: []string{"volumeMounts"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := locateVolumeMountsField(tt.args.document, tt.args.res)
-			if got != tt.want {
-				t.Errorf("locateVolumeMountsField() got = %v, want %v", got, tt.want)
-			}
-			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("locateVolumeMountsField() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
 func openapiSchemaFakeServer(t *testing.T) (*httptest.Server, error) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != "/openapi/v2" {
