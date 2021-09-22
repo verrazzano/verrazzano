@@ -88,14 +88,14 @@ func Test_locateField(t *testing.T) {
 	document := createDocumentResource(t)
 
 	// Create Deployment resource
-	deployment_resource := unstructured.Unstructured{}
-	deployment_resource.SetAPIVersion("apps/v1beta1")
-	deployment_resource.SetKind("Deployment")
+	deploymentResource := unstructured.Unstructured{}
+	deploymentResource.SetAPIVersion("apps/v1beta1")
+	deploymentResource.SetKind("Deployment")
 
 	// Create Pod resource
-	pod_resource := unstructured.Unstructured{}
-	pod_resource.SetAPIVersion("v1")
-	pod_resource.SetKind("Pod")
+	podResource := unstructured.Unstructured{}
+	podResource.SetAPIVersion("v1")
+	podResource.SetKind("Pod")
 
 	tests := []struct {
 		name  string
@@ -107,7 +107,7 @@ func Test_locateField(t *testing.T) {
 			name: "deployment_test",
 			args: args{
 				document:   document,
-				res:        &deployment_resource,
+				res:        &deploymentResource,
 				fieldPaths: [][]string{
 								//This is the path to the containers field of the Pod resource
 								{"spec", "containers"},
@@ -122,7 +122,7 @@ func Test_locateField(t *testing.T) {
 			name: "pod_test",
 			args: args{
 				document:   document,
-				res:        &pod_resource,
+				res:        &podResource,
 				fieldPaths: [][]string{
 					//This is the path to the containers field of the Pod resource
 					{"spec", "containers"},
@@ -157,14 +157,14 @@ func Test_locateContainersField(t *testing.T) {
 	document := createDocumentResource(t)
 
 	// Create Deployment resource
-	deployment_resource := unstructured.Unstructured{}
-	deployment_resource.SetAPIVersion("apps/v1beta1")
-	deployment_resource.SetKind("Deployment")
+	deploymentResource := unstructured.Unstructured{}
+	deploymentResource.SetAPIVersion("apps/v1beta1")
+	deploymentResource.SetKind("Deployment")
 
 	// Create Pod resource
-	pod_resource := unstructured.Unstructured{}
-	pod_resource.SetAPIVersion("v1")
-	pod_resource.SetKind("Pod")
+	podResource := unstructured.Unstructured{}
+	podResource.SetAPIVersion("v1")
+	podResource.SetKind("Pod")
 
 	tests := []struct {
 		name  string
@@ -176,7 +176,7 @@ func Test_locateContainersField(t *testing.T) {
 			name: "deployment_test",
 			args: args{
 				document:   document,
-				res:        &deployment_resource,
+				res:        &deploymentResource,
 			},
 			want: true,
 			want1: []string{"spec", "template", "spec", "containers"},
@@ -185,7 +185,7 @@ func Test_locateContainersField(t *testing.T) {
 			name: "pod_test",
 			args: args{
 				document:   document,
-				res:        &pod_resource,
+				res:        &podResource,
 			},
 			want: true,
 			want1: []string{"spec", "containers"},
@@ -214,14 +214,14 @@ func Test_locateVolumesField(t *testing.T) {
 	document := createDocumentResource(t)
 
 	// Create Deployment resource
-	deployment_resource := unstructured.Unstructured{}
-	deployment_resource.SetAPIVersion("apps/v1beta1")
-	deployment_resource.SetKind("Deployment")
+	deploymentResource := unstructured.Unstructured{}
+	deploymentResource.SetAPIVersion("apps/v1beta1")
+	deploymentResource.SetKind("Deployment")
 
 	// Create Pod resource
-	pod_resource := unstructured.Unstructured{}
-	pod_resource.SetAPIVersion("v1")
-	pod_resource.SetKind("Pod")
+	podResource := unstructured.Unstructured{}
+	podResource.SetAPIVersion("v1")
+	podResource.SetKind("Pod")
 
 	tests := []struct {
 		name  string
@@ -233,7 +233,7 @@ func Test_locateVolumesField(t *testing.T) {
 			name: "deployment_test",
 			args: args{
 				document:   document,
-				res:        &deployment_resource,
+				res:        &deploymentResource,
 			},
 			want: true,
 			want1: []string{"spec", "template", "spec", "volumes"},
@@ -242,7 +242,7 @@ func Test_locateVolumesField(t *testing.T) {
 			name: "pod_test",
 			args: args{
 				document:   document,
-				res:        &pod_resource,
+				res:        &podResource,
 			},
 			want: true,
 			want1: []string{"spec", "volumes"},
