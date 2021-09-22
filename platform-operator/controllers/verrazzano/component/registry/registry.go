@@ -225,7 +225,3 @@ func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Compo
 	}
 	return trace, nil
 }
-
-func getInjectedSystemNamespaces() []string {
-	return []string{constants.VerrazzanoSystemNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
-}

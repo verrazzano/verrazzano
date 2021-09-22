@@ -156,7 +156,9 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for _, deployment := range deploymentList.Items {
+	for _, deploy := range deploymentList.Items {
+		// for Update call
+		deployment := deploy
 		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
 			if deployment.Spec.Paused {
 				return errors.Newf("Deployment %v can't be restarted because it is paused", deployment.Name)
@@ -179,7 +181,8 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for _, statefulSet := range statefulSetList.Items {
+	for _, ss := range statefulSetList.Items {
+		statefulSet := ss
 		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -199,7 +202,8 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for _, daemonSet := range daemonSetList.Items {
+	for _, ds := range daemonSetList.Items {
+		daemonSet := ds
 		if contains(i.InjectedSystemNamespaces, daemonSet.Namespace) {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
