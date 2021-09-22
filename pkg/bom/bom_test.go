@@ -236,7 +236,7 @@ func TestBomSubcomponentOverrides(t *testing.T) {
 	bom, err := NewBom(testBomSubcomponentOverridesPath)
 	assert.Equal("ghcr.io", bom.GetRegistry(), "Global registry not correct")
 	assert.NoError(err)
-	
+
 	nginxSubcomponent, err := bom.GetSubcomponent("ingress-controller")
 	assert.NotNil(t, nginxSubcomponent)
 	assert.NoError(err)
