@@ -136,6 +136,12 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			workload.Namespace = namespace
 			return nil
 		})
+	// expect a call to list the logging traits
+	cli.EXPECT().
+		List(gomock.Any(), vzapi.LoggingTraitList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, loggingTraitList vzapi.LoggingTraitList, notsureyet string) error {
+			return nil
+		})
 	// expect a call to list the FLUENTD config maps
 	cli.EXPECT().
 		List(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -152,9 +158,26 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: "test-name"}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
+		})
+	// expect a call to get the application configuration for the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
+			return nil
+		})
+	// expect a call to get the ConfigMap for logging
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: "logging-stdout-unit-test-cluster-domain"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{
+				Group:    "",
+				Resource: "ConfigMap",
+			},
+			"logging-stdout-unit-test-cluster-domain")
 		})
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
