@@ -65,13 +65,13 @@ const simpleOverlay = `name: overlay`
 // simpleOverlay is the result of non-nested merge
 const simpleMerged = `name: overlay`
 
-// TestMergeSimple tests the MergeString function
+// TestMergeSimple tests the StrategicMerge function
 // GIVEN a set of non-nested YAML strings
-// WHEN MergeString is called
+// WHEN StrategicMerge is called
 // THEN ensure that the merged result is correct.
 func TestMergeSimple(t *testing.T) {
 	assert := assert.New(t)
-	merged, err := MergeString(simple{}, simpleBase, simpleOverlay)
+	merged, err := StrategicMerge(simple{}, simpleBase, simpleOverlay)
 	assert.NoError(err, merged, "error merging simple yaml")
 	assert.YAMLEq(simpleMerged, merged, "simple yaml should be equal")
 }
@@ -97,13 +97,13 @@ host:
   name: example.com
   ip: 1.2.3.4`
 
-// TestMergeNested1 tests the MergeString function with nested YAML
+// TestMergeNested1 tests the StrategicMerge function with nested YAML
 // GIVEN a set of nested YAML strings
-// WHEN MergeString is called
+// WHEN StrategicMerge is called
 // THEN ensure that the merged result is correct.
 func TestMergeNested1(t *testing.T) {
 	assert := assert.New(t)
-	merged, err := MergeString(nested1{}, nested1Base, nested1Overlay)
+	merged, err := StrategicMerge(nested1{}, nested1Base, nested1Overlay)
 	assert.NoError(err, merged, "error merging nested yaml")
 	assert.YAMLEq(nested1Merged, merged, "nested yaml should be equal")
 }
@@ -149,13 +149,13 @@ platform:
       date: 01/01/2020
 `
 
-// TestMergeNested2 tests the MergeString function with nested YAML
+// TestMergeNested2 tests the StrategicMerge function with nested YAML
 // GIVEN a set of nested YAML strings with embedded lists
-// WHEN MergeString is called
+// WHEN StrategicMerge is called
 // THEN ensure that the merged result is correct.
 func TestMergeNested2(t *testing.T) {
 	assert := assert.New(t)
-	merged, err := MergeString(nested2{}, nested2Base, nested2Overlay)
+	merged, err := StrategicMerge(nested2{}, nested2Base, nested2Overlay)
 	assert.NoError(err, merged, "error merging nested yaml")
 	assert.YAMLEq(nested2Merged, merged, "nested yaml should be equal")
 }
@@ -202,7 +202,7 @@ patches:
 // Test the profile merge
 func TestPatchesReplace(t *testing.T) {
 	assert := assert.New(t)
-	merged, err := MergeString(patchesReplace{}, patches1, patches2)
+	merged, err := StrategicMerge(patchesReplace{}, patches1, patches2)
 	assert.NoError(err, merged, "error merging patches")
 	assert.YAMLEq(merged, string(patches2), "merged profile is incorrect ")
 }
@@ -210,7 +210,7 @@ func TestPatchesReplace(t *testing.T) {
 // Test the profile merge
 func TestPatchesMerge(t *testing.T) {
 	assert := assert.New(t)
-	merged, err := MergeString(patchesMerge{}, patches1, patches2, patches3, patches4)
+	merged, err := StrategicMerge(patchesMerge{}, patches1, patches2, patches3, patches4)
 	assert.NoError(err, merged, "error merging patches")
 	assert.YAMLEq(merged, string(patchesMerged), "merged profile is incorrect ")
 }
@@ -277,9 +277,9 @@ func TestYamlEq(t *testing.T) {
 	assert.YAMLEq(yaml1, yaml3, "yaml should be equal")
 }
 
-// TestMergeFiles tests the MergeFiles function
+// TestMergeFiles tests the StrategicMergeFiles function
 // GIVEN an array of tests, where each tests specifies files to merge
-// WHEN MergeFiles is called, with some contents being a list that should be merged
+// WHEN StrategicMergeFiles is called, with some contents being a list that should be merged
 // THEN ensure that the merged result is correct.
 func TestMergeFiles(t *testing.T) {
 	tests := []struct {
@@ -309,7 +309,7 @@ func TestMergeFiles(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
-			merged, err := MergeFiles(nested2{}, test.files...)
+			merged, err := StrategicMergeFiles(nested2{}, test.files...)
 			assert.NoError(err, merged, "error merging profiles")
 			expected, err := ioutil.ReadFile(filepath.Join(test.expected))
 			assert.NoError(err, merged, "error reading profiles")

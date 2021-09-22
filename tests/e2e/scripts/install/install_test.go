@@ -54,6 +54,9 @@ var _ = BeforeSuite(func() {
 	}
 })
 
+// This test checks that the console output at the end of an install does not show a
+// user URL's that do not exist for that installation platform.  For example, a managed
+// cluster install would not have console URLs.
 var _ = Describe("Verify Verrazzano install scripts", func() {
 
 	Context("Verify Console URLs in the install log", func() {

@@ -6,7 +6,10 @@ package appoper
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -25,4 +28,12 @@ func AppendApplicationOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string
 	})
 	fmt.Println("Foo")
 	return kvs, nil
+}
+
+// IsApplicationOperatorReady checks if the application operator deployment is ready
+func IsApplicationOperatorReady(log *zap.SugaredLogger, c client.Client, name string, namespace string) bool {
+	deployments := []types.NamespacedName{
+		{Name: "verrazzano-application-operator", Namespace: namespace},
+	}
+	return status.DeploymentsReady(log, c, deployments, 1)
 }

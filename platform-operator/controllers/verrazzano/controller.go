@@ -182,19 +182,21 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		return newRequeueWithDelay(), err
 	}
 
-	if err := r.reconcileInstall(log, vz); err != nil {
+	// Sync the local cluster registration secret that allows the use of MCxyz resources on the
+	// admin cluster without needing a VMC.
+	if err := r.syncLocalRegistrationSecret(); err != nil {
+		log.Errorf("Failed to sync the local registration secret: %v", err)
 		return newRequeueWithDelay(), err
+	}
+
+	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
+		return newRequeueWithDelay(), err
+	} else if shouldRequeue(result) {
+		return result, nil
 	}
 
 	// Create/update a configmap from spec for future comparison on update/upgrade
 	if err := r.saveVerrazzanoSpec(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	}
-
-	// Sync the local cluster registration secret that allows the use of MCxyz resources on the
-	// admin cluster without needing a VMC.
-	if err := r.syncLocalRegistrationSecret(vz); err != nil {
-		log.Errorf("Failed to sync the local registration secret: %v", err)
 		return newRequeueWithDelay(), err
 	}
 
@@ -210,11 +212,13 @@ func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.Su
 		return r.procDelete(ctx, log, vz)
 	}
 
-	if err := r.checkInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
+	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
 		return newRequeueWithDelay(), err
+	} else if shouldRequeue(result) {
+		return result, nil
 	}
 
-	if err := r.reconcileInstall(log, vz); err != nil {
+	if err := r.checkInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -704,10 +708,12 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 		return installv1alpha1.Uninstalling
 	case installv1alpha1.UpgradeStarted:
 		return installv1alpha1.Upgrading
+	case installv1alpha1.UninstallComplete:
+		return installv1alpha1.Disabled
 	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
 		return installv1alpha1.Failed
 	}
-	// Return ready for installv1alpha1.InstallComplete, installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete
+	// Return ready for installv1alpha1.InstallComplete, installv1alpha1.UpgradeComplete
 	return installv1alpha1.Ready
 }
 
@@ -769,7 +775,8 @@ func initializeComponentStatus(cr *installv1alpha1.Verrazzano) {
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
-				Name: comp.Name(),
+				Name:  comp.Name(),
+				State: installv1alpha1.Disabled,
 			}
 		}
 	}

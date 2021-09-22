@@ -299,7 +299,7 @@ data:
         end
         if backend_name == "verrazzano" then
             local uri = ngx.var.request_uri
-            local start, end = uri:find("/20210501/")
+            local start, last = uri:find("/20210501/")
             if start and start == 1 then
                 backend_name = "verrazzano"
                 -- Strip api_version from the uri
@@ -467,7 +467,7 @@ data:
             redirect_uri = me.callbackUri
         })
         local redirectURL = me.getOidcAuthUri()..'?'..redirectArgs
-        me.setCookie("vz_state", stateData, authStateTtlInSec)
+        me.setCookie("vz_state", stateData, authStateTtlInSec, true)
         ngx.header["Cache-Control"] = "no-cache, no-store, max-age=0"
         ngx.redirect(redirectURL)
     end
@@ -715,6 +715,8 @@ data:
         local expiryBuffer = 30
         cookiePairs.expiry = now + expires_in - skew - expiryBuffer
         cookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
+        userCookiePairs.expiry = now + expires_in - skew - expiryBuffer
+        userCookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
         local expiresInSec = tonumber(tokenRes.refresh_expires_in)-expiryBuffer
         me.setCookie("vz_authn", cookiePairs, expiresInSec, true)
         me.setCookie("vz_userinfo", userCookiePairs, expiresInSec, false)

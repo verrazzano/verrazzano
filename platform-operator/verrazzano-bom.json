@@ -257,11 +257,6 @@
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
-              "image": "verrazzano-monitoring-instance-eswait-jenkins",
-              "tag": "1.1.0-20210913235244-8266129",
-              "helmFullImageKey": "monitoringOperator.esWaitImage"
-            },
-            {
               "image": "kibana",
               "tag": "7.6.1-20201130145840-7717e73",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
@@ -282,8 +277,8 @@
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
-              "image": "console",
-              "tag": "1.1.0-20210812131321-65032b3",
+              "image": "console-jenkins",
+              "tag": "1.1.0-20210921144912-6f72021",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
