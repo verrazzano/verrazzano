@@ -94,13 +94,13 @@ pipeline {
                 script {
                     //TODO:  remove the second check for my branch
                     if (params.SOURCE_BRANCH.equals('master') || params.SOURCE_BRANCH.equals('jmaron/VZ-3509')) {
-                        if (params.TARGET_VERSION =~ /\d+\.\d$/) {
+                        if (params.TARGET_VERSION =~ /^\d+\.\d+$/) {
                             env.IS_PATCH_RELEASE = 'false'
                         } else {
                             error "Mismatch betwween source branch ${params.SOURCE_BRANCH} and target version ${params.TARGET_VERSION}"
                         }
-                    } else if (params.SOURCE_BRANCH =~ /release-\d+\.\d$/){
-                        if (params.TARGET_VERSION =~ /\d+\.\d+\.\d$/) {
+                    } else if (params.SOURCE_BRANCH =~ /release-\d+\.\d+$/){
+                        if (params.TARGET_VERSION =~ /\d+\.\d+\.\d+$/) {
                             env.IS_PATCH_RELEASE = 'true'
                         } else {
                             error "Mismatch betwween source branch ${params.SOURCE_BRANCH} and target version ${params.TARGET_VERSION}"
