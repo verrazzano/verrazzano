@@ -1220,11 +1220,6 @@ func newRequeueWithDelay() ctrl.Result {
 	return ctrl.Result{Requeue: true, RequeueAfter: delaySecs}
 }
 
-// Create a new Result that will cause a reconcile requeue after an exact
-func newRequeueWithExactDelay(delay int) ctrl.Result {
-	return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(delay) * time.Second}
-}
-
 // Return true if requeue is needed
 func shouldRequeue(r ctrl.Result) bool {
 	return r.Requeue || r.RequeueAfter > 0
