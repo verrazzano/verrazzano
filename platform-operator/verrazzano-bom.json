@@ -278,7 +278,7 @@
             },
             {
               "image": "console",
-              "tag": "1.1.0-20210812131321-65032b3",
+              "tag": "1.1.0-20210922190543-da76232",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
