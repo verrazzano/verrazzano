@@ -47,7 +47,7 @@ PATCH="${parts[2]}"
 RELEASE_BRANCH=mock-release-${MAJOR}.${MINOR}
 
 # if this is a patch release skip branch creation
-if [ "${PATCH}" != "" ]; then
+if [ "${PATCH}" != "0" ]; then
   echo "This is a patch release. No branch creation required"
   exit 0
 else
