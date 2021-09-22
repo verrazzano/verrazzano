@@ -13,8 +13,7 @@ yq -i eval ".spec.components.dns.wildcard.domain = \"${DNS_WILDCARD_DOMAIN}\"" $
 
 if [ $VZ_ENVIRONMENT_NAME == "admin" ] && [ $EXTERNAL_ELASTICSEARCH == "true" ]; then
   EXTERNAL_ES_SECRET=external-es-secret
-  # TODO how to get nginx ingress IP before nginx installation
-  EXTERNAL_ES_URL=https://external-es.default.172.18.0.232.nip.io
+  EXTERNAL_ES_URL=https://$(KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get svc external-es-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'):9200
   yq -i eval ".spec.components.fluentd.elasticsearchSecret = \"${EXTERNAL_ES_SECRET}\"" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.fluentd.elasticsearchURL = \"${EXTERNAL_ES_URL}\"" ${INSTALL_CONFIG_TO_EDIT}
 fi
