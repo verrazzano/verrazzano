@@ -62,6 +62,9 @@ type BomSubComponent struct {
 	// where ghci.io is the registry and verrazzano is the repository name.
 	Repository string `json:"repository"`
 
+	// Override the registry within a subcomponent
+	Registry string `json:"registry"`
+
 	// Images is the array of images for this subcomponent
 	Images []BomImage `json:"images"`
 }
@@ -264,6 +267,9 @@ func (b *Bom) ResolveRegistry(sc *BomSubComponent) string {
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	if registry == "" {
 		registry = b.bomDoc.Registry
+		if len(sc.Registry) > 0 {
+			registry = sc.Registry
+		}
 	}
 	return registry
 }
