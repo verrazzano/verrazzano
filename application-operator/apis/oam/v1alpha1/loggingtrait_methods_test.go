@@ -12,7 +12,7 @@ import (
 )
 
 // TestGetCondition tests the GetCondition method
-func TestGetCondition(t *testing.T) {
+func TestLoggingTraitGetCondition(t *testing.T) {
 	assert := asserts.New(t)
 	var trait LoggingTrait
 	var cond oamrt.Condition
@@ -44,7 +44,7 @@ func TestGetCondition(t *testing.T) {
 }
 
 // TestSetCondition tests the SetConditions method.
-func TestSetCondition(t *testing.T) {
+func TestLoggingTraitSetCondition(t *testing.T) {
 	assert := asserts.New(t)
 	var trait LoggingTrait
 	var cond = oamrt.Condition{
@@ -64,7 +64,7 @@ func TestSetCondition(t *testing.T) {
 }
 
 // TestGetWorkloadReference tests the GetWorkloadReference method.
-func TestGetWorkloadReference(t *testing.T) {
+func TestLoggingTraitGetWorkloadReference(t *testing.T) {
 	assert := asserts.New(t)
 	var trait LoggingTrait
 	var expected oamrt.TypedReference
@@ -85,7 +85,7 @@ func TestGetWorkloadReference(t *testing.T) {
 }
 
 // TestSetWorkloadReference test the SetWorkloadReference method.
-func TestSetWorkloadReference(t *testing.T) {
+func TestLoggingTraitSetWorkloadReference(t *testing.T) {
 	assert := asserts.New(t)
 	var trait LoggingTrait
 	var expected oamrt.TypedReference
