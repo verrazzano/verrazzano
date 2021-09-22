@@ -167,11 +167,11 @@ pipeline {
                                 echo "Triggering Verrazzano build for release"
                                 releaseBuild = build job: "${RELEASE_JOB_NAME}",
                                     parameters: [
-                                        booelanParam(name: 'RUN_ACCEPTANCE_TESTS', value: true),
-                                        booelanParam(name: 'RUN_SLOW_TESTS', value: true),
-                                        booelanParam(name: 'TRIGGER_FULL_TESTS', value: true),
-                                        booelanParam(name: 'GENERATE_TARBALL', value: true),
-                                        booelanParam(name: 'GENERATE_TOOL', value: true)
+                                        booleanParam(name: 'RUN_ACCEPTANCE_TESTS', value: true),
+                                        booleanParam(name: 'RUN_SLOW_TESTS', value: true),
+                                        booleanParam(name: 'TRIGGER_FULL_TESTS', value: true),
+                                        booleanParam(name: 'GENERATE_TARBALL', value: true),
+                                        booleanParam(name: 'GENERATE_TOOL', value: true)
                                     ], wait: true
                             }
                         }
