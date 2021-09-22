@@ -92,7 +92,21 @@ pipeline {
             steps {
                 script {
                     //TODO:  remove the second check for my branch
-                    env.IS_PATCH_RELEASE = params.SOURCE_BRANCH.equals('master') || params.SOURCE_BRANCH.equals('jmaron/VZ-3509')? 'false' : 'true'
+                    if (params.SOURCE_BRANCH.equals('master') || params.SOURCE_BRANCH.equals('jmaron/VZ-3509')) {
+                        if (params.TARGET_VERSION =~ /\d+\.\d$/) {
+                            env.IS_PATCH_RELEASE = 'false'
+                        } else {
+                            error "Mismatch betwween source branch ${params.SOURCE_BRANCH} and target version ${params.TARGET_VERSION}"
+                        }
+                    } else if (params.SOURCE_BRANCH =~ /release-\d+\.\d$/){
+                        if (params.TARGET_VERSION =~ /\d+\.\d+\.\d$/) {
+                            env.IS_PATCH_RELEASE = 'true'
+                        } else {
+                            error "Mismatch betwween source branch ${params.SOURCE_BRANCH} and target version ${params.TARGET_VERSION}"
+                        }
+                    } else {
+                        error "Source branch ${params.SOURCE_BRANCH} is not valid for a major, minor, or patch release"
+                    }
                     echo "Patch release? ${env.IS_PATCH_RELEASE}"
                 }
             }
@@ -185,11 +199,11 @@ pipeline {
                                 echo "Triggering Verrazzano build for release"
                                 releaseBuild = build job: "${RELEASE_JOB_NAME}",
                                     parameters: [
-                                        string(name: 'RUN_ACCEPTANCE_TESTS', value: 'true'),
-                                        string(name: 'RUN_SLOW_TESTS', value: 'true'),
-                                        string(name: 'TRIGGER_FULL_TESTS', value: 'true'),
-                                        string(name: 'GENERATE_TARBALL', value: 'true'),
-                                        string(name: 'GENERATE_TOOL', value: 'true')
+                                        booelanParam(name: 'RUN_ACCEPTANCE_TESTS', value: true),
+                                        booelanParam(name: 'RUN_SLOW_TESTS', value: true),
+                                        booelanParam(name: 'TRIGGER_FULL_TESTS', value: true),
+                                        booelanParam(name: 'GENERATE_TARBALL', value: true),
+                                        booelanParam(name: 'GENERATE_TOOL', value: true)
                                     ], wait: true
                             }
                         }
