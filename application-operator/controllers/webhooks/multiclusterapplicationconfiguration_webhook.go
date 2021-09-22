@@ -49,10 +49,10 @@ func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Conte
 			if err != nil {
 				return admission.Denied(err.Error())
 			}
-			//			err = v.validateSecrets(mcac)
-			//			if err != nil {
-			//				return admission.Denied(err.Error())
-			//			}
+			err = v.validateSecrets(mcac)
+			if err != nil {
+				return admission.Denied(err.Error())
+			}
 			err = validateNamespaceInProject(v.client, mcac.Namespace)
 			if err != nil {
 				return admission.Denied(err.Error())

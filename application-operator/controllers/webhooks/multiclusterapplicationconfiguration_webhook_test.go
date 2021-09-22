@@ -200,3 +200,35 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster application configuration validation to succeed with missing placement information on managed cluster.")
 }
+
+func TestValidateSecrets(t *testing.T) {
+	asrt := assert.New(t)
+	v := newMultiClusterApplicationConfigurationValidator()
+
+	mcac := &v1alpha12.MultiClusterApplicationConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-mcapplicationconfiguration-name",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: v1alpha12.MultiClusterApplicationConfigurationSpec{},
+	}
+
+	// No secrets specified, so success is expected
+	asrt.NoError(v.validateSecrets(mcac))
+
+	mcac = &v1alpha12.MultiClusterApplicationConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-mcapplicationconfiguration-name",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: v1alpha12.MultiClusterApplicationConfigurationSpec{
+			Secrets: []string{
+				"secret1",
+			},
+		},
+	}
+
+	// Secret not found, so failure expected
+	err := v.validateSecrets(mcac)
+	asrt.EqualError(err, "secret(s) secret1 specified in MultiClusterApplicationConfiguration not found in namespace verrazzano-mc")
+}

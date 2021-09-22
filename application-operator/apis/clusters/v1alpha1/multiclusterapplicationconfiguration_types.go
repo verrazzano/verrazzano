@@ -20,7 +20,7 @@ type MultiClusterApplicationConfigurationSpec struct {
 	Placement Placement `json:"placement"`
 
 	// List of secrets used by the application
-	Secrets map[string]string `json:"secrets,omitempty"`
+	Secrets []string `json:"secrets,omitempty"`
 }
 
 // ApplicationConfigurationTemplate has the metadata and spec of the underlying

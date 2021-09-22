@@ -61,10 +61,10 @@ spec:
                 - clusters
                 type: object
               secrets:
-                additionalProperties:
-                  type: string
                 description: List of secrets used by the application
-                type: object
+                items:
+                  type: string
+                type: array
               template:
                 description: The embedded OAM ApplicationConfiguration
                 properties:

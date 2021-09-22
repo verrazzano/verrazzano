@@ -229,10 +229,8 @@ func (in *MultiClusterApplicationConfigurationSpec) DeepCopyInto(out *MultiClust
 	in.Placement.DeepCopyInto(&out.Placement)
 	if in.Secrets != nil {
 		in, out := &in.Secrets, &out.Secrets
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 }
 
