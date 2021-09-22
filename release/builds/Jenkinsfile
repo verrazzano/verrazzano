@@ -2,7 +2,6 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 //TODO:  should we just use 2.8 for this pipline?
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def DOCKER_IMAGE_TAG
 def releaseBuild
 def RELEASE_JOB_NAME
@@ -19,7 +18,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "${agentLabel}"
+            label "internal"
         }
     }
 
@@ -28,6 +27,7 @@ pipeline {
         string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
         string (description: 'The target version (release: #.#, patch: #.#.#)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
+        booelanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
     }
 
     environment {
@@ -88,7 +88,7 @@ pipeline {
             }
         }
 
-        stage('Release or Patch?') {
+        stage('Pipeline inputs validation') {
             steps {
                 script {
                     //TODO:  remove the second check for my branch
@@ -112,50 +112,14 @@ pipeline {
             }
         }
 
-        stage('Release validation check') {
-            stages {
-                stage('Incompatible CRD changes check') {
-                    steps {
-                        echo "Release:  Ensure that there have been no backward incompatible changes between the commit for the previous release and the commit you are about to release"
-                    }
+        stage('Pre-release validation') {
+            steps {
+                script {
+                    sh """
+                        cd ${WORKSPACE}
+                        ./release/scripts/prerelease_validation.sh ${params.TARGET_VERSION}
+                    """
                 }
-
-                stage('Additional Patch release checks') {
-                    when {
-                        expression { env.IS_PATCH_RELEASE == 'true' }
-                    }
-                    steps {
-                        echo "Patch: verify that all required fixes for the patch version have been backported, the version numbers correlate between charts and dev version, and that there are no incompatible CRD change"
-                    }
-                }
-
-//                 stage('Validate provided inputs') {
-//                     steps {
-//                         script {
-//                              def job = jenkins.model.Jenkins.instance.getItemByFullName("verrazzano/master", Job.class)
-//                              if ( job != null) {
-//                                  def theBuild = job.getBuild(params.RELEASE_BUILD_NUMBER)
-//                                  def found = false
-//                                  theBuild.getChangeSets().each {
-//                                      println('Number of commits associated with build ' + (it.getLogs()).size() )
-//
-//                                      it.getLogs().any { logEntry ->
-//                                         if (logEntry.getRevision().equals(params.COMMIT_TO_USE)) {
-//                                             println('commit found: '  + logEntry.getRevision() + ' ' + logEntry.getAuthor() + ' ' + logEntry.getMsg())
-//                                             found = true
-//                                         }
-//                                         return found
-//                                      }
-//                                  }
-//                                  if (!found) {
-//                                     error("Build number and commit to use do not correlate. Requested commit: ${params.COMMIT_TO_USE}")
-//                                  }
-//                              } else {
-//                                 error ("Could not retrieve job")
-//                              }
-//                         }
-//                     }
-//                 }
             }
         }
 
@@ -221,6 +185,9 @@ pipeline {
         }
 
         stage('Push images to OCR') {
+            when {
+                expression { !params.TEST_RUN }
+            }
             steps {
                 retry(count: env.BUILD_RETRIES) {
                     script {
