@@ -234,9 +234,9 @@ func validateImages(assert *assert.Assertions, bom *Bom, checkImageVal bool) {
 func TestBomSubcomponentOverrides(t *testing.T) {
 	assert := assert.New(t)
 	bom, err := NewBom(testBomSubcomponentOverridesPath)
-
 	assert.Equal("ghcr.io", bom.GetRegistry(), "Global registry not correct")
-
+	assert.NoError(err)
+	
 	nginxSubcomponent, err := bom.GetSubcomponent("ingress-controller")
 	assert.NotNil(t, nginxSubcomponent)
 	assert.NoError(err)
