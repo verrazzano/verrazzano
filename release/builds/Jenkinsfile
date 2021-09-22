@@ -28,6 +28,7 @@ pipeline {
         string (description: 'The target version (release: #.#, patch: #.#.#)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
         booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
+        booleanParam (description: 'Ignore pre-release validation failures', name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', defaultValue: false)
     }
 
     environment {
@@ -113,6 +114,9 @@ pipeline {
         }
 
         stage('Pre-release validation') {
+            environment {
+                IGNORE_FAILURES = "${params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES}"
+            }
             steps {
                 script {
                     sh """
