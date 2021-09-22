@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"path/filepath"
@@ -92,7 +92,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// Initialize once for this Verrazzano resrouce when the operator starts
+	// Initialize once for this Verrazzano resource when the operator starts
 	result, err := r.initForVzResource(vz, log)
 	if err != nil {
 		log.Errorf("unable to set watch for Job resource: %v", err)
@@ -103,12 +103,42 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Ensure the required resources needed for both install and uninstall exist
+	// This needs to be done for every state since the initForVzResource might have deleted
+	// role binding during old resource cleanup.
 	if err := r.createServiceAccount(ctx, log, vz); err != nil {
 		return newRequeueWithDelay(), err
 	}
 	if err := r.createClusterRoleBinding(ctx, log, vz); err != nil {
 		return newRequeueWithDelay(), err
 	}
+
+	// Init the state to Ready if this CR has never been processed
+	// Always requeue to update cache, ignore error since requeue anyway
+	if len(vz.Status.State) == 0 {
+		r.updateState(log, vz, installv1alpha1.Ready)
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	// Process CR based on state
+	switch vz.Status.State {
+	case installv1alpha1.Failed:
+		return r.FailedState(vz, log)
+	case installv1alpha1.Installing:
+		return r.InstallingState(vz, log)
+	case installv1alpha1.Ready:
+		return r.ReadyState(vz, log)
+	case installv1alpha1.Uninstalling:
+		return r.UninstallingState(vz, log)
+	case installv1alpha1.Upgrading:
+		return r.UpgradingState(vz, log)
+	default:
+		panic("Invalid Verrazzano contoller state")
+	}
+}
+
+// ReadyState processes the CR while in the ready state
+func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	ctx := context.TODO()
 
 	// Check if verrazzano resource is being deleted
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -120,7 +150,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// If the version is specified and different than the current version of the installation
 		// then proceed with upgrade
 		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
-			return r.reconcileUpgrade(log, req, vz)
+			return r.reconcileUpgrade(log, vz)
 		}
 		// nothing to do, installation already at target version
 		return ctrl.Result{}, nil
@@ -152,8 +182,17 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return newRequeueWithDelay(), err
 	}
 
-	if err := r.reconcileInstall(log, req, vz); err != nil {
+	// Sync the local cluster registration secret that allows the use of MCxyz resources on the
+	// admin cluster without needing a VMC.
+	if err := r.syncLocalRegistrationSecret(); err != nil {
+		log.Errorf("Failed to sync the local registration secret: %v", err)
 		return newRequeueWithDelay(), err
+	}
+
+	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
+		return newRequeueWithDelay(), err
+	} else if shouldRequeue(result) {
+		return result, nil
 	}
 
 	// Create/update a configmap from spec for future comparison on update/upgrade
@@ -161,16 +200,61 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return newRequeueWithDelay(), err
 	}
 
-	// Sync the local cluster registration secret that allows the use of MCxyz resources on the
-	// admin cluster without needing a VMC.
-	if err := r.syncLocalRegistrationSecret(vz); err != nil {
-		log.Errorf("Failed to sync the local registration secret: %v", err)
+	return ctrl.Result{}, nil
+}
+
+// InstallingState processes the CR while in the installing state
+func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	ctx := context.TODO()
+
+	// Check if verrazzano resource is being deleted
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, vz)
+	}
+
+	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
+		return newRequeueWithDelay(), err
+	} else if shouldRequeue(result) {
+		return result, nil
+	}
+
+	if err := r.checkInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
 	return ctrl.Result{}, nil
 }
 
+// UninstallingState processes the CR while in the uninstalling state
+func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	ctx := context.TODO()
+
+	// Update uninstall status
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, vz)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// UpgradingState processes the CR while in the upgrading state
+func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	return r.reconcileUpgrade(log, vz)
+}
+
+// FailedState only allows uninstall
+func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	ctx := context.TODO()
+
+	// Update uninstall status
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, vz)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doesOCIDNSConfigSecretExist returns true if the DNS secret exists
 func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
 	// ensure the secret exists before proceeding
 	secret := &corev1.Secret{}
@@ -397,6 +481,23 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 	return err
 }
 
+// checkInstallJob checks the installation job
+func (r *Reconciler) checkInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
+	// Check if the job for running the install scripts exist
+	jobFound := &batchv1.Job{}
+	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
+	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	// Update condition and status
+	err = r.setInstallCondition(log, jobFound, vz)
+	return err
+}
+
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
 func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log *zap.SugaredLogger) error {
 	// Check if the job for running the uninstall scripts exist
@@ -538,6 +639,21 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 	return nil
 }
 
+// updateState updates the status state in the verrazzano CR
+func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.StateType) error {
+	// Set the state of resource
+	cr.Status.State = state
+	log.Infof("Setting verrazzano state: %v", cr.Status.State)
+
+	// Update the status
+	err := r.Status().Update(context.TODO(), cr)
+	if err != nil {
+		log.Errorf("Failed to update verrazzano resource status: %v", err)
+		return err
+	}
+	return nil
+}
+
 func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, componentName string, message string, conditionType installv1alpha1.ConditionType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
@@ -592,10 +708,12 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 		return installv1alpha1.Uninstalling
 	case installv1alpha1.UpgradeStarted:
 		return installv1alpha1.Upgrading
+	case installv1alpha1.UninstallComplete:
+		return installv1alpha1.Disabled
 	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
 		return installv1alpha1.Failed
 	}
-	// Return ready for installv1alpha1.InstallComplete, installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete
+	// Return ready for installv1alpha1.InstallComplete, installv1alpha1.UpgradeComplete
 	return installv1alpha1.Ready
 }
 
@@ -654,10 +772,11 @@ func initializeComponentStatus(cr *installv1alpha1.Verrazzano) {
 		return
 	}
 	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
-	for _, comp := range component.GetComponents() {
+	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
-				Name: comp.Name(),
+				Name:  comp.Name(),
+				State: installv1alpha1.Disabled,
 			}
 		}
 	}
@@ -910,7 +1029,7 @@ func getIngressIP(c client.Client) (string, error) {
 	} else if nginxService.Spec.Type == corev1.ServiceTypeNodePort {
 		return "127.0.0.1", nil
 	}
-	return "", fmt.Errorf("Unsupported service type %s for Nginx ingress", string(nginxService.Spec.Type))
+	return "", fmt.Errorf("Unsupported service type %s for NGINX ingress", string(nginxService.Spec.Type))
 }
 
 func configFluentdExtraVolumeMounts(vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {

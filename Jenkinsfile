@@ -203,26 +203,6 @@ pipeline {
             }
         }
 
-        stage('BOM Validator Tool') {
-            steps {
-                buildBOMValidatorTool()
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                success {
-                    sh """
-                        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
-                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/bom-validator --file ./out/linux_amd64/bom-validator
-                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ./out/linux_amd64/bom-validator
-                    """
-                }
-            }
-        }
-
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
@@ -259,7 +239,7 @@ pipeline {
                 success {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
-                        archiveArtifacts artifacts: "generated-verrazzano-bom.json", allowEmptyArchive: true
+                        archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
                     }
                 }
             }
@@ -491,7 +471,7 @@ pipeline {
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                             booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                        ], wait: true
+                        ], wait: false
                 }
             }
         }
@@ -561,9 +541,6 @@ pipeline {
                 }
             }
         }
-        success {
-            storePipelineArtifacts()
-        }
         cleanup {
             metricBuildDuration()
             deleteDir()
@@ -578,20 +555,6 @@ def moveContentToGoRepoPath() {
         mkdir -p ${GO_REPO_PATH}/verrazzano
         tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
     """
-}
-
-// Called in final post success block of pipeline
-def storePipelineArtifacts() {
-    script {
-        // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
-        sh """
-            if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
-                cd ${GO_REPO_PATH}/verrazzano
-                echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
-            fi
-        """
-    }
 }
 
 // Called in Stage Integration Tests steps
@@ -625,14 +588,6 @@ def buildAnalysisTool(dockerImageTag) {
     """
 }
 
-// Called in Stage Bom Validator Tool steps
-def buildBOMValidatorTool() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
-        make go-build
-    """
-}
-
 // Called in Stage Build steps
 // Makes target docker push for application/platform operator and analysis
 def buildImages(dockerImageTag) {
@@ -640,6 +595,7 @@ def buildImages(dockerImageTag) {
         cd ${GO_REPO_PATH}/verrazzano
         make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/generate_image_list.sh $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano_images.txt
     """
 }
 

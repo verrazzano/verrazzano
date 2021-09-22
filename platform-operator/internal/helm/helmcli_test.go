@@ -141,10 +141,6 @@ func TestIsReleaseInstalled(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(foundRunner{t: t})
 	defer SetDefaultRunner()
-	SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return ChartStatusDeployed, nil
-	})
-	defer SetDefaultChartStatusFunction()
 
 	found, err := IsReleaseInstalled(release, ns)
 	assert.NoError(err, "IsReleaseInstalled returned an error")
@@ -159,10 +155,6 @@ func TestIsReleaseNotInstalled(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(foundRunner{t: t})
 	defer SetDefaultRunner()
-	SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return ChartNotFound, nil
-	})
-	defer SetDefaultChartStatusFunction()
 
 	found, err := IsReleaseInstalled(missingRelease, ns)
 	assert.NoError(err, "IsReleaseInstalled returned an error")
@@ -180,6 +172,42 @@ func TestIsReleaseInstalledFailed(t *testing.T) {
 
 	found, err := IsReleaseInstalled("", ns)
 	assert.Error(err, "IsReleaseInstalled should have returned an error")
+	assert.False(found, "Release should not be found")
+}
+
+// TestIsReleaseDeployed tests checking if a Helm release is installed
+// GIVEN a release name and namespace
+//  WHEN I call IsReleaseDeployed
+//  THEN the function returns success and found equal true
+func TestIsReleaseDeployed(t *testing.T) {
+	assert := assert.New(t)
+	SetCmdRunner(foundRunner{t: t})
+	defer SetDefaultRunner()
+	SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return ChartStatusDeployed, nil
+	})
+	defer SetDefaultChartStatusFunction()
+
+	found, err := IsReleaseDeployed(release, ns)
+	assert.NoError(err, "IsReleaseInstalled returned an error")
+	assert.True(found, "Release not found")
+}
+
+// TestIsReleaseNotDeployed tests checking if a Helm release is not installed
+// GIVEN a release name and namespace
+//  WHEN I call IsReleaseDeployed
+//  THEN the function returns success and the correct found status
+func TestIsReleaseNotDeployed(t *testing.T) {
+	assert := assert.New(t)
+	SetCmdRunner(foundRunner{t: t})
+	defer SetDefaultRunner()
+	SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return ChartNotFound, nil
+	})
+	defer SetDefaultChartStatusFunction()
+
+	found, err := IsReleaseDeployed(missingRelease, ns)
+	assert.NoError(err, "IsReleaseInstalled returned an error")
 	assert.False(found, "Release should not be found")
 }
 

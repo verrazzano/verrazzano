@@ -206,7 +206,7 @@ pipeline {
                             sh """
                                 ## dump out install logs
                                 mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
-                                kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                                kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano --tail -1 > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log
                                 kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
                                 echo "Verrazzano Installation logs dumped to verrazzano-install.log"
                                 echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
@@ -235,11 +235,11 @@ pipeline {
                         cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                         kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 
-                        # need to sleep since the old operator needs to transition to terminating state
-                        sleep 15
-
                         # ensure operator pod is up
                         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+
+                        # need to sleep since the old operator needs to transition to terminating state
+                        sleep 45
                     """
                     }
                 }
@@ -257,12 +257,17 @@ pipeline {
                             cd ${GO_REPO_PATH}/verrazzano
                             cp ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                             ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+
                             # Do the upgrade
                             echo "Following is the verrazano CR file with the new version:"
                             cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                             kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+
                             # wait for the upgrade to complete
                             kubectl wait --timeout=10m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+
+                            # Dump the resource to debug
+                            kubectl get -o yaml verrazzano/my-verrazzano || true
 
                             # ideally we don't need to wait here
                             sleep 15
@@ -274,23 +279,6 @@ pipeline {
                         always {
                             dumpVerrazzanoPlatformOperatorLogs("after-upgrade")
                         }
-                    }
-                }
-
-                stage("validateBOM") {
-                    environment {
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
-                    }
-                    steps {
-                        sh """
-                            # wait for all pod restarts to complete
-                            sleep 5m
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
-                            chmod +x ${WORKSPACE}/bom-validator
-                            ${WORKSPACE}/bom-validator
-                        """
                     }
                 }
 
@@ -354,7 +342,7 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('upgrade-failure-post-run-cluster-dump')
                         }
                     }
                 }
@@ -362,7 +350,7 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('upgrade-success-post-run-cluster-dump')
                         }
                     }
                 }
@@ -483,7 +471,7 @@ def dumpVerrazzanoPlatformOperatorLogs(stage) {
     sh """
         ## dump out verrazzano-platform-operator logs
         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-${stage}-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-${stage}-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-${stage}-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "------------------------------------------"
     """
@@ -493,7 +481,7 @@ def dumpVerrazzanoApplicationOperatorLogs() {
     sh """
         ## dump out verrazzano-application-operator logs
         mkdir -p ${WORKSPACE}/verrazzano-application-operator/logs
-        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator --tail -1 > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
         echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
@@ -505,7 +493,7 @@ def dumpOamKubernetesRuntimeLogs() {
     sh """
         ## dump out oam-kubernetes-runtime logs
         mkdir -p ${WORKSPACE}/oam-kubernetes-runtime/logs
-        kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/oam-kubernetes-runtime/logs/oam-kubernetes-runtime-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime --tail -1 > ${WORKSPACE}/oam-kubernetes-runtime/logs/oam-kubernetes-runtime-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/verrazzano-application-operator/logs/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "verrazzano-application-operator logs dumped to oam-kubernetes-runtime-pod.log"
         echo "verrazzano-application-operator pod description dumped to oam-kubernetes-runtime-pod.out"

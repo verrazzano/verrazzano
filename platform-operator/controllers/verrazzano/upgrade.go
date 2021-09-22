@@ -5,22 +5,23 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"strconv"
 	"strings"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // The max upgrade failures for a given upgrade attempt is 2
 const failedUpgradeLimit = 2
 
 // Reconcile upgrade will upgrade the components as required
-func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Upgrade version was validated in webhook, see ValidateVersion
 	targetVersion := cr.Spec.Version
 
@@ -39,7 +40,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
-	for _, comp := range component.GetComponents() {
+	for _, comp := range registry.GetComponents() {
 		err := comp.Upgrade(log, r, cr.Namespace, r.DryRun)
 		if err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
@@ -49,12 +50,21 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 			return ctrl.Result{}, err
 		}
 	}
+
+	// Invoke the global post upgrade function after all components are upgraded.
+	err := postUpgrade(log, r)
+	if err != nil {
+		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+	}
+
 	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
 	log.Info(msg)
 	cr.Status.Version = targetVersion
-	err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
+	if err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete); err != nil {
+		return newRequeueWithDelay(), err
+	}
 
-	return ctrl.Result{}, err
+	return ctrl.Result{}, nil
 }
 
 // Return true if verrazzano is installed
@@ -97,4 +107,12 @@ func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus, generation int64) 
 func fmtGeneration(gen int64) string {
 	s := strconv.FormatInt(gen, 10)
 	return "generation:" + s
+}
+
+func postUpgrade(log *zap.SugaredLogger, client clipkg.Client) error {
+	err := prometheus.FixupPrometheusDeployment(log, client)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -200,6 +200,9 @@ type Condition struct {
 type StateType string
 
 const (
+	// Disabled is the state for when a component is not currently installed
+	Disabled StateType = "Disabled"
+
 	// Installing is the state when an install is in progress
 	Installing StateType = "Installing"
 
@@ -209,8 +212,17 @@ const (
 	// Upgrading is the state when an upgrade is in progress
 	Upgrading StateType = "Upgrading"
 
+	// Updating is the state when a component configuration update is being applied
+	Updating StateType = "Updating"
+
+	// Error is the state when a Verrazzano resource has experienced an error that may leave it in an unstable state
+	Error StateType = "Error"
+
 	// Ready is the state when a Verrazzano resource can perform an uninstall or upgrade
 	Ready StateType = "Ready"
+
+	// Quiescing state when waiting for stable condition to start uninstall
+	Quiescing StateType = "Quiescing"
 
 	// Failed is the state when an install/uninstall/upgrade has failed
 	Failed StateType = "Failed"
@@ -221,39 +233,58 @@ type ComponentSpec struct {
 	// CertManager contains the CertManager component configuration
 	// +optional
 	CertManager *CertManagerComponent `json:"certManager,omitempty"`
-	// DNS contains the DNS component configuration
+
+	// Coherence configuration
 	// +optional
-	DNS *DNSComponent `json:"dns,omitempty"`
-	// Ingress contains the ingress-nginx component configuration
-	// +optional
-	Ingress *IngressNginxComponent `json:"ingress,omitempty"`
-	// Istio contains the istio component configuration
-	// +optional
-	Istio *IstioComponent `json:"istio,omitempty"`
-	// Keycloak contains the Keycloak component configuration
-	// +optional
-	Keycloak *KeycloakComponent `json:"keycloak,omitempty"`
-	// Elasticsearch configuration
-	// +optional
-	Elasticsearch *ElasticsearchComponent `json:"elasticsearch,omitempty"`
-	// Prometheus configuration
-	// +optional
-	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
-	// Grafana configuration
-	// +optional
-	Kibana *KibanaComponent `json:"kibana,omitempty"`
-	// Grafana configuration
-	// +optional
-	Grafana *GrafanaComponent `json:"grafana,omitempty"`
+	Coherence *CoherenceComponent `json:"coherence,omitempty"`
+
 	// Console configuration
 	// +optional
 	Console *ConsoleComponent `json:"console,omitempty"`
-	// Rancher configuration
+
+	// DNS contains the DNS component configuration
 	// +optional
-	Rancher *RancherComponent `json:"rancher,omitempty"`
+	DNS *DNSComponent `json:"dns,omitempty"`
+
+	// Elasticsearch configuration
+	// +optional
+	Elasticsearch *ElasticsearchComponent `json:"elasticsearch,omitempty"`
+
 	// Fluentd configuration
 	// +optional
 	Fluentd *FluentdComponent `json:"fluentd,omitempty"`
+
+	// Grafana configuration
+	// +optional
+	Grafana *GrafanaComponent `json:"grafana,omitempty"`
+
+	// Ingress contains the ingress-nginx component configuration
+	// +optional
+	Ingress *IngressNginxComponent `json:"ingress,omitempty"`
+
+	// Istio contains the istio component configuration
+	// +optional
+	Istio *IstioComponent `json:"istio,omitempty"`
+
+	// Keycloak contains the Keycloak component configuration
+	// +optional
+	Keycloak *KeycloakComponent `json:"keycloak,omitempty"`
+
+	// Grafana configuration
+	// +optional
+	Kibana *KibanaComponent `json:"kibana,omitempty"`
+
+	// Prometheus configuration
+	// +optional
+	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
+
+	// Rancher configuration
+	// +optional
+	Rancher *RancherComponent `json:"rancher,omitempty"`
+
+	// WebLogic configuration
+	// +optional
+	WebLogic *WebLogicComponent `json:"weblogic,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
@@ -291,6 +322,17 @@ type CertManagerComponent struct {
 	// Certificate used for an install
 	// +optional
 	Certificate Certificate `json:"certificate,omitempty"`
+}
+
+// CoherenceComponent specifies the Coherence configuration
+type CoherenceComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// ConsoleComponent specifies the Console UI configuration
+type ConsoleComponent struct {
+	MonitoringComponent `json:",inline"`
 }
 
 // DNSComponent specifies the DNS configuration
@@ -350,11 +392,7 @@ type MySQLComponent struct {
 	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty"`
 }
 
-// ConsoleComponent specifies the Console UI configuration
-type ConsoleComponent struct {
-	MonitoringComponent `json:",inline"`
-}
-
+// RancherComponent specifies the Rancher configuration
 type RancherComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
@@ -371,6 +409,12 @@ type FluentdComponent struct {
 	ElasticsearchURL string `json:"elasticsearchURL,omitempty"`
 	// +optional
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
+}
+
+// RancherComponent specifies the WebLogic configuration
+type WebLogicComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.

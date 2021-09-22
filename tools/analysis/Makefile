@@ -5,6 +5,7 @@ include ../../make/quality.mk
 include ../../make/generate.mk
 
 MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+TOOLS_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/..
 
 NAME:=verrazzano-analysis
 REPO_NAME:=verrazzano-analysis
