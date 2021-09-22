@@ -56,7 +56,6 @@ var _ = Describe("Istio", func() {
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 			Expect(deployments).Should(WithTransform(deploymentNames, ContainElements(expectedDeployments)))
-			Expect(len(deployments.Items)).To(Equal(len(expectedDeployments)))
 		},
 		ginkgoExt.Entry(fmt.Sprintf("%s namespace should contain expected list of deployments", istioNamespace), istioNamespace),
 	)
