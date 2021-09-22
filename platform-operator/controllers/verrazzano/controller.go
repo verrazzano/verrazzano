@@ -152,8 +152,6 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
 			return r.reconcileUpgrade(log, vz)
 		}
-		// nothing to do, installation already at target version
-		return ctrl.Result{}, nil
 	}
 
 	// Pre-populate the component status fields
@@ -702,6 +700,8 @@ func appendConditionIfNecessary(log *zap.SugaredLogger, compStatus *installv1alp
 
 func checkCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.StateType {
 	switch currentCondition {
+	case installv1alpha1.PreInstall:
+		return installv1alpha1.PreInstalling
 	case installv1alpha1.InstallStarted:
 		return installv1alpha1.Installing
 	case installv1alpha1.UninstallStarted:
@@ -1218,6 +1218,11 @@ func newRequeueWithDelay() ctrl.Result {
 	var seconds = rand.IntnRange(3, 5)
 	delaySecs := time.Duration(seconds) * time.Second
 	return ctrl.Result{Requeue: true, RequeueAfter: delaySecs}
+}
+
+// Create a new Result that will cause a reconcile requeue after an exact
+func newRequeueWithExactDelay(delay int) ctrl.Result {
+	return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(delay) * time.Second}
 }
 
 // Return true if requeue is needed
