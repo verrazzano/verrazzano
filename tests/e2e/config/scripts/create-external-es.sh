@@ -38,10 +38,7 @@ spec:
         type: LoadBalancer
     tls:
       selfSignedCertificate:
-        subjectAltNames:
-        - ip: 172.18.0.230
-        - ip: 172.18.0.231
-        - ip: 172.18.0.232
+        subjectAltNames: []
 EOF
 
 retries=0
