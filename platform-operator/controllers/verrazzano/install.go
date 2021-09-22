@@ -17,7 +17,7 @@ import (
 // reconcileComponents Reconcile components individually
 func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogger, cr *vzapi.Verrazzano) (ctrl.Result, error) {
 
-	result := ctrl.Result{}
+	var requeue bool
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
@@ -34,9 +34,29 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				// User has disabled component in Verrazzano CR, don't install
 				continue
 			}
-			r.updateComponentStatus(log, cr, comp.Name(), "Install started", vzapi.InstallStarted)
-			result.Requeue = true
+			r.updateComponentStatus(log, cr, comp.Name(), "PreInstall started", vzapi.PreInstall)
+			requeue = true
 			continue
+		case vzapi.PreInstalling:
+			log.Infof("PreInstalling component %s", comp.Name())
+			if !registry.ComponentDependenciesMet(log, r.Client, comp) {
+				log.Infof("Dependencies not met for %s: %v", comp.Name(), comp.GetDependencies())
+				requeue= true
+				continue
+			}
+			if err := comp.PreInstall(log, r, cr.Namespace, r.DryRun); err != nil {
+				return newRequeueWithDelay(), err
+			}
+			// If component is not installed,install it
+			if err := comp.Install(log, r, cr.Namespace, r.DryRun); err != nil {
+				return newRequeueWithDelay(), err
+			}
+			if err := r.updateComponentStatus(log, cr, comp.Name(), "Install started", vzapi.InstallStarted); err != nil {
+				return ctrl.Result{Requeue: true}, err
+			}
+			// Install started requeue to check status
+			requeue = true
+
 		case vzapi.Installing:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			// If component is enabled -- need to replicate scripts' config merging logic here
@@ -45,28 +65,16 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				if err := comp.PostInstall(log, r, cr.Namespace, r.DryRun); err != nil {
 					return newRequeueWithDelay(), err
 				}
-				log.Infof("Component %s successfully installed")
+				log.Infof("Component %s successfully installed", comp.Name())
 				if err := r.updateComponentStatus(log, cr, comp.Name(), "Install complete", vzapi.InstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
-				result.Requeue = true
+				requeue = true
 				continue
 			}
-			if !registry.ComponentDependenciesMet(log, r.Client, comp) {
-				log.Infof("Dependencies not met for %s: %v", comp.Name(), comp.GetDependencies())
-				result.Requeue = true
-				continue
-			}
-			if err := r.updateComponentStatus(log, cr, comp.Name(), "Install starting", vzapi.InstallStarted); err != nil {
-				return ctrl.Result{Requeue: true}, err
-			}
-			if err := comp.PreInstall(log, r, cr.Namespace, r.DryRun); err != nil {
-				return newRequeueWithDelay(), err
-			}
-			// If component is not installed,install it
-			if err := comp.Install(log, r, cr.Namespace, r.DryRun); err != nil {
-				return ctrl.Result{Requeue: true}, err
-			}
+			// Install started requeue to check status
+			requeue = true
+
 			//case vzapi.Failed, vzapi.Error:
 			//case vzapi.Disabled:
 			//case vzapi.Upgrading:
@@ -74,7 +82,10 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 			//case vzapi.Quiescing:
 		}
 	}
-	return result, nil
+	if requeue {
+		return newRequeueWithDelay(), nil
+	}
+	return ctrl.Result{}, nil
 }
 
 // IsEnabled returns true if the component spec has enabled set to true
