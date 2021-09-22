@@ -343,9 +343,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&loggingtrait.LoggingTraitReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("LoggingTrait"),
-		Scheme: mgr.GetScheme(),
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("LoggingTrait"),
+		Scheme:          mgr.GetScheme(),
 		DiscoveryClient: *discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig()),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LoggingTrait")
