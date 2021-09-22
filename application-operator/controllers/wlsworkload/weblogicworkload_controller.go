@@ -644,6 +644,9 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	if err != nil {
 		return err
 	}
+	if loggingTrait == nil {
+		return nil
+	}
 	configMap := &corev1.ConfigMap{}
 	err = r.Get(ctx, client.ObjectKey{Namespace: weblogic.GetNamespace(), Name: loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind())}, configMap)
 	if err != nil && k8serrors.IsNotFound(err) {

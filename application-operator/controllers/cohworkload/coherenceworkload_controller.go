@@ -598,6 +598,10 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	if err != nil {
 		return err
 	}
+	if loggingTrait == nil {
+		return nil
+	}
+
 	configMapName := loggingNamePart + "-" + coherence.GetName() + "-" + strings.ToLower(coherence.GetKind())
 	configMap := &corev1.ConfigMap{}
 	err = r.Get(ctx, client.ObjectKey{Namespace: coherence.GetNamespace(), Name: configMapName}, configMap)
