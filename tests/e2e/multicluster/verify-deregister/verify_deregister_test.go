@@ -20,8 +20,7 @@ const pollingInterval = 10 * time.Second
 
 const verrazzanoSystemNamespace = "verrazzano-system"
 
-// todo do not hard code IP
-const externalEsURL = "https://external-es.default.172.18.0.232.nip.io"
+var externalEsURL = pkg.GetExternalElasticSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
 
 var _ = Describe("Multi Cluster Verify Deregister", func() {
 	Context("Admin Cluster", func() {
@@ -30,11 +29,7 @@ var _ = Describe("Multi Cluster Verify Deregister", func() {
 		})
 
 		It("admin cluster Fluentd should point to the correct ES", func() {
-			useExternalElasticsearch := false
-			if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
-				useExternalElasticsearch = true
-			}
-			if useExternalElasticsearch {
+			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")

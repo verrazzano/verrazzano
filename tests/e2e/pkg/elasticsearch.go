@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -21,8 +22,31 @@ const (
 	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
 
-// getSystemElasticSearchIngressHost gets the system Elasticsearch Ingress host in the given cluster
-func getSystemElasticSearchIngressHost(kubeconfigPath string) string {
+func UseExternalElasticsearch() bool {
+	return os.Getenv("EXTERNAL_ELASTICSEARCH") == "true"
+}
+
+// GetExternalElasticSearchURL gets the external Elasticsearch URL
+func GetExternalElasticSearchURL(kubeconfigPath string) string {
+	// the equivalent of kubectl get svc external-es-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
+		return ""
+	}
+	svc, err := clientset.CoreV1().Services("default").Get(context.TODO(), "external-es-service", metav1.GetOptions{})
+	if err != nil {
+		Log(Info, fmt.Sprintf("Could not get services external-es-service in sockshop: %v\n", err.Error()))
+		return ""
+	}
+	if svc.Status.LoadBalancer.Ingress != nil && len(svc.Status.LoadBalancer.Ingress) > 0 {
+		return fmt.Sprintf("https://%s:9200", svc.Status.LoadBalancer.Ingress[0].IP)
+	}
+	return ""
+}
+
+// GetSystemElasticSearchIngressURL gets the system Elasticsearch Ingress host in the given cluster
+func GetSystemElasticSearchIngressURL(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
@@ -32,16 +56,24 @@ func getSystemElasticSearchIngressHost(kubeconfigPath string) string {
 	for _, ingress := range ingressList.Items {
 		if ingress.Name == "vmi-system-es-ingest" {
 			Log(Info, fmt.Sprintf("Found Elasticsearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
-			return ingress.Spec.Rules[0].Host
+			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 		}
 	}
 	return ""
 }
 
+// getElasticSearchURL returns VMI or external ES URL depending on env var EXTERNAL_ELASTICSEARCH
+func getElasticSearchURL(kubeconfigPath string) string {
+	if UseExternalElasticsearch() {
+		return GetExternalElasticSearchURL(kubeconfigPath)
+	}
+	return GetSystemElasticSearchIngressURL(kubeconfigPath)
+}
+
 // listSystemElasticSearchIndices lists the system Elasticsearch indices in the given cluster
 func listSystemElasticSearchIndices(kubeconfigPath string) []string {
 	list := []string{}
-	url := fmt.Sprintf("https://%s/_all", getSystemElasticSearchIngressHost(kubeconfigPath))
+	url := fmt.Sprintf("%s/_all", getElasticSearchURL(kubeconfigPath))
 	resp, err := GetWebPageWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting Elasticsearch indices: url=%s, error=%v", url, err))
@@ -72,7 +104,7 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 		}
 	}
 	var result map[string]interface{}
-	url := fmt.Sprintf("https://%s/%s/_doc/_search?q=%s", getSystemElasticSearchIngressHost(kubeconfigPath), index, query)
+	url := fmt.Sprintf("%s/%s/_doc/_search?q=%s", getElasticSearchURL(kubeconfigPath), index, query)
 	resp, err := GetWebPageWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, error=%v", url, err))
@@ -222,24 +254,16 @@ func NoLog(index string, match []Match, mustNot []Match) bool {
 	return false
 }
 
-var systemElasticHost string
 var elasticQueryTemplate *template.Template
-
-func systemES() string {
-	if systemElasticHost == "" {
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-			return ""
-		}
-		systemElasticHost = getSystemElasticSearchIngressHost(kubeconfigPath)
-	}
-	return systemElasticHost
-}
 
 // SearchLog search recent log records for the index with matching filters.
 func SearchLog(index string, query ElasticQuery) map[string]interface{} {
-	url := fmt.Sprintf("https://%s/%s/_search", systemES(), index)
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return nil
+	}
+	url := fmt.Sprintf("%s/%s/_search", getElasticSearchURL(kubeconfigPath), index)
 	if elasticQueryTemplate == nil {
 		temp, err := template.New("esQueryTemplate").Parse(queryTemplate)
 		if err != nil {
@@ -248,7 +272,7 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 		elasticQueryTemplate = temp
 	}
 	var buffer bytes.Buffer
-	err := elasticQueryTemplate.Execute(&buffer, query)
+	err = elasticQueryTemplate.Execute(&buffer, query)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error: %v", err))
 	}

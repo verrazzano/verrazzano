@@ -32,6 +32,8 @@ const multiclusterNamespace = "verrazzano-mc"
 const verrazzanoSystemNamespace = "verrazzano-system"
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+var vmiEsIngressURL = getVmiEsIngressURL()
+var externalEsURL = pkg.GetExternalElasticSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
 
 var _ = Describe("Multi Cluster Verify Register", func() {
 	Context("Admin Cluster", func() {
@@ -160,11 +162,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 		})
 
 		It("admin cluster Fluentd should point to the correct ES", func() {
-			useExternalElasticsearch := false
-			if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
-				useExternalElasticsearch = true
-			}
-			if useExternalElasticsearch {
+			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
@@ -236,11 +234,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 		})
 
 		It("managed cluster Fluentd should point to the correct ES", func() {
-			useExternalElasticsearch := false
-			if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
-				useExternalElasticsearch = true
-			}
-			if useExternalElasticsearch {
+			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "verrazzano-cluster-registration")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in managed cluster fluentd Daemonset setting")
@@ -330,11 +324,7 @@ func assertRegistrationSecret() {
 	regSecret, err := pkg.GetSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
 	Expect(err).To(BeNil())
 	Expect(regSecret).To(Not(BeNil()))
-	useExternalElasticsearch := false
-	if os.Getenv("EXTERNAL_ELASTICSEARCH") == "true" {
-		useExternalElasticsearch = true
-	}
-	if useExternalElasticsearch {
+	if pkg.UseExternalElasticsearch() {
 		Expect(string(regSecret.Data["es-url"])).To(Equal(externalEsURL))
 		esSecret, err := pkg.GetSecretInCluster("verrazzano-system", "external-es-secret", os.Getenv("ADMIN_KUBECONFIG"))
 		Expect(err).To(BeNil())
@@ -353,8 +343,6 @@ func assertRegistrationSecret() {
 	}
 }
 
-// todo do not hard code IP
-const externalEsURL = "https://external-es.default.172.18.0.232.nip.io"
-
-// todo do not hard code VMI ingress url
-const vmiEsIngressURL = "https://elasticsearch.vmi.system.admin.172.18.0.232.nip.io:443"
+func getVmiEsIngressURL() string {
+	return fmt.Sprintf("%s:443", pkg.GetSystemElasticSearchIngressURL(os.Getenv("ADMIN_KUBECONFIG")))
+}
