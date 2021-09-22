@@ -5,13 +5,13 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-if [ $EXTERNAL_ELASTICSEARCH != "true" ]; then
-  echo "Skipping creating external es secret when not using EXTERNAL_ELASTICSEARCH"
+if [ "$EXTERNAL_ELASTICSEARCH" != "true" ]; then
+  echo "Skipping creating external Elasticsearch when not using EXTERNAL_ELASTICSEARCH"
   exit 0
 fi
 
-if [ $CLUSTER_NUMBER != "1" ]; then
-  echo "Skipping creating external es secret on a managed cluster"
+if [ "$CLUSTER_NUMBER" != "1" ]; then
+  echo "Skipping creating external Elasticsearch on a managed cluster"
   exit 0
 fi
 
@@ -32,6 +32,16 @@ spec:
     count: 1
     config:
       node.store.allow_mmap: false
+  http:
+    service:
+      spec:
+        type: LoadBalancer
+    tls:
+      selfSignedCertificate:
+        subjectAltNames:
+        - ip: 172.18.0.230
+        - ip: 172.18.0.231
+        - ip: 172.18.0.232
 EOF
 
 retries=0
@@ -65,20 +75,3 @@ fi
 kubectl create ns verrazzano-install
 
 kubectl -n verrazzano-install create secret generic external-es-secret --from-literal=username=elastic --from-literal=password=$(kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}') --from-file=${SCRIPT_DIR}/ca-bundle
-
-cat <<EOF | kubectl apply -f -
-kind: Service
-apiVersion: v1
-metadata:
-  name: external-es-service
-spec:
-  type: LoadBalancer
-  selector:
-    common.k8s.elastic.co/type: elasticsearch
-    elasticsearch.k8s.elastic.co/cluster-name: quickstart
-  ports:
-  - name: https
-    port: 9200
-    protocol: TCP
-    targetPort: 9200
-EOF
