@@ -41,6 +41,7 @@ $SCRIPT_DIR/check_versions.sh $VERSION
 echo ""
 
 # If this is a patch release, check for any tickets that don't have backported commits
+
 if [[ "$VERSION" == *.0 ]]; then
     echo "Not a patch release, skipping backported commits check"
 else
