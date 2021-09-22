@@ -14,10 +14,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
 	"gopkg.in/errgo.v2/fmt/errors"
+	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -86,7 +86,7 @@ func fakeUpgrade(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byt
 	if !strings.Contains(overridesFiles[1], "values-") || !strings.Contains(overridesFiles[1], ".yaml") {
 		return []byte("error"), []byte(""), errors.New("Incorrect install args overrides file")
 	}
-	installArgsFromFile, err := os.ReadFile(overridesFiles[1])
+	installArgsFromFile, err := ioutil.ReadFile(overridesFiles[1])
 	if err != nil {
 		return []byte("error"), []byte(""), errors.New("Unable to read install args overrides file")
 	}

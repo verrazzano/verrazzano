@@ -5,7 +5,6 @@ package istio
 
 import (
 	"context"
-	"fmt"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
@@ -125,14 +124,7 @@ func (i IstioComponent) GetDependencies() []string {
 // createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
 func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client clipkg.Client) error {
 	for _, ns := range i.InjectedSystemNamespaces {
-		//var platformNS corev1.Namespace
-		platformNS := corev1.Namespace{}
-		if client == nil {
-			fmt.Print("client is nil")
-		}
-		if client != nil {
-			fmt.Print("client is nil")
-		}
+		var platformNS corev1.Namespace
 		err := client.Get(context.TODO(), types.NamespacedName{Name: ns}, &platformNS)
 		if err != nil {
 			return err
