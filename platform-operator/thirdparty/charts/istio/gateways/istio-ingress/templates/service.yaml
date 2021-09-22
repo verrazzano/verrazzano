@@ -23,6 +23,10 @@ spec:
 {{- if $gateway.externalTrafficPolicy }}
   externalTrafficPolicy: {{$gateway.externalTrafficPolicy }}
 {{- end }}
+{{- if $gateway.externalIPs }}
+  externalIPs:
+{{ toYaml $gateway.externalIPs | indent 4 }}
+{{- end }}
   type: {{ $gateway.type }}
   selector:
 {{ $gateway.labels | toYaml | indent 4 }}

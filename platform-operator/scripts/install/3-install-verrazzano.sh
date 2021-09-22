@@ -111,10 +111,6 @@ function install_verrazzano()
   fi
   local PROFILE_VALUES_OVERRIDE=" -f ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml"
 
-  # Get the endpoint for the Kubernetes API server.  The endpoint returned has the format of IP:PORT
-  local ENDPOINT=$(kubectl get endpoints --namespace default kubernetes --no-headers | awk '{ print $2}')
-  local ENDPOINT_ARRAY=(${ENDPOINT//:/ })
-
   local DNS_TYPE=$(get_config_value ".dns.type")
   local EXTERNAL_DNS_ENABLED=false
   if [ "$DNS_TYPE" == "oci" ]; then
@@ -140,8 +136,6 @@ function install_verrazzano()
         --set config.envName=${ENV_NAME} \
         --set config.dnsSuffix=${DNS_SUFFIX} \
         --set config.enableMonitoringStorage=true \
-        --set kubernetes.service.endpoint.ip=${ENDPOINT_ARRAY[0]} \
-        --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
         --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
         --set keycloak.enabled=$(is_keycloak_enabled) \
         --set rancher.enabled=$(is_rancher_enabled) \
