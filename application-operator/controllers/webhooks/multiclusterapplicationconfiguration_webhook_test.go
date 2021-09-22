@@ -201,6 +201,11 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 	asrt.True(res.Allowed, "Expected multi-cluster application configuration validation to succeed with missing placement information on managed cluster.")
 }
 
+// TestValidateSecrets tests the function validateSecrets
+// GIVEN a call to validateSecrets
+// WHEN called with various MultiClusterApplicationConfiguration resources
+// THEN the validation should succeed or fail based on what secrets are specified in the
+//   MultiClusterApplicationConfiguration resource
 func TestValidateSecrets(t *testing.T) {
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
@@ -231,4 +236,45 @@ func TestValidateSecrets(t *testing.T) {
 	// Secret not found, so failure expected
 	err := v.validateSecrets(mcac)
 	asrt.EqualError(err, "secret(s) secret1 specified in MultiClusterApplicationConfiguration not found in namespace verrazzano-mc")
+
+	mcac = &v1alpha12.MultiClusterApplicationConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-mcapplicationconfiguration-name",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: v1alpha12.MultiClusterApplicationConfigurationSpec{
+			Secrets: []string{
+				"secret1",
+				"secret2",
+			},
+		},
+	}
+
+	// Secrets not found, so failure expected
+	err = v.validateSecrets(mcac)
+	asrt.EqualError(err, "secret(s) secret1,secret2 specified in MultiClusterApplicationConfiguration not found in namespace verrazzano-mc")
+
+	mcac = &v1alpha12.MultiClusterApplicationConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-mcapplicationconfiguration-name",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: v1alpha12.MultiClusterApplicationConfigurationSpec{
+			Secrets: []string{
+				"secret1",
+			},
+		},
+	}
+	secret1 := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret1",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+	}
+	asrt.NoError(v.client.Create(context.TODO(), &secret1))
+
+	// Secret should be found, so success is expected
+	err = v.validateSecrets(mcac)
+	asrt.NoError(v.validateSecrets(mcac))
+
 }
