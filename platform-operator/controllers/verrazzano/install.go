@@ -41,7 +41,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 			log.Infof("PreInstalling component %s", comp.Name())
 			if !registry.ComponentDependenciesMet(log, r.Client, comp) {
 				log.Infof("Dependencies not met for %s: %v", comp.Name(), comp.GetDependencies())
-				requeue= true
+				requeue = true
 				continue
 			}
 			if err := comp.PreInstall(log, r, cr.Namespace, r.DryRun); err != nil {
