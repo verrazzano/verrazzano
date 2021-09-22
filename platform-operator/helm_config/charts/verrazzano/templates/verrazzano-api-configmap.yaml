@@ -212,6 +212,7 @@ data:
 
     function me.unauthorized(msg, err)
         me.deleteCookie("authn")
+        me.deleteCookie("userinfo")
         me.logJson(ngx.ERR, msg, err)
         ngx.status = ngx.HTTP_UNAUTHORIZED
         ngx.say("401 Unauthorized")
@@ -678,6 +679,7 @@ data:
         end
         -- no valid token found, delete cookie
         me.deleteCookie("authn")
+        me.deleteCookie("userinfo")
         return nil
     end
 
@@ -705,8 +707,8 @@ data:
                     issued_at = tonumber(id_token.payload.auth_time)
                 end
             end
-            if id_token.payload.username then
-                userCookiePairs.username = id_token.payload.username
+            if id_token.payload.preferred_username then
+                userCookiePairs.username = id_token.payload.preferred_username
             end
         end
         local skew = now - issued_at
@@ -714,8 +716,6 @@ data:
         local expiryBuffer = 30
         cookiePairs.expiry = now + expires_in - skew - expiryBuffer
         cookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
-        userCookiePairs.expiry = now + expires_in - skew - expiryBuffer
-        userCookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
         local expiresInSec = tonumber(tokenRes.refresh_expires_in)-expiryBuffer
         me.setCookie("authn", cookiePairs, expiresInSec, true)
         me.setCookie("userinfo", userCookiePairs, expiresInSec, false)
@@ -735,10 +735,11 @@ data:
             for key, value in pairs(cookiePairs) do
                 ckValue = ckValue..key.."="..value..","
             end
+            ckValue = ckValue:sub(1, -2)
         else
             ckValue = me.aes256:encrypt(cjson.encode(cookiePairs))
-        ckValue = base64.encode_base64url(ckValue)
         end
+        ckValue = base64.encode_base64url(ckValue)
         cookie:set({key=ckName, value=ckValue, path="/", secure=true, httponly=httponly, expires=expires})
     end
 
