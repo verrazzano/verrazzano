@@ -203,6 +203,26 @@ pipeline {
             }
         }
 
+        stage('BOM Validator Tool') {
+            steps {
+                buildBOMValidatorTool()
+            }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+                success {
+                    sh """
+                        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
+                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/bom-validator --file ./out/linux_amd64/bom-validator
+                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ./out/linux_amd64/bom-validator
+                    """
+                }
+            }
+        }
+
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
@@ -588,6 +608,14 @@ def buildAnalysisTool(dockerImageTag) {
     """
 }
 
+// Called in Stage Bom Validator Tool steps
+def buildBOMValidatorTool() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
+        make go-build
+    """
+}
+
 // Called in Stage Build steps
 // Makes target docker push for application/platform operator and analysis
 def buildImages(dockerImageTag) {
@@ -829,7 +857,7 @@ def metricBuildDuration() {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
         withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.GIT_BRANCH} $labels ${metricValue} ${durationInSec}")
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

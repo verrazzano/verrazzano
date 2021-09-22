@@ -30,8 +30,8 @@ func (i IstioComponent) IsOperatorInstallSupported() bool {
 	return false
 }
 
-func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) bool {
-	return false
+func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) (bool, error) {
+	return false, nil
 }
 
 func (i IstioComponent) Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
@@ -58,4 +58,20 @@ func (i IstioComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, na
 // GetDependencies returns the dependencies of this component
 func (i IstioComponent) GetDependencies() []string {
 	return []string{}
+}
+
+func (i IstioComponent) PreUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
+}
+
+func (i IstioComponent) PostUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
+}
+
+func (i IstioComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
+}
+
+func (i IstioComponent) PostInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
 }

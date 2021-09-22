@@ -36,6 +36,9 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 			// If component is enabled -- need to replicate scripts' config merging logic here
 			// If component is in deployed state, continue
 			if comp.IsReady(log, r.Client, cr.Namespace) {
+				if err := comp.PostInstall(log, r, cr.Namespace, r.DryRun); err != nil {
+					return newRequeueWithDelay(), err
+				}
 				log.Infof("Component %s successfully installed")
 				if err := r.updateComponentStatus(log, cr, comp.Name(), "Install complete", installv1alpha1.InstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
@@ -50,6 +53,9 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 			}
 			if err := r.updateComponentStatus(log, cr, comp.Name(), "Install starting", installv1alpha1.InstallStarted); err != nil {
 				return ctrl.Result{Requeue: true}, err
+			}
+			if err := comp.PreInstall(log, r, cr.Namespace, r.DryRun); err != nil {
+				return newRequeueWithDelay(), err
 			}
 			// If component is not installed,install it
 			if err := comp.Install(log, r, cr.Namespace, r.DryRun); err != nil {
