@@ -46,7 +46,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                        verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.CHANGE_TITLE}" --token unused --jira-env=prod
+                        verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.CHANGE_TITLE}" --pr-target "${env.CHANGE_TARGET}" --token unused --jira-env=prod
                     """
                 }
             }
