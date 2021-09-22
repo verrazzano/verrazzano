@@ -72,6 +72,13 @@ const weblogicDomainWithMonitoringExporter = `
    }
 }
 `
+const loggingTrait = `
+{
+	"apiVersion": "oam.verrazzano.io/v1alpha1",
+	"kind": "LoggingTrait",
+	"name": "my-logging-trait"
+}
+`
 
 // TestReconcilerSetupWithManager test the creation of the VerrazzanoWebLogicWorkload reconciler.
 // GIVEN a controller implementation
@@ -136,12 +143,6 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			workload.Namespace = namespace
 			return nil
 		})
-	// expect a call to list the logging traits
-	cli.EXPECT().
-		List(gomock.Any(), vzapi.LoggingTraitList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, loggingTraitList vzapi.LoggingTraitList, notsureyet string) error {
-			return nil
-		})
 	// expect a call to list the FLUENTD config maps
 	cli.EXPECT().
 		List(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -158,7 +159,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: "test-name"}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
@@ -168,16 +169,6 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
-		})
-	// expect a call to get the ConfigMap for logging
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: "logging-stdout-unit-test-cluster-domain"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
-			return k8serrors.NewNotFound(k8sschema.GroupResource{
-				Group:    "",
-				Resource: "ConfigMap",
-			},
-			"logging-stdout-unit-test-cluster-domain")
 		})
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
@@ -267,6 +258,13 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+			return nil
+		})
+	// expect a call to get the application configuration for the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		})
 	// expect a call to attempt to get the WebLogic CR - return not found
@@ -366,6 +364,13 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
+	// expect a call to get the application configuration for the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
+			return nil
+		})
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -391,6 +396,132 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			containers, _, _ := unstructured.NestedSlice(u.Object, specServerPodContainersFields...)
 			assert.Equal(1, len(containers))
 			assert.Equal(fluentdImage, containers[0].(map[string]interface{})["image"])
+
+			// make sure monitoringExporter exists
+			validateDefaultMonitoringExporter(u, t)
+
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileCreateWebLogicDomainWithCustomLogging tests the happy path of reconciling a VerrazzanoWebLogicWorkload
+// with a custom logging trait. We expect to write out a WebLogic domain CR with an extra FLUENTD sidecar,
+// ConfigMap, and associated volumes and mounts.
+// GIVEN a VerrazzanoWebLogicWorkload resource is created with a custom logging trait
+// WHEN the controller Reconcile function is called
+// THEN expect a WebLogic domain CR to be written with custom logging extras.
+func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	appConfigName := "unit-test-app-config"
+	componentName := "unit-test-component"
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
+		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
+
+	// expect call to fetch existing WebLogic Domain
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, coherence *wls.Domain) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
+		})
+	// expect a call to fetch the VerrazzanoWebLogicWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
+			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
+			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Namespace = namespace
+			return nil
+		})
+	// expect a call to list the logging traits
+	cli.EXPECT().
+		List(gomock.Any(), vzapi.LoggingTraitList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, loggingTraitList vzapi.LoggingTraitList, namespace string) error {
+			return nil
+		})
+	// expect a call to list the FLUENTD config maps
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			return nil
+		})
+	// expect a call to get the namespace for the domain
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+			return nil
+		})
+	// expect a call to get the application configuration for the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{
+				{
+					ComponentName: componentName,
+					Traits: []oamcore.ComponentTrait{
+						{
+							Trait: runtime.RawExtension{
+								Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(loggingTrait, " ", ""), "\n", "")),
+							},
+						},
+					},
+				},
+			}
+			return nil
+		})
+	// expect a call to get the ConfigMap for logging
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: "logging-stdout-unit-test-cluster-domain"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{
+				Group:    "",
+				Resource: "ConfigMap",
+			},
+				"logging-stdout-unit-test-cluster-domain")
+		})
+	// expect a call to attempt to get the WebLogic CR - return not found
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
+	// expect a call to create the WebLogic domain CR
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
+			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
+			assert.Equal(weblogicKind, u.GetKind())
+
+			// make sure the OAM component and app name labels were copied
+			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
+			assert.Equal(labels, specLabels)
+
+			// make sure configuration.istio.enabled is false
+			specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
+			assert.Equal(specIstioEnabled, false)
 
 			// make sure monitoringExporter exists
 			validateDefaultMonitoringExporter(u, t)
@@ -483,6 +614,13 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
 			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
 			// return nil error because Coherence StatefulSet exists
+			return nil
+		})
+	// expect a call to get the application configuration for the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		})
 	// expect a call to create the WebLogic domain CR
@@ -607,6 +745,13 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			// return nil error because Coherence StatefulSet exists
 			return nil
 		})
+	// expect a call to get the application configuration for the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
+			return nil
+		})
 
 	// Call to Update() is not expected since nothing changed
 
@@ -671,6 +816,13 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+			return nil
+		})
+	// expect a call to get the application configuration for the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		})
 	// expect a call to attempt to get the WebLogic CR - return not found
