@@ -69,10 +69,7 @@
                                             ".": {},
                                             "f:prometheus.io/port": {},
                                             "f:prometheus.io/scrape": {},
-                                            "f:sidecar.istio.io/rewriteAppHTTPProbers": {},
-                                            "f:system.io/scrape": {},
-                                            "f:traffic.sidecar.istio.io/excludeInboundPorts": {},
-                                            "f:traffic.sidecar.istio.io/includeInboundPorts": {}
+                                            "f:system.io/scrape": {}
                                         },
                                         "f:labels": {
                                             ".": {},
@@ -282,10 +279,7 @@
                         "annotations": {
                             "prometheus.io/port": "10254",
                             "prometheus.io/scrape": "true",
-                            "sidecar.istio.io/rewriteAppHTTPProbers": "true",
-                            "system.io/scrape": "true",
-                            "traffic.sidecar.istio.io/excludeInboundPorts": "80,443",
-                            "traffic.sidecar.istio.io/includeInboundPorts": ""
+                            "system.io/scrape": "true"
                         }
                     },
                     "spec": {

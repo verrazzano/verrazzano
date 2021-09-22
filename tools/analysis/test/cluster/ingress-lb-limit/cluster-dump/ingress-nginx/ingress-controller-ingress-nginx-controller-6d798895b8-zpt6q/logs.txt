@@ -14,7 +14,7 @@ NGINX Ingress controller
 I0805 08:05:41.937371       7 flags.go:208] "Watching for Ingress" class="nginx"
 W0805 08:05:41.937510       7 flags.go:213] Ingresses with an empty class will also be processed by this Ingress controller
 W0805 08:05:41.938484       7 client_config.go:614] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
-I0805 08:05:41.938844       7 main.go:241] "Creating API client" host="https://10.96.0.1:443"
+I0805 08:05:41.938844       7 main.go:241] "Creating API client" host="REDACTED-IP4-ADDRESS"
 W0805 08:05:47.155687       7 main.go:282] Initial connection to the Kubernetes API server was retried 3 times.
 I0805 08:05:47.155736       7 main.go:285] "Running in Kubernetes cluster" major="1" minor="20" git="v1.20.8" state="clean" commit="50317190d44dbdb51ae7ff430917b32ba96188b5" platform="linux/amd64"
 I0805 08:05:47.165280       7 main.go:87] "Valid default backend" service="ingress-nginx/ingress-controller-ingress-nginx-defaultbackend"
