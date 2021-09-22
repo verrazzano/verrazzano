@@ -211,8 +211,8 @@ data:
     end
 
     function me.unauthorized(msg, err)
-        me.deleteCookie("authn")
-        me.deleteCookie("userinfo")
+        me.deleteCookie("vz_authn")
+        me.deleteCookie("vz_userinfo")
         me.logJson(ngx.ERR, msg, err)
         ngx.status = ngx.HTTP_UNAUTHORIZED
         ngx.say("401 Unauthorized")
@@ -467,7 +467,7 @@ data:
             redirect_uri = me.callbackUri
         })
         local redirectURL = me.getOidcAuthUri()..'?'..redirectArgs
-        me.setCookie("state", stateData, authStateTtlInSec)
+        me.setCookie("vz_state", stateData, authStateTtlInSec)
         ngx.header["Cache-Control"] = "no-cache, no-store, max-age=0"
         ngx.redirect(redirectURL)
     end
@@ -478,11 +478,11 @@ data:
         local state = queryParams.state
         local code = queryParams.code
         local nonce = queryParams.nonce
-        local cookie = me.readCookie("state")
+        local cookie = me.readCookie("vz_state")
         if not cookie then
             me.unauthorized("Missing state cookie")
         end
-        me.deleteCookie("state")
+        me.deleteCookie("vz_state")
         local stateCk = cookie.state
         -- local nonceCk = cookie.nonce
         local request_uri = cookie.request_uri
@@ -507,7 +507,6 @@ data:
     end
 
     function me.oidcHandleLogoutCallback()
-        me.deleteCookie("authn")
         me.unauthorized("User logged out")
     end
 
@@ -657,7 +656,7 @@ data:
     -- nil token returned if no session or the refresh token has expired
     function me.getTokenFromSession()
         me.info("Check for existing session")
-        local ck = me.readCookie("authn")
+        local ck = me.readCookie("vz_authn")
         if ck then
             local rft = ck.rt
             local now = ngx.time()
@@ -678,8 +677,8 @@ data:
             end
         end
         -- no valid token found, delete cookie
-        me.deleteCookie("authn")
-        me.deleteCookie("userinfo")
+        me.deleteCookie("vz_authn")
+        me.deleteCookie("vz_userinfo")
         return nil
     end
 
@@ -717,8 +716,8 @@ data:
         cookiePairs.expiry = now + expires_in - skew - expiryBuffer
         cookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
         local expiresInSec = tonumber(tokenRes.refresh_expires_in)-expiryBuffer
-        me.setCookie("authn", cookiePairs, expiresInSec, true)
-        me.setCookie("userinfo", userCookiePairs, expiresInSec, false)
+        me.setCookie("vz_authn", cookiePairs, expiresInSec, true)
+        me.setCookie("vz_userinfo", userCookiePairs, expiresInSec, false)
     end
 
     function me.setCookie(ckName, cookiePairs, expiresInSec, httponly)
@@ -730,8 +729,8 @@ data:
         end
         local expires = ngx.cookie_time(ngx.time() + expiresInSec)
         local ckValue = ""
-        if ckName == "userinfo" then
-            -- No need to encrypt in case of userinfo
+        if ckName == "vz_userinfo" then
+            -- No need to encrypt in case of vz_userinfo
             for key, value in pairs(cookiePairs) do
                 ckValue = ckValue..key.."="..value..","
             end
