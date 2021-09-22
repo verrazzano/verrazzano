@@ -106,23 +106,8 @@ func Test_locateField(t *testing.T) {
 		{
 			name: "deployment_test",
 			args: args{
-				document:   document,
-				res:        &deploymentResource,
-				fieldPaths: [][]string{
-								//This is the path to the containers field of the Pod resource
-								{"spec", "containers"},
-								//This is the path to the containers field of the Deployments,StatefulSet,ReplicaSet resource
-								{"spec", "template", "spec", "containers"},
-							},
-			},
-			want: true,
-			want1: []string{"spec", "template", "spec", "containers"},
-		},
-		{
-			name: "pod_test",
-			args: args{
-				document:   document,
-				res:        &podResource,
+				document: document,
+				res:      &deploymentResource,
 				fieldPaths: [][]string{
 					//This is the path to the containers field of the Pod resource
 					{"spec", "containers"},
@@ -130,7 +115,22 @@ func Test_locateField(t *testing.T) {
 					{"spec", "template", "spec", "containers"},
 				},
 			},
-			want: true,
+			want:  true,
+			want1: []string{"spec", "template", "spec", "containers"},
+		},
+		{
+			name: "pod_test",
+			args: args{
+				document: document,
+				res:      &podResource,
+				fieldPaths: [][]string{
+					//This is the path to the containers field of the Pod resource
+					{"spec", "containers"},
+					//This is the path to the containers field of the Deployments,StatefulSet,ReplicaSet resource
+					{"spec", "template", "spec", "containers"},
+				},
+			},
+			want:  true,
 			want1: []string{"spec", "containers"},
 		},
 	}
@@ -175,23 +175,23 @@ func Test_locateContainersField(t *testing.T) {
 		{
 			name: "deployment_test",
 			args: args{
-				document:   document,
-				res:        &deploymentResource,
+				document: document,
+				res:      &deploymentResource,
 			},
-			want: true,
+			want:  true,
 			want1: []string{"spec", "template", "spec", "containers"},
 		},
 		{
 			name: "pod_test",
 			args: args{
-				document:   document,
-				res:        &podResource,
+				document: document,
+				res:      &podResource,
 			},
-			want: true,
+			want:  true,
 			want1: []string{"spec", "containers"},
 		},
 	}
-		for _, tt := range tests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got1 := locateContainersField(tt.args.document, tt.args.res)
 			if got != tt.want {
@@ -232,19 +232,19 @@ func Test_locateVolumesField(t *testing.T) {
 		{
 			name: "deployment_test",
 			args: args{
-				document:   document,
-				res:        &deploymentResource,
+				document: document,
+				res:      &deploymentResource,
 			},
-			want: true,
+			want:  true,
 			want1: []string{"spec", "template", "spec", "volumes"},
 		},
 		{
 			name: "pod_test",
 			args: args{
-				document:   document,
-				res:        &podResource,
+				document: document,
+				res:      &podResource,
 			},
-			want: true,
+			want:  true,
 			want1: []string{"spec", "volumes"},
 		},
 	}
