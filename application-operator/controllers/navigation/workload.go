@@ -151,10 +151,10 @@ func LoggingTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log 
 	}
 
 	if hasLoggingTrait {
-		log.Info(fmt.Sprintf("Unable to lookup associated MetricTrait for workload %s", workloadMeta.Name))
-		return nil, fmt.Errorf("lookup of MetricTrait failed for workload %s", workloadMeta.Name)
+		log.Info(fmt.Sprintf("Unable to lookup associated LoggingTrait for workload %s", workloadMeta.Name))
+		return nil, fmt.Errorf("lookup of LoggingTrait failed for workload %s", workloadMeta.Name)
 	}
-	log.Info(fmt.Sprintf("Workload %s has no associated metric trait", workloadMeta.Name))
+	log.Info(fmt.Sprintf("Workload %s has no associated logging trait", workloadMeta.Name))
 	return nil, nil
 }
 
