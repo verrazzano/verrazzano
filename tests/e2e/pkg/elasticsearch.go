@@ -28,15 +28,15 @@ func UseExternalElasticsearch() bool {
 
 // GetExternalElasticSearchURL gets the external Elasticsearch URL
 func GetExternalElasticSearchURL(kubeconfigPath string) string {
-	// the equivalent of kubectl get svc external-es-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+	// the equivalent of kubectl get svc quickstart-es-http -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
 		return ""
 	}
-	svc, err := clientset.CoreV1().Services("default").Get(context.TODO(), "external-es-service", metav1.GetOptions{})
+	svc, err := clientset.CoreV1().Services("default").Get(context.TODO(), "quickstart-es-http", metav1.GetOptions{})
 	if err != nil {
-		Log(Info, fmt.Sprintf("Could not get services external-es-service in sockshop: %v\n", err.Error()))
+		Log(Info, fmt.Sprintf("Could not get services quickstart-es-http in sockshop: %v\n", err.Error()))
 		return ""
 	}
 	if svc.Status.LoadBalancer.Ingress != nil && len(svc.Status.LoadBalancer.Ingress) > 0 {
