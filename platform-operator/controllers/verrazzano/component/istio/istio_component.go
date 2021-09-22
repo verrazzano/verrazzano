@@ -5,6 +5,7 @@ package istio
 
 import (
 	"context"
+	"fmt"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
@@ -123,8 +124,15 @@ func (i IstioComponent) GetDependencies() []string {
 
 // createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
 func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client clipkg.Client) error {
-	var platformNS corev1.Namespace
 	for _, ns := range i.InjectedSystemNamespaces {
+		//var platformNS corev1.Namespace
+		platformNS := corev1.Namespace{}
+		if client == nil {
+			fmt.Print("client is nil")
+		}
+		if client != nil {
+			fmt.Print("client is nil")
+		}
 		err := client.Get(context.TODO(), types.NamespacedName{Name: ns}, &platformNS)
 		if err != nil {
 			return err
@@ -138,7 +146,7 @@ func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client cli
 		platformNS.Labels = nsLabels
 
 		// update namespace
-		err = client.Update(context.TODO(), platformNS.DeepCopyObject())
+		err = client.Update(context.TODO(), &platformNS)
 		if err != nil {
 			return err
 		}
@@ -165,7 +173,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
 			deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
-			err = client.Update(context.TODO(), deployment.DeepCopyObject())
+			err = client.Update(context.TODO(), &deployment)
 			if err != nil {
 				return err
 			}
@@ -185,7 +193,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
 			statefulSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
-			err = client.Update(context.TODO(), statefulSet.DeepCopyObject())
+			err = client.Update(context.TODO(), &statefulSet)
 			if err != nil {
 				return err
 			}
@@ -205,7 +213,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
 			daemonSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
-			err = client.Update(context.TODO(), daemonSet.DeepCopyObject())
+			err = client.Update(context.TODO(), &daemonSet)
 			if err != nil {
 				return err
 			}

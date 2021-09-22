@@ -25,7 +25,7 @@ func GetComponents() []spi.Component {
 	overridesDir := config.GetHelmOverridesDir()
 	helmChartsDir := config.GetHelmChartsDir()
 	thirdPartyChartsDir := config.GetThirdPartyDir()
-	injectedSystemNamespaces := getInjectedSystemNamespaces()
+	injectedSystemNamespaces := config.GetInjectedSystemNamespaces()
 
 	return []spi.Component{
 		// TODO: remove istio helm components

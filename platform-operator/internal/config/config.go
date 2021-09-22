@@ -3,7 +3,10 @@
 
 package config
 
-import "path/filepath"
+import (
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"path/filepath"
+)
 
 const (
 	rootDir                = "/verrazzano"
@@ -135,4 +138,8 @@ func GetDefaultBOMFilePath() string {
 		return bomFilePathOverride
 	}
 	return filepath.Join(GetPlatformDir(), defaultBomFilename)
+}
+
+func GetInjectedSystemNamespaces() []string {
+	return []string{constants.VerrazzanoSystemNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
 }
