@@ -24,7 +24,7 @@ pipeline {
     parameters {
         string (description: 'The source branch for the release', name: 'SOURCE_BRANCH', defaultValue: 'master', trim: true)
         string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
-        string (description: 'The target version (release: #.#, patch: #.#.#)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
+        string (description: 'The target version (major.minor.patch format, e.g. 1.0.1)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
         booleanParam (description: 'Ignore pre-release validation failures', name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', defaultValue: false)
         booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
@@ -66,7 +66,7 @@ pipeline {
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
                         if (!env.GIT_COMMIT.equals(params.COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${env.GIT_COMMIT}"
                             exit 1
                         }
                     }
@@ -145,7 +145,8 @@ pipeline {
                             if (env.IS_PATCH_RELEASE == 'true') {
                                 RELEASE_JOB_NAME = 'verrazzano/' + env.SOURCE_BRANCH
                             } else {
-                                RELEASE_JOB_NAME = 'verrazzano/release-' + params.TARGET_VERSION
+                                def parts = params.TARGET_VERSION.split("\\.")
+                                RELEASE_JOB_NAME = 'verrazzano/release-${parts[0]}.${parts[1]}'
                             }
                             // if branch build not found, trigger repo scan and wait
                             if (Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME) == null) {

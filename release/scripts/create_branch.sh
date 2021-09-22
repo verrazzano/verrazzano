@@ -7,7 +7,7 @@
 function usage {
     echo
     echo "usage: $0 [-v release_version] [-c source_commit]"
-    echo "  -v release_version         The release version (e.g. #.# for a major release, #.#.# for a patch release. Required"
+    echo "  -v release_version         The release version in major_version.minor_version.patch_version format (e.g. 1.1.0). Required"
     echo "  -c source_commit           The commit hash for the source commit.  Required."
     echo "  -h                         Help"
     echo
