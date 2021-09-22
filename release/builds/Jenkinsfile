@@ -1,7 +1,6 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-//TODO:  should we just use 2.8 for this pipline?
 def DOCKER_IMAGE_TAG
 def releaseBuild
 def RELEASE_JOB_NAME
@@ -27,8 +26,8 @@ pipeline {
         string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
         string (description: 'The target version (release: #.#, patch: #.#.#)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
-        booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
         booleanParam (description: 'Ignore pre-release validation failures', name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', defaultValue: false)
+        booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
     }
 
     environment {
@@ -71,6 +70,7 @@ pipeline {
                             exit 1
                         }
                     }
+                    // setup credential retrieval for possible release branch push
                     sh """
                         git config credential.https://github.com.username ${GITHUB_CREDENTIALS_USR}
                         git config credential.helper '/bin/bash ${WORKSPACE}/release/scripts/credential_helper.sh'
@@ -92,22 +92,16 @@ pipeline {
         stage('Pipeline inputs validation') {
             steps {
                 script {
-                    //TODO:  remove the second check for my branch
-                    if (params.SOURCE_BRANCH.equals('master') || params.SOURCE_BRANCH.equals('jmaron/VZ-3509')) {
-                        if (params.TARGET_VERSION =~ /^\d+\.\d+\.0$/) {
-                            env.IS_PATCH_RELEASE = 'false'
-                        } else {
-                            error "Mismatch betwween source branch ${params.SOURCE_BRANCH} and target version ${params.TARGET_VERSION}"
-                        }
-                    } else if (params.SOURCE_BRANCH =~ /release-\d+\.\d+$/){
-                        if (params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/) {
-                            env.IS_PATCH_RELEASE = 'true'
-                        } else {
-                            error "Mismatch betwween source branch ${params.SOURCE_BRANCH} and target version ${params.TARGET_VERSION}"
-                        }
+                    // major or minor release should be leveraging master branch and have a target version that ends in 0
+                    if (params.SOURCE_BRANCH.equals('master') && params.TARGET_VERSION =~ /^\d+\.\d+\.0$/) {
+                        env.IS_PATCH_RELEASE = 'false'
+                    // patch should be using a "release-#.#" branch and have a version ending in a digit other than 0
+                    } else if (params.SOURCE_BRANCH =~ /release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
+                        env.IS_PATCH_RELEASE = 'true'
                     } else {
-                        error "Source branch ${params.SOURCE_BRANCH} is not valid for a major, minor, or patch release"
+                        error "Invalid source branch ${params.SOURCE_BRANCH} or a mismatch between source branch and the specified target version ${params.TARGET_VERSION}"
                     }
+
                     echo "Patch release? ${env.IS_PATCH_RELEASE}"
                 }
             }
@@ -130,6 +124,7 @@ pipeline {
         stage('Trigger release build') {
             stages {
                 stage('Release Only: Create branch') {
+                    // if this is not a patch there is a need to either create a release branch or verify it exists
                     when {
                         expression { env.IS_PATCH_RELEASE == 'false' }
                     }
@@ -147,12 +142,12 @@ pipeline {
                 stage('Verrazzano Build') {
                     steps {
                         script {
-                            // trigger scan and wait for branch to appear if it doesn't exist
                             if (env.IS_PATCH_RELEASE == 'true') {
                                 RELEASE_JOB_NAME = 'verrazzano/' + env.SOURCE_BRANCH
                             } else {
-                                RELEASE_JOB_NAME = 'verrazzano/mock-release-' + params.TARGET_VERSION
+                                RELEASE_JOB_NAME = 'verrazzano/release-' + params.TARGET_VERSION
                             }
+                            // if branch build not found, trigger repo scan and wait
                             if (Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME) == null) {
                                 Jenkins.instance.getItemByFullName('verrazzano').scheduleBuild()
                                 while (Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME) == null) {
@@ -179,7 +174,7 @@ pipeline {
                     post {
                         success {
                             script {
-                                echo "${releaseBuild}"
+                                // keep the successful build forever
                                 releaseBuild.getRawBuild().keepLog(true)
                             }
                         }

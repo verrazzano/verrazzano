@@ -14,7 +14,7 @@ function usage {
     exit 1
 }
 
-function is_in_remote() {
+function is_in_remote_repo() {
     local branch=${1}
     local exists=$(git ls-remote --heads origin ${branch})
 
@@ -27,7 +27,7 @@ function is_in_remote() {
 
 VERSION=""
 RELEASE_COMMIT=""
-EXPECTED_SOURCE_BRANCH="origin/jmaron/VZ-3509"
+EXPECTED_SOURCE_BRANCH="origin/master"
 EXPECTED_SOURCE_REPO="verrazzano"
 
 while getopts v:c:h flag
@@ -44,14 +44,14 @@ parts=( ${VERSION//./ } )
 MAJOR="${parts[0]}"
 MINOR="${parts[1]}"
 PATCH="${parts[2]}"
-RELEASE_BRANCH=mock-release-${MAJOR}.${MINOR}
+RELEASE_BRANCH=release-${MAJOR}.${MINOR}
 
 # if this is a patch release skip branch creation
 if [ "${PATCH}" != "0" ]; then
   echo "This is a patch release. No branch creation required"
   exit 0
 else
-  if ! is_in_remote ${RELEASE_BRANCH} ; then
+  if ! is_in_remote_repo ${RELEASE_BRANCH} ; then
     echo "creating branch"
     # ensure we are branching off of a verrazzano master branch
     
@@ -75,6 +75,11 @@ else
     git push origin ${RELEASE_BRANCH}
   else
     echo "Release branch exists"
+    CREATION_COMMIT=$(git rev-parse --verify origin/${RELEASE_BRANCH})
+    if [ "${CREATION_COMMIT}" != "${RELEASE_COMMIT}" ]; then
+      echo "Release branch found but commits do not match:  Branch HEAD commit=${CREATION_COMMIT}, Requested commit=${RELEASE_COMMIT}"
+      exit 1
+    fi
     exit 0
   fi
 fi
