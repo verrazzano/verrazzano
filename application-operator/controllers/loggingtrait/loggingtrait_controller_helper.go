@@ -75,13 +75,3 @@ func locateVolumesField(document openapi.Resources, res *unstructured.Unstructur
 	}
 	return locateField(document, res, volumesFieldPaths)
 }
-
-//locateVolumeMountsField locate the volumeMounts field
-func locateVolumeMountsField(document openapi.Resources, res *unstructured.Unstructured) (bool, []string) {
-	//This is the most common path to the volumeMounts field
-	volumeMountsFieldPaths := [][]string{
-		//This is the path to the volumeMounts field of the Container resource
-		{"volumeMounts"},
-	}
-	return locateField(document, res, volumeMountsFieldPaths)
-}
