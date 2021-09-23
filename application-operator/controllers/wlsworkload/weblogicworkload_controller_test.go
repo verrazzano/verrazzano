@@ -491,8 +491,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 			APIVersion: "",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: loggingNamePart + "-unit-test-cluster-domain",
-			Namespace: namespace,
+			Name:              loggingNamePart + "-unit-test-cluster-domain",
+			Namespace:         namespace,
 			CreationTimestamp: metav1.Time{},
 			OwnerReferences: []metav1.OwnerReference{
 				{
