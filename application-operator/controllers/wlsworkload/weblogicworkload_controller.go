@@ -44,8 +44,8 @@ const (
 const defaultMonitoringExporterData = `
   {
     "configuration": {
-      "domainQualifier": true,
-      "metricsNameSnakeCase": true,
+      "domainQualifier": "true",
+      "metricsNameSnakeCase": "true",
       "queries": [
         {
            "key": "name",
