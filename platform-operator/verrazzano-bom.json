@@ -278,7 +278,7 @@
             },
             {
               "image": "console-jenkins",
-              "tag": "1.1.0-20210921144912-6f72021",
+              "tag": "1.1.0-20210923145710-e8d77ff",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
