@@ -8,8 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"reflect"
 
@@ -130,10 +128,10 @@ func ValidateInProgress(old *Verrazzano, new *Verrazzano) error {
 
 	// Allow enable component during install
 	if old.Status.State == Installing {
-		if coherence.IsEnabled(new.Spec.Components.Coherence) && !coherence.IsEnabled(old.Spec.Components.Coherence) {
+		if isCoherenceEnabled(new.Spec.Components.Coherence) && !isCoherenceEnabled(old.Spec.Components.Coherence) {
 			return nil
 		}
-		if weblogic.IsEnabled(new.Spec.Components.WebLogic) && !weblogic.IsEnabled(old.Spec.Components.WebLogic) {
+		if isWebLogicEnabled(new.Spec.Components.WebLogic) && !isWebLogicEnabled(old.Spec.Components.WebLogic) {
 			return nil
 		}
 	}
@@ -154,4 +152,20 @@ func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 	}
 
 	return nil
+}
+
+// isCoherenceEnabled returns true if the component is enabled, which is the default
+func isCoherenceEnabled(comp *CoherenceComponent) bool {
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
+}
+
+// isWebLogicEnabled returns true if the component is enabled, which is the default
+func isWebLogicEnabled(comp *WebLogicComponent) bool {
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
 }
