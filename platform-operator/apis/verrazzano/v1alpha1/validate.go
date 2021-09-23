@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"reflect"
 
@@ -121,12 +123,21 @@ func ValidateActiveInstall(client client.Client) error {
 }
 
 // ValidateInProgress makes sure there is not an install, uninstall or upgrade in progress
-func ValidateInProgress(state StateType) error {
-	if state == Installing || state == Uninstalling || state == Upgrading {
-		return fmt.Errorf("Updates to resource not allowed while install, uninstall or upgrade is in progress")
+func ValidateInProgress(old *Verrazzano, new *Verrazzano) error {
+	if old.Status.State == Ready {
+		return nil
 	}
 
-	return nil
+	// Allow enable component during install
+	if old.Status.State == Installing {
+		if coherence.IsEnabled(new.Spec.Components.Coherence) && !coherence.IsEnabled(old.Spec.Components.Coherence) {
+			return nil
+		}
+		if weblogic.IsEnabled(new.Spec.Components.WebLogic) && !weblogic.IsEnabled(old.Spec.Components.WebLogic) {
+			return nil
+		}
+	}
+	return fmt.Errorf("Updates to resource not allowed while install, uninstall or upgrade is in progress")
 }
 
 // ValidateOciDNSSecret makes sure that the OCI DNS secret required by install exists

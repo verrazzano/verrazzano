@@ -72,8 +72,8 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	log.Debugf("oldResource: %v", oldResource)
 	log.Debugf("v: %v", v)
 
-	// Updates are not allowed when an install or an upgrade is in in progress
-	if err := ValidateInProgress(oldResource.Status.State); err != nil {
+	// Only enable updates are not allowed when an install or an upgrade is in in progress
+	if err := ValidateInProgress(oldResource, v); err != nil {
 		return err
 	}
 
