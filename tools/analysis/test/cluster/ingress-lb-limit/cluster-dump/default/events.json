@@ -1,0 +1,123 @@
+{
+    "kind": "EventList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "9131"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano.16985a623141a810",
+                "namespace": "default",
+                "uid": "e9a7ba8e-5233-4447-b4e1-9c1c4b88ee30",
+                "resourceVersion": "2488",
+                "creationTimestamp": "2021-08-05T08:04:03Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-08-05T08:04:03Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Job",
+                "namespace": "default",
+                "name": "verrazzano-install-my-verrazzano",
+                "uid": "4b4389c3-ba7c-4a2c-aed2-0501b8a7a9d7",
+                "apiVersion": "batch/v1",
+                "resourceVersion": "2478"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: verrazzano-install-my-verrazzano-lg7lf",
+            "source": {
+                "component": "job-controller"
+            },
+            "firstTimestamp": "2021-08-05T08:04:03Z",
+            "lastTimestamp": "2021-08-05T08:04:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano.16985b4328deddc2",
+                "namespace": "default",
+                "uid": "0af22901-88a1-40ae-9774-43e15e866529",
+                "resourceVersion": "6654",
+                "creationTimestamp": "2021-08-05T08:20:09Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-08-05T08:20:09Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Job",
+                "namespace": "default",
+                "name": "verrazzano-install-my-verrazzano",
+                "uid": "4b4389c3-ba7c-4a2c-aed2-0501b8a7a9d7",
+                "apiVersion": "batch/v1",
+                "resourceVersion": "2492"
+            },
+            "reason": "BackoffLimitExceeded",
+            "message": "Job has reached the specified backoff limit",
+            "source": {
+                "component": "job-controller"
+            },
+            "firstTimestamp": "2021-08-05T08:20:09Z",
+            "lastTimestamp": "2021-08-05T08:20:09Z",
+            "count": 1,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        }
+    ]
+}

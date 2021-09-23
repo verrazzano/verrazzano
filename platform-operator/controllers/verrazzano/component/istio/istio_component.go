@@ -121,6 +121,22 @@ func (i IstioComponent) GetDependencies() []string {
 	return []string{}
 }
 
+func (i IstioComponent) PreUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
+}
+
+func (i IstioComponent) PostUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
+}
+
+func (i IstioComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
+}
+
+func (i IstioComponent) PostInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
+}
+
 // createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
 func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client clipkg.Client) error {
 	for _, ns := range i.InjectedSystemNamespaces {

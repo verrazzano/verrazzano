@@ -5,7 +5,6 @@ package registry
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -15,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -111,9 +109,9 @@ func GetComponents() []spi.Component {
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			WaitForInstall:          true,
 			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
+			ReadyStatusFunc:         coherence.IsCoherenceOperatorReady,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "weblogic-operator",
@@ -121,12 +119,12 @@ func GetComponents() []spi.Component {
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			WaitForInstall:          true,
 			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
 			PreInstallFunc:          weblogic.WeblogicOperatorPreInstall,
 			AppendOverridesFunc:     weblogic.AppendWeblogicOperatorOverrides,
 			Dependencies:            []string{"istiod"},
+			ReadyStatusFunc:         weblogic.IsWeblogicOperatorReady,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "oam-kubernetes-runtime",
@@ -134,9 +132,9 @@ func GetComponents() []spi.Component {
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			WaitForInstall:          true,
 			ValuesFile:              filepath.Join(overridesDir, "oam-kubernetes-runtime-values.yaml"),
 			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
+			ReadyStatusFunc:         oam.IsOAMReady,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "verrazzano-application-operator",
@@ -144,10 +142,11 @@ func GetComponents() []spi.Component {
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			WaitForInstall:          true,
 			ValuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
 			AppendOverridesFunc:     appoper.AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
+			ReadyStatusFunc:         appoper.IsApplicationOperatorReady,
+			Dependencies:            []string{"oam-kubernetes-runtime"},
 		},
 		helm.HelmComponent{
 			ReleaseName:             "mysql",

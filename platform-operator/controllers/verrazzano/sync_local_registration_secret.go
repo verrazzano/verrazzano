@@ -6,7 +6,6 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	corev1 "k8s.io/api/core/v1"
@@ -20,7 +19,7 @@ import (
 // so that the admin cluster can manage multi-cluster resources without the need of a VMC.  In the
 // case of a cluster that is used as a managed cluster, this secret will still be created, but not used, and
 // ultimately replaced when the user applies the managed cluster YAML which has the replacement secret.
-func (r *Reconciler) syncLocalRegistrationSecret(vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) syncLocalRegistrationSecret() error {
 
 	// If the agent secret exists in verrazzano-system namespace then that means this
 	// is a managed cluster and the user applied the YAML to create all the secrets.
@@ -41,7 +40,7 @@ func (r *Reconciler) syncLocalRegistrationSecret(vz *installv1alpha1.Verrazzano)
 	}
 
 	// create the local registration secret
-	_, err = r.createOrUpdateLocalRegistrationSecret(vz, constants.MCLocalRegistrationSecret, constants.VerrazzanoSystemNamespace)
+	_, err = r.createOrUpdateLocalRegistrationSecret(constants.MCLocalRegistrationSecret, constants.VerrazzanoSystemNamespace)
 	if err != nil {
 		return err
 	}
@@ -50,7 +49,7 @@ func (r *Reconciler) syncLocalRegistrationSecret(vz *installv1alpha1.Verrazzano)
 }
 
 // Create or update the secret
-func (r *Reconciler) createOrUpdateLocalRegistrationSecret(vz *installv1alpha1.Verrazzano, name string, namespace string) (controllerutil.OperationResult, error) {
+func (r *Reconciler) createOrUpdateLocalRegistrationSecret(name string, namespace string) (controllerutil.OperationResult, error) {
 	var secret corev1.Secret
 	secret.Namespace = namespace
 	secret.Name = name

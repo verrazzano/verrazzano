@@ -38,8 +38,14 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
+	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
 		err := comp.Upgrade(log, cr, r, cr.Namespace, r.DryRun)
+		if err := comp.PreUpgrade(log, r, cr.Namespace, r.DryRun); err != nil {
+			// for now, this will be fatal until upgrade is retry-able
+			return ctrl.Result{}, err
+		}
+		err := comp.Upgrade(log, r, cr.Namespace, r.DryRun)
 		if err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
@@ -47,13 +53,19 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeFailed)
 			return ctrl.Result{}, err
 		}
+		if err := comp.PostUpgrade(log, r, cr.Namespace, r.DryRun); err != nil {
+			// for now, this will be fatal until upgrade is retry-able
+			return ctrl.Result{}, err
+		}
 	}
 	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
 	log.Info(msg)
 	cr.Status.Version = targetVersion
-	err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
+	if err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete); err != nil {
+		return newRequeueWithDelay(), err
+	}
 
-	return ctrl.Result{}, err
+	return ctrl.Result{}, nil
 }
 
 // Return true if verrazzano is installed
