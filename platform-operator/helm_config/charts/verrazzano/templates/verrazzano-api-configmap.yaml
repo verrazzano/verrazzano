@@ -813,7 +813,7 @@ data:
     local vzApiVersion = os.getenv("VZ_API_VERSION")
 
     function me.getServiceAccountToken()
-      me.logJson(ngx.INFO, "Read service account token.")
+      me.logJson(ngx.INFO, "Read service account token")
       local serviceAccountToken = me.read_file("/run/secrets/kubernetes.io/serviceaccount/token")
       if not (serviceAccountToken) then
         me.unauthorized("No service account token present in pod.")
@@ -855,18 +855,44 @@ data:
     end
 
     function me.handleLocalAPICall(token)
-        me.logJson(ngx.INFO, "Read service account token and set auth header.")
         local serviceAccountToken = me.getServiceAccountToken()
+        me.logJson(ngx.INFO, "Set service account bearer token as Authorization header")
         ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
-        me.logJson(ngx.INFO, "Set groups and users")
-        local jwt_obj = jwt:load_jwt(token)
-        if ( jwt_obj.payload and jwt_obj.payload.groups) then
-            me.logJson(ngx.INFO, ("Adding groups " .. cjson.encode(jwt_obj.payload.groups)))
-            ngx.req.set_header("Impersonate-Group", jwt_obj.payload.groups)
+
+        if not token then
+            me.unauthenticated("Invalid token")
         end
-        if ( jwt_obj.payload and jwt_obj.payload.sub) then
-            me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
-            ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
+
+        local jwt_obj = jwt:load_jwt(token)
+        if not jwt_obj then
+            me.unauthenticated("Invalid token")
+        end
+
+        local groups = {}
+
+        if jwt_obj.payload and jwt_obj.payload.sub then
+            -- Uid is ignored prior to kubernetes v1.22
+            me.logJson(ngx.INFO, ("Adding sub as Impersonate-Uid: " .. jwt_obj.payload.sub))
+            ngx.req.set_header("Impersonate-Uid", jwt_obj.payload.sub)
+            -- this group is needed for discovery, but not automatically set for impersonated users prior to v1.20.
+            -- the group is ignored if duplicated >= v1.20, so no harm done if we always send it.
+            -- adding it here so that it's present IFF we actually have a subject.
+            local sys_auth = "system-authenticated"
+            me.logJson(ngx.INFO, ("Including group: " .. sys_auth))
+            table.insert(groups, sys_auth)
+        end
+        if jwt_obj.payload and jwt_obj.payload.preferred_username then
+            me.logJson(ngx.INFO, ("Adding preferred_username as Impersonate-User: " .. jwt_obj.payload.preferred_username))
+            ngx.req.set_header("Impersonate-User", jwt_obj.payload.preferred_username)
+        end
+        if jwt_obj.payload and jwt_obj.payload.groups then
+            for key, grp in pairs(jwt_obj.payload.groups) do
+                table.insert(groups, grp)
+            end
+        end
+        if #groups > 0 then
+            me.logJson(ngx.INFO, ("Adding groups as Impersonate-Group: " .. table.concat(groups, ", ")))
+            ngx.req.set_header("Impersonate-Group", groups)
         end
     end
 
