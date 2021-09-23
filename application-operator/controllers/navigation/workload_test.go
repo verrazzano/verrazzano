@@ -376,7 +376,7 @@ func TestGetContainedWorkloadVersionKindName(t *testing.T) {
 	apiVersion, kind, name, err = GetContainedWorkloadVersionKindName(u)
 
 	assert.Error(err)
-	assert.True(strings.HasPrefix(err.Error(), "Unable to find contained GroupVersionKind for workload"))
+	assert.True(strings.HasPrefix(err.Error(), "unable to find contained GroupVersionKind for workload"))
 	assert.Empty(apiVersion)
 	assert.Empty(kind)
 	assert.Empty(name)
@@ -440,7 +440,7 @@ func TestFetchContainedWorkload(t *testing.T) {
 
 	contained, err := FetchContainedWorkload(ctx, cli, u)
 
-	assert.True(strings.HasPrefix(err.Error(), "Unable to find contained GroupVersionKind for workload"))
+	assert.True(strings.HasPrefix(err.Error(), "unable to find contained GroupVersionKind for workload"))
 	assert.Nil(contained)
 
 	// GIVEN a Verrazzano workload containing another workload
