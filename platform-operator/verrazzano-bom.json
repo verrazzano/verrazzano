@@ -355,12 +355,13 @@
       "name": "weblogic-operator",
       "subcomponents": [
         {
-          "repository": "oracle",
+          "registry": "phx.ocir.io",
+          "repository": "weblogick8s",
           "name": "weblogic-operator",
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.3.0",
+              "tag": "istio-11",
               "helmFullImageKey": "image"
             }
           ]
