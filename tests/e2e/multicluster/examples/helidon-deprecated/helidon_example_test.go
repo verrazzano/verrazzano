@@ -16,14 +16,18 @@ import (
 )
 
 const (
-	longPollingInterval  = 20 * time.Second
-	longWaitTimeout      = 10 * time.Minute
-	pollingInterval      = 5 * time.Second
-	waitTimeout          = 5 * time.Minute
-	consistentlyDuration = 1 * time.Minute
-	sourceDir            = "hello-helidon"
-	testNamespace        = "hello-helidon"
-	testProjectName      = "hello-helidon"
+	longPollingInterval          = 20 * time.Second
+	longWaitTimeout              = 10 * time.Minute
+	pollingInterval              = 5 * time.Second
+	waitTimeout                  = 5 * time.Minute
+	consistentlyDuration         = 1 * time.Minute
+	projectfile                  = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/verrazzano-project.yaml"
+	compFile                     = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/mc-hello-helidon-comp.yaml"
+	appFile                      = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/mc-hello-helidon-app.yaml"
+	changePlacementToAdminFile   = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/patch-change-placement-to-admin.yaml"
+	changePlacementToManagedFile = "tests/e2e/multicluster/examples/helidon-deprecated/testdata/patch-return-placement-to-managed1.yaml"
+	testNamespace                = "hello-helidon-dep"
+	testProjectName              = "hello-helidon-dep"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -42,16 +46,22 @@ var _ = AfterEach(func() {
 var _ = BeforeSuite(func() {
 	// deploy the VerrazzanoProject
 	Eventually(func() error {
-		return examples.DeployHelloHelidonProject(adminKubeconfig, sourceDir)
+		return pkg.CreateOrUpdateResourceFromFileInCluster(projectfile, adminKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// wait for the namespace to be created on the cluster before deploying app
 	Eventually(func() bool {
-		return examples.HelidonNamespaceExists(adminKubeconfig, sourceDir)
+		return examples.HelidonNamespaceExists(adminKubeconfig, testNamespace)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
+	// deploy the multicluster components
 	Eventually(func() error {
-		return examples.DeployHelloHelidonApp(adminKubeconfig, sourceDir)
+		return pkg.CreateOrUpdateResourceFromFileInCluster(compFile, adminKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	// deploy the multicluster app
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFileInCluster(appFile, adminKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 })
 
@@ -62,7 +72,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 		// THEN expect that the multi-cluster resources have been created on the admin cluster
 		It("Has multi cluster resources", func() {
 			Eventually(func() bool {
-				return examples.VerifyMCResources(adminKubeconfig, true, false, testNamespace)
+				return examples.VerifyMCResourcesV100(adminKubeconfig, true, false, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		// GIVEN an admin cluster
@@ -81,7 +91,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 		// THEN expect that the multi-cluster resources have been created on the managed cluster
 		It("Has multi cluster resources", func() {
 			Eventually(func() bool {
-				return examples.VerifyMCResources(managedKubeconfig, false, true, testNamespace)
+				return examples.VerifyMCResourcesV100(managedKubeconfig, false, true, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		// GIVEN an admin cluster and at least one managed cluster
@@ -111,7 +121,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
 			It("Does not have multi cluster resources", func() {
 				Eventually(func() bool {
-					return examples.VerifyMCResources(kubeconfig, false, false, testNamespace)
+					return examples.VerifyMCResourcesV100(kubeconfig, false, false, testNamespace)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 			It("Does not have application placed", func() {
@@ -123,7 +133,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	})
 
 	Context("Logging", func() {
-		indexName := "verrazzano-namespace-hello-helidon"
+		indexName := "verrazzano-namespace-hello-helidon-dep"
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
@@ -162,14 +172,14 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	Context("Change Placement of app to Admin Cluster", func() {
 		It("Apply patch to change placement to admin cluster", func() {
 			Eventually(func() error {
-				return examples.ChangePlacementToAdminCluster(adminKubeconfig)
+				return examples.ChangePlacementV100(adminKubeconfig, changePlacementToAdminFile, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		It("MC Resources should be removed from managed cluster", func() {
 			Eventually(func() bool {
 				// app should not be placed in the managed cluster
-				return examples.VerifyMCResources(managedKubeconfig, false, false, testNamespace)
+				return examples.VerifyMCResourcesV100(managedKubeconfig, false, false, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
@@ -195,7 +205,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	Context("Return the app to Managed Cluster", func() {
 		It("Apply patch to change placement back to managed cluster", func() {
 			Eventually(func() error {
-				return examples.ChangePlacementToManagedCluster(adminKubeconfig)
+				return examples.ChangePlacementV100(adminKubeconfig, changePlacementToManagedFile, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
@@ -239,13 +249,13 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 
 		It("Delete test namespace on managed cluster", func() {
 			Eventually(func() error {
-				return pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig)
+				return pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		It("Delete test namespace on admin cluster", func() {
 			Eventually(func() error {
-				return pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig)
+				return pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 	})
@@ -258,15 +268,15 @@ var _ = AfterSuite(func() {
 })
 
 func cleanUp(kubeconfigPath string) error {
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(projectfile, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon application resource: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/hello-helidon-comp.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(compFile, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon component resources: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(appFile, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete hello-helidon project resource: %v", err)
 	}
 	return nil

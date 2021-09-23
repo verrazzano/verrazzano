@@ -5,10 +5,13 @@ package webhooks
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	k8sadmission "k8s.io/api/admission/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -46,6 +49,10 @@ func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Conte
 			if err != nil {
 				return admission.Denied(err.Error())
 			}
+			err = v.validateSecrets(mcac)
+			if err != nil {
+				return admission.Denied(err.Error())
+			}
 			err = validateNamespaceInProject(v.client, mcac.Namespace)
 			if err != nil {
 				return admission.Denied(err.Error())
@@ -53,4 +60,40 @@ func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Conte
 		}
 	}
 	return admission.Allowed("")
+}
+
+// Validate that the secrets referenced in the MultiClusterApplicationConfiguration resource exist in the
+// same namespace as the MultiClusterApplicationConfiguration resource.
+func (v *MultiClusterApplicationConfigurationValidator) validateSecrets(mcac *v1alpha1.MultiClusterApplicationConfiguration) error {
+	if len(mcac.Spec.Secrets) == 0 {
+		return nil
+	}
+
+	secrets := corev1.SecretList{}
+	listOptions := &client.ListOptions{Namespace: mcac.Namespace}
+	err := v.client.List(context.TODO(), &secrets, listOptions)
+	if err != nil {
+		return err
+	}
+
+	var secretsNotFound []string
+	for _, mcSecret := range mcac.Spec.Secrets {
+		found := false
+		for _, secret := range secrets.Items {
+			if secret.Name == mcSecret {
+				found = true
+				break
+			}
+		}
+		if !found {
+			secretsNotFound = append(secretsNotFound, mcSecret)
+		}
+	}
+
+	if len(secretsNotFound) != 0 {
+		secretsDelimited := strings.Join(secretsNotFound, ",")
+		return fmt.Errorf("secret(s) %s specified in MultiClusterApplicationConfiguration not found in namespace %s", secretsDelimited, mcac.Namespace)
+	}
+
+	return nil
 }
