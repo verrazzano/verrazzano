@@ -40,7 +40,7 @@ BRANCH=${1}
 WORK_DIR=${2:-$SCRIPT_DIR}
 SCAN_REPORT_DIR="$WORK_DIR/scan_report_dir"
 SCANNER_HOME="$WORK_DIR/scanner_home"
-SCAN_REPORT="$WORK_DIR/scan_report.out"
+SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 RELEASE_TAR_BALL="tarball.tar.gz"
 
 function downaload_release_tarball() {
@@ -67,9 +67,10 @@ function update_virus_definition() {
 }
 
 function scan_release_binaries() {
+  mkdir -p $SCAN_REPORT_DIR
   cd $SCANNER_HOME
   # The scan takes more than 50 minutes
-  ./uvscan $WORK_DIR/$RELEASE_TAR_BALL --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS --REPORT=$SCAN_REPORT_DIR &> ${SCAN_REPORT}
+  ./uvscan $WORK_DIR/$RELEASE_TAR_BALL --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS --REPORT=$SCAN_REPORT
 
   # Extract only the last 50 lines from the scan report and create a file, which will be used for the validation
   local scan_summary="${SCAN_REPORT_DIR}/summary.log"
