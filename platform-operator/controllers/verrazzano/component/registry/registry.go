@@ -31,7 +31,7 @@ func GetComponents() []spi.Component {
 
 	return []spi.Component{
 		// TODO: remove istio helm components
-		helm.HelmComponent{
+		/*helm.HelmComponent{
 			ReleaseName:             "istio-base",
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
 			ChartNamespace:          "istio-system",
@@ -70,7 +70,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
-		},
+		},*/
 		helm.HelmComponent{
 			ReleaseName:             "ingress-controller",
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"),
