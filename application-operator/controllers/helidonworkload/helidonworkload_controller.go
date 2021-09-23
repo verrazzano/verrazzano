@@ -398,7 +398,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 
 	log.Info(fmt.Sprintf("logging trait configmap %s:%s already exist", helidon.GetNamespace(), configMapName))
 
-	uDeploy, err := runtime.DefaultUnstructuredConverter.ToUnstructured(helidon)
+	uDeploy, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&helidon)
 	if err != nil {
 		return err
 	}
@@ -412,7 +412,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		SubPath:   loggingKey,
 		ReadOnly:  true,
 	}
-	uLoggingVolumeMount, err := runtime.DefaultUnstructuredConverter.ToUnstructured(loggingVolumeMount)
+	uLoggingVolumeMount, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingVolumeMount)
 	if err != nil {
 		return err
 	}
@@ -439,7 +439,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		ImagePullPolicy: corev1.PullIfNotPresent,
 	}
 
-	uLoggingContainer, err := runtime.DefaultUnstructuredConverter.ToUnstructured(loggingContainer)
+	uLoggingContainer, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingContainer)
 	if err != nil {
 		log.Error(err, "Failed to unmarshal a container for logging")
 	}
@@ -486,7 +486,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 			},
 		},
 	}
-	uLoggingVolume, err := runtime.DefaultUnstructuredConverter.ToUnstructured(loggingVolume)
+	uLoggingVolume, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingVolume)
 	if err != nil {
 		return err
 	}
