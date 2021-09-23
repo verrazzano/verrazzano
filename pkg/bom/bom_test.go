@@ -166,6 +166,7 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 // This is the real BOM file path needed for unit tests
 const realBomFilePath = "testdata/verrazzano-bom.json"
 const testBomFilePath = "testdata/test_bom.json"
+const testBomSubcomponentOverridesPath = "testdata/test_bom_sc_overrides.json"
 
 // TestFakeBom tests loading a fake bom json into a struct
 // GIVEN a json file
@@ -224,4 +225,30 @@ func validateImages(assert *assert.Assertions, bom *Bom, checkImageVal bool) {
 			}
 		}
 	}
+}
+
+// TestBomSubcomponentOverrides the ability to override registry and repo settings at the subcomponent level
+// GIVEN a json file where a subcomponent overrides the registry and repository location of its images
+// WHEN I load it and check those settings
+// THEN the correct overrides are present without affecting the global registry setting
+func TestBomSubcomponentOverrides(t *testing.T) {
+	assert := assert.New(t)
+	bom, err := NewBom(testBomSubcomponentOverridesPath)
+	assert.Equal("ghcr.io", bom.GetRegistry(), "Global registry not correct")
+	assert.NoError(err)
+
+	nginxSubcomponent, err := bom.GetSubcomponent("ingress-controller")
+	assert.NotNil(t, nginxSubcomponent)
+	assert.NoError(err)
+
+	assert.Equal("ghcr.io", bom.GetRegistry(), "Global registry not correct")
+	assert.Equal("myreg.io", bom.ResolveRegistry(nginxSubcomponent), "NGINX subcomponent registry not correct")
+	assert.Equal("myrepoprefix/testnginx", bom.ResolveRepo(nginxSubcomponent), "NGINX subcomponent repo not correct")
+
+	vpoSubcomponent, err := bom.GetSubcomponent("verrazzano-platform-operator")
+	assert.NotNil(t, vpoSubcomponent)
+	assert.NoError(err)
+
+	assert.Equal("ghcr.io", bom.ResolveRegistry(vpoSubcomponent), "VPO subcomponent registry not correct")
+	assert.Equal("verrazzano", bom.ResolveRepo(vpoSubcomponent), "VPO subcomponent repo not correct")
 }
