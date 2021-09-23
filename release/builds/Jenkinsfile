@@ -153,9 +153,9 @@ pipeline {
                             } else {
                                 def parts = params.TARGET_VERSION.split("\\.")
                                 if ( params.TEST_RUN ) {
-                                    RELEASE_JOB_NAME = 'verrazzano/mock-release-${parts[0]}.${parts[1]}'
+                                    RELEASE_JOB_NAME = 'verrazzano/mock-release-\${parts[0]}.\${parts[1]}'
                                 } else {
-                                    RELEASE_JOB_NAME = 'verrazzano/release-${parts[0]}.${parts[1]}'
+                                    RELEASE_JOB_NAME = 'verrazzano/release-\${parts[0]}.\${parts[1]}'
                                 }
                             }
                             // if branch build not found, trigger repo scan and wait
