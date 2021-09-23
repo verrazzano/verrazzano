@@ -6,6 +6,9 @@ def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
 def SCAN_IMAGE_PATCH_OPERATOR = false
+def VERRAZZANO_DEV_VERSION = ""
+def tarfilePrefix=""
+def storeLocation=""
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
@@ -446,6 +449,45 @@ pipeline {
                 }
             }
         }
+        stage('Zip Build and Test') {
+            // If the tests are clean and this is a release branch or GENERATE_TARBALL == true,
+            // generate the Verrazzano full product zip and run the Private Registry tests
+            when {
+                allOf {
+                    not { buildingTag() }
+                    expression {SKIP_TRIGGERED_TESTS == false}
+                    expression{params.GENERATE_TARBALL == true}
+                }
+            }
+            stages{
+                stage("Build Product Zip") {
+                    steps {
+                        script {
+                            tarfilePrefix="verrazzano_${VERRAZZANO_DEV_VERSION}"
+                            storeLocation="${env.BRANCH_NAME}/${tarfilePrefix}.zip"
+                            generatedBOM="$WORKSPACE/generated-verrazzano-bom.json"
+                            echo "Building zipfile, prefix: ${tarfilePrefix}, location:  ${storeLocation}"
+                            sh """
+                                ci/scripts/generate_product_zip.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${env.BRANCH_NAME} ${tarfilePrefix} ${generatedBOM}
+                            """
+                        }
+                    }
+                }
+                stage("Private Registry Test") {
+                    steps {
+                        script {
+                            echo "Starting private registry test for ${storeLocation}, file prefix ${tarfilePrefix}"
+                            build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation)
+                                ], wait: true
+                        }
+                    }
+                }
+            }
+        }
     }
 
     post {
@@ -467,7 +509,7 @@ pipeline {
             subject: "Verrazzano: ${env.JOB_NAME} - Failed",
             body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}"
             script {
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
+                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*" || env.JOB_NAME == "verrazzano/develop") {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
@@ -493,33 +535,16 @@ def moveContentToGoRepoPath() {
 
 // Called in final post success block of pipeline
 def storePipelineArtifacts() {
-    sh """
-        if [ "${params.GENERATE_TARBALL}" == "true" ]; then
-            mkdir ${WORKSPACE}/tar-files
-            chmod uog+w ${WORKSPACE}/tar-files
-            cp $WORKSPACE/generated-verrazzano-bom.json ${WORKSPACE}/tar-files/verrazzano-bom.json
-            cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
-            cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
-            mkdir -p ${WORKSPACE}/tar-files/charts
-            cp  -r platform-operator/helm_config/charts/verrazzano-platform-operator ${WORKSPACE}/tar-files/charts
-            tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/tarball.tar.gz
-            cd ${WORKSPACE}
-            sha256sum tarball.tar.gz > tarball.tar.gz.sha256
-            echo "git-commit=${env.GIT_COMMIT}" > tarball-commit.txt
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball-commit.txt --file tarball-commit.txt
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz --file tarball.tar.gz
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/tarball.tar.gz.sha256 --file tarball.tar.gz.sha256
-       fi
-    """
-
-    // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
-    sh """
-        if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
-            cd ${GO_REPO_PATH}/verrazzano
-            echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
-        fi
-    """
+    script {
+        // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
+        sh """
+            if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
+                cd ${GO_REPO_PATH}/verrazzano
+                echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
+            fi
+        """
+    }
 }
 
 // Called in Stage Integration Tests steps

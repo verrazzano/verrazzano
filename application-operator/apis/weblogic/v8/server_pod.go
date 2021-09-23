@@ -16,6 +16,13 @@ type ServerPod struct {
 	// The annotations to be added to generated resources.
 	Annotations map[string]string `json:"annotations,omitempty"`
 
+	// Use an auxiliary image to automatically include directory content from additional images. This is a useful
+	// alternative for including Model in Image model files, or other types of files, in a pod without requiring
+	// modifications to the pod's base image 'domain.spec.image'. This feature internally uses a Kubernetes
+	// emptyDir volume and Kubernetes init containers to share the files from the additional images with the pod.
+	// +x-kubernetes-list-type=set
+	AuxiliaryImages []AuxiliaryImage `json:"auxiliaryImages,omitempty"`
+
 	// Additional containers to be included in the server pod
 	// +x-kubernetes-list-type=set
 	Containers []corev1.Container `json:"containers,omitempty"`

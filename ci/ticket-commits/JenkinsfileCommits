@@ -1,0 +1,122 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+    options {
+        timestamps ()
+        skipDefaultCheckout true
+    }
+
+    agent {
+       docker {
+            image "${V8O_HELPER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "internal"
+        }
+    }
+
+    parameters {
+        string (name: 'GIT_COMMIT_TO_USE',
+                        defaultValue: '',
+                        description: 'Record all ticket commits after (and including) this commit hash (defaults to using Jenkins change set)',
+                        trim: true)
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            environment {
+                GOPATH = '/home/opc/go'
+                GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+                NETRC_FILE = credentials('netrc')
+            }
+            steps {
+                script {
+                    def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: env.BRANCH_NAME]],
+                            extensions: [[$class: 'LocalBranch']],
+                            userRemoteConfigs: [[refspec: '+refs/heads/*:refs/remotes/origin/*', url: env.SCM_VERRAZZANO_GIT_URL]]])
+
+                    sh """
+                        echo "${NODE_LABELS}"
+                        echo "SCM checkout of ${scmInfo.GIT_BRANCH} at ${scmInfo.GIT_COMMIT}"
+
+                        cp -f "${NETRC_FILE}" $HOME/.netrc
+                        chmod 600 $HOME/.netrc
+
+                        rm -rf ${GO_REPO_PATH}/verrazzano
+                        mkdir -p ${GO_REPO_PATH}/verrazzano
+                        tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+                    """
+                }
+            }
+        }
+
+        stage('Update JIRA tickets with commits') {
+            environment {
+                JIRA_USERNAME = credentials('jira-username')
+                JIRA_PASSWORD = credentials('jira-password')
+            }
+            steps {
+                script {
+                    def tmpfile=sh(returnStdout: true, script: "mktemp").trim()
+
+                    // get the commits from the change set
+                    def commitList = getCommitList()
+
+                    sh """
+                        # if the commit hash is specified in the build params, get that commit and all commits after it
+                        if [ -n "${params.GIT_COMMIT_TO_USE}" ]; then
+                            git log --pretty=format:%H ${params.GIT_COMMIT_TO_USE}^.. > ${tmpfile}
+                        else
+                            printf "${commitList}" > ${tmpfile}
+                        fi
+
+                        echo Processing commits:
+                        cat ${tmpfile}; echo
+
+                        verrazzano-helper update ticket-commits --commit-file "${tmpfile}" --backport-labels --token unused --jira-env=prod
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
+            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
+            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\n"
+            script {
+                if (env.GIT_BRANCH == "master") {
+                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\n" )
+                }
+            }
+        }
+        cleanup {
+            deleteDir()
+        }
+    }
+}
+
+// Fetches git commits from the change set and returns a string of the commit ids
+// separated with newlines.
+@NonCPS
+def getCommitList() {
+    echo "Checking for change sets"
+    def commitList = ""
+    def changeSets = currentBuild.changeSets
+    for (int i = 0; i < changeSets.size(); i++) {
+        echo "Get commits from change set"
+        def commits = changeSets[i].items
+        for (int j = 0; j < commits.length; j++) {
+            def commit = commits[j]
+            def id = commit.commitId
+            commitList = commitList + "\n" + id
+        }
+    }
+    return commitList
+}
