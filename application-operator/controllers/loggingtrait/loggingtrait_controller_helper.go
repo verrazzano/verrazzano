@@ -18,7 +18,7 @@ import (
 func struct2Unmarshal(obj interface{}) (unstructured.Unstructured, error) {
 	marshal, err := json.Marshal(obj)
 	var c unstructured.Unstructured
-	err = c.UnmarshalJSON(marshal)
+	c.UnmarshalJSON(marshal)
 	return c, err
 }
 
