@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/util"
 )
@@ -26,6 +25,9 @@ var K8sClient k8s.Client
 var _ = BeforeSuite(func() {
 	var err error
 	kc, err := k8sutil.GetKubeConfigLocation()
+
+	fmt.Println(kc)
+
 	if err != nil {
 		Fail(fmt.Sprintf("Unable to fetch Kubeconfig, error: %v", err))
 	}
@@ -35,24 +37,24 @@ var _ = BeforeSuite(func() {
 		Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
 	}
 
-	// Platform operator pod is eventually running
-	isPodRunningYet := func() bool {
-		return K8sClient.IsPodRunning(platformOperator, installNamespace)
-	}
-	Eventually(isPodRunningYet, "2m", "5s").Should(BeTrue(),
-		"The verrazzano-platform-operator pod should be in the Running state")
-
-	// Create multi-cluster namespace
-	if !K8sClient.DoesNamespaceExist(constants.VerrazzanoMultiClusterNamespace) {
-		err = K8sClient.EnsureNamespace(constants.VerrazzanoMultiClusterNamespace)
-		Expect(err).To(BeNil())
-	}
-
-	// Create verrazzano-system namespace
-	if !K8sClient.DoesNamespaceExist(constants.VerrazzanoSystemNamespace) {
-		err = K8sClient.EnsureNamespace(constants.VerrazzanoSystemNamespace)
-		Expect(err).To(BeNil())
-	}
+	//// Platform operator pod is eventually running
+	//isPodRunningYet := func() bool {
+	//	return K8sClient.IsPodRunning(platformOperator, installNamespace)
+	//}
+	//Eventually(isPodRunningYet, "2m", "5s").Should(BeTrue(),
+	//	"The verrazzano-platform-operator pod should be in the Running state")
+	//
+	//// Create multi-cluster namespace
+	//if !K8sClient.DoesNamespaceExist(constants.VerrazzanoMultiClusterNamespace) {
+	//	err = K8sClient.EnsureNamespace(constants.VerrazzanoMultiClusterNamespace)
+	//	Expect(err).To(BeNil())
+	//}
+	//
+	//// Create verrazzano-system namespace
+	//if !K8sClient.DoesNamespaceExist(constants.VerrazzanoSystemNamespace) {
+	//	err = K8sClient.EnsureNamespace(constants.VerrazzanoSystemNamespace)
+	//	Expect(err).To(BeNil())
+	//}
 })
 
 var _ = AfterSuite(func() {
@@ -107,7 +109,7 @@ var _ = Describe("Custom Resource Definition for verrazzano install", func() {
 	})
 })
 
-var _ = Describe("Install with emable/disable component", func() {
+var _ = Describe("Install with enable/disable component", func() {
 	It("CRD verrazzanos.install.verrazzano.io exists", func() {
 		Expect(K8sClient.DoesCRDExist("verrazzanos.install.verrazzano.io")).To(BeTrue(),
 			"The verrazzanos.install.verrazzano.io CRD should exist")
@@ -121,32 +123,58 @@ var _ = Describe("Install with emable/disable component", func() {
 			"The verrazzano-platform-operator pod should be in the Running state")
 	})
 
-	It("Verrazzano CR should have disabled components", func() {
-		_, stderr := util.Kubectl("apply -f testdata/install-disabled.yaml")
+	FIt("Verrazzano CR should have disabled components", func() {
+
+		//_, stderr := util.K("apply -f testdata/install-disabled.yaml")
+
+		_, stderr := util.K("testdata/install-disabled.yaml")
 		Expect(stderr).To(Equal(""))
 
-		// Wait Verrazzano CR to have disabled state for the components
-		var vzcr *vzapi.Verrazzano
-		var err error
 		Eventually(func() bool {
-			vzcr, err = K8sClient.GetVerrazzano("", "")
-			if err != nil {
-				return false
-			}
-			if vzcr.Status.Components == nil {
-				return false
-			}
-			// Make sure the expected components are disabled
-			var disabled int
-			for _, comp := range vzcr.Status.Components {
-				if comp.Name == coherence.ComponentName && comp.State == vzapi.Disabled {
-					disabled++
-				}
-				if comp.Name == weblogic.ComponentName && comp.State == vzapi.Disabled {
-					disabled++
-				}
-			}
-			return disabled == 2
+			return checkAllComponentStates(vzapi.Disabled)
+		}, "10s", "1s").Should(BeTrue())
+	})
+	FIt("Verrazzano CR should have preInstalling or installing components", func() {
+		_, stderr := util.K("testdata/install-enabled.yaml")
+		Expect(stderr).To(Equal(""))
+
+		Eventually(func() bool {
+			return checkAllComponentStates(vzapi.PreInstalling, vzapi.Installing)
+
 		}, "30s", "1s").Should(BeTrue())
 	})
 })
+
+func checkAllComponentStates(states... vzapi.StateType) bool {
+	if !checkStates(coherence.ComponentName, states...) {
+		return false
+	}
+	if !checkStates(weblogic.ComponentName, states...) {
+		return false
+	}
+	return true
+}
+
+// Check if Verrazzano CR to has matching state for certain the components
+func checkStates(compName string, states... vzapi.StateType) bool {
+	vzcr, err := K8sClient.GetVerrazzano("default", "test")
+	if err != nil {
+		return false
+	}
+	if vzcr.Status.Components == nil {
+		return false
+	}
+	// Check if the component matches one of the states
+	for _, comp := range vzcr.Status.Components {
+		if comp.Name == compName {
+			fmt.Println("Component " + comp.Name + " state is " + string(comp.State) )
+			for _, state := range states {
+				fmt.Println("Desired state is  " + state )
+				if comp.State == state {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
