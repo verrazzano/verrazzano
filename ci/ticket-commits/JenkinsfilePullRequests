@@ -45,9 +45,14 @@ pipeline {
             }
             steps {
                 script {
-                    sh """
-                        verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.CHANGE_TITLE}" --token unused --jira-env=prod
-                    """
+                    // Do not add a comment to the JIRA if an existing pull request is being updated
+                    if (currentBuild.changeSets.size() == 0) {
+                        sh """
+                            verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.CHANGE_TITLE}" --pr-target "${env.CHANGE_TARGET}" --token unused --jira-env=prod
+                        """
+                    } else {
+                        echo "Existing pull request updated, skipping update of JIRA ticket"
+                    }
                 }
             }
         }
