@@ -48,8 +48,8 @@ func (i IstioComponent) IsOperatorInstallSupported() bool {
 	return false
 }
 
-func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, _ string) bool {
-	return false
+func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, _ string) (bool, error) {
+	return false, nil
 }
 
 func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, _ clipkg.Client, _ string, _ bool) error {

@@ -122,7 +122,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 	})
 	defer helm.SetDefaultRunner()
 
-	err := comp.Upgrade(zap.S(), nil, "", false)
+	err := comp.Upgrade(zap.S(), vz, nil, "", false)
 	assert.Error(err)
 }
 

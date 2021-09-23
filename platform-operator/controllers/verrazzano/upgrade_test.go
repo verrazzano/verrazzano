@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"

@@ -45,7 +45,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}
-		err := comp.Upgrade(log, r, cr.Namespace, r.DryRun)
+		err = comp.Upgrade(log, cr, r, cr.Namespace, r.DryRun)
 		if err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
