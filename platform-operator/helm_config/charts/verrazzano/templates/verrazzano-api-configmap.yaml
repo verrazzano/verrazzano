@@ -69,9 +69,8 @@ data:
         -- check if caller has an existing session with a valid token.
         token = auth.getTokenFromSession()
 
-        -- still no token? redirect to OP to authenticate user if it's not an api call
-        if not token then
-            -- no token, redirect to OP to authenticate
+        -- still no token? redirect to OP to authenticate user (if request is not a verrazzano API call)
+        if not token and backend ~= 'verrazzano' then
             auth.oidcAuthenticate()
         end
     end
