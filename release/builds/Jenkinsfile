@@ -159,10 +159,17 @@ pipeline {
                                 }
                             }
                             // if branch build not found, trigger repo scan and wait
-                            if (Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME) == null) {
-                                Jenkins.instance.getItemByFullName('verrazzano').scheduleBuild()
-                                while (Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME) == null) {
-                                    sleep(1)
+                            echo "Searching for ${RELEASE_JOB_NAME}"
+                            def release_job = Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME)
+                            if (release_job == null) {
+                                echo "${RELEASE_JOB_NAME} not found: ${release_job}"
+                                def vz_project = Jenkins.instance.getItemByFullName('verrazzano')
+                                echo "retrieved project ${vz_project} and invoking scheduleBuild"
+                                vz_project.scheduleBuild()
+                                while (release_job == null) {
+                                    release_job = Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME);
+                                    echo "release job reference: ${release_job}"
+                                    sleep(5)
                                 }
                             }
                             echo "Release build exists"
