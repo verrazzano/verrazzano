@@ -8,7 +8,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
@@ -28,13 +27,7 @@ var K8sClient k8s.Client
 
 var _ = BeforeSuite(func() {
 	var err error
-	kc, err := k8sutil.GetKubeConfigLocation()
-
-	if err != nil {
-		Fail(fmt.Sprintf("Unable to fetch Kubeconfig, error: %v", err))
-	}
-
-	K8sClient, err = k8s.NewClient(kc)
+	K8sClient, err = k8s.NewClient(util.GetKubeconfig())
 	if err != nil {
 		Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
 	}
