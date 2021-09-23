@@ -302,8 +302,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			var volumeMountFieldPath []string
 			var resourceVolumeMounts []interface{}
 			for _, resContainer := range resourceContainers {
-				res := resContainer.(*unstructured.Unstructured)
-				volumeMounts, ok, err := unstructured.NestedSlice(res.Object, []string{"volumeMounts"}...)
+				volumeMounts, ok, err := unstructured.NestedSlice(resContainer.(map[string]interface{}), []string{"volumeMounts"}...)
 				if !ok || err != nil {
 					log.Error(err, "Failed to gather resource container volumeMounts")
 					return reconcile.Result{}, true, errors.Wrap(err, errLoggingResource)

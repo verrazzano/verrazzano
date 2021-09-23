@@ -394,9 +394,9 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		}
 	} else if err != nil {
 		return err
+	} else {
+		log.Info(fmt.Sprintf("logging trait configmap %s:%s already exist", helidon.GetNamespace(), configMapName))
 	}
-
-	log.Info(fmt.Sprintf("logging trait configmap %s:%s already exist", helidon.GetNamespace(), configMapName))
 
 	uDeploy, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&helidon)
 	if err != nil {
@@ -418,8 +418,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	var containerVolumeMounts []interface{}
 	for _, container := range uContainers {
-		uc := container.(*unstructured.Unstructured)
-		volumeMounts, ok, err := unstructured.NestedSlice(uc.Object, volumeMountsFieldPath...)
+		volumeMounts, ok, err := unstructured.NestedSlice(container.(map[string]interface{}), volumeMountsFieldPath...)
 		if !ok || err != nil {
 			return err
 		}
