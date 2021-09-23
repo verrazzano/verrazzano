@@ -748,7 +748,7 @@ def metricBuildDuration() {
 }
 
 def setDisplayName() {
-    def causes = currentBuild.cause.getAction(CauseAction.class).getCauses()
+    def causes = currentBuild.getBuildCauses()
     for (cause in causes) {
         if (cause.class.toString().contains("UpstreamCause")) {
              def upstreamCause = cause.toString()
