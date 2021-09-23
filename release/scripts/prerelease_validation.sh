@@ -44,7 +44,8 @@ echo ""
 
 if [[ "$VERSION" == *.0 ]]; then
     echo "Not a patch release, skipping backported commits check"
-else
+elif [ -z "${IGNORE_FAILURES}" ] || [ "false" = "${IGNORE_FAILURES}" ]; then
+
     if ! command -v verrazzano-helper &> /dev/null
     then
       echo "verrazzano-helper must be in path"
