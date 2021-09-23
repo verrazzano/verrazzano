@@ -5,14 +5,14 @@ package integ_test
 
 import (
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/util"
 )
@@ -21,13 +21,14 @@ const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
 const installNamespace = "verrazzano-install"
 
+const vzResourceNamespace = "default"
+const vzResourceName = "test"
+
 var K8sClient k8s.Client
 
 var _ = BeforeSuite(func() {
 	var err error
 	kc, err := k8sutil.GetKubeConfigLocation()
-
-	fmt.Println(kc)
 
 	if err != nil {
 		Fail(fmt.Sprintf("Unable to fetch Kubeconfig, error: %v", err))
@@ -125,7 +126,7 @@ var _ = Describe("Install with enable/disable component", func() {
 	})
 
 	FIt("Verrazzano CR should have disabled components", func() {
-		_, stderr := util.K("apply -f testdata/install-disabled.yaml")
+		_, stderr := util.Kubectl("apply -f testdata/install-disabled.yaml")
 		Expect(stderr).To(Equal(""))
 
 		Eventually(func() bool {
@@ -133,7 +134,7 @@ var _ = Describe("Install with enable/disable component", func() {
 		}, "10s", "1s").Should(BeTrue())
 	})
 	It("Verrazzano CR should have preInstalling or installing components", func() {
-		_, stderr := util.K("apply -f testdata/install-enabled.yaml")
+		_, stderr := util.Kubectl("apply -f testdata/install-enabled.yaml")
 		Expect(stderr).To(Equal(""))
 
 		Eventually(func() bool {
@@ -143,7 +144,8 @@ var _ = Describe("Install with enable/disable component", func() {
 	})
 })
 
-func checkAllComponentStates(states... vzapi.StateType) bool {
+// Check if Verrazzano CR has one matching state all components being tested
+func checkAllComponentStates(states ...vzapi.StateType) bool {
 	if !checkStates(coherence.ComponentName, states...) {
 		return false
 	}
@@ -153,9 +155,9 @@ func checkAllComponentStates(states... vzapi.StateType) bool {
 	return true
 }
 
-// Check if Verrazzano CR to has matching state for certain the components
-func checkStates(compName string, states... vzapi.StateType) bool {
-	vzcr, err := K8sClient.GetVerrazzano("default", "test")
+// Check if Verrazzano CR has one matching state for specified component
+func checkStates(compName string, states ...vzapi.StateType) bool {
+	vzcr, err := K8sClient.GetVerrazzano(vzResourceNamespace, vzResourceName)
 	if err != nil {
 		return false
 	}
@@ -165,9 +167,7 @@ func checkStates(compName string, states... vzapi.StateType) bool {
 	// Check if the component matches one of the states
 	for _, comp := range vzcr.Status.Components {
 		if comp.Name == compName {
-			fmt.Println("Component " + comp.Name + " state is " + string(comp.State) )
 			for _, state := range states {
-				fmt.Println("Desired state is  " + state )
 				if comp.State == state {
 					return true
 				}
