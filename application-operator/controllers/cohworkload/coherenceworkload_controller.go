@@ -682,7 +682,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	extracted.Volumes = append(extracted.Volumes, *loggingVolume)
 	// convert the containers, volumes, and mounts in extracted to unstructured and set
 	// the values in the spec
-	extractedUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(extracted)
+	extractedUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&extracted)
 	if err != nil {
 		return err
 	}
