@@ -418,8 +418,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	var containerVolumeMounts []interface{}
 	for _, container := range uContainers {
-		uc := container.(*unstructured.Unstructured)
-		volumeMounts, ok, err := unstructured.NestedSlice(uc.Object, volumeMountsFieldPath...)
+		volumeMounts, ok, err := unstructured.NestedSlice(container.(map[string]interface{}), volumeMountsFieldPath...)
 		if !ok || err != nil {
 			return err
 		}
