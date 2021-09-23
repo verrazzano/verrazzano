@@ -355,6 +355,33 @@ func GetNamespace(name string) (*corev1.Namespace, error) {
 	return clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 }
 
+
+// GetEffectiveKeyCloakPersistenceOverride returns the effective PVC override for Keycloak, if it exists
+func GetEffectiveKeyCloakPersistenceOverride() (*corev1.PersistentVolumeClaimSpec, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+	verrazzano, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	mysqlVolSource := verrazzano.Spec.Components.Keycloak.MySQL.VolumeSource
+	if mysqlVolSource == nil {
+		mysqlVolSource = verrazzano.Spec.DefaultVolumeSource
+	}
+	if mysqlVolSource != nil && mysqlVolSource.EmptyDir != nil {
+		return nil, nil
+	}
+	for _, template := range verrazzano.Spec.VolumeClaimSpecTemplates {
+		if template.Name == mysqlVolSource.PersistentVolumeClaim.ClaimName {
+			return &template.Spec, nil
+		}
+	}
+	return nil, fmt.Errorf("Did not find matching PVC template for %s", mysqlVolSource.PersistentVolumeClaim.ClaimName)
+}
+
 // GetNamespaceInCluster returns a namespace in the cluster whose kubeconfigPath is specified
 func GetNamespaceInCluster(name string, kubeconfigPath string) (*corev1.Namespace, error) {
 	// Get the Kubernetes clientset
