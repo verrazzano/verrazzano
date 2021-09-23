@@ -704,6 +704,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 
 // TestReconcileCreateHelidon tests the basic happy path of reconciling a VerrazzanoHelidonWorkload. We
 // expect to write out a Deployment and Service but we aren't adding logging or any other scopes or traits.
+// This tests the custom logging happy path as well
 // GIVEN a VerrazzanoHelidonWorkload resource is created
 // WHEN the controller Reconcile function is called
 // THEN expect a Deployment and Service to be written
@@ -895,6 +896,178 @@ func TestReconcileCreateHelidonWithCustomLogging(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), customLoggingConfigMap).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, workloadName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileCreateHelidon tests the basic happy path of reconciling a VerrazzanoHelidonWorkload. We
+// expect to write out a Deployment and Service but we aren't adding logging or any other scopes or traits.
+// This tests the custom logging happy path as well
+// GIVEN a VerrazzanoHelidonWorkload resource is created
+// WHEN the controller Reconcile function is called
+// THEN expect a Deployment and Service to be written
+func TestReconcileCreateHelidonWithCustomLoggingConfigMapExists(t *testing.T) {
+	assert := asserts.New(t)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+
+	appConfigName := "unit-test-app-config"
+	componentName := "unit-test-component"
+	workloadName := "unit-test-verrazzano-helidon-workload"
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+	helidonTestContainerPort := corev1.ContainerPort{
+		ContainerPort: 8080,
+		Name:          "http",
+	}
+	helidonTestContainer := corev1.Container{
+		Name:  "hello-helidon-container-new",
+		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
+		Ports: []corev1.ContainerPort{
+			helidonTestContainerPort,
+		},
+	}
+	deploymentTemplate := &vzapi.DeploymentTemplate{
+		Metadata: metav1.ObjectMeta{
+			Name:      "hello-helidon-deployment-new",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"app": "hello-helidon-deploy-new",
+			},
+		},
+		PodSpec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				helidonTestContainer,
+			},
+		},
+	}
+	// expect call to fetch existing deployment
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "hello-helidon-deployment-new"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
+		})
+	// expect a call to fetch the application configuration
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
+			appconf.Namespace = name.Namespace
+			appconf.Name = name.Name
+			appconf.APIVersion = oamapi.SchemeGroupVersion.String()
+			appconf.Kind = oamapi.ApplicationConfigurationKind
+			appconf.Spec.Components = []oamapi.ApplicationConfigurationComponent{
+				{
+					ComponentName: componentName,
+					Traits: []oamapi.ComponentTrait{
+						{
+							Trait: runtime.RawExtension{
+								Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(loggingTrait, " ", ""), "\n", "")),
+							},
+						},
+					},
+				},
+			}
+			return nil
+		})
+	// expect a call to get the application configuration for the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamapi.ApplicationConfiguration) error {
+			appConfig.Spec.Components = []oamapi.ApplicationConfigurationComponent{
+				{
+					ComponentName: componentName,
+					Traits: []oamapi.ComponentTrait{
+						{
+							Trait: runtime.RawExtension{
+								Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(loggingTrait, " ", ""), "\n", "")),
+							},
+						},
+					},
+				},
+			}
+			return nil
+		})
+	// expect a call to fetch the VerrazzanoHelidonWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+			workload.Spec.DeploymentTemplate = *deploymentTemplate
+			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
+			workload.Kind = "VerrazzanoHelidonWorkload"
+			workload.Namespace = namespace
+			workload.Name = workloadName
+			workload.OwnerReferences = []metav1.OwnerReference{
+				{
+					UID: types.UID(namespace),
+				},
+			}
+			return nil
+		})
+	// expect a call to create the Deployment
+	cli.EXPECT().
+		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment, patch client.Patch, applyOpts ...client.PatchOption) error {
+			assert.Equal(deploymentAPIVersion, deploy.APIVersion)
+			assert.Equal(deploymentKind, deploy.Kind)
+			// make sure the OAM component and app name labels were copied
+			assert.Equal(map[string]string{"app": "hello-helidon-deploy-new", "app.oam.dev/component": "unit-test-component", "app.oam.dev/name": "unit-test-app-config"}, deploy.GetLabels())
+			assert.Equal([]corev1.Container{
+				helidonTestContainer,
+			}, deploy.Spec.Template.Spec.Containers)
+			return nil
+		})
+	// expect a call to create the Service
+	cli.EXPECT().
+		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
+			assert.Equal(serviceAPIVersion, service.APIVersion)
+			assert.Equal(serviceKind, service.Kind)
+			return nil
+		})
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload) error {
+			assert.Len(workload.Status.Resources, 2)
+			return nil
+		})
+	// expect a call to list the logging traits
+	cli.EXPECT().
+		List(gomock.Any(), &vzapi.LoggingTraitList{TypeMeta: metav1.TypeMeta{Kind: "LoggingTrait", APIVersion: "oam.verrazzano.io/v1alpha1"}}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, loggingTraitList *vzapi.LoggingTraitList, inNamespace client.InNamespace) error {
+			loggingTraitList.Items = []vzapi.LoggingTrait{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								UID: types.UID(namespace),
+							},
+						},
+					},
+					Spec: vzapi.LoggingTraitSpec{
+						WorkloadReference: oamrt.TypedReference{
+							Name: workloadName,
+						},
+					},
+				},
+			}
+			return nil
+		})
+	// expect a call to get the ConfigMap for logging - return not found
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: loggingNamePart + "-hello-helidon-deployment-new-"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, configMap *corev1.ConfigMap) error {
 			return nil
 		})
 
