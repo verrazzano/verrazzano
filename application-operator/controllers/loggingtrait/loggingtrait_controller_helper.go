@@ -50,6 +50,8 @@ func locateField(document openapi.Resources, res *unstructured.Unstructured, fie
 					return ok, containerFieldPath
 				}
 			}
+		} else {
+			return false, nil
 		}
 	}
 	return false, nil
