@@ -99,6 +99,8 @@ pipeline {
                     // patch should be using a "release-#.#" branch and have a version ending in a digit other than 0
                     } else if (env.GIT_BRANCH =~ /release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
                         env.IS_PATCH_RELEASE = 'true'
+                    } else if (params.TEST_RUN && env.GIT_BRANCH =~ /mock-release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
+                        env.IS_PATCH_RELEASE = 'true'
                     } else {
                         error "Invalid source branch ${env.GIT_BRANCH} or a mismatch between source branch and the specified target version ${params.TARGET_VERSION}"
                     }
@@ -129,6 +131,9 @@ pipeline {
                     when {
                         expression { env.IS_PATCH_RELEASE == 'false' }
                     }
+                    environment {
+                        TEST_RUN = "${params.TEST_RUN}"
+                    }
                     steps {
                         script {
                             sh """
@@ -147,7 +152,11 @@ pipeline {
                                 RELEASE_JOB_NAME = 'verrazzano/' + env.GIT_BRANCH
                             } else {
                                 def parts = params.TARGET_VERSION.split("\\.")
-                                RELEASE_JOB_NAME = 'verrazzano/release-${parts[0]}.${parts[1]}'
+                                if ( params.TEST_RUN ) {
+                                    RELEASE_JOB_NAME = 'verrazzano/mock-release-${parts[0]}.${parts[1]}'
+                                } else {
+                                    RELEASE_JOB_NAME = 'verrazzano/release-${parts[0]}.${parts[1]}'
+                                }
                             }
                             // if branch build not found, trigger repo scan and wait
                             if (Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME) == null) {

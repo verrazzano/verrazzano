@@ -28,6 +28,7 @@ function is_in_remote_repo() {
 VERSION=""
 RELEASE_COMMIT=""
 EXPECTED_SOURCE_BRANCH="origin/master"
+RELEASE_BRANCH=""
 
 while getopts v:c:h flag
 do
@@ -43,7 +44,14 @@ parts=( ${VERSION//./ } )
 MAJOR="${parts[0]}"
 MINOR="${parts[1]}"
 PATCH="${parts[2]}"
-RELEASE_BRANCH=release-${MAJOR}.${MINOR}
+
+if [ "${TEST_RUN:-false}" == "false" ]; then
+  RELEASE_BRANCH=release-${MAJOR}.${MINOR}
+else
+  RELEASE_BRANCH=mock-release-${MAJOR}.${MINOR}
+fi
+
+echo "Release Branch: ${RELEASE_BRANCH}"
 
 # if this is a patch release skip branch creation
 if [ "${PATCH}" != "0" ]; then
