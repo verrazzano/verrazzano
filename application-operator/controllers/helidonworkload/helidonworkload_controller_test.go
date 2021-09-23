@@ -750,13 +750,31 @@ func TestReconcileCreateHelidonWithCustomLogging(t *testing.T) {
 		})
 	// expect a call to fetch the application configuration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: appConfigName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
 			appconf.Namespace = name.Namespace
 			appconf.Name = name.Name
 			appconf.APIVersion = oamapi.SchemeGroupVersion.String()
 			appconf.Kind = oamapi.ApplicationConfigurationKind
 			appconf.Spec.Components = []oamapi.ApplicationConfigurationComponent{
+				{
+					ComponentName: componentName,
+					Traits: []oamapi.ComponentTrait{
+						{
+							Trait: runtime.RawExtension{
+								Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(loggingTrait, " ", ""), "\n", "")),
+							},
+						},
+					},
+				},
+			}
+			return nil
+		})
+	// expect a call to get the application configuration for the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamapi.ApplicationConfiguration) error {
+			appConfig.Spec.Components = []oamapi.ApplicationConfigurationComponent{
 				{
 					ComponentName: componentName,
 					Traits: []oamapi.ComponentTrait{
