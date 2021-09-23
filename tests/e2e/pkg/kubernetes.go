@@ -366,9 +366,10 @@ func GetEffectiveKeyCloakPersistenceOverride() (*corev1.PersistentVolumeClaimSpe
 	if err != nil {
 		return nil, err
 	}
-	mysqlVolSource := verrazzano.Spec.Components.Keycloak.MySQL.VolumeSource
-	if mysqlVolSource == nil {
-		mysqlVolSource = verrazzano.Spec.DefaultVolumeSource
+
+	mysqlVolSource := verrazzano.Spec.DefaultVolumeSource
+	if verrazzano.Spec.Components.Keycloak != nil {
+		mysqlVolSource = verrazzano.Spec.Components.Keycloak.MySQL.VolumeSource
 	}
 	if mysqlVolSource != nil && mysqlVolSource.EmptyDir != nil {
 		return nil, nil
