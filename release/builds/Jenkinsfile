@@ -4,6 +4,7 @@
 def DOCKER_IMAGE_TAG
 def releaseBuild
 def RELEASE_JOB_NAME
+def RELEASE_BRANCH_COMMIT
 
 pipeline {
     options {
@@ -22,7 +23,6 @@ pipeline {
     }
 
     parameters {
-        string (description: 'The source branch for the release', name: 'SOURCE_BRANCH', defaultValue: 'master', trim: true)
         string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
         string (description: 'The target version (major.minor.patch format, e.g. 1.0.1)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
@@ -49,6 +49,7 @@ pipeline {
                 """
                 script {
                     if (params.COMMIT_TO_USE == "NONE") {
+                        if
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
@@ -66,7 +67,7 @@ pipeline {
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
                         if (!env.GIT_COMMIT.equals(params.COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${env.GIT_COMMIT}"
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.COMMIT_TO_USE}, Found: ${env.GIT_COMMIT}"
                             exit 1
                         }
                     }
@@ -76,6 +77,7 @@ pipeline {
                         git config credential.helper '/bin/bash ${WORKSPACE}/release/scripts/credential_helper.sh'
                     """
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                    RELEASE_BRANCH_COMMIT = env.GIT_COMMIT
                 }
 
                 script {
@@ -84,7 +86,7 @@ pipeline {
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.COMMIT_TO_USE
                 }
             }
         }
@@ -93,13 +95,13 @@ pipeline {
             steps {
                 script {
                     // major or minor release should be leveraging master branch and have a target version that ends in 0
-                    if (params.SOURCE_BRANCH.equals('master') && params.TARGET_VERSION =~ /^\d+\.\d+\.0$/) {
+                    if ((params.TEST_RUN || env.GIT_BRANCH.equals('master')) && params.TARGET_VERSION =~ /^\d+\.\d+\.0$/) {
                         env.IS_PATCH_RELEASE = 'false'
                     // patch should be using a "release-#.#" branch and have a version ending in a digit other than 0
-                    } else if (params.SOURCE_BRANCH =~ /release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
+                    } else if (env.GIT_BRANCH =~ /release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
                         env.IS_PATCH_RELEASE = 'true'
                     } else {
-                        error "Invalid source branch ${params.SOURCE_BRANCH} or a mismatch between source branch and the specified target version ${params.TARGET_VERSION}"
+                        error "Invalid source branch ${env.GIT_BRANCH} or a mismatch between source branch and the specified target version ${params.TARGET_VERSION}"
                     }
 
                     echo "Patch release? ${env.IS_PATCH_RELEASE}"
@@ -132,7 +134,7 @@ pipeline {
                         script {
                             sh """
                                 cd ${WORKSPACE}
-                                ./release/scripts/create_branch.sh -c ${params.COMMIT_TO_USE} -v ${params.TARGET_VERSION}
+                                ./release/scripts/create_branch.sh -c ${env.GIT_COMMIT} -v ${params.TARGET_VERSION}
                             """
                         }
                     }
@@ -143,7 +145,7 @@ pipeline {
                     steps {
                         script {
                             if (env.IS_PATCH_RELEASE == 'true') {
-                                RELEASE_JOB_NAME = 'verrazzano/' + env.SOURCE_BRANCH
+                                RELEASE_JOB_NAME = 'verrazzano/' + env.GIT_BRANCH
                             } else {
                                 def parts = params.TARGET_VERSION.split("\\.")
                                 RELEASE_JOB_NAME = 'verrazzano/release-${parts[0]}.${parts[1]}'
