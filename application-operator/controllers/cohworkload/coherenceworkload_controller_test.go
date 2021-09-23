@@ -369,7 +369,6 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
-
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{
 				{
 					ComponentName: componentName,
@@ -392,7 +391,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 				Group:    "",
 				Resource: "ConfigMap",
 			},
-				"logging-stdout-unit-test-cluster-domain")
+				"logging-stdout-unit-test-cluster-coherence")
 		})
 	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
