@@ -122,10 +122,9 @@ func ValidateActiveInstall(client client.Client) error {
 
 // ValidateInProgress makes sure there is not an install, uninstall or upgrade in progress
 func ValidateInProgress(old *Verrazzano, new *Verrazzano) error {
-	if old.Status.State == Ready {
+	if old.Status.State == "" || old.Status.State == Ready {
 		return nil
 	}
-
 	// Allow enable component during install
 	if old.Status.State == Installing {
 		if isCoherenceEnabled(new.Spec.Components.Coherence) && !isCoherenceEnabled(old.Spec.Components.Coherence) {
