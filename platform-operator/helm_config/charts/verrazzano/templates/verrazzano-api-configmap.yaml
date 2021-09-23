@@ -70,7 +70,7 @@ data:
         token = auth.getTokenFromSession()
 
         -- still no token? redirect to OP to authenticate user if it's not an api call
-        if not token and backend != 'verrazzano' then
+        if not token then
             -- no token, redirect to OP to authenticate
             auth.oidcAuthenticate()
         end
