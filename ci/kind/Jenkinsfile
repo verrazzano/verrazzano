@@ -750,6 +750,7 @@ def metricBuildDuration() {
 def setDisplayName() {
     def causes = currentBuild.getBuildCauses()
     for (cause in causes) {
+        echo "current cause: " + cause
         if (cause.class.toString().contains("UpstreamCause")) {
              def upstreamCause = cause.toString()
              echo "This job was caused by " + upstreamCause
