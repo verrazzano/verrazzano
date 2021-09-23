@@ -198,6 +198,28 @@ func TestIngressInstall(t *testing.T) {
 	assert.True(t, problemsFound > 0)
 }
 
+// TestLBLimitExceeded Test that analysis of a cluster dump where Ingress install failed due to LoadBalancer service limit handled
+// GIVEN a call to analyze a cluster-dump
+// WHEN the cluster-dump shows pods with problems that are not known issues
+// THEN a report is generated with problem pod issues identified
+func TestLBLimitExceeded(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/ingress-lb-limit")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.IngressLBLimitExceeded {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}
+
 // TestOciIPLimitExceeded Tests that analysis of a cluster dump where Ingress install failed due to OCI limit handled
 // GIVEN a call to analyze a cluster-dump
 // WHEN the cluster-dump shows pods with problems that are not known issues
