@@ -69,8 +69,8 @@ data:
         -- check if caller has an existing session with a valid token.
         token = auth.getTokenFromSession()
 
-        -- still no token? redirect to OP to authenticate user
-        if not token then
+        -- still no token? redirect to OP to authenticate user if it's not an api call
+        if not token and backend != 'verrazzano' then
             -- no token, redirect to OP to authenticate
             auth.oidcAuthenticate()
         end
@@ -301,7 +301,6 @@ data:
             local uri = ngx.var.request_uri
             local start, last = uri:find("/20210501/")
             if start and start == 1 then
-                backend_name = "verrazzano"
                 -- Strip api_version from the uri
                 uri = uri:sub(last)
                 ngx.req.set_uri(uri)
@@ -339,7 +338,6 @@ data:
         elseif backend == 'elasticsearch' then
             serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')
         else
-            -- Would a 500 error be more appropriate here?
             me.not_found("Invalid backend name '"..backend.."'")
         end
         return serverUrl
