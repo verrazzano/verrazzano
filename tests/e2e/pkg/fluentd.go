@@ -36,9 +36,11 @@ func AssertFluentdURLAndSecret(expectedURL, expectedSecret string) bool {
 	volumeSecretFound := ""
 	fluentdDaemonset, err := getFluentdDaemonset()
 	if err != nil {
+		Log(Info, "Can not find fluentdDaemonset")
 		return false
 	}
 	if fluentdDaemonset == nil {
+		Log(Info, "Can not find fluentdDaemonset")
 		return false
 	}
 	containers := fluentdDaemonset.Spec.Template.Spec.Containers
@@ -54,11 +56,19 @@ func AssertFluentdURLAndSecret(expectedURL, expectedSecret string) bool {
 				passwordSecretFound = env.ValueFrom.SecretKeyRef.Name
 			}
 		}
+	} else {
+		Log(Info, "Can not find containers in fluentdDaemonset")
+		return false
 	}
-	for _, vol := range fluentdDaemonset.Spec.Template.Spec.Volumes {
-		if vol.Name == "secret-volume" {
-			volumeSecretFound = vol.Secret.SecretName
+	if len(fluentdDaemonset.Spec.Template.Spec.Volumes) > 0 {
+		for _, vol := range fluentdDaemonset.Spec.Template.Spec.Volumes {
+			if vol.Name == "secret-volume" {
+				volumeSecretFound = vol.Secret.SecretName
+			}
 		}
+	} else {
+		Log(Info, "Can not find volumes in fluentdDaemonset")
+		return false
 	}
 	if urlFound != expectedURL {
 		Log(Info, fmt.Sprintf("ES URL in fluentdDaemonset %s doesn't match expected %s", urlFound, expectedURL))
