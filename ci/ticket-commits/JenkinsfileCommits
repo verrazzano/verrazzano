@@ -77,7 +77,7 @@ pipeline {
                         echo Processing commits:
                         cat ${tmpfile}; echo
 
-                        verrazzano-helper update ticket-commits --commit-file "${tmpfile}" --token unused --jira-env=prod
+                        verrazzano-helper update ticket-commits --commit-file "${tmpfile}" --backport-labels --token unused --jira-env=prod
                     """
                 }
             }

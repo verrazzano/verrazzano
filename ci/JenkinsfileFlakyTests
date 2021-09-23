@@ -43,6 +43,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
         BRANCH_NAME="master"
+        SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
@@ -152,11 +153,29 @@ pipeline {
     post {
         failure {
             script {
-                echo "add failure post here"
+                if (isAlertingEnabled()) {
+                    mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
+                    subject: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
+                    body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n"
+                    if (env.JOB_NAME == "verrazzano-flaky-tests/master") {
+                        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY",
+                            incDescription: "Verrazzano Flaky Tests: ${env.JOB_NAME} - Failed",
+                            incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                        slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n" )
+                    }
+                }
             }
         }
         cleanup {
             deleteDir()
         }
     }
+}
+
+def isAlertingEnabled() {
+    if (NOTIFY_FLAKY_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master"))) {
+        echo "Slack/Pager-Duty notifications enabled via global override setting"
+        return true
+    }
+    return false
 }

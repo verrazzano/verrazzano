@@ -203,6 +203,26 @@ pipeline {
             }
         }
 
+        stage('BOM Validator Tool') {
+            steps {
+                buildBOMValidatorTool()
+            }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+                success {
+                    sh """
+                        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
+                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/bom-validator --file ./out/linux_amd64/bom-validator
+                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ./out/linux_amd64/bom-validator
+                    """
+                }
+            }
+        }
+
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
@@ -471,7 +491,7 @@ pipeline {
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                             booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                        ], wait: true
+                        ], wait: false
                 }
             }
         }
@@ -541,9 +561,6 @@ pipeline {
                 }
             }
         }
-        success {
-            storePipelineArtifacts()
-        }
         cleanup {
             metricBuildDuration()
             deleteDir()
@@ -558,20 +575,6 @@ def moveContentToGoRepoPath() {
         mkdir -p ${GO_REPO_PATH}/verrazzano
         tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
     """
-}
-
-// Called in final post success block of pipeline
-def storePipelineArtifacts() {
-    script {
-        // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
-        sh """
-            if [ "${env.JOB_NAME}" == "verrazzano/master" ]; then
-                cd ${GO_REPO_PATH}/verrazzano
-                echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
-            fi
-        """
-    }
 }
 
 // Called in Stage Integration Tests steps
@@ -602,6 +605,14 @@ def buildAnalysisTool(dockerImageTag) {
         cd ${GO_REPO_PATH}/verrazzano/tools/analysis
         make go-build DOCKER_IMAGE_TAG=${dockerImageTag}
         ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
+    """
+}
+
+// Called in Stage Bom Validator Tool steps
+def buildBOMValidatorTool() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
+        make go-build
     """
 }
 
@@ -846,7 +857,7 @@ def metricBuildDuration() {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
         withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.GIT_BRANCH} $labels ${metricValue} ${durationInSec}")
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

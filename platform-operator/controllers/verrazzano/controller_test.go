@@ -7,13 +7,14 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 	"time"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
@@ -184,7 +185,7 @@ func TestSuccessfulInstall(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(5)
+		}).Times(1)
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
@@ -194,10 +195,10 @@ func TestSuccessfulInstall(t *testing.T) {
 			return nil
 		})
 
-	setupInstallInternalConfigMapExpectations(mock, name, namespace)
-
 	// Expect local registration calls
 	expectSyncLocalRegistration(t, mock, name)
+
+	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -209,6 +210,83 @@ func TestSuccessfulInstall(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestCreateLocalRegistrationSecret tests the syncLocalRegistrationSecret method for the following use case
+// GIVEN a request to sync the local cluster MC registration secret
+// WHEN a the secret does not exist
+// THEN ensure the secret is created successfully
+func TestCreateLocalRegistrationSecret(t *testing.T) {
+	unitTesting = true
+
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	// Expect a call to get the local registration secret in the verrazzano-system namespace - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCLocalRegistrationSecret))
+
+	// Expect a call to create the registration secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			secret.Data = map[string][]byte{
+				clusters.ManagedClusterNameKey: []byte("cluster1"),
+			}
+			return nil
+		})
+
+	// Create and make the request
+	reconciler := newVerrazzanoReconciler(mock)
+	err := reconciler.syncLocalRegistrationSecret()
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+}
+
+// TestCreateLocalRegistrationSecretUnexpectedError tests the syncLocalRegistrationSecret method for the following use case
+// GIVEN a request to sync the local cluster MC registration secret
+// WHEN a call to get the secret does returns an error other than IsNotFound
+// THEN an error is returned and no attempt is made to create the secret
+func TestCreateLocalRegistrationSecretUnexpectedError(t *testing.T) {
+	unitTesting = true
+
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(fmt.Errorf("Unexpected error getting secret"))
+
+	// Expect a call to get the local registration secret in the verrazzano-system namespace - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil())).
+		Times(0)
+
+	// Expect a call to create the registration secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		Times(0)
+
+	// Create and make the request
+	reconciler := newVerrazzanoReconciler(mock)
+	err := reconciler.syncLocalRegistrationSecret()
+
+	// Validate the results
+	mocker.Finish()
+	asserts.Error(err)
 }
 
 // TestCreateVerrazzano tests the Reconcile method for the following use case
@@ -336,7 +414,7 @@ func TestCreateVerrazzano(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(5)
+		}).Times(1)
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
@@ -357,25 +435,19 @@ func TestCreateVerrazzano(t *testing.T) {
 
 func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 	statusMap := make(vzapi.ComponentStatusMap)
-	statusMap["verrazzano-application-operator"] = &vzapi.ComponentStatusDetails{
-		Name: "verrazzano-application-operator",
-		Conditions: []vzapi.Condition{
-			{
-				Type:   vzapi.InstallComplete,
-				Status: corev1.ConditionTrue,
-			},
-		},
-		State: vzapi.Ready,
-	}
-	statusMap["oam-kubernetes-runtime"] = &vzapi.ComponentStatusDetails{
-		Name: "oam-kubernetes-runtime",
-		Conditions: []vzapi.Condition{
-			{
-				Type:   vzapi.InstallComplete,
-				Status: corev1.ConditionTrue,
-			},
-		},
-		State: vzapi.Ready,
+	for _, comp := range registry.GetComponents() {
+		if comp.IsOperatorInstallSupported() {
+			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
+				Name: comp.Name(),
+				Conditions: []vzapi.Condition{
+					{
+						Type:   vzapi.InstallComplete,
+						Status: corev1.ConditionTrue,
+					},
+				},
+				State: vzapi.Ready,
+			}
+		}
 	}
 	return statusMap
 }
@@ -532,7 +604,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
-		}).Times(5)
+		}).Times(1)
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
@@ -2049,27 +2121,12 @@ func setupInstallInternalConfigMapExpectations(mock *mocks.MockClient, name stri
 		})
 }
 
-// Expect syncLocalRegistration related calls
+// Expect syncLocalRegistration related calls, happy-path secret exists
 func expectSyncLocalRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 	// Expect a call to get the Agent secret in the verrazzano-system namespace - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
-
-	// Expect a call to get the local registration secret in the verrazzano-system namespace - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCLocalRegistrationSecret))
-
-	// Expect a call to create the registration secret
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			secret.Data = map[string][]byte{
-				clusters.ManagedClusterNameKey: []byte("cluster1"),
-			}
-			return nil
-		})
+		Return(nil)
 }
 
 // expectGetVerrazzanoSystemNamespaceExists expects a call to get the verrazzano system namespace and returns

@@ -112,16 +112,15 @@ func (h HelmComponent) IsOperatorInstallSupported() bool {
 }
 
 // IsInstalled Indicates whether or not the component is installed
-func (h HelmComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) bool {
+func (h HelmComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) (bool, error) {
 	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, resolveNamespace(h, namespace))
-	return installed
+	return installed, nil
 }
 
 // IsReady Indicates whether or not a component is available and ready
 func (h HelmComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
 	ns := resolveNamespace(h, namespace)
-	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, resolveNamespace(h, namespace))
-	if installed {
+	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, resolveNamespace(h, namespace)); deployed {
 		if h.ReadyStatusFunc != nil {
 			return h.ReadyStatusFunc(log, client, h.ReleaseName, ns)
 		}
@@ -170,6 +169,14 @@ func (h HelmComponent) Install(log *zap.SugaredLogger, client clipkg.Client, nam
 	// Perform a helm upgrade --install
 	_, _, err = upgradeFunc(log, h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, dryRun, overridesString, h.ValuesFile)
 	return err
+}
+
+func (h HelmComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
+}
+
+func (h HelmComponent) PostInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
 }
 
 // Upgrade is done by using the helm chart upgrade command.  This command will apply the latest chart
@@ -234,6 +241,14 @@ func (h HelmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns 
 	// Perform a helm upgrade --install
 	_, _, err = upgradeFunc(log, h.ReleaseName, namespace, h.ChartDir, true, dryRun, overridesString, h.ValuesFile, tmpFile.Name())
 	return err
+}
+
+func (h HelmComponent) PreUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
+}
+
+func (h HelmComponent) PostUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	return nil
 }
 
 func (h HelmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
