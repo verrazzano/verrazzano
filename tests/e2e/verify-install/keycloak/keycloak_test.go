@@ -60,9 +60,15 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 		const size = "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
 
 		if pkg.IsDevProfile() {
+			expectedKeyCloakPVCs := 0
+			pvcSpec, err := pkg.GetEffectiveKeyCloakPersistenceOverride()
+			Expect(err).To(BeNil())
+			if pvcSpec != nil {
+				expectedKeyCloakPVCs = 1
+			}
 			It("Verify persistent volumes in namespace keycloak based on Dev install profile", func() {
 				// There is no Persistent Volume for MySQL in a dev install
-				Expect(len(volumeClaims)).To(Equal(0))
+				Expect(len(volumeClaims)).To(Equal(expectedKeyCloakPVCs))
 			})
 		} else if pkg.IsManagedClusterProfile() {
 			It("Verify namespace keycloak doesn't exist based on Managed Cluster install profile", func() {
