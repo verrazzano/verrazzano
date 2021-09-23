@@ -18,7 +18,7 @@ import (
 func struct2Unmarshal(obj interface{}) (unstructured.Unstructured, error) {
 	marshal, err := json.Marshal(obj)
 	var c unstructured.Unstructured
-	c.UnmarshalJSON(marshal)
+	err = c.UnmarshalJSON(marshal)
 	return c, err
 }
 
@@ -33,20 +33,23 @@ func apiVersion2GroupVersion(str string) (string, string) {
 
 //locateField of a given resource and try to see if it has fields of type array.
 func locateField(document openapi.Resources, res *unstructured.Unstructured, fieldPaths [][]string) (bool, []string) {
+	if len(res.GetAPIVersion()) != 0 {
 
-	g, v := apiVersion2GroupVersion(res.GetAPIVersion())
+		g, v := apiVersion2GroupVersion(res.GetAPIVersion())
 
-	schema := document.LookupResource(schema.GroupVersionKind{
-		Group:   g,
-		Version: v,
-		Kind:    res.GetKind(),
-	})
-
-	for _, containerFieldPath := range fieldPaths {
-		field, err := explain.LookupSchemaForField(schema, containerFieldPath)
-		if err == nil && field != nil {
-			_, ok := field.(*proto.Array)
-			return ok, containerFieldPath
+		schema := document.LookupResource(schema.GroupVersionKind{
+			Group:   g,
+			Version: v,
+			Kind:    res.GetKind(),
+		})
+		if schema != nil {
+			for _, containerFieldPath := range fieldPaths {
+				field, err := explain.LookupSchemaForField(schema, containerFieldPath)
+				if err == nil && field != nil {
+					_, ok := field.(*proto.Array)
+					return ok, containerFieldPath
+				}
+			}
 		}
 	}
 	return false, nil
