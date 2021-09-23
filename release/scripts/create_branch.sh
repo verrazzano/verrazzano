@@ -28,7 +28,6 @@ function is_in_remote_repo() {
 VERSION=""
 RELEASE_COMMIT=""
 EXPECTED_SOURCE_BRANCH="origin/master"
-EXPECTED_SOURCE_REPO="verrazzano"
 
 while getopts v:c:h flag
 do
@@ -61,14 +60,17 @@ else
     COMMIT_BRANCH=$(git branch -r --contains ${RELEASE_COMMIT}  | tr -d '[:space:]')
     echo "Remote commit branch: ${COMMIT_BRANCH}"
 
-    if [ "${COMMIT_REPO}" != "${EXPECTED_SOURCE_REPO}" ]; then
+    if ! [[ "${COMMIT_REPO}" =~ ^(verrazzano|verrazzano.git)$ ]]; then
       echo "Not in the correct repo"
       exit 1
     fi
 
-    if [ "${COMMIT_BRANCH}" != "${EXPECTED_SOURCE_BRANCH}" ]; then
-      echo "Not using the master branch as the source branch.  Please checkout the master branch and make sure to pull the latest code"
-      exit 1
+    # for testing purposes skip branch check
+    if [ "${TEST_RUN}" == 'false' ]; then
+      if [ "${COMMIT_BRANCH}" != "${EXPECTED_SOURCE_BRANCH}" ]; then
+        echo "Not using the master branch as the source branch.  Please checkout the master branch and make sure to pull the latest code"
+        exit 1
+      fi
     fi
 
     git checkout -b ${RELEASE_BRANCH} ${RELEASE_COMMIT}
