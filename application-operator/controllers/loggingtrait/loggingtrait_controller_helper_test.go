@@ -5,17 +5,18 @@ package loggingtrait
 
 import (
 	"fmt"
-	"github.com/gogo/protobuf/proto"
-	openapi_v2 "github.com/googleapis/gnostic/openapiv2"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/discovery"
-	restclient "k8s.io/client-go/rest"
 	"mime"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/gogo/protobuf/proto"
+	openapi_v2 "github.com/googleapis/gnostic/openapiv2"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/discovery"
+	restclient "k8s.io/client-go/rest"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	prototest "k8s.io/kube-openapi/pkg/util/proto/testing"
@@ -89,7 +90,7 @@ func Test_locateField(t *testing.T) {
 
 	// Create Deployment resource
 	deploymentResource := unstructured.Unstructured{}
-	deploymentResource.SetAPIVersion("apps/v1beta1")
+	deploymentResource.SetAPIVersion("apps/v1")
 	deploymentResource.SetKind("Deployment")
 
 	// Create Pod resource
@@ -158,7 +159,7 @@ func Test_locateContainersField(t *testing.T) {
 
 	// Create Deployment resource
 	deploymentResource := unstructured.Unstructured{}
-	deploymentResource.SetAPIVersion("apps/v1beta1")
+	deploymentResource.SetAPIVersion("apps/v1")
 	deploymentResource.SetKind("Deployment")
 
 	// Create Pod resource
@@ -215,7 +216,7 @@ func Test_locateVolumesField(t *testing.T) {
 
 	// Create Deployment resource
 	deploymentResource := unstructured.Unstructured{}
-	deploymentResource.SetAPIVersion("apps/v1beta1")
+	deploymentResource.SetAPIVersion("apps/v1")
 	deploymentResource.SetKind("Deployment")
 
 	// Create Pod resource
