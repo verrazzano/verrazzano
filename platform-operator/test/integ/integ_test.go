@@ -118,7 +118,7 @@ var _ = Describe("Install with enable/disable component", func() {
 			"The verrazzano-platform-operator pod should be in the Running state")
 	})
 
-	FIt("Verrazzano CR should have disabled components", func() {
+	It("Verrazzano CR should have disabled components", func() {
 		_, stderr := util.Kubectl("apply -f testdata/install-disabled.yaml")
 		Expect(stderr).To(Equal(""))
 
