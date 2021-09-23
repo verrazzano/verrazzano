@@ -274,7 +274,6 @@ func TestValidateSecrets(t *testing.T) {
 	asrt.NoError(v.client.Create(context.TODO(), &secret1))
 
 	// Secret should be found, so success is expected
-	err = v.validateSecrets(mcac)
 	asrt.NoError(v.validateSecrets(mcac))
 
 }
