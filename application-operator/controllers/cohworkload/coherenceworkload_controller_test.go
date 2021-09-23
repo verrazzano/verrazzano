@@ -637,7 +637,6 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 	assert.Equal(false, result.Requeue)
 }
 
-
 // TestReconcileAlreadyExistsUpgrade tests reconciling a VerrazzanoCoherenceWorkload when the Coherence StatefulSet CR already
 // exists and the upgrade version specified in the labels differs from the current upgrade version.
 // This should result in the latest Fluentd image being pulled from the env.

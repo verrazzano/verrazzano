@@ -767,7 +767,7 @@ func TestReconcileCreateHelidonWithCustomLogging(t *testing.T) {
 						},
 					},
 				},
-		}
+			}
 			return nil
 		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
@@ -860,7 +860,7 @@ func TestReconcileCreateHelidonWithCustomLogging(t *testing.T) {
 			Name:              loggingNamePart + "-hello-helidon-deployment-new-",
 			Namespace:         namespace,
 			CreationTimestamp: metav1.Time{},
-			Labels: labels,
+			Labels:            labels,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion:         "oam.verrazzano.io/v1alpha1",
