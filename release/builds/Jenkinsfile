@@ -5,6 +5,7 @@ def DOCKER_IMAGE_TAG
 def releaseBuild
 def RELEASE_JOB_NAME
 def RELEASE_BRANCH_COMMIT
+def IS_PATCH_RELEASE = false
 
 pipeline {
     options {
@@ -35,7 +36,6 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_REPO = 'ghcr.io'
-        IS_PATCH_RELEASE = 'false'
         GITHUB_CREDENTIALS = credentials('github-markxnelns-private-access-token')
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -96,19 +96,19 @@ pipeline {
                     // major or minor release should be leveraging master branch and have a target version that ends in 0
                     if ((params.TEST_RUN || env.GIT_BRANCH.equals('master')) && params.TARGET_VERSION =~ /^\d+\.\d+\.0$/) {
                         echo "major/minor release detected. test=${params.TEST_RUN}"
-                        env.IS_PATCH_RELEASE = 'false'
+                        IS_PATCH_RELEASE = 'false'
                     // patch should be using a "release-#.#" branch and have a version ending in a digit other than 0
                     } else if (env.GIT_BRANCH =~ /release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
                         echo "patch release detected"
-                        env.IS_PATCH_RELEASE = 'true'
+                        IS_PATCH_RELEASE = 'true'
                     } else if (params.TEST_RUN && env.GIT_BRANCH =~ /mock-release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
                         echo "test patch release detected"
-                        env.IS_PATCH_RELEASE = 'true'
+                        IS_PATCH_RELEASE = 'true'
                     } else {
                         error "Invalid source branch ${env.GIT_BRANCH} or a mismatch between source branch and the specified target version ${params.TARGET_VERSION}"
                     }
 
-                    echo "Patch release? ${env.IS_PATCH_RELEASE}"
+                    echo "Patch release? ${IS_PATCH_RELEASE}"
                 }
             }
         }
@@ -132,7 +132,7 @@ pipeline {
                 stage('Release Only: Create branch') {
                     // if this is not a patch there is a need to either create a release branch or verify it exists
                     when {
-                        expression { env.IS_PATCH_RELEASE == 'false' }
+                        expression { IS_PATCH_RELEASE == 'false' }
                     }
                     environment {
                         TEST_RUN = "${params.TEST_RUN}"
@@ -151,7 +151,7 @@ pipeline {
                 stage('Verrazzano Build') {
                     steps {
                         script {
-                            if (env.IS_PATCH_RELEASE == 'true') {
+                            if (IS_PATCH_RELEASE == 'true') {
                                 RELEASE_JOB_NAME = 'verrazzano/' + env.GIT_BRANCH
                             } else {
                                 def parts = params.TARGET_VERSION.split("\\.")
