@@ -65,6 +65,10 @@ func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Conte
 // Validate that the secrets referenced in the MultiClusterApplicationConfiguration resource exist in the
 // same namespace as the MultiClusterApplicationConfiguration resource.
 func (v *MultiClusterApplicationConfigurationValidator) validateSecrets(mcac *v1alpha1.MultiClusterApplicationConfiguration) error {
+	if len(mcac.Spec.Secrets) == 0 {
+		return nil
+	}
+
 	secrets := corev1.SecretList{}
 	listOptions := &client.ListOptions{Namespace: mcac.Namespace}
 	err := v.client.List(context.TODO(), &secrets, listOptions)
