@@ -752,15 +752,15 @@ def setDisplayName() {
     def causes = currentBuild.getBuildCauses()
     echo "causes: " + causes.toString()
     for (cause in causes) {
-        echo "current cause: " + cause.toString()
-        if (cause.class.toString().contains("UpstreamCause")) {
-             def upstreamCause = cause.toString()
-             echo "This job was caused by " + upstreamCause
-             if (upstreamCause.contains("verrazzano-periodic-triggered-tests")) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        if (causeString.contains("UpstreamCause") && causeString.contains("Started by upstream project")) {
+             echo "This job was caused by " + causeString
+             if (causeString.contains("verrazzano-periodic-triggered-tests")) {
                  currentBuild.displayName = env.BUILD_NUMBER + " : PERIODIC"
-             } else if (upstreamCause.contains("verrazzano-flaky-tests")) {
+             } else if (causeString.contains("verrazzano-flaky-tests")) {
                  currentBuild.displayName = env.BUILD_NUMBER + " : FLAKY"
-             } else if (upstreamCause.contains("tvlatas")) {
+             } else if (causeString.contains("tvlatas")) {
                  currentBuild.displayName = env.BUILD_NUMBER + " : TONY-BRANCH-TEST"
              }
          }
