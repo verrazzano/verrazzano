@@ -262,7 +262,7 @@ func cleanUp(kubeconfigPath string) error {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon application resource: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-comp.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/hello-helidon-comp.yaml", kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon component resources: %v", err)
 	}
 

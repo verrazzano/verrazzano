@@ -54,7 +54,7 @@ pipeline {
                 choices: [ "1.19", "1.18", "1.17", "1.20" ])
         string (name: 'VERSION_FOR_INSTALL',
                 defaultValue: 'v1.0.0',
-                description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
+                description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.0.0 release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
@@ -438,11 +438,6 @@ pipeline {
                         verifyRegisterManagedClusters()
                     }
                 }
-                stage ('Verify Managed Cluster Permissions') {
-                    steps {
-                        verifyManagedClusterPermissions()
-                    }
-                }
                 stage ('Verify Metrics') {
                     steps {
                         runGinkgoRandomize('metrics/syscomponents')
@@ -502,18 +497,12 @@ pipeline {
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
-                                script {
-                                    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                    sh """
-                                        export MANAGED_CLUSTER_NAME="managed1"
-                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                        export CLUSTER_COUNT=$clusterCount
-                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                        export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-                                        ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon/...
-                                    """
-                                }
+                                testHelidonExample("multicluster/examples/helidon")
+                            }
+                        }
+                        stage ('Examples Helidon Deprecated') {
+                            steps {
+                                testHelidonExample("multicluster/examples/helidon-deprecated")
                             }
                         }
                         stage ('Delete Deployed App NS') {
@@ -986,6 +975,22 @@ def verifyManagedClusterPermissions() {
     }
 }
 
+// Test the multicluster Helidon example
+def testHelidonExample(testSuitePath) {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        sh """
+            export MANAGED_CLUSTER_NAME="managed1"
+            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export CLUSTER_COUNT=$clusterCount
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+        """
+    }
+
+}
 
 // Run a test suite against all clusters
 def runGinkgoRandomize(testSuitePath) {

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -154,7 +155,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_ACCESS_KUBECONFIG"))
 		})
 
-		It("managed cluster can access config map but not modify it", func() {
+		It("managed cluster can access MultiClusterConfigMap but not modify it", func() {
 			Eventually(func() (bool, error) {
 				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
@@ -178,7 +179,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
-		It("managed cluster can access secret but not modify it", func() {
+		It("managed cluster can access MultiClusterSecret but not modify it", func() {
 			Eventually(func() (bool, error) {
 				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
@@ -194,6 +195,30 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			// try to delete
 			Eventually(func() (bool, error) {
 				err := DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &v1.Secret{})
+				// if we didn't get an error, fail immediately
+				if err == nil {
+					return false, goerrors.New("Expected error from DeleteResourceFromFile")
+				}
+				return errors.IsForbidden(err), nil
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+		})
+
+		It("managed cluster can access OAM Component but not modify it", func() {
+			Eventually(func() (bool, error) {
+				return findComponent(anotherTestNamespace, "oam-component")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find OAM Component")
+			// try to update
+			Eventually(func() (bool, error) {
+				err := CreateOrUpdateResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
+				// if we didn't get an error, fail immediately
+				if err == nil {
+					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
+				}
+				return errors.IsForbidden(err), nil
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+			// try to delete
+			Eventually(func() (bool, error) {
+				err := DeleteResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from DeleteResourceFromFile")
@@ -372,6 +397,12 @@ func deployTestResources() {
 	Eventually(func() error {
 		return CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	// create a OAM Component
+	pkg.Log(pkg.Info, "Creating OAM Component")
+	Eventually(func() error {
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 
 // undeployTestResources undeploys the test associated multi cluster resources
@@ -390,6 +421,12 @@ func undeployTestResources() {
 	pkg.Log(pkg.Info, "Deleting MC secret")
 	Eventually(func() error {
 		return DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	// delete a OAM Component
+	pkg.Log(pkg.Info, "Deleting OAM Component")
+	Eventually(func() error {
+		return DeleteResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete the test project
@@ -497,6 +534,20 @@ func findMultiClusterSecret(namespace, name string) (bool, error) {
 	return false, nil
 }
 
+// findComponent returns true if the OAM component is found based on name and namespace, false otherwise
+func findComponent(namespace, name string) (bool, error) {
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		return false, err
+	}
+	component := &oamv1alpha2.Component{}
+	err = clustersClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, component)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // getClustersClient returns a k8s client
 func getClustersClient() (client.Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv(k8sutil.EnvVarTestKubeConfig))
@@ -510,6 +561,7 @@ func getClustersClient() (client.Client, error) {
 	_ = vmcv1alpha1.AddToScheme(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
 	_ = v1.AddToScheme(scheme)
+	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
