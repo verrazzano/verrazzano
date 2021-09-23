@@ -752,7 +752,7 @@ def setDisplayName() {
     for (cause in causes) {
         if (cause.class.toString().contains("UpstreamCause")) {
              def upstreamCause = cause.toString()
-             println "This job was caused by " + upstreamCause
+             echo "This job was caused by " + upstreamCause
              if (upstreamCause.contains("verrazzano-periodic-triggered-tests")) {
                  currentBuild.displayName = env.BUILD_NUMBER + " : PERIODIC"
              } else if (upstreamCause.contains("verrazzano-flaky-tests")) {
