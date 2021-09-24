@@ -141,7 +141,6 @@ pipeline {
             }
             steps {
                 script {
-                    ## Just validate the github cli log-in
                     withCredentials([string(credentialsId: 'github-markxnelns-private-access-token', variable: 'GH_TOKEN')]) {
                       sh '''
                         export GITHUB_TOKEN=
