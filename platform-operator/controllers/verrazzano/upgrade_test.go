@@ -7,12 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	istiocomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
+	"go.uber.org/zap"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -558,87 +556,18 @@ func TestUpgradeCompleted(t *testing.T) {
 			return nil
 		})
 
-	oldLabels := make(map[string]string)
-	oldLabels["istio-injection"] = "enabled"
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
-			ns.Labels = oldLabels
-			return nil
-		})
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.IngressNginxNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
-			ns.Labels = oldLabels
-			return nil
-		})
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.KeycloakNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
-			ns.Labels = oldLabels
-			return nil
-		})
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
-			newLabels := make(map[string]string)
-			newLabels["istio.io/rev"] = "1-10-2"
-			ns.Labels = newLabels
-			return nil
-		}).Times(3)
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deployList *appsv1.DeploymentList) error {
-			deployList.Items = []appsv1.Deployment{{}}
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ssList *appsv1.StatefulSetList) error {
-			ssList.Items = []appsv1.StatefulSet{{}}
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, dsList *appsv1.DaemonSetList) error {
-			dsList.Items = []appsv1.DaemonSet{{}}
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
-			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
-			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ss.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
-			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ds.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
+	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return []byte(""), []byte(""), nil
+	})
+	defer istiocomp.ResetIstioUpgradeFunction()
+	istiocomp.SetLabelAndRestartFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
+		return nil
+	})
+	defer istiocomp.ResetLabelAndRestartFn()
 
 	// Inject a fake cmd runner to the real helm is not called
 	helm.SetCmdRunner(goodRunner{})
-	istio.SetCmdRunner(goodRunner{})
+	//istio.SetCmdRunner(goodRunner{})
 	helmcomp.UpgradePrehooksEnabled = false
 
 	// Stubout the call to check the chart status
@@ -679,6 +608,15 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return []byte(""), []byte(""), nil
+	})
+	defer istiocomp.ResetIstioUpgradeFunction()
+	istiocomp.SetLabelAndRestartFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
+		return nil
+	})
+	defer istiocomp.ResetLabelAndRestartFn()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -724,84 +662,6 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeComplete, "Incorrect conditions")
 			return fmt.Errorf("Unexpected status error")
 		})
-
-	oldLabels := make(map[string]string)
-	oldLabels["istio-injection"] = "enabled"
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
-			ns.Labels = oldLabels
-			return nil
-		})
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.IngressNginxNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
-			ns.Labels = oldLabels
-			return nil
-		})
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.KeycloakNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
-			ns.Labels = oldLabels
-			return nil
-		})
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
-			newLabels := make(map[string]string)
-			newLabels["istio.io/rev"] = "1-10-2"
-			ns.Labels = newLabels
-			return nil
-		}).Times(3)
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deployList *appsv1.DeploymentList) error {
-			deployList.Items = []appsv1.Deployment{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ssList *appsv1.StatefulSetList) error {
-			ssList.Items = []appsv1.StatefulSet{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, dsList *appsv1.DaemonSetList) error {
-			dsList.Items = []appsv1.DaemonSet{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
-			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
-			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ss.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
-			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ds.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
 
 	// Inject a fake cmd runner to the real helm is not called
 	helm.SetCmdRunner(goodRunner{})

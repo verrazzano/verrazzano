@@ -39,6 +39,26 @@ type upgradeFuncSig func(log *zap.SugaredLogger, overridesFiles ...string) (stdo
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = istio.Upgrade
 
+func SetIstioUpgradeFunction(fn upgradeFuncSig) {
+	upgradeFunc = fn
+}
+
+func ResetIstioUpgradeFunction() {
+	upgradeFunc = istio.Upgrade
+}
+
+type LabelAndResartFnType func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
+
+var labelAndResartFn = labelAndRestartSystemComponents
+
+func SetLabelAndRestartFn(fn LabelAndResartFnType) {
+	labelAndResartFn = fn
+}
+
+func ResetLabelAndRestartFn() {
+	labelAndResartFn = labelAndRestartSystemComponents
+}
+
 // Name returns the component name
 func (i IstioComponent) Name() string {
 	return "istio"
@@ -91,6 +111,15 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 		return err
 	}
 
+	err = labelAndResartFn(log, err, i, client)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func labelAndRestartSystemComponents(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error {
 	err = i.labelSystemNamespaces(log, client)
 	if err != nil {
 		return err
@@ -100,8 +129,7 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 	if err != nil {
 		return err
 	}
-
-	return err
+	return nil
 }
 
 func setUpgradeFunc(f upgradeFuncSig) {
@@ -172,7 +200,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for _, deployment := range deploymentList.Items {
+	for index, deployment := range deploymentList.Items {
 		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
 			if deployment.Spec.Paused {
 				return errors.Newf("Deployment %v can't be restarted because it is paused", deployment.Name)
@@ -181,8 +209,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
 			deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
-			err = client.Update(context.TODO(), &deployment)
-			if err != nil {
+			if err := client.Update(context.TODO(), &deploymentList.Items[index]); err != nil {
 				return err
 			}
 		}
@@ -196,14 +223,13 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for _, statefulSet := range statefulSetList.Items {
+	for index, statefulSet := range statefulSetList.Items {
 		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
 			statefulSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
-			err = client.Update(context.TODO(), &statefulSet)
-			if err != nil {
+			if err := client.Update(context.TODO(), &statefulSetList.Items[index]); err != nil {
 				return err
 			}
 		}
@@ -216,14 +242,13 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for _, daemonSet := range daemonSetList.Items {
+	for index, daemonSet := range daemonSetList.Items {
 		if contains(i.InjectedSystemNamespaces, daemonSet.Namespace) {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
 			daemonSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
-			err = client.Update(context.TODO(), &daemonSet)
-			if err != nil {
+			if err := client.Update(context.TODO(), &daemonSetList.Items[index]); err != nil {
 				return err
 			}
 		}
