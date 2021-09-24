@@ -760,8 +760,6 @@ def setDisplayName() {
                  currentBuild.displayName = env.BUILD_NUMBER + " : PERIODIC"
              } else if (causeString.contains("verrazzano-flaky-tests")) {
                  currentBuild.displayName = env.BUILD_NUMBER + " : FLAKY"
-             } else if (causeString.contains("tvlatas")) {
-                 currentBuild.displayName = env.BUILD_NUMBER + " : TONY-BRANCH-TEST"
              }
          }
     }
