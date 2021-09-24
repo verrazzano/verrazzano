@@ -47,7 +47,7 @@ spec:
 `
 
 // Template for merging externalIp YAML
-const externalIpTemplate = `
+const externalIPTemplate = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
@@ -67,11 +67,6 @@ type templateValues struct {
 	Values string
 }
 
-// templateExternalIP needed for template rendering of external IPs.
-type templateExternalIP struct {
-	ExternalIps string
-}
-
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
 // Transform the Verrazzano CR IstioComponent provided by the user onto an IstioOperator formatted YAML
 func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
@@ -80,7 +75,7 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 
 	// This is a special case where Istio helm chart no logner supports ExternalIPs
 	// So we need to put it into the IstioOperator YAML, which does support it
-	const ExternalIpKey = "gateways.istio-ingressgateway.externalIPs"
+	const ExternalIPKey = "gateways.istio-ingressgateway.externalIPs"
 	var externalIPYaml string
 
 	// Build a list of YAML strings from the IstioComponent initargs, one for each arg.
@@ -94,7 +89,7 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if arg.Name == ExternalIpKey {
+		if arg.Name == ExternalIPKey {
 			// This is handled seperately
 			externalIPYaml = yaml
 			continue
@@ -119,7 +114,7 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	// If the externalIPs exists, the render the YAML and merge it
 	if len(externalIPYaml) > 0 {
 		// Render the IstioOperator YAML with the external IPs
-		extYaml, err := renderExternalIpYAML(externalIPYaml)
+		extYaml, err := renderExternalIPYAML(externalIPYaml)
 		if err != nil {
 			return "", err
 		}
@@ -148,8 +143,8 @@ func renderHelmValues(yaml string) (string, error) {
 }
 
 // Render the externalIP values using the template, return the YAML
-func renderExternalIpYAML(yaml string) (string, error) {
-	t, err := template.New("externalIP").Parse(externalIpTemplate)
+func renderExternalIPYAML(yaml string) (string, error) {
+	t, err := template.New("externalIP").Parse(externalIPTemplate)
 	if err != nil {
 		return "", err
 	}
