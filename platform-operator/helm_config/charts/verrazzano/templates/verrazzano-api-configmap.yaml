@@ -715,8 +715,6 @@ data:
         local expiryBuffer = 30
         cookiePairs.expiry = now + expires_in - skew - expiryBuffer
         cookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
-        userCookiePairs.expiry = now + expires_in - skew - expiryBuffer
-        userCookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
         local expiresInSec = tonumber(tokenRes.refresh_expires_in)-expiryBuffer
         me.setCookie("vz_authn", cookiePairs, expiresInSec, true)
         me.setCookie("vz_userinfo", userCookiePairs, expiresInSec, false)
