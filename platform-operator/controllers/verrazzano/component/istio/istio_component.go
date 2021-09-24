@@ -81,7 +81,6 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 }
 
 func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, client clipkg.Client, _ string, _ bool) error {
-	log.Info("Upgrade func")
 	var tmpFile *os.File
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "values-*.yaml")
 	if err != nil {
