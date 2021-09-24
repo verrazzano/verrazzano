@@ -14,7 +14,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// reconcileComponents Reconcile components individually
+// reconcileComponents Reconcile components individually using the following rules:
+// 1. Always requeue until all enabled components have completed installation
+// 2. Loop through all components before returning, except for the case
+//    where update status fails, in which case we exit the function and requeue
+//    immediately.
 func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogger, cr *vzapi.Verrazzano) (ctrl.Result, error) {
 
 	var requeue bool
@@ -35,7 +39,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				continue
 			}
 			if err := r.updateComponentStatus(log, cr, comp.Name(), "PreInstall started", vzapi.PreInstall); err != nil {
-				return newRequeueWithDelay(), err
+				return ctrl.Result{Requeue: true}, err
 			}
 			requeue = true
 
@@ -58,7 +62,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				continue
 			}
 			if err := r.updateComponentStatus(log, cr, comp.Name(), "Install started", vzapi.InstallStarted); err != nil {
-				return newRequeueWithDelay(), err
+				return ctrl.Result{Requeue: true}, err
 			}
 			// Install started requeue to check status
 			requeue = true
@@ -77,7 +81,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				// Don't requeue because of this component, it is done install
 				continue
 			}
-			// Install is not done, requeue to check status
+			// Install of this component is not done, requeue to check status
 			requeue = true
 		}
 	}
