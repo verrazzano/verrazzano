@@ -51,46 +51,46 @@ const expanded5 = `aa:
 // THEN ensure that the expanded result is correct.
 func TestExpand(t *testing.T) {
 	tests := []struct {
-		testName string
-		name     string
+		testName  string
+		name      string
 		forceList bool
-		values   []string
-		expected string
+		values    []string
+		expected  string
 	}{
 		{
-			testName: "1",
-			name:     name1,
+			testName:  "1",
+			name:      name1,
 			forceList: false,
-			values:   []string{val1},
-			expected: expanded1,
+			values:    []string{val1},
+			expected:  expanded1,
 		},
 		{
-			testName: "2",
-			name:     name2,
+			testName:  "2",
+			name:      name2,
 			forceList: false,
-			values:   []string{val2},
-			expected: expanded2,
+			values:    []string{val2},
+			expected:  expanded2,
 		},
 		{
-			testName: "3",
-			name:     name3,
+			testName:  "3",
+			name:      name3,
 			forceList: false,
-			values:   []string{val3},
-			expected: expanded3,
+			values:    []string{val3},
+			expected:  expanded3,
 		},
 		{
-			testName: "4",
-			name:     name4,
+			testName:  "4",
+			name:      name4,
 			forceList: false,
-			values:   []string{val4a, val4b, val4c},
-			expected: expanded4,
+			values:    []string{val4a, val4b, val4c},
+			expected:  expanded4,
 		},
 		{
-			testName: "5",
-			name:     name5,
+			testName:  "5",
+			name:      name5,
 			forceList: true,
-			values:   []string{val5},
-			expected: expanded5,
+			values:    []string{val5},
+			expected:  expanded5,
 		},
 	}
 	for _, test := range tests {

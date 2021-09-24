@@ -90,7 +90,7 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 // writeVals writes a single value or a list of values to the string builder.
 // If forcelist is true then always use the list format.
 func writeVals(b *strings.Builder, forceList bool, pad string, vals ...string) error {
-	if len(vals) == 1 && !forceList{
+	if len(vals) == 1 && !forceList {
 		// Write the single value, for example:
 		// key: val1
 		_, err := b.WriteString(" " + vals[0])
