@@ -140,7 +140,7 @@ func (i IstioComponent) PostInstall(log *zap.SugaredLogger, client clipkg.Client
 // createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
 func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client clipkg.Client) error {
 	for _, ns := range i.InjectedSystemNamespaces {
-		var platformNS corev1.Namespace
+		platformNS := corev1.Namespace{}
 		err := client.Get(context.TODO(), types.NamespacedName{Name: ns}, &platformNS)
 		if err != nil {
 			return err
@@ -172,9 +172,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for _, deploy := range deploymentList.Items {
-		// for Update call
-		deployment := deploy
+	for _, deployment := range deploymentList.Items {
 		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
 			if deployment.Spec.Paused {
 				return errors.Newf("Deployment %v can't be restarted because it is paused", deployment.Name)
@@ -192,13 +190,13 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	log.Info("Restarted system deployments in istio injected namespaces")
 
 	// Restart all the StatefulSet in the injected system namespaces
-	var statefulSetList appsv1.StatefulSetList
+	//var statefulSetList appsv1.StatefulSetList
+	statefulSetList := appsv1.StatefulSetList{}
 	err = client.List(context.TODO(), &statefulSetList)
 	if err != nil {
 		return err
 	}
-	for _, ss := range statefulSetList.Items {
-		statefulSet := ss
+	for _, statefulSet := range statefulSetList.Items {
 		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -218,8 +216,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for _, ds := range daemonSetList.Items {
-		daemonSet := ds
+	for _, daemonSet := range daemonSetList.Items {
 		if contains(i.InjectedSystemNamespaces, daemonSet.Namespace) {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
