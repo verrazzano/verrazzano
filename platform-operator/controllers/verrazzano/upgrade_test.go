@@ -9,6 +9,8 @@ import (
 	"fmt"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -554,6 +556,8 @@ func TestUpgradeCompleted(t *testing.T) {
 			return nil
 		})
 
+	upgradePrometheusExpectations(t, mock)
+
 	// Inject a fake cmd runner to the real helm is not called
 	helm.SetCmdRunner(goodRunner{})
 	helmcomp.UpgradePrehooksEnabled = false
@@ -574,6 +578,39 @@ func TestUpgradeCompleted(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+func upgradePrometheusExpectations(t *testing.T, mock *mocks.MockClient) {
+	// Expect a call to get the KeyCloak Service
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "keycloak", Name: "keycloak-http"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
+			service.Name = "keycloak-http"
+			service.Namespace = "keycloak"
+			service.Spec.ClusterIP = "10.10.10.10"
+			return nil
+		})
+
+	// Expect a call to get the Prometheus Deployment twice
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-0"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+			deployment.Name = "vmi-system-prometheus-0"
+			deployment.Namespace = "verrazzano-system"
+			deployment.Spec.Template.Annotations = make(map[string]string)
+			return nil
+		}).Times(2)
+
+	// Expect a call to update the Prometheus deployment object
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.UpdateOption) error {
+			assert.True(t, len(deployment.Spec.Template.Annotations) > 0)
+			annotation, ok := deployment.Spec.Template.Annotations["traffic.sidecar.istio.io/includeOutboundIPRanges"]
+			assert.True(t, ok, "Did not find expected annotation")
+			assert.Contains(t, annotation, "10.10.10.10/32")
+			return nil
+		})
 }
 
 // TestUpgradeCompletedStatusReturnsError tests the reconcileUpgrade method for the following use case
@@ -641,6 +678,8 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeComplete, "Incorrect conditions")
 			return fmt.Errorf("Unexpected status error")
 		})
+
+	upgradePrometheusExpectations(t, mock)
 
 	// Inject a fake cmd runner to the real helm is not called
 	helm.SetCmdRunner(goodRunner{})
