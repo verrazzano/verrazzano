@@ -24,7 +24,8 @@ pipeline {
     parameters {
         string (description: 'The release branch', name: 'RELEASE_BRANCH', defaultValue: 'NONE', trim: true)
         string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
-        string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
+        string (description: 'The source commit for the release (required for full release)', name: 'RELEASE_COMMIT', defaultValue: 'NONE', trim: true )
+        string (description: 'The full git commit hash from the source build', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
         booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
     }
 
@@ -55,7 +56,6 @@ pipeline {
                     echo "${NODE_LABELS}"
                 """
                 script {
-
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
@@ -80,14 +80,19 @@ pipeline {
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
+                sh """
+                    cp -f "${NETRC_FILE}" $HOME/.netrc
+                    chmod 600 $HOME/.netrc
+                """
 
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
             }
         }
@@ -151,7 +156,7 @@ pipeline {
                     sh """
                         ## export GITHUB_TOKEN=
                         cd ${WORKSPACE}/release/scripts
-                        ./create_github_release.sh ${params.RELEASE_VERSION} ${params.COMMIT_TO_USE} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
+                        ./create_github_release.sh ${params.RELEASE_VERSION} ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
                         gh
                     """
                 }
