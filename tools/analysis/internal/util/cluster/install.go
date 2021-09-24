@@ -21,6 +21,7 @@ var installFailedRe = regexp.MustCompile(`Install.*\[FAILED\]`)
 // and the advice can be to refer to the supporting details on the limit that was exceeded. We can change it up
 // if we need a more precise match
 var ephemeralIPLimitReachedRe = regexp.MustCompile(`.*Limit for non-ephemeral regional public IP per tenant of .* has been already reached`)
+var lbServiceLimitReachedRe = regexp.MustCompile(`.*The following service limits were exceeded: lb-.*`)
 
 const (
 	// Service name
@@ -117,6 +118,10 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			log.Debugf("Failed to get events related to the NGINX ingress controller service", err)
 			return err
 		}
+		//flags to make sure we're not capturing the same event message repeatedly
+		ephemeralIPLimitReachedCheck := false
+		lbServiceLimitReachedCheck := false
+
 		// Check if the event matches failure
 		log.Debugf("Found %d events", len(events))
 		for _, event := range events {
@@ -125,7 +130,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 				continue
 			}
 			log.Debugf("analyzeNGINXIngressController event Reason: %s", event.Message)
-			if ephemeralIPLimitReachedRe.MatchString(event.Message) {
+			if ephemeralIPLimitReachedRe.MatchString(event.Message) && !ephemeralIPLimitReachedCheck {
 				messages := make(StringSlice, 1)
 				messages[0] = event.Message
 				eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, "events.json")
@@ -134,6 +139,17 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 				files[1] = eventFile
 				issueReporter.AddKnownIssueMessagesFiles(report.IngressOciIPLimitExceeded, clusterRoot, messages, files)
 				issueDetected = true
+				ephemeralIPLimitReachedCheck = true
+			} else if lbServiceLimitReachedRe.MatchString(event.Message) && !lbServiceLimitReachedCheck {
+				messages := make(StringSlice, 1)
+				messages[0] = event.Message
+				eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, "events.json")
+				files := make(StringSlice, 2)
+				files[0] = podFile
+				files[1] = eventFile
+				issueReporter.AddKnownIssueMessagesFiles(report.IngressLBLimitExceeded, clusterRoot, messages, files)
+				issueDetected = true
+				lbServiceLimitReachedCheck = true
 			}
 		}
 
