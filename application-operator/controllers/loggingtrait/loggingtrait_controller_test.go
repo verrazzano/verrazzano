@@ -4,8 +4,21 @@
 package loggingtrait
 
 import (
+	"context"
+	"encoding/json"
+	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	k8sapps "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"testing"
+	"time"
 
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
@@ -14,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
+	restclient "k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	// +kubebuilder:scaffold:imports
 )
@@ -47,4 +61,267 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	err = reconciler.SetupWithManager(mgr)
 	mocker.Finish()
 	assert.NoError(err)
+}
+
+// TestLoggingTraitCreatedForContainerizedWorkload tests the creation of a logging trait related to a containerized workload.
+// GIVEN a logging trait that has been created
+// AND the logging trait is related to a containerized workload
+// WHEN the logging trait Reconcile method is invoked
+// THEN verify that logging trait finalizer is added
+// AND verify that pod annotations are updated
+// AND verify that the scraper configmap is updated
+// AND verify that the scraper pod is restarted
+func TestLoggingTraitCreatedForContainerizedWorkload(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+
+	namespaceName := "test-namespace"
+	traitName := "test-trait-name"
+	workloadName := "test-workload-name"
+	workloadUID := "test-workload-uid"
+	deploymentName := "test-deployment-name"
+	testDeployment := newDeployment(deploymentName, namespaceName, workloadName, workloadUID)
+
+	// Expect a call to get the logging trait
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: traitName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.LoggingTrait) error {
+			trait.SetWorkloadReference(oamrt.TypedReference{
+				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
+				Kind:       oamcore.ContainerizedWorkloadKind,
+				Name:       workloadName,
+				UID:        types.UID(workloadUID),
+			})
+			trait.SetNamespace(namespaceName)
+			return nil
+		})
+	// Expect a call to get the workload
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured) error {
+			return nil
+		})
+	// Expect a call to get the workload definition
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workloadDef *oamcore.WorkloadDefinition) error {
+			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
+				{
+					APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
+					Kind:       "Deployment",
+				},
+			}
+			return nil
+		})
+	// Expect to list config map
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(namespaceName), client.MatchingFields{"metadata.name": "logging-stdout-test-deployment-name-deployment"}).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, name client.InNamespace, fields client.MatchingFields) error {
+			return nil
+		})
+	// Expect to create a config map
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Not(gomock.Nil()), &client.CreateOptions{}).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts *client.CreateOptions) error {
+			return nil
+		})
+	// Expect a call to get the deployment
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: deploymentName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured) error {
+			return nil
+		})
+	// Expect a call to list the child Deployment resources of the containerized workload definition
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+			assert.Equal("Deployment", list.GetKind())
+			return appendAsUnstructured(list, testDeployment)
+		})
+	// Expect a call to get the status writer
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Create and make the request
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: namespaceName, Name: "test-trait-name"}}
+
+	reconciler := newLoggingTraitReconciler(mock, t)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestDeleteLoggingTraitFromContainerizedWorkload tests the deletion of a logging trait related to a containerized workload.
+// GIVEN a logging trait
+// AND the logging trait is related to a containerized workload
+// WHEN the logging trait reconcileTraitDelete method is invoked
+// THEN verify that the logging trait has been deleted
+func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	namespaceName := "test-namespace"
+	traitName := "test-trait-name"
+	workloadName := "test-workload-name"
+	workloadUID := "test-workload-uid"
+	deploymentName := "test-deployment-name"
+	testDeployment := newDeployment(deploymentName, namespaceName, workloadName, workloadUID)
+
+	// Create trait for deletion
+	trait := vzapi.LoggingTrait{
+		TypeMeta: k8smeta.TypeMeta{
+			Kind: vzapi.LoggingTraitKind,
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:      traitName,
+			Namespace: namespaceName,
+		},
+		Spec: vzapi.LoggingTraitSpec{
+			WorkloadReference: oamrt.TypedReference{
+				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
+				Kind:       oamcore.ContainerizedWorkloadKind,
+				Name:       workloadName,
+				UID:        types.UID(workloadUID),
+			},
+		},
+		Status: vzapi.LoggingTraitStatus{},
+	}
+
+	// Expect a call to get the workload
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
+			workload.SetNamespace(namespaceName)
+			return nil
+		})
+	// Expect a call to get the workload definition
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workloadDef *oamcore.WorkloadDefinition) error {
+			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
+				{
+					APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
+					Kind:       "Deployment",
+				},
+			}
+			return nil
+		})
+	// Expect to list deployment
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(namespaceName), client.MatchingLabels(nil)).
+		DoAndReturn(func(ctx context.Context, deployment *unstructured.UnstructuredList, name client.InNamespace, labels map[string]string) error {
+			unstructuredDeployment, err := convertToUnstructured(testDeployment)
+			if err != nil {
+				t.Fatalf("Could not create unstructured Deployment")
+			}
+			deployment.Items = []unstructured.Unstructured{unstructuredDeployment}
+			return nil
+		})
+	// Expect a call to get the deployment
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: deploymentName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured) error {
+			return nil
+		})
+	// Expect to list config map
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(namespaceName), client.MatchingFields{"metadata.name": "logging-stdout-test-deployment-name-deployment"}).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, name client.InNamespace, fields client.MatchingFields) error {
+			return nil
+		})
+
+	reconciler := newLoggingTraitReconciler(mock, t)
+	result, err := reconciler.reconcileTraitDelete(context.TODO(), log.Log, &trait)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// convertToUnstructured converts an object to an Unstructured version
+// object - The object to convert to Unstructured
+func convertToUnstructured(object interface{}) (unstructured.Unstructured, error) {
+	bytes, err := json.Marshal(object)
+	if err != nil {
+		return unstructured.Unstructured{}, err
+	}
+	var u map[string]interface{}
+	json.Unmarshal(bytes, &u)
+	return unstructured.Unstructured{Object: u}, nil
+}
+
+// appendAsUnstructured appends an object to the list after converting it to an Unstructured
+// list - The list to append to.
+// object - The object to convert to Unstructured and append to the list
+func appendAsUnstructured(list *unstructured.UnstructuredList, object interface{}) error {
+	u, err := convertToUnstructured(object)
+	if err != nil {
+		return err
+	}
+	list.Items = append(list.Items, u)
+	return nil
+}
+
+// newLoggingTraitReconciler creates a new reconciler for testing
+// cli - The Kerberos client to inject into the reconciler
+func newLoggingTraitReconciler(cli client.Client, t *testing.T) LoggingTraitReconciler {
+	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+	scheme := runtime.NewScheme()
+	vzapi.AddToScheme(scheme)
+	reconciler := LoggingTraitReconciler{
+		Client:          cli,
+		Log:             ctrl.Log,
+		Scheme:          scheme,
+		DiscoveryClient: newDiscoveryClient(t),
+	}
+	return reconciler
+}
+
+// Create document resource for tests
+func newDiscoveryClient(t *testing.T) discovery.DiscoveryClient {
+	server, err := openapiSchemaFakeServer(t)
+	if err != nil {
+		t.Fatalf("Could not create fake server from openapi, %v", err)
+	}
+	client := discovery.NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
+	return *client
+}
+
+func newDeployment(deploymentName string, namespaceName string, workloadName string, workloadUID string) k8sapps.Deployment {
+	return k8sapps.Deployment{
+		TypeMeta: k8smeta.TypeMeta{
+			APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
+			Kind:       "Deployment",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:              deploymentName,
+			Namespace:         namespaceName,
+			CreationTimestamp: k8smeta.Now(),
+			OwnerReferences: []k8smeta.OwnerReference{
+				{
+					APIVersion: oamcore.SchemeGroupVersion.Identifier(),
+					Kind:       oamcore.ContainerizedWorkloadKind,
+					Name:       workloadName,
+					UID:        types.UID(workloadUID),
+				},
+			},
+		},
+		Spec: k8sapps.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "test-container",
+						},
+					},
+				},
+			},
+		},
+	}
 }

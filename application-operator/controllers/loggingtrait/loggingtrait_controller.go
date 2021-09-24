@@ -301,10 +301,10 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				log.Error(err, "Failed to unmarshal a volumeMount for logging")
 			}
 
-			var volumeMountFieldPath []string
+			var volumeMountFieldPath = []string{"volumeMounts"}
 			var resourceVolumeMounts []interface{}
 			for _, resContainer := range resourceContainers {
-				volumeMounts, ok, err := unstructured.NestedSlice(resContainer.(map[string]interface{}), []string{"volumeMounts"}...)
+				volumeMounts, ok, err := unstructured.NestedSlice(resContainer.(map[string]interface{}), volumeMountFieldPath...)
 				if err != nil {
 					log.Error(err, "Failed to gather resource container volumeMounts")
 					return reconcile.Result{}, true, errors.Wrap(err, errLoggingResource)
