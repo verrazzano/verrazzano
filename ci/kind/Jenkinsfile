@@ -195,6 +195,7 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
+                    setDisplayName()
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
             }
@@ -744,4 +745,23 @@ def metricBuildDuration() {
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
+}
+
+def setDisplayName() {
+    echo "Start setDisplayName"
+    def causes = currentBuild.getBuildCauses()
+    echo "causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        if (causeString.contains("UpstreamCause") && causeString.contains("Started by upstream project")) {
+             echo "This job was caused by " + causeString
+             if (causeString.contains("verrazzano-periodic-triggered-tests")) {
+                 currentBuild.displayName = env.BUILD_NUMBER + " : PERIODIC"
+             } else if (causeString.contains("verrazzano-flaky-tests")) {
+                 currentBuild.displayName = env.BUILD_NUMBER + " : FLAKY"
+             }
+         }
+    }
+    echo "End setDisplayName"
 }
