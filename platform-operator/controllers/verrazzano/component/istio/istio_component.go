@@ -5,11 +5,11 @@ package istio
 
 import (
 	"context"
+	"fmt"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
-	"gopkg.in/errgo.v2/fmt/errors"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -207,7 +207,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	for index, deployment := range deploymentList.Items {
 		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
 			if deployment.Spec.Paused {
-				return errors.Newf("Deployment %v can't be restarted because it is paused", deployment.Name)
+				return fmt.Errorf("Deployment %v can't be restarted because it is paused", deployment.Name)
 			}
 			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
