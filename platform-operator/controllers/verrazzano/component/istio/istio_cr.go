@@ -5,6 +5,7 @@ package istio
 
 import (
 	"bytes"
+	"strings"
 	"text/template"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -70,6 +71,7 @@ type templateValues struct {
 type templateExternalIP struct {
 	ExternalIps string
 }
+
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
 // Transform the Verrazzano CR IstioComponent provided by the user onto an IstioOperator formatted YAML
 func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
@@ -79,15 +81,11 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	// This is a special case where Istio helm chart no logner supports ExternalIPs
 	// So we need to put it into the IstioOperator YAML, which does support it
 	const ExternalIpKey = "gateways.istio-ingressgateway.externalIPs"
-	var externalIpArg *vzapi.InstallArgs
+	var externalIPYaml string
 
 	// Build a list of YAML strings from the IstioComponent initargs, one for each arg.
-	var yamls []string
-	for i, arg := range comp.IstioInstallArgs {
-		if arg.Name == ExternalIpKey {
-			externalIpArg = &comp.IstioInstallArgs[i]
-			continue
-		}
+	var expandedYamls []string
+	for _, arg := range comp.IstioInstallArgs {
 		values := arg.ValueList
 		if len(values) == 0 {
 			values = []string{arg.Value}
@@ -96,37 +94,36 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		yamls = append(yamls, yaml)
+		if arg.Name == ExternalIpKey {
+			// This is handled seperately
+			externalIPYaml = yaml
+			continue
+		} else {
+			expandedYamls = append(expandedYamls, yaml)
+		}
 	}
 
-	// Merge the YAML strings, second has precedence over first, third over second, and so forth.
-	merged, err := vzyaml.ReplacementMerge(yamls...)
+	// Merge all of the expanded YAMLs into a single YAML,
+	// second has precedence over first, third over second, and so forth.
+	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
 	if err != nil {
 		return "", err
 	}
 
-	// Combine the merged YAML with the template to provide the IstioOperator YAML
-	// First create the template then render it.
-	t, err := template.New("image").Parse(istioCrTempate)
+	// Render the IstioOperator YAML with the values yaml
+	merged, err = renderHelmValues(merged)
 	if err != nil {
 		return "", err
 	}
-	var rendered bytes.Buffer
-	tInput := templateValues{Values: merged}
-	err = t.Execute(&rendered, tInput)
-	if err != nil {
-		return "", err
-	}
-
-	// This the merged YAML
-	merged = rendered.String()
 
 	// If the externalIPs exists, the render the YAML and merge it
-	if externalIpArg != nil {
-		extYaml, err := renderExternalIpYAML(externalIpArg)
+	if len(externalIPYaml) > 0 {
+		// Render the IstioOperator YAML with the external IPs
+		extYaml, err := renderExternalIpYAML(externalIPYaml)
 		if err != nil {
 			return "", err
 		}
+		// Now merge the 2 IstioOperator YAMLs
 		merged, err = vzyaml.ReplacementMerge(merged, extYaml)
 		if err != nil {
 			return "", err
@@ -136,13 +133,13 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 }
 
 // Render the helm values using the template, return the YAML
-func renderHelmValues(yam string) (string, error) {
-	t, err := template.New("image").Parse(istioCrTempate)
+func renderHelmValues(yaml string) (string, error) {
+	t, err := template.New("values").Parse(istioCrTempate)
 	if err != nil {
 		return "", err
 	}
 	var rendered bytes.Buffer
-	tInput := templateValues{Values: yam}
+	tInput := templateValues{Values: yaml}
 	err = t.Execute(&rendered, tInput)
 	if err != nil {
 		return "", err
@@ -151,16 +148,33 @@ func renderHelmValues(yam string) (string, error) {
 }
 
 // Render the externalIP values using the template, return the YAML
-func renderExternalIpYAML(arg *vzapi.InstallArgs) (string, error) {
-	t, err := template.New("image").Parse(istioCrTempate)
+func renderExternalIpYAML(yaml string) (string, error) {
+	t, err := template.New("externalIP").Parse(externalIpTemplate)
 	if err != nil {
 		return "", err
 	}
 	var rendered bytes.Buffer
-	tInput := templateValues{Values: valuesYaml}
+	tInput := templateValues{Values: fixExternalIPYaml(yaml)}
 	err = t.Execute(&rendered, tInput)
 	if err != nil {
 		return "", err
 	}
 	return rendered.String(), nil
+}
+
+// Change the YAML from
+//       externalIPs
+//       - 1.2.3.4
+//       - 1.3.4.6
+//
+//  to
+//       - 1.2.3.4
+//       - 1.3.4.6
+//
+func fixExternalIPYaml(yaml string) string {
+	segs := strings.SplitN(yaml, "\n", 1)
+	if len(segs) == 2 {
+		return segs[1]
+	}
+	return ""
 }
