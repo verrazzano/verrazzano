@@ -6,7 +6,6 @@ package examples
 import (
 	"context"
 	"fmt"
-	"time"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -18,10 +17,7 @@ import (
 )
 
 const (
-	TestNamespace   = "hello-helidon" // currently only used for placement tests
-	pollingInterval = 5 * time.Second
-	waitTimeout     = 5 * time.Minute
-
+	TestNamespace         = "hello-helidon" // currently only used for placement tests
 	multiclusterNamespace = "verrazzano-mc"
 	projectName           = "hello-helidon"
 	appConfigName         = "hello-helidon-appconf"
@@ -31,21 +27,21 @@ const (
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 
-// DeployHelloHelidonApp deploys the hello-helidon example's VerrazzanoProject to the cluster with the given kubeConfigPath
+// DeployHelloHelidonProject deploys the hello-helidon example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeployHelloHelidonProject(kubeconfigPath string, sourceDir string) error {
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
-		return fmt.Errorf("Failed to create %s project resource: %v", sourceDir, err)
+		return fmt.Errorf("failed to create %s project resource: %v", sourceDir, err)
 	}
 	return nil
 }
 
 // DeployHelloHelidonApp deploys the hello-helidon example application to the cluster with the given kubeConfigPath
 func DeployHelloHelidonApp(kubeConfigPath string, sourceDir string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/mc-hello-helidon-comp.yaml", sourceDir), kubeConfigPath); err != nil {
-		return fmt.Errorf("Failed to create multi-cluster %s component resources: %v", sourceDir, err)
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/hello-helidon-comp.yaml", sourceDir), kubeConfigPath); err != nil {
+		return fmt.Errorf("failed to create multi-cluster %s component resources: %v", sourceDir, err)
 	}
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/mc-hello-helidon-app.yaml", sourceDir), kubeConfigPath); err != nil {
-		return fmt.Errorf("Failed to create multi-cluster %s application resource: %v", sourceDir, err)
+		return fmt.Errorf("failed to create multi-cluster %s application resource: %v", sourceDir, err)
 	}
 	return nil
 }
@@ -65,18 +61,34 @@ func ChangePlacementToManagedCluster(kubeconfigPath string) error {
 // changePlacement patches the hello-helidon example with the given patch file
 // and uses the given kubeConfigPath as the cluster in which to do the patch
 func changePlacement(kubeConfigPath string, patchFile string) error {
+	mcAppGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.MultiClusterAppConfigResource)
+	vpGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.VerrazzanoProjectResource)
+
+	if err := pkg.PatchResourceFromFileInCluster(mcAppGvr, TestNamespace, appConfigName, patchFile, kubeConfigPath); err != nil {
+		return fmt.Errorf("failed to change placement of multicluster hello-helidon application resource: %v", err)
+	}
+	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projectName, patchFile, kubeConfigPath); err != nil {
+		return fmt.Errorf("failed to create VerrazzanoProject resource: %v", err)
+	}
+	return nil
+}
+
+// ChangePlacementV100 patches the hello-helidon example with the given patch file
+// and uses the given kubeConfigPath as the cluster in which to do the patch
+// v1.0.0 variant of this function - requires edit to placement in mcComp resources
+func ChangePlacementV100(kubeConfigPath string, patchFile string, namespace string, projName string) error {
 	mcCompGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.MultiClusterComponentResource)
 	mcAppGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.MultiClusterAppConfigResource)
 	vpGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.VerrazzanoProjectResource)
 
-	if err := pkg.PatchResourceFromFileInCluster(mcCompGvr, TestNamespace, componentName, patchFile, kubeConfigPath); err != nil {
-		return fmt.Errorf("Failed to change placement of multicluster hello-helidon component resource: %v", err)
+	if err := pkg.PatchResourceFromFileInCluster(mcCompGvr, namespace, componentName, patchFile, kubeConfigPath); err != nil {
+		return fmt.Errorf("failed to change placement of multicluster hello-helidon component resource: %v", err)
 	}
-	if err := pkg.PatchResourceFromFileInCluster(mcAppGvr, TestNamespace, appConfigName, patchFile, kubeConfigPath); err != nil {
-		return fmt.Errorf("Failed to change placement of multicluster hello-helidon application resource: %v", err)
+	if err := pkg.PatchResourceFromFileInCluster(mcAppGvr, namespace, appConfigName, patchFile, kubeConfigPath); err != nil {
+		return fmt.Errorf("failed to change placement of multicluster hello-helidon application resource: %v", err)
 	}
-	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projectName, patchFile, kubeConfigPath); err != nil {
-		return fmt.Errorf("Failed to create VerrazzanoProject resource: %v", err)
+	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projName, patchFile, kubeConfigPath); err != nil {
+		return fmt.Errorf("failed to create VerrazzanoProject resource: %v", err)
 	}
 	return nil
 }
@@ -84,6 +96,21 @@ func changePlacement(kubeConfigPath string, patchFile string) error {
 // VerifyMCResources verifies that the MC resources are present or absent depending on whether this is an admin
 // cluster and whether the resources are placed in the given cluster
 func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, namespace string) bool {
+	mcAppConfExists := mcAppConfExists(kubeconfigPath, namespace)
+
+	if isAdminCluster || placedInThisCluster {
+		// always expect MC resources on admin cluster - otherwise expect them only if placed here
+		return mcAppConfExists
+	} else {
+		// don't expect
+		return !mcAppConfExists
+	}
+}
+
+// VerifyMCResourcesV100 verifies that the MC resources are present or absent depending on whether this is an admin
+// cluster and whether the resources are placed in the given cluster
+// v1.0.0 variant of this function - both mcApp and mcComp are required
+func VerifyMCResourcesV100(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, namespace string) bool {
 	// call both mcAppConfExists and mcComponentExists and store the results, to avoid short-circuiting
 	// since we should check both in all cases
 	mcAppConfExists := mcAppConfExists(kubeconfigPath, namespace)

@@ -4,7 +4,10 @@
 package v1alpha1
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -119,6 +122,12 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
+
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
 }
 
@@ -143,6 +152,12 @@ func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
+
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
 }
 
@@ -273,4 +288,74 @@ func runDeleteCallbackTest() error {
 		},
 	}
 	return deletedSpec.ValidateDelete()
+}
+
+// Test_verifyPlatformOperatorSingleton Tests the verifyPlatformOperatorSingleton check
+// GIVEN a verifyPlatformOperatorSingleton call
+// WHEN more than one Pod matches the selection criteria
+// THEN an error is returned
+func Test_verifyPlatformOperatorSingleton(t *testing.T) {
+	vz := &Verrazzano{}
+
+	labels := map[string]string{
+		"app": "verrazzano-platform-operator",
+	}
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme(), &v1.PodList{
+			TypeMeta: metav1.TypeMeta{},
+			Items: []v1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "thud", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
+			},
+		}), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
+	assert.Error(t, vz.verifyPlatformOperatorSingleton())
+}
+
+// Test_verifyPlatformOperatorSingletonNoMatchingLabels Tests the verifyPlatformOperatorSingleton check
+// GIVEN a verifyPlatformOperatorSingleton call
+// WHEN no Pods match the selection criteria
+// THEN no error is returned
+func Test_verifyPlatformOperatorSingletonNoMatchingLabels(t *testing.T) {
+	vz := &Verrazzano{}
+
+	labels := map[string]string{
+		"app": "someapp",
+	}
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme(), &v1.PodList{
+			TypeMeta: metav1.TypeMeta{},
+			Items: []v1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
+			},
+		}), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
+	assert.NoError(t, vz.verifyPlatformOperatorSingleton())
+}
+
+// Test_verifyPlatformOperatorSingletonSuccess Tests the verifyPlatformOperatorSingleton check
+// GIVEN a verifyPlatformOperatorSingleton call
+// WHEN only one Pod matches the selection criteria
+// THEN no error is returned
+func Test_verifyPlatformOperatorSingletonSuccess(t *testing.T) {
+	vz := &Verrazzano{}
+
+	labels := map[string]string{
+		"app": "verrazzano-platform-operator",
+	}
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme(), &v1.PodList{
+			TypeMeta: metav1.TypeMeta{},
+			Items: []v1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
+			},
+		}), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
+	assert.NoError(t, vz.verifyPlatformOperatorSingleton())
 }

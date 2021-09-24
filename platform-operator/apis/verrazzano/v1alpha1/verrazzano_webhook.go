@@ -4,8 +4,11 @@
 package v1alpha1
 
 import (
+	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	v1 "k8s.io/api/core/v1"
 
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,6 +37,11 @@ func (v *Verrazzano) ValidateCreate() error {
 	if !config.Get().WebhookValidationEnabled {
 		log.Info("Validation disabled, skipping")
 		return nil
+	}
+
+	// Verify only one instance of the operator is running
+	if err := v.verifyPlatformOperatorSingleton(); err != nil {
+		return err
 	}
 
 	client, err := getControllerRuntimeClient()
@@ -68,6 +76,11 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 		return nil
 	}
 
+	// Verify only one instance of the operator is running
+	if err := v.verifyPlatformOperatorSingleton(); err != nil {
+		return err
+	}
+
 	oldResource := old.(*Verrazzano)
 	log.Debugf("oldResource: %v", oldResource)
 	log.Debugf("v: %v", v)
@@ -87,6 +100,25 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	if err != nil {
 		log.Errorf("Invalid upgrade request: %s", err.Error())
 		return err
+	}
+	return nil
+}
+
+// verifyPlatformOperatorSingleton Verifies that only one instance of the VPO is running; when upgrading operators,
+// if the terminationGracePeriod for the pod is > 0 there's a chance that an old version may try to handle resource
+// updates before terminating.  In the longer term we may want some kind of leader-election strategy to support
+// multiple instances, if that makes sense.
+func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
+	runtimeClient, err := getControllerRuntimeClient()
+	if err != nil {
+		return err
+	}
+	var podList v1.PodList
+	runtimeClient.List(context.TODO(), &podList,
+		client.InNamespace(constants.VerrazzanoInstallNamespace),
+		client.MatchingLabels{"app": "verrazzano-platform-operator"})
+	if len(podList.Items) > 1 {
+		return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
 	}
 	return nil
 }
