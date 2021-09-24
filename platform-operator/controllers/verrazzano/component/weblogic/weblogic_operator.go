@@ -52,14 +52,10 @@ func WeblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ 
 	var serviceAccount corev1.ServiceAccount
 	const accountName = "weblogic-operator-sa"
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: accountName, Namespace: namespace}, &serviceAccount); err != nil {
-		if errors.IsAlreadyExists(err) {
-			// Service account already exists in the target namespace
+		if errors.IsNotFound(err) {
 			return []bom.KeyValue{}, nil
 		}
-		if !errors.IsNotFound(err) {
-			// Unexpected error
-			return []bom.KeyValue{}, err
-		}
+		return []bom.KeyValue{}, err
 	}
 	serviceAccount = corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -68,6 +64,10 @@ func WeblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ 
 		},
 	}
 	if err := client.Create(context.TODO(), &serviceAccount); err != nil {
+		if errors.IsAlreadyExists(err) {
+			// Sometimes we get this, not an error it already exist.
+			return []bom.KeyValue{}, nil
+		}
 		return []bom.KeyValue{}, err
 	}
 	return []bom.KeyValue{}, nil
