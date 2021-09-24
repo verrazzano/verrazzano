@@ -173,7 +173,7 @@ pipeline {
                                     sleep(1)
                                 }
                             }
-                             echo "Release build exists"
+                            echo "Release build exists"
                         }
 
                         retry(count: env.BUILD_RETRIES) {
