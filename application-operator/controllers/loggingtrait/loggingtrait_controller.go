@@ -163,9 +163,11 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 
 		if ok, volumesFieldPath := locateVolumesField(document, resource); ok {
 			resourceVolumes, ok, err := unstructured.NestedSlice(resource.Object, volumesFieldPath...)
-			if !ok || err != nil {
+			if err != nil {
 				log.Error(err, "Failed to gather resource volumes")
 				return reconcile.Result{}, errors.Wrap(err, errLoggingResource)
+			} else if !ok {
+				log.Info("No volumes found")
 			}
 
 			loggingVolume := &corev1.Volume{
@@ -303,9 +305,11 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			var resourceVolumeMounts []interface{}
 			for _, resContainer := range resourceContainers {
 				volumeMounts, ok, err := unstructured.NestedSlice(resContainer.(map[string]interface{}), []string{"volumeMounts"}...)
-				if !ok || err != nil {
+				if err != nil {
 					log.Error(err, "Failed to gather resource container volumeMounts")
 					return reconcile.Result{}, true, errors.Wrap(err, errLoggingResource)
+				} else if !ok {
+					log.Info("No volumeMounts found")
 				}
 				resourceVolumeMounts = append(resourceVolumeMounts, volumeMounts...)
 
@@ -357,9 +361,11 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 
 		if ok, volumesFieldPath := locateVolumesField(document, resource); ok {
 			resourceVolumes, ok, err := unstructured.NestedSlice(resource.Object, volumesFieldPath...)
-			if !ok || err != nil {
+			if err != nil {
 				log.Error(err, "Failed to gather resource volumes")
 				return reconcile.Result{}, true, errors.Wrap(err, errLoggingResource)
+			} else if !ok {
+				log.Info("No volumes found")
 			}
 
 			loggingVolume := &corev1.Volume{
