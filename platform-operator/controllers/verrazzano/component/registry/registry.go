@@ -30,13 +30,13 @@ func GetComponents() []spi.Component {
 	injectedSystemNamespaces := config.GetInjectedSystemNamespaces()
 
 	return []spi.Component{
-		// TODO: remove istio helm components
 		helm.HelmComponent{
 			ReleaseName:             "istio-base",
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
 			ChartNamespace:          "istio-system",
 			IgnoreNamespaceOverride: true,
 			IgnoreImageOverrides:    true,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istiod",
@@ -46,6 +46,7 @@ func GetComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
 			ReadyStatusFunc:         istio.IstiodReadyCheck,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istio-ingress",
@@ -54,6 +55,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istio-egress",
@@ -62,6 +64,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istiocoredns",
@@ -70,6 +73,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "ingress-controller",

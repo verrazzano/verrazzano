@@ -68,6 +68,10 @@ type HelmComponent struct {
 
 	// Dependencies is a list of Dependencies for this component, by component/release name
 	Dependencies []string
+
+	// SkipUpgrade when true will skip upgrading this component in the upgrade loop
+	// This is for the istio helm components
+	SkipUpgrade bool
 }
 
 // Verify that HelmComponent implements Component
@@ -335,4 +339,8 @@ func setUpgradeFunc(f upgradeFuncSig) {
 
 func setDefaultUpgradeFunc() {
 	upgradeFunc = helm.Upgrade
+}
+
+func (h HelmComponent) GetSkipUpgrade() bool {
+	return h.SkipUpgrade
 }

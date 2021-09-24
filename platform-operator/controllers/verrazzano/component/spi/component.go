@@ -21,6 +21,9 @@ type Component interface {
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
 
+	// SkipUpgrade returns the value of the SkipUpgrade field
+	GetSkipUpgrade() bool
+
 	// PreUpgrade allows components to perform any pre-processing required prior to upgrading
 	PreUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
 
@@ -44,4 +47,6 @@ type Component interface {
 
 	// IsReady Indicates whether or not a component is available and ready
 	IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool
+
+	// K
 }
