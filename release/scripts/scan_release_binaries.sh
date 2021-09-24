@@ -86,7 +86,7 @@ function scan_release_binaries() {
                             "Deleted:.......................     0")
 
   array_count=${#expectedLines[@]}
-  echo "array_count: ${array_count}"
+  echo "Count of expected lines: ${array_count}"
   result_count=0
 
   # Read the file scan_summary.log line by line and increment the counter when the line matches one of the expected lines defined above.
@@ -102,7 +102,7 @@ function scan_release_binaries() {
       esac
     done
   done < "$scan_summary"
-  echo "result_count: ${result_count}"
+  echo "Count of expected lines in the scan summary: ${result_count}"
   if [ "$result_count" == "$array_count" ];then
     echo "Found all the expected lines in the summary of the scan report."
     return 0
