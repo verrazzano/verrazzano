@@ -601,6 +601,8 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	addIstioExpectsToMock(mock)
+
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
