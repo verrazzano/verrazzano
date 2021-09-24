@@ -16,7 +16,9 @@ import (
 
 // reconcileComponents Reconcile components individually using the following rules:
 // 1. Always requeue until all enabled components have completed installation
-// 2. Loop through all components before returning, except for the case
+// 2. Don't update the component state until all the work in that state is done, since
+//    that update will cause a state transition
+// 3. Loop through all components before returning, except for the case
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
 func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogger, cr *vzapi.Verrazzano) (ctrl.Result, error) {
