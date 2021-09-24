@@ -138,23 +138,19 @@ pipeline {
             environment {
                 SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')
                 SCANNER_ARCHIVE_FILE = credentials('scanner-archive-file')
+                GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
                 VIRUS_DEF_LOCATION = "https://update.nai.com/products/commonupdater2/current/vscandat1000/dat/0000"
             }
             steps {
                 script {
-                    withCredentials([string(credentialsId: 'github-api-token-release-assets', variable: 'GH_TOKEN')]) {
-                      sh '''
-                        ls /home/opc/githubcli/2.0.0
-                        gh
-                        export GITHUB_TOKEN=
-                        echo ${GH_TOKEN}|gh auth login --with-token
-                        echo "Successful login to github cli"
-                        # cd ${WORKSPACE}/release/scripts
-                        # ./create_github_release.sh ${params.RELEASE_VERSION} ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
-                      '''
-                    }
-                }
+                  sh """
+                    export GITHUB_TOKEN=
+                    echo ${GITHUB_API_TOKEN}|gh auth login --with-token
+                    echo "Successful login to github cli"
+                    # cd ${WORKSPACE}/release/scripts
+                    # ./create_github_release.sh ${params.RELEASE_VERSION} ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
+                  """
             }
         }
     }
