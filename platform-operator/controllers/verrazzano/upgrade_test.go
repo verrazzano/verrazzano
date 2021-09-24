@@ -7,7 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
@@ -606,6 +607,13 @@ func TestUpgradeCompleted(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -651,16 +659,6 @@ func TestUpgradeCompleted(t *testing.T) {
 			return nil
 		})
 
-	// Inject a fake cmd runner to the real helm is not called
-	helm.SetCmdRunner(goodRunner{})
-	helmcomp.UpgradePrehooksEnabled = false
-
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -693,6 +691,13 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -738,16 +743,6 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeComplete, "Incorrect conditions")
 			return fmt.Errorf("Unexpected status error")
 		})
-
-	// Inject a fake cmd runner to the real helm is not called
-	helm.SetCmdRunner(goodRunner{})
-	helmcomp.UpgradePrehooksEnabled = false
-
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	// Create and make the request
 	request := newRequest(namespace, name)

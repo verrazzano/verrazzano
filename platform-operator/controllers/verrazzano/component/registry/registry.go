@@ -25,9 +25,28 @@ import (
 	"go.uber.org/zap"
 )
 
+type GetCompoentsFnType func() []spi.Component
+
+var getComponentsFn = getComponents
+
+// OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
+func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
+	getComponentsFn = fnType
+}
+
+// ResetGetComponentsFn Restores the GetComponents implementation to the default if it's been overridden for testing
+func ResetGetComponentsFn() {
+	getComponentsFn = getComponents
+}
+
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 func GetComponents() []spi.Component {
+	return getComponents()
+}
+
+// getComponents is the internal impl function for GetComponents, to allow overriding it for testing purposes
+func getComponents() []spi.Component {
 	overridesDir := config.GetHelmOverridesDir()
 	helmChartsDir := config.GetHelmChartsDir()
 	thirdPartyChartsDir := config.GetThirdPartyDir()
