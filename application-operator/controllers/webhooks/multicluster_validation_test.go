@@ -102,7 +102,7 @@ func newScheme() *runtime.Scheme {
 	v1alpha12.AddToScheme(scheme)
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
-	}, &corev1.Secret{})
+	}, &corev1.Secret{}, &corev1.SecretList{})
 	v1alpha1.AddToScheme(scheme)
 	return scheme
 }

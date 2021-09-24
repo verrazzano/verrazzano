@@ -36,3 +36,11 @@ rules:
       - create
       - update
       - delete
+  - apiGroups:
+      - core.oam.dev
+    resources:
+      - components
+    verbs:
+      - get
+      - list
+      - watch

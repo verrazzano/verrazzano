@@ -1,0 +1,204 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+def DOCKER_IMAGE_TAG
+def releaseBuild
+def RELEASE_JOB_NAME
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "internal"
+        }
+    }
+
+    parameters {
+        string (description: 'The source branch for the release', name: 'SOURCE_BRANCH', defaultValue: 'master', trim: true)
+        string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
+        string (description: 'The target version (major.minor.patch format, e.g. 1.0.1)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
+        string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
+        booleanParam (description: 'Ignore pre-release validation failures', name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', defaultValue: false)
+        booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
+    }
+
+    environment {
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        NETRC_FILE = credentials('netrc')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
+        IS_PATCH_RELEASE = 'false'
+        GITHUB_CREDENTIALS = credentials('github-markxnelns-private-access-token')
+
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
+                script {
+                    if (params.COMMIT_TO_USE == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout scm
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        echo "SCM checkout of ${params.COMMIT_TO_USE}"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: params.COMMIT_TO_USE]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: scm.extensions + [[$class: 'LocalBranch'], [$class: 'WipeWorkspace']],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL, credentialsId:'github-markxnelns-private-access-token']]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${env.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
+                    // setup credential retrieval for possible release branch push
+                    sh """
+                        git config credential.https://github.com.username ${GITHUB_CREDENTIALS_USR}
+                        git config credential.helper '/bin/bash ${WORKSPACE}/release/scripts/credential_helper.sh'
+                    """
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    // update the description with some meaningful info
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                }
+            }
+        }
+
+        stage('Pipeline inputs validation') {
+            steps {
+                script {
+                    // major or minor release should be leveraging master branch and have a target version that ends in 0
+                    if (params.SOURCE_BRANCH.equals('master') && params.TARGET_VERSION =~ /^\d+\.\d+\.0$/) {
+                        env.IS_PATCH_RELEASE = 'false'
+                    // patch should be using a "release-#.#" branch and have a version ending in a digit other than 0
+                    } else if (params.SOURCE_BRANCH =~ /release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
+                        env.IS_PATCH_RELEASE = 'true'
+                    } else {
+                        error "Invalid source branch ${params.SOURCE_BRANCH} or a mismatch between source branch and the specified target version ${params.TARGET_VERSION}"
+                    }
+
+                    echo "Patch release? ${env.IS_PATCH_RELEASE}"
+                }
+            }
+        }
+
+        stage('Pre-release validation') {
+            environment {
+                IGNORE_FAILURES = "${params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES}"
+            }
+            steps {
+                script {
+                    sh """
+                        cd ${WORKSPACE}
+                        ./release/scripts/prerelease_validation.sh ${params.TARGET_VERSION}
+                    """
+                }
+            }
+        }
+
+        stage('Trigger release build') {
+            stages {
+                stage('Release Only: Create branch') {
+                    // if this is not a patch there is a need to either create a release branch or verify it exists
+                    when {
+                        expression { env.IS_PATCH_RELEASE == 'false' }
+                    }
+                    steps {
+                        script {
+                            sh """
+                                cd ${WORKSPACE}
+                                ./release/scripts/create_branch.sh -c ${params.COMMIT_TO_USE} -v ${params.TARGET_VERSION}
+                            """
+                        }
+                    }
+
+                }
+
+                stage('Verrazzano Build') {
+                    steps {
+                        script {
+                            if (env.IS_PATCH_RELEASE == 'true') {
+                                RELEASE_JOB_NAME = 'verrazzano/' + env.SOURCE_BRANCH
+                            } else {
+                                def parts = params.TARGET_VERSION.split("\\.")
+                                RELEASE_JOB_NAME = 'verrazzano/release-${parts[0]}.${parts[1]}'
+                            }
+                            // if branch build not found, trigger repo scan and wait
+                            if (Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME) == null) {
+                                Jenkins.instance.getItemByFullName('verrazzano').scheduleBuild()
+                                while (Jenkins.instance.getItemByFullName(RELEASE_JOB_NAME) == null) {
+                                    sleep(1)
+                                }
+                            }
+                            echo "Release build exists"
+                        }
+
+                        retry(count: env.BUILD_RETRIES) {
+                            script {
+                                echo "Triggering Verrazzano build for release"
+                                releaseBuild = build job: "${RELEASE_JOB_NAME}",
+                                    parameters: [
+                                        booleanParam(name: 'RUN_ACCEPTANCE_TESTS', value: true),
+                                        booleanParam(name: 'RUN_SLOW_TESTS', value: true),
+                                        booleanParam(name: 'TRIGGER_FULL_TESTS', value: true),
+                                        booleanParam(name: 'GENERATE_TARBALL', value: true),
+                                        booleanParam(name: 'GENERATE_TOOL', value: true)
+                                    ], wait: true
+                            }
+                        }
+                    }
+                    post {
+                        success {
+                            script {
+                                // keep the successful build forever
+                                releaseBuild.getRawBuild().keepLog(true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Push images to OCR') {
+            when {
+                expression { !params.TEST_RUN }
+            }
+            steps {
+                retry(count: env.BUILD_RETRIES) {
+                    script {
+                        echo "Triggering OCR Image push build"
+                        build job: "publish-release-images-to-ocr",
+                            parameters: [
+                                string(name: 'IMAGES_TO_PUBLISH_JOB_NAME', value: '${RELEASE_JOB_NAME}'),
+                            ], wait: true
+                    }
+                }
+            }
+        }
+    }
+}
