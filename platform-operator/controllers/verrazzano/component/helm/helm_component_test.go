@@ -362,12 +362,19 @@ func TestIsInstalled(t *testing.T) {
 	defer helm.SetDefaultChartStatusFunction()
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	helm.SetCmdRunner(genericHelmTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte(""),
+		err:    nil,
 	})
+	defer helm.SetDefaultRunner()
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer config.SetDefaultBomFilePath("")
 	assert.True(comp.IsInstalled(zap.S(), client, "default"))
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartNotFound, nil
+	helm.SetCmdRunner(genericHelmTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte(""),
+		err:    fmt.Errorf("Not installed"),
 	})
 	assert.False(comp.IsInstalled(zap.S(), client, "default"))
 }
