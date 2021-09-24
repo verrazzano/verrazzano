@@ -4,18 +4,34 @@
 package helm
 
 import (
+	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io/ioutil"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	componentVerrazzano  = "verrazzano"
+	keycloakSVC          = "keycloak-http"
+	keycloakNS           = "keycloak"
+	keycloakNotFoundIP   = "0.0.0.0/0"
+	prometheusDeploy     = "vmi-system-prometheus-0"
+	prometheusNS         = "verrazzano-system"
+	prometheusAnnotation = "traffic.sidecar.istio.io/includeOutboundIPRanges"
 )
 
 // HelmComponent struct needed to implement a component
@@ -248,6 +264,13 @@ func (h HelmComponent) PreUpgrade(log *zap.SugaredLogger, client clipkg.Client, 
 }
 
 func (h HelmComponent) PostUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+
+	if h.ReleaseName == componentVerrazzano {
+		err := upgradePrometheus(log, client)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -334,4 +357,50 @@ func setUpgradeFunc(f upgradeFuncSig) {
 
 func setDefaultUpgradeFunc() {
 	upgradeFunc = helm.Upgrade
+}
+
+func upgradePrometheus(log *zap.SugaredLogger, client clipkg.Client) error {
+	var keycloakIP string
+	// Get SVC IP for Keycloak
+	service := v1.Service{}
+	keycloakSvcObj := types.NamespacedName{Name: keycloakSVC, Namespace: keycloakNS}
+
+	if err := client.Get(context.TODO(), keycloakSvcObj, &service); err != nil {
+		if !errors.IsNotFound(err) {
+			log.Errorf("Error Getting keycloak-http service: %s", err)
+			return err
+		}
+		keycloakIP = keycloakNotFoundIP
+	} else {
+		keycloakIP = service.Spec.ClusterIP
+	}
+	log.Infof("PostUpgrade KeyCloak Service ClusterIP = %s", keycloakIP)
+
+	// Update Prometheus Deployment with Annotation
+	var prometheusDeployment appsv1.Deployment
+
+	prometheusDeployObj := types.NamespacedName{Name: prometheusDeploy, Namespace: prometheusNS}
+
+	if err := client.Get(context.TODO(), prometheusDeployObj, &prometheusDeployment); err != nil {
+		if errors.IsNotFound(err) {
+			log.Infof("%v deployment not found", prometheusDeployObj)
+		} else {
+			log.Errorf("Error Getting Prometheus deployment: %s", err)
+			return err
+		}
+	}
+
+	opResult, err := controllerutil.CreateOrUpdate(context.TODO(), client, &prometheusDeployment, func() error {
+		// Update Deployment with annotation
+		anno := prometheusDeployment.Spec.Template.GetObjectMeta().GetAnnotations()
+		anno[prometheusAnnotation] = keycloakIP + "/32"
+		prometheusDeployment.Spec.Template.GetObjectMeta().SetAnnotations(anno)
+		return nil
+	})
+
+	if err != nil {
+		log.Errorf("Error Updating Prometheus deployment: opResult %s, error = %s", opResult, err)
+		return err
+	}
+	return nil
 }
