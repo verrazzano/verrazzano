@@ -145,6 +145,10 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: 'github-api-token-release-assets', variable: 'GH_TOKEN')]) {
                       sh '''
+                        echo "PATH ${PATH}"
+                        echo "env.PATH ${env.PATH}"
+                        ls /home/opc/githubcli/2.0.0
+                        gh
                         echo ${GH_TOKEN}|gh auth login --with-token
                         echo "Successful login to github cli"
                         # cd ${WORKSPACE}/release/scripts
