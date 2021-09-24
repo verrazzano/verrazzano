@@ -52,10 +52,9 @@ func WeblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ 
 	var serviceAccount corev1.ServiceAccount
 	const accountName = "weblogic-operator-sa"
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: accountName, Namespace: namespace}, &serviceAccount); err != nil {
-		if errors.IsNotFound(err) {
-			return []bom.KeyValue{}, nil
+		if !errors.IsNotFound(err) {
+			return []bom.KeyValue{}, err
 		}
-		return []bom.KeyValue{}, err
 	}
 	serviceAccount = corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
