@@ -48,7 +48,7 @@ else
     if ! command -v verrazzano-helper &> /dev/null
     then
       echo "verrazzano-helper must be in path"
-      exit 1
+      EXIT_CODE=1
     fi
 
     echo "Checking for missing backport commits..."
