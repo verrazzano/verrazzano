@@ -151,6 +151,7 @@ pipeline {
                     # cd ${WORKSPACE}/release/scripts
                     # ./create_github_release.sh ${params.RELEASE_VERSION} ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
                   """
+                }
             }
         }
     }
