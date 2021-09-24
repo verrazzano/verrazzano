@@ -34,9 +34,11 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				// User has disabled component in Verrazzano CR, don't install
 				continue
 			}
-			r.updateComponentStatus(log, cr, comp.Name(), "PreInstall started", vzapi.PreInstall)
+			if err := r.updateComponentStatus(log, cr, comp.Name(), "PreInstall started", vzapi.PreInstall); err != nil {
+				return newRequeueWithDelay(), err
+			}
 			requeue = true
-			continue
+
 		case vzapi.PreInstalling:
 			log.Infof("PreInstalling component %s", comp.Name())
 			if !registry.ComponentDependenciesMet(log, r.Client, comp) {
@@ -45,18 +47,21 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				continue
 			}
 			if err := comp.PreInstall(log, r, cr.Namespace, r.DryRun); err != nil {
-				return newRequeueWithDelay(), err
+				log.Errorf("Error calling comp.PreInstall for component %s: %v", comp.Name(), err.Error())
+				requeue = true
+				continue
 			}
 			// If component is not installed,install it
 			if err := comp.Install(log, r, cr.Namespace, r.DryRun); err != nil {
-				return newRequeueWithDelay(), err
+				log.Errorf("Error calling comp.Install for component %s: %v", comp.Name(), err.Error())
+				requeue = true
+				continue
 			}
 			if err := r.updateComponentStatus(log, cr, comp.Name(), "Install started", vzapi.InstallStarted); err != nil {
-				return ctrl.Result{Requeue: true}, err
+				return newRequeueWithDelay(), err
 			}
 			// Install started requeue to check status
 			requeue = true
-
 		case vzapi.Installing:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			// If component is enabled -- need to replicate scripts' config merging logic here
@@ -69,17 +74,11 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				if err := r.updateComponentStatus(log, cr, comp.Name(), "Install complete", vzapi.InstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
-				requeue = true
+				// Don't requeue because of this component, it is done install
 				continue
 			}
-			// Install started requeue to check status
+			// Install is not done, requeue to check status
 			requeue = true
-
-			//case vzapi.Failed, vzapi.Error:
-			//case vzapi.Disabled:
-			//case vzapi.Upgrading:
-			//case vzapi.Updating:
-			//case vzapi.Quiescing:
 		}
 	}
 	if requeue {
