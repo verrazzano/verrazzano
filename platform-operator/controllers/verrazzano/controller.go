@@ -709,7 +709,7 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 	case installv1alpha1.UpgradeStarted:
 		return installv1alpha1.Upgrading
 	case installv1alpha1.UninstallComplete:
-		return installv1alpha1.Disabled
+		return installv1alpha1.Ready
 	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
 		return installv1alpha1.Failed
 	}
