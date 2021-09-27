@@ -51,7 +51,7 @@ spec:
 `
 
 // Template for merging externalIp YAML
-const externalIpTemplate = `
+const externalIPTemplate = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
@@ -81,9 +81,9 @@ type templateValuesExternalIPs struct {
 func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	// All generated YAML will be indented 6 spaces
 	const leftMargin = 6
-	const leftMarginExtIp = 12
+	const leftMarginExtIP = 12
 
-	var externalIPYaml string
+	var externalIPYAML string
 	var resultYaml string
 
 	// Build a list of YAML strings from the IstioComponent initargs, one for each arg.
@@ -96,17 +96,17 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 
 		if arg.Name == ExternalIPArg {
 			// We want the YAML in the following format, so pass a short arg name
-			// because it is going to be rendered in the go template externalIpTemplate
+			// because it is going to be rendered in the go template externalIPTemplate
 			//   externalIPs:
 			//   - 1.2.3.4
 			//
 			const shortArgExternalIPs = "externalIPs"
-			yaml, err := vzyaml.Expand(leftMarginExtIp, true, shortArgExternalIPs, values...)
+			yaml, err := vzyaml.Expand(leftMarginExtIP, true, shortArgExternalIPs, values...)
 			if err != nil {
 				return "", err
 			}
 			// This is handled seperately
-			externalIPYaml = yaml
+			externalIPYAML = yaml
 			continue
 		} else {
 			yaml, err := vzyaml.Expand(leftMargin, false, arg.Name, values...)
@@ -131,9 +131,9 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	}
 
 	// If the externalIPs exists, the render that YAML and merge it
-	if len(externalIPYaml) > 0 {
+	if len(externalIPYAML) > 0 {
 		// Render the IstioOperator YAML with the external IPs
-		extYaml, err := renderExternalIpYAML(externalIPYaml)
+		extYaml, err := renderExternalIPYAML(externalIPYAML)
 		if err != nil {
 			return "", err
 		}
@@ -163,8 +163,8 @@ func renderHelmValues(yaml string) (string, error) {
 }
 
 // Render the externalIP values using the template, return the YAML
-func renderExternalIpYAML(yaml string) (string, error) {
-	t, err := template.New("externalIP").Parse(externalIpTemplate)
+func renderExternalIPYAML(yaml string) (string, error) {
+	t, err := template.New("externalIP").Parse(externalIPTemplate)
 	if err != nil {
 		return "", err
 	}
