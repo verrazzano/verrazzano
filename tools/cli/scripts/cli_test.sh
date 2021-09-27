@@ -40,6 +40,7 @@ vz cluster deregister ${MANAGED_CLUSTER_NAME}
 # wait for the VMC to be deleted
 retries=0
 echo "wait for VMC ${MANAGED_CLUSTER_NAME} to be deleted"
+set +e
 until [ "$retries" -ge 10 ]
 do
   kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
@@ -49,6 +50,7 @@ do
   retries=$(($retries+1))
   sleep 5
 done
+set -e
 if [ "$retries" -ge 10 ] ; then
   echo "failed to delete VMC ${MANAGED_CLUSTER_NAME}"
   exit 1
