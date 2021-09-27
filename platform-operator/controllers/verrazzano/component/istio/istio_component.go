@@ -175,7 +175,7 @@ func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client cli
 		platformNS := corev1.Namespace{}
 		err := client.Get(context.TODO(), types.NamespacedName{Name: ns}, &platformNS)
 		if err != nil {
-			return err
+			log.Infof("Namespace %v not found", ns)
 		}
 
 		nsLabels := platformNS.Labels
