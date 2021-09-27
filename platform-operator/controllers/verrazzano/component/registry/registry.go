@@ -5,20 +5,26 @@ package registry
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
 // GetComponents returns the list of components that are installable and upgradeable.
@@ -76,8 +82,8 @@ func GetComponents() []spi.Component {
 			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "ingress-controller",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"),
+			ReleaseName:             nginx.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          "ingress-nginx",
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "ingress-nginx-values.yaml"),
@@ -90,30 +96,30 @@ func GetComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "cert-manager-values.yaml"),
 		},
 		helm.HelmComponent{
-			ReleaseName:             "external-dns",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "external-dns"),
+			ReleaseName:             externaldns.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, externaldns.ComponentName),
 			ChartNamespace:          "cert-manager",
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "external-dns-values.yaml"),
 		},
 		helm.HelmComponent{
-			ReleaseName:             "rancher",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "rancher"),
+			ReleaseName:             rancher.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, rancher.ComponentName),
 			ChartNamespace:          "cattle-system",
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "rancher-values.yaml"),
 		},
 		helm.HelmComponent{
-			ReleaseName:             "verrazzano",
-			ChartDir:                filepath.Join(helmChartsDir, "verrazzano"),
+			ReleaseName:             verrazzano.ComponentName,
+			ChartDir:                filepath.Join(helmChartsDir, verrazzano.ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			ResolveNamespaceFunc:    verrazzano.ResolveVerrazzanoNamespace,
 			PreUpgradeFunc:          verrazzano.VerrazzanoPreUpgrade,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "coherence-operator",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
+			ReleaseName:             coherence.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, coherence.ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
@@ -122,8 +128,8 @@ func GetComponents() []spi.Component {
 			ReadyStatusFunc:         coherence.IsCoherenceOperatorReady,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "weblogic-operator",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "weblogic-operator"),
+			ReleaseName:             weblogic.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, weblogic.ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
@@ -135,8 +141,8 @@ func GetComponents() []spi.Component {
 			ReadyStatusFunc:         weblogic.IsWeblogicOperatorReady,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "oam-kubernetes-runtime",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "oam-kubernetes-runtime"),
+			ReleaseName:             oam.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, oam.ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
@@ -145,8 +151,8 @@ func GetComponents() []spi.Component {
 			ReadyStatusFunc:         oam.IsOAMReady,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "verrazzano-application-operator",
-			ChartDir:                filepath.Join(helmChartsDir, "verrazzano-application-operator"),
+			ReleaseName:             appoper.ComponentName,
+			ChartDir:                filepath.Join(helmChartsDir, appoper.ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
@@ -157,8 +163,8 @@ func GetComponents() []spi.Component {
 			Dependencies:            []string{"oam-kubernetes-runtime"},
 		},
 		helm.HelmComponent{
-			ReleaseName:             "mysql",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "mysql"),
+			ReleaseName:             mysql.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, mysql.ComponentName),
 			ChartNamespace:          "keycloak",
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),

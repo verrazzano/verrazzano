@@ -7,14 +7,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	istiocomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"go.uber.org/zap"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
+
+	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+	k8sapps "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -608,6 +613,13 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	// Expect a call to get the Prometheus deployment and return a NotFound error.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-0"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+			return errors2.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, name.Name)
+		})
 
 	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 		return []byte(""), []byte(""), nil

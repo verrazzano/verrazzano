@@ -12,59 +12,67 @@ metadata:
 data:
 {{- with .Values.api.proxy }}
   conf.lua: |
-    local ingressUri = 'https://'..'{{ .Ingress }}'
+    local ingressHost = ngx.req.get_headers()["x-forwarded-host"]
+    if not(ingressHost) then
+      ingressHost = ngx.req.get_headers()["host"]
+    end
+    local ingressUri = 'https://'..ingressHost
     local callbackPath = "{{ .OidcCallbackPath }}"
     local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
 
     local auth = require("auth").config({
-        ingressUri = ingressUri,
-        callbackPath = callbackPath,
-        logoutCallbackPath = logoutCallbackPath,
-        callbackUri = ingressUri..callbackPath
+        callbackUri = ingressUri..callbackPath,
+        logoutCallbackUri = ingressUri..logoutCallbackPath
     })
 
-{{ if eq .Mode "oauth-proxy" }}
+    -- TODO: is this needed here? Is it better done via/at ingress?
+    -- This was previously enabled only for oauth-proxy, but there is similar
+    -- code in nginx.conf that was executed only for api-proxy but now executes
+    -- for both.
+    -- TODO: Rationalize OPTIONS method processing: do this only for OPTIONS requests (not all),
+    -- and do it all in one place (here or nginx.conf) for both api-proxy and oauth-proxy traffic
     ngx.header["Access-Control-Allow-Headers"] = "authorization"
-{{ end }}
 
     if ngx.req.get_method() == "OPTIONS" then
         ngx.status = 200
         ngx.exit(ngx.HTTP_OK)
     end
 
+    -- determine backend and set backend parameters
+    local backend = auth.getBackendNameFromIngressHost(ingressHost)
+    local backendUrl = auth.getBackendServerUrlFromName(backend)
+
+    auth.info("Processing request for backend '"..ingressHost.."'")
+
     local authHeader = ngx.req.get_headers()["authorization"]
     local token = nil
     if authHeader then
         if auth.hasCredentialType(authHeader, 'Bearer') then
             token = auth.handleBearerToken(authHeader)
-{{ if eq .Mode "oauth-proxy" }}
         elseif auth.hasCredentialType(authHeader, 'Basic') then
             token = auth.handleBasicAuth(authHeader)
-{{ end }}
         end
         if not token then
             auth.info("No recognized credentials in authorization header")
         end
     else
-{{ if eq .Mode "api-proxy" }}
         auth.info("No authorization header found")
-{{ else if eq .Mode "oauth-proxy" }}
-        if string.find(ngx.var.request_uri, callbackPath) then
+        if auth.requestUriMatches(ngx.var.request_uri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
             auth.oidcHandleCallback()
-        elseif string.find(ngx.var.request_uri, logoutCallbackPath) then
+        elseif auth.requestUriMatches(ngx.var.request_uri, logoutCallbackPath) then
             -- logout was triggered, and OP (always?) is calling our logout URL
             auth.oidcHandleLogoutCallback()
         end
-        -- still no token, check if caller has a valid token in session (cookie)
-        -- redirect after handling callback should end up here
+        -- no token yet, and the request is not progressing an OIDC flow.
+        -- check if caller has an existing session with a valid token.
         token = auth.getTokenFromSession()
-        if not token then
-            -- no token, redirect to OP to authenticate
+
+        -- still no token? redirect to OP to authenticate user (if request is not a verrazzano API call)
+        if not token and backend ~= 'verrazzano' then
             auth.oidcAuthenticate()
         end
-{{ end }}
     end
 
     if not token then
@@ -76,22 +84,26 @@ data:
         auth.forbidden("Not authorized")
     end
 
-{{ if eq .Mode "api-proxy" }}
-    local args = ngx.req.get_uri_args()
-    if args.cluster then
-        auth.handleExternalAPICall(token)
+    if backend == 'verrazzano' then
+        local args = ngx.req.get_uri_args()
+        if args.cluster then
+            -- returns remote cluster server URL
+            backendUrl = auth.handleExternalAPICall(token)
+        else
+            auth.handleLocalAPICall(token)
+        end
     else
-        auth.handleLocalAPICall(token)
+        if auth.hasCredentialType(authHeader, 'Bearer') then
+            -- clear the auth header if it's a bearer token
+            ngx.req.clear_header("Authorization")
+        end
+        -- set the oidc_user
+        ngx.var.oidc_user = auth.usernameFromIdToken(token)
+        auth.info("Authorized: oidc_user is "..ngx.var.oidc_user)
     end
-{{ else if eq .Mode "oauth-proxy" }}
-    if auth.hasCredentialType(authHeader, 'Bearer') then
-        -- clear the auth header if it's a bearer token
-        ngx.req.clear_header("Authorization")
-    end
-    -- set the oidc_user
-    ngx.var.oidc_user = auth.usernameFromIdToken(token)
-    auth.info("Authorized: oidc_user is "..ngx.var.oidc_user)
-{{ end }}
+
+    auth.info("Setting backend_server_url to '"..backendUrl.."'")
+    ngx.var.backend_server_url = backendUrl
   auth.lua: |
     local me = {}
     local random = require("resty.random")
@@ -115,8 +127,6 @@ data:
     local oidcIssuerUri = nil
     local oidcIssuerUriLocal = nil
 
-    local logoutCallbackUri = nil
-
     function me.config(opts)
         for key, val in pairs(opts) do
             me[key] = val
@@ -136,32 +146,16 @@ data:
         if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
             oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..oidcRealm
         end
-{{ if eq .Mode "oauth-proxy" }}
-        logoutCallbackUri = me.ingressUri..me.logoutCallbackPath
-{{ else if eq .Mode "api-proxy" }}
+
         local keycloakURL = me.read_file("/api-config/keycloak-url")
         if keycloakURL and keycloakURL ~= "" then
             me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
             oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
             oidcProviderInClusterUri = nil
         end
-{{ end }}
+
         oidcIssuerUri = oidcProviderUri
         oidcIssuerUriLocal = oidcProviderInClusterUri
-        --[[
-        if oidcProviderUri then
-            me.info("set oidcProviderUri to "..oidcProviderUri)
-        end
-        if oidcProviderInClusterUri then
-            me.info("set oidcProviderInClusterUri to "..oidcProviderInClusterUri)
-        end
-        if oidcIssuerUri then
-            me.info("set oidcIssuerUri to "..oidcIssuerUri)
-        end
-        if oidcIssuerUri then
-            me.info("set oidcIssuerUriLocal to "..oidcIssuerUriLocal)
-        end
-        --]]
     end
 
     function me.log(logLevel, msg, name, value)
@@ -216,7 +210,8 @@ data:
     end
 
     function me.unauthorized(msg, err)
-        me.deleteCookie("authn")
+        me.deleteCookie("vz_authn")
+        me.deleteCookie("vz_userinfo")
         me.logJson(ngx.ERR, msg, err)
         ngx.status = ngx.HTTP_UNAUTHORIZED
         ngx.say("401 Unauthorized")
@@ -228,6 +223,13 @@ data:
         ngx.status = ngx.HTTP_FORBIDDEN
         ngx.say("403 Forbidden")
         ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
+    function me.not_found(msg, err)
+        me.logJson(ngx.ERR, msg, err)
+        ngx.status = ngx.HTTP_NOT_FOUND
+        ngx.say("404 Not Found")
+        ngx.exit(ngx.HTTP_NOT_FOUND)
     end
 
     function me.logout()
@@ -267,6 +269,74 @@ data:
             end
         end
         return false
+    end
+
+    function me.requestUriMatches(requestUri, matchPath)
+        if requestUri then
+            if requestUri == matchPath then
+                return true
+            end
+            local start, _ = requestUri:find(matchPath..'?')
+            if start == 1 then
+                return true
+            end
+        end
+        return false
+    end
+
+    function me.getBackendNameFromIngressHost(ingressHost)
+        local backend_name = 'unknown'
+        if ingressHost then
+            me.info("ingressHost is '"..ingressHost.."'")
+            -- Strip domain and/or port
+            local first, last = nil
+            first, last, backend_name = ingressHost:find("([^.:]+)")
+            -- Strip the auth proxy prefix from the extracted backend name if present
+            local authproxy_prefix = 'verrazzano-authproxy-'
+            if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
+              backend_name = string.sub(backend_name, #authproxy_prefix+1, -1)
+            end
+        end
+        if backend_name == "verrazzano" then
+            local uri = ngx.var.request_uri
+            local first, last = uri:find("/20210501/")
+            if not first or first ~= 1 then
+                backend_name = "console"
+            end
+        end
+        me.info("returning backend_name '"..backend_name.."'")
+        return backend_name
+    end
+
+    function me.makeConsoleBackendUrl(port)
+        return 'http://verrazzano-console.verrazzano-system.svc.cluster.local'..':'..port
+    end
+
+    function me.makeVmiBackendUrl(backend, port)
+        return 'http://vmi-system-'..backend..'.verrazzano-system.svc.cluster.local'..':'..port
+    end
+
+    function me.getBackendServerUrlFromName(backend)
+        local serverUrl = nil
+        if backend == 'verrazzano' then
+            -- assume we're going to the local server; if not, we'll fix up the url when we handle the remote call
+            -- Route request to k8s API
+            serverUrl = me.getLocalKubernetesApiUrl()
+        elseif backend == 'console' then
+            -- Route request to console
+            serverUrl = me.makeConsoleBackendUrl('8000')
+        elseif backend == 'grafana' then
+            serverUrl = me.makeVmiBackendUrl(backend, '3000')
+        elseif backend == 'prometheus' then
+            serverUrl = me.makeVmiBackendUrl(backend, '9090')
+        elseif backend == 'kibana' then
+            serverUrl = me.makeVmiBackendUrl(backend, '5601')
+        elseif backend == 'elasticsearch' then
+            serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')
+        else
+            me.not_found("Invalid backend name '"..backend.."'")
+        end
+        return serverUrl
     end
 
     -- console sends access token by itself (originally obtained via pkce client)
@@ -391,7 +461,7 @@ data:
             redirect_uri = me.callbackUri
         })
         local redirectURL = me.getOidcAuthUri()..'?'..redirectArgs
-        me.setCookie("state", stateData, authStateTtlInSec)
+        me.setCookie("vz_state", stateData, authStateTtlInSec, true)
         ngx.header["Cache-Control"] = "no-cache, no-store, max-age=0"
         ngx.redirect(redirectURL)
     end
@@ -402,11 +472,11 @@ data:
         local state = queryParams.state
         local code = queryParams.code
         local nonce = queryParams.nonce
-        local cookie = me.readCookie("state")
+        local cookie = me.readCookie("vz_state")
         if not cookie then
             me.unauthorized("Missing state cookie")
         end
-        me.deleteCookie("state")
+        me.deleteCookie("vz_state")
         local stateCk = cookie.state
         -- local nonceCk = cookie.nonce
         local request_uri = cookie.request_uri
@@ -431,8 +501,7 @@ data:
     end
 
     function me.oidcHandleLogoutCallback()
-        auth.deleteCookie("authn")
-        auth.unauthorized("User logged out")
+        me.unauthorized("User logged out")
     end
 
     function me.oidcTokenRequest(formArgs)
@@ -581,7 +650,7 @@ data:
     -- nil token returned if no session or the refresh token has expired
     function me.getTokenFromSession()
         me.info("Check for existing session")
-        local ck = me.readCookie("authn")
+        local ck = me.readCookie("vz_authn")
         if ck then
             local rft = ck.rt
             local now = ngx.time()
@@ -602,7 +671,8 @@ data:
             end
         end
         -- no valid token found, delete cookie
-        me.deleteCookie("authn")
+        me.deleteCookie("vz_authn")
+        me.deleteCookie("vz_userinfo")
         return nil
     end
 
@@ -612,6 +682,10 @@ data:
             rt = tokenRes.refresh_token,
             -- at = tokenRes.access_token,
             it = tokenRes.id_token
+        }
+        -- Cookie to save username and email with http-only diabled
+        local userCookiePairs = {
+            username = ""
         }
         local id_token = jwt:load_jwt(tokenRes.id_token)
         local expires_in = tonumber(tokenRes.expires_in)
@@ -626,24 +700,42 @@ data:
                     issued_at = tonumber(id_token.payload.auth_time)
                 end
             end
-            -- if id_token.payload.email then
-            --     cookiePairs.email = id_token.payload.email
-            -- end
+            if id_token.payload.preferred_username then
+                userCookiePairs.username = id_token.payload.preferred_username
+            end
         end
         local skew = now - issued_at
         -- Expire 30 secs before actual time
         local expiryBuffer = 30
         cookiePairs.expiry = now + expires_in - skew - expiryBuffer
         cookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
-        me.setCookie("authn", cookiePairs, tonumber(tokenRes.refresh_expires_in)-expiryBuffer)
+        userCookiePairs.expiry = now + expires_in - skew - expiryBuffer
+        userCookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
+        local expiresInSec = tonumber(tokenRes.refresh_expires_in)-expiryBuffer
+        me.setCookie("vz_authn", cookiePairs, expiresInSec, true)
+        me.setCookie("vz_userinfo", userCookiePairs, expiresInSec, false)
     end
 
-    function me.setCookie(ckName, cookiePairs, expiresInSec)
+    function me.setCookie(ckName, cookiePairs, expiresInSec, httponly)
+        local ck = require "resty.cookie"
+        local cookie, err = ck:new()
+        if not cookie then
+            me.logJson(ngx.ERR, "Error setting cookie "..ckName, err)
+            return
+        end
         local expires = ngx.cookie_time(ngx.time() + expiresInSec)
-        local attributes = "; Path=/; Secure; HttpOnly; Expires="..expires
-        local encrypted = me.aes256:encrypt(cjson.encode(cookiePairs))
-        local cookie = base64.encode_base64url(encrypted)
-        ngx.header["Set-Cookie"] = ckName..'='..cookie..attributes
+        local ckValue = ""
+        if ckName == "vz_userinfo" then
+            -- No need to encrypt in case of vz_userinfo
+            for key, value in pairs(cookiePairs) do
+                ckValue = ckValue..key.."="..value..","
+            end
+            ckValue = ckValue:sub(1, -2)
+        else
+            ckValue = me.aes256:encrypt(cjson.encode(cookiePairs))
+        end
+        ckValue = base64.encode_base64url(ckValue)
+        cookie:set({key=ckName, value=ckValue, path="/", secure=true, httponly=httponly, expires=expires})
     end
 
     function me.deleteCookie(ckName)
@@ -709,12 +801,13 @@ data:
         return "-----BEGIN CERTIFICATE-----\n"..x5c[1].."\n-----END CERTIFICATE-----"
     end
 
-{{ if eq .Mode "api-proxy" }}
+    -- api-proxy - methods for handling multi-cluster k8s API requests
+
     local vzApiHost = os.getenv("VZ_API_HOST")
     local vzApiVersion = os.getenv("VZ_API_VERSION")
 
     function me.getServiceAccountToken()
-      me.logJson(ngx.INFO, "Read service account token.")
+      me.logJson(ngx.INFO, "Read service account token")
       local serviceAccountToken = me.read_file("/run/secrets/kubernetes.io/serviceaccount/token")
       if not (serviceAccountToken) then
         me.unauthorized("No service account token present in pod.")
@@ -722,53 +815,19 @@ data:
       return serviceAccountToken
     end
 
-    function me.getLocalServerURL()
+    function me.getLocalKubernetesApiUrl()
       local host = os.getenv("KUBERNETES_SERVICE_HOST")
       local port = os.getenv("KUBERNETES_SERVICE_PORT")
       local serverUrl = "https://" .. host .. ":" .. port
       return serverUrl
     end
 
-    --[[
-
-    -- the next three functions appear to be unused, commenting out
-
-    function me.split(s, delimiter)
-      local result = {}
-      for match in (s..delimiter):gmatch("(.-)"..delimiter) do
-          table.insert(result, match)
-      end
-      return result
-    end
-
-    function me.contains(table, element)
-      for _, value in pairs(table) do
-        if value == element then
-          return true
-        end
-      end
-      return false
-    end
-
-    function me.capture(cmd, raw)
-      local f = assert(io.popen(cmd, 'r'))
-      local s = assert(f:read('*a'))
-      f:close()
-      if raw then return s end
-      s = string.gsub(s, '^%s+', '')
-      s = string.gsub(s, '%s+$', '')
-      s = string.gsub(s, '[\n\r]+', ' ')
-      return s
-    end
-
-    --]]
-
-    function me.getK8SResource(resourcePath)
+    function me.getK8SResource(token, resourcePath)
       local http = require "resty.http"
       local httpc = http.new()
       local res, err = httpc:request_uri("https://" .. vzApiHost .. "/" .. vzApiVersion .. resourcePath,{
           headers = {
-              ["Authorization"] = ngx.req.get_headers()["authorization"],
+              ["Authorization"] = "Bearer "..token
           },
       })
       if err then
@@ -781,42 +840,72 @@ data:
       return cjson.decode(res.body)
     end
 
-    function me.getVMC(cluster)
-      return me.getK8SResource("/apis/clusters.verrazzano.io/v1alpha1/namespaces/verrazzano-mc/verrazzanomanagedclusters/" .. cluster)
+    function me.getVMC(token, cluster)
+      return me.getK8SResource(token, "/apis/clusters.verrazzano.io/v1alpha1/namespaces/verrazzano-mc/verrazzanomanagedclusters/" .. cluster)
     end
 
-    function me.getSecret(secret)
-      return me.getK8SResource("/api/v1/namespaces/verrazzano-mc/secrets/" .. secret)
+    function me.getSecret(token, secret)
+      return me.getK8SResource(token, "/api/v1/namespaces/verrazzano-mc/secrets/" .. secret)
     end
 
     function me.handleLocalAPICall(token)
-        me.logJson(ngx.INFO, "Read service account token and set auth header.")
+        local uri = ngx.var.uri
+        local first, last = uri:find("/"..vzApiVersion)
+        if first and first == 1 then
+            uri = string.sub(uri, last+1)
+            ngx.req.set_uri(uri)
+        end
+
         local serviceAccountToken = me.getServiceAccountToken()
+        me.logJson(ngx.INFO, "Set service account bearer token as Authorization header")
         ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
-        me.logJson(ngx.INFO, "Set groups and users")
+
+        if not token then
+            me.unauthenticated("Invalid token")
+        end
+
         local jwt_obj = jwt:load_jwt(token)
-        if ( jwt_obj.payload and jwt_obj.payload.groups) then
-            me.logJson(ngx.INFO, ("Adding groups " .. cjson.encode(jwt_obj.payload.groups)))
-            ngx.req.set_header("Impersonate-Group", jwt_obj.payload.groups)
+        if not jwt_obj then
+            me.unauthenticated("Invalid token")
         end
-        if ( jwt_obj.payload and jwt_obj.payload.sub) then
-            me.logJson(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
-            ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
+
+        local groups = {}
+
+        if jwt_obj.payload and jwt_obj.payload.sub then
+            -- Uid is ignored prior to kubernetes v1.22
+            me.logJson(ngx.INFO, ("Adding sub as Impersonate-Uid: " .. jwt_obj.payload.sub))
+            ngx.req.set_header("Impersonate-Uid", jwt_obj.payload.sub)
+            -- this group is needed for discovery, but not automatically set for impersonated users prior to v1.20.
+            -- the group is ignored if duplicated >= v1.20, so no harm done if we always send it.
+            -- adding it here so that it's present IFF we actually have a subject.
+            local sys_auth = "system-authenticated"
+            me.logJson(ngx.INFO, ("Including group: " .. sys_auth))
+            table.insert(groups, sys_auth)
         end
-        ngx.var.kubernetes_server_url = me.getLocalServerURL()
+        if jwt_obj.payload and jwt_obj.payload.preferred_username then
+            me.logJson(ngx.INFO, ("Adding preferred_username as Impersonate-User: " .. jwt_obj.payload.preferred_username))
+            ngx.req.set_header("Impersonate-User", jwt_obj.payload.preferred_username)
+        end
+        if jwt_obj.payload and jwt_obj.payload.groups then
+            for key, grp in pairs(jwt_obj.payload.groups) do
+                table.insert(groups, grp)
+            end
+        end
+        if #groups > 0 then
+            me.logJson(ngx.INFO, ("Adding groups as Impersonate-Group: " .. table.concat(groups, ", ")))
+            ngx.req.set_header("Impersonate-Group", groups)
+        end
     end
 
     function me.handleExternalAPICall(token)
         local args = ngx.req.get_uri_args()
+
         me.logJson(ngx.INFO, "Read vmc resource for " .. args.cluster)
-        local vmc = me.getVMC(args.cluster)
+        local vmc = me.getVMC(token, args.cluster)
         if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
             me.unauthorized("Unable to fetch vmc api url for vmc " .. args.cluster)
         end
-
-        local serverUrl = vmc.status.apiUrl .. "/" .. vzApiVersion
-        ngx.req.set_uri_args(args)
-        ngx.var.kubernetes_server_url = serverUrl .. ngx.var.uri
+        local serverUrl = vmc.status.apiUrl
 
         -- To access managed cluster api server on self signed certificates, the admin cluster api server needs ca certificates for the managed cluster.
         -- A secret is created in admin cluster during multi cluster setup that contains the ca certificate.
@@ -828,7 +917,7 @@ data:
             do return end
         end
 
-        local secret = me.getSecret(vmc.spec.caSecret)
+        local secret = me.getSecret(token, vmc.spec.caSecret)
         if not(secret) or not(secret.data) or not(secret.data["cacrt"]) or secret.data["cacrt"] == "" then
             me.logJson(ngx.INFO, "Unable to fetch ca secret for vmc, assuming well known CA certificate exists for managed cluster " .. args.cluster)
             do return end
@@ -839,31 +928,34 @@ data:
             me.unauthorized("Unable to decode ca secret for vmc to access api server of managed cluster " .. args.cluster)
         end
 
-        args.cluster = nil
         local startIndex, _ = string.find(decodedSecret, "-----BEGIN CERTIFICATE-----")
         local _, endIndex = string.find(decodedSecret, "-----END CERTIFICATE-----")
         if startIndex >= 1 and endIndex > startIndex then
             me.write_file("/etc/nginx/upstream.pem", string.sub(decodedSecret, startIndex, endIndex))
         end
+
+        -- remove the cluster query param
+        args["cluster"] = nil
+        ngx.req.set_uri_args(args)
+
+        -- propagate the user's token as a bearer token, remote cluster won't have access to the session.
+        ngx.req.set_header("Authorization", "Bearer "..token)
+
+        return serverUrl
     end
-{{ end }}
 
     return me
   nginx.conf: |
     #user  nobody;
     worker_processes  1;
 
-    #error_log  logs/error.log;
-    #error_log  logs/error.log  notice;
-    #error_log  logs/error.log  info;
-
+    error_log  logs/error.log info;
     pid        logs/nginx.pid;
-    {{- if eq .Mode "api-proxy" }}
+
     env KUBERNETES_SERVICE_HOST;
     env KUBERNETES_SERVICE_PORT;
     env VZ_API_HOST;
     env VZ_API_VERSION;
-    {{- end }}
 
     events {
         worker_connections  1024;
@@ -877,14 +969,11 @@ data:
         #                  '$status $body_bytes_sent "$http_referer" '
         #                  '"$http_user_agent" "$http_x_forwarded_for"';
 
-        error_log  logs/error.log  info;
-
         sendfile        on;
         #tcp_nopush     on;
 
-{{- if eq .Mode "oauth-proxy" }}
-        client_max_body_size 65m;
-{{- end }}
+        # Posts from Fluentd can require more than the default 1m max body size
+        client_max_body_size {{ .MaxRequestSize }};
 
         #keepalive_timeout  0;
         keepalive_timeout  65;
@@ -894,50 +983,42 @@ data:
         lua_package_path '/usr/local/share/lua/5.1/?.lua;;';
         lua_package_cpath '/usr/local/lib/lua/5.1/?.so;;';
         resolver _NAMESERVER_;
+
         # cache for discovery metadata documents
         lua_shared_dict discovery 1m;
         #  cache for JWKs
         lua_shared_dict jwks 1m;
-{{- if eq .Mode "oauth-proxy" }}
-{{- if eq .SSLEnabled true }}
-        lua_ssl_verify_depth 2;
-        lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
-{{- end }}
 
-        upstream http_backend {
-            server {{ .Host }}:{{ .Port }} fail_timeout=30s max_fails=10;
-        }
-{{- end }}
+        #access_log  logs/host.access.log  main;
+        server_tokens off;
 
+        #charset koi8-r;
+        expires           0;
+        #add_header        Cache-Control private;
+        add_header        Cache-Control no-store always;
+
+        root     /opt/nginx/html;
+
+        proxy_http_version 1.1;
+
+        # verrazzano api and console
         server {
             listen       8775;
-            server_name  apiserver;
-            root     /opt/nginx/html;
-            #charset koi8-r;
+            server_name  verrazzano-proxy;
 
-{{- if eq .Mode "oauth-proxy" }}
-            set $oidc_user "";
-            rewrite_by_lua_file /etc/nginx/conf.lua;
-{{- end }}
-
-            #access_log  logs/host.access.log  main;
-            expires           0;
-            add_header        Cache-Control private;
-
-{{- if eq .Mode "oauth-proxy" }}
-            proxy_set_header  X-WEBAUTH-USER $oidc_user;
-{{- end }}
-
+            # api
             location / {
-{{- if eq .Mode "oauth-proxy" }}
-                proxy_pass http://http_backend;
-{{- else if eq .Mode "api-proxy" }}
                 lua_ssl_verify_depth 2;
                 lua_ssl_trusted_certificate /etc/nginx/upstream.pem;
-                set $kubernetes_server_url "";
+                # oauth-proxy ssl certs location: lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
+
+                set $oidc_user "";
+                set $backend_server_url "";
                 rewrite_by_lua_file /etc/nginx/conf.lua;
-                proxy_pass $kubernetes_server_url;
+                proxy_set_header X-WEBAUTH-USER $oidc_user;
+                proxy_pass $backend_server_url;
                 proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
+                # this should only happen for origin requests - move to conf.lua?
                 header_filter_by_lua_block {
                     local h, _ = ngx.req.get_headers()["origin"]
                     if h and h ~= "*" and  h ~= "null" then
@@ -945,19 +1026,6 @@ data:
                     end
                     ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
                 }
-{{- end }}
-            }
-
-            error_page 404 /404.html;
-                location = /40x.html {
-            }
-
-            #error_page  404              /404.html;
-            # redirect server error pages to the static page /50x.html
-            #
-            error_page   500 502 503 504  /50x.html;
-            location = /50x.html {
-                root   html;
             }
         }
     }
@@ -976,28 +1044,19 @@ data:
 
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
-{{- if eq .Mode "api-proxy" }}
     cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/upstream.pem
-{{- else if eq .Mode "oauth-proxy" }}
-    # Create a pem file that contains all well known ca certs plus
-    # the ca-bundle from the managed cluster registration secret.
-    # It is valid for ca-bundle to be empty.
-    cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/all-ca-certs.pem
-    cat /secret/ca-bundle >> /etc/nginx/all-ca-certs.pem
-{{- end }}
 
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx -t
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
 
-{{- if eq .Mode "oauth-proxy" }}
     while [ $? -ne 0 ]; do
         sleep 20
         echo "retry nginx startup ..."
         /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
     done
-{{- else if eq .Mode "api-proxy" }}
+
     sh -c "$startupDir/reload.sh &"
-{{- end }}
+
     tail -f /etc/nginx/logs/error.log
   reload.sh: |
     #!/bin/bash
@@ -1056,11 +1115,11 @@ data:
                 adminCABundleMD5="$md5Hash"
                 reload
             fi
-        else 
+        else
             if [ "$adminCABundleMD5" != "" ] ; then
                 reset_md5
                 local_cert_config
-            fi 
+            fi
         fi
     }
 
@@ -1082,3 +1141,4 @@ data:
         sleep .1
     done
 {{ end }}
+
