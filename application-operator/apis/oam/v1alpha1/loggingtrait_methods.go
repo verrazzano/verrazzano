@@ -11,22 +11,22 @@ import (
 // Enforce that LoggingTrait adheres to Trait interface.
 var _ oam.Trait = &LoggingTrait{}
 
-// GetCondition gets the status condition of this ingress trait.
+// GetCondition gets the status condition of this trait.
 func (in *LoggingTrait) GetCondition(ct oamrt.ConditionType) oamrt.Condition {
 	return in.Status.GetCondition(ct)
 }
 
-// SetConditions sets the status condition of this ingress trait.
+// SetConditions sets the status condition of this trait.
 func (in *LoggingTrait) SetConditions(c ...oamrt.Condition) {
 	in.Status.SetConditions(c...)
 }
 
-// GetWorkloadReference gets the workload reference of this ingress trait.
+// GetWorkloadReference gets the workload reference of this trait.
 func (in *LoggingTrait) GetWorkloadReference() oamrt.TypedReference {
 	return in.Spec.WorkloadReference
 }
 
-// SetWorkloadReference sets the workload reference of this ingress trait.
+// SetWorkloadReference sets the workload reference of this trait.
 func (in *LoggingTrait) SetWorkloadReference(r oamrt.TypedReference) {
 	in.Spec.WorkloadReference = r
 }
