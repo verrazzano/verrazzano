@@ -384,7 +384,7 @@ func GetEffectiveKeyCloakPersistenceOverride() (*corev1.PersistentVolumeClaimSpe
 }
 
 // GetEffectiveVMIPersistenceOverride returns the effective PVC override for the VMI components, if it exists
-func GetEffectiveVMIPersistenceOverride(kubeconfigPath string) (*corev1.PersistentVolumeClaimSpec, error) {
+func GetEffectiveVMIPersistenceOverride(kubeconfigPath string) (*v1alpha1.VolumeClaimSpecTemplate, error) {
 	verrazzano, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -397,7 +397,7 @@ func GetEffectiveVMIPersistenceOverride(kubeconfigPath string) (*corev1.Persiste
 	}
 	for _, template := range verrazzano.Spec.VolumeClaimSpecTemplates {
 		if template.Name == volumeOverride.PersistentVolumeClaim.ClaimName {
-			return &template.Spec, nil
+			return &template, nil
 		}
 	}
 	return nil, fmt.Errorf("Did not find matching PVC template for %s", volumeOverride.PersistentVolumeClaim.ClaimName)
