@@ -20,7 +20,6 @@ usage() {
     $(basename $0) v.1.0.1 aa94949a4e8e9b50bc0674035898f2579f2519cb ~/go/src/github.com/verrazzano/verrazzano/release
 
   The script assumes Github CLI is installed and login is performed to authenticate the Github account.
-  work directory in the local git repository directory, containing the release binaries downloaded
 
 EOM
     exit 0
