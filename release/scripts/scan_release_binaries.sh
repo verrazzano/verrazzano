@@ -56,25 +56,34 @@ function install_scanner() {
   no_proxy="$no_proxy,${NO_PROXY_SUFFIX}"
   cd $SCANNER_HOME
   curl -O $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE
-  tar -xvf $SCANNER_ARCHIVE_FILE
+  tar --overwrite -xvf $SCANNER_ARCHIVE_FILE
 }
 
 function update_virus_definition() {
   VIRUS_DEF_FILE=$(curl -s $VIRUS_DEF_LOCATION | grep -oP 'avvdat-.*?zip' | sort -nr | head -1)
   cd $SCANNER_HOME
   curl -O $VIRUS_DEF_LOCATION/$VIRUS_DEF_FILE
-  unzip $VIRUS_DEF_FILE
+  unzip -o $VIRUS_DEF_FILE
 }
 
 function scan_release_binaries() {
   mkdir -p $SCAN_REPORT_DIR
-  cd $SCANNER_HOME
-  # The scan takes more than 50 minutes
-  ./uvscan $WORK_DIR/$RELEASE_TAR_BALL --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS --REPORT=$SCAN_REPORT
+  if [ -e "$SCAN_REPORT" ]; then
+    rm -f $SCAN_REPORT
+  fi
 
-  # Extract only the last 50 lines from the scan report and create a file, which will be used for the validation
-  local scan_summary="${SCAN_REPORT_DIR}/summary.log"
-  tail -50 ${SCAN_REPORT} > ${scan_summary}
+  cd $SCANNER_HOME
+  # The scan takes more than 50 minutes, the option --SUMMARY prints each and every file from all the layers, which is removed.
+  # Also --REPORT option prints the output of the scan in the console, which is removed and redirected to a file
+  echo "Starting the scan of $WORK_DIR/$RELEASE_TAR_BALL, it might take a longer duration. The output of the scan is being written to $SCAN_REPORT ..."
+  ./uvscan $WORK_DIR/$RELEASE_TAR_BALL --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS >> $SCAN_REPORT 2>&1
+
+  # Extract only the last 25 lines from the scan report and create a file, which will be used for the validation
+  local scan_summary="${SCAN_REPORT_DIR}/scan_summary.out"
+  if [ -e "${scan_summary}" ]; then
+    rm -f $scan_summary
+  fi
+  tail -25 ${SCAN_REPORT} > ${scan_summary}
 
   # The following set of lines from the summary in the scan report is used here for validation.
   declare -a expectedLines=("Total files:...................     1"
@@ -86,10 +95,10 @@ function scan_release_binaries() {
                             "Deleted:.......................     0")
 
   array_count=${#expectedLines[@]}
-  echo "array_count: ${array_count}"
+  echo "Count of expected lines: ${array_count}"
   result_count=0
 
-  # Read the file scan_summary.log line by line and increment the counter when the line matches one of the expected lines defined above.
+  # Read the file scan_summary.out line by line and increment the counter when the line matches one of the expected lines defined above.
   while IFS= read -r line
   do
     for i in "${expectedLines[@]}"
@@ -102,7 +111,7 @@ function scan_release_binaries() {
       esac
     done
   done < "$scan_summary"
-  echo "result_count: ${result_count}"
+  echo "Count of expected lines in the scan summary: ${result_count}"
   if [ "$result_count" == "$array_count" ];then
     echo "Found all the expected lines in the summary of the scan report."
     return 0

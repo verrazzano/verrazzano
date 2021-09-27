@@ -30,7 +30,7 @@ EOM
 
 BRANCH=$1
 RELEASE_COMMIT_SHORT=$2
-WORK_DIR=${3:-$SCRIPT_DIR}
+RELEASE_BINARIES_DIR=${3:-$SCRIPT_DIR}
 
 function get_file_from_build_bucket() {
     if [ $# -ne 1 ] && [ $# -ne 2 ]; then
@@ -39,7 +39,7 @@ function get_file_from_build_bucket() {
     fi
     local _folder="$1"
     local _file="${2:--}"
-    cd $WORK_DIR
+    cd $RELEASE_BINARIES_DIR
     oci --region ${OCI_REGION} os object get \
             --namespace ${OBJECT_STORAGE_NS} \
             --bucket-name ${OBJECT_STORAGE_BUCKET} \
@@ -57,7 +57,7 @@ function get_vz_release_artifacts() {
 # Validate OCI CLI
 validate_oci_cli || exit 1
 
-mkdir -p $WORK_DIR
+mkdir -p $RELEASE_BINARIES_DIR
 
 # Download the release artifacts
 get_vz_release_artifacts $BRANCH/$RELEASE_COMMIT_SHORT || exit 1
