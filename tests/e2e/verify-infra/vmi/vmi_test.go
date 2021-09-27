@@ -248,8 +248,18 @@ var _ = Describe("VMI", func() {
 
 	size := "50Gi"
 	if pkg.IsDevProfile() {
+		expectedVolumes := 0
+		override, err := pkg.GetEffectiveVMIPersistenceOverride()
+		assertNotNil(err)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error checking VMI volume overrides: %v", err))
+			return
+		}
+		if override != nil {
+			expectedVolumes = 3
+		}
 		It("Check persistent volumes for dev profile", func() {
-			Expect(len(volumeClaims)).To(Equal(0))
+			Expect(len(volumeClaims)).To(Equal(expectedVolumes))
 		})
 	} else if isManagedClusterProfile {
 		It("Check persistent volumes for managed cluster profile", func() {
