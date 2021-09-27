@@ -9,7 +9,7 @@ type MonitoringExporterSpec struct {
 	// The configuration for the WebLogic Monitoring Exporter. If WebLogic Server instances are already running and have
 	// the monitoring exporter sidecar container, then changes to this field will be propagated to the exporter without
 	// requiring the restart of the WebLogic Server instances.
-	Configuration map[string]string `json:"configuration,omitempty"`
+	Configuration map[string]interface{} `json:"configuration,omitempty"`
 
 	// The WebLogic Monitoring Exporter sidecar container image name.
 	Image string `json:"image,omitempty"`
