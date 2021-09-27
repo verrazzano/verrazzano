@@ -175,7 +175,7 @@ func GetComponents() []spi.Component {
 		},
 		helm.HelmComponent{
 			ReleaseName:             kiali.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, weblogic.ComponentName),
+			ChartDir:                filepath.Join(thirdPartyChartsDir, kiali.ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
