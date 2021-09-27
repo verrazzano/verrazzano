@@ -76,7 +76,7 @@ spec:
               verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app: verrazzano-api
+              app: verrazzano-authproxy
       ports:
         - port: 3000
           protocol: TCP
@@ -115,7 +115,7 @@ spec:
               verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app: verrazzano-api
+              app: verrazzano-authproxy
       ports:
         - port: 9090
           protocol: TCP
@@ -564,7 +564,7 @@ spec:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
             matchExpressions:
-              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-api, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator]}
+              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator]}
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak

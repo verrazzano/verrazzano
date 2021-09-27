@@ -30,7 +30,7 @@ const (
 	rbacTestNamespace  = "rbactest"
 	v80ProjectAdmin    = "ocid1.user.oc1..aaaaaaaallodotxfvg0g1antsyq3gonyyhblya66kiqjnp2kogonykvjwi19"
 	v80ProjectMonitor  = "ocid1.user.oc1..aaaaaaaallodotxfvg0yank33sq3gonyghblya66kiqjnp2kogonykvjwi19"
-	verrazzanoAPI      = "verrazzano-api"
+	verrazzanoAPI      = "verrazzano-authproxy"
 	impersonateVerb    = "impersonate"
 )
 
@@ -317,7 +317,7 @@ var _ = Describe("Test RBAC Permission", func() {
 })
 
 var _ = Describe("Test Verrazzano API Service Account", func() {
-	Context("for serviceaccount verrazzano-api", func() {
+	Context("for serviceaccount verrazzano-authproxy", func() {
 		var serviceAccount *corev1.ServiceAccount
 
 		BeforeEach(func() {
@@ -375,7 +375,7 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 			var rbinding v1.ClusterRoleBinding
 			for rb := range bindings.Items {
 				for sa := range bindings.Items[rb].Subjects {
-					// Get cluster role bindings for verrazzano-api
+					// Get cluster role bindings for verrazzano-authproxy
 					if bindings.Items[rb].Subjects[sa].Name == saName {
 						rbinding = bindings.Items[rb]
 						bcount++
@@ -425,8 +425,8 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 		})
 
 		It("Fail impersonating any other service account", func() {
-			pkg.Log(pkg.Info, "Can verrazzano-api service account impersonate any other service account?  No")
-			allowed, reason, err := pkg.CanIForAPIGroupForServiceAccountOrUser("verrazzano-api", "", "impersonate", "serviceaccounts", "core", true, verrazzanoSystemNS)
+			pkg.Log(pkg.Info, "Can verrazzano-authproxy service account impersonate any other service account?  No")
+			allowed, reason, err := pkg.CanIForAPIGroupForServiceAccountOrUser("verrazzano-authproxy", "", "impersonate", "serviceaccounts", "core", true, verrazzanoSystemNS)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(allowed).To(BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on impersonating service accounts: Allowed = %t, reason = %s", allowed, reason))
 		})

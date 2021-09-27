@@ -1714,9 +1714,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-api-595c9fc7c6-2vhxk.16688f13ae44ec41",
+                "name": "verrazzano-authproxy-595c9fc7c6-2vhxk.16688f13ae44ec41",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-api-595c9fc7c6-2vhxk.16688f13ae44ec41",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-authproxy-595c9fc7c6-2vhxk.16688f13ae44ec41",
                 "uid": "d51c903b-44c8-48e6-b0e9-e9f514c30662",
                 "resourceVersion": "4308",
                 "creationTimestamp": "2021-03-02T15:09:41Z",
@@ -1752,13 +1752,13 @@
             "involvedObject": {
                 "kind": "Pod",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-api-595c9fc7c6-2vhxk",
+                "name": "verrazzano-authproxy-595c9fc7c6-2vhxk",
                 "uid": "c08d8191-a212-43fb-a258-b9254002d7c8",
                 "apiVersion": "v1",
                 "resourceVersion": "4266"
             },
             "reason": "Scheduled",
-            "message": "Successfully assigned verrazzano-system/verrazzano-api-595c9fc7c6-2vhxk to minikube",
+            "message": "Successfully assigned verrazzano-system/verrazzano-authproxy-595c9fc7c6-2vhxk to minikube",
             "source": {
                 "component": "default-scheduler"
             },
@@ -1772,9 +1772,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-api-595c9fc7c6-2vhxk.16688f13e7d80e16",
+                "name": "verrazzano-authproxy-595c9fc7c6-2vhxk.16688f13e7d80e16",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-api-595c9fc7c6-2vhxk.16688f13e7d80e16",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-authproxy-595c9fc7c6-2vhxk.16688f13e7d80e16",
                 "uid": "ea0e4569-ab87-4933-acd5-f26211ad41b7",
                 "resourceVersion": "4330",
                 "creationTimestamp": "2021-03-02T15:09:42Z",
@@ -1812,11 +1812,11 @@
             "involvedObject": {
                 "kind": "Pod",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-api-595c9fc7c6-2vhxk",
+                "name": "verrazzano-authproxy-595c9fc7c6-2vhxk",
                 "uid": "c08d8191-a212-43fb-a258-b9254002d7c8",
                 "apiVersion": "v1",
                 "resourceVersion": "4272",
-                "fieldPath": "spec.containers{verrazzano-api}"
+                "fieldPath": "spec.containers{verrazzano-authproxy}"
             },
             "reason": "Pulling",
             "message": "Pulling image \"ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210510134749-abc2d2088\"",
@@ -1834,9 +1834,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-api-595c9fc7c6-2vhxk.16688f1e29665d06",
+                "name": "verrazzano-authproxy-595c9fc7c6-2vhxk.16688f1e29665d06",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-api-595c9fc7c6-2vhxk.16688f1e29665d06",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-authproxy-595c9fc7c6-2vhxk.16688f1e29665d06",
                 "uid": "7db06ca7-db14-4d41-aad1-2cd9d3f879da",
                 "resourceVersion": "4886",
                 "creationTimestamp": "2021-03-02T15:10:26Z",
@@ -1874,11 +1874,11 @@
             "involvedObject": {
                 "kind": "Pod",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-api-595c9fc7c6-2vhxk",
+                "name": "verrazzano-authproxy-595c9fc7c6-2vhxk",
                 "uid": "c08d8191-a212-43fb-a258-b9254002d7c8",
                 "apiVersion": "v1",
                 "resourceVersion": "4272",
-                "fieldPath": "spec.containers{verrazzano-api}"
+                "fieldPath": "spec.containers{verrazzano-authproxy}"
             },
             "reason": "Pulled",
             "message": "Successfully pulled image \"ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210510134749-abc2d2088\"",
@@ -1896,9 +1896,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-api-595c9fc7c6-2vhxk.16688f1e559e606f",
+                "name": "verrazzano-authproxy-595c9fc7c6-2vhxk.16688f1e559e606f",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-api-595c9fc7c6-2vhxk.16688f1e559e606f",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-authproxy-595c9fc7c6-2vhxk.16688f1e559e606f",
                 "uid": "5ace0191-3a78-41bd-912d-5110411df7f1",
                 "resourceVersion": "4892",
                 "creationTimestamp": "2021-03-02T15:10:26Z",
@@ -1936,14 +1936,14 @@
             "involvedObject": {
                 "kind": "Pod",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-api-595c9fc7c6-2vhxk",
+                "name": "verrazzano-authproxy-595c9fc7c6-2vhxk",
                 "uid": "c08d8191-a212-43fb-a258-b9254002d7c8",
                 "apiVersion": "v1",
                 "resourceVersion": "4272",
-                "fieldPath": "spec.containers{verrazzano-api}"
+                "fieldPath": "spec.containers{verrazzano-authproxy}"
             },
             "reason": "Created",
-            "message": "Created container verrazzano-api",
+            "message": "Created container verrazzano-authproxy",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -1958,9 +1958,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-api-595c9fc7c6-2vhxk.16688f1e63b2f966",
+                "name": "verrazzano-authproxy-595c9fc7c6-2vhxk.16688f1e63b2f966",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-api-595c9fc7c6-2vhxk.16688f1e63b2f966",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-authproxy-595c9fc7c6-2vhxk.16688f1e63b2f966",
                 "uid": "30e59590-2742-4c1b-9e92-96f0fef2cbee",
                 "resourceVersion": "4928",
                 "creationTimestamp": "2021-03-02T15:10:27Z",
@@ -1998,14 +1998,14 @@
             "involvedObject": {
                 "kind": "Pod",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-api-595c9fc7c6-2vhxk",
+                "name": "verrazzano-authproxy-595c9fc7c6-2vhxk",
                 "uid": "c08d8191-a212-43fb-a258-b9254002d7c8",
                 "apiVersion": "v1",
                 "resourceVersion": "4272",
-                "fieldPath": "spec.containers{verrazzano-api}"
+                "fieldPath": "spec.containers{verrazzano-authproxy}"
             },
             "reason": "Started",
-            "message": "Started container verrazzano-api",
+            "message": "Started container verrazzano-authproxy",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -2020,9 +2020,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-api-595c9fc7c6.16688f13abad2673",
+                "name": "verrazzano-authproxy-595c9fc7c6.16688f13abad2673",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-api-595c9fc7c6.16688f13abad2673",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-authproxy-595c9fc7c6.16688f13abad2673",
                 "uid": "85d1a470-1fb8-4de3-a2dc-afaebdc3dec1",
                 "resourceVersion": "4298",
                 "creationTimestamp": "2021-03-02T15:09:41Z",
@@ -2058,13 +2058,13 @@
             "involvedObject": {
                 "kind": "ReplicaSet",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-api-595c9fc7c6",
+                "name": "verrazzano-authproxy-595c9fc7c6",
                 "uid": "c5a5c4bf-bbb3-4c38-93b3-0f0929fc5cf1",
                 "apiVersion": "apps/v1",
                 "resourceVersion": "4248"
             },
             "reason": "SuccessfulCreate",
-            "message": "Created pod: verrazzano-api-595c9fc7c6-2vhxk",
+            "message": "Created pod: verrazzano-authproxy-595c9fc7c6-2vhxk",
             "source": {
                 "component": "replicaset-controller"
             },
@@ -2078,9 +2078,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-api.16688f13a93339e6",
+                "name": "verrazzano-authproxy.16688f13a93339e6",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-api.16688f13a93339e6",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-authproxy.16688f13a93339e6",
                 "uid": "64446fc7-2dca-4f5c-b075-45a511584d09",
                 "resourceVersion": "4257",
                 "creationTimestamp": "2021-03-02T15:09:41Z",
@@ -2116,13 +2116,13 @@
             "involvedObject": {
                 "kind": "Deployment",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-api",
+                "name": "verrazzano-authproxy",
                 "uid": "0a3dcded-a022-47d9-b346-c8f0af9e583a",
                 "apiVersion": "apps/v1",
                 "resourceVersion": "4242"
             },
             "reason": "ScalingReplicaSet",
-            "message": "Scaled up replica set verrazzano-api-595c9fc7c6 to 1",
+            "message": "Scaled up replica set verrazzano-authproxy-595c9fc7c6 to 1",
             "source": {
                 "component": "deployment-controller"
             },

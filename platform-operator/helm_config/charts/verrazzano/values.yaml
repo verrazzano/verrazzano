@@ -79,7 +79,7 @@ console:
   # NOTE: The console image now comes from the bill of materials file (verrazzano-bom.json).
 
 api:
-  name: verrazzano-api
+  name: verrazzano-authproxy
   # NOTE: The nginx-ingress-controller image now comes from the bill of materials file (verrazzano-bom.json).
   pullPolicy: IfNotPresent
   port: 8775

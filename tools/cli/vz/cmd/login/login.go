@@ -39,7 +39,7 @@ func NewLoginOptions(streams genericclioptions.IOStreams) *LoginOptions {
 // Calls the login function to complete login
 func NewCmdLogin(streams genericclioptions.IOStreams, kubernetesInterface helpers.Kubernetes) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "login <verrazzano-api-url> \n  Eg.vz login https://verrazzano.xyz.nip.io",
+		Use:   "login <verrazzano-authproxy-url> \n  Eg.vz login https://verrazzano.xyz.nip.io",
 		Short: "Login to Verrazzano",
 		Long:  "Login to Verrazzano using the api-url \nMake sure that you have exported VZ_CLIENT_ID, VZ_KEYCLOAK_URL and VZ_REALM \nMore details at https://github.com/verrazzano/verrazzano/tree/master/tools/cli#setting-up-the-environment-variables \nThe CLI uses the kubeconfig to store authentication information.\nThe CLI assumes that the default kubeconfig is present in ~/.kube/config.\nUsers can change that by setting a environment variable KUBECONFIG containing the path to your kubeconfig.",
 		Args:  cobra.ExactArgs(1),
