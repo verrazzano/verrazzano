@@ -21,7 +21,7 @@ type Component interface {
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
 
-	// SkipUpgrade returns the value of the SkipUpgrade field
+	// GetSkipUpgrade returns the value of the SkipUpgrade field
 	GetSkipUpgrade() bool
 
 	// PreUpgrade allows components to perform any pre-processing required prior to upgrading
