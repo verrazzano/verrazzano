@@ -41,7 +41,7 @@ function verify_released_artifacts() {
   # Iterate the array containing the release artifacts and download all of them
   for i in "${releaseArtifacts[@]}"
   do
-    wget https://github.com/verrazzano/verrazzano/releases/download/$VERSION/$i
+    wget -O $i https://github.com/verrazzano/verrazzano/releases/download/$VERSION/$i
   done
   sha256sum -c k8s-dump-cluster.sh.sha256
   sha256sum -c verrazzano-analysis-darwin-amd64.tar.gz.sha256
@@ -55,7 +55,7 @@ function verify_released_artifacts() {
   # Iterate the array containing the release artifacts and download all of them
   for i in "${releaseArtifacts[@]}"
   do
-    wget https://github.com/verrazzano/verrazzano/releases/latest/download/$i
+    wget -O $i https://github.com/verrazzano/verrazzano/releases/latest/download/$i
   done
   sha256sum -c k8s-dump-cluster.sh.sha256
   sha256sum -c verrazzano-analysis-darwin-amd64.tar.gz.sha256
@@ -83,15 +83,14 @@ verify_release_binaries_exist || exit 1
 validate_github_cli || exit 1
 
 if [ $TEST_RUN == true ] ; then
-    echo "TEST_RUN is set to true"
+    echo "TEST_RUN is set to true, not doing a github release."
 else
-  echo "TEST_RUN is set to false"
-# Setting an empty string for notes, as the release notes will be prepared separately
-#gh release create "${VERSION}" \
-# --target "${RELEASE_COMMIT}" \
-# --notes "" \
-# --title "Verrazzano release ${VERSION}" \
-#${releaseArtifacts[*]}
+    echo "TEST_RUN is set to false, doing a github release now."
+    # Setting an empty string for notes, as the release notes will be prepared separately
+    #gh release create "${VERSION}" \
+     # --target "${RELEASE_COMMIT}" \
+     # --notes "" \
+     # --title "Verrazzano release ${VERSION}" \
+     #${releaseArtifacts[*]}
 fi
-
 verify_released_artifacts || exit 1

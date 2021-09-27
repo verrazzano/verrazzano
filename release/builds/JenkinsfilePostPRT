@@ -43,7 +43,6 @@ pipeline {
 
     stages {
         // Validate parameters, for example, RELEASE_BRANCH must start with release*
-
         stage('Clean workspace and checkout') {
             steps {
                 sh """
@@ -118,20 +117,15 @@ pipeline {
                    }
                 }
             }
-            post {
-                always {
-                    script {
-                        archiveArtifacts artifacts: "**/scan_report.out", allowEmptyArchive: true
-                    }
-                }
-            }
         }
 
         stage('Create Github Release') {
             environment {
                 SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')
                 SCANNER_ARCHIVE_FILE = credentials('scanner-archive-file')
-                GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
+
+                // Credential github-api-token-release-assets doesn't contain the required scope read:org
+                GITHUB_ACCESS_TOKEN = credentials('github-markxnelns-private-access-token')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
                 VIRUS_DEF_LOCATION = "https://update.nai.com/products/commonupdater2/current/vscandat1000/dat/0000"
             }
@@ -139,16 +133,18 @@ pipeline {
                 script {
                   sh """
                     export GITHUB_TOKEN=
-                    echo ${GITHUB_API_TOKEN}|gh auth login --with-token
-                    echo "Successful login to github cli"
-                    # cd ${WORKSPACE}/release/scripts
-                    # ./create_github_release.sh ${params.RELEASE_VERSION} ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
+                    cd ${WORKSPACE}/release/scripts
+                    ./create_github_release.sh ${params.RELEASE_VERSION} ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
+                    echo ${GITHUB_ACCESS_TOKEN_PSW}|gh auth login --with-token
                   """
                 }
             }
         }
     }
     post {
+        always {
+            archiveArtifacts artifacts: "**/scan_report.out,**/scan_summary.out,", allowEmptyArchive: true
+        }
         cleanup {
             deleteDir()
         }
