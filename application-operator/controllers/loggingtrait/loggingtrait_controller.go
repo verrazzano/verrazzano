@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -45,7 +44,6 @@ type LoggingTraitReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
-	Record event.Recorder
 	discovery.DiscoveryClient
 }
 
