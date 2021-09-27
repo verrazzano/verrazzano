@@ -384,12 +384,7 @@ func GetEffectiveKeyCloakPersistenceOverride() (*corev1.PersistentVolumeClaimSpe
 }
 
 // GetEffectiveVMIPersistenceOverride returns the effective PVC override for the VMI components, if it exists
-func GetEffectiveVMIPersistenceOverride() (*corev1.PersistentVolumeClaimSpec, error) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
-		return nil, err
-	}
+func GetEffectiveVMIPersistenceOverride(kubeconfigPath string) (*corev1.PersistentVolumeClaimSpec, error) {
 	verrazzano, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err

@@ -248,18 +248,24 @@ var _ = Describe("VMI", func() {
 
 	size := "50Gi"
 	if pkg.IsDevProfile() {
-		expectedVolumes := 0
-		override, err := pkg.GetEffectiveVMIPersistenceOverride()
-		assertNotNil(err)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error checking VMI volume overrides: %v", err))
-			return
-		}
-		if override != nil {
-			expectedVolumes = 3
-		}
 		It("Check persistent volumes for dev profile", func() {
-			Expect(len(volumeClaims)).To(Equal(expectedVolumes))
+			expectedVolumes := 0
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			Expect(err).Should(BeNil(), fmt.Sprintf("Unexpected error getting default kubeconfig path: %s", err))
+			override, err := pkg.GetEffectiveVMIPersistenceOverride(kubeconfigPath)
+			// If there are persistence overrides at the global level, that will cause persistent
+			// volumes to be created for the VMI components that use them (ES, Kibana, and Prometheus)
+			// At some point we may need to check for individual VMI overrides.
+			if override != nil {
+				expectedVolumes = 3
+			}
+			Expect(err).Should(BeNil(), fmt.Sprintf("Unexpected error getting VMI persistence overrides: %s", err))
+			Expect(len(volumeClaims), err).To(Equal(expectedVolumes))
+			if expectedVolumes > 0 {
+				assertPersistentVolume("vmi-system-prometheus", size)
+				assertPersistentVolume("vmi-system-grafana", size)
+				assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
+			}
 		})
 	} else if isManagedClusterProfile {
 		It("Check persistent volumes for managed cluster profile", func() {
