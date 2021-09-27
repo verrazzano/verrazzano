@@ -87,10 +87,10 @@ if [ $TEST_RUN == true ] ; then
 else
     echo "TEST_RUN is set to false, doing a github release now."
     # Setting an empty string for notes, as the release notes will be prepared separately
-    #gh release create "${VERSION}" \
-     # --target "${RELEASE_COMMIT}" \
-     # --notes "" \
-     # --title "Verrazzano release ${VERSION}" \
-     #${releaseArtifacts[*]}
+    gh release create "${VERSION}" \
+      --target "${RELEASE_COMMIT}" \
+      --notes "" \
+      --title "Verrazzano release ${VERSION}" \
+    ${releaseArtifacts[*]}
 fi
 verify_released_artifacts || exit 1

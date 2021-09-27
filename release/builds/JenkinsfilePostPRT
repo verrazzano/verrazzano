@@ -22,7 +22,7 @@ pipeline {
         string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'The source commit for the release (required for full release)', name: 'RELEASE_COMMIT', defaultValue: 'NONE', trim: true )
         string (description: 'The full git commit hash from the source build', name: 'GIT_COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
-        booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
+        booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: true)
     }
 
     environment {
@@ -124,8 +124,8 @@ pipeline {
                 SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')
                 SCANNER_ARCHIVE_FILE = credentials('scanner-archive-file')
 
-                // Credential github-api-token-release-assets doesn't contain the required scope read:org
-                GITHUB_ACCESS_TOKEN = credentials('github-markxnelns-private-access-token')
+                // The token should have required scope - read:org
+                GITHUB_ACCESS_TOKEN = credentials('github-api-token-release-assets')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
                 VIRUS_DEF_LOCATION = "https://update.nai.com/products/commonupdater2/current/vscandat1000/dat/0000"
             }
