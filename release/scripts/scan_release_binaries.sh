@@ -75,6 +75,7 @@ function scan_release_binaries() {
   cd $SCANNER_HOME
   # The scan takes more than 50 minutes, the option --SUMMARY prints each and every file from all the layers, which is removed.
   # Also --REPORT option prints the output of the scan in the console, which is removed and redirected to a file
+  echo "Starting the scan of $WORK_DIR/$RELEASE_TAR_BALL, it might take a longer duration. The output of the scan is being written to $SCAN_REPORT ..."
   ./uvscan $WORK_DIR/$RELEASE_TAR_BALL --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS >> $SCAN_REPORT 2>&1
 
   # Extract only the last 25 lines from the scan report and create a file, which will be used for the validation
@@ -123,6 +124,6 @@ function scan_release_binaries() {
 mkdir -p $SCANNER_HOME
 validate_oci_cli || exit 1
 downaload_release_tarball || exit 1
-install_scanner || exit 1
-update_virus_definition || exit 1
-scan_release_binaries || exit 1
+#install_scanner || exit 1
+#update_virus_definition || exit 1
+#scan_release_binaries || exit 1

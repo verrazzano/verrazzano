@@ -93,7 +93,7 @@ pipeline {
                     sh """
                         mkdir -p ${RELEASE_BINARIES_DIR}
                         cd ${WORKSPACE}/release/scripts
-                        # ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${RELEASE_BINARIES_DIR}
+                        ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${RELEASE_BINARIES_DIR}
                     """
                 }
             }
