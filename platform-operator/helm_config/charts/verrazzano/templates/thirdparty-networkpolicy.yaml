@@ -73,12 +73,12 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: ingress-nginx
           podSelector:
             matchLabels:
-              app: verrazzano-api
+              app.kubernetes.io/instance: ingress-controller
       ports:
-        - port: 3000
+        - port: 8775
           protocol: TCP
     - from:
         - namespaceSelector:
@@ -112,12 +112,12 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: ingress-nginx
           podSelector:
             matchLabels:
-              app: verrazzano-api
+              app.kubernetes.io/instance: ingress-controller
       ports:
-        - port: 9090
+        - port: 8775
           protocol: TCP
     - from:
         - podSelector:

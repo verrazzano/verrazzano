@@ -10,11 +10,9 @@ import (
 	"strings"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // The max upgrade failures for a given upgrade attempt is 2
@@ -59,17 +57,10 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			return ctrl.Result{}, err
 		}
 	}
-
-	// Invoke the global post upgrade function after all components are upgraded.
-	err := postUpgrade(log, r)
-	if err != nil {
-		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
-	}
-
 	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
 	log.Info(msg)
 	cr.Status.Version = targetVersion
-	if err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete); err != nil {
+	if err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -116,12 +107,4 @@ func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus, generation int64) 
 func fmtGeneration(gen int64) string {
 	s := strconv.FormatInt(gen, 10)
 	return "generation:" + s
-}
-
-func postUpgrade(log *zap.SugaredLogger, client clipkg.Client) error {
-	err := prometheus.FixupPrometheusDeployment(log, client)
-	if err != nil {
-		return err
-	}
-	return nil
 }
