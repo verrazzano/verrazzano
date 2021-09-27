@@ -135,7 +135,6 @@ pipeline {
                     export GITHUB_TOKEN=
                     cd ${WORKSPACE}/release/scripts
                     ./create_github_release.sh ${params.RELEASE_VERSION} ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
-                    echo ${GITHUB_ACCESS_TOKEN_PSW}|gh auth login --with-token
                   """
                 }
             }
