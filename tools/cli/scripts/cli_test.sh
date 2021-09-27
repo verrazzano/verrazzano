@@ -37,6 +37,23 @@ fi
 echo "vz cluster deregister ${MANAGED_CLUSTER_NAME}"
 vz cluster deregister ${MANAGED_CLUSTER_NAME}
 
+# wait for the VMC to be deleted
+retries=0
+echo "wait for VMC ${MANAGED_CLUSTER_NAME} to be deleted"
+until [ "$retries" -ge 10 ]
+do
+  kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
+  if [ $? -eq 1 ]; then
+    break
+  fi
+  retries=$(($retries+1))
+  sleep 5
+done
+if [ "$retries" -ge 10 ] ; then
+  echo "failed to delete VMC ${MANAGED_CLUSTER_NAME}"
+  exit 1
+fi
+
 #create VerrazzanoMangedCLuster on admin
 echo "vz cluster register ${MANAGED_CLUSTER_NAME}"
 vz cluster register ${MANAGED_CLUSTER_NAME} -d "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}" -c "ca-secret-${MANAGED_CLUSTER_NAME}"
