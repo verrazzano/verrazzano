@@ -12,6 +12,10 @@ import (
 	vzyaml "github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
 )
 
+// ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
+// Put external IPs into the IstioOperator YAML, which does support it
+const ExternalIPArg = "gateways.istio-ingressgateway.externalIPs"
+
 // Define the IstioOperator template which is used to insert the generated YAML values.
 //
 // NOTE: The go template rendering doesn't properly indent the multi-line YAML value
@@ -30,7 +34,7 @@ import (
 // {{.Values}}
 // See the leftMargin usage in the code
 //
-const istioCrTempate = `
+const istioHelmValuesTempate = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
@@ -47,7 +51,7 @@ spec:
 `
 
 // Template for merging externalIp YAML
-const externalIPTemplate = `
+const externalIpTemplate = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
@@ -62,9 +66,14 @@ spec:
 {{.ExternalIps}}
 `
 
-// templateValues is needed for template rendering of helm values
-type templateValues struct {
+// templateValuesIstioHelm is needed for template rendering of helm values
+type templateValuesIstioHelm struct {
 	Values string
+}
+
+// templateValuesExternalIPs needed for template rendering of external IPs.
+type templateValuesExternalIPs struct {
+	ExternalIps string
 }
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
@@ -72,11 +81,10 @@ type templateValues struct {
 func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	// All generated YAML will be indented 6 spaces
 	const leftMargin = 6
+	const leftMarginExtIp = 12
 
-	// This is a special case where Istio helm chart no logner supports ExternalIPs
-	// So we need to put it into the IstioOperator YAML, which does support it
-	const ExternalIPKey = "gateways.istio-ingressgateway.externalIPs"
 	var externalIPYaml string
+	var resultYaml string
 
 	// Build a list of YAML strings from the IstioComponent initargs, one for each arg.
 	var expandedYamls []string
@@ -85,15 +93,26 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 		if len(values) == 0 {
 			values = []string{arg.Value}
 		}
-		yaml, err := vzyaml.Expand(leftMargin, arg.Name, values...)
-		if err != nil {
-			return "", err
-		}
-		if arg.Name == ExternalIPKey {
+
+		if arg.Name == ExternalIPArg {
+			// We want the YAML in the following format, so pass a short arg name
+			// because it is going to be rendered in the go template externalIpTemplate
+			//   externalIPs:
+			//   - 1.2.3.4
+			//
+			const shortArgExternalIPs = "externalIPs"
+			yaml, err := vzyaml.Expand(leftMarginExtIp, true, shortArgExternalIPs, values...)
+			if err != nil {
+				return "", err
+			}
 			// This is handled seperately
 			externalIPYaml = yaml
 			continue
 		} else {
+			yaml, err := vzyaml.Expand(leftMargin, false, arg.Name, values...)
+			if err != nil {
+				return "", err
+			}
 			expandedYamls = append(expandedYamls, yaml)
 		}
 	}
@@ -105,36 +124,37 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 		return "", err
 	}
 
-	// Render the IstioOperator YAML with the values yaml
-	merged, err = renderHelmValues(merged)
+	// Render the IstioOperator YAML with the values YAML
+	resultYaml, err = renderHelmValues(merged)
 	if err != nil {
 		return "", err
 	}
 
-	// If the externalIPs exists, the render the YAML and merge it
+	// If the externalIPs exists, the render that YAML and merge it
 	if len(externalIPYaml) > 0 {
 		// Render the IstioOperator YAML with the external IPs
-		extYaml, err := renderExternalIPYAML(externalIPYaml)
+		extYaml, err := renderExternalIpYAML(externalIPYaml)
 		if err != nil {
 			return "", err
 		}
 		// Now merge the 2 IstioOperator YAMLs
-		merged, err = vzyaml.ReplacementMerge(merged, extYaml)
+		firstResultYaml := resultYaml
+		resultYaml, err = vzyaml.ReplacementMerge(firstResultYaml, extYaml)
 		if err != nil {
 			return "", err
 		}
 	}
-	return merged, nil
+	return resultYaml, nil
 }
 
 // Render the helm values using the template, return the YAML
 func renderHelmValues(yaml string) (string, error) {
-	t, err := template.New("values").Parse(istioCrTempate)
+	t, err := template.New("values").Parse(istioHelmValuesTempate)
 	if err != nil {
 		return "", err
 	}
 	var rendered bytes.Buffer
-	tInput := templateValues{Values: yaml}
+	tInput := templateValuesIstioHelm{Values: yaml}
 	err = t.Execute(&rendered, tInput)
 	if err != nil {
 		return "", err
@@ -143,13 +163,13 @@ func renderHelmValues(yaml string) (string, error) {
 }
 
 // Render the externalIP values using the template, return the YAML
-func renderExternalIPYAML(yaml string) (string, error) {
-	t, err := template.New("externalIP").Parse(externalIPTemplate)
+func renderExternalIpYAML(yaml string) (string, error) {
+	t, err := template.New("externalIP").Parse(externalIpTemplate)
 	if err != nil {
 		return "", err
 	}
 	var rendered bytes.Buffer
-	tInput := templateValues{Values: fixExternalIPYaml(yaml)}
+	tInput := templateValuesExternalIPs{ExternalIps: fixExternalIPYaml(yaml)}
 	err = t.Execute(&rendered, tInput)
 	if err != nil {
 		return "", err
@@ -167,7 +187,7 @@ func renderExternalIPYAML(yaml string) (string, error) {
 //       - 1.3.4.6
 //
 func fixExternalIPYaml(yaml string) string {
-	segs := strings.SplitN(yaml, "\n", 1)
+	segs := strings.SplitN(yaml, "\n", 2)
 	if len(segs) == 2 {
 		return segs[1]
 	}

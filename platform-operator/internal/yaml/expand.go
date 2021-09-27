@@ -37,7 +37,8 @@ import (
 //       annotations:
 //         service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
 //
-func Expand(leftMargin int, name string, vals ...string) (string, error) {
+// If forcelist is true then always use the list format.
+func Expand(leftMargin int, forceList bool, name string, vals ...string) (string, error) {
 	const indent = 2
 	b := strings.Builder{}
 
@@ -73,7 +74,7 @@ func Expand(leftMargin int, name string, vals ...string) (string, error) {
 		}
 		// If this is the last segment then write the value, else LF
 		if i == len(nameSegs)-1 {
-			if err := writeVals(&b, pad, vals...); err != nil {
+			if err := writeVals(&b, forceList, pad, vals...); err != nil {
 				return "", err
 			}
 		} else {
@@ -86,9 +87,10 @@ func Expand(leftMargin int, name string, vals ...string) (string, error) {
 	// TODO add valueList
 }
 
-// writeVals writes a single value or a list of values to the string builder
-func writeVals(b *strings.Builder, pad string, vals ...string) error {
-	if len(vals) == 1 {
+// writeVals writes a single value or a list of values to the string builder.
+// If forcelist is true then always use the list format.
+func writeVals(b *strings.Builder, forceList bool, pad string, vals ...string) error {
+	if len(vals) == 1 && !forceList {
 		// Write the single value, for example:
 		// key: val1
 		_, err := b.WriteString(" " + vals[0])
@@ -102,7 +104,7 @@ func writeVals(b *strings.Builder, pad string, vals ...string) error {
 		if _, err := b.WriteString("\n"); err != nil {
 			return err
 		}
-		if _, err := b.WriteString(pad + "  - " + val); err != nil {
+		if _, err := b.WriteString(pad + "- " + val); err != nil {
 			return err
 		}
 	}

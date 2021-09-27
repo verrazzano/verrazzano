@@ -10,15 +10,21 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-const anno1 = `
+const argShape = `
 gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
 
-// Appending keys YAML
+// Specify the install args
 var cr1 = vzapi.IstioComponent{
-	IstioInstallArgs: []vzapi.InstallArgs{{
-		Name:  anno1,
-		Value: "10Mbps",
-	}},
+	IstioInstallArgs: []vzapi.InstallArgs{
+		{
+			Name:  argShape,
+			Value: "10Mbps",
+		},
+		{
+			Name:  ExternalIPArg,
+			Value: "1.2.3.4",
+		},
+	},
 }
 
 // Resulting YAML after the merge
@@ -30,6 +36,14 @@ spec:
     egressGateways:
       - name: istio-egressgateway
         enabled: true
+    ingressGateways:
+      - name: istio-ingressgateway
+        enabled: true
+        k8s:
+          service:
+            type: ClusterIP
+            externalIPs:
+            - 1.2.3.4
 
   # Global values passed through to helm global.yaml.
   # Please keep this in sync with manifests/charts/global.yaml
