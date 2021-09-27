@@ -360,65 +360,61 @@ pipeline {
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
-                    stage('uninstall') {
-                        stage('Uninstall Verrazzano') {
-                            steps {
-                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                    sh """
-                                        kubectl delete verrazzano my-verrazzano
-                                    """
-                                }
-                            }
-                            post {
-                                always {
-                                    sh """
-                                        ## dump out uninstall logs
-                                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
-                                        kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
-                                        kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
-                                        echo "Listing all pods in all namespaces after uninstall"
-                                        kubectl get pods --all-namespaces
-                                        echo "-----------------------------------------------------"
-                                    """
-                                    listNamepacesAndPods('after Verrazzano uninstall')
-                                    listHelmReleases('after Verrazzano uninstall')
-                                }
-                                success {
-                                    script {
-                                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                            dumpK8sCluster('upgrade-uninstall-cluster-dump')
-                                        }
-                                    }
-                                }
-                                failure {
-                                    dumpK8sCluster('upgrade-uninstall-failure-cluster-dump')
+                }
+                stage('Uninstall') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                kubectl delete verrazzano my-verrazzano
+                            """
+                        }
+                    }
+                    post {
+                        always {
+                            sh """
+                                ## dump out uninstall logs
+                                mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
+                                kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
+                                kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
+                                echo "Listing all pods in all namespaces after uninstall"
+                                kubectl get pods --all-namespaces
+                                echo "-----------------------------------------------------"
+                            """
+                            listNamepacesAndPods('after Verrazzano uninstall')
+                            listHelmReleases('after Verrazzano uninstall')
+                        }
+                        success {
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                    dumpK8sCluster('upgrade-uninstall-cluster-dump')
                                 }
                             }
                         }
-
-                        stage("Verify Uninstall") {
-                            steps {
-                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                    sh """
-                                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
-                                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
-                                    """
-                                }
-                            }
-                            post {
-                                success {
-                                    script {
-                                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                            dumpK8sCluster('verify-uninstall-cluster-dump')
-                                        }
-                                    }
-                                }
-                                failure {
+                        failure {
+                            dumpK8sCluster('upgrade-uninstall-failure-cluster-dump')
+                        }
+                    }
+                }
+                stage("Verify Uninstall") {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
+                                ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
+                            """
+                        }
+                    }
+                    post {
+                        success {
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                                     dumpK8sCluster('verify-uninstall-cluster-dump')
                                 }
                             }
                         }
-
+                        failure {
+                            dumpK8sCluster('verify-uninstall-cluster-dump')
+                        }
                     }
                 }
             }
