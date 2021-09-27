@@ -104,8 +104,8 @@ func (in *ComponentSpec) DeepCopyInto(out *ComponentSpec) {
 		*out = new(CertManagerComponent)
 		**out = **in
 	}
-	if in.Coherence != nil {
-		in, out := &in.Coherence, &out.Coherence
+	if in.CoherenceOperator != nil {
+		in, out := &in.CoherenceOperator, &out.CoherenceOperator
 		*out = new(CoherenceOperatorComponent)
 		(*in).DeepCopyInto(*out)
 	}
@@ -164,8 +164,8 @@ func (in *ComponentSpec) DeepCopyInto(out *ComponentSpec) {
 		*out = new(RancherComponent)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.WebLogic != nil {
-		in, out := &in.WebLogic, &out.WebLogic
+	if in.WebLogicOperator != nil {
+		in, out := &in.WebLogicOperator, &out.WebLogicOperator
 		*out = new(WebLogicOperatorComponent)
 		(*in).DeepCopyInto(*out)
 	}
