@@ -33,16 +33,6 @@ spec:
               verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app: fluentd
-      ports:
-        - protocol: TCP
-          port: 8775
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-system
-          podSelector:
-            matchLabels:
               app: system-prometheus
       ports:
         - port: 15090
@@ -68,10 +58,10 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: ingress-nginx
           podSelector:
             matchLabels:
-              app: verrazzano-api
+              app.kubernetes.io/instance: ingress-controller
       ports:
         - protocol: TCP
           port: 8000

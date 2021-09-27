@@ -103,7 +103,7 @@ go-install:
 	$(GO) install ./...
 
 .PHONY: manifests
-manifests: platform-manifests
+manifests: platform-manifests generate-api-proxy-configmap
 
 #
 # Docker-related tasks
@@ -206,6 +206,16 @@ create-test-deploy:
 	else \
 		echo "VZ_DEV_IMAGE not defined, please set it to a valid image name/tag"; \
 	fi
+
+.PHONY: generate-api-proxy-configmap
+generate-api-proxy-configmap:
+	hack/generate-api-proxy-configmap.sh \
+        ../pkg/proxy/conf_lua_template.go \
+        ../pkg/proxy/auth_lua_template.go \
+        ../pkg/proxy/nginx_conf_template.go \
+        ../pkg/proxy/startup_sh_template.go \
+        ../pkg/proxy/reload_sh_template.go \
+        > helm_config/charts/verrazzano/templates/verrazzano-api-configmap.yaml
 
 .PHONY: generate-bom
 generate-bom:
