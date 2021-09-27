@@ -19,7 +19,6 @@ import (
 	"time"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -42,7 +41,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	var mgr *mocks.MockManager
 	var cli *mocks.MockClient
 	var scheme *runtime.Scheme
-	var recorder event.Recorder
+
 	var discoveryCli discovery.DiscoveryClient
 	var reconciler LoggingTraitReconciler
 	var err error
@@ -52,7 +51,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
 	vzapi.AddToScheme(scheme)
-	reconciler = LoggingTraitReconciler{Client: cli, Scheme: scheme, Record: recorder, DiscoveryClient: discoveryCli}
+	reconciler = LoggingTraitReconciler{Client: cli, Scheme: scheme, DiscoveryClient: discoveryCli}
 	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
