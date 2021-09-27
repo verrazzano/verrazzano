@@ -498,18 +498,95 @@ func TestValidateActiveInstallFail(t *testing.T) {
 // GIVEN various Verrrazzano resource states
 // THEN ensure TestValidateInProgress returns correctly
 func TestValidateInProgress(t *testing.T) {
-	assert.NoError(t, ValidateInProgress(Ready))
-	err := ValidateInProgress(Installing)
+	vzOld := Verrazzano{}
+	vzNew := Verrazzano{}
+
+	vzOld.Status.State = Ready
+	assert.NoError(t, ValidateInProgress(&vzOld, &vzNew))
+
+	vzOld.Status.State = Installing
+	err := ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
-	err = ValidateInProgress(Uninstalling)
+
+	vzOld.Status.State = Uninstalling
+	err = ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
-	err = ValidateInProgress(Upgrading)
+
+	vzOld.Status.State = Upgrading
+	err = ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
+	}
+}
+
+// TestValidateEnable tests that a component can be enabled when Verrazzano is ready or installing
+// GIVEN various Verrrazzano resource states
+// THEN ensure TestValidateInProgress returns correctly
+func TestValidateEnable(t *testing.T) {
+	tests := []struct {
+		testName string
+		vzOld    Verrazzano
+		values   []string
+		expected string
+	}{
+		{
+			testName: "1",
+			vzOld: Verrazzano{
+				Spec: VerrazzanoSpec{
+					Version:         "",
+					Profile:         "",
+					EnvironmentName: "",
+					Components: ComponentSpec{
+						Coherence: &CoherenceComponent{
+							Enabled: newBool(false),
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "2",
+			vzOld: Verrazzano{
+				Spec: VerrazzanoSpec{
+					Version:         "",
+					Profile:         "",
+					EnvironmentName: "",
+					Components: ComponentSpec{
+						WebLogic: &WebLogicComponent{
+							Enabled: newBool(false),
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.testName, func(t *testing.T) {
+			vzNew := Verrazzano{}
+			test.vzOld.Status.State = Ready
+			err := ValidateInProgress(&test.vzOld, &vzNew)
+			assert.NoError(t, err, "Unexpected error enabling Coherence")
+
+			test.vzOld.Status.State = Installing
+			err = ValidateInProgress(&test.vzOld, &vzNew)
+			assert.NoError(t, err, "Unexpected error enabling Coherence")
+
+			test.vzOld.Status.State = Upgrading
+			err = ValidateInProgress(&test.vzOld, &vzNew)
+			if assert.Error(t, err) {
+				assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
+			}
+
+			test.vzOld.Status.State = Uninstalling
+			err = ValidateInProgress(&test.vzOld, &vzNew)
+			if assert.Error(t, err) {
+				assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
+			}
+		})
 	}
 }
 
@@ -605,4 +682,9 @@ func TestValidateOciDnsSecretNoOci(t *testing.T) {
 
 	err = ValidateOciDNSSecret(client, &vz.Spec)
 	assert.NoError(t, err)
+}
+
+func newBool(v bool) *bool {
+	b := v
+	return &b
 }
