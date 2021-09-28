@@ -127,10 +127,10 @@ func ValidateInProgress(old *Verrazzano, new *Verrazzano) error {
 	}
 	// Allow enable component during install
 	if old.Status.State == Installing {
-		if isCoherenceEnabled(new.Spec.Components.Coherence) && !isCoherenceEnabled(old.Spec.Components.Coherence) {
+		if isCoherenceEnabled(new.Spec.Components.CoherenceOperator) && !isCoherenceEnabled(old.Spec.Components.CoherenceOperator) {
 			return nil
 		}
-		if isWebLogicEnabled(new.Spec.Components.WebLogic) && !isWebLogicEnabled(old.Spec.Components.WebLogic) {
+		if isWebLogicEnabled(new.Spec.Components.WebLogicOperator) && !isWebLogicEnabled(old.Spec.Components.WebLogicOperator) {
 			return nil
 		}
 	}
@@ -154,7 +154,7 @@ func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 }
 
 // isCoherenceEnabled returns true if the component is enabled, which is the default
-func isCoherenceEnabled(comp *CoherenceComponent) bool {
+func isCoherenceEnabled(comp *CoherenceOperatorComponent) bool {
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -162,7 +162,7 @@ func isCoherenceEnabled(comp *CoherenceComponent) bool {
 }
 
 // isWebLogicEnabled returns true if the component is enabled, which is the default
-func isWebLogicEnabled(comp *WebLogicComponent) bool {
+func isWebLogicEnabled(comp *WebLogicOperatorComponent) bool {
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
