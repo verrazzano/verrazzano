@@ -124,11 +124,6 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 }
 
 func labelAndRestartSystemComponents(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error {
-	err = i.labelSystemNamespaces(log, client)
-	if err != nil {
-		return err
-	}
-
 	err = i.restartSystemNamespaceResources(log, client)
 	if err != nil {
 		return err
