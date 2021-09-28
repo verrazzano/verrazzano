@@ -14,7 +14,7 @@ import (
 
 const verrazzanoNamespace string = "verrazzano-system"
 const fluentdDaemonsetName string = "fluentd"
-const VmiESURL = "http://vmi-system-es-ingest-oidc:8775"
+const VmiESURL = "http://verrazzano-authproxy-elasticsearch:8775"
 const VmiESSecret = "verrazzano"
 
 func getFluentdDaemonset() (*appv1.DaemonSet, error) {

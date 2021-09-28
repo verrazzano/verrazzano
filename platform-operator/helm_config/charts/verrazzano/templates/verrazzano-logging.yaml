@@ -32,7 +32,7 @@ data:
   {{- if .Values.logging.elasticsearchURL }}
   es-url: {{ .Values.logging.elasticsearchURL }}
   {{- else }}
-  es-url: http://vmi-system-es-ingest-oidc:8775
+  es-url: http://verrazzano-authproxy-elasticsearch:8775
   {{- end }}
   {{- if .Values.logging.elasticsearchSecret }}
   es-secret: {{ .Values.logging.elasticsearchSecret }}
