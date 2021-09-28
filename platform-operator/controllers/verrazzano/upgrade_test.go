@@ -7,15 +7,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
-	batchv1 "k8s.io/api/batch/v1"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
+
+	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	k8sapps "k8s.io/api/apps/v1"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -50,7 +51,6 @@ func TestUpgradeNoVersion(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
-	labels := map[string]string{}
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -78,60 +78,14 @@ func TestUpgradeNoVersion(t *testing.T) {
 					},
 				},
 			}
-			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			return nil
 		})
 
-	// Sample bom file for version validation functions
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-
 	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, labels)
+	expectGetServiceAccountExists(mock, name, nil)
 
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	// Expect a call to get the ConfigMap
-	expectConfigMapExists(mock, name, labels)
-
-	// Expect a call to get the verrazzano system namespace (return exists)
-	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
-
-	// Expect a call to get the Job - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
-			newJob := installjob.NewJob(&installjob.JobConfig{
-				JobConfigCommon: k8s.JobConfigCommon{
-					JobName:            name.Name,
-					Namespace:          name.Namespace,
-					Labels:             nil,
-					ServiceAccountName: buildServiceAccountName(name.Name),
-					JobImage:           "image",
-					DryRun:             false,
-				},
-				ConfigMapName: buildConfigMapName(name.Name),
-			})
-			job.ObjectMeta = newJob.ObjectMeta
-			job.Spec = newJob.Spec
-			job.Status = batchv1.JobStatus{
-				Succeeded: 1,
-			}
-			return nil
-		})
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
-
-	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -154,7 +108,6 @@ func TestUpgradeSameVersion(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
-	labels := map[string]string{}
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -185,60 +138,14 @@ func TestUpgradeSameVersion(t *testing.T) {
 					},
 				},
 			}
-			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			return nil
 		})
 
-	// Sample bom file for version validation functions
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-
 	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, labels)
+	expectGetServiceAccountExists(mock, name, nil)
 
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	// Expect a call to get the ConfigMap
-	expectConfigMapExists(mock, name, labels)
-
-	// Expect a call to get the verrazzano system namespace (return exists)
-	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
-
-	// Expect a call to get the Job - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
-			newJob := installjob.NewJob(&installjob.JobConfig{
-				JobConfigCommon: k8s.JobConfigCommon{
-					JobName:            name.Name,
-					Namespace:          name.Namespace,
-					Labels:             nil,
-					ServiceAccountName: buildServiceAccountName(name.Name),
-					JobImage:           "image",
-					DryRun:             false,
-				},
-				ConfigMapName: buildConfigMapName(name.Name),
-			})
-			job.ObjectMeta = newJob.ObjectMeta
-			job.Spec = newJob.Spec
-			job.Status = batchv1.JobStatus{
-				Succeeded: 1,
-			}
-			return nil
-		})
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
-
-	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -606,6 +513,12 @@ func TestUpgradeCompleted(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	// Expect a call to get the Prometheus deployment and return a NotFound error.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-0"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+			return errors2.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, name.Name)
+		})
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -694,6 +607,12 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	// Expect a call to get the Prometheus deployment and return a NotFound error.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-0"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+			return errors2.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, name.Name)
+		})
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).

@@ -2,9 +2,8 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # Network policy for Elasticsearch master single pod installation
-# Ingress: allow from ingress controller to the OIDC sidecar port 8775
+# Ingress: allow from auth proxy to port 9200
 #          allow from Kibana to port 9200
-#          allow from Fluentd to port 9200
 #          allow from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
   {{- if .Values.elasticSearch.enabled}}
@@ -24,13 +23,13 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: ingress-nginx
+              verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app.kubernetes.io/instance: ingress-controller
+              app: verrazzano-api
       ports:
         - protocol: TCP
-          port: 8775
+          port: 9200
     # Allow ingress from Kibana
     - from:
         - podSelector:
@@ -39,28 +38,11 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-    # Allow ingress from Fluentd
-    - from:
-        - podSelector:
-            matchLabels:
-              app: fluentd
-      ports:
-        - protocol: TCP
-          port: 8775
-    # Allow ingress from Logging Journalbeat and Filebeat
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.binding: system
-      ports:
-        - protocol: TCP
-          port: 9200
     # Allow ingress from ES master to itself
     - from:
         - podSelector:
             matchLabels:
               app: system-es-master
-    # Allow ingress from anywhere since fluentd is in app ns (this will be removed once fluentd sidecars are gone)
     - ports:
       - protocol: TCP
         port: 9200
@@ -175,10 +157,9 @@ spec:
           protocol: TCP
 ---
 # Network policy for Elasticsearch Ingest
-# Ingress: allow from ingress controller to the OIDC sidecar port 8775
+# Ingress: allow from auth proxy to port 9200
 #          allow from ES master and ES data to port 9300
 #          allow from Kibana to port 9200
-#          allow from Fluentd to port 9200
 #          allow from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
@@ -193,17 +174,16 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    # Allow ingress from ingress controller to the OIDC sidecar running in the ES pod
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: ingress-nginx
+              verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app.kubernetes.io/instance: ingress-controller
+              app: verrazzano-api
       ports:
         - protocol: TCP
-          port: 8775
+          port: 9200
     # Allow ingress from ES master and ES data on cluster port
     - from:
         - podSelector:
@@ -223,14 +203,6 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-    # Allow ingress from Fluentd
-    - from:
-        - podSelector:
-            matchLabels:
-              app: fluentd
-      ports:
-        - protocol: TCP
-          port: 8775
     - from:
         - namespaceSelector:
             matchLabels:
@@ -245,7 +217,7 @@ spec:
   {{- end }}
 ---
 # Network policy for Kibana
-# Ingress: allow from ingress controller to the OIDC sidecar port 8775
+# Ingress: allow from auth proxy to port 5601
 #          allow from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
@@ -260,17 +232,16 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    # Ingress: allow nginx-ingress-controller to connect to port 8775 (OIDC proxy)
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: ingress-nginx
+              verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app.kubernetes.io/instance: ingress-controller
+              app: verrazzano-api
       ports:
         - protocol: TCP
-          port: 8775
+          port: 5601
     - from:
         - namespaceSelector:
             matchLabels:
