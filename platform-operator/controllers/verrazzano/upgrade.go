@@ -26,10 +26,10 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	targetVersion := cr.Spec.Version
 
 	// Only allow upgrade to retry a certain amount of times during any upgrade attempt.
-	if upgradeFailureCount(cr.Status, cr.Generation) > failedUpgradeLimit {
+	/*if upgradeFailureCount(cr.Status, cr.Generation) > failedUpgradeLimit {
 		log.Info("Upgrade failure limit reached, upgrade will not be attempted")
 		return ctrl.Result{}, nil
-	}
+	}*/
 
 	// Only write the upgrade started message once
 	if !isLastCondition(cr.Status, installv1alpha1.UpgradeStarted) {
