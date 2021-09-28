@@ -206,7 +206,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 		return err
 	}
 	for index, _ := range deploymentList.Items {
-		deployment := deploymentList.Items[index]
+		deployment := &deploymentList.Items[index]
 		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
 			log.Infof("Found Deployment %v", deployment.Name)
 			if deployment.Spec.Paused {
@@ -216,7 +216,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
 			deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), &deploymentList.Items[index]); err != nil {
+			if err := client.Update(context.TODO(), deployment); err != nil {
 				return err
 			}
 			log.Infof("Restarted Deployment %v", deployment.Name)
@@ -232,14 +232,14 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 		return err
 	}
 	for index, _ := range statefulSetList.Items {
-		statefulSet := statefulSetList.Items[index]
+		statefulSet := &statefulSetList.Items[index]
 		log.Infof("Found StatefulSet %v", statefulSet.Name)
 		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
 			statefulSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), &statefulSetList.Items[index]); err != nil {
+			if err := client.Update(context.TODO(), statefulSet); err != nil {
 				return err
 			}
 			log.Infof("Restarted StatefulSet %v", statefulSet.Name)
@@ -254,14 +254,14 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 		return err
 	}
 	for index, _ := range daemonSetList.Items {
-		daemonSet := daemonSetList.Items[index]
+		daemonSet := &daemonSetList.Items[index]
 		log.Infof("Found DaemonSet %v", daemonSet.Name)
 		if contains(i.InjectedSystemNamespaces, daemonSet.Namespace) {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
 			daemonSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), &daemonSetList.Items[index]); err != nil {
+			if err := client.Update(context.TODO(), daemonSet); err != nil {
 				return err
 			}
 			log.Infof("Restarted DaemonSet %v", daemonSet.Name)
