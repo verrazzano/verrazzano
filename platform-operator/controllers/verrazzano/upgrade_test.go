@@ -83,6 +83,17 @@ func TestUpgradeNoVersion(t *testing.T) {
 			return nil
 		})
 
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, labels)
 
@@ -155,6 +166,17 @@ func TestUpgradeSameVersion(t *testing.T) {
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			return nil
 		})
+
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, labels)
