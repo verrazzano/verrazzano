@@ -15,9 +15,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "verrazzano-application-operator"
-
 // AppendApplicationOperatorOverrides Honor the APP_OPERATOR_IMAGE env var if set; this allows an explicit override
 // of the verrazzano-application-operator image when set.
 func AppendApplicationOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
