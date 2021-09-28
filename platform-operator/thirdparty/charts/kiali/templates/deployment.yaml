@@ -58,7 +58,7 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           privileged: false
-          readOnlyRootFilesystem: true
+          readOnlyRootFilesystem: false
           runAsNonRoot: true
         ports:
         - name: api-port
