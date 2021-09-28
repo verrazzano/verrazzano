@@ -82,6 +82,11 @@ fi
 # create secret in verrazzano-install ns
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
+# optionally create a cluster dump snapshot for verifying uninstalls
+if [ -n "${CLUSTER_DUMP_DIR}" ]; then
+  ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_DUMP_DIR}
+fi
+
 # Configure the custom resource to install verrazzano on Kind
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
 

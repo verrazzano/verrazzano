@@ -240,9 +240,9 @@ type ComponentSpec struct {
 	// +optional
 	CertManager *CertManagerComponent `json:"certManager,omitempty"`
 
-	// Coherence configuration
+	// CoherenceOperator configuration
 	// +optional
-	Coherence *CoherenceComponent `json:"coherence,omitempty"`
+	CoherenceOperator *CoherenceOperatorComponent `json:"coherenceOperator,omitempty"`
 
 	// Console configuration
 	// +optional
@@ -288,9 +288,9 @@ type ComponentSpec struct {
 	// +optional
 	Rancher *RancherComponent `json:"rancher,omitempty"`
 
-	// WebLogic configuration
+	// WebLogicOperator configuration
 	// +optional
-	WebLogic *WebLogicComponent `json:"weblogic,omitempty"`
+	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
@@ -330,8 +330,8 @@ type CertManagerComponent struct {
 	Certificate Certificate `json:"certificate,omitempty"`
 }
 
-// CoherenceComponent specifies the Coherence configuration
-type CoherenceComponent struct {
+// CoherenceOperatorComponent specifies the Coherence Operator configuration
+type CoherenceOperatorComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }
@@ -417,8 +417,8 @@ type FluentdComponent struct {
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
 }
 
-// RancherComponent specifies the WebLogic configuration
-type WebLogicComponent struct {
+// WebLogicOperatorComponent specifies the WebLogic Operator configuration
+type WebLogicOperatorComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }
