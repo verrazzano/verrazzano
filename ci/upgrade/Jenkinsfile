@@ -82,7 +82,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind-upgrade.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -214,6 +214,7 @@ pipeline {
                                 mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
                                 kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano --tail -1 > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log
                                 kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                                cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
                                 echo "Verrazzano Installation logs dumped to verrazzano-install.log"
                                 echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                                 echo "------------------------------------------"
@@ -263,6 +264,8 @@ pipeline {
                             cd ${GO_REPO_PATH}/verrazzano
                             cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                             ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                            # Copy upgrade CR where it will be archived
+                            cp ${WORKSPACE}/verrazzano-upgrade-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
 
                             # Do the upgrade
                             echo "Following is the verrazano CR file with the new version:"
@@ -376,7 +379,6 @@ pipeline {
                                 mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
                                 kubectl logs -n verrazzano-install --tail -1 --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log
                                 kubectl describe pod -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
-                                kubectl get verrazzano my-verrazzano -o yaml > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano.yaml
                                 echo "Listing all pods in all namespaces after uninstall"
                                 kubectl get pods --all-namespaces
                                 echo "-----------------------------------------------------"
