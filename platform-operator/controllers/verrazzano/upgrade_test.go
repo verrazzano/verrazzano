@@ -50,8 +50,8 @@ func TestUpgradeNoVersion(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
-	var verrazzanoToUse vzapi.Verrazzano
-	labels := map[string]string{}
+	//var verrazzanoToUse vzapi.Verrazzano
+	//labels := map[string]string{}
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
