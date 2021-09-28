@@ -191,23 +191,24 @@ pipeline {
                         }
                     }
                 }
-                stage('Kind Acceptance Tests on 1.22') {
-                    steps {
-                        script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
-                                parameters: [
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                                ], wait: true
-                        }
-                    }
-                }
+                //  1.22 not available yet
+                //stage('Kind Acceptance Tests on 1.22') {
+                //    steps {
+                //        script {
+                //            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                //                parameters: [
+                //                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                //                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                //                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                //                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                //                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                //                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                //                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                //                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                //                ], wait: true
+                //        }
+                //    }
+                //}
                 stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
