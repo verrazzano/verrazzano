@@ -152,7 +152,11 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
 			return r.reconcileUpgrade(log, vz)
 		}
-		// nothing to do, installation already at target version
+		if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
+			return newRequeueWithDelay(), err
+		} else if shouldRequeue(result) {
+			return result, nil
+		}
 		return ctrl.Result{}, nil
 	}
 
