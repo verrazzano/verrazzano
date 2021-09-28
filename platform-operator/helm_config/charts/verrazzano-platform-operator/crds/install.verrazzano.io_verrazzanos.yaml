@@ -90,8 +90,8 @@ spec:
                             type: object
                         type: object
                     type: object
-                  coherenceOperator:
-                    description: CoherenceOperator configuration
+                  coherence:
+                    description: Coherence configuration
                     properties:
                       enabled:
                         type: boolean
@@ -2004,8 +2004,8 @@ spec:
                       enabled:
                         type: boolean
                     type: object
-                  weblogicOperator:
-                    description: WebLogicOperator configuration
+                  weblogic:
+                    description: WebLogic configuration
                     properties:
                       enabled:
                         type: boolean

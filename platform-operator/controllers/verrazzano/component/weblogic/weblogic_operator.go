@@ -6,7 +6,6 @@ package weblogic
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
 	"go.uber.org/zap"
@@ -17,10 +16,7 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "weblogic-operator"
-
-const wlsOperatorDeploymentName = ComponentName
+const wlsOperatorDeploymentName = "weblogic-operator"
 
 // AppendWeblogicOperatorOverrides appends the WKO-specific helm Value overrides.
 func AppendWeblogicOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -52,7 +48,12 @@ func WeblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ 
 	var serviceAccount corev1.ServiceAccount
 	const accountName = "weblogic-operator-sa"
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: accountName, Namespace: namespace}, &serviceAccount); err != nil {
+		if errors.IsAlreadyExists(err) {
+			// Service account already exists in the target namespace
+			return []bom.KeyValue{}, nil
+		}
 		if !errors.IsNotFound(err) {
+			// Unexpected error
 			return []bom.KeyValue{}, err
 		}
 	}
@@ -63,10 +64,6 @@ func WeblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ 
 		},
 	}
 	if err := client.Create(context.TODO(), &serviceAccount); err != nil {
-		if errors.IsAlreadyExists(err) {
-			// Sometimes we get this, not an error it already exist.
-			return []bom.KeyValue{}, nil
-		}
 		return []bom.KeyValue{}, err
 	}
 	return []bom.KeyValue{}, nil
@@ -77,12 +74,4 @@ func IsWeblogicOperatorReady(log *zap.SugaredLogger, c clipkg.Client, _ string, 
 		{Name: wlsOperatorDeploymentName, Namespace: namespace},
 	}
 	return status.DeploymentsReady(log, c, deployments, 1)
-}
-
-// IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(comp *v1alpha1.WebLogicOperatorComponent) bool {
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
 }
