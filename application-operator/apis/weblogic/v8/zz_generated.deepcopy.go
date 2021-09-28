@@ -408,7 +408,7 @@ func (in *MonitoringExporterSpec) DeepCopyInto(out *MonitoringExporterSpec) {
 	*out = *in
 	if in.Configuration != nil {
 		in, out := &in.Configuration, &out.Configuration
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]interface{}, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
