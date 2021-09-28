@@ -145,6 +145,14 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		return r.procDelete(ctx, log, vz)
 	}
 
+	// Pre-populate the component status fields
+	result, err := r.initializeComponentStatus(vz)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	} else if shouldRequeue(result) {
+		return result, nil
+	}
+
 	// If Verrazzano is installed see if upgrade is needed
 	if isInstalled(vz.Status) {
 		// If the version is specified and different than the current version of the installation
@@ -159,9 +167,6 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		}
 		return ctrl.Result{}, nil
 	}
-
-	// Pre-populate the component status fields
-	initializeComponentStatus(vz)
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
 	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
@@ -773,9 +778,9 @@ func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
 // operator-based in stall.  This is so that we know ahead of time exactly how many components we expect to install
 // via the operator, and when we're done installing.
-func initializeComponentStatus(cr *installv1alpha1.Verrazzano) {
+func (r *Reconciler) initializeComponentStatus(cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	if cr.Status.Components != nil {
-		return
+		return ctrl.Result{}, nil
 	}
 	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	for _, comp := range registry.GetComponents() {
@@ -786,6 +791,9 @@ func initializeComponentStatus(cr *installv1alpha1.Verrazzano) {
 			}
 		}
 	}
+	// Update the status
+	err := r.Status().Update(context.TODO(), cr)
+	return ctrl.Result{Requeue: true}, err
 }
 
 // setUninstallCondition sets the verrazzano resource condition in status for uninstall
