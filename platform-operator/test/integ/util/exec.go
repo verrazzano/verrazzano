@@ -13,7 +13,6 @@ import (
 	"sync"
 
 	"github.com/onsi/ginkgo"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 )
 
 // RunCommand runs an external process, captures the stdout
@@ -64,10 +63,6 @@ func RunCommand(commandLine string) (string, string) {
 // Kubectl runs kubectl in an external process, captures the stdout
 // and stderr, as well as streaming them to the real output streams in real time
 func Kubectl(args string) (string, string) {
-	kc, err := k8sutil.GetKubeConfig()
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Unable to fetch Kubeconfig, error: %v", err))
-	}
-	commandLine := fmt.Sprintf("kubectl --kubeconfig %v %v", kc, args)
+	commandLine := fmt.Sprintf("kubectl --kubeconfig %v %v", GetKubeconfig(), args)
 	return RunCommand(commandLine)
 }

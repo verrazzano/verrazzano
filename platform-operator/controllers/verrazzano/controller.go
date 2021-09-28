@@ -706,6 +706,8 @@ func appendConditionIfNecessary(log *zap.SugaredLogger, compStatus *installv1alp
 
 func checkCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.StateType {
 	switch currentCondition {
+	case installv1alpha1.PreInstall:
+		return installv1alpha1.PreInstalling
 	case installv1alpha1.InstallStarted:
 		return installv1alpha1.Installing
 	case installv1alpha1.UninstallStarted:
@@ -713,7 +715,7 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 	case installv1alpha1.UpgradeStarted:
 		return installv1alpha1.Upgrading
 	case installv1alpha1.UninstallComplete:
-		return installv1alpha1.Disabled
+		return installv1alpha1.Ready
 	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
 		return installv1alpha1.Failed
 	}
