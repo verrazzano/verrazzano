@@ -121,20 +121,12 @@ func ValidateActiveInstall(client client.Client) error {
 }
 
 // ValidateInProgress makes sure there is not an install, uninstall or upgrade in progress
-func ValidateInProgress(old *Verrazzano, new *Verrazzano) error {
-	if old.Status.State == "" || old.Status.State == Ready {
-		return nil
+func ValidateInProgress(state StateType) error {
+	if state == Installing || state == Uninstalling || state == Upgrading {
+		return fmt.Errorf("Updates to resource not allowed while install, uninstall or upgrade is in progress")
 	}
-	// Allow enable component during install
-	if old.Status.State == Installing {
-		if isCoherenceEnabled(new.Spec.Components.Coherence) && !isCoherenceEnabled(old.Spec.Components.Coherence) {
-			return nil
-		}
-		if isWebLogicEnabled(new.Spec.Components.WebLogic) && !isWebLogicEnabled(old.Spec.Components.WebLogic) {
-			return nil
-		}
-	}
-	return fmt.Errorf("Updates to resource not allowed while install, uninstall or upgrade is in progress")
+
+	return nil
 }
 
 // ValidateOciDNSSecret makes sure that the OCI DNS secret required by install exists
@@ -151,20 +143,4 @@ func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 	}
 
 	return nil
-}
-
-// isCoherenceEnabled returns true if the component is enabled, which is the default
-func isCoherenceEnabled(comp *CoherenceComponent) bool {
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
-}
-
-// isWebLogicEnabled returns true if the component is enabled, which is the default
-func isWebLogicEnabled(comp *WebLogicComponent) bool {
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
 }

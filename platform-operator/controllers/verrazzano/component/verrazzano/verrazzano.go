@@ -15,9 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "verrazzano"
-
 const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
 
 // ResolveVerrazzanoNamespace will return the default verrazzano system namespace unless the namespace

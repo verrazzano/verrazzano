@@ -154,9 +154,6 @@ type ComponentStatusDetails struct {
 type ConditionType string
 
 const (
-	// PreInstall means an install about to start.
-	PreInstall ConditionType = "PreInstall"
-
 	// InstallStarted means an install is in progress.
 	InstallStarted ConditionType = "InstallStarted"
 
@@ -205,9 +202,6 @@ type StateType string
 const (
 	// Disabled is the state for when a component is not currently installed
 	Disabled StateType = "Disabled"
-
-	// PreInstalling is the state when an install is about to be started
-	PreInstalling StateType = "PreInstalling"
 
 	// Installing is the state when an install is in progress
 	Installing StateType = "Installing"
