@@ -356,12 +356,7 @@ func GetNamespace(name string) (*corev1.Namespace, error) {
 }
 
 // GetEffectiveKeyCloakPersistenceOverride returns the effective PVC override for Keycloak, if it exists
-func GetEffectiveKeyCloakPersistenceOverride() (*corev1.PersistentVolumeClaimSpec, error) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
-		return nil, err
-	}
+func GetEffectiveKeyCloakPersistenceOverride(kubeconfigPath string) (*v1alpha1.VolumeClaimSpecTemplate, error) {
 	verrazzano, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -377,7 +372,7 @@ func GetEffectiveKeyCloakPersistenceOverride() (*corev1.PersistentVolumeClaimSpe
 	}
 	for _, template := range verrazzano.Spec.VolumeClaimSpecTemplates {
 		if template.Name == mysqlVolSource.PersistentVolumeClaim.ClaimName {
-			return &template.Spec, nil
+			return &template, nil
 		}
 	}
 	return nil, fmt.Errorf("Did not find matching PVC template for %s", mysqlVolSource.PersistentVolumeClaim.ClaimName)

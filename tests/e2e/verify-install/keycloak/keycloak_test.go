@@ -5,6 +5,7 @@ package keycloak_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"path"
 	"strings"
 	"time"
@@ -57,18 +58,24 @@ var _ = Describe("Verify Keycloak configuration", func() {
 var _ = Describe("Verify MySQL Persistent Volumes based on install profile", func() {
 	var _ = Context("Verify Persistent volumes allocated per install profile", func() {
 
-		const size = "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
+		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
+		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
+		override, _ := pkg.GetEffectiveKeyCloakPersistenceOverride(kubeconfigPath)
+		if override != nil {
+			size = override.Spec.Resources.Requests.Storage().String()
+		}
 
 		if pkg.IsDevProfile() {
 			expectedKeyCloakPVCs := 0
-			pvcSpec, err := pkg.GetEffectiveKeyCloakPersistenceOverride()
-			Expect(err).To(BeNil())
-			if pvcSpec != nil {
+			if override != nil {
 				expectedKeyCloakPVCs = 1
 			}
 			It("Verify persistent volumes in namespace keycloak based on Dev install profile", func() {
 				// There is no Persistent Volume for MySQL in a dev install
 				Expect(len(volumeClaims)).To(Equal(expectedKeyCloakPVCs))
+				if expectedKeyCloakPVCs > 0 {
+					assertPersistentVolume("mysql", size)
+				}
 			})
 		} else if pkg.IsManagedClusterProfile() {
 			It("Verify namespace keycloak doesn't exist based on Managed Cluster install profile", func() {
