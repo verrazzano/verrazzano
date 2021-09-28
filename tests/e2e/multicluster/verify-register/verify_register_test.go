@@ -330,6 +330,7 @@ func assertRegistrationSecret() {
 		Expect(err).To(BeNil())
 		Expect(regSecret.Data["username"]).To(Equal(esSecret.Data["username"]))
 		Expect(regSecret.Data["password"]).To(Equal(esSecret.Data["password"]))
+		Expect(regSecret.Data["es-ca-bundle"]).To(Equal(esSecret.Data["ca-bundle"]))
 	} else {
 		Expect(string(regSecret.Data["es-url"])).To(Equal(vmiEsIngressURL))
 		vmiEsInternalSecret, err := pkg.GetSecretInCluster("verrazzano-system", "verrazzano-es-internal", os.Getenv("ADMIN_KUBECONFIG"))
