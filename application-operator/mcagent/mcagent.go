@@ -322,7 +322,7 @@ func (s *Syncer) updateLoggingDaemonSet(regSecret corev1.Secret, ds *appsv1.Daem
 
 const (
 	defaultClusterName   = constants.DefaultClusterName
-	defaultElasticURL    = "http://vmi-system-es-ingest-oidc:8775"
+	defaultElasticURL    = "http://verrazzano-authproxy-elasticsearch:8775"
 	defaultSecretName    = "verrazzano"
 	esConfigMapName      = "fluentd-es-config"
 	esConfigMapURLKey    = "es-url"
