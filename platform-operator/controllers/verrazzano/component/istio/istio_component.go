@@ -208,7 +208,6 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	for index, _ := range deploymentList.Items {
 		deployment := &deploymentList.Items[index]
 		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
-			log.Infof("Found Deployment %v", deployment.Name)
 			if deployment.Spec.Paused {
 				return fmt.Errorf("Deployment %v can't be restarted because it is paused", deployment.Name)
 			}
@@ -219,7 +218,6 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 			if err := client.Update(context.TODO(), deployment); err != nil {
 				return err
 			}
-			log.Infof("Restarted Deployment %v", deployment.Name)
 		}
 	}
 	log.Info("Restarted system Deployments in istio injected namespaces")
@@ -233,7 +231,6 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	}
 	for index, _ := range statefulSetList.Items {
 		statefulSet := &statefulSetList.Items[index]
-		log.Infof("Found StatefulSet %v", statefulSet.Name)
 		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -242,7 +239,6 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 			if err := client.Update(context.TODO(), statefulSet); err != nil {
 				return err
 			}
-			log.Infof("Restarted StatefulSet %v", statefulSet.Name)
 		}
 	}
 	log.Info("Restarted system Statefulsets in istio injected namespaces")
@@ -255,7 +251,6 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	}
 	for index, _ := range daemonSetList.Items {
 		daemonSet := &daemonSetList.Items[index]
-		log.Infof("Found DaemonSet %v", daemonSet.Name)
 		if contains(i.InjectedSystemNamespaces, daemonSet.Namespace) {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -264,7 +259,6 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 			if err := client.Update(context.TODO(), daemonSet); err != nil {
 				return err
 			}
-			log.Infof("Restarted DaemonSet %v", daemonSet.Name)
 		}
 	}
 	log.Info("Restarted system DaemonSets in istio injected namespaces")
