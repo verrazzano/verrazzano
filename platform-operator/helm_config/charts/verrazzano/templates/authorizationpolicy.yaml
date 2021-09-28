@@ -1,0 +1,210 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+#
+# Istio AuthorizationPolicy for verrazzano-authproxy
+#
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: verrazzano-authproxy-authzpol
+  namespace: verrazzano-system
+spec:
+  selector:
+    matchLabels:
+      app: verrazzano-authproxy
+  action: ALLOW
+  rules:
+    # verrazzano-authproxy:8775 <- istio-ingressgateway
+    - from:
+        - source:
+            namespaces: ["istio-system"]
+            principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+      to:
+        - operation:
+            ports: ["8775"]
+    # verrazzano-authproxy:8775 <- fluentd
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/fluentd"]
+      to:
+        - operation:
+            ports: ["8775"]
+    # verrazzano-authproxy:15090 <- vmi-system-prometheus (no sa, use default?)
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+      to:
+        - operation:
+            ports: ["15090"]
+
+---
+#
+# Istio AuthorizationPolicy for vmi-system-es-master
+#
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: vmi-system-es-master-authzpol
+  namespace: verrazzano-system
+spec:
+  selector:
+    matchLabels:
+      app: system-es-master
+  action: ALLOW
+  rules:
+    # vmi-system-es-master:9200 <- verrazzano-authproxy
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy"]
+      to:
+        - operation:
+            ports: ["9200"]
+    # vmi-system-es-master:9200,9300 <- vmi-system-kibana (no sa, use default?)
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+      to:
+        - operation:
+            ports: ["9200","9300"]
+    # vmi-system-es-master:15090 <- vmi-system-prometheus (no sa, use default?)
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+      to:
+        - operation:
+            ports: ["15090"]
+
+---
+#
+# Istio AuthorizationPolicy for vmi-system-grafana
+#
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: vmi-system-grafana-authzpol
+  namespace: verrazzano-system
+spec:
+  selector:
+    matchLabels:
+      app: system-grafana
+  action: ALLOW
+  rules:
+    # vmi-system-grafana:3000 <- verrazzano-authproxy
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy"]
+      to:
+        - operation:
+            ports: ["3000"]
+    # vmi-system-grafana:15090 <- vmi-system-prometheus
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+      to:
+        - operation:
+            ports: ["15090"]
+
+---
+#
+# Istio AuthorizationPolicy for vmi-system-kibana
+#
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: vmi-system-kibana-authzpol
+  namespace: verrazzano-system
+spec:
+  selector:
+    matchLabels:
+      app: system-kibana
+  action: ALLOW
+  rules:
+    # vmi-system-kibana:5601 <- verrazzano-authproxy
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy"]
+      to:
+        - operation:
+            ports: ["5601"]
+    # vmi-system-kibana:15090 <- vmi-system-prometheus (no sa, use default?)
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+      to:
+        - operation:
+            ports: ["15090"]
+
+---
+#
+# Istio AuthorizationPolicy for vmi-system-prometheus
+#
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: vmi-system-prometheus-authzpol
+  namespace: verrazzano-system
+spec:
+  selector:
+    matchLabels:
+      app: system-prometheus
+  action: ALLOW
+  rules:
+    # vmi-system-prometheus:9090 <- verrazzano-authproxy
+    # vmi-system-prometheus:9090 <- vmi-system-grafana (no sa, use default?)
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy","cluster.local/ns/verrazzano-system/sa/default"]
+      to:
+        - operation:
+            ports: ["9090"]
+
+    # vmi-system-prometheus:15090 <- vmi-system-prometheus (no sa, use default?)
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+      to:
+        - operation:
+            ports: ["15090"]
+---
+#
+# Istio AuthorizationPolicy for verrazzano-console
+#
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: verrazzano-console-authzpol
+  namespace: verrazzano-system
+spec:
+  selector:
+    matchLabels:
+      app: verrazzano-console
+  action: ALLOW
+  rules:
+    # verrazzano-console:8000 <- vmi-system-prometheus (no sa, use default?)
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy"]
+      to:
+        - operation:
+            ports: ["8000"]
+    # verrazzano-console: 15090 <- vmi-system-prometheus (no sa, use default?)
+    - from:
+        - source:
+            namespaces: ["verrazzano-system"]
+            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+      to:
+        - operation:
+            ports: ["15090"]
