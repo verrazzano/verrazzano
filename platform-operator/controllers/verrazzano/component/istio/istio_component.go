@@ -205,7 +205,8 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for index, deployment := range deploymentList.Items {
+	for index, _ := range deploymentList.Items {
+		deployment := deploymentList.Items[index]
 		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
 			log.Infof("Found Deployment %v", deployment.Name)
 			if deployment.Spec.Paused {
@@ -230,7 +231,8 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for index, statefulSet := range statefulSetList.Items {
+	for index, _ := range statefulSetList.Items {
+		statefulSet := statefulSetList.Items[index]
 		log.Infof("Found StatefulSet %v", statefulSet.Name)
 		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
@@ -251,7 +253,8 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	if err != nil {
 		return err
 	}
-	for index, daemonSet := range daemonSetList.Items {
+	for index, _ := range daemonSetList.Items {
+		daemonSet := daemonSetList.Items[index]
 		log.Infof("Found DaemonSet %v", daemonSet.Name)
 		if contains(i.InjectedSystemNamespaces, daemonSet.Namespace) {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
