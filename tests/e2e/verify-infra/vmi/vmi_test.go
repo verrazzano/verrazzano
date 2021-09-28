@@ -247,20 +247,25 @@ var _ = Describe("VMI", func() {
 	})
 
 	size := "50Gi"
+	// If there are persistence overrides at the global level, that will cause persistent
+	// volumes to be created for the VMI components that use them (ES, Kibana, and Prometheus)
+	// At some point we may need to check for individual VMI overrides.
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	override, err := pkg.GetEffectiveVMIPersistenceOverride(kubeconfigPath)
+	if override != nil {
+		size = override.Spec.Resources.Requests.Storage().String()
+	}
+
+	It("Check for errors getting persistent volume overrides", func() {
+		Expect(err).Should(BeNil(), fmt.Sprintf("Unexpected error getting default kubeconfig path: %s", err))
+		Expect(err).Should(BeNil(), fmt.Sprintf("Unexpected error getting VMI persistence overrides: %s", err))
+	})
+
 	if pkg.IsDevProfile() {
 		It("Check persistent volumes for dev profile", func() {
 			expectedVolumes := 0
-			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-			Expect(err).Should(BeNil(), fmt.Sprintf("Unexpected error getting default kubeconfig path: %s", err))
-			override, err := pkg.GetEffectiveVMIPersistenceOverride(kubeconfigPath)
-			Expect(err).Should(BeNil(), fmt.Sprintf("Unexpected error getting VMI persistence overrides: %s", err))
-			// If there are persistence overrides at the global level, that will cause persistent
-			// volumes to be created for the VMI components that use them (ES, Kibana, and Prometheus)
-			// At some point we may need to check for individual VMI overrides.
 			if override != nil {
 				expectedVolumes = 3
-				size = override.Spec.Resources.Requests.Storage().String()
-				pkg.Log(pkg.Info, fmt.Sprintf("Found persistent override \"%s\" for VMI in dev profile, size: %s", override.Name, size))
 			}
 			Expect(len(volumeClaims), err).To(Equal(expectedVolumes))
 			if expectedVolumes > 0 {
