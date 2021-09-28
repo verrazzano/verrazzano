@@ -50,8 +50,8 @@ func TestUpgradeNoVersion(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
-	//var verrazzanoToUse vzapi.Verrazzano
-	//labels := map[string]string{}
+	var verrazzanoToUse vzapi.Verrazzano
+	labels := map[string]string{}
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -82,6 +82,12 @@ func TestUpgradeNoVersion(t *testing.T) {
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			return nil
 		})
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, labels)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -166,6 +172,12 @@ func TestUpgradeSameVersion(t *testing.T) {
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			return nil
 		})
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, labels)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
