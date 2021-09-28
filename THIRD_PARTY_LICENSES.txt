@@ -5,7 +5,7 @@ Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
-Copyright (c) 2019 Oracle and/or its affiliates.  All rights reserved.
+Copyright (c) 2019, 2021 Oracle and/or its affiliates.  All rights reserved.
 Copyright 2020, Oracle Corporation and/or its affiliates.
 Copyright (c) 2015-2021 Bitnami
 Copyright The Helm Authors.
@@ -1862,6 +1862,8 @@ github.com/google/go-cmp
 -------- Copyrights
 Copyright (c) 2017 The Go Authors. All rights reserved.
 Copyright 2017, The Go Authors. All rights reserved.
+Copyright 2021, The Go Authors. All rights reserved.
+Copyright 2020, The Go Authors. All rights reserved.
 Copyright 2018, The Go Authors. All rights reserved.
 Copyright 2019, The Go Authors. All rights reserved.
 
@@ -1986,7 +1988,9 @@ Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2011 The Go Authors. All rights reserved.
 Copyright (C) 2009 Apple Inc. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
+Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -2042,6 +2046,7 @@ Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors. All rights reserved.
 Copyright 2014 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2009,2010 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All right reserved.
 -------- Patents
@@ -2079,9 +2084,9 @@ Copyright 2015 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
 Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2009 The Go Authors. All rights reserved.
-Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2011 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
@@ -2236,6 +2241,7 @@ Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.",
 Copyright 2018 The Go Authors. All rights reserved.",
 Copyright 2008 Google Inc.  All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -2394,6 +2400,7 @@ github.com/nxadm/tail
 -------- Copyrights
 © Copyright 2015 Hewlett Packard Enterprise Development LP
 Copyright (c) 2014 ActiveState
+Copyright (c) 2019 FOSS contributors of https://github.com/nxadm/tail
 Copyright (c) 2015 HPE Software Inc. All rights reserved.
 Copyright (c) 2013 ActiveState Software Inc. All rights reserved.
 Copyright (C) 2013 99designs
@@ -2402,6 +2409,7 @@ Copyright (C) 2013 99designs
 github.com/onsi/ginkgo
 -------- Copyrights
 Copyright (c) 2013-2014 Onsi Fakhouri
+Copyright 2013 The Go Authors. All rights reserved.
 Copyright (c) 2016 Yasuhiro Matsumoto
 Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
 
@@ -2622,4 +2630,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 08c17102b13f4a4f8a42b40c836100fa
+License file based on go.mod with md5 sum: ee86f6a46bf8c571658bcc6592457fe8
