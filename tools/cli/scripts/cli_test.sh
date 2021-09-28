@@ -44,7 +44,7 @@ set +e
 until [ "$retries" -ge 10 ]
 do
   kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
-  if [ $? -eq 1 ]; then
+  if [ $? -ne 0 ]; then
     break
   fi
   retries=$(($retries+1))
