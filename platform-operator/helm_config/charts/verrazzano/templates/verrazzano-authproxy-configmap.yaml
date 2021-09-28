@@ -5,7 +5,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: api-nginx-conf
+  name: verrazzano-authproxy-conf
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Values.api.name }}
