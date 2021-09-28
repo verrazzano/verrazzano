@@ -218,6 +218,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 				log.Info("Deployment was nil again")
 			}
+			deployment.Spec.Template.ObjectMeta.Annotations["test"] = "test1"
 			deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
 			log.Infof("Annotation value %v", deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"])
 			if err := client.Update(context.TODO(), &deploymentList.Items[index]); err != nil {
