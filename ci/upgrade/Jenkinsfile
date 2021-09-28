@@ -380,7 +380,7 @@ pipeline {
                                 kubectl get pods --all-namespaces
                                 echo "-----------------------------------------------------"
                             """
-                            listNamepacesAndPods('after Verrazzano uninstall')
+                            listNamespacesAndPods('after Verrazzano uninstall')
                             listHelmReleases('after Verrazzano uninstall')
                         }
                         success {
@@ -688,4 +688,21 @@ def getEffectiveDumpOnSuccess() {
         echo "Forcing dump on success based on global override setting"
     }
     return effectiveValue
+}
+
+def listNamespacesAndPods(customMessage) {
+    sh """
+        echo "Listing all the namespaces and pods the namespaces ${customMessage}."
+        kubectl get namespaces
+        kubectl get pods -A
+        echo "-----------------------------------------------------"
+    """
+}
+
+def listHelmReleases(customMessage) {
+    sh """
+        echo "Listing the releases across all namespaces ${customMessage}."
+        helm list -A
+        echo "-----------------------------------------------------"
+    """
 }
