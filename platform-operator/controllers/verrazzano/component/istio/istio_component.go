@@ -217,9 +217,10 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 			if err := client.Update(context.TODO(), &deploymentList.Items[index]); err != nil {
 				return err
 			}
+			log.Infof("Restarted Deployment %v", deployment.String())
 		}
 	}
-	log.Info("Restarted system deployments in istio injected namespaces")
+	log.Info("Restarted system Deployments in istio injected namespaces")
 
 	// Restart all the StatefulSet in the injected system namespaces
 	//var statefulSetList appsv1.StatefulSetList
@@ -237,6 +238,8 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 			if err := client.Update(context.TODO(), &statefulSetList.Items[index]); err != nil {
 				return err
 			}
+			log.Infof("Restarted StatefulSet %v", statefulSet.String())
+
 		}
 	}
 	log.Info("Restarted system Statefulsets in istio injected namespaces")
@@ -256,6 +259,7 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 			if err := client.Update(context.TODO(), &daemonSetList.Items[index]); err != nil {
 				return err
 			}
+			log.Infof("Restarted DaemonSet %v", daemonSet.String())
 		}
 	}
 	log.Info("Restarted system DaemonSets in istio injected namespaces")
