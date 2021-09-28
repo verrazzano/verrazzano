@@ -3,7 +3,7 @@
 
 module github.com/verrazzano/verrazzano
 
-go 1.15
+go 1.16
 
 require (
 	github.com/Jeffail/gabs/v2 v2.2.0
