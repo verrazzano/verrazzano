@@ -98,9 +98,9 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 func isComponentEnabled(cr *vzapi.Verrazzano, componentName string) bool {
 	switch componentName {
 	case coherence.ComponentName:
-		return coherence.IsEnabled(cr.Spec.Components.CoherenceOperator)
+		return coherence.IsEnabled(cr.Spec.Components.Coherence)
 	case weblogic.ComponentName:
-		return weblogic.IsEnabled(cr.Spec.Components.WebLogicOperator)
+		return weblogic.IsEnabled(cr.Spec.Components.WebLogic)
 	}
 	return true
 }

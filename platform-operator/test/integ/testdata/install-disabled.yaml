@@ -8,9 +8,9 @@ metadata:
 spec:
   profile: dev
   components:
-    weblogicOperator:
+    weblogic:
       enabled: false
-    coherenceOperator:
+    coherence:
       enabled: false
     console:
       enabled: false

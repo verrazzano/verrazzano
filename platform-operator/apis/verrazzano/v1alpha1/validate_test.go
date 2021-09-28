@@ -541,7 +541,7 @@ func TestValidateEnable(t *testing.T) {
 					Profile:         "",
 					EnvironmentName: "",
 					Components: ComponentSpec{
-						CoherenceOperator: &CoherenceOperatorComponent{
+						Coherence: &CoherenceComponent{
 							Enabled: newBool(false),
 						},
 					},
@@ -556,7 +556,7 @@ func TestValidateEnable(t *testing.T) {
 					Profile:         "",
 					EnvironmentName: "",
 					Components: ComponentSpec{
-						WebLogicOperator: &WebLogicOperatorComponent{
+						WebLogic: &WebLogicComponent{
 							Enabled: newBool(false),
 						},
 					},

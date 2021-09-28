@@ -8,7 +8,7 @@ metadata:
 spec:
   profile: dev
   components:
-    coherenceOperator:
+    coherence:
       enabled: true
-    weblogicOperator:
+    weblogic:
       enabled: true

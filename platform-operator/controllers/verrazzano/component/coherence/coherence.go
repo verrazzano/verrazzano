@@ -25,7 +25,7 @@ func IsCoherenceOperatorReady(log *zap.SugaredLogger, c clipkg.Client, _ string,
 }
 
 // IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(comp *v1alpha1.CoherenceOperatorComponent) bool {
+func IsEnabled(comp *v1alpha1.CoherenceComponent) bool {
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
