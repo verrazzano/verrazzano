@@ -588,7 +588,7 @@ func TestUpgradeCompleted(t *testing.T) {
 			return nil
 		})
 
-	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 		return []byte(""), []byte(""), nil
 	})
 	defer istiocomp.ResetIstioUpgradeFunction()
@@ -647,7 +647,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			return errors2.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, name.Name)
 		})
 
-	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 		return []byte(""), []byte(""), nil
 	})
 	defer istiocomp.ResetIstioUpgradeFunction()
