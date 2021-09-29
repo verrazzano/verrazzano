@@ -359,6 +359,20 @@ pipeline {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
+                        failure {
+                            script {
+                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('upgrade-failure-post-test-cluster-dump')
+                                }
+                            }
+                        }
+                        success {
+                            script {
+                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('upgrade-success-post-test-cluster-dump')
+                                }
+                            }
+                        }
                     }
                 }
                 stage('Uninstall') {
@@ -424,7 +438,7 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('upgrade-failure-post-run-cluster-dump')
+                            dumpK8sCluster('upgrade-run-failed-post-run-cluster-dump')
                         }
                     }
                 }
@@ -432,7 +446,7 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('upgrade-success-post-run-cluster-dump')
+                            dumpK8sCluster('upgrade-run-success-post-run-cluster-dump')
                         }
                     }
                 }
