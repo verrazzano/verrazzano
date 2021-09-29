@@ -161,6 +161,9 @@ func populateMapWithInitContainerImages(clusterImageMap map[string][tagLen]strin
 func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][tagLen]string, imagesNotFound map[string]string, imageTagErrors map[string]imageError) bool {
 	var errorsFound bool = false
 	for _, component := range vBom.Components {
+		if component.Name == "istio" {
+			continue
+		}
 		for _, subcomponent := range component.Subcomponents {
 			for _, image := range subcomponent.Images {
 				if tags, ok := clusterImageMap[image.Image]; ok {
