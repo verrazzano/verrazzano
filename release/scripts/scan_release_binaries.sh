@@ -26,7 +26,7 @@ usage() {
     OBJECT_STORAGE_BUCKET - object storage bucket where the artifacts are stored
     SCANNER_ARCHIVE_LOCATION - McAfee command line scanner
     SCANNER_ARCHIVE_FILE - scanner archive
-    VIRUS_DEF_LOCATION - virus definition location
+    VIRUS_DEFINITION_LOCATION - virus definition location
     NO_PROXY_SUFFIX - suffix for no_proxy environment variable
 EOM
     exit 0
@@ -34,7 +34,7 @@ EOM
 
 [ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OBJECT_STORAGE_BUCKET" ] ||
 [ -z "$SCANNER_ARCHIVE_LOCATION" ] || [ -z "$SCANNER_ARCHIVE_FILE" ] || [ -z "$NO_PROXY_SUFFIX" ] ||
-[ -z "$VIRUS_DEF_LOCATION" ] || [ -z "$1" ] || [ -z "$2" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$1" ] || [ -z "$2" ] || [ "$1" == "-h" ] && { usage; }
 
 BRANCH=${1}
 WORK_DIR=${2:-$SCRIPT_DIR}
@@ -60,9 +60,9 @@ function install_scanner() {
 }
 
 function update_virus_definition() {
-  VIRUS_DEF_FILE=$(curl -s $VIRUS_DEF_LOCATION | grep -oP 'avvdat-.*?zip' | sort -nr | head -1)
+  VIRUS_DEF_FILE=$(curl -s $VIRUS_DEFINITION_LOCATION | grep -oP 'avvdat-.*?zip' | sort -nr | head -1)
   cd $SCANNER_HOME
-  curl -O $VIRUS_DEF_LOCATION/$VIRUS_DEF_FILE
+  curl -O $VIRUS_DEFINITION_LOCATION/$VIRUS_DEF_FILE
   unzip -o $VIRUS_DEF_FILE
 }
 

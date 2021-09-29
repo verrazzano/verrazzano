@@ -104,7 +104,6 @@ pipeline {
                 SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')
                 SCANNER_ARCHIVE_FILE = credentials('scanner-archive-file')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
-                VIRUS_DEF_LOCATION = "https://update.nai.com/products/commonupdater2/current/vscandat1000/dat/0000"
             }
            steps {
                 script {
@@ -127,7 +126,6 @@ pipeline {
                 // The token should have required scope - read:org
                 GITHUB_ACCESS_TOKEN = credentials('github-api-token-release-assets')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
-                VIRUS_DEF_LOCATION = "https://update.nai.com/products/commonupdater2/current/vscandat1000/dat/0000"
             }
             steps {
                 script {
