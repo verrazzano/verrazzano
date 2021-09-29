@@ -5,18 +5,11 @@ package registry
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"go.uber.org/zap"
@@ -27,157 +20,159 @@ import (
 // The components will be processed in the order items in the array
 func GetComponents() []spi.Component {
 	overridesDir := config.GetHelmOverridesDir()
-	helmChartsDir := config.GetHelmChartsDir()
-	thirdPartyChartsDir := config.GetThirdPartyDir()
+	//helmChartsDir := config.GetHelmChartsDir()
+	//thirdPartyChartsDir := config.GetThirdPartyDir()
 	injectedSystemNamespaces := config.GetInjectedSystemNamespaces()
 
 	return []spi.Component{
-		helm.HelmComponent{
-			ReleaseName:             "istio-base",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			IgnoreImageOverrides:    true,
-			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "istiod",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/istio-control/istio-discovery"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-			AppendOverridesFunc:     istio.AppendIstioOverrides,
-			ReadyStatusFunc:         istio.IstiodReadyCheck,
-			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "istio-ingress",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/gateways/istio-ingress"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-			AppendOverridesFunc:     istio.AppendIstioOverrides,
-			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "istio-egress",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/gateways/istio-egress"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-			AppendOverridesFunc:     istio.AppendIstioOverrides,
-			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "istiocoredns",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/istiocoredns"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-			AppendOverridesFunc:     istio.AppendIstioOverrides,
-			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "ingress-controller",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"),
-			ChartNamespace:          "ingress-nginx",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "ingress-nginx-values.yaml"),
-		},
-		helm.HelmComponent{
-			ReleaseName:             "cert-manager",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "cert-manager"),
-			ChartNamespace:          "cert-manager",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "cert-manager-values.yaml"),
-		},
-		helm.HelmComponent{
-			ReleaseName:             "external-dns",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "external-dns"),
-			ChartNamespace:          "cert-manager",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "external-dns-values.yaml"),
-		},
-		helm.HelmComponent{
-			ReleaseName:             "rancher",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "rancher"),
-			ChartNamespace:          "cattle-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "rancher-values.yaml"),
-		},
-		helm.HelmComponent{
-			ReleaseName:             "verrazzano",
-			ChartDir:                filepath.Join(helmChartsDir, "verrazzano"),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			ResolveNamespaceFunc:    verrazzano.ResolveVerrazzanoNamespace,
-			PreUpgradeFunc:          verrazzano.VerrazzanoPreUpgrade,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "coherence-operator",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
-			ReadyStatusFunc:         coherence.IsCoherenceOperatorReady,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "weblogic-operator",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "weblogic-operator"),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
-			PreInstallFunc:          weblogic.WeblogicOperatorPreInstall,
-			AppendOverridesFunc:     weblogic.AppendWeblogicOperatorOverrides,
-			Dependencies:            []string{"istiod"},
-			ReadyStatusFunc:         weblogic.IsWeblogicOperatorReady,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "oam-kubernetes-runtime",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "oam-kubernetes-runtime"),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ValuesFile:              filepath.Join(overridesDir, "oam-kubernetes-runtime-values.yaml"),
-			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
-			ReadyStatusFunc:         oam.IsOAMReady,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "verrazzano-application-operator",
-			ChartDir:                filepath.Join(helmChartsDir, "verrazzano-application-operator"),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ValuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
-			AppendOverridesFunc:     appoper.AppendApplicationOperatorOverrides,
-			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
-			ReadyStatusFunc:         appoper.IsApplicationOperatorReady,
-			Dependencies:            []string{"oam-kubernetes-runtime"},
-		},
-		helm.HelmComponent{
-			ReleaseName:             "mysql",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "mysql"),
-			ChartNamespace:          "keycloak",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),
-		},
-		helm.HelmComponent{
-			ReleaseName:             "keycloak",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "keycloak"),
-			ChartNamespace:          "keycloak",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
-			AppendOverridesFunc:     keycloak.AppendKeycloakOverrides,
-		},
 		istio.IstioComponent{
 			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
 			Revision:                 "1-10-2",
 			InjectedSystemNamespaces: injectedSystemNamespaces,
 		},
+		//
+		//helm.HelmComponent{
+		//	ReleaseName:             "istio-base",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
+		//	ChartNamespace:          "istio-system",
+		//	IgnoreNamespaceOverride: true,
+		//	IgnoreImageOverrides:    true,
+		//	SkipUpgrade:             true,
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "istiod",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/istio-control/istio-discovery"),
+		//	ChartNamespace:          "istio-system",
+		//	IgnoreNamespaceOverride: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+		//	AppendOverridesFunc:     istio.AppendIstioOverrides,
+		//	ReadyStatusFunc:         istio.IstiodReadyCheck,
+		//	SkipUpgrade:             true,
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "istio-ingress",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/gateways/istio-ingress"),
+		//	ChartNamespace:          "istio-system",
+		//	IgnoreNamespaceOverride: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+		//	AppendOverridesFunc:     istio.AppendIstioOverrides,
+		//	SkipUpgrade:             true,
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "istio-egress",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/gateways/istio-egress"),
+		//	ChartNamespace:          "istio-system",
+		//	IgnoreNamespaceOverride: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+		//	AppendOverridesFunc:     istio.AppendIstioOverrides,
+		//	SkipUpgrade:             true,
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "istiocoredns",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/istiocoredns"),
+		//	ChartNamespace:          "istio-system",
+		//	IgnoreNamespaceOverride: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+		//	AppendOverridesFunc:     istio.AppendIstioOverrides,
+		//	SkipUpgrade:             true,
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "ingress-controller",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"),
+		//	ChartNamespace:          "ingress-nginx",
+		//	IgnoreNamespaceOverride: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "ingress-nginx-values.yaml"),
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "cert-manager",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "cert-manager"),
+		//	ChartNamespace:          "cert-manager",
+		//	IgnoreNamespaceOverride: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "cert-manager-values.yaml"),
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "external-dns",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "external-dns"),
+		//	ChartNamespace:          "cert-manager",
+		//	IgnoreNamespaceOverride: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "external-dns-values.yaml"),
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "rancher",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "rancher"),
+		//	ChartNamespace:          "cattle-system",
+		//	IgnoreNamespaceOverride: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "rancher-values.yaml"),
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "verrazzano",
+		//	ChartDir:                filepath.Join(helmChartsDir, "verrazzano"),
+		//	ChartNamespace:          constants.VerrazzanoSystemNamespace,
+		//	IgnoreNamespaceOverride: true,
+		//	ResolveNamespaceFunc:    verrazzano.ResolveVerrazzanoNamespace,
+		//	PreUpgradeFunc:          verrazzano.VerrazzanoPreUpgrade,
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "coherence-operator",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
+		//	ChartNamespace:          constants.VerrazzanoSystemNamespace,
+		//	IgnoreNamespaceOverride: true,
+		//	SupportsOperatorInstall: true,
+		//	ImagePullSecretKeyname:  "imagePullSecrets[0].name",
+		//	ValuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
+		//	ReadyStatusFunc:         coherence.IsCoherenceOperatorReady,
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "weblogic-operator",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "weblogic-operator"),
+		//	ChartNamespace:          constants.VerrazzanoSystemNamespace,
+		//	IgnoreNamespaceOverride: true,
+		//	SupportsOperatorInstall: true,
+		//	ImagePullSecretKeyname:  "imagePullSecrets[0].name",
+		//	ValuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
+		//	PreInstallFunc:          weblogic.WeblogicOperatorPreInstall,
+		//	AppendOverridesFunc:     weblogic.AppendWeblogicOperatorOverrides,
+		//	Dependencies:            []string{"istiod"},
+		//	ReadyStatusFunc:         weblogic.IsWeblogicOperatorReady,
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "oam-kubernetes-runtime",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "oam-kubernetes-runtime"),
+		//	ChartNamespace:          constants.VerrazzanoSystemNamespace,
+		//	IgnoreNamespaceOverride: true,
+		//	SupportsOperatorInstall: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "oam-kubernetes-runtime-values.yaml"),
+		//	ImagePullSecretKeyname:  "imagePullSecrets[0].name",
+		//	ReadyStatusFunc:         oam.IsOAMReady,
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "verrazzano-application-operator",
+		//	ChartDir:                filepath.Join(helmChartsDir, "verrazzano-application-operator"),
+		//	ChartNamespace:          constants.VerrazzanoSystemNamespace,
+		//	IgnoreNamespaceOverride: true,
+		//	SupportsOperatorInstall: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
+		//	AppendOverridesFunc:     appoper.AppendApplicationOperatorOverrides,
+		//	ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
+		//	ReadyStatusFunc:         appoper.IsApplicationOperatorReady,
+		//	Dependencies:            []string{"oam-kubernetes-runtime"},
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "mysql",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "mysql"),
+		//	ChartNamespace:          "keycloak",
+		//	IgnoreNamespaceOverride: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),
+		//},
+		//helm.HelmComponent{
+		//	ReleaseName:             "keycloak",
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, "keycloak"),
+		//	ChartNamespace:          "keycloak",
+		//	IgnoreNamespaceOverride: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
+		//	AppendOverridesFunc:     keycloak.AppendKeycloakOverrides,
+		//},
+
 	}
 }
 

@@ -35,6 +35,8 @@ type IstioComponent struct {
 	SkipUpgrade bool
 }
 
+const IstioOperatorOverrideFile = "istio-cr.yaml"
+
 // Verify that IstioComponent implements Component
 var _ spi.Component = IstioComponent{}
 
@@ -98,26 +100,29 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 	}
 	defer os.Remove(tmpFile.Name())
 
-	if vz.Spec.Components.Istio == nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
-		if err != nil {
-			log.Errorf("Failed to Build IstioOperator YAML: %v", err)
-			return err
-		}
-
-		if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
-			log.Errorf("Failed to write to temporary file: %v", err)
-			return err
-		}
-
-		// Close the file
-		if err := tmpFile.Close(); err != nil {
-			log.Errorf("Failed to close temporary file: %v", err)
-			return err
-		}
-
-		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
+	istioComp := vz.Spec.Components.Istio
+	if istioComp == nil {
+		istioComp = &installv1alpha1.IstioComponent{}
 	}
+
+	istioOperatorYaml, err := BuildIstioOperatorYaml(istioComp)
+	if err != nil {
+		log.Errorf("Failed to Build IstioOperator YAML: %v", err)
+		return err
+	}
+
+	if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
+		log.Errorf("Failed to write to temporary file: %v", err)
+		return err
+	}
+
+	// Close the file
+	if err := tmpFile.Close(); err != nil {
+		log.Errorf("Failed to close temporary file: %v", err)
+		return err
+	}
+
+	log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 
 	_, _, err = installFunc(log, i.ValuesFile, tmpFile.Name())
 	if err != nil {
@@ -195,7 +200,7 @@ func setDefaultInstallFunc() {
 }
 
 func (i IstioComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
-	return true
+	return false
 }
 
 // GetDependencies returns the dependencies of this component

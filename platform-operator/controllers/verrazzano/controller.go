@@ -175,6 +175,7 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		return result, nil
 	}
 
+	return ctrl.Result{}, nil
 
 	//*************   END TEMP CODE
 
