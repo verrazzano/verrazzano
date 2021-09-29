@@ -32,6 +32,8 @@ const multiclusterNamespace = "verrazzano-mc"
 const verrazzanoSystemNamespace = "verrazzano-system"
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+var vmiEsIngressURL = getVmiEsIngressURL()
+var externalEsURL = pkg.GetExternalElasticSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
 
 var _ = Describe("Multi Cluster Verify Register", func() {
 	Context("Admin Cluster", func() {
@@ -158,6 +160,18 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 				return pkg.MetricsExist("up", "managed_cluster", managedClusterName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a metrics from managed cluster")
 		})
+
+		It("admin cluster Fluentd should point to the correct ES", func() {
+			if pkg.UseExternalElasticsearch() {
+				Eventually(func() bool {
+					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
+			} else {
+				Eventually(func() bool {
+					return pkg.AssertFluentdURLAndSecret("", pkg.VmiESSecret)
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in admin cluster fluentd Daemonset setting")
+			}
+		})
 	})
 
 	Context("Managed Cluster", func() {
@@ -176,6 +190,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 					Eventually(func() bool {
 						return findSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret verrazzano-cluster-registration")
+					assertRegistrationSecret()
 				},
 			)
 		})
@@ -216,6 +231,18 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find role binding view")
 				},
 			)
+		})
+
+		It("managed cluster Fluentd should point to the correct ES", func() {
+			if pkg.UseExternalElasticsearch() {
+				Eventually(func() bool {
+					return pkg.AssertFluentdURLAndSecret(externalEsURL, "verrazzano-cluster-registration")
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in managed cluster fluentd Daemonset setting")
+			} else {
+				Eventually(func() bool {
+					return pkg.AssertFluentdURLAndSecret("", "verrazzano-cluster-registration")
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES  in managed cluster fluentd Daemonset setting")
+			}
 		})
 	})
 })
@@ -291,4 +318,28 @@ func findVerrazzanoProject(projectName string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func assertRegistrationSecret() {
+	regSecret, err := pkg.GetSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
+	Expect(err).To(BeNil())
+	Expect(regSecret).To(Not(BeNil()))
+	if pkg.UseExternalElasticsearch() {
+		Expect(string(regSecret.Data["es-url"])).To(Equal(externalEsURL))
+		esSecret, err := pkg.GetSecretInCluster("verrazzano-system", "external-es-secret", os.Getenv("ADMIN_KUBECONFIG"))
+		Expect(err).To(BeNil())
+		Expect(regSecret.Data["username"]).To(Equal(esSecret.Data["username"]))
+		Expect(regSecret.Data["password"]).To(Equal(esSecret.Data["password"]))
+		Expect(regSecret.Data["es-ca-bundle"]).To(Equal(esSecret.Data["ca-bundle"]))
+	} else {
+		Expect(string(regSecret.Data["es-url"])).To(Equal(vmiEsIngressURL))
+		vmiEsInternalSecret, err := pkg.GetSecretInCluster("verrazzano-system", "verrazzano-es-internal", os.Getenv("ADMIN_KUBECONFIG"))
+		Expect(err).To(BeNil())
+		Expect(regSecret.Data["username"]).To(Equal(vmiEsInternalSecret.Data["username"]))
+		Expect(regSecret.Data["password"]).To(Equal(vmiEsInternalSecret.Data["password"]))
+	}
+}
+
+func getVmiEsIngressURL() string {
+	return fmt.Sprintf("%s:443", pkg.GetSystemElasticSearchIngressURL(os.Getenv("ADMIN_KUBECONFIG")))
 }
