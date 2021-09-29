@@ -893,10 +893,8 @@ func useHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.
 	if err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: trait.Namespace}, namespace); err != nil {
 		return false, err
 	}
-	istioInjection, hasIstioInjection := namespace.Labels["istio-injection"]
-	_, hasIstioRevision := namespace.Labels["istio.io/rev"]
-	requiresSidecar := (hasIstioInjection && istioInjection == "enabled") || hasIstioRevision
-	if requiresSidecar {
+	value, ok := namespace.Labels["istio-injection"]
+	if ok && value == "enabled" {
 		return true, nil
 	}
 	return false, nil
