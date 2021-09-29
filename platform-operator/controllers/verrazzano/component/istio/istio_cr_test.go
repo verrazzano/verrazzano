@@ -33,9 +33,6 @@ apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
   components:
-    egressGateways:
-      - name: istio-egressgateway
-        enabled: true
     ingressGateways:
       - name: istio-ingressgateway
         enabled: true

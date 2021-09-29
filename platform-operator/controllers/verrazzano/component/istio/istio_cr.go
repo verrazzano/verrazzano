@@ -38,11 +38,6 @@ const istioHelmValuesTempate = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  components:
-    egressGateways:
-      - name: istio-egressgateway
-        enabled: true
-
   # Global values passed through to helm global.yaml.
   # Please keep this in sync with manifests/charts/global.yaml
   values:

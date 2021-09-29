@@ -93,40 +93,43 @@ func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, _ str
 
 func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, _ clipkg.Client, _ string, _ bool) error {
 	var tmpFile *os.File
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "istio-*.yaml")
-	if err != nil {
-		log.Errorf("Failed to create temporary file for Istio install: %v", err)
-		return err
-	}
-	defer os.Remove(tmpFile.Name())
 
-	istioComp := vz.Spec.Components.Istio
-	if istioComp == nil {
-		istioComp = &installv1alpha1.IstioComponent{}
-	}
+	// Only create override file if the CR has an Istio component
+	if  vz.Spec.Components.Istio != nil {
+		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
+		if err != nil {
+			log.Errorf("Failed to Build IstioOperator YAML: %v", err)
+			return err
+		}
 
-	istioOperatorYaml, err := BuildIstioOperatorYaml(istioComp)
-	if err != nil {
-		log.Errorf("Failed to Build IstioOperator YAML: %v", err)
-		return err
-	}
-
-	if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
-		log.Errorf("Failed to write to temporary file: %v", err)
-		return err
-	}
-
-	// Close the file
-	if err := tmpFile.Close(); err != nil {
-		log.Errorf("Failed to close temporary file: %v", err)
-		return err
+		// Write the overrides to a tmp file
+		tmpFile, err := ioutil.TempFile(os.TempDir(), "istio-*.yaml")
+		if err != nil {
+			log.Errorf("Failed to create temporary file for Istio install: %v", err)
+			return err
+		}
+		defer os.Remove(tmpFile.Name())
+		if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
+			log.Errorf("Failed to write to temporary file: %v", err)
+			return err
+		}
+		if err := tmpFile.Close(); err != nil {
+			log.Errorf("Failed to close temporary file: %v", err)
+			return err
+		}
+		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 
-	log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
-
-	_, _, err = installFunc(log, i.ValuesFile, tmpFile.Name())
-	if err != nil {
-		return err
+	if tmpFile == nil {
+		_, _, err := installFunc(log, i.ValuesFile)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, _, err := installFunc(log, i.ValuesFile, tmpFile.Name())
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
