@@ -73,12 +73,12 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: ingress-nginx
+              verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app.kubernetes.io/instance: ingress-controller
+              app: verrazzano-authproxy
       ports:
-        - port: 8775
+        - port: 3000
           protocol: TCP
     - from:
         - namespaceSelector:
@@ -112,12 +112,12 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: ingress-nginx
+              verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
-              app.kubernetes.io/instance: ingress-controller
+              app: verrazzano-authproxy
       ports:
-        - port: 8775
+        - port: 9090
           protocol: TCP
     - from:
         - podSelector:
@@ -564,7 +564,7 @@ spec:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
             matchExpressions:
-              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-api, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator]}
+              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator]}
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
