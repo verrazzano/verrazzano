@@ -6,8 +6,10 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"go.uber.org/zap"
 	"io/ioutil"
@@ -16,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 	"time"
 )
 
@@ -53,7 +56,7 @@ func ResetIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
-type installFuncSig func(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+type installFuncSig func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 // installFunc is the default install function
 var installFunc installFuncSig = istio.Install
@@ -120,13 +123,19 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 
+	imageOverrides, err := buildImageOverridesString(log)
+	if err != nil {
+		log.Errorf("Error building image overrides from BOM for Istio: %v", err)
+		return err
+	}
+
 	if tmpFile == nil {
-		_, _, err := installFunc(log, i.ValuesFile)
+		_, _, err := installFunc(log, imageOverrides, i.ValuesFile)
 		if err != nil {
 			return err
 		}
 	} else {
-		_, _, err := installFunc(log, i.ValuesFile, tmpFile.Name())
+		_, _, err := installFunc(log, imageOverrides, i.ValuesFile, tmpFile.Name())
 		if err != nil {
 			return err
 		}
@@ -335,4 +344,54 @@ func contains(arr []string, s string) bool {
 
 func (i IstioComponent) GetSkipUpgrade() bool {
 	return i.SkipUpgrade
+}
+
+func buildImageOverridesString(log *zap.SugaredLogger) (string, error) {
+	// Get the image overrides from the BOM
+	var kvs []bom.KeyValue
+	var err error
+		kvs, err = getImageOverrides()
+		if err != nil {
+			return "", err
+	}
+
+	// If there are overridesString the create a comma separated string
+	var overridesString string
+	if len(kvs) > 0 {
+		bldr := strings.Builder{}
+		for i, kv := range kvs {
+			if i > 0 {
+				bldr.WriteString(",")
+			}
+			bldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
+		}
+		overridesString = bldr.String()
+	}
+	return overridesString, nil
+}
+
+// Get the image overrides from the BOM
+func getImageOverrides() ([]bom.KeyValue, error) {
+
+	const subcompIstiod = "istiod-1.10.2"
+	subComponentNames := []string{subcompIstiod}
+
+	// Create a Bom and get the Key Value overrides
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return nil, err
+	}
+
+	var kvs []bom.KeyValue
+	for _, scName := range subComponentNames {
+		scKvs, err := bomFile.BuildImageOverrides(scName)
+		if err != nil {
+			return nil, err
+		}
+		for i, _ := range scKvs {
+			kvs = append(kvs, scKvs[i])
+		}
+	}
+
+	return kvs, nil
 }
