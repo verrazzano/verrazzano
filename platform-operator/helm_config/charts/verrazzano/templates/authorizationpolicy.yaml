@@ -7,12 +7,12 @@
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: verrazzano-authproxy-authzpol
-  namespace: verrazzano-system
+  name: {{ .Values.api.name }}-authzpol
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: verrazzano-authproxy
+      app: {{ .Values.api.name }}
   action: ALLOW
   rules:
     # verrazzano-authproxy:8775 <- istio-ingressgateway
@@ -22,20 +22,20 @@ spec:
             principals: ["cluster.local/ns/ingress-nginx/sa/ingress-controller-ingress-nginx"]
       to:
         - operation:
-            ports: ["8775"]
+            ports: ["{{ .Values.api.port }}"]
     # verrazzano-authproxy:8775 <- fluentd
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/fluentd"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.logging.name }}"]
       to:
         - operation:
-            ports: ["8775"]
-    # verrazzano-authproxy:15090 <- vmi-system-prometheus (no sa, use default?)
+            ports: ["{{ .Values.api.port }}"]
+    # verrazzano-authproxy:15090 <- vmi-system-prometheus (uses default sa)
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
       to:
         - operation:
             ports: ["15090"]
@@ -48,7 +48,7 @@ apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   name: vmi-system-es-master-authzpol
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
@@ -58,24 +58,24 @@ spec:
     # vmi-system-es-master:9200 <- verrazzano-authproxy
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}"]
       to:
         - operation:
             ports: ["9200"]
-    # vmi-system-es-master:9200,9300 <- vmi-system-kibana (no sa, use default?)
+    # vmi-system-es-master:9200,9300 <- vmi-system-kibana (uses default sa)
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
       to:
         - operation:
             ports: ["9200","9300"]
-    # vmi-system-es-master:15090 <- vmi-system-prometheus (no sa, use default?)
+    # vmi-system-es-master:15090 <- vmi-system-prometheus (uses default sa)
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
       to:
         - operation:
             ports: ["15090"]
@@ -88,7 +88,7 @@ apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   name: vmi-system-grafana-authzpol
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
@@ -98,16 +98,16 @@ spec:
     # vmi-system-grafana:3000 <- verrazzano-authproxy
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}"]
       to:
         - operation:
             ports: ["3000"]
     # vmi-system-grafana:15090 <- vmi-system-prometheus
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
       to:
         - operation:
             ports: ["15090"]
@@ -120,7 +120,7 @@ apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   name: vmi-system-kibana-authzpol
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
@@ -130,16 +130,16 @@ spec:
     # vmi-system-kibana:5601 <- verrazzano-authproxy
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}"]
       to:
         - operation:
             ports: ["5601"]
-    # vmi-system-kibana:15090 <- vmi-system-prometheus (no sa, use default?)
+    # vmi-system-kibana:15090 <- vmi-system-prometheus (uses default sa)
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
       to:
         - operation:
             ports: ["15090"]
@@ -152,7 +152,7 @@ apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   name: vmi-system-prometheus-authzpol
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
@@ -160,23 +160,25 @@ spec:
   action: ALLOW
   rules:
     # vmi-system-prometheus:9090 <- verrazzano-authproxy
-    # vmi-system-prometheus:9090 <- vmi-system-grafana (no sa, use default?)
+    # vmi-system-prometheus:9090 <- vmi-system-grafana (uses default sa)
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy","cluster.local/ns/verrazzano-system/sa/default"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}","cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
       to:
         - operation:
             ports: ["9090"]
 
-    # vmi-system-prometheus:15090 <- vmi-system-prometheus (no sa, use default?)
+    # vmi-system-prometheus:15090 <- vmi-system-prometheus (uses default sa)
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
       to:
         - operation:
             ports: ["15090"]
+
+{{- if .Values.console.enabled }}
 ---
 #
 # Istio AuthorizationPolicy for verrazzano-console
@@ -184,27 +186,28 @@ spec:
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: verrazzano-console-authzpol
-  namespace: verrazzano-system
+  name: {{ .Values.console.name }}-authzpol
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: verrazzano-console
+      app: {{ .Values.console.name }}
   action: ALLOW
   rules:
     # verrazzano-console:8000 <- verrazzano-authproxy
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}"]
       to:
         - operation:
             ports: ["8000"]
-    # verrazzano-console:15090 <- vmi-system-prometheus (no sa, use default?)
+    # verrazzano-console:15090 <- vmi-system-prometheus (uses default sa)
     - from:
         - source:
-            namespaces: ["verrazzano-system"]
-            principals: ["cluster.local/ns/verrazzano-system/sa/default"]
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
       to:
         - operation:
             ports: ["15090"]
+{{- end }}
