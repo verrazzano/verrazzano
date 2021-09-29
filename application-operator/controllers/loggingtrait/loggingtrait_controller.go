@@ -309,10 +309,28 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				} else if !ok {
 					log.Info("No volumeMounts found")
 				}
-				resourceVolumeMounts = append(resourceVolumeMounts, volumeMounts...)
+				if len(resourceVolumeMounts) != 0 {
+					for _, resourceVolumeMount := range resourceVolumeMounts {
+						for _, vMount := range volumeMounts {
+							if resourceVolumeMount.(map[string]interface{})["mountPath"] != vMount.(map[string]interface{})["mountPath"] {
+								resourceVolumeMounts = append(resourceVolumeMounts, vMount)
+							}
+						}
+					}
+				} else {
+					resourceVolumeMounts = append(resourceVolumeMounts, volumeMounts...)
+				}
 
 			}
-			resVolumeMounts := append(resourceVolumeMounts, uLoggingVolumeMount.Object)
+			iVolumeMount := -1
+			for i, cVolumeMount := range resourceVolumeMounts {
+				if cVolumeMount.(map[string]interface{})["mountPath"] == uLoggingVolumeMount.Object["mountPath"] {
+					iVolumeMount = i
+				}
+			}
+			if iVolumeMount == -1 {
+				resourceVolumeMounts = append(resourceVolumeMounts, uLoggingVolumeMount.Object)
+			}
 
 			loggingContainer := &corev1.Container{
 				Name:            loggingNamePart,
@@ -325,7 +343,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				log.Error(err, "Failed to unmarshal a container for logging")
 			}
 
-			err = unstructured.SetNestedSlice(uLoggingContainer.Object, resVolumeMounts, volumeMountFieldPath...)
+			err = unstructured.SetNestedSlice(uLoggingContainer.Object, resourceVolumeMounts, volumeMountFieldPath...)
 			if err != nil {
 				log.Error(err, "Unable to set container volumeMounts")
 				return reconcile.Result{}, true, errors.Wrap(err, "Unable to set container volumeMounts")

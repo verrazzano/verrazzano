@@ -630,18 +630,32 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the logging trait data
-	var extracted containersMountsVolumes
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(coherenceSpec, &extracted); err != nil {
+	var extract containersMountsVolumes
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(coherenceSpec, &extract); err != nil {
 		return errors.New("unable to extract containers, volumes, and volume mounts from Coherence spec")
 	}
-
+	extracted := &containersMountsVolumes{
+		SideCars:     extract.SideCars,
+		VolumeMounts: extract.VolumeMounts,
+		Volumes:      extract.Volumes,
+	}
 	loggingVolumeMount := &corev1.VolumeMount{
 		MountPath: loggingMountPath,
 		Name:      configMapName,
 		SubPath:   loggingKey,
 		ReadOnly:  true,
 	}
-	extracted.VolumeMounts = append(extracted.VolumeMounts, *loggingVolumeMount)
+	vmIndex := -1
+	for i, vm := range extracted.VolumeMounts {
+		if vm.MountPath == loggingMountPath {
+			vmIndex = i
+		}
+	}
+	if vmIndex != -1 {
+		extracted.VolumeMounts[vmIndex] = *loggingVolumeMount
+	} else {
+		extracted.VolumeMounts = append(extracted.VolumeMounts, *loggingVolumeMount)
+	}
 	loggingVolumeMountUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingVolumeMount)
 	if err != nil {
 		return err
@@ -650,7 +664,19 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		coherenceSpec["configMapVolumes"] = []interface{}{loggingVolumeMountUnstructured}
 	} else {
 		vols := configMapVolumes.([]interface{})
-		coherenceSpec["configMapVolumes"] = append(vols, loggingVolumeMountUnstructured)
+		volIndex := -1
+		for i, v := range vols {
+			if v.(map[string]interface{})["mountPath"] == loggingVolumeMountUnstructured["mountPath"] {
+				volIndex = i
+			}
+		}
+		if volIndex != -1 {
+			vols[volIndex] = loggingVolumeMountUnstructured
+
+		} else {
+			vols = append(vols, loggingVolumeMountUnstructured)
+		}
+		coherenceSpec["configMapVolumes"] = vols
 	}
 	var image string
 	if len(loggingTrait.Spec.LoggingImage) != 0 {
@@ -664,7 +690,17 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		VolumeMounts:    extracted.VolumeMounts,
 	}
-	extracted.SideCars = append(extracted.SideCars, *loggingContainer)
+	sIndex := -1
+	for i, s := range extracted.SideCars {
+		if s.Name == loggingNamePart {
+			sIndex = i
+		}
+	}
+	if sIndex != -1 {
+		extracted.SideCars[sIndex] = *loggingContainer
+	} else {
+		extracted.SideCars = append(extracted.SideCars, *loggingContainer)
+	}
 
 	loggingVolume := &corev1.Volume{
 		Name: configMapName,
@@ -679,7 +715,17 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 			},
 		},
 	}
-	extracted.Volumes = append(extracted.Volumes, *loggingVolume)
+	vIndex := -1
+	for i, v := range extracted.Volumes {
+		if v.Name == configMapName {
+			vIndex = i
+		}
+	}
+	if vIndex != -1 {
+		extracted.Volumes[vIndex] = *loggingVolume
+	} else {
+		extracted.Volumes = append(extracted.Volumes, *loggingVolume)
+	}
 	// convert the containers, volumes, and mounts in extracted to unstructured and set
 	// the values in the spec
 	extractedUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&extracted)
