@@ -168,7 +168,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
 			} else {
 				Eventually(func() bool {
-					return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESSecret)
+					return pkg.AssertFluentdURLAndSecret("", pkg.VmiESSecret)
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in admin cluster fluentd Daemonset setting")
 			}
 		})
@@ -240,7 +240,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in managed cluster fluentd Daemonset setting")
 			} else {
 				Eventually(func() bool {
-					return pkg.AssertFluentdURLAndSecret(vmiEsIngressURL, "verrazzano-cluster-registration")
+					return pkg.AssertFluentdURLAndSecret("", "verrazzano-cluster-registration")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES  in managed cluster fluentd Daemonset setting")
 			}
 		})

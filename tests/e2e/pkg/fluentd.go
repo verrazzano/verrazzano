@@ -29,6 +29,9 @@ func getFluentdDaemonset() (*appv1.DaemonSet, error) {
 	return ds, nil
 }
 
+// AssertFluentdURLAndSecret makes sure that expectedURL and expectedSecret are the same as
+// what is configured in the fluentd daemonset.
+// empty string expectedURL means skip comparing URL. Verrazzano prior to 1.1 could configure URL differently.
 func AssertFluentdURLAndSecret(expectedURL, expectedSecret string) bool {
 	urlFound := ""
 	usernameSecretFound := ""
@@ -82,5 +85,5 @@ func AssertFluentdURLAndSecret(expectedURL, expectedSecret string) bool {
 	if volumeSecretFound != expectedSecret {
 		Log(Info, fmt.Sprintf("ES volume secret in fluentdDaemonset %s doesn't match expected %s", volumeSecretFound, expectedSecret))
 	}
-	return urlFound == expectedURL && usernameSecretFound == expectedSecret && passwordSecretFound == expectedSecret && volumeSecretFound == expectedSecret
+	return (expectedURL == "" || urlFound == expectedURL) && usernameSecretFound == expectedSecret && passwordSecretFound == expectedSecret && volumeSecretFound == expectedSecret
 }
