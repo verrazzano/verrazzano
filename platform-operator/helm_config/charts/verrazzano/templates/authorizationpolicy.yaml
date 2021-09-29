@@ -15,7 +15,7 @@ spec:
       app: {{ .Values.api.name }}
   action: ALLOW
   rules:
-    # verrazzano-authproxy:8775 <- istio-ingressgateway
+    # verrazzano-authproxy:8775 <- ingress-controller-ingress-nginx-controller
     - from:
         - source:
             namespaces: ["ingress-nginx"]
@@ -41,6 +41,7 @@ spec:
             ports: ["15090"]
 
 ---
+{{- if .Values.elasticSearch.enabled }}
 #
 # Istio AuthorizationPolicy for vmi-system-es-master
 #
@@ -79,8 +80,10 @@ spec:
       to:
         - operation:
             ports: ["15090"]
+{{- end }}
 
 ---
+{{- if .Values.grafana.enabled }}
 #
 # Istio AuthorizationPolicy for vmi-system-grafana
 #
@@ -111,8 +114,10 @@ spec:
       to:
         - operation:
             ports: ["15090"]
+{{- end }}
 
 ---
+{{- if .Values.kibana.enabled }}
 #
 # Istio AuthorizationPolicy for vmi-system-kibana
 #
@@ -143,8 +148,10 @@ spec:
       to:
         - operation:
             ports: ["15090"]
+{{- end }}
 
 ---
+{{- if .Values.prometheus.enabled }}
 #
 # Istio AuthorizationPolicy for vmi-system-prometheus
 #
@@ -177,9 +184,10 @@ spec:
       to:
         - operation:
             ports: ["15090"]
+{{- end }}
 
-{{- if .Values.console.enabled }}
 ---
+{{- if .Values.console.enabled }}
 #
 # Istio AuthorizationPolicy for verrazzano-console
 #
