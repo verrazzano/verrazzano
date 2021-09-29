@@ -58,7 +58,7 @@ pipeline {
     environment {
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        KUBERNETES_VERSION = '1.17,1.19,1.18'
+        KUBERNETES_VERSION = '1.19,1.20,1.21,1.22'
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
