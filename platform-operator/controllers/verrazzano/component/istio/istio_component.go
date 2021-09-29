@@ -64,9 +64,6 @@ func ResetIstioInstallFunction() {
 	installFunc = istio.Install
 }
 
-
-
-
 type LabelAndResartFnType func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
 
 var labelAndResartFn = labelAndRestartSystemComponents
@@ -85,7 +82,7 @@ func (i IstioComponent) Name() string {
 }
 
 func (i IstioComponent) IsOperatorInstallSupported() bool {
-	return false
+	return true
 }
 
 func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, _ string) (bool, error) {
