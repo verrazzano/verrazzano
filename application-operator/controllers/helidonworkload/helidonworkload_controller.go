@@ -422,9 +422,29 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		if !ok || err != nil {
 			return err
 		}
-		containerVolumeMounts = append(containerVolumeMounts, volumeMounts...)
+
+		if len(containerVolumeMounts) != 0 {
+			for _, containerVolumeMount := range containerVolumeMounts {
+				for _, vMount := range volumeMounts {
+					if containerVolumeMount.(map[string]interface{})["mountPath"] != vMount.(map[string]interface{})["mountPath"] {
+						containerVolumeMounts = append(containerVolumeMounts, vMount)
+					}
+				}
+			}
+		} else {
+			containerVolumeMounts = append(containerVolumeMounts, volumeMounts...)
+		}
+
 	}
-	containerVolumeMounts = append(containerVolumeMounts, uLoggingVolumeMount)
+	iVolumeMount := -1
+	for i, cVolumeMount := range containerVolumeMounts {
+		if cVolumeMount.(map[string]interface{})["mountPath"] == uLoggingVolumeMount["mountPath"] {
+			iVolumeMount = i
+		}
+	}
+	if iVolumeMount == -1 {
+		containerVolumeMounts = append(containerVolumeMounts, uLoggingVolumeMount)
+	}
 
 	var image string
 	if len(loggingTrait.Spec.LoggingImage) != 0 {

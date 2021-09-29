@@ -674,20 +674,35 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the logging trait data
-	var extracted containersMountsVolumes
+	var extract containersMountsVolumes
 	if serverPod, found, _ := unstructured.NestedMap(weblogic.Object, specServerPodFields...); found {
-		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(serverPod, &extracted); err != nil {
+		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(serverPod, &extract); err != nil {
 			return errors.New("unable to extract containers, volumes, and volume mounts from WebLogic spec")
 		}
 	}
-
+	extracted := &containersMountsVolumes{
+		Containers:   extract.Containers,
+		VolumeMounts: extract.VolumeMounts,
+		Volumes:      extract.Volumes,
+	}
 	loggingVolumeMount := &corev1.VolumeMount{
 		MountPath: loggingMountPath,
 		Name:      loggingVolume,
 		SubPath:   loggingKey,
 		ReadOnly:  true,
 	}
-	extracted.VolumeMounts = append(extracted.VolumeMounts, *loggingVolumeMount)
+	vmIndex := -1
+	for i, vm := range extracted.VolumeMounts {
+		if vm.MountPath == loggingMountPath {
+			vmIndex = i
+		}
+	}
+	if vmIndex != -1 {
+		extracted.VolumeMounts[vmIndex] = *loggingVolumeMount
+	} else {
+		extracted.VolumeMounts = append(extracted.VolumeMounts, *loggingVolumeMount)
+	}
+
 	var image string
 	if len(loggingTrait.Spec.LoggingImage) != 0 {
 		image = loggingTrait.Spec.LoggingImage
@@ -701,10 +716,20 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		VolumeMounts:    extracted.VolumeMounts,
 	}
-	extracted.Containers = append(extracted.Containers, *loggingContainer)
+	cIndex := -1
+	for i, c := range extracted.Containers {
+		if c.Name == loggingNamePart {
+			cIndex = i
+		}
+	}
+	if cIndex != -1 {
+		extracted.Containers[cIndex] = *loggingContainer
+	} else {
+		extracted.Containers = append(extracted.Containers, *loggingContainer)
+	}
 
 	loggingVolume := &corev1.Volume{
-		Name: loggingVolume,
+		Name: loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind()),
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
@@ -716,7 +741,18 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 			},
 		},
 	}
-	extracted.Volumes = append(extracted.Volumes, *loggingVolume)
+	vIndex := -1
+	for i, v := range extracted.Volumes {
+		if v.Name == loggingNamePart+"-"+weblogic.GetName()+"-"+strings.ToLower(weblogic.GetKind()) {
+			vIndex = i
+		}
+	}
+	if vIndex != -1 {
+		extracted.Volumes[vIndex] = *loggingVolume
+	} else {
+		extracted.Volumes = append(extracted.Volumes, *loggingVolume)
+	}
+
 	// convert the containers, volumes, and mounts in extracted to unstructured and set
 	// the values in the spec
 	extractedUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&extracted)
