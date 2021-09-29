@@ -18,8 +18,8 @@ spec:
     # verrazzano-authproxy:8775 <- istio-ingressgateway
     - from:
         - source:
-            namespaces: ["istio-system"]
-            principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+            namespaces: ["ingress-nginx"]
+            principals: ["cluster.local/ns/ingress-nginx/sa/ingress-controller-ingress-nginx"]
       to:
         - operation:
             ports: ["8775"]
@@ -192,7 +192,7 @@ spec:
       app: verrazzano-console
   action: ALLOW
   rules:
-    # verrazzano-console:8000 <- vmi-system-prometheus (no sa, use default?)
+    # verrazzano-console:8000 <- verrazzano-authproxy
     - from:
         - source:
             namespaces: ["verrazzano-system"]
@@ -200,7 +200,7 @@ spec:
       to:
         - operation:
             ports: ["8000"]
-    # verrazzano-console: 15090 <- vmi-system-prometheus (no sa, use default?)
+    # verrazzano-console:15090 <- vmi-system-prometheus (no sa, use default?)
     - from:
         - source:
             namespaces: ["verrazzano-system"]
