@@ -31,11 +31,11 @@ spec:
       to:
         - operation:
             ports: ["{{ .Values.api.port }}"]
-    # verrazzano-authproxy:15090 <- vmi-system-prometheus (uses default sa)
+    # verrazzano-authproxy:15090 <- vmi-system-prometheus (uses VMO SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
             ports: ["15090"]
@@ -64,19 +64,19 @@ spec:
       to:
         - operation:
             ports: ["9200"]
-    # vmi-system-es-master:9200,9300 <- vmi-system-kibana (uses default sa)
+    # vmi-system-es-master:9200,9300 <- vmi-system-kibana (uses VMO SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
             ports: ["9200","9300"]
-    # vmi-system-es-master:15090 <- vmi-system-prometheus (uses default sa)
+    # vmi-system-es-master:15090 <- vmi-system-prometheus (uses VMO SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
             ports: ["15090"]
@@ -110,7 +110,7 @@ spec:
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
             ports: ["15090"]
@@ -140,11 +140,11 @@ spec:
       to:
         - operation:
             ports: ["5601"]
-    # vmi-system-kibana:15090 <- vmi-system-prometheus (uses default sa)
+    # vmi-system-kibana:15090 <- vmi-system-prometheus (uses VMO SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
             ports: ["15090"]
@@ -167,20 +167,20 @@ spec:
   action: ALLOW
   rules:
     # vmi-system-prometheus:9090 <- verrazzano-authproxy
-    # vmi-system-prometheus:9090 <- vmi-system-grafana (uses default sa)
+    # vmi-system-prometheus:9090 <- vmi-system-grafana (uses VMO SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}","cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}","cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
             ports: ["9090"]
 
-    # vmi-system-prometheus:15090 <- vmi-system-prometheus (uses default sa)
+    # vmi-system-prometheus:15090 <- vmi-system-prometheus (uses VMO SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
             ports: ["15090"]
@@ -210,11 +210,11 @@ spec:
       to:
         - operation:
             ports: ["8000"]
-    # verrazzano-console:15090 <- vmi-system-prometheus (uses default sa)
+    # verrazzano-console:15090 <- vmi-system-prometheus (uses VMO SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/default"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
             ports: ["15090"]
