@@ -3,6 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
     options {
@@ -81,10 +82,11 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind-upgrade.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+        LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
@@ -104,6 +106,7 @@ pipeline {
                 """
 
                 script {
+                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     if (params.GIT_COMMIT_FOR_UPGRADE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
@@ -195,6 +198,7 @@ pipeline {
                         OCI_OS_BUCKET="verrazzano-builds"
                         OCI_OS_LOCATION="${OCI_OS_LOCATION}"
                         OPERATOR_YAML="${OPERATOR_YAML_FILE}"
+                        CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
                     }
                     steps {
                         sh """
@@ -204,12 +208,12 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                             sh """
                                 ## dump out install logs
                                 mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
                                 kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano --tail -1 > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log
                                 kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                                cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
                                 echo "Verrazzano Installation logs dumped to verrazzano-install.log"
                                 echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                                 echo "------------------------------------------"
@@ -219,6 +223,7 @@ pipeline {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
                             }
+                            archiveArtifacts artifacts: "**/logs/**,${env.INSTALL_CONFIG_FILE_KIND}", allowEmptyArchive: true
                         }
                     }
                 }
@@ -234,8 +239,8 @@ pipeline {
                         echo "Upgrading the Verrazzano platform operator"
                         # Download the operator.yaml for the target version that we are upgrading to
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                        kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
+                        kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
 
                         # ensure operator pod is up
                         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
@@ -243,6 +248,11 @@ pipeline {
                         # need to sleep since the old operator needs to transition to terminating state
                         sleep 45
                     """
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: "upgrade-test-operator.yaml", allowEmptyArchive: true
+                        }
                     }
                 }
 
@@ -259,6 +269,8 @@ pipeline {
                             cd ${GO_REPO_PATH}/verrazzano
                             cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                             ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                            # Copy upgrade CR where it will be archived
+                            cp ${WORKSPACE}/verrazzano-upgrade-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
 
                             # Do the upgrade
                             echo "Following is the verrazano CR file with the new version:"
@@ -280,6 +292,7 @@ pipeline {
                     post {
                         always {
                             dumpVerrazzanoPlatformOperatorLogs("after-upgrade")
+                            archiveArtifacts artifacts: "verrazzano-upgrade-cr.yaml", allowEmptyArchive: true
                         }
                     }
                 }
@@ -358,6 +371,62 @@ pipeline {
                         }
                     }
                 }
+                stage('Uninstall') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                kubectl delete verrazzano my-verrazzano
+                            """
+                        }
+                    }
+                    post {
+                        always {
+                            sh """
+                                ## dump out uninstall logs
+                                mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
+                                kubectl logs -n verrazzano-install --tail -1 --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log
+                                kubectl describe pod -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
+                                echo "Listing all pods in all namespaces after uninstall"
+                                kubectl get pods --all-namespaces
+                                echo "-----------------------------------------------------"
+                            """
+                            listNamespacesAndPods('after Verrazzano uninstall')
+                            listHelmReleases('after Verrazzano uninstall')
+                        }
+                        success {
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                    dumpK8sCluster('upgrade-uninstall-cluster-dump')
+                                }
+                            }
+                        }
+                        failure {
+                            dumpK8sCluster('upgrade-uninstall-failure-cluster-dump')
+                        }
+                    }
+                }
+                stage("Verify Uninstall") {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
+                                ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
+                            """
+                        }
+                    }
+                    post {
+                        success {
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                    dumpK8sCluster('verify-uninstall-cluster-dump')
+                                }
+                            }
+                        }
+                        failure {
+                            dumpK8sCluster('verify-uninstall-cluster-dump')
+                        }
+                    }
+                }
             }
 
             post {
@@ -393,7 +462,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             script {
@@ -527,8 +596,8 @@ def dumpOamKubernetesRuntimeLogs() {
 def dumpVerrazzanoApiLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-api.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-authproxy.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-authproxy-*" -m "verrazzano api" -c verrazzano-authproxy -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
@@ -620,4 +689,30 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
+}
+
+def getEffectiveDumpOnSuccess() {
+    def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
+    if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
+        effectiveValue = true
+        echo "Forcing dump on success based on global override setting"
+    }
+    return effectiveValue
+}
+
+def listNamespacesAndPods(customMessage) {
+    sh """
+        echo "Listing all the namespaces and pods the namespaces ${customMessage}."
+        kubectl get namespaces
+        kubectl get pods -A
+        echo "-----------------------------------------------------"
+    """
+}
+
+def listHelmReleases(customMessage) {
+    sh """
+        echo "Listing the releases across all namespaces ${customMessage}."
+        helm list -A
+        echo "-----------------------------------------------------"
+    """
 }
