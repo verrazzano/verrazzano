@@ -58,7 +58,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				return newRequeueWithDelay(), err
 			}
 			// If component is not installed,install it
-			if err := comp.Install(log, r, cr.Namespace, r.DryRun); err != nil {
+			if err := comp.Install(log, cr, r, cr.Namespace, r.DryRun); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			//case installv1alpha1.Failed, installv1alpha1.Error:
