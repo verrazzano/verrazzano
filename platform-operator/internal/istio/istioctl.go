@@ -31,6 +31,24 @@ func Upgrade(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, s
 	return stdout, stderr, nil
 }
 
+// Install does and Istio installation using or or more IstioOperator YAML files
+func Install(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+	args := []string{"install", "-y"}
+
+	for _, overridesFileName := range overridesFiles {
+		args = append(args, "-f")
+		args = append(args, overridesFileName)
+	}
+
+	// Perform istioctl call of type upgrade
+	stdout, stderr, err = runIstioctl(log, args, "install")
+	if err != nil {
+		return stdout, stderr, err
+	}
+
+	return stdout, stderr, nil
+}
+
 // runIstioctl will perform istioctl calls with specified arguments  for operations
 // Note that operation name as of now does not affect the istioctl call (both upgrade and install call istioctl install)
 // The operationName field is just used for visibility of operation in logging at the moment

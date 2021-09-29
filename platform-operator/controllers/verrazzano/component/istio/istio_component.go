@@ -51,6 +51,22 @@ func ResetIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
+type installFuncSig func(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+
+// installFunc is the default install function
+var installFunc installFuncSig = istio.Install
+
+func SetIstioInstallFunction(fn installFuncSig) {
+	installFunc = fn
+}
+
+func ResetIstioInstallFunction() {
+	installFunc = istio.Install
+}
+
+
+
+
 type LabelAndResartFnType func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
 
 var labelAndResartFn = labelAndRestartSystemComponents
@@ -77,6 +93,40 @@ func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, _ str
 }
 
 func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, _ clipkg.Client, _ string, _ bool) error {
+	var tmpFile *os.File
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "istio-*.yaml")
+	if err != nil {
+		log.Errorf("Failed to create temporary file for Istio install: %v", err)
+		return err
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if vz.Spec.Components.Istio == nil {
+		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
+		if err != nil {
+			log.Errorf("Failed to Build IstioOperator YAML: %v", err)
+			return err
+		}
+
+		if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
+			log.Errorf("Failed to write to temporary file: %v", err)
+			return err
+		}
+
+		// Close the file
+		if err := tmpFile.Close(); err != nil {
+			log.Errorf("Failed to close temporary file: %v", err)
+			return err
+		}
+
+		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
+	}
+
+	_, _, err = installFunc(log, i.ValuesFile, tmpFile.Name())
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -137,6 +187,14 @@ func setUpgradeFunc(f upgradeFuncSig) {
 
 func setDefaultUpgradeFunc() {
 	upgradeFunc = istio.Upgrade
+}
+
+func setInstallFunc(f installFuncSig) {
+	installFunc = f
+}
+
+func setDefaultInstallFunc() {
+	installFunc = istio.Install
 }
 
 func (i IstioComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
