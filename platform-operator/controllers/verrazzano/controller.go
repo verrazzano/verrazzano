@@ -768,7 +768,7 @@ func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Jo
 // checkComponentReadyState returns true if all component-level status' are "Ready"
 func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
 	for _, compStatus := range vz.Status.Components {
-		if compStatus.State != installv1alpha1.Ready {
+		if compStatus.State != installv1alpha1.Disabled && compStatus.State != installv1alpha1.Ready {
 			return false
 		}
 	}
