@@ -1245,8 +1245,8 @@ def dumpVerrazzanoApiLogs() {
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
-                export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-api.log"
-                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-authproxy.log"
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-authproxy-*" -m "verrazzano api" -c verrazzano-authproxy -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
             """
         }
     }

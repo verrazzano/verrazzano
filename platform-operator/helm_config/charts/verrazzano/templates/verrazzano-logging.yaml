@@ -511,7 +511,7 @@ spec:
   {{- if .Values.logging.elasticsearchURL }}
               value: {{ .Values.logging.elasticsearchURL }}
   {{- else }}
-              value: http://vmi-system-es-ingest-oidc:8775
+              value: http://verrazzano-authproxy-elasticsearch:8775
   {{- end }}
             - name: CLUSTER_NAME
               value: local
