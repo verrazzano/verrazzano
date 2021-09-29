@@ -8,18 +8,28 @@ import (
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"go.uber.org/zap"
 	"os/exec"
+	"strings"
 )
 
 // cmdRunner needed for unit tests
 var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
 // Upgrade function gets called from istio_component to perform istio upgrade
-func Upgrade(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func Upgrade(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	args := []string{"install", "-y"}
 
 	for _, overridesFileName := range overridesFiles {
 		args = append(args, "-f")
 		args = append(args, overridesFileName)
+	}
+
+	// Add the image override strings
+	if len(imageOverrideString) > 0 {
+		segs := strings.Split(imageOverrideString, ",")
+		for i := range segs {
+			args = append(args, "--set")
+			args = append(args, segs[i])
+		}
 	}
 
 	// Perform istioctl call of type upgrade

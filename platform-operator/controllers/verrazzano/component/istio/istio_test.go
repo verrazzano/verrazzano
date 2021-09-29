@@ -24,7 +24,7 @@ func TestAppendIstioOverrides(t *testing.T) {
 	os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
 	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
 
-	kvs, err := AppendIstioOverrides(nil, "istiod", "", "", nil)
+	kvs, err := AppendIstioOverrides(nil, "istiod-1.10.2", "", "", nil)
 	assert.NoError(err, "AppendIstioOverrides returned an error ")
 	assert.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
 	assert.Equal(istioGlobalHubKey, kvs[0].Key)
@@ -32,7 +32,7 @@ func TestAppendIstioOverrides(t *testing.T) {
 
 	os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
 	defer os.Unsetenv(constants.ImageRepoOverrideEnvVar)
-	kvs, err = AppendIstioOverrides(nil, "istiod", "", "", nil)
+	kvs, err = AppendIstioOverrides(nil, "istiod-1.10.2", "", "", nil)
 	assert.NoError(err, "AppendIstioOverrides returned an error ")
 	assert.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
 	assert.Equal(istioGlobalHubKey, kvs[0].Key)
@@ -48,7 +48,7 @@ func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 
-	kvs, err := AppendIstioOverrides(nil, "istiod", "", "", nil)
+	kvs, err := AppendIstioOverrides(nil, "istiod-1.10.2", "", "", nil)
 	assert.NoError(err, "AppendIstioOverrides returned an error ")
 	assert.Len(kvs, 0, "AppendIstioOverrides returned wrong number of Key:Value pairs")
 }

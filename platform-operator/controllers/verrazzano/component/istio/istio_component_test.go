@@ -42,7 +42,7 @@ var vz = &installv1alpha1.Verrazzano{
 
 var comp = IstioComponent{}
 
-const testBomFilePath = "../../testdata/test_bom.json"
+const testBomFilePath = "../../testdata/test_bom_istio_1.10.2.json"
 
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
@@ -76,7 +76,7 @@ func TestUpgrade(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if len(overridesFiles) != 2 {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
 	}
