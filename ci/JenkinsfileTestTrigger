@@ -142,11 +142,12 @@ pipeline {
                         }
                     }
                 }
-                stage('External Elasticsearch Tests') {
+                stage('Multi Cluster Tests with External ES') {
                     steps {
                         script {
-                            build job: "/verrazzano-external-elasticsearch-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
+                                    booleanParam(name: 'EXTERNAL_ELASTICSEARCH', value: true),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
