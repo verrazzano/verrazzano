@@ -17,6 +17,25 @@ func struct2Unmarshal(obj interface{}) (unstructured.Unstructured, error) {
 	return c, err
 }
 
+//Append two slices of interfaces in to one slice without duplicates
+func appendSliceOfInterface(aSlice []interface{}, bSlice []interface{}) []interface{} {
+
+	check := make(map[interface{}]int)
+	dSlice := append(aSlice, bSlice...)
+	res := make([]interface{}, 0)
+
+	for _, val := range dSlice {
+		check[val] = 1
+	}
+
+	for i := range check {
+		res = append(res, i)
+	}
+
+	return res
+
+}
+
 //locateContainersField locate the containers field
 func locateContainersField(res *unstructured.Unstructured) (bool, []string) {
 	var containersFieldPath []string

@@ -167,3 +167,24 @@ func Test_locateVolumesField(t *testing.T) {
 		})
 	}
 }
+
+func Test_appendSliceOfInterface(t *testing.T) {
+	type args struct {
+		aSlice []interface{}
+		bSlice []interface{}
+	}
+	tests := []struct {
+		name string
+		args args
+		want []interface{}
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := appendSliceOfInterface(tt.args.aSlice, tt.args.bSlice); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("appendSliceOfInterface() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
