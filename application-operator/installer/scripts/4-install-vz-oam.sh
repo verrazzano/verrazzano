@@ -26,13 +26,6 @@ function install {
     kubectl create namespace "${VERRAZZANO_NS}"
   fi
 
-  log "Installing Verrazzano OAM extensions"
-  kubectl apply -f ${PROJ_DIR}/deploy
-  if [ $? -ne 0 ]; then
-    error "Failed to install Verrazzano OAM extensions"
-    return 1
-  fi
-
   log "Installing Verrazzano application operator"
   local chart_name=verrazzano-application-operator
   HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set image=${VERRAZZANO_APP_OP_IMAGE}"
@@ -45,6 +38,14 @@ function install {
     error "Failed to install Verrazzano Kubernetes application operator."
     return 1
   fi
+
+    log "Installing Verrazzano OAM extensions"
+  kubectl apply -f ${PROJ_DIR}/deploy
+  if [ $? -ne 0 ]; then
+    error "Failed to install Verrazzano OAM extensions"
+    return 1
+  fi
+
 }
 
 action "Installing Verrazzano application operator" install || fail "Failed to install the Verrazzano OAM operator."
