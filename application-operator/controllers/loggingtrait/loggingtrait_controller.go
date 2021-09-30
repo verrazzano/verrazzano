@@ -28,7 +28,6 @@ import (
 const (
 	loggingNamePart     = "logging-stdout"
 	errLoggingResource  = "cannot add logging sidecar to the resource"
-	errQueryOpenAPI     = "failed to query openAPI"
 	configMapAPIVersion = "v1"
 	configMapKind       = "ConfigMap"
 	loggingMountPath    = "/fluentd/etc/fluentd.conf"

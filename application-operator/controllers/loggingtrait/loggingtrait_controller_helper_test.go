@@ -66,10 +66,9 @@ func Test_struct2Unmarshal(t *testing.T) {
 	}
 }
 
-
 func Test_locateContainersField(t *testing.T) {
 	type args struct {
-		res      *unstructured.Unstructured
+		res *unstructured.Unstructured
 	}
 
 	// Create Deployment resource
@@ -99,7 +98,7 @@ func Test_locateContainersField(t *testing.T) {
 		{
 			name: "pod_test",
 			args: args{
-				res:      &podResource,
+				res: &podResource,
 			},
 			want:  true,
 			want1: []string{"spec", "containers"},
@@ -120,7 +119,7 @@ func Test_locateContainersField(t *testing.T) {
 
 func Test_locateVolumesField(t *testing.T) {
 	type args struct {
-		res      *unstructured.Unstructured
+		res *unstructured.Unstructured
 	}
 
 	// Create Deployment resource
@@ -142,7 +141,7 @@ func Test_locateVolumesField(t *testing.T) {
 		{
 			name: "deployment_test",
 			args: args{
-				res:      &deploymentResource,
+				res: &deploymentResource,
 			},
 			want:  true,
 			want1: []string{"spec", "template", "spec", "volumes"},
@@ -150,7 +149,7 @@ func Test_locateVolumesField(t *testing.T) {
 		{
 			name: "pod_test",
 			args: args{
-				res:      &podResource,
+				res: &podResource,
 			},
 			want:  true,
 			want1: []string{"spec", "volumes"},
