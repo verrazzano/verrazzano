@@ -31,9 +31,13 @@ metadata:
 data:
   {{- if .Values.logging.elasticsearchURL }}
   es-url: {{ .Values.logging.elasticsearchURL }}
+  {{- else }}
+  es-url: http://verrazzano-authproxy-elasticsearch:8775
   {{- end }}
   {{- if .Values.logging.elasticsearchSecret }}
   es-secret: {{ .Values.logging.elasticsearchSecret }}
+  {{- else }}
+  es-secret: verrazzano
   {{- end }}
 ---
 apiVersion: v1
