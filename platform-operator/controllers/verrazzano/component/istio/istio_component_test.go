@@ -9,15 +9,12 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"os/exec"
 	"strings"
 	"testing"
@@ -99,39 +96,6 @@ func fakeUpgrade(log *zap.SugaredLogger, imageOverridesString string, overridesF
 func getMock(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-
-	oldLabels := make(map[string]string)
-	oldLabels["istio-injection"] = "enabled"
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
-			ns.Labels = oldLabels
-			return nil
-		})
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.IngressNginxNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
-			ns.Labels = oldLabels
-			return nil
-		})
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.KeycloakNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
-			ns.Labels = oldLabels
-			return nil
-		})
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
-			newLabels := make(map[string]string)
-			newLabels["istio.io/rev"] = "1-10-2"
-			ns.Labels = newLabels
-			return nil
-		}).Times(3)
 
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
