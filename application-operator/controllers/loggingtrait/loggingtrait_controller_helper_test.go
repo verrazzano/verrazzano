@@ -66,6 +66,28 @@ func Test_struct2Unmarshal(t *testing.T) {
 	}
 }
 
+func Test_appendSliceOfInterface(t *testing.T) {
+	type args struct {
+		aSlice []interface{}
+		bSlice []interface{}
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want []interface{}
+	}{
+		//todo
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := appendSliceOfInterface(tt.args.aSlice, tt.args.bSlice); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("appendSliceOfInterface() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_locateContainersField(t *testing.T) {
 	type args struct {
 		res *unstructured.Unstructured
@@ -163,27 +185,6 @@ func Test_locateVolumesField(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got1, tt.want1) {
 				t.Errorf("locateVolumesField() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
-func Test_appendSliceOfInterface(t *testing.T) {
-	type args struct {
-		aSlice []interface{}
-		bSlice []interface{}
-	}
-	tests := []struct {
-		name string
-		args args
-		want []interface{}
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := appendSliceOfInterface(tt.args.aSlice, tt.args.bSlice); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("appendSliceOfInterface() = %v, want %v", got, tt.want)
 			}
 		})
 	}
