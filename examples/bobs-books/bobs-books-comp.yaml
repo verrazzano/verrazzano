@@ -338,7 +338,7 @@ spec:
                       key: password
                 - name: MYSQL_DATABASE
                   value: books
-              image: ghcr.io/verrazzano/mysql:8.0.20
+              image: ghcr.io/verrazzano/mysql:8.0.26
               imagePullPolicy: IfNotPresent
               name: mysql
               ports:
