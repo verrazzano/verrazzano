@@ -287,17 +287,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				} else if !ok {
 					log.Info("No volumeMounts found")
 				}
-				if len(resourceVolumeMounts) != 0 {
-					for _, resourceVolumeMount := range resourceVolumeMounts {
-						for _, vMount := range volumeMounts {
-							if resourceVolumeMount.(map[string]interface{})["mountPath"] != vMount.(map[string]interface{})["mountPath"] {
-								resourceVolumeMounts = append(resourceVolumeMounts, vMount)
-							}
-						}
-					}
-				} else {
-					resourceVolumeMounts = append(resourceVolumeMounts, volumeMounts...)
-				}
+				resourceVolumeMounts = appendSliceOfInterface(resourceVolumeMounts, volumeMounts)
 
 			}
 			iVolumeMount := -1
