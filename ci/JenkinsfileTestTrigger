@@ -142,6 +142,23 @@ pipeline {
                         }
                     }
                 }
+                stage('Multi Cluster Tests with External ES') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    booleanParam(name: 'EXTERNAL_ELASTICSEARCH', value: true),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
+                        }
+                    }
+                }
                 stage('Uninstall Tests') {
                     steps {
                         script {
