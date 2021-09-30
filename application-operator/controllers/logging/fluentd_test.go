@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"testing"
 
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
@@ -36,7 +38,7 @@ func TestFluentdApply(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, ScratchVolMountPath, testWorkLoadType}
 
 	// simulate config map not existing
 	mockClient.EXPECT().
@@ -80,7 +82,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPodForUpdate()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, ScratchVolMountPath, testWorkLoadType}
 
 	// simulate config map existing
 	mockClient.EXPECT().
@@ -116,7 +118,7 @@ func TestFluentdRemove(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 
-	fluentd := &Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
+	fluentd := &Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, ScratchVolMountPath, testWorkLoadType}
 	logInfo := createTestLogInfo(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
@@ -167,7 +169,7 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, ScratchVolMountPath, testWorkLoadType}
 
 	// simulate config map not existing
 	mockClient.EXPECT().
@@ -279,4 +281,17 @@ func createFluentdESEnv() []v1.EnvVar {
 			Value: "true",
 		},
 	}
+}
+
+// createTestResourceRelation creates a new test QualifiedResourceRelation
+func createTestResourceRelation() vzapi.QualifiedResourceRelation {
+	resource := vzapi.QualifiedResourceRelation{
+		APIVersion: testAPIVersion,
+		Kind:       "Domain",
+		Namespace:  testNamespace,
+		Name:       "testName",
+		Role:       "",
+	}
+
+	return resource
 }
