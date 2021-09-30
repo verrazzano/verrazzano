@@ -47,6 +47,4 @@ type Component interface {
 
 	// IsReady Indicates whether or not a component is available and ready
 	IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool
-
-	// K
 }

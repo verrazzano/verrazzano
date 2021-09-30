@@ -592,10 +592,10 @@ func TestUpgradeCompleted(t *testing.T) {
 		return []byte(""), []byte(""), nil
 	})
 	defer istiocomp.ResetIstioUpgradeFunction()
-	istiocomp.SetLabelAndRestartFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
+	istiocomp.SetRestartComponentsFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
 		return nil
 	})
-	defer istiocomp.ResetLabelAndRestartFn()
+	defer istiocomp.ResetRestartComponentsFn()
 
 	// Inject a fake cmd runner to the real helm is not called
 	helm.SetCmdRunner(goodRunner{})
@@ -651,10 +651,10 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 		return []byte(""), []byte(""), nil
 	})
 	defer istiocomp.ResetIstioUpgradeFunction()
-	istiocomp.SetLabelAndRestartFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
+	istiocomp.SetRestartComponentsFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
 		return nil
 	})
-	defer istiocomp.ResetLabelAndRestartFn()
+	defer istiocomp.ResetRestartComponentsFn()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().

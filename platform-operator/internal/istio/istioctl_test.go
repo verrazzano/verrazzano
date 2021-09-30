@@ -35,7 +35,7 @@ func TestUpgrade(t *testing.T) {
 	defer SetDefaultRunner()
 
 	stdout, stderr, err := Upgrade(zap.S(), overrideYaml)
-	assert.NoError(err, "Upgrade has returned an error")
+	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
 }

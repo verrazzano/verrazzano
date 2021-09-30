@@ -6,20 +6,20 @@ package istio
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
+
 	"go.uber.org/zap"
-	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"time"
 )
 
 // IstioComponent represents an Istio component
@@ -54,16 +54,16 @@ func ResetIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
-type LabelAndResartFnType func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
+type restartComponentsFnType func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
 
-var labelAndResartFn = labelAndRestartSystemComponents
+var restartComponentsFn = restartComponents
 
-func SetLabelAndRestartFn(fn LabelAndResartFnType) {
-	labelAndResartFn = fn
+func SetRestartComponentsFn(fn restartComponentsFnType) {
+	restartComponentsFn = fn
 }
 
-func ResetLabelAndRestartFn() {
-	labelAndResartFn = labelAndRestartSystemComponents
+func ResetRestartComponentsFn() {
+	restartComponentsFn = restartComponents
 }
 
 // Name returns the component name
@@ -84,6 +84,7 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 }
 
 func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, client clipkg.Client, _ string, _ bool) error {
+	// temp file to contain override values from istio install args
 	var tmpFile *os.File
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "values-*.yaml")
 	if err != nil {
@@ -113,6 +114,7 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 
+	// images overrides to get passed into the istioctl command
 	imageOverrides, err := buildImageOverridesString(log)
 	if err != nil {
 		log.Errorf("Error building image overrides from BOM for Istio: %v", err)
@@ -123,20 +125,12 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 		return err
 	}
 
-	err = labelAndResartFn(log, err, i, client)
+	err = restartComponentsFn(log, err, i, client)
 	if err != nil {
 		return err
 	}
 
 	return err
-}
-
-func labelAndRestartSystemComponents(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error {
-	err = i.restartSystemNamespaceResources(log, client)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func setUpgradeFunc(f upgradeFuncSig) {
@@ -172,44 +166,20 @@ func (i IstioComponent) PostInstall(log *zap.SugaredLogger, client clipkg.Client
 	return nil
 }
 
-// createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
-func (i IstioComponent) labelSystemNamespaces(log *zap.SugaredLogger, client clipkg.Client) error {
-	for _, ns := range i.InjectedSystemNamespaces {
-		platformNS := corev1.Namespace{}
-		err := client.Get(context.TODO(), types.NamespacedName{Name: ns}, &platformNS)
-		if err != nil {
-			log.Infof("Namespace %v not found", ns)
-			continue
-		}
-
-		nsLabels := platformNS.Labels
-
-		// add istio.io/rev label
-		nsLabels["istio.io/rev"] = i.Revision
-		delete(nsLabels, "istio-injection")
-		platformNS.Labels = nsLabels
-
-		// update namespace
-		err = client.Update(context.TODO(), &platformNS)
-		if err != nil {
-			return err
-		}
-		log.Infof("Relabeled namespace %v for istio upgrade", platformNS.Name)
-	}
-	return nil
-}
-
-// restartSystemNamespaceResources restarts all the deployments, StatefulSets, and DaemonSets
+// restartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
-func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, client clipkg.Client) error {
+func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error {
+
 	// Restart all the deployments in the injected system namespaces
 	var deploymentList appsv1.DeploymentList
-	err := client.List(context.TODO(), &deploymentList)
+	err = client.List(context.TODO(), &deploymentList)
 	if err != nil {
 		return err
 	}
 	for index := range deploymentList.Items {
 		deployment := &deploymentList.Items[index]
+
+		// Check if deployment is in an Istio injected system namespace
 		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
 			if deployment.Spec.Paused {
 				return fmt.Errorf("Deployment %v can't be restarted because it is paused", deployment.Name)
@@ -226,7 +196,6 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	log.Info("Restarted system Deployments in istio injected namespaces")
 
 	// Restart all the StatefulSet in the injected system namespaces
-	//var statefulSetList appsv1.StatefulSetList
 	statefulSetList := appsv1.StatefulSetList{}
 	err = client.List(context.TODO(), &statefulSetList)
 	if err != nil {
@@ -234,6 +203,8 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	}
 	for index := range statefulSetList.Items {
 		statefulSet := &statefulSetList.Items[index]
+
+		// Check if StatefulSet is in an Istio injected system namespace
 		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -254,6 +225,8 @@ func (i IstioComponent) restartSystemNamespaceResources(log *zap.SugaredLogger, 
 	}
 	for index := range daemonSetList.Items {
 		daemonSet := &daemonSetList.Items[index]
+
+		// Check if DaemonSet is in an Istio injected system namespace
 		if contains(i.InjectedSystemNamespaces, daemonSet.Namespace) {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
