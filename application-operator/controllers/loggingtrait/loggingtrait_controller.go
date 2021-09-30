@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	corev1 "k8s.io/api/core/v1"
@@ -19,8 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/discovery"
-	"k8s.io/kubectl/pkg/util/openapi"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -44,7 +41,6 @@ type LoggingTraitReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
-	discovery.DiscoveryClient
 }
 
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=loggingtraits,verbs=get;list;watch;create;update;patch;delete
@@ -104,23 +100,14 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 		resources = append(resources, workload)
 	}
 
-	schema, err := r.DiscoveryClient.OpenAPISchema()
-	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, errQueryOpenAPI)
-	}
-	document, err := openapi.NewOpenAPIData(schema)
-	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, errQueryOpenAPI)
-	}
-
 	for _, resource := range resources {
 		isCombined := false
 
-		if ok, containersFieldPath := locateContainersField(document, resource); ok {
+		if ok, containersFieldPath := locateContainersField(resource); ok {
 			resourceContainers, ok, err := unstructured.NestedSlice(resource.Object, containersFieldPath...)
 			if !ok || err != nil {
 				log.Error(err, "Failed to gather resource containers")
-				return reconcile.Result{}, errors.Wrap(err, "Failed to gather resource containers")
+				return reconcile.Result{}, err
 			}
 
 			var image string
@@ -152,18 +139,18 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 			err = unstructured.SetNestedSlice(resource.Object, resourceContainers, containersFieldPath...)
 			if err != nil {
 				log.Error(err, "Unable to set resource containers")
-				return reconcile.Result{}, errors.Wrap(err, "Unable to set resource containers")
+				return reconcile.Result{}, err
 			}
 
 			isCombined = true
 
 		}
 
-		if ok, volumesFieldPath := locateVolumesField(document, resource); ok {
+		if ok, volumesFieldPath := locateVolumesField(resource); ok {
 			resourceVolumes, ok, err := unstructured.NestedSlice(resource.Object, volumesFieldPath...)
 			if err != nil {
 				log.Error(err, "Failed to gather resource volumes")
-				return reconcile.Result{}, errors.Wrap(err, errLoggingResource)
+				return reconcile.Result{}, err
 			} else if !ok {
 				log.Info("No volumes found")
 			}
@@ -200,7 +187,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 			err = unstructured.SetNestedSlice(resource.Object, resourceVolumes, volumesFieldPath...)
 			if err != nil {
 				log.Error(err, "Unable to set resource containers")
-				return reconcile.Result{}, errors.Wrap(err, "Unable to set resource containers")
+				return reconcile.Result{}, err
 			}
 
 			isCombined = true
@@ -270,23 +257,15 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 		resources = append(resources, workload)
 	}
 
-	schema, err := r.DiscoveryClient.OpenAPISchema()
-	if err != nil {
-		return reconcile.Result{}, true, errors.Wrap(err, errQueryOpenAPI)
-	}
-	document, err := openapi.NewOpenAPIData(schema)
-	if err != nil {
-		return reconcile.Result{}, true, errors.Wrap(err, errQueryOpenAPI)
-	}
 	isFound := false
 	for _, resource := range resources {
 		isCombined := false
 
-		if ok, containersFieldPath := locateContainersField(document, resource); ok {
+		if ok, containersFieldPath := locateContainersField(resource); ok {
 			resourceContainers, ok, err := unstructured.NestedSlice(resource.Object, containersFieldPath...)
 			if !ok || err != nil {
 				log.Error(err, "Failed to gather resource containers")
-				return reconcile.Result{}, true, errors.Wrap(err, errLoggingResource)
+				return reconcile.Result{}, true, err
 			}
 			loggingVolumeMount := &corev1.VolumeMount{
 				MountPath: loggingMountPath,
@@ -305,7 +284,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				volumeMounts, ok, err := unstructured.NestedSlice(resContainer.(map[string]interface{}), volumeMountFieldPath...)
 				if err != nil {
 					log.Error(err, "Failed to gather resource container volumeMounts")
-					return reconcile.Result{}, true, errors.Wrap(err, errLoggingResource)
+					return reconcile.Result{}, true, err
 				} else if !ok {
 					log.Info("No volumeMounts found")
 				}
@@ -346,7 +325,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			err = unstructured.SetNestedSlice(uLoggingContainer.Object, resourceVolumeMounts, volumeMountFieldPath...)
 			if err != nil {
 				log.Error(err, "Unable to set container volumeMounts")
-				return reconcile.Result{}, true, errors.Wrap(err, "Unable to set container volumeMounts")
+				return reconcile.Result{}, true, err
 			}
 
 			repeatNo := 0
@@ -367,7 +346,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			err = unstructured.SetNestedSlice(resource.Object, resourceContainers, containersFieldPath...)
 			if err != nil {
 				log.Error(err, "Unable to set resource containers")
-				return reconcile.Result{}, true, errors.Wrap(err, "Unable to set resource containers")
+				return reconcile.Result{}, true, err
 			}
 
 			isCombined = true
@@ -375,11 +354,11 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 
 		}
 
-		if ok, volumesFieldPath := locateVolumesField(document, resource); ok {
+		if ok, volumesFieldPath := locateVolumesField(resource); ok {
 			resourceVolumes, ok, err := unstructured.NestedSlice(resource.Object, volumesFieldPath...)
 			if err != nil {
 				log.Error(err, "Failed to gather resource volumes")
-				return reconcile.Result{}, true, errors.Wrap(err, errLoggingResource)
+				return reconcile.Result{}, true, err
 			} else if !ok {
 				log.Info("No volumes found")
 			}
@@ -421,7 +400,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			err = unstructured.SetNestedSlice(resource.Object, resourceVolumes, volumesFieldPath...)
 			if err != nil {
 				log.Error(err, "Unable to set resource volumes")
-				return reconcile.Result{}, true, errors.Wrap(err, "Unable to set resource volumes")
+				return reconcile.Result{}, true, err
 			}
 
 			isFound = true

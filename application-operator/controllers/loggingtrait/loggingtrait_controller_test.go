@@ -25,7 +25,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	// +kubebuilder:scaffold:imports
@@ -42,7 +41,6 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	var cli *mocks.MockClient
 	var scheme *runtime.Scheme
 
-	var discoveryCli discovery.DiscoveryClient
 	var reconciler LoggingTraitReconciler
 	var err error
 
@@ -51,7 +49,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
 	vzapi.AddToScheme(scheme)
-	reconciler = LoggingTraitReconciler{Client: cli, Scheme: scheme, DiscoveryClient: discoveryCli}
+	reconciler = LoggingTraitReconciler{Client: cli, Scheme: scheme}
 	mgr.EXPECT().GetConfig().Return(&restclient.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
@@ -274,22 +272,11 @@ func newLoggingTraitReconciler(cli client.Client, t *testing.T) LoggingTraitReco
 	scheme := runtime.NewScheme()
 	vzapi.AddToScheme(scheme)
 	reconciler := LoggingTraitReconciler{
-		Client:          cli,
-		Log:             ctrl.Log,
-		Scheme:          scheme,
-		DiscoveryClient: newDiscoveryClient(t),
+		Client: cli,
+		Log:    ctrl.Log,
+		Scheme: scheme,
 	}
 	return reconciler
-}
-
-// Create document resource for tests
-func newDiscoveryClient(t *testing.T) discovery.DiscoveryClient {
-	server, err := openapiSchemaFakeServer(t)
-	if err != nil {
-		t.Fatalf("Could not create fake server from openapi, %v", err)
-	}
-	client := discovery.NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
-	return *client
 }
 
 func newDeployment(deploymentName string, namespaceName string, workloadName string, workloadUID string) k8sapps.Deployment {

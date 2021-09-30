@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"k8s.io/client-go/discovery"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -343,10 +342,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&loggingtrait.LoggingTraitReconciler{
-		Client:          mgr.GetClient(),
-		Log:             ctrl.Log.WithName("controllers").WithName("LoggingTrait"),
-		Scheme:          mgr.GetScheme(),
-		DiscoveryClient: *discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig()),
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("LoggingTrait"),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LoggingTrait")
 		os.Exit(1)

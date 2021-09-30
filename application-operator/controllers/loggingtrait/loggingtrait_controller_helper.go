@@ -5,13 +5,8 @@ package loggingtrait
 
 import (
 	"encoding/json"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kube-openapi/pkg/util/proto"
-	"k8s.io/kubectl/pkg/explain"
-	"k8s.io/kubectl/pkg/util/openapi"
 )
 
 //Struct to unstructured
@@ -22,61 +17,56 @@ func struct2Unmarshal(obj interface{}) (unstructured.Unstructured, error) {
 	return c, err
 }
 
-func apiVersion2GroupVersion(str string) (string, string) {
-	strs := strings.Split(str, "/")
-	if len(strs) == 2 {
-		return strs[0], strs[1]
-	}
-	// core type
-	return "", strs[0]
-}
-
-//locateField of a given resource and try to see if it has fields of type array.
-func locateField(document openapi.Resources, res *unstructured.Unstructured, fieldPaths [][]string) (bool, []string) {
-	if len(res.GetAPIVersion()) != 0 {
-
-		g, v := apiVersion2GroupVersion(res.GetAPIVersion())
-
-		schema := document.LookupResource(schema.GroupVersionKind{
-			Group:   g,
-			Version: v,
-			Kind:    res.GetKind(),
-		})
-		if schema != nil {
-			for _, containerFieldPath := range fieldPaths {
-				field, err := explain.LookupSchemaForField(schema, containerFieldPath)
-				if err == nil && field != nil {
-					_, ok := field.(*proto.Array)
-					return ok, containerFieldPath
-				}
-			}
-		} else {
-			return false, nil
-		}
-	}
-	return false, nil
-}
-
 //locateContainersField locate the containers field
-func locateContainersField(document openapi.Resources, res *unstructured.Unstructured) (bool, []string) {
-	//This is the most common path to the containers field
-	containersFieldPaths := [][]string{
-		//This is the path to the containers field of the Pod resource
-		{"spec", "containers"},
-		//This is the path to the containers field of the Deployments,StatefulSet,ReplicaSet resource
-		{"spec", "template", "spec", "containers"},
+func locateContainersField(res *unstructured.Unstructured) (bool, []string) {
+	var containersFieldPath []string
+	var ok = false
+	kind := res.GetKind()
+
+	switch kind {
+	case "Pod":
+		containersFieldPath = []string{"spec", "containers"}
+		ok = true
+	case "ContainerizedWorkload":
+		containersFieldPath = []string{"spec", "containers"}
+		ok = true
+	case "Deployment":
+		containersFieldPath = []string{"spec", "template", "spec", "containers"}
+		ok = true
+	case "StatefuleSet":
+		containersFieldPath = []string{"spec", "template", "spec", "containers"}
+		ok = true
+	case "DaemonSet":
+		containersFieldPath = []string{"spec", "template", "spec", "containers"}
+		ok = true
 	}
-	return locateField(document, res, containersFieldPaths)
+
+	return ok, containersFieldPath
 }
 
 //locateVolumesField locate the volumes field
-func locateVolumesField(document openapi.Resources, res *unstructured.Unstructured) (bool, []string) {
-	//This is the most common path to the volumes field
-	volumesFieldPaths := [][]string{
-		//This is the path to the volumes field of the Pod resource
-		{"spec", "volumes"},
-		//This is the path to the volumes field of the Deployments,StatefulSet,ReplicaSet resource
-		{"spec", "template", "spec", "volumes"},
+func locateVolumesField(res *unstructured.Unstructured) (bool, []string) {
+	var volumeFieldPath []string
+	var ok = false
+	kind := res.GetKind()
+
+	switch kind {
+	case "Pod":
+		volumeFieldPath = []string{"spec", "volumes"}
+		ok = true
+	case "ContainerizedWorkload":
+		volumeFieldPath = []string{"spec", "volumes"}
+		ok = true
+	case "Deployment":
+		volumeFieldPath = []string{"spec", "template", "spec", "volumes"}
+		ok = true
+	case "StatefuleSet":
+		volumeFieldPath = []string{"spec", "template", "spec", "volumes"}
+		ok = true
+	case "DaemonSet":
+		volumeFieldPath = []string{"spec", "template", "spec", "volumes"}
+		ok = true
 	}
-	return locateField(document, res, volumesFieldPaths)
+
+	return ok, volumeFieldPath
 }
