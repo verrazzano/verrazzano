@@ -17,7 +17,7 @@ import (
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/authorization/v1beta1"
+	"k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
@@ -740,13 +740,13 @@ func CanIForAPIGroup(userOCID string, namespace string, verb string, resource st
 }
 
 func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace string, verb string, resource string, group string, isServiceAccount bool, saNamespace string) (bool, string, error) {
-	canI := &v1beta1.SelfSubjectAccessReview{
+	canI := &v1.SelfSubjectAccessReview{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SelfSubjectAccessReview",
 			APIVersion: "authorization.k8s.io/v1",
 		},
-		Spec: v1beta1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &v1beta1.ResourceAttributes{
+		Spec: v1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &v1.ResourceAttributes{
 				Namespace:   namespace,
 				Verb:        verb,
 				Group:       group,
@@ -820,7 +820,7 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 		return false, "", err
 	}
 
-	auth, err := clientset.AuthorizationV1beta1().SelfSubjectAccessReviews().Create(context.TODO(), canI, metav1.CreateOptions{})
+	auth, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), canI, metav1.CreateOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to check perms: %v", err))
 		return false, "", err
