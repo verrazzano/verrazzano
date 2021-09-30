@@ -24,7 +24,7 @@ usage() {
     OCI_REGION - OCI region
     OBJECT_STORAGE_NS - top-level namespace used for the request
     OBJECT_STORAGE_BUCKET - object storage bucket where the artifacts are stored
-    SCANNER_ARCHIVE_LOCATION - McAfee command line scanner
+    SCANNER_ARCHIVE_LOCATION - command line scanner
     SCANNER_ARCHIVE_FILE - scanner archive
     VIRUS_DEFINITION_LOCATION - virus definition location
     NO_PROXY_SUFFIX - suffix for no_proxy environment variable
