@@ -33,7 +33,7 @@ func Upgrade(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, s
 }
 
 // Install does and Istio installation using or or more IstioOperator YAML files
-func Install(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func Install(log *zap.SugaredLogger, overrideStrings string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	args := []string{"install", "-y"}
 
 	for _, overridesFileName := range overridesFiles {
@@ -42,8 +42,8 @@ func Install(log *zap.SugaredLogger, imageOverrideString string, overridesFiles 
 	}
 
 	// Add the override strings
-	if len(imageOverrideString) > 0 {
-		segs := strings.Split(imageOverrideString, ",")
+	if len(overrideStrings) > 0 {
+		segs := strings.Split(overrideStrings, ",")
 		for i, _ := range segs {
 			args = append(args, "--set")
 			args = append(args, segs[i])
