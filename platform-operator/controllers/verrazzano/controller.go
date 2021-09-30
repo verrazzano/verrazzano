@@ -122,7 +122,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Process CR based on state
 	switch vz.Status.State {
 	case installv1alpha1.Failed:
-		return r.ReadyState(vz, log)
+		return r.FailedState(vz, log)
 	case installv1alpha1.Installing:
 		return r.InstallingState(vz, log)
 	case installv1alpha1.Ready:
