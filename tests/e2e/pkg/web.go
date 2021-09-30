@@ -80,15 +80,6 @@ func GetCertificates(url string) ([]*x509.Certificate, error) {
 	return resp.TLS.PeerCertificates, nil
 }
 
-// PostWithBasicAuth retries POST using basic auth
-func PostWithBasicAuth(url, body, username, password, kubeconfigPath string) (*HTTPResponse, error) {
-	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	return doReq(url, "POST", "application/json", "", username, password, strings.NewReader(body), client)
-}
-
 // PostWithHostHeader posts a request with a specified Host header
 func PostWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
