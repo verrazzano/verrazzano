@@ -574,6 +574,13 @@ pipeline {
                             }
                         }
                     }
+                    post {
+                        failure {
+                            script {
+                                dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump-cli-tests")
+                            }
+                        }
+                    }
                 }
                 stage ('verify deregister') {
                     steps {
