@@ -38,6 +38,5 @@ spec:
       - name: managed1
   secrets:
     - tododomain-repo-credentials
-    - tododomain-runtime-encrypt-secret
     - tododomain-jdbc-tododb
     - tododomain-weblogic-credentials

@@ -4,89 +4,91 @@
 package mcagent
 
 import (
-	"fmt"
-
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// Synchronize MultiClusterSecret objects to the local cluster
-func (s *Syncer) syncMCSecretObjects(namespace string) error {
-	// Get all the MultiClusterSecret objects from the admin cluster
-	allAdminMCSecrets := clustersv1alpha1.MultiClusterSecretList{}
+// Synchronize Secret objects to the local cluster
+func (s *Syncer) syncSecretObjects(namespace string) error {
+	// Get all the MultiClusterApplicationConfiguration objects from the admin cluster
+	allAdminMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
 	listOptions := &client.ListOptions{Namespace: namespace}
-	err := s.AdminClient.List(s.Context, &allAdminMCSecrets, listOptions)
+	err := s.AdminClient.List(s.Context, &allAdminMCAppConfigs, listOptions)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
 
-	// Write each of the records that are targeted to this cluster
-	for _, mcSecret := range allAdminMCSecrets.Items {
-		if s.isThisCluster(mcSecret.Spec.Placement) {
-			_, err := s.createOrUpdateMCSecret(mcSecret)
-			if err != nil {
-				s.Log.Error(err, "Error syncing object",
-					"MultiClusterSecret",
-					types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
+	// Write each of the secrets that are targeted for the local cluster
+	for _, mcAppConfig := range allAdminMCAppConfigs.Items {
+		if s.isThisCluster(mcAppConfig.Spec.Placement) {
+			for _, adminSecret := range mcAppConfig.Spec.Secrets{
+				secret := corev1.Secret{}
+				namespacedName := types.NamespacedName{Name: adminSecret, Namespace: namespace}
+				err := s.AdminClient.Get(s.Context, namespacedName, &secret)
+				if err != nil {
+					return err
+				}
+				_, err = s.createOrUpdateSecret(secret)
+				if err != nil {
+					s.Log.Error(err, "Error syncing object",
+						"Secret",
+						types.NamespacedName{Namespace: secret.Namespace, Name: secret.Name})
+				}
 			}
 		}
 	}
 
-	// Delete orphaned or no longer placed MultiClusterSecret resources.
-	// Get the list of MultiClusterSecret resources on the
-	// local cluster and compare to the list received from the admin cluster.
+	// Delete orphaned or no longer placed Secret resources.
+	// Get the list of Secret resources on the local cluster and compare to the list received from the admin cluster.
 	// The admin cluster is the source of truth.
-	allLocalMCSecrets := clustersv1alpha1.MultiClusterSecretList{}
-	err = s.LocalClient.List(s.Context, &allLocalMCSecrets, listOptions)
+/*	allLocalSecrets := corev1.Secrets{}
+	err = s.LocalClient.List(s.Context, &allLocalSecrets, listOptions)
 	if err != nil {
-		s.Log.Error(err, "failed to list MultiClusterSecret on local cluster")
+		s.Log.Error(err, "failed to list Secrets on local cluster")
 		return nil
 	}
-	for si, mcSecret := range allLocalMCSecrets.Items {
-		// Delete each MultiClusterSecret object that is not on the admin cluster or no longer placed on this cluster
-		if !s.secretPlacedOnCluster(&allAdminMCSecrets, mcSecret.Name, mcSecret.Namespace) {
-			err := s.LocalClient.Delete(s.Context, &allLocalMCSecrets.Items[si])
+	for _, secret := range allLocalSecrets.Items {
+		// Delete each Secret object that is no longer placed on this cluster
+		if !s.secretPlacedOnCluster(&secret, &allAdminMCAppConfigs) {
+			err := s.LocalClient.Delete(s.Context, &secret)
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterSecret with name %q and namespace %q", mcSecret.Name, mcSecret.Namespace))
+				s.Log.Error(err, fmt.Sprintf("failed to delete Secret with name %q and namespace %q", secret.Name, secret.Namespace))
 			}
 		}
 	}
-
+*/
 	return nil
 }
 
-// Create or update a MultiClusterSecret
-func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret) (controllerutil.OperationResult, error) {
-	var mcSecretNew clustersv1alpha1.MultiClusterSecret
-	mcSecretNew.Namespace = mcSecret.Namespace
-	mcSecretNew.Name = mcSecret.Name
+// Create or update a Secret
+func (s *Syncer) createOrUpdateSecret(secret corev1.Secret) (controllerutil.OperationResult, error) {
+	var secretNew corev1.Secret
+	secretNew.Namespace = secret.Namespace
+	secretNew.Name = secret.Name
 
 	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &mcSecretNew, func() error {
-		mutateMCSecret(mcSecret, &mcSecretNew)
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &secretNew, func() error {
+		mutateSecret(s.ManagedClusterName, secret, &secretNew)
 		return nil
 	})
 }
 
-func (s *Syncer) updateMultiClusterSecretStatus(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error {
-	fetched := clustersv1alpha1.MultiClusterSecret{}
-	err := s.AdminClient.Get(s.Context, name, &fetched)
-	if err != nil {
-		return err
+// mutateSecret mutates the Secret to reflect the contents of the parent Secret
+func mutateSecret(managedClusteName string, secret corev1.Secret, secretNew *corev1.Secret) {
+	secretNew.Labels = secret.Labels
+	if secretNew.Labels == nil {
+		secretNew.Labels = make(map[string]string)
 	}
-	fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)
-	clusters.SetClusterLevelStatus(&fetched.Status, newClusterStatus)
-	return s.AdminClient.Status().Update(s.Context, &fetched)
-}
+	secretNew.Labels["verrazzano.io/managed-cluster"] = managedClusteName
 
-// mutateMCSecret mutates the MultiClusterSecret to reflect the contents of the parent MultiClusterSecret
-func mutateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret, mcSecretNew *clustersv1alpha1.MultiClusterSecret) {
-	mcSecretNew.Spec.Placement = mcSecret.Spec.Placement
-	mcSecretNew.Spec.Template = mcSecret.Spec.Template
-	mcSecretNew.Labels = mcSecret.Labels
+	secretNew.Annotations = secret.Annotations
+	secretNew.Type = secret.Type
+	secretNew.Immutable = secret.Immutable
+	secretNew.Data = secret.Data
+	secretNew.StringData = secret.StringData
 }
 
 // secretPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace
