@@ -39,7 +39,8 @@ function install {
     return 1
   fi
 
-    log "Installing Verrazzano OAM extensions"
+  log "Installing Verrazzano OAM extensions"
+  log $(kubectl apply -f ${PROJ_DIR}/deploy)
   kubectl apply -f ${PROJ_DIR}/deploy
   if [ $? -ne 0 ]; then
     error "Failed to install Verrazzano OAM extensions"
