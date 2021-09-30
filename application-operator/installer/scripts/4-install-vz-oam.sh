@@ -38,6 +38,15 @@ function install {
     error "Failed to install Verrazzano Kubernetes application operator."
     return 1
   fi
+
+  log "Installing Verrazzano OAM extensions"
+  log $(kubectl apply -f ${PROJ_DIR}/deploy)
+  kubectl apply -f ${PROJ_DIR}/deploy
+  if [ $? -ne 0 ]; then
+    error "Failed to install Verrazzano OAM extensions"
+    return 1
+  fi
+
 }
 
-action "Installing Verrazzano application operator" install || fail "Failed to install the Verrazzano OAM operator."
+action "Installing Verrazzano application operator" install || fail "Failed to install the Verrazzano OAM operator. \n $(cat ../build/logs/install.sh.log)"
