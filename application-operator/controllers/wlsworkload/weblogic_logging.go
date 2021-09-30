@@ -4,7 +4,9 @@
 package wlsworkload
 
 import (
+	"bytes"
 	"fmt"
+	"text/template"
 
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 
@@ -100,9 +102,24 @@ func GetWlsSpecificContainerEnv() []v1.EnvVar {
 	}
 }
 
+type wlsEnv struct {
+	ScratchDir string
+	DomainName string
+}
+
 // BuildWLSLogPath builds a log path given a resource name
 func BuildWLSLogPath(name string) string {
-	return fmt.Sprintf("%s/logs/%s/$(SERVER_NAME).log", logging.ScratchVolMountPath, name)
+	data := wlsEnv{logging.ScratchVolMountPath, name}
+	tmpl, err := template.New("logPath").Parse("{{.ScratchDir}}/logs/{{.DomainName}}/$(SERVER_NAME).log,{{.ScratchDir}}/logs/{{.DomainName}}/$(SERVER_NAME)_access.log,{{.ScratchDir}}/logs/{{.DomainName}}/$(SERVER_NAME)_nodemanager.log,{{.ScratchDir}}/logs/{{.DomainName}}/$(DOMAIN_UID).log")
+	if err != nil {
+		return ""
+	}
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, data)
+	if err != nil {
+		return ""
+	}
+	return buf.String()
 }
 
 // BuildWLSLogHome builds a log home give a resource name

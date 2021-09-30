@@ -1088,3 +1088,12 @@ func validateTestMonitoringExporter(u *unstructured.Unstructured, t *testing.T) 
 	jvmRuntimePrefix, _, _ := unstructured.NestedString(query, "JVMRuntime", "prefix")
 	asserts.Equal(t, "wls_jvm_", jvmRuntimePrefix, "query JVMRuntime prefix should be wls_jvm_")
 }
+
+// TestBuildWLSLogPath tests BuildWLSLogPath correctly.
+// GIVEN a weblogic env
+// THEN the log path is built
+func TestBuildWLSLogPath(t *testing.T) {
+	assert := asserts.New(t)
+	logPath := BuildWLSLogPath("test-domain")
+	assert.Equal("/scratch/logs/test-domain/$(SERVER_NAME).log,/scratch/logs/test-domain/$(SERVER_NAME)_access.log,/scratch/logs/test-domain/$(SERVER_NAME)_nodemanager.log,/scratch/logs/test-domain/$(DOMAIN_UID).log", logPath)
+}
