@@ -26,13 +26,6 @@ function install {
     kubectl create namespace "${VERRAZZANO_NS}"
   fi
 
-  log "Installing Verrazzano CRD extensions"
-  kubectl apply -f ${PROJ_DIR}/../platform-operator/helm_config/charts/verrazzano-application-operator/crds
-  if [ $? -ne 0 ]; then
-    error "Failed to install Verrazzano CRD extensions"
-    return 1
-  fi
-
   log "Installing Verrazzano OAM extensions"
   kubectl apply -f ${PROJ_DIR}/deploy
   if [ $? -ne 0 ]; then
@@ -40,15 +33,16 @@ function install {
     return 1
   fi
 
-  # Update the image name and ca bundle in the Verrazzano deployment file
-  log "Updating Verrazzano application operator image name to ${VERRAZZANO_APP_OP_IMAGE}"
-  mkdir -p ${BUILD_DEPLOY}
-  cat ${PROJ_DIR}/deploy/verrazzano.yaml_template | sed -e "s|IMAGE_NAME|${VERRAZZANO_APP_OP_IMAGE}|g" > ${BUILD_DEPLOY}/verrazzano.yaml
-
   log "Installing Verrazzano application operator"
-  kubectl apply -f ${BUILD_DEPLOY}/verrazzano.yaml
+  local chart_name=verrazzano-application-operator
+  HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set image=${VERRAZZANO_APP_OP_IMAGE}"
+
+  helm_install_retry ${chart_name} ${VZ_CHARTS_DIR}/verrazzano-application-operator ${VERRAZZANO_NS} \
+    ${HELM_IMAGE_ARGS} \
+    ${IMAGE_PULL_SECRETS_ARGUMENT} \
+    ${APP_OPERATOR_IMAGE_ARG} || return $?
   if [ $? -ne 0 ]; then
-    error "Failed to install Verrazzano application operator"
+    error "Failed to install Verrazzano Kubernetes application operator."
     return 1
   fi
 }
