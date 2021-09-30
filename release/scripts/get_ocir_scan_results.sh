@@ -28,7 +28,7 @@ EOM
     exit 0
 }
 
-[ -z "$OCI_REGION" ] || [ -z "$OCIR_REPOSITORY_BASE" ] || [ -z "$OCIR_COMPARTMENT_ID" ] || [ -z "$OCIR_PATH_FILTER" ] || -z "$SCAN_RESULTS_DIR" || [ -z "$1" ] || [ -z "$2" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$OCI_REGION" ] || [ -z "$OCIR_REPOSITORY_BASE" ] || [ -z "$OCIR_COMPARTMENT_ID" ] || [ -z "$OCIR_PATH_FILTER" ] || -z "$SCAN_RESULTS_DIR" || [ "$1" == "-h" ] && { usage; }
 
 function get_repository_list() {
   # TBD: See if we can just filter of the OCI list results to use the path filter, limit the json as well
@@ -41,19 +41,22 @@ function get_scan_summaries() {
   # TBD: Need to add more fields here so we can at least have the result OCIDs and may also want times in case there are multiple scan results to differentiate
   # TBD: For multiple scans assuming -u will be mostly a noop here, ie: if we include all fields we wouldn't see any duplicates
   oci vulnerability-scanning container scan result list --compartment-id $OCIR_COMPARTMENT_ID --region $OCI_REGION --all > $SCAN_RESULTS_DIR/scan-all-summary.json
-  cat $SCAN_RESULTS_DIR/scan-all-summary.json | jq -r '.data.items[] | { sev: ."highest-problem-severity", repo: .repository, image: .image, count: ."problem-count" } ' | jq -r '[.[]] | @csv' | sort -u > SCAN_RESULTS_DIR/scan-all-summary.csv
+  cat $SCAN_RESULTS_DIR/scan-all-summary.json | jq -r '.data.items[] | { sev: ."highest-problem-severity", repo: .repository, image: .image, count: ."problem-count", id: .id } ' | jq -r '[.[]] | @csv' | sort -u > $SCAN_RESULTS_DIR/scan-all-summary.csv
 }
 
 function check_for_missing_scans() {
   # TBD: Add check here, basically we iterate through the repository list and ensure that we have scan results
   #      for the repository in the summary. If we don't flag each missing one
+  echo "TBD"
 }
 
 # $1 Scan result OCID
 # $2 Result file name
 function get_scan_details() {
+  echo $1
+  echo $2
   oci vulnerability-scanning container scan result get --container-scan-result-id $1 --region $OCI_REGION > $2-details.json
-  cat $2.json | jq -r '.data.problems[] | { sev: .severity, cve: ."cve-reference", description: .description } ' | jq -r '[.[]] | @csv' | sort -u > $2-details.csv
+  cat $2-details.json | jq -r '.data.problems[] | { sev: .severity, cve: ."cve-reference", description: .description } ' | jq -r '[.[]] | @csv' | sort -u > $2-details.csv
 }
 
 function get_all_scan_details() {
@@ -66,14 +69,14 @@ function get_all_scan_details() {
   # that we could do that if we always do them all at once
 
   # For each scan result in the scan summary list, fetch the full details
-  while read INPUT_LINE; do
-    SCAN_RESULT_OCID=$(echo "$CSV_LINE" | cut -d, -f"5")
-    RESULT_REPOSITORY_IMAGE=$(echo "$CSV_LINE" | cut -d, -f"2" | sed 's;/;_;g')
-    RESULT_IMAGE=$(echo "$CSV_LINE" | cut -d, -f"2")
+  while read CSV_LINE; do
+    SCAN_RESULT_OCID=$(echo "$CSV_LINE" | cut -d, -f"5" | sed 's/"//g')
+    RESULT_REPOSITORY_IMAGE=$(echo "$CSV_LINE" | cut -d, -f"2" | sed 's/"//g' | sed 's;/;_;g')
+    RESULT_IMAGE=$(echo "$CSV_LINE" | cut -d, -f"2" | sed 's/"//g')
     # TBD: Not great but should ensure unique files as a start here
-    RESULT_FILE_PREFIX="$SCAN_RESULTS_DIR/$RESULT_REPOSITORY_IMAGE-$RESULT_IMAGE-$SCAN_RESULT_OCID"
+    RESULT_FILE_PREFIX=$(echo "$SCAN_RESULTS_DIR/$SCAN_RESULT_OCID")
     get_scan_details $SCAN_RESULT_OCID $RESULT_FILE_PREFIX
-  done <$
+  done <$SCAN_RESULTS_DIR/scan-all-summary.csv
 }
 
 # Validate OCI CLI
