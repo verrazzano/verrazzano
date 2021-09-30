@@ -103,6 +103,7 @@ pipeline {
             environment {
                 SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')
                 SCANNER_ARCHIVE_FILE = credentials('scanner-archive-file')
+                VIRUS_DEFINITION_LOCATION = credentials('virus-definition-location')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
             }
            steps {
