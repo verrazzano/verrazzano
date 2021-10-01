@@ -227,6 +227,23 @@ function helm_install_retry() {
   done
 }
 
+# Returns 0 if no slow image pulls are detected, otherwise returns 1
+# $1 the namespace to check
+function check_for_slow_image_pulls() {
+  local pulling_count=$(kubectl get events -n $1 | grep Pulling | wc -l)
+
+  # don't count any succesful pulls in the last 19 seconds to mitigate the issue where the
+  # helm install fails and the image pull succeeds before we can do this check
+  local pulled_count=$(kubectl get events -n $1 | grep 'Successfully pulled' | awk '$1 !~ /^1?[0-9]s/ {print $0}' | wc -l)
+
+  if [[ $pulling_count -eq $pulled_count ]]; then
+    return 0
+  fi
+
+  log "Slow image pulls detected for namepace $1 after install failure"
+  return 1
+}
+
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
 
 VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
