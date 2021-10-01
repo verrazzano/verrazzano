@@ -4,6 +4,7 @@
 package kubernetes_test
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -88,6 +89,8 @@ var _ = Describe("Kubernetes Cluster",
 			Expect(nsListContains(namespaces.Items, "ingress-nginx")).To(BeTrue())
 		})
 
+		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
+
 		ginkgoExt.DescribeTable("deployed Verrazzano components",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
@@ -100,6 +103,8 @@ var _ = Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
 			ginkgoExt.Entry("does not include verrazzano-cluster-operator", "verrazzano-cluster-operator", false),
 			ginkgoExt.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
+			ginkgoExt.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
+			ginkgoExt.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
 		)
 
 		ginkgoExt.DescribeTable("deployed cert-manager components",
