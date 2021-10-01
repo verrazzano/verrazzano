@@ -384,11 +384,11 @@
       ]
     },
     {
-      "name": "kiali",
+      "name": "kiali-server",
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "kiali",
+          "name": "kiali-server",
           "images": [
             {
               "image": "kiali",
