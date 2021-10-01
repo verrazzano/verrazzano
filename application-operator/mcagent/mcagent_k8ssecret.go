@@ -61,7 +61,7 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 			continue
 		}
 		// Delete each Secret object that is no longer placed on this local cluster
-		if !s.secretPlacedOnCluster(secret, &allAdminMCAppConfigs) {
+		if !s.k8sSecretPlacedOnCluster(secret, &allAdminMCAppConfigs) {
 			err := s.LocalClient.Delete(s.Context, &allLocalSecrets.Items[i])
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete Secret with name %s and namespace %s", secret.Name, secret.Namespace))
@@ -113,8 +113,8 @@ func mutateSecret(managedClusterName string, mcAppConfigName string, secret core
 	secretNew.StringData = secret.StringData
 }
 
-// secretPlacedOnCluster returns boolean indicating if the secret is placed on the local cluster
-func (s *Syncer) secretPlacedOnCluster(secret corev1.Secret, allAdminMCAppConfigs *clustersv1alpha1.MultiClusterApplicationConfigurationList) bool {
+// k8sSecretPlacedOnCluster returns boolean indicating if the secret is placed on the local cluster
+func (s *Syncer) k8sSecretPlacedOnCluster(secret corev1.Secret, allAdminMCAppConfigs *clustersv1alpha1.MultiClusterApplicationConfigurationList) bool {
 	labels := strings.Split(secret.Labels[mcAppConfigsLabel], ",")
 	for _, mcAppConfig := range allAdminMCAppConfigs.Items {
 		for _, label := range labels {

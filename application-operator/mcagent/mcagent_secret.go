@@ -47,7 +47,7 @@ func (s *Syncer) syncMCSecretObjects(namespace string) error {
 	}
 	for si, mcSecret := range allLocalMCSecrets.Items {
 		// Delete each MultiClusterSecret object that is not on the admin cluster or no longer placed on this cluster
-		if !s.mcSecretPlacedOnCluster(&allAdminMCSecrets, mcSecret.Name, mcSecret.Namespace) {
+		if !s.secretPlacedOnCluster(&allAdminMCSecrets, mcSecret.Name, mcSecret.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &allLocalMCSecrets.Items[si])
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterSecret with name %q and namespace %q", mcSecret.Name, mcSecret.Namespace))
@@ -89,9 +89,9 @@ func mutateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret, mcSecretNew *c
 	mcSecretNew.Labels = mcSecret.Labels
 }
 
-// mcSecretPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace
+// secretPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace
 // and indicates the object is placed on the local cluster
-func (s *Syncer) mcSecretPlacedOnCluster(mcAdminList *clustersv1alpha1.MultiClusterSecretList, name string, namespace string) bool {
+func (s *Syncer) secretPlacedOnCluster(mcAdminList *clustersv1alpha1.MultiClusterSecretList, name string, namespace string) bool {
 	for _, item := range mcAdminList.Items {
 		if item.Name == name && item.Namespace == namespace {
 			return s.isThisCluster(item.Spec.Placement)
