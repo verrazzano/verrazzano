@@ -66,6 +66,17 @@ function install {
     return 1
   fi
 
+  # Update the image name and ca bundle in the Verrazzano deployment file
+  log "Updating Verrazzano application operator image name to ${VERRAZZANO_APP_OP_IMAGE}"
+  mkdir -p ${BUILD_DEPLOY}
+  cat ${PROJ_DIR}/deploy/verrazzano.yaml_template | sed -e "s|IMAGE_NAME|${VERRAZZANO_APP_OP_IMAGE}|g" > ${BUILD_DEPLOY}/verrazzano.yaml
+
+  log "Installing Verrazzano application operator"
+  kubectl apply -f ${BUILD_DEPLOY}/verrazzano.yaml
+  if [ $? -ne 0 ]; then
+    error "Failed to install Verrazzano application operator"
+    return 1
+  fi
 }
 
 action "Installing Verrazzano application operator" install || fail "Failed to install the Verrazzano OAM operator. \n file: $(cat /home/opc/go/src/github.com/verrazzano/verrazzano/application-operator/installer/build/logs/install.sh.log)"
