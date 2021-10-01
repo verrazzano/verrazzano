@@ -97,9 +97,8 @@ type BomImage struct {
 	// of keys used by the different helm charts, such as `api.imageName`.
 	HelmFullImageKey string `json:"helmFullImageKey"`
 
-	// HelmRegistryAndRepoKey is the helm path Key which identifies the registry/repo string,
-	// for exampe  global.hub = ghcr.io/verrazzano
-	// There are a variety
+	// HelmRegistryAndRepoKey is the helm Key which identifies the registry/repo string,
+	// for example  global.hub = ghcr.io/verrazzano
 	HelmRegistryAndRepoKey string `json:"helmRegistryAndRepoKey"`
 }
 
