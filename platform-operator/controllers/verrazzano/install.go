@@ -58,7 +58,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				continue
 			}
 			// If component is not installed,install it
-			if err := comp.Install(log, r, cr.Namespace, r.DryRun); err != nil {
+			if err := comp.Install(log, cr, r, cr.Namespace, r.DryRun); err != nil {
 				log.Errorf("Error calling comp.Install for component %s: %v", comp.Name(), err.Error())
 				requeue = true
 				continue

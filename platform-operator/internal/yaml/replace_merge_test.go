@@ -61,6 +61,81 @@ func TestMergeReplace(t *testing.T) {
 	assert.YAMLEq(rmMerged, merged, "nested yaml should be equal")
 }
 
+// istioBase is the base of an IstioOperator YAML
+const istioBase = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    egressGateways:
+      - name: istio-egressgateway
+        enabled: true
+
+  # Global values passed through to helm global.yaml.
+  # Please keep this in sync with manifests/charts/global.yaml
+  values:
+    global:
+      gateways:
+        istio-ingressgateway:
+          serviceAnnotations:
+            service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
+`
+
+// istiOverlay is the overlay of an IstioOperator YAML
+const istiOverlay = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    ingressGateways:
+      - name: istio-ingressgateway
+        enabled: true
+        k8s:
+          service:
+            type: ClusterIP
+            externalIPs:
+            - 1.2.3.4
+`
+
+// istioMerged is the result of a merge of IstioOperator YAMLs
+const istioMerged = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    egressGateways:
+      - name: istio-egressgateway
+        enabled: true
+    ingressGateways:
+      - name: istio-ingressgateway
+        enabled: true
+        k8s:
+          service:
+            type: ClusterIP
+            externalIPs:
+            - 1.2.3.4
+
+  # Global values passed through to helm global.yaml.
+  # Please keep this in sync with manifests/charts/global.yaml
+  values:
+    global:
+      gateways:
+        istio-ingressgateway:
+          serviceAnnotations:
+            service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
+`
+
+// TestMergeReplaceIstio tests the ReplacementMerge function with IstiOperator YAML
+// GIVEN a set of nested YAML strings with embedded lists
+// WHEN ReplacementMerge is called
+// THEN ensure that the merged result is correct.
+func TestMergeReplaceIstio(t *testing.T) {
+	assert := assert.New(t)
+	merged, err := ReplacementMerge(istioBase, istiOverlay)
+	assert.NoError(err, merged, "error merging Istio YAML")
+	assert.YAMLEq(istioMerged, merged, "incorrect Istio merged YAML")
+}
+
 // Complete replace YAML
 const rm1 = `
 k1: rm1-v1
