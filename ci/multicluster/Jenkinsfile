@@ -533,12 +533,7 @@ pipeline {
                         CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
                     }
                     steps {
-                        // Console runs on admin cluster and the KUBECONFIG is pointed at it (which is cluster 0)
-                        sh """
-                            echo "kubeconfig admin " $ADMIN_KUBECONFIG
-                            ls -l $ADMIN_KUBECONFIG
-                            cat $ADMIN_KUBECONFIG
-                        """
+                        // Console runs on admin cluster and the KUBECONFIG is pointed at it (which is cluster 1)
                         sh "KUBECONFIG=${ADMIN_KUBECONFIG} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
                     }
                     post {
