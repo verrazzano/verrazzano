@@ -79,6 +79,10 @@ pipeline {
                 choices: [ "nip.io", "sslip.io"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: 'master',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
@@ -437,6 +441,11 @@ pipeline {
                         registerManagedClusters()
                     }
                 }
+                stage ('Deploy Sample Application') {
+                    steps {
+                        deploySampleApp()
+                    }
+                }
                 stage ('Verify Register') {
                     steps {
                         verifyRegisterManagedClusters()
@@ -512,38 +521,37 @@ pipeline {
                         stage ('Delete Deployed App NS') {
                             steps {
                                 script {
-                                    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                    sh """
-                                        # create modified versions of the hello helidon MC example
-                                        export NS_SOURCE_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-ns
-                                        export HH_SOURCE_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon
-                                        ${GO_REPO_PATH}/verrazzano/tests/e2e/multicluster/examples/helidon-ns-ops/generate_deployment_files.sh
-                                        export MANAGED_CLUSTER_NAME="managed1"
-                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                        export CLUSTER_COUNT=$clusterCount
-                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                        export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-ns-ops"
-                                        ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon-ns-ops/...
-                                    """
+                                    runHelidonNsOpsTest()
                                 }
                             }
                         }
+                    }
+                }
+                stage ('Console') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                        CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
+                    }
+                    steps {
+                        // Console runs on admin cluster and the KUBECONFIG is pointed at it (which is cluster 1)
+                        sh "KUBECONFIG=${ADMIN_KUBECONFIG} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                    }
+                    post {
+                        always {
+                            sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
+                        }
+                    }
+                }
+                stage ('Undeploy Sample Application') {
+                    steps {
+                        undeploySampleApp()
                     }
                 }
                 stage ('Multi-cluster Verify Api') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
-                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                for(int count=2; count<=clusterCount; count++) {
-                                    sh """
-                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
-                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                        ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-api/...
-                                    """
-                                }
+                                runMulticlusterVerifyApi()
                             }
                         }
                     }
@@ -629,7 +637,7 @@ pipeline {
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
             """
-            archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/build-console-output.log,**/Screenshot*.png', allowEmptyArchive: true
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
                 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
@@ -1416,4 +1424,61 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
+}
+
+def modifyHelloHelidonApp(newName) {
+    sh """
+      # create modified versions of the hello helidon MC example
+      export MC_HH_DEST_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/${newName}
+      export MC_HH_SOURCE_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon
+      export MC_APP_NAMESPACE="${newName}"
+      export MC_PROJ_NAME="${newName}"
+      ${GO_REPO_PATH}/verrazzano/ci/scripts/generate_mc_hello_deployment_files.sh
+    """
+
+}
+
+def deploySampleApp() {
+    modifyHelloHelidonApp("hello-helidon-sample")
+    sh """
+      export KUBECONFIG=$ADMIN_KUBECONFIG
+      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/verrazzano-project.yaml
+      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/hello-helidon-comp.yaml
+      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/mc-hello-helidon-app.yaml
+    """
+}
+
+def undeploySampleApp() {
+    sh """
+      export KUBECONFIG=$ADMIN_KUBECONFIG
+      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/mc-hello-helidon-app.yaml
+      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/hello-helidon-comp.yaml
+      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/verrazzano-project.yaml
+    """
+}
+
+def runHelidonNsOpsTest() {
+    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+    modifyHelloHelidonApp("hello-helidon-ns")
+    sh """
+      export MANAGED_CLUSTER_NAME="managed1"
+      export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+      export CLUSTER_COUNT=$clusterCount
+      cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+      export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+      export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-ns-ops"
+      ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon-ns-ops/...
+    """
+}
+
+def runMulticlusterVerifyApi() {
+    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+    for(int count=2; count<=clusterCount; count++) {
+        sh """
+          export MANAGED_CLUSTER_NAME="managed${count-1}"
+          export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+          cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+          ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-api/...
+        """
+    }
 }
