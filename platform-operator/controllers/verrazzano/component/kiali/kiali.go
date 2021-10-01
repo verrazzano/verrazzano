@@ -13,7 +13,7 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "kiali-server"
 
-const kialiDeploymentName = ComponentName
+const kialiDeploymentName = "kiali"
 
 func IsKialiReady(log *zap.SugaredLogger, c clipkg.Client, _ string, namespace string) bool {
 	deployments := []types.NamespacedName{
