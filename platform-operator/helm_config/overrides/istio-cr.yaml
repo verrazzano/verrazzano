@@ -43,6 +43,7 @@ spec:
         autoscaleEnabled: false
       istio-ingressgateway:
         autoscaleEnabled: false
+        type: LoadBalancer
 
     meshConfig:
       enablePrometheusMerge: false
