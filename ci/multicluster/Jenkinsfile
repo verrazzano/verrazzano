@@ -555,33 +555,6 @@ pipeline {
                         }
                     }
                 }
-                stage ('CLI Tests') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                for(int count=2; count<=clusterCount; count++) {
-                                    sh """
-                                        export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                                        export MANAGED_CLUSTER_DIR="${KUBECONFIG_DIR}/${count}"
-                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
-                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                        cd ${GO_REPO_PATH}/verrazzano
-                                        make cli
-                                        ./tools/cli/scripts/cli_test.sh
-                                    """
-                                }
-                            }
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump-cli-tests")
-                            }
-                        }
-                    }
-                }
                 stage ('verify deregister') {
                     steps {
                         verifyDeregisterManagedClusters()
