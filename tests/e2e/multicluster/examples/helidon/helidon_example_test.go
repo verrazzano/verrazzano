@@ -258,15 +258,15 @@ var _ = AfterSuite(func() {
 })
 
 func cleanUp(kubeconfigPath string) error {
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/hello-helidon-comp.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon application resource: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/hello-helidon-comp.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/hello-helidon-comp.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon component resources: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/hello-helidon-comp.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete hello-helidon project resource: %v", err)
 	}
 	return nil
