@@ -148,7 +148,7 @@ pipeline {
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
 
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-upgrade.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
@@ -555,8 +555,9 @@ pipeline {
                         }
                     }
                 }
-                stage ('CLI Tests') {
+                stage ('verify deregister') {
                     steps {
+<<<<<<< HEAD
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
                                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -580,6 +581,9 @@ pipeline {
                                 dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump-cli-tests")
                             }
                         }
+=======
+                        verifyDeregisterManagedClusters()
+>>>>>>> 1b287757531e63b308b794b80a9496458d89de96
                     }
                 }
                 stage ('verify deregister') {
