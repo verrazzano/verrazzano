@@ -8,6 +8,7 @@ SECONDS=0
 retval_success=1
 retval_failed=1
 i=0
+
 while [[ $retval_success -ne 0 ]] && [[ $retval_failed -ne 0 ]]  && [[ $i -lt 30 ]]  ; do
   sleep 60
   output=$(kubectl wait --for=condition=InstallFailed verrazzano/my-verrazzano --timeout=0 2>&1)
