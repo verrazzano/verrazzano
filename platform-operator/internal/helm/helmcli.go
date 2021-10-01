@@ -105,8 +105,7 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	return stdout, stderr, nil
 }
 
-// Upgrade will upgrade a Helm release with the specified charts.  The overrideFiles array
-// are in order with the first files in the array have lower precedence than latter files.
+// Uninstall will uninstall the release in the specified namespace  using helm uninstall
 func Uninstall(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.

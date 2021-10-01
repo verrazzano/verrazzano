@@ -73,6 +73,9 @@ type HelmComponent struct {
 	// SkipUpgrade when true will skip upgrading this component in the upgrade loop
 	// This is for the istio helm components
 	SkipUpgrade bool
+
+	// UninstallComponent will run helm uninstall on the component when true
+	UninstallComponent bool
 }
 
 // Verify that HelmComponent implements Component
@@ -92,6 +95,9 @@ type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
 type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error)
+
+// upgradeFuncSig is a function needed for unit test override
+type uninstallFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
 
 // readyStatusFuncSig describes the function signature for doing deeper checks on a component's ready state
 type readyStatusFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool
@@ -190,6 +196,11 @@ func (h HelmComponent) PostInstall(log *zap.SugaredLogger, client clipkg.Client,
 // install. Along with the override files in helm_config, we need to generate image overrides using the
 // BOM json file.  Each component also has the ability to add additional override parameters.
 func (h HelmComponent) Upgrade(log *zap.SugaredLogger, _ *installv1alpha1.Verrazzano, client clipkg.Client, ns string, dryRun bool) error {
+	if h.SkipUpgrade {
+		log.Infof("Upgrade skipped for %v", h.ReleaseName)
+		return nil
+	}
+
 	// Resolve the namespace
 	namespace := resolveNamespace(h, ns)
 
@@ -201,6 +212,11 @@ func (h HelmComponent) Upgrade(log *zap.SugaredLogger, _ *installv1alpha1.Verraz
 	if !found {
 		log.Infof("Skipping upgrade of component %s since it is not installed", h.ReleaseName)
 		return nil
+	}
+
+	if h.UninstallComponent {
+		_, _, err = helm.Uninstall(log, h.ReleaseName, namespace, dryRun)
+		return err
 	}
 
 	// Do the preUpgrade if the function is defined
@@ -340,8 +356,4 @@ func setUpgradeFunc(f upgradeFuncSig) {
 
 func setDefaultUpgradeFunc() {
 	upgradeFunc = helm.Upgrade
-}
-
-func (h HelmComponent) GetSkipUpgrade() bool {
-	return h.SkipUpgrade
 }

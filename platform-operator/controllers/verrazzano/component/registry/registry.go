@@ -80,7 +80,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
-			SkipUpgrade:             true,
+			UninstallComponent:      true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             nginx.ComponentName,

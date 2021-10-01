@@ -251,10 +251,6 @@ func contains(arr []string, s string) bool {
 	return false
 }
 
-func (i IstioComponent) GetSkipUpgrade() bool {
-	return i.SkipUpgrade
-}
-
 func buildImageOverridesString(log *zap.SugaredLogger) (string, error) {
 	// Get the image overrides from the BOM
 	var kvs []bom.KeyValue
