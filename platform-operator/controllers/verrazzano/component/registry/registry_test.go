@@ -41,7 +41,7 @@ func TestGetComponents(t *testing.T) {
 	assert.Equal(comps[13].Name(), "verrazzano-application-operator")
 	assert.Equal(comps[14].Name(), "mysql")
 	assert.Equal(comps[15].Name(), "keycloak")
-	assert.Equal(comps[16].Name(), "kiali")
+	assert.Equal(comps[16].Name(), "kiali-server")
 }
 
 // TestFindComponent tests FindComponent
