@@ -9,278 +9,331 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TestCreateSecretOneMCAppConfig tests the synchronization method for the following use case.
-// GIVEN a request to sync Secret objects with a single MultiClusterApplicationConfiguration object
-//   containing two secrets
-// WHEN the new object exists
-// THEN ensure that the Secret objects are created
-func TestCreateSecretOneMCAppConfig(t *testing.T) {
+const testClusterName = "managed1"
+const testMCSecretNamespace = "unit-mcsecret-namespace" //nolint:gosec //#gosec G101
+const testMCSecretName = "unit-mcsecret"
+
+var mcSecretTestLabels = map[string]string{"label1": "test1"}
+var mcSecretTestUpdatedLabels = map[string]string{"label1": "test1updated"}
+
+// TestCreateMCSecret tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterSecret objects
+// WHEN the a new object exists
+// THEN ensure that the MultiClusterSecret is created.
+func TestCreateMCSecret(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
 
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+
 	// Test data
-	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
-	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+	testMCSecret, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	assert.NoError(err, "failed to get sample secret data")
 
-	testSecret1, err := getSampleSecret("testdata/secret1.yaml")
-	assert.NoError(err, "failed to read sample data for Secret")
+	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			return nil
+		})
 
-	testSecret2, err := getSampleSecret("testdata/secret2.yaml")
-	assert.NoError(err, "failed to read sample data for Secret")
+	// Managed Cluster - expect call to get a MultiClusterSecret secret from the list returned by the admin cluster
+	//                   Return the resource does not exist
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCSecretNamespace, Name: testMCSecretName}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterSecret"}, testMCSecretName))
 
-	adminClient := fake.NewFakeClientWithScheme(newTestScheme(), &testMCAppConfig, &testSecret1, &testSecret2)
+	// Managed Cluster - expect call to create a MultiClusterSecret
+	mcMock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opts ...client.CreateOption) error {
+			assert.Equal(testMCSecretNamespace, mcSecret.Namespace, "mcsecret namespace did not match")
+			assert.Equal(testMCSecretName, mcSecret.Name, "mcsecret name did not match")
+			assert.Equal(mcSecretTestLabels, mcSecret.Labels, "mcsecret labels did not match")
+			assert.Equal(testClusterName, mcSecret.Spec.Placement.Clusters[0].Name, "mcsecret does not contain expected placement")
+			assert.Equal([]byte("verrazzano"), mcSecret.Spec.Template.Data["username"], "mcsecret does not contain expected template data")
+			assert.Equal("test-stringdata", mcSecret.Spec.Template.StringData["test"], "mcsecret does not contain expected string data")
+			return nil
+		})
 
-	localClient := fake.NewFakeClientWithScheme(newTestScheme())
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			return nil
+		})
 
 	// Make the request
 	s := &Syncer{
-		AdminClient:        adminClient,
-		LocalClient:        localClient,
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-
-	err = s.syncSecretObjects(testMCAppConfigNamespace)
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
 	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
 	assert.NoError(err)
-
-	// Verify the associated secrets got created on local cluster
-	secret := &corev1.Secret{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
-	assert.NoError(err)
-	assert.Equal(3, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
-	assert.Contains(secret.Labels["label1"], "test1", "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
-
-	secret = &corev1.Secret{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
-	assert.NoError(err)
-	assert.Equal(2, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
 }
 
-// TestCreateSecretTwoMCAppConfigs tests the synchronization method for the following use case.
-// GIVEN a request to sync Secret objects with a two MultiClusterApplicationConfiguration object using
-//   containing two secrets - one the secrets is shared by two MultiClusterApplicationConfiguration objects
-// WHEN the new object exists
-// THEN ensure that the Secret objects are created
-func TestCreateSecretTwoMCAppConfigs(t *testing.T) {
+// TestUpdateMCSecret tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterSecret objects
+// WHEN the a object exists
+// THEN ensure that the MultiClusterSecret is updated.
+func TestUpdateMCSecret(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
 
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+
 	// Test data
-	testMCAppConfig1, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
-	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+	testMCSecret, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	assert.NoError(err, "failed to get sample secret data")
+	testMCSecretUpdate, err := getSampleMCSecret("testdata/multicluster-secret-update.yaml")
+	assert.NoError(err, "failed to get sample secret data")
 
-	testMCAppConfig2, err := getSampleMCAppConfig("testdata/multicluster-appconfig2.yaml")
-	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecretUpdate)
+			return nil
+		})
 
-	testSecret1, err := getSampleSecret("testdata/secret1.yaml")
-	assert.NoError(err, "failed to read sample data for Secret")
+	// Managed Cluster - expect call to get a MultiClusterSecret secret from the list returned by the admin cluster
+	//                   Return the resource with some values different than what the admin cluster returned
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCSecretNamespace, Name: testMCSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
+			testMCSecret.DeepCopyInto(mcSecret)
+			return nil
+		})
 
-	testSecret2, err := getSampleSecret("testdata/secret2.yaml")
-	assert.NoError(err, "failed to read sample data for Secret")
+	// Managed Cluster - expect call to update a MultiClusterSecret
+	//                   Verify request had the updated values
+	mcMock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opts ...client.UpdateOption) error {
+			assert.Equal(testMCSecretNamespace, mcSecret.Namespace, "mcsecret namespace did not match")
+			assert.Equal(testMCSecretName, mcSecret.Name, "mcsecret name did not match")
+			assert.Equal(mcSecretTestUpdatedLabels, mcSecret.Labels, "mcsecret labels did not match")
+			assert.Equal("test-stringdata2", mcSecret.Spec.Template.StringData["test"], "mcsecret does not contain expected string data")
+			assert.Equal([]byte("test"), mcSecret.Spec.Template.Data["username"], "mcsecret does not contain expected data")
+			return nil
+		})
 
-	adminClient := fake.NewFakeClientWithScheme(newTestScheme(), &testMCAppConfig1, &testMCAppConfig2, &testSecret1, &testSecret2)
-
-	localClient := fake.NewFakeClientWithScheme(newTestScheme())
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			return nil
+		})
 
 	// Make the request
 	s := &Syncer{
-		AdminClient:        adminClient,
-		LocalClient:        localClient,
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-
-	err = s.syncSecretObjects(testMCAppConfigNamespace)
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
 	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
 	assert.NoError(err)
-
-	// Verify the associated secrets got created on local cluster
-	secret := &corev1.Secret{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
-	assert.NoError(err)
-	assert.Equal(3, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
-	assert.Contains(secret.Labels["label1"], "test1", "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig,unit-mcappconfig2", "secret label did not match")
-
-	secret = &corev1.Secret{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
-	assert.NoError(err)
-	assert.Equal(2, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
 }
 
-// TestDeleteSecret tests the deletion of secrets for the following use case.
-// GIVEN a request to delete a MultiClusterApplicationConfiguration object
-//   containing two secrets that are not shared
-// WHEN the MultiClusterApplicationConfiguration object is deleted
-// THEN ensure that the Secret objects are deleted
-func TestDeleteSecret(t *testing.T) {
+// TestMCSecretPlacement tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterSecret objects
+// WHEN the a object exists that is not targeted for the cluster
+// THEN ensure that the MultiClusterSecret is not created or updated
+func TestMCSecretPlacement(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
 
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+
 	// Test data
-	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
-	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+	adminMCSecret, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterSecret")
+	}
+	adminMCSecret.Spec.Placement.Clusters[0].Name = "managed2"
+	localMCSecret, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterSecret")
+	}
 
-	testSecret1, err := getSampleSecret("testdata/secret1.yaml")
-	assert.NoError(err, "failed to read sample data for Secret")
+	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
+			mcSecretList.Items = append(mcSecretList.Items, adminMCSecret)
+			return nil
+		})
 
-	testSecret2, err := getSampleSecret("testdata/secret2.yaml")
-	assert.NoError(err, "failed to read sample data for Secret")
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return list including a currently locally placed secret
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
+			mcSecretList.Items = append(mcSecretList.Items, localMCSecret)
+			return nil
+		})
 
-	adminClient := fake.NewFakeClientWithScheme(newTestScheme(), &testMCAppConfig, &testSecret1, &testSecret2)
-
-	localClient := fake.NewFakeClientWithScheme(newTestScheme())
+	// Managed Cluster - expect a call to delete a MultiClusterSecret object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&localMCSecret), gomock.Any()).
+		Return(nil)
 
 	// Make the request
 	s := &Syncer{
-		AdminClient:        adminClient,
-		LocalClient:        localClient,
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
-	err = s.syncSecretObjects(testMCAppConfigNamespace)
+	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
 	assert.NoError(err)
-
-	// Verify the associated secrets got created on local cluster
-	secret := &corev1.Secret{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
-	assert.NoError(err)
-	assert.Equal(3, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
-	assert.Contains(secret.Labels["label1"], "test1", "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
-
-	secret = &corev1.Secret{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
-	assert.NoError(err)
-	assert.Equal(2, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
-
-	// Delete the MultiClusterApplicationConfigurarion object from the admin cluster
-	err = s.AdminClient.Delete(s.Context, &testMCAppConfig)
-	assert.NoError(err)
-
-	// sync
-	err = s.syncSecretObjects(testMCAppConfigNamespace)
-	assert.NoError(err)
-
-	// Check that secrets have been deleted on the local cluster
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
-	assert.True(apierrors.IsNotFound(err))
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
-	assert.True(apierrors.IsNotFound(err))
 }
 
-// TestDeleteSecretExtra tests the deletion of secrets for the following use case.
-// GIVEN a request to delete a MultiClusterApplicationConfiguration object
-//   containing a secret and secret that is not part of the MultiClusterApplicationConfiguration object
-// WHEN the MultiClusterApplicationConfiguration object is deleted
-// THEN ensure that only the secret in the MultiClusterApplicationConfiguration object is deleted
-func TestDeleteSecretExtra(t *testing.T) {
+// TestDeleteMCSecret tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterSecret objects
+// WHEN the object exists on the local cluster but not on the admin cluster
+// THEN ensure that the MultiClusterSecret is deleted.
+func TestDeleteMCSecret(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
 
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+
 	// Test data
-	testMCAppConfig2, err := getSampleMCAppConfig("testdata/multicluster-appconfig2.yaml")
-	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+	testMCSecret, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterSecret")
+	}
+	testMCSecretOrphan, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterSecret")
+	}
+	testMCSecretOrphan.Name = "orphaned-resource"
 
-	testSecret1, err := getSampleSecret("testdata/secret1.yaml")
-	assert.NoError(err, "failed to read sample data for Secret")
+	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			return nil
+		})
 
-	testSecret2, err := getSampleSecret("testdata/secret2.yaml")
-	assert.NoError(err, "failed to read sample data for Secret")
+	// Managed Cluster - expect call to get a MultiClusterSecret from the list returned by the admin cluster
+	//                   Return the resource
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCSecretNamespace, Name: testMCSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
+			testMCSecret.DeepCopyInto(mcSecret)
+			return nil
+		})
 
-	adminClient := fake.NewFakeClientWithScheme(newTestScheme(), &testMCAppConfig2, &testSecret1)
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return list including an orphaned object
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecretOrphan)
+			return nil
+		})
 
-	localClient := fake.NewFakeClientWithScheme(newTestScheme(), &testSecret2)
+	// Managed Cluster - expect a call to delete a MultiClusterSecret object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&testMCSecretOrphan), gomock.Any()).
+		Return(nil)
 
 	// Make the request
 	s := &Syncer{
-		AdminClient:        adminClient,
-		LocalClient:        localClient,
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
-	err = s.syncSecretObjects(testMCAppConfigNamespace)
-	assert.NoError(err)
-
-	// Verify the associated secrets got created on local cluster
-	secret := &corev1.Secret{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
-	assert.NoError(err)
-	assert.Equal(3, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
-	assert.Contains(secret.Labels["label1"], "test1", "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
-
-	secret = &corev1.Secret{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
-	assert.NoError(err)
-	assert.Equal(0, len(secret.Labels))
-
-	// Delete the MultiClusterApplicationConfigurarion object from the admin cluster
-	err = s.AdminClient.Delete(s.Context, &testMCAppConfig2)
-	assert.NoError(err)
-
-	// sync
-	err = s.syncSecretObjects(testMCAppConfigNamespace)
-	assert.NoError(err)
-
-	// Check that secrets have been deleted on the local cluster
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
-	assert.True(apierrors.IsNotFound(err))
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
+	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
 	assert.NoError(err)
 }
 
-// getSampleSecret returns a sample secret object
-func getSampleSecret(filePath string) (corev1.Secret, error) {
-	secret := corev1.Secret{}
+// getSampleMCSecret creates and returns a sample MultiClusterSecret used in tests
+func getSampleMCSecret(filePath string) (clustersv1alpha1.MultiClusterSecret, error) {
+	mcSecret := clustersv1alpha1.MultiClusterSecret{}
 	sampleSecretFile, err := filepath.Abs(filePath)
 	if err != nil {
-		return secret, err
+		return mcSecret, err
 	}
 
-	rawResource, err := clusterstest.ReadYaml2Json(sampleSecretFile)
+	rawMcSecret, err := clusterstest.ReadYaml2Json(sampleSecretFile)
 	if err != nil {
-		return secret, err
+		return mcSecret, err
 	}
 
-	err = json.Unmarshal(rawResource, &secret)
-	return secret, err
-}
-
-func newTestScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	clustersv1alpha1.AddToScheme(scheme)
-	corev1.AddToScheme(scheme)
-	return scheme
+	err = json.Unmarshal(rawMcSecret, &mcSecret)
+	return mcSecret, err
 }

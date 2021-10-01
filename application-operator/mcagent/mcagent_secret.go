@@ -5,66 +5,52 @@ package mcagent
 
 import (
 	"fmt"
-	"strings"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// Synchronize Secret objects to the local cluster
-func (s *Syncer) syncSecretObjects(namespace string) error {
-	// Get all the MultiClusterApplicationConfiguration objects from the admin cluster
-	allAdminMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
+// Synchronize MultiClusterSecret objects to the local cluster
+func (s *Syncer) syncMCSecretObjects(namespace string) error {
+	// Get all the MultiClusterSecret objects from the admin cluster
+	allAdminMCSecrets := clustersv1alpha1.MultiClusterSecretList{}
 	listOptions := &client.ListOptions{Namespace: namespace}
-	err := s.AdminClient.List(s.Context, &allAdminMCAppConfigs, listOptions)
+	err := s.AdminClient.List(s.Context, &allAdminMCSecrets, listOptions)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
 
-	// Write each of the secrets that are targeted for the local cluster
-	for _, mcAppConfig := range allAdminMCAppConfigs.Items {
-		if s.isThisCluster(mcAppConfig.Spec.Placement) {
-			for _, adminSecret := range mcAppConfig.Spec.Secrets {
-				secret := corev1.Secret{}
-				namespacedName := types.NamespacedName{Name: adminSecret, Namespace: namespace}
-				err := s.AdminClient.Get(s.Context, namespacedName, &secret)
-				if err != nil {
-					return err
-				}
-				_, err = s.createOrUpdateSecret(secret, mcAppConfig.Name)
-				if err != nil {
-					s.Log.Error(err, "Error syncing object",
-						"Secret",
-						types.NamespacedName{Namespace: secret.Namespace, Name: secret.Name})
-				}
+	// Write each of the records that are targeted to this cluster
+	for _, mcSecret := range allAdminMCSecrets.Items {
+		if s.isThisCluster(mcSecret.Spec.Placement) {
+			_, err := s.createOrUpdateMCSecret(mcSecret)
+			if err != nil {
+				s.Log.Error(err, "Error syncing object",
+					"MultiClusterSecret",
+					types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
 			}
 		}
 	}
 
-	// Delete orphaned or no longer placed Secret resources.
-	// Get the list of Secret resources on the local cluster and compare to the list received from the admin cluster.
+	// Delete orphaned or no longer placed MultiClusterSecret resources.
+	// Get the list of MultiClusterSecret resources on the
+	// local cluster and compare to the list received from the admin cluster.
 	// The admin cluster is the source of truth.
-	allLocalSecrets := corev1.SecretList{}
-	listOptions = &client.ListOptions{Namespace: namespace}
-	err = s.LocalClient.List(s.Context, &allLocalSecrets, listOptions)
+	allLocalMCSecrets := clustersv1alpha1.MultiClusterSecretList{}
+	err = s.LocalClient.List(s.Context, &allLocalMCSecrets, listOptions)
 	if err != nil {
-		s.Log.Error(err, "failed to list Secrets on local cluster")
+		s.Log.Error(err, "failed to list MultiClusterSecret on local cluster")
 		return nil
 	}
-	for i, secret := range allLocalSecrets.Items {
-		_, found := secret.Labels[mcAppConfigsLabel]
-		// Only look at the secrets we have synced
-		if !found {
-			continue
-		}
-		// Delete each Secret object that is no longer placed on this local cluster
-		if !s.secretPlacedOnCluster(secret, &allAdminMCAppConfigs) {
-			err := s.LocalClient.Delete(s.Context, &allLocalSecrets.Items[i])
+	for si, mcSecret := range allLocalMCSecrets.Items {
+		// Delete each MultiClusterSecret object that is not on the admin cluster or no longer placed on this cluster
+		if !s.mcSecretPlacedOnCluster(&allAdminMCSecrets, mcSecret.Name, mcSecret.Namespace) {
+			err := s.LocalClient.Delete(s.Context, &allLocalMCSecrets.Items[si])
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("failed to delete Secret with name %s and namespace %s", secret.Name, secret.Namespace))
+				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterSecret with name %q and namespace %q", mcSecret.Name, mcSecret.Namespace))
 			}
 		}
 	}
@@ -72,63 +58,44 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 	return nil
 }
 
-// Create or update a Secret
-func (s *Syncer) createOrUpdateSecret(secret corev1.Secret, mcAppConfigName string) (controllerutil.OperationResult, error) {
-	var secretNew corev1.Secret
-	secretNew.Namespace = secret.Namespace
-	secretNew.Name = secret.Name
+// Create or update a MultiClusterSecret
+func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret) (controllerutil.OperationResult, error) {
+	var mcSecretNew clustersv1alpha1.MultiClusterSecret
+	mcSecretNew.Namespace = mcSecret.Namespace
+	mcSecretNew.Name = mcSecret.Name
 
 	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &secretNew, func() error {
-		mutateSecret(s.ManagedClusterName, mcAppConfigName, secret, &secretNew)
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &mcSecretNew, func() error {
+		mutateMCSecret(mcSecret, &mcSecretNew)
 		return nil
 	})
 }
 
-// mutateSecret mutates the Secret to reflect the contents of the parent Secret
-func mutateSecret(managedClusterName string, mcAppConfigName string, secret corev1.Secret, secretNew *corev1.Secret) {
-	if secretNew.Labels == nil {
-		secretNew.Labels = make(map[string]string)
-		if secret.Labels != nil {
-			secretNew.Labels = secret.Labels
-		}
+func (s *Syncer) updateMultiClusterSecretStatus(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error {
+	fetched := clustersv1alpha1.MultiClusterSecret{}
+	err := s.AdminClient.Get(s.Context, name, &fetched)
+	if err != nil {
+		return err
 	}
-
-	appConfigs, found := secretNew.Labels[mcAppConfigsLabel]
-	if found {
-		splitAppConfigs := strings.Split(appConfigs, ",")
-		splitAppConfigs = append(splitAppConfigs, mcAppConfigName)
-		secretNew.Labels[mcAppConfigsLabel] = strings.Join(splitAppConfigs, ",")
-
-	} else {
-		secretNew.Labels[mcAppConfigsLabel] = mcAppConfigName
-	}
-
-	secretNew.Labels[managedClusterLabel] = managedClusterName
-
-	secretNew.Annotations = secret.Annotations
-	secretNew.Type = secret.Type
-	secretNew.Immutable = secret.Immutable
-	secretNew.Data = secret.Data
-	secretNew.StringData = secret.StringData
+	fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)
+	clusters.SetClusterLevelStatus(&fetched.Status, newClusterStatus)
+	return s.AdminClient.Status().Update(s.Context, &fetched)
 }
 
-// secretPlacedOnCluster returns boolean indicating if the secret is placed on the local cluster
-func (s *Syncer) secretPlacedOnCluster(secret corev1.Secret, allAdminMCAppConfigs *clustersv1alpha1.MultiClusterApplicationConfigurationList) bool {
-	labels := strings.Split(secret.Labels[mcAppConfigsLabel], ",")
-	for _, mcAppConfig := range allAdminMCAppConfigs.Items {
-		for _, label := range labels {
-			// Both a matching application configuration label and a matching cluster label be found for the
-			// secret to be placed on the local cluster.
-			if mcAppConfig.Name == label {
-				for _, cluster := range mcAppConfig.Spec.Placement.Clusters {
-					if cluster.Name == secret.Labels[managedClusterLabel] {
-						return true
-					}
-				}
-			}
+// mutateMCSecret mutates the MultiClusterSecret to reflect the contents of the parent MultiClusterSecret
+func mutateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret, mcSecretNew *clustersv1alpha1.MultiClusterSecret) {
+	mcSecretNew.Spec.Placement = mcSecret.Spec.Placement
+	mcSecretNew.Spec.Template = mcSecret.Spec.Template
+	mcSecretNew.Labels = mcSecret.Labels
+}
+
+// mcSecretPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace
+// and indicates the object is placed on the local cluster
+func (s *Syncer) mcSecretPlacedOnCluster(mcAdminList *clustersv1alpha1.MultiClusterSecretList, name string, namespace string) bool {
+	for _, item := range mcAdminList.Items {
+		if item.Name == name && item.Namespace == namespace {
+			return s.isThisCluster(item.Spec.Placement)
 		}
 	}
-
 	return false
 }
