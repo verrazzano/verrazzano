@@ -180,7 +180,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(overridesDir, "kiali-values.yaml"),
+			ValuesFile:              filepath.Join(overridesDir, "kiali-server-values.yaml"),
 			Dependencies:            []string{"istiod"},
 			ReadyStatusFunc:         kiali.IsKialiReady,
 		},

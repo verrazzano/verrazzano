@@ -11,7 +11,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "kiali"
+const ComponentName = "kiali-server"
 
 const kialiDeploymentName = ComponentName
 

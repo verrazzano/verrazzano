@@ -32,7 +32,7 @@ spec:
         prometheus.io/scrape: "false"
         prometheus.io/port: ""
         {{- end }}
-        kiali.io/dashboards: go,kiali
+        kiali.io/runtimes: go,kiali
         {{- if .Values.deployment.pod_annotations }}
         {{- toYaml .Values.deployment.pod_annotations | nindent 8 }}
         {{- end }}
@@ -55,11 +55,6 @@ spec:
         - "/opt/kiali/kiali"
         - "-config"
         - "/kiali-configuration/config.yaml"
-        securityContext:
-          allowPrivilegeEscalation: false
-          privileged: false
-          readOnlyRootFilesystem: false
-          runAsNonRoot: true
         ports:
         - name: api-port
           containerPort: {{ .Values.server.port | default 20001 }}
@@ -109,8 +104,10 @@ spec:
           mountPath: "/kiali-cert"
         - name: {{ include "kiali-server.fullname" . }}-secret
           mountPath: "/kiali-secret"
+        {{- if .Capabilities.APIVersions.Has "route.openshift.io/v1" }}
         - name: {{ include "kiali-server.fullname" . }}-cabundle
           mountPath: "/kiali-cabundle"
+        {{- end }}
         {{- if .Values.deployment.resources }}
         resources:
         {{- toYaml .Values.deployment.resources | nindent 10 }}
@@ -133,11 +130,10 @@ spec:
         secret:
           secretName: {{ .Values.deployment.secret_name }}
           optional: true
+      {{- if .Capabilities.APIVersions.Has "route.openshift.io/v1" }}
       - name: {{ include "kiali-server.fullname" . }}-cabundle
         configMap:
           name: {{ include "kiali-server.fullname" . }}-cabundle
-      {{- if not (.Capabilities.APIVersions.Has "route.openshift.io/v1") }}
-          optional: true
       {{- end }}
       {{- if or (.Values.deployment.affinity.node) (or (.Values.deployment.affinity.pod) (.Values.deployment.affinity.pod_anti)) }}
       affinity:
