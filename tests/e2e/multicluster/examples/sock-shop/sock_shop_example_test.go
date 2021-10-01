@@ -11,7 +11,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/multicluster/examples"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -42,16 +41,16 @@ var _ = AfterEach(func() {
 var _ = BeforeSuite(func() {
 	// deploy the VerrazzanoProject
 	Eventually(func() error {
-		return examples.DeploySockShopProject(adminKubeconfig, sourceDir)
+		return DeploySockShopProject(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// wait for the namespace to be created on the cluster before deploying app
 	Eventually(func() bool {
-		return examples.SockShopNamespaceExists(adminKubeconfig, sourceDir)
+		return SockShopNamespaceExists(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
 	Eventually(func() error {
-		return examples.DeploySockShopApp(adminKubeconfig, sourceDir)
+		return DeploySockShopApp(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 })
 
@@ -62,7 +61,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		// THEN expect that the multi-cluster resources have been created on the admin cluster
 		It("Has multi cluster resources", func() {
 			Eventually(func() bool {
-				return examples.VerifyMCResources(adminKubeconfig, true, false, testNamespace)
+				return VerifyMCResources(adminKubeconfig, true, false, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		// GIVEN an admin cluster
@@ -70,7 +69,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
 		It("Does not have application placed", func() {
 			Consistently(func() bool {
-				return examples.VerifySockShopInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
+				return VerifySockShopInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
 			}, consistentlyDuration, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -81,7 +80,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		// THEN expect that the multi-cluster resources have been created on the managed cluster
 		It("Has multi cluster resources", func() {
 			Eventually(func() bool {
-				return examples.VerifyMCResources(managedKubeconfig, false, true, testNamespace)
+				return VerifyMCResources(managedKubeconfig, false, true, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		// GIVEN an admin cluster and at least one managed cluster
@@ -89,7 +88,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		// THEN expect that the app is deployed to the managed cluster
 		It("Has application placed", func() {
 			Eventually(func() bool {
-				return examples.VerifySockShopInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				return VerifySockShopInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -111,12 +110,12 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
 			It("Does not have multi cluster resources", func() {
 				Eventually(func() bool {
-					return examples.VerifyMCResources(kubeconfig, false, false, testNamespace)
+					return VerifyMCResources(kubeconfig, false, false, testNamespace)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 			It("Does not have application placed", func() {
 				Eventually(func() bool {
-					return examples.VerifySockShopInCluster(kubeconfig, false, false, testProjectName, testNamespace)
+					return VerifySockShopInCluster(kubeconfig, false, false, testProjectName, testNamespace)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		}
@@ -168,25 +167,25 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 
 		It("Verify deletion on admin cluster", func() {
 			Eventually(func() bool {
-				return examples.VerifySockShopDeletedAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
+				return VerifySockShopDeleteOnAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		It("Verify automatic deletion on managed cluster", func() {
 			Eventually(func() bool {
-				return examples.VerifySockShopDeletedInManagedCluster(managedKubeconfig, testNamespace, testProjectName)
+				return VerifySockShopDeleteOnManagedCluster(managedKubeconfig, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		It("Delete test namespace on managed cluster", func() {
 			Eventually(func() error {
-				return pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig)
+				return pkg.DeleteNamespaceInCluster(TestNamespace, managedKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		It("Delete test namespace on admin cluster", func() {
 			Eventually(func() error {
-				return pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig)
+				return pkg.DeleteNamespaceInCluster(TestNamespace, adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 	})
