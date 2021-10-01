@@ -32,10 +32,6 @@ type IstioComponent struct {
 
 	// InjectedSystemNamespaces are the system namespaces injected with istio
 	InjectedSystemNamespaces []string
-
-	// SkipUpgrade when true will skip upgrading this component in the upgrade loop
-	// This is for the istio helm components
-	SkipUpgrade bool
 }
 
 // Verify that IstioComponent implements Component
