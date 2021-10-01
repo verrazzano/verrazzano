@@ -378,6 +378,20 @@ pipeline {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
+                        failure {
+                            script {
+                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('upgrade-failure-cluster-dump')
+                                }
+                            }
+                        }
+                        success {
+                            script {
+                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('upgrade-success-cluster-dump')
+                                }
+                            }
+                        }
                     }
                 }
                 stage('Uninstall') {
@@ -405,12 +419,12 @@ pipeline {
                         success {
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                    dumpK8sCluster('upgrade-uninstall-cluster-dump')
+                                    dumpK8sCluster('uninstall-success-cluster-dump')
                                 }
                             }
                         }
                         failure {
-                            dumpK8sCluster('upgrade-uninstall-failure-cluster-dump')
+                            dumpK8sCluster('uninstall-failure-cluster-dump')
                         }
                     }
                 }
@@ -427,12 +441,12 @@ pipeline {
                         success {
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                    dumpK8sCluster('verify-uninstall-cluster-dump')
+                                    dumpK8sCluster('verify-uninstall-success-cluster-dump')
                                 }
                             }
                         }
                         failure {
-                            dumpK8sCluster('verify-uninstall-cluster-dump')
+                            dumpK8sCluster('verify-uninstall-failed-cluster-dump')
                         }
                     }
                 }
@@ -443,7 +457,7 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('upgrade-failure-post-run-cluster-dump')
+                            dumpK8sCluster('upgrade-failed-cluster-dump')
                         }
                     }
                 }
@@ -451,7 +465,7 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('upgrade-success-post-run-cluster-dump')
+                            dumpK8sCluster('upgrade-success-cluster-dump')
                         }
                     }
                 }
