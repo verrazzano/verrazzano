@@ -172,7 +172,8 @@
               "image": "proxyv2",
               "tag": "1.10.2",
               "helmImageKey": "values.global.proxy.image",
-              "helmTagKey": "values.global.tag"
+              "helmTagKey": "values.global.tag",
+              "helmRegistryAndRepoKey": "values.global.hub"
             }
           ]
         }

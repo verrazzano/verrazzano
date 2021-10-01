@@ -96,6 +96,11 @@ type BomImage struct {
 	// HelmFullImageKey is the helm path Key which identifies the image name.  There are a variety
 	// of keys used by the different helm charts, such as `api.imageName`.
 	HelmFullImageKey string `json:"helmFullImageKey"`
+
+	// HelmRegistryAndRepoKey is the helm path Key which identifies the registry/repo string,
+	// for exampe  global.hub = ghcr.io/verrazzano
+	// There are a variety
+	HelmRegistryAndRepoKey string `json:"helmRegistryAndRepoKey"`
 }
 
 // keyVal defines the Key, Value pair used to override a single helm Value
@@ -217,6 +222,14 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 			fullImageBldr.WriteString(slash)
 		}
 
+		// If the Registry/Repo key is defined then set it
+		if imageBom.HelmRegistryAndRepoKey != "" {
+			regAndRep := registry + "/" + repo
+			kvs = append(kvs, KeyValue{
+				Key:   imageBom.HelmRegistryAndRepoKey,
+				Value: regAndRep,
+			})
+		}
 		// Either write the image name Key Value, or append it to the full image path
 		if imageBom.HelmImageKey != "" {
 			kvs = append(kvs, KeyValue{
