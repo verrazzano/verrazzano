@@ -198,7 +198,7 @@ var _ = AfterSuite(func() {
 })
 
 func cleanUp(kubeconfigPath string) error {
-	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-comp.yaml", sourceDir), kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-app.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster sock-shop application resource: %v", err)
 	}
 
@@ -206,7 +206,7 @@ func cleanUp(kubeconfigPath string) error {
 		return fmt.Errorf("failed to delete multi-cluster sock-shop component resources: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-comp.yaml", sourceDir), kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete sock-shop project resource: %v", err)
 	}
 	return nil
