@@ -318,6 +318,32 @@ func GetACMEEnvironment(kubeconfigPath string) (string, error) {
 	return vz.Spec.Components.CertManager.Certificate.Acme.Environment, nil
 }
 
+// IsCoherenceOperatorEnabled returns true if the COH operator component is not set, or the value of its Enabled field otherwise
+func IsCoherenceOperatorEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return true
+	}
+	if vz.Spec.Components.CoherenceOperator == nil || vz.Spec.Components.CoherenceOperator.Enabled == nil {
+		return true
+	}
+	return *vz.Spec.Components.CoherenceOperator.Enabled
+}
+
+// IsWebLogicOperatorEnabled returns true if the WKO operator component is not set, or the value of its Enabled field otherwise
+func IsWebLogicOperatorEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource, error: %v", err))
+		return true
+	}
+	if vz.Spec.Components.WebLogicOperator == nil || vz.Spec.Components.WebLogicOperator.Enabled == nil {
+		return true
+	}
+	return *vz.Spec.Components.WebLogicOperator.Enabled
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apixv1beta1client.ApiextensionsV1beta1Client, error) {
 	config, err := k8sutil.GetKubeConfig()
