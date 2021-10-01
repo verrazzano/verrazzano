@@ -5,16 +5,17 @@ package helm
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"io/ioutil"
-	"os"
-	"strings"
-
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
+
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )

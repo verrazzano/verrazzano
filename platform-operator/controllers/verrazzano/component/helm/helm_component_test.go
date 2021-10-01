@@ -27,16 +27,7 @@ import (
 
 // Needed for unit tests
 var fakeOverrides string
-
-var vz = &installv1alpha1.Verrazzano{
-	Spec: installv1alpha1.VerrazzanoSpec{
-		Components: installv1alpha1.ComponentSpec{
-			Istio: &installv1alpha1.IstioComponent{
-				IstioInstallArgs: []installv1alpha1.InstallArgs{},
-			},
-		},
-	},
-}
+var vz = &installv1alpha1.Verrazzano{}
 
 // helmFakeRunner is used to test helm without actually running an OS exec command
 type helmFakeRunner struct {

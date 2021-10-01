@@ -33,12 +33,14 @@ apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
   components:
+    egressGateways:
+      - name: istio-egressgateway
+        enabled: true
     ingressGateways:
       - name: istio-ingressgateway
         enabled: true
         k8s:
           service:
-            type: ClusterIP
             externalIPs:
             - 1.2.3.4
 
