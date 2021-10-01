@@ -20,15 +20,24 @@ fi
 
 . $SCRIPT_DIR/common.sh
 
-function install {
-  log "Creating ${VERRAZZANO_NS} namespace"
-  if ! kubectl get namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    kubectl create namespace "${VERRAZZANO_NS}"
+function install_application_operator {
+  if is_chart_deployed verrazzano-application-operator ${VERRAZZANO_NS} $VZ_CHARTS_DIR/verrazzano-application-operator ; then
+    return 0
   fi
 
-  log "Installing Verrazzano application operator"
+  IMAGE_PULL_SECRETS_ARGUMENT=""
+  if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+    IMAGE_PULL_SECRETS_ARGUMENT=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+  fi
+
+  # Used to override the app operator image in development environment
+  APP_OPERATOR_IMAGE_ARG=""
+  if [ -n "${APP_OPERATOR_IMAGE}" ]; then
+    APP_OPERATOR_IMAGE_ARG=" --set image=${APP_OPERATOR_IMAGE}"
+  fi
+
   local chart_name=verrazzano-application-operator
-  HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} --set image=${VERRAZZANO_APP_OP_IMAGE}"
+  build_image_overrides verrazzano-application-operator ${chart_name}
 
   helm_install_retry ${chart_name} ${VZ_CHARTS_DIR}/verrazzano-application-operator ${VERRAZZANO_NS} \
     ${HELM_IMAGE_ARGS} \
@@ -38,6 +47,16 @@ function install {
     error "Failed to install Verrazzano Kubernetes application operator."
     return 1
   fi
+}
+
+function install {
+  log "Creating ${VERRAZZANO_NS} namespace"
+  if ! kubectl get namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    kubectl create namespace "${VERRAZZANO_NS}"
+  fi
+
+  log "Installing Verrazzano application operator"
+  install_application_operator
 
   log "Installing Verrazzano OAM extensions"
   log $(kubectl apply -f ${PROJ_DIR}/deploy)
