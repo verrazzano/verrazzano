@@ -447,6 +447,14 @@ pipeline {
                                 runGinkgo('ingress/console')
                             }
                         }
+                        stage('logging trait weblogic workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/weblogicworkload')
+                            }
+                        }
                     }
                     post {
                         always {
