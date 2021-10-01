@@ -108,7 +108,7 @@
             },
             {
               "image": "istio-coredns-plugin",
-              "tag": "0.2-20201016204812-23723dcb",
+              "tag": "0.2-20211005162952-2daca43d",
               "helmFullImageKey": "istiocoredns.coreDNSPluginImage"
             }
           ]
@@ -286,7 +286,7 @@
             },
             {
               "image": "configmap-reload",
-              "tag": "0.3-20201016205243-4f24a0e",
+              "tag": "0.3-20211005162936-eced4f4",
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
