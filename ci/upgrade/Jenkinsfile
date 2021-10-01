@@ -264,6 +264,9 @@ pipeline {
                             cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                             ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
+                            # Get the install job in verrazzano-install namespace
+                            kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
+                              
                             # Do the upgrade
                             echo "Following is the verrazano CR file with the new version:"
                             cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
@@ -279,6 +282,13 @@ pipeline {
                             sleep 15
                             echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
                             helm list -A
+                            
+                            # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
+                            kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
+                         
+                            echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
+                            cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
+
                         """
                     }
                     post {
