@@ -5,6 +5,7 @@ package loggingtrait
 
 import (
 	"encoding/json"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -20,16 +21,19 @@ func struct2Unmarshal(obj interface{}) (unstructured.Unstructured, error) {
 //Append two slices of interfaces in to one slice without duplicates
 func appendSliceOfInterface(aSlice []interface{}, bSlice []interface{}) []interface{} {
 
-	check := make(map[interface{}]int)
-	dSlice := append(aSlice, bSlice...)
 	res := make([]interface{}, 0)
+	res = append(res, bSlice)
 
-	for _, val := range dSlice {
-		check[val] = 1
-	}
-
-	for i := range check {
-		res = append(res, i)
+	for _, k := range aSlice {
+		jndex := -1
+		for j, l := range bSlice {
+			if reflect.DeepEqual(k, l) {
+				jndex = j
+			}
+		}
+		if jndex == -1 {
+			res = append(res, k)
+		}
 	}
 
 	return res

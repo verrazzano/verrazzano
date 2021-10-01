@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -693,7 +694,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	vmIndex := -1
 	for i, vm := range extracted.VolumeMounts {
-		if vm.MountPath == loggingMountPath {
+		if reflect.DeepEqual(vm, *loggingVolumeMount) {
 			vmIndex = i
 		}
 	}
