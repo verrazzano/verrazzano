@@ -38,7 +38,7 @@ func GetComponents() []spi.Component {
 
 	// **************   TEMP DEBUGGING ******************************************
 
-	testing := false
+	testing := true
 	if testing {
 		return []spi.Component{
 			istio.IstioComponent{
