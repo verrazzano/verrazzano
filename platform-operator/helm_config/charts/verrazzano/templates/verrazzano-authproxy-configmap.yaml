@@ -461,6 +461,9 @@ data:
             redirect_uri = me.callbackUri
         })
         local redirectURL = me.getOidcAuthUri()..'?'..redirectArgs
+        -- there could be an existing (expired) vz_authn cookie.
+        -- delete it to avoid exceeding max header size
+        me.deleteCookie("vz_authn")
         me.setCookie("vz_state", stateData, authStateTtlInSec, true)
         ngx.header["Cache-Control"] = "no-cache, no-store, max-age=0"
         ngx.redirect(redirectURL)
