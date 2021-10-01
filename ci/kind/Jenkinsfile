@@ -393,7 +393,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
                             }
                             steps {
-                                runGinkgo('examples/todo')
+                                //runGinkgo('examples/todo')
                             }
                         }
                         stage('examples socks') {
@@ -444,7 +444,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
                             }
                             steps {
-                                runGinkgo('ingress/console')
+                                //runGinkgo('ingress/console')
                             }
                         }
                     }
