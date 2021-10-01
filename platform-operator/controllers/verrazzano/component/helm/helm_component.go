@@ -96,9 +96,6 @@ type resolveNamespaceSig func(ns string) string
 // upgradeFuncSig is a function needed for unit test override
 type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error)
 
-// upgradeFuncSig is a function needed for unit test override
-type uninstallFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
-
 // readyStatusFuncSig describes the function signature for doing deeper checks on a component's ready state
 type readyStatusFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool
 
