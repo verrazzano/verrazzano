@@ -42,6 +42,7 @@ type adminStatusUpdateFuncType = func(name types.NamespacedName, newCond cluster
 const retryCount = 3
 const managedClusterLabel = "verrazzano.io/managed-cluster"
 const mcAppConfigsLabel = "verrazzano.io/mc-app-configs"
+
 var (
 	retryDelay = 3 * time.Second
 )
