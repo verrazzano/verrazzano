@@ -22,7 +22,7 @@ func struct2Unmarshal(obj interface{}) (unstructured.Unstructured, error) {
 func appendSliceOfInterface(aSlice []interface{}, bSlice []interface{}) []interface{} {
 
 	res := make([]interface{}, 0)
-	res = append(res, bSlice)
+	res = append(res, bSlice...)
 
 	for _, k := range aSlice {
 		jndex := -1
