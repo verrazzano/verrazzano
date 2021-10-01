@@ -5,27 +5,28 @@ package registry
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	"go.uber.org/zap"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 )
 
 // GetComponents returns the list of components that are installable and upgradeable.
@@ -34,15 +35,16 @@ func GetComponents() []spi.Component {
 	overridesDir := config.GetHelmOverridesDir()
 	helmChartsDir := config.GetHelmChartsDir()
 	thirdPartyChartsDir := config.GetThirdPartyDir()
+	injectedSystemNamespaces := config.GetInjectedSystemNamespaces()
 
 	return []spi.Component{
-		// TODO: remove istio helm components
 		helm.HelmComponent{
 			ReleaseName:             "istio-base",
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
 			ChartNamespace:          "istio-system",
 			IgnoreNamespaceOverride: true,
 			IgnoreImageOverrides:    true,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istiod",
@@ -52,6 +54,7 @@ func GetComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
 			ReadyStatusFunc:         istio.IstiodReadyCheck,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istio-ingress",
@@ -60,6 +63,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istio-egress",
@@ -68,6 +72,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istiocoredns",
@@ -76,6 +81,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             nginx.ComponentName,
@@ -184,8 +190,10 @@ func GetComponents() []spi.Component {
 			Dependencies:            []string{"istiod"},
 			ReadyStatusFunc:         kiali.IsKialiReady,
 		},
-		// istio upgrade code still in development so cannot have IstioComponent instance in the registry yet
-		// istio.IstioComponent{},
+		istio.IstioComponent{
+			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
+			InjectedSystemNamespaces: injectedSystemNamespaces,
+		},
 	}
 }
 
