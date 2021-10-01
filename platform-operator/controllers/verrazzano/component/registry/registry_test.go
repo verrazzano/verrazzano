@@ -26,7 +26,7 @@ func TestGetComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := GetComponents()
 
-	assert.Len(comps, 17, "Wrong number of components")
+	assert.Len(comps, 18, "Wrong number of components")
 	assert.Equal(comps[0].Name(), "istio-base")
 	assert.Equal(comps[1].Name(), "istiod")
 	assert.Equal(comps[2].Name(), "istio-ingress")
