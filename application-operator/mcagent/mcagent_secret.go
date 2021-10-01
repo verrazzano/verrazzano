@@ -54,15 +54,15 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 		s.Log.Error(err, "failed to list Secrets on local cluster")
 		return nil
 	}
-	for _, secret := range allLocalSecrets.Items {
+	for i, secret := range allLocalSecrets.Items {
 		_, found := secret.Labels[mcAppConfigsLabel]
 		// Only look at the secrets we have synced
 		if !found {
 			continue
 		}
 		// Delete each Secret object that is no longer placed on this local cluster
-		if !s.secretPlacedOnCluster(&secret, &allAdminMCAppConfigs) {
-			err := s.LocalClient.Delete(s.Context, &secret)
+		if !s.secretPlacedOnCluster(secret, &allAdminMCAppConfigs) {
+			err := s.LocalClient.Delete(s.Context, &allLocalSecrets.Items[i])
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete Secret with name %s and namespace %s", secret.Name, secret.Namespace))
 			}
@@ -87,11 +87,12 @@ func (s *Syncer) createOrUpdateSecret(secret corev1.Secret, mcAppConfigName stri
 
 // mutateSecret mutates the Secret to reflect the contents of the parent Secret
 func mutateSecret(managedClusterName string, mcAppConfigName string, secret corev1.Secret, secretNew *corev1.Secret) {
-	secretNew.Labels = secret.Labels
 	if secretNew.Labels == nil {
 		secretNew.Labels = make(map[string]string)
+		if secret.Labels != nil {
+			secretNew.Labels = secret.Labels
+		}
 	}
-	secretNew.Labels[managedClusterLabel] = managedClusterName
 
 	appConfigs, found := secretNew.Labels[mcAppConfigsLabel]
 	if found {
@@ -103,6 +104,8 @@ func mutateSecret(managedClusterName string, mcAppConfigName string, secret core
 		secretNew.Labels[mcAppConfigsLabel] = mcAppConfigName
 	}
 
+	secretNew.Labels[managedClusterLabel] = managedClusterName
+
 	secretNew.Annotations = secret.Annotations
 	secretNew.Type = secret.Type
 	secretNew.Immutable = secret.Immutable
@@ -110,8 +113,8 @@ func mutateSecret(managedClusterName string, mcAppConfigName string, secret core
 	secretNew.StringData = secret.StringData
 }
 
-// secretPlacedOnCluster returns boolean indicating if the secret if placed on the local cluster
-func (s *Syncer) secretPlacedOnCluster(secret *corev1.Secret, allAdminMCAppConfigs *clustersv1alpha1.MultiClusterApplicationConfigurationList) bool {
+// secretPlacedOnCluster returns boolean indicating if the secret is placed on the local cluster
+func (s *Syncer) secretPlacedOnCluster(secret corev1.Secret, allAdminMCAppConfigs *clustersv1alpha1.MultiClusterApplicationConfigurationList) bool {
 	labels := strings.Split(secret.Labels[mcAppConfigsLabel], ",")
 	for _, mcAppConfig := range allAdminMCAppConfigs.Items {
 		for _, label := range labels {
