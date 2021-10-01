@@ -17,11 +17,10 @@ import (
 )
 
 const (
-	TestNamespace         = "sock-shop" // currently only used for placement tests
 	multiclusterNamespace = "verrazzano-mc"
-	appConfigName         = "sock-shop-appconf"
-	componentName         = "sock-shop-component"
-	workloadName          = "sock-shop-workload"
+	appConfigName         = "mc-sockshop-appconf"
+	componentName         = "mc-sockshop-component"
+	workloadName          = "mc-sockshop-workload"
 )
 
 var expectedPodsSockShop = []string{"sock-shop-deployment"}

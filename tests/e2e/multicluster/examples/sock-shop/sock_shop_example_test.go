@@ -21,8 +21,8 @@ const (
 	waitTimeout          = 5 * time.Minute
 	consistentlyDuration = 1 * time.Minute
 	sourceDir            = "sock-shop"
-	testNamespace        = "sock-shop"
-	testProjectName      = "sock-shop"
+	testNamespace        = "mc-sockshop"
+	testProjectName      = "mc-sockshop"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -179,13 +179,13 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 
 		It("Delete test namespace on managed cluster", func() {
 			Eventually(func() error {
-				return pkg.DeleteNamespaceInCluster(TestNamespace, managedKubeconfig)
+				return pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		It("Delete test namespace on admin cluster", func() {
 			Eventually(func() error {
-				return pkg.DeleteNamespaceInCluster(TestNamespace, adminKubeconfig)
+				return pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 	})
