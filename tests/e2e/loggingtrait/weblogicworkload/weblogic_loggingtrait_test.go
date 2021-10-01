@@ -19,8 +19,8 @@ const (
 	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
 	namespace            = "weblogic-logging-trait"
-	componentsPath		 = "testdata/loggingtrait/weblogicworkload/weblogic-logging-components.yaml"
-	applicationPath		 = "testdata/loggingtrait/weblogicworkload/weblogic-logging-application.yaml"
+	componentsPath       = "testdata/loggingtrait/weblogicworkload/weblogic-logging-components.yaml"
+	applicationPath      = "testdata/loggingtrait/weblogicworkload/weblogic-logging-application.yaml"
 )
 
 var _ = BeforeSuite(func() {
