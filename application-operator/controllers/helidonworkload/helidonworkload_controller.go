@@ -424,11 +424,15 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		}
 
 		if len(containerVolumeMounts) != 0 {
-			for _, containerVolumeMount := range containerVolumeMounts {
-				for _, vMount := range volumeMounts {
-					if containerVolumeMount.(map[string]interface{})["mountPath"] != vMount.(map[string]interface{})["mountPath"] {
-						containerVolumeMounts = append(containerVolumeMounts, vMount)
+			for _, vMount := range volumeMounts {
+				index := -1
+				for i, containerVolumeMount := range containerVolumeMounts {
+					if reflect.DeepEqual(containerVolumeMount, vMount) {
+						index = i
 					}
+				}
+				if index == -1 {
+					containerVolumeMounts = append(containerVolumeMounts, vMount)
 				}
 			}
 		} else {
@@ -438,7 +442,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	iVolumeMount := -1
 	for i, cVolumeMount := range containerVolumeMounts {
-		if cVolumeMount.(map[string]interface{})["mountPath"] == uLoggingVolumeMount["mountPath"] {
+		if reflect.DeepEqual(cVolumeMount.(map[string]interface{}), uLoggingVolumeMount) {
 			iVolumeMount = i
 		}
 	}
