@@ -49,4 +49,4 @@ function install {
 
 }
 
-action "Installing Verrazzano application operator" install || fail "Failed to install the Verrazzano OAM operator. \n $(cat ../build/logs/install.sh.log)"
+action "Installing Verrazzano application operator" install || fail "Failed to install the Verrazzano OAM operator. \n file: $(cat /home/opc/go/src/github.com/verrazzano/verrazzano/application-operator/installer/build/logs/install.sh.log)"
