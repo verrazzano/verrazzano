@@ -41,7 +41,6 @@ spec:
         enabled: true
         k8s:
           service:
-            type: ClusterIP
             externalIPs:
             - 1.2.3.4
 

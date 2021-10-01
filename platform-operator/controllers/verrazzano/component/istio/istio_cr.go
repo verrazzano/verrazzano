@@ -61,7 +61,6 @@ spec:
         enabled: true
         k8s:
           service:
-            type: ClusterIP
             externalIPs:
 {{.ExternalIps}}
 `
