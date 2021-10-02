@@ -26,7 +26,7 @@ func Test_struct2Unmarshal(t *testing.T) {
 			args: args{
 				obj: &corev1.VolumeMount{
 					MountPath: loggingMountPath,
-					Name:      loggingVolume,
+					Name:      "loggingVolume",
 					SubPath:   loggingKey,
 					ReadOnly:  true,
 				},
@@ -34,7 +34,7 @@ func Test_struct2Unmarshal(t *testing.T) {
 			want: unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"mountPath": loggingMountPath,
-					"name":      loggingVolume,
+					"name":      "loggingVolume",
 					"subPath":   loggingKey,
 					"readOnly":  true,
 				},
