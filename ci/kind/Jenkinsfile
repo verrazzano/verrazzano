@@ -388,14 +388,14 @@ pipeline {
                                 runGinkgo('logging/helidon')
                             }
                         }
-                        stage('examples todo') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
-                            }
-                            steps {
-                                //runGinkgo('examples/todo')
-                            }
-                        }
+//                        stage('examples todo') {
+//                            environment {
+//                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+//                            }
+//                            steps {
+//                                runGinkgo('examples/todo')
+//                            }
+//                        }
                         stage('examples socks') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
@@ -439,14 +439,14 @@ pipeline {
                                 runGinkgo('examples/bobsbooks')
                             }
                         }
-                        stage('console ingress') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
-                            }
-                            steps {
-                                //runGinkgo('ingress/console')
-                            }
-                        }
+//                        stage('console ingress') {
+//                            environment {
+//                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
+//                            }
+//                            steps {
+//                                runGinkgo('ingress/console')
+//                            }
+//                        }
                     }
                     post {
                         always {
