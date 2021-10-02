@@ -377,7 +377,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	if err != nil && k8serrors.IsNotFound(err) {
 		configMap = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      loggingNamePart + "-" + helidon.GetName() + "-" + strings.ToLower(reflect.TypeOf(helidon).Name()),
+				Name:      configMapName,
 				Namespace: helidon.GetNamespace(),
 				Labels:    helidon.GetLabels(),
 			},
