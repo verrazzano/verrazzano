@@ -66,9 +66,13 @@ type VerrazzanoComponent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	ComponentName string                    `json:"component,omitempty"`
-	Spec          VerrazzanoSpec            `json:"spec,omitempty"`
-	Status        VerrazzanoComponentStatus `json:"status,omitempty"`
+	Spec   VerrazzanoComponentSpec   `json:"spec,omitempty"`
+	Status VerrazzanoComponentStatus `json:"status,omitempty"`
+}
+
+type VerrazzanoComponentSpec struct {
+	ComponentName string         `json:"component,omitempty"`
+	Configuration VerrazzanoSpec `json:"config,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -561,4 +565,5 @@ type IngressType string
 
 func init() {
 	SchemeBuilder.Register(&Verrazzano{}, &VerrazzanoList{})
+	SchemeBuilder.Register(&VerrazzanoComponent{}, &VerrazzanoComponentList{})
 }

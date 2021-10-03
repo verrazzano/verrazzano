@@ -173,6 +173,17 @@ func main() {
 		mgr.GetWebhookServer().CertDir = config.CertDir
 	}
 
+	// Setup the component reconciler
+	componentReconciler := vzcontroller.ComponentReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		DryRun: config.DryRun,
+	}
+	if err = componentReconciler.SetupControllerWithManager(mgr); err != nil {
+		setupLog.Errorf("unable to create controller: %v", err)
+		os.Exit(1)
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")
