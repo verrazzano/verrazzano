@@ -200,9 +200,8 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 // install. Along with the override files in helm_config, we need to generate image overrides using the
 // BOM json file.  Each component also has the ability to add additional override parameters.
 func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
-func (h HelmComponent) Upgrade(log *zap.SugaredLogger, _ *installv1alpha1.Verrazzano, client clipkg.Client, ns string, dryRun bool) error {
 	if h.SkipUpgrade {
-		log.Infof("Upgrade skipped for %v", h.ReleaseName)
+		context.Log().Infof("Upgrade skipped for %v", h.ReleaseName)
 		return nil
 	}
 
@@ -220,7 +219,7 @@ func (h HelmComponent) Upgrade(log *zap.SugaredLogger, _ *installv1alpha1.Verraz
 	}
 
 	if h.UninstallComponent {
-		_, _, err = helm.Uninstall(log, h.ReleaseName, namespace, dryRun)
+		_, _, err = helm.Uninstall(context.Log(), h.ReleaseName, namespace, context.IsDryRun())
 		return err
 	}
 
