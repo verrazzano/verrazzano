@@ -165,9 +165,15 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the bobs-orders UI is accessed
 		// THEN the expected returned page should contain an expected value.
-		It("Verify bobs-orders UI endpoint is working.", func() {
+		It("Verify bobs-orders UI endpoint for orders is working.", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/orders", host)
+				return pkg.GetWebPage(url, host)
+			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
+		})
+		It("Verify bobs-orders UI endpoint for books is working.", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/books", host)
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
