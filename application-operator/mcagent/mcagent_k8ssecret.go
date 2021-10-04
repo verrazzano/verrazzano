@@ -86,7 +86,7 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 			}
 			if !reflect.DeepEqual(secretAppConfigs, actualAppConfigs) {
 				secret.Labels[mcAppConfigsLabel] = strings.Join(actualAppConfigs, ",")
-				err := s.LocalClient.Update(s.Context, &secret)
+				err := s.LocalClient.Update(s.Context, &allLocalSecrets.Items[i])
 				if err != nil {
 					s.Log.Error(err, fmt.Sprintf("failed to update Secret with name %s and namespace %s", secret.Name, secret.Namespace))
 				}
