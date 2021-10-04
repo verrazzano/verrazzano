@@ -22,6 +22,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"time"
+
 	// +kubebuilder:scaffold:imports
 )
 
@@ -79,7 +81,12 @@ func main() {
 	// validatingWebhookConfiguration resource before the operator container runs.
 	if config.InitWebhooks {
 		setupLog.Info("Setting up certificates for webhook")
-		caCert, err := certificate.CreateSelfSignedCertificate(config.CertDir)
+		certConfig := certificate.Config{
+			CertDir:   config.CertDir,
+			NotBefore: time.Now(),
+			NotAfter:  time.Now().AddDate(1, 0, 0),
+		}
+		caCert, err := certificate.CreateSelfSignedCertificate(certConfig)
 		if err != nil {
 			setupLog.Errorf("unable to setup certificates for webhook: %v", err)
 			os.Exit(1)

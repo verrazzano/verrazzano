@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	adminv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -31,7 +32,12 @@ func TestCreateWebhookCertificates(t *testing.T) {
 		assert.Nil(err, "error should not be returned creating temporary directory")
 	}
 	defer os.RemoveAll(dir)
-	caBundle, err := CreateSelfSignedCertificate(dir)
+	certConfig := Config{
+		CertDir:   dir,
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().AddDate(1, 0, 0),
+	}
+	caBundle, err := CreateSelfSignedCertificate(certConfig)
 	assert.Nil(err, "error should not be returned setting up certificates")
 	assert.NotNil(caBundle, "CA bundle should be returned")
 
@@ -60,7 +66,12 @@ func TestCreateWebhookCertificates(t *testing.T) {
 func TestCreateWebhookCertificatesFail(t *testing.T) {
 	assert := assert.New(t)
 
-	_, err := CreateSelfSignedCertificate("/bad-dir")
+	certConfig := Config{
+		CertDir:   "/bad-dir",
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().AddDate(1, 0, 0),
+	}
+	_, err := CreateSelfSignedCertificate(certConfig)
 	assert.Error(err, "error should be returned setting up certificates")
 }
 

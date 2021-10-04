@@ -28,8 +28,18 @@ const (
 	OperatorNamespace = "verrazzano-install"
 )
 
+// Config specifies the certificate configuration
+type Config struct {
+	// CertDir is the directory where the certificate should be written
+	CertDir string
+	// NotBefore time when certificate is valid
+	NotBefore time.Time
+	// NotAfter time when certificate is valid
+	NotAfter time.Time
+}
+
 // CreateSelfSignedCertificate creates the needed certificates for the validating webhook
-func CreateSelfSignedCertificate(certDir string) (*bytes.Buffer, error) {
+func CreateSelfSignedCertificate(config Config) (*bytes.Buffer, error) {
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 
 	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
@@ -45,8 +55,8 @@ func CreateSelfSignedCertificate(certDir string) (*bytes.Buffer, error) {
 		Subject: pkix.Name{
 			CommonName: commonName,
 		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
+		NotBefore:             config.NotBefore,
+		NotAfter:              config.NotAfter,
 		IsCA:                  true,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
@@ -84,8 +94,8 @@ func CreateSelfSignedCertificate(certDir string) (*bytes.Buffer, error) {
 		Subject: pkix.Name{
 			CommonName: commonName,
 		},
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(1, 0, 0),
+		NotBefore:    config.NotBefore,
+		NotAfter:     config.NotAfter,
 		IsCA:         true,
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
@@ -117,6 +127,7 @@ func CreateSelfSignedCertificate(certDir string) (*bytes.Buffer, error) {
 		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
 	})
 
+	certDir := config.CertDir
 	err = os.MkdirAll(certDir, 0666)
 	if err != nil {
 		return nil, err
