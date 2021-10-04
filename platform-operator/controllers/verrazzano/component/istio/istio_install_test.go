@@ -65,7 +65,7 @@ func TestIsInstalled(t *testing.T) {
 	assert := assert.New(t)
 
 	istio.SetCmdRunner(fakeIstioInstalledRunner{})
-	b, err := comp.IsInstalled(spi.NewContext(zap.S(), getIsInstalledMock(t), installCR, false))
+	b, err := comp.IsInstalled(spi.NewFakeContext(getIsInstalledMock(t), installCR, false))
 	assert.NoError(err, "IsInstalled returned an error")
 	assert.True(b, "IsInstalled returned false")
 }
@@ -89,7 +89,7 @@ func TestIsNotInstalled(t *testing.T) {
 	assert := assert.New(t)
 
 	istio.SetCmdRunner(fakeIstioInstalledRunner{})
-	b, err := comp.IsInstalled(spi.NewContext(zap.S(), getIsNotInstalledMock(t), installCR, false))
+	b, err := comp.IsInstalled(spi.NewFakeContext(getIsNotInstalledMock(t), installCR, false))
 	assert.NoError(err, "IsInstalled returned an error")
 	assert.False(b, "IsInstalled returned true")
 }
@@ -120,7 +120,7 @@ func TestInstall(t *testing.T) {
 	istio.SetCmdRunner(fakeRunner{})
 	setInstallFunc(fakeInstall)
 	setBashFunc(fakeBash)
-	err := comp.Install(spi.NewContext(zap.S(), getIstioInstallMock(t), installCR, false))
+	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -192,7 +192,7 @@ func TestCreateCertSecret(t *testing.T) {
 	assert := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := createCertSecret(spi.NewContext(zap.S(), createCertSecretMock(t), installCR, false))
+	err := createCertSecret(spi.NewFakeContext(createCertSecretMock(t), installCR, false))
 	assert.NoError(err, "createCertSecret returned an error")
 }
 
@@ -264,7 +264,7 @@ func TestCreatePeerAuthentication(t *testing.T) {
 	assert := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := createPeerAuthentication(spi.NewContext(zap.S(), createPeerAuthenticationMock(t), installCR, false))
+	err := createPeerAuthentication(spi.NewFakeContext(createPeerAuthenticationMock(t), installCR, false))
 	assert.NoError(err, "createPeerAuthentication returned an error")
 }
 
@@ -297,7 +297,7 @@ func TestLabelNamespace(t *testing.T) {
 	assert := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := labelNamespace(spi.NewContext(zap.S(), labelNamespaceMock(t), installCR, false))
+	err := labelNamespace(spi.NewFakeContext(labelNamespaceMock(t), installCR, false))
 	assert.NoError(err, "labelNamespace returned an error")
 }
 
@@ -330,7 +330,7 @@ func TestCreateEnvoyFilter(t *testing.T) {
 	assert := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := createEnvoyFilter(spi.NewContext(zap.S(), createEnvoyFilterMock(t), installCR, false))
+	err := createEnvoyFilter(spi.NewFakeContext(createEnvoyFilterMock(t), installCR, false))
 	assert.NoError(err, "createEnvoyFilter returned an error")
 }
 
