@@ -7,13 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
-	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	istiocomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	k8sapps "k8s.io/api/apps/v1"
@@ -640,12 +641,20 @@ func TestUpgradeCompleted(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
 	// Expect a call to get the Prometheus deployment and return a NotFound error.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-0"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
 			return errors2.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, name.Name)
 		})
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -701,16 +710,6 @@ func TestUpgradeCompleted(t *testing.T) {
 	})
 	defer istiocomp.ResetRestartComponentsFn()
 
-	// Inject a fake cmd runner to the real helm is not called
-	helm.SetCmdRunner(goodRunner{})
-	helmcomp.UpgradePrehooksEnabled = false
-
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -743,6 +742,13 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
 
 	// Expect a call to get the Prometheus deployment and return a NotFound error.
 	mock.EXPECT().
@@ -805,16 +811,6 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeComplete, "Incorrect conditions")
 			return fmt.Errorf("Unexpected status error")
 		})
-
-	// Inject a fake cmd runner to the real helm is not called
-	helm.SetCmdRunner(goodRunner{})
-	helmcomp.UpgradePrehooksEnabled = false
-
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	// Create and make the request
 	request := newRequest(namespace, name)

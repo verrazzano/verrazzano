@@ -9,6 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -68,7 +69,7 @@ func TestUpgrade(t *testing.T) {
 	defer istio.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
 	defer setDefaultUpgradeFunc()
-	err := comp.Upgrade(zap.S(), vz, getMock(t), "", false)
+	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), vz, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
 
