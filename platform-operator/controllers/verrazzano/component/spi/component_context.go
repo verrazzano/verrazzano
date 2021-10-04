@@ -38,7 +38,7 @@ func (c componentContext) Log() *zap.SugaredLogger {
 	return c.log
 }
 
-func (c componentContext) GetClient() clipkg.Client {
+func (c componentContext) Client() clipkg.Client {
 	return c.client
 }
 
@@ -46,11 +46,11 @@ func (c componentContext) IsDryRun() bool {
 	return c.dryRun
 }
 
-func (c componentContext) GetCR() *vzapi.Verrazzano {
+func (c componentContext) ActualCR() *vzapi.Verrazzano {
 	return c.cr
 }
 
-func (c componentContext) GetEffectiveCR() *vzapi.Verrazzano {
+func (c componentContext) EffectiveCR() *vzapi.Verrazzano {
 	return c.effectiveCR
 }
 

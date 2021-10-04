@@ -14,11 +14,11 @@ type ComponentContext interface {
 	// Log returns the logger for the context
 	Log() *zap.SugaredLogger
 	// GetClient returns the controller client for the context
-	GetClient() clipkg.Client
-	// GetCR returns the actual Verrazzano resource
-	GetCR() *vzapi.Verrazzano
-	// GetEffectiveCR returns the effective merged Verrazzano CR
-	GetEffectiveCR() *vzapi.Verrazzano
+	Client() clipkg.Client
+	// ActualCR returns the actual unmerged Verrazzano resource
+	ActualCR() *vzapi.Verrazzano
+	// EffectiveCR returns the effective merged Verrazzano CR
+	EffectiveCR() *vzapi.Verrazzano
 	// IsDryRun indicates the component context is in DryRun mode
 	IsDryRun() bool
 	// Copy returns a copy of the current context
@@ -29,9 +29,6 @@ type ComponentContext interface {
 type ComponentInfo interface {
 	// Name returns the name of the Verrazzano component
 	Name() string
-	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
-	// - scaffolding while we move components from the scripts to the operator
-	IsOperatorInstallSupported() bool
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
 	// IsReady Indicates whether or not a component is available and ready
@@ -40,6 +37,9 @@ type ComponentInfo interface {
 
 // InstallComponent interface defines installs operations for components that support it
 type InstallComponent interface {
+	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
+	// - scaffolding while we move components from the scripts to the operator
+	IsOperatorInstallSupported() bool
 	// IsInstalled Indicates whether or not the component is installed
 	IsInstalled(context ComponentContext) (bool, error)
 	// PreInstall allows components to perform any pre-processing required prior to initial install
@@ -59,6 +59,7 @@ type UpgradeComponent interface {
 	// PostUpgrade allows components to perform any post-processing required after upgrading
 	PostUpgrade(context ComponentContext) error
 	// GetSkipUpgrade returns the value of the SkipUpgrade field
+	// - Scaffolding for now during the Istio 1.10.2 upgrade process
 	GetSkipUpgrade() bool
 }
 

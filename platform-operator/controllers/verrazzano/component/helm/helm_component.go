@@ -122,7 +122,7 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 		context.Log().Infof("IsInstalled() dry run for %s", h.ReleaseName)
 		return true, nil
 	}
-	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(context.GetEffectiveCR().Namespace))
+	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace))
 	return installed, nil
 }
 
@@ -132,10 +132,10 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 		context.Log().Infof("IsReady() dry run for %s", h.ReleaseName)
 		return true
 	}
-	ns := h.resolveNamespace(context.GetEffectiveCR().Namespace)
+	ns := h.resolveNamespace(context.EffectiveCR().Namespace)
 	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); deployed {
 		if h.ReadyStatusFunc != nil {
-			return h.ReadyStatusFunc(context.Log(), context.GetClient(), h.ReleaseName, ns)
+			return h.ReadyStatusFunc(context.Log(), context.Client(), h.ReleaseName, ns)
 		}
 		return true
 	}
@@ -145,7 +145,7 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// Resolve the namespace
-	resolvedNamespace := h.resolveNamespace(context.GetEffectiveCR().Namespace)
+	resolvedNamespace := h.resolveNamespace(context.EffectiveCR().Namespace)
 
 	failed, err := helm.IsReleaseFailed(h.ReleaseName, resolvedNamespace)
 	if err != nil {
@@ -161,20 +161,20 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	var kvs []bom.KeyValue
 	if h.PreInstallFunc != nil {
-		preInstallValues, err := h.PreInstallFunc(context.Log(), context.GetClient(), h.ReleaseName, resolvedNamespace, h.ChartDir)
+		preInstallValues, err := h.PreInstallFunc(context.Log(), context.Client(), h.ReleaseName, resolvedNamespace, h.ChartDir)
 		if err != nil {
 			return err
 		}
 		kvs = append(kvs, preInstallValues...)
 	}
 	// check for global image pull secret
-	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.GetClient(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
+	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
 	if err != nil {
 		return err
 	}
 
 	// vz-specific chart overrides file
-	overridesString, err := h.buildOverridesString(context.Log(), context.GetClient(), resolvedNamespace, kvs...)
+	overridesString, err := h.buildOverridesString(context.Log(), context.Client(), resolvedNamespace, kvs...)
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 // BOM json file.  Each component also has the ability to add additional override parameters.
 func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Resolve the namespace
-	namespace := h.resolveNamespace(context.GetEffectiveCR().Namespace)
+	namespace := h.resolveNamespace(context.EffectiveCR().Namespace)
 
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(h.ReleaseName, namespace)
@@ -213,13 +213,13 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Do the preUpgrade if the function is defined
 	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
 		context.Log().Infof("Running preUpgrade function for %s", h.ReleaseName)
-		err := h.PreUpgradeFunc(context.Log(), context.GetClient(), h.ReleaseName, namespace, h.ChartDir)
+		err := h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, namespace, h.ChartDir)
 		if err != nil {
 			return err
 		}
 	}
 
-	overridesString, err := h.buildOverridesString(context.Log(), context.GetClient(), namespace)
+	overridesString, err := h.buildOverridesString(context.Log(), context.Client(), namespace)
 	if err != nil {
 		return err
 	}

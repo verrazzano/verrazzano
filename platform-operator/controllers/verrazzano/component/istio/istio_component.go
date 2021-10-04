@@ -94,7 +94,7 @@ func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	vz := context.GetEffectiveCR()
+	vz := context.EffectiveCR()
 	defer os.Remove(tmpFile.Name())
 	if vz.Spec.Components.Istio != nil {
 		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
@@ -128,7 +128,7 @@ func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	err = restartComponentsFn(log, err, i, context.GetClient())
+	err = restartComponentsFn(log, err, i, context.Client())
 	if err != nil {
 		return err
 	}
