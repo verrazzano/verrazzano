@@ -24,7 +24,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.18", "1.19", "1.20", "1.17" ])
+                choices: [ "1.20", "1.19", "1.21" ])
         string (name: 'VERSION_FOR_INSTALL',
                 defaultValue: 'v1.0.0',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
