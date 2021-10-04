@@ -4,6 +4,7 @@
 package spi
 
 import (
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -20,11 +21,14 @@ type Component interface {
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
 
+	// GetSkipUpgrade returns the value of the SkipUpgrade field
+	GetSkipUpgrade() bool
+
 	// PreUpgrade allows components to perform any pre-processing required prior to upgrading
 	PreUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
 
 	// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-	Upgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
+	Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, client clipkg.Client, namespace string, dryRun bool) error
 
 	// PostUpgrade allows components to perform any post-processing required after upgrading
 	PostUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
@@ -33,7 +37,7 @@ type Component interface {
 	PreInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
 
 	// Install performs the initial install of a component
-	Install(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error
+	Install(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, client clipkg.Client, namespace string, dryRun bool) error
 
 	// PostInstall allows components to perform any post-processing required after initial install
 	PostInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error

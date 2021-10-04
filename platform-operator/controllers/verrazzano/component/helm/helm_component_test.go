@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -26,6 +27,7 @@ import (
 
 // Needed for unit tests
 var fakeOverrides string
+var vz = &installv1alpha1.Verrazzano{}
 
 // helmFakeRunner is used to test helm without actually running an OS exec command
 type helmFakeRunner struct {
@@ -86,7 +88,7 @@ func TestUpgrade(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	err := comp.Upgrade(zap.S(), nil, "", false)
+	err := comp.Upgrade(zap.S(), vz, nil, "", false)
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -111,7 +113,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 	})
 	defer helm.SetDefaultRunner()
 
-	err := comp.Upgrade(zap.S(), nil, "", false)
+	err := comp.Upgrade(zap.S(), vz, nil, "", false)
 	assert.Error(err)
 }
 
@@ -132,7 +134,7 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
 
-	err := comp.Upgrade(zap.S(), nil, "", false)
+	err := comp.Upgrade(zap.S(), vz, nil, "", false)
 	assert.NoError(err)
 }
 
@@ -171,7 +173,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	err := comp.Upgrade(zap.S(), nil, "", false)
+	err := comp.Upgrade(zap.S(), vz, nil, "", false)
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -209,7 +211,7 @@ func TestInstall(t *testing.T) {
 		return helm.ChartNotFound, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(zap.S(), client, "default", false)
+	err := comp.Install(zap.S(), vz, client, "default", false)
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -247,7 +249,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 		return helm.ChartStatusFailed, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(zap.S(), client, "default", false)
+	err := comp.Install(zap.S(), vz, client, "default", false)
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -308,7 +310,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 		return helm.ChartNotFound, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(zap.S(), client, "default", false)
+	err := comp.Install(zap.S(), vz, client, "default", false)
 	assert.NoError(err, "Upgrade returned an error")
 }
 
