@@ -4,6 +4,7 @@
 package istio
 
 import (
+	"crypto/x509/pkix"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
@@ -102,9 +103,15 @@ func (i IstioComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client,
 		log.Errorf("Failed to set NetworkPolicy labels on Istio namespace %s: %v", IstioNamespace, err)
 		return err
 	}
+
+	// Create the cert used by Istio MTLS
 	const certDir = ""
 	certConfig := certificate.Config{
 		CertDir:   certDir,
+		Extensions: pkix.Extension{
+			Id:       ,
+			Value:    nil,
+		}
 		NotBefore: time.Now(),
 		NotAfter:  time.Now().AddDate(1, 0, 0),
 	}

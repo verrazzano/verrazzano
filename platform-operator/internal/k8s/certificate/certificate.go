@@ -32,6 +32,8 @@ const (
 type Config struct {
 	// CertDir is the directory where the certificate should be written
 	CertDir string
+	// X509 extensions
+	Extensions []pkix.Extension
 	// NotBefore time when certificate is valid
 	NotBefore time.Time
 	// NotAfter time when certificate is valid
