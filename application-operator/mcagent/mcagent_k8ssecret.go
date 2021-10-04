@@ -45,7 +45,7 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 		}
 	}
 
-	// Delete orphaned or no longer placed Secret resources.
+	// Cleanup orphaned or no longer placed Secret resources.
 	// Get the list of Secret resources on the local cluster and compare to the list received from the admin cluster.
 	// The admin cluster is the source of truth.
 	allLocalSecrets := corev1.SecretList{}
@@ -71,22 +71,22 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 			// Update the secrets label if the secret was shared across app configs and one of the app configs
 			// was deleted.
 			secretAppConfigs := strings.Split(appConfigs, ",")
-			var savedAppConfigs []string
+			var actualAppConfigs []string
 			for _, mcAppConfig := range allAdminMCAppConfigs.Items {
 				for _, cluster := range mcAppConfig.Spec.Placement.Clusters {
 					if cluster.Name == s.ManagedClusterName {
 						for _, appConfigSecret := range mcAppConfig.Spec.Secrets {
 							// Save the name of the MultiClusterApplicationConfiguration if we have a secret match
 							if appConfigSecret == secret.Name {
-								savedAppConfigs = append(savedAppConfigs, mcAppConfig.Name)
+								actualAppConfigs = append(actualAppConfigs, mcAppConfig.Name)
 							}
 						}
 					}
 				}
 			}
-			if !reflect.DeepEqual(secretAppConfigs, savedAppConfigs) {
-				secret.Labels[mcAppConfigsLabel] = strings.Join(savedAppConfigs, ",")
-				err := s.LocalClient.Update(s.Context,&secret)
+			if !reflect.DeepEqual(secretAppConfigs, actualAppConfigs) {
+				secret.Labels[mcAppConfigsLabel] = strings.Join(actualAppConfigs, ",")
+				err := s.LocalClient.Update(s.Context, &secret)
 				if err != nil {
 					s.Log.Error(err, fmt.Sprintf("failed to update Secret with name %s and namespace %s", secret.Name, secret.Namespace))
 				}
