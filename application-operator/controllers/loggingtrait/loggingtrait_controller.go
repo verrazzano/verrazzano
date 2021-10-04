@@ -120,6 +120,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 				Name:            loggingNamePart,
 				Image:           image,
 				ImagePullPolicy: corev1.PullIfNotPresent,
+				Args:            []string{"-c", "/etc/fluent.conf"},
 			}
 
 			repeatNo := 0

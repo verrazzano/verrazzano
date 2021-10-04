@@ -460,6 +460,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		Name:            loggingNamePart,
 		Image:           image,
 		ImagePullPolicy: corev1.PullIfNotPresent,
+		Args:            []string{"-c", "/etc/fluent.conf"},
 	}
 
 	uLoggingContainer, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingContainer)
