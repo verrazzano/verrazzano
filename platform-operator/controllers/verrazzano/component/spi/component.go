@@ -35,8 +35,8 @@ type ComponentInfo interface {
 	IsReady(context ComponentContext) bool
 }
 
-// InstallComponent interface defines installs operations for components that support it
-type InstallComponent interface {
+// ComponentInstaller interface defines installs operations for components that support it
+type ComponentInstaller interface {
 	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
 	// - scaffolding while we move components from the scripts to the operator
 	IsOperatorInstallSupported() bool
@@ -50,8 +50,8 @@ type InstallComponent interface {
 	PostInstall(context ComponentContext) error
 }
 
-// UpgradeComponent interface defines upgrade operations for components that support it
-type UpgradeComponent interface {
+// ComponentUpgrader interface defines upgrade operations for components that support it
+type ComponentUpgrader interface {
 	// PreUpgrade allows components to perform any pre-processing required prior to upgrading
 	PreUpgrade(context ComponentContext) error
 	// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
@@ -66,6 +66,6 @@ type UpgradeComponent interface {
 // Component interface defines the methods implemented by components
 type Component interface {
 	ComponentInfo
-	InstallComponent
-	UpgradeComponent
+	ComponentInstaller
+	ComponentUpgrader
 }
