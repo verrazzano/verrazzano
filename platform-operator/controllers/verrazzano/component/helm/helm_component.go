@@ -197,7 +197,7 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 
 func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	if h.PostInstallFunc != nil {
-		h.PostInstallFunc(context.Log(), context.GetClient(), context.GetEffectiveCR(), h.ReleaseName, h.resolveNamespace(context.GetEffectiveCR().Namespace), context.IsDryRun())
+		h.PostInstallFunc(context.Log(), context.Client(), context.EffectiveCR(), h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace), context.IsDryRun())
 	}
 	return nil
 }
