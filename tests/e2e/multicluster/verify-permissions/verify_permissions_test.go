@@ -254,16 +254,8 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
-		// VZ-2336: NOT be able to read other resources such as secrets, config maps or deployments in the admin cluster
+		// VZ-2336: NOT be able to read other resources such as config maps in the admin cluster
 		It("managed cluster cannot access resources in other namespaaces", func() {
-			Eventually(func() (bool, error) {
-				err := listResource("verrazzano-system", &v1.SecretList{})
-				// if we didn't get an error, return false to retry
-				if err == nil {
-					return false, goerrors.New("Expected error from listResource")
-				}
-				return errors.IsForbidden(err), nil
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-system", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry
@@ -273,24 +265,8 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			Eventually(func() (bool, error) {
-				err := listResource("verrazzano-mc", &v1.SecretList{})
-				// if we didn't get an error, return false to retry
-				if err == nil {
-					return false, goerrors.New("Expected error from listResource")
-				}
-				return errors.IsForbidden(err), nil
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-mc", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry
-				if err == nil {
-					return false, goerrors.New("Expected error from listResource")
-				}
-				return errors.IsForbidden(err), nil
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-			Eventually(func() (bool, error) {
-				err := listResource(testNamespace, &v1.SecretList{})
-				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from listResource")
 				}
