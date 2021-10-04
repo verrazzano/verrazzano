@@ -88,6 +88,10 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	// a failed helm upgrade that results from a nil reference.  The nil reference occurs when a default value
 	// is added to a new chart and new chart references the new value.
 	for _, overridesFileName := range overridesFiles {
+		if len(overridesFileName) == 0 {
+			log.Debugf("Empty overrides file name for release %s", releaseName)
+			continue
+		}
 		args = append(args, "-f")
 		args = append(args, overridesFileName)
 	}

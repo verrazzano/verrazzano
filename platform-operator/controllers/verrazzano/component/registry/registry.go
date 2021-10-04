@@ -5,10 +5,16 @@ package registry
 
 import (
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -17,27 +23,43 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"go.uber.org/zap"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 )
+
+type GetCompoentsFnType func() []spi.Component
+
+var getComponentsFn = getComponents
+
+// OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
+func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
+	getComponentsFn = fnType
+}
+
+// ResetGetComponentsFn Restores the GetComponents implementation to the default if it's been overridden for testing
+func ResetGetComponentsFn() {
+	getComponentsFn = getComponents
+}
 
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 func GetComponents() []spi.Component {
+	return getComponents()
+}
+
+// getComponents is the internal impl function for GetComponents, to allow overriding it for testing purposes
+func getComponents() []spi.Component {
 	overridesDir := config.GetHelmOverridesDir()
 	helmChartsDir := config.GetHelmChartsDir()
 	thirdPartyChartsDir := config.GetThirdPartyDir()
+	injectedSystemNamespaces := config.GetInjectedSystemNamespaces()
 
 	return []spi.Component{
-		// TODO: remove istio helm components
 		helm.HelmComponent{
 			ReleaseName:             "istio-base",
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
 			ChartNamespace:          "istio-system",
 			IgnoreNamespaceOverride: true,
 			IgnoreImageOverrides:    true,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istiod",
@@ -47,6 +69,7 @@ func GetComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
 			ReadyStatusFunc:         istio.IstiodReadyCheck,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istio-ingress",
@@ -55,6 +78,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istio-egress",
@@ -63,6 +87,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istiocoredns",
@@ -71,10 +96,11 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "ingress-controller",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"),
+			ReleaseName:             nginx.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          "ingress-nginx",
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "ingress-nginx-values.yaml"),
@@ -87,30 +113,30 @@ func GetComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "cert-manager-values.yaml"),
 		},
 		helm.HelmComponent{
-			ReleaseName:             "external-dns",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "external-dns"),
+			ReleaseName:             externaldns.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, externaldns.ComponentName),
 			ChartNamespace:          "cert-manager",
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "external-dns-values.yaml"),
 		},
 		helm.HelmComponent{
-			ReleaseName:             "rancher",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "rancher"),
+			ReleaseName:             rancher.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, rancher.ComponentName),
 			ChartNamespace:          "cattle-system",
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "rancher-values.yaml"),
 		},
 		helm.HelmComponent{
-			ReleaseName:             "verrazzano",
-			ChartDir:                filepath.Join(helmChartsDir, "verrazzano"),
+			ReleaseName:             verrazzano.ComponentName,
+			ChartDir:                filepath.Join(helmChartsDir, verrazzano.ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			ResolveNamespaceFunc:    verrazzano.ResolveVerrazzanoNamespace,
 			PreUpgradeFunc:          verrazzano.VerrazzanoPreUpgrade,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "coherence-operator",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
+			ReleaseName:             coherence.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, coherence.ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
@@ -119,8 +145,8 @@ func GetComponents() []spi.Component {
 			ReadyStatusFunc:         coherence.IsCoherenceOperatorReady,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "weblogic-operator",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "weblogic-operator"),
+			ReleaseName:             weblogic.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, weblogic.ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
@@ -132,8 +158,8 @@ func GetComponents() []spi.Component {
 			ReadyStatusFunc:         weblogic.IsWeblogicOperatorReady,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "oam-kubernetes-runtime",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "oam-kubernetes-runtime"),
+			ReleaseName:             oam.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, oam.ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
@@ -142,8 +168,8 @@ func GetComponents() []spi.Component {
 			ReadyStatusFunc:         oam.IsOAMReady,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "verrazzano-application-operator",
-			ChartDir:                filepath.Join(helmChartsDir, "verrazzano-application-operator"),
+			ReleaseName:             appoper.ComponentName,
+			ChartDir:                filepath.Join(helmChartsDir, appoper.ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
@@ -154,8 +180,8 @@ func GetComponents() []spi.Component {
 			Dependencies:            []string{"oam-kubernetes-runtime"},
 		},
 		helm.HelmComponent{
-			ReleaseName:             "mysql",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "mysql"),
+			ReleaseName:             mysql.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, mysql.ComponentName),
 			ChartNamespace:          "keycloak",
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),
@@ -168,8 +194,10 @@ func GetComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
 			AppendOverridesFunc:     keycloak.AppendKeycloakOverrides,
 		},
-		// istio upgrade code still in development so cannot have IstioComponent instance in the registry yet
-		// istio.IstioComponent{},
+		istio.IstioComponent{
+			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
+			InjectedSystemNamespaces: injectedSystemNamespaces,
+		},
 	}
 }
 
@@ -183,8 +211,9 @@ func FindComponent(releaseName string) (bool, spi.Component) {
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available
-func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c spi.Component) bool {
-	trace, err := checkDependencies(log, client, c, nil)
+func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
+	log := context.Log()
+	trace, err := checkDependencies(c, context, nil)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -203,7 +232,7 @@ func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c sp
 }
 
 // checkDependencies Check the ready state of any dependencies and check for cycles
-func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Component, trace map[string]bool) (map[string]bool, error) {
+func checkDependencies(c spi.Component, context spi.ComponentContext, trace map[string]bool) (map[string]bool, error) {
 	for _, dependencyName := range c.GetDependencies() {
 		if trace == nil {
 			trace = make(map[string]bool)
@@ -215,10 +244,10 @@ func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Compo
 		if !found {
 			return trace, fmt.Errorf("Illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
 		}
-		if trace, err := checkDependencies(log, client, dependency, trace); err != nil {
+		if trace, err := checkDependencies(dependency, context, trace); err != nil {
 			return trace, err
 		}
-		if !dependency.IsReady(log, client, dependencyName) {
+		if !dependency.IsReady(context) {
 			trace[dependencyName] = false // dependency is not ready
 			continue
 		}

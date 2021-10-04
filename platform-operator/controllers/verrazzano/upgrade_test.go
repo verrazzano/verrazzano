@@ -7,12 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"go.uber.org/zap"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
-	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	istiocomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	k8sapps "k8s.io/api/apps/v1"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
@@ -51,6 +54,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
+	labels := map[string]string{}
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -78,14 +82,37 @@ func TestUpgradeNoVersion(t *testing.T) {
 					},
 				},
 			}
+			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			return nil
 		})
 
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
 	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, nil)
+	expectGetServiceAccountExists(mock, name, labels)
 
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -108,6 +135,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
+	labels := map[string]string{}
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -138,14 +166,37 @@ func TestUpgradeSameVersion(t *testing.T) {
 					},
 				},
 			}
+			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			return nil
 		})
 
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
 	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, nil)
+	expectGetServiceAccountExists(mock, name, labels)
 
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -156,6 +207,79 @@ func TestUpgradeSameVersion(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestUpgradeInitComponents tests the reconcileUpgrade method for the following use case
+// GIVEN a request to reconcile an verrazzano resource when Status.Components is empty
+// WHEN spec.version doesn't match status.version
+// THEN ensure that the Status.components is populated
+func TestUpgradeInitComponents(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
+
+	config.SetDefaultBomFilePath(unitTestBomFile)
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	// Expect a call to get the verrazzano resource.  Return resource with version
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+			verrazzano.TypeMeta = metav1.TypeMeta{
+				APIVersion: "install.verrazzano.io/v1alpha1",
+				Kind:       "Verrazzano"}
+			verrazzano.ObjectMeta = metav1.ObjectMeta{
+				Namespace:  name.Namespace,
+				Name:       name.Name,
+				Finalizers: []string{finalizerName}}
+			verrazzano.Spec = vzapi.VerrazzanoSpec{
+				Version: "0.2.0"}
+			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Ready,
+				Conditions: []vzapi.Condition{
+					{
+						Type: vzapi.InstallComplete,
+					},
+				},
+			}
+			return nil
+		})
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(true, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
@@ -199,6 +323,7 @@ func TestUpgradeStarted(t *testing.T) {
 						Type: vzapi.InstallComplete,
 					},
 				},
+				Components: makeVerrazzanoComponentStatusMap(),
 			}
 			return nil
 		})
@@ -268,7 +393,8 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready,
+				State:      vzapi.Ready,
+				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -343,7 +469,8 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready,
+				State:      vzapi.Ready,
+				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -441,7 +568,8 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready,
+				State:      vzapi.Ready,
+				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -513,12 +641,20 @@ func TestUpgradeCompleted(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
 	// Expect a call to get the Prometheus deployment and return a NotFound error.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-0"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
 			return errors2.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, name.Name)
 		})
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -533,7 +669,8 @@ func TestUpgradeCompleted(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready,
+				State:      vzapi.Ready,
+				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -564,15 +701,14 @@ func TestUpgradeCompleted(t *testing.T) {
 			return nil
 		})
 
-	// Inject a fake cmd runner to the real helm is not called
-	helm.SetCmdRunner(goodRunner{})
-	helmcomp.UpgradePrehooksEnabled = false
-
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return []byte(""), []byte(""), nil
 	})
-	defer helm.SetDefaultChartStatusFunction()
+	defer istiocomp.ResetIstioUpgradeFunction()
+	istiocomp.SetRestartComponentsFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
+		return nil
+	})
+	defer istiocomp.ResetRestartComponentsFn()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -607,12 +743,29 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
 	// Expect a call to get the Prometheus deployment and return a NotFound error.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-0"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
 			return errors2.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, name.Name)
 		})
+
+	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return []byte(""), []byte(""), nil
+	})
+	defer istiocomp.ResetIstioUpgradeFunction()
+	istiocomp.SetRestartComponentsFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
+		return nil
+	})
+	defer istiocomp.ResetRestartComponentsFn()
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -627,7 +780,8 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready,
+				State:      vzapi.Ready,
+				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -657,16 +811,6 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeComplete, "Incorrect conditions")
 			return fmt.Errorf("Unexpected status error")
 		})
-
-	// Inject a fake cmd runner to the real helm is not called
-	helm.SetCmdRunner(goodRunner{})
-	helmcomp.UpgradePrehooksEnabled = false
-
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -713,7 +857,8 @@ func TestUpgradeHelmError(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready,
+				State:      vzapi.Ready,
+				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
