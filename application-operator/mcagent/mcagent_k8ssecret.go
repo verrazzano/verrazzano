@@ -5,6 +5,7 @@ package mcagent
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -55,16 +56,40 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 		return nil
 	}
 	for i, secret := range allLocalSecrets.Items {
-		_, found := secret.Labels[mcAppConfigsLabel]
+		appConfigs, found := secret.Labels[mcAppConfigsLabel]
 		// Only look at the secrets we have synced
 		if !found {
 			continue
 		}
-		// Delete each Secret object that is no longer placed on this local cluster
+		// Delete Secret object if it is no longer placed on this local cluster
 		if !s.k8sSecretPlacedOnCluster(secret, &allAdminMCAppConfigs) {
 			err := s.LocalClient.Delete(s.Context, &allLocalSecrets.Items[i])
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete Secret with name %s and namespace %s", secret.Name, secret.Namespace))
+			}
+		} else {
+			// Update the secrets label if the secret was shared across app configs and one of the app configs
+			// was deleted.
+			secretAppConfigs := strings.Split(appConfigs, ",")
+			var savedAppConfigs []string
+			for _, mcAppConfig := range allAdminMCAppConfigs.Items {
+				for _, cluster := range mcAppConfig.Spec.Placement.Clusters {
+					if cluster.Name == s.ManagedClusterName {
+						for _, appConfigSecret := range mcAppConfig.Spec.Secrets {
+							// Save the name of the MultiClusterApplicationConfiguration if we have a secret match
+							if appConfigSecret == secret.Name {
+								savedAppConfigs = append(savedAppConfigs, mcAppConfig.Name)
+							}
+						}
+					}
+				}
+			}
+			if !reflect.DeepEqual(secretAppConfigs, savedAppConfigs) {
+				secret.Labels[mcAppConfigsLabel] = strings.Join(savedAppConfigs, ",")
+				err := s.LocalClient.Update(s.Context,&secret)
+				if err != nil {
+					s.Log.Error(err, fmt.Sprintf("failed to update Secret with name %s and namespace %s", secret.Name, secret.Namespace))
+				}
 			}
 		}
 	}
@@ -97,8 +122,16 @@ func mutateSecret(managedClusterName string, mcAppConfigName string, secret core
 	appConfigs, found := secretNew.Labels[mcAppConfigsLabel]
 	if found {
 		splitAppConfigs := strings.Split(appConfigs, ",")
-		splitAppConfigs = append(splitAppConfigs, mcAppConfigName)
-		secretNew.Labels[mcAppConfigsLabel] = strings.Join(splitAppConfigs, ",")
+		dup := false
+		for _, ac := range splitAppConfigs {
+			if ac == mcAppConfigName {
+				dup = true
+			}
+		}
+		if !dup {
+			splitAppConfigs = append(splitAppConfigs, mcAppConfigName)
+			secretNew.Labels[mcAppConfigsLabel] = strings.Join(splitAppConfigs, ",")
+		}
 
 	} else {
 		secretNew.Labels[mcAppConfigsLabel] = mcAppConfigName

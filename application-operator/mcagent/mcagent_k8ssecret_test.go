@@ -197,9 +197,84 @@ func TestDeleteSecret(t *testing.T) {
 	assert.True(apierrors.IsNotFound(err))
 }
 
+// TestDeleteSecretSharedSecret tests the deletion of secrets for the following use case.
+// GIVEN a request to delete a MultiClusterApplicationConfiguration object
+//   containing a secret and that is shared by another MultiClusterApplicationConfiguration object
+// WHEN the MultiClusterApplicationConfiguration object is deleted
+// THEN ensure that the shared secret is not deleted and the verrazzano.io/mc-app-configs label is updated to reflect
+//   the deleted MultiClusterApplicationConfiguration object
+func TestDeleteSecretSharedSecret(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+
+	// Test data
+	testMCAppConfig1, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
+	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+
+ 	testMCAppConfig2, err := getSampleMCAppConfig("testdata/multicluster-appconfig2.yaml")
+	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+
+	testSecret1, err := getSampleSecret("testdata/secret1.yaml")
+	assert.NoError(err, "failed to read sample data for Secret")
+
+	testSecret2, err := getSampleSecret("testdata/secret2.yaml")
+	assert.NoError(err, "failed to read sample data for Secret")
+
+	adminClient := fake.NewFakeClientWithScheme(newTestScheme(), &testMCAppConfig1, &testMCAppConfig2, &testSecret1, &testSecret2)
+
+	localClient := fake.NewFakeClientWithScheme(newTestScheme())
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminClient,
+		LocalClient:        localClient,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+
+	err = s.syncSecretObjects(testMCAppConfigNamespace)
+	assert.NoError(err)
+
+	// Verify the associated secrets got created on local cluster
+	secret := &corev1.Secret{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
+	assert.NoError(err)
+	assert.Equal(3, len(secret.Labels))
+	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
+	assert.Contains(secret.Labels["label1"], "test1", "secret label did not match")
+	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig,unit-mcappconfig2", "secret label did not match")
+
+	secret = &corev1.Secret{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
+	assert.NoError(err)
+	assert.Equal(2, len(secret.Labels))
+	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
+	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
+
+	// Delete the MultiClusterApplicationConfigurarion object from the admin cluster
+	err = s.AdminClient.Delete(s.Context, &testMCAppConfig1)
+	assert.NoError(err)
+
+	// sync
+	err = s.syncSecretObjects(testMCAppConfigNamespace)
+	assert.NoError(err)
+
+	// shared secret1 should not have been deleted on the local cluster
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
+	assert.NoError(err)
+
+	// label for secret1 should have been updated
+	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig2", "secret label did not match")
+
+	// secret2 should have been deleted on the local cluster
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
+	assert.True(apierrors.IsNotFound(err))
+}
+
 // TestDeleteSecretExtra tests the deletion of secrets for the following use case.
 // GIVEN a request to delete a MultiClusterApplicationConfiguration object
-//   containing a secret and secret that is not part of the MultiClusterApplicationConfiguration object
+//   containing a secret and there is also a secret not part of the MultiClusterApplicationConfiguration object
 // WHEN the MultiClusterApplicationConfiguration object is deleted
 // THEN ensure that only the secret in the MultiClusterApplicationConfiguration object is deleted
 func TestDeleteSecretExtra(t *testing.T) {
@@ -254,9 +329,10 @@ func TestDeleteSecretExtra(t *testing.T) {
 	err = s.syncSecretObjects(testMCAppConfigNamespace)
 	assert.NoError(err)
 
-	// Check that secrets have been deleted on the local cluster
+	// secret1 should have been deleted on the local cluster
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
 	assert.True(apierrors.IsNotFound(err))
+	// secret2 should not have been deleted on the local cluster
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
 	assert.NoError(err)
 }
