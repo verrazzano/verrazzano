@@ -4,7 +4,9 @@
 package registry
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
@@ -84,7 +86,7 @@ func TestComponentDependenciesMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, false))
 	assert.True(t, ready)
 }
 
@@ -116,7 +118,7 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.False(t, ready)
 }
 
@@ -133,22 +135,11 @@ func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
 		Dependencies:    []string{"istiod"},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	//	ObjectMeta: metav1.ObjectMeta{
-	//		Namespace: "istio-system",
-	//		Name:      "istiod",
-	//	},
-	//	Status: appsv1.DeploymentStatus{
-	//		Replicas:            1,
-	//		ReadyReplicas:       0,
-	//		AvailableReplicas:   0,
-	//		UnavailableReplicas: 1,
-	//	},
-	//})
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusPendingInstall, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.False(t, ready)
 }
 
@@ -180,7 +171,7 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.False(t, ready)
 }
 
@@ -212,7 +203,7 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.True(t, ready)
 }
 
@@ -244,7 +235,7 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.False(t, ready)
 }
 
@@ -259,6 +250,6 @@ func TestNoComponentDependencies(t *testing.T) {
 		ChartNamespace: "bar",
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	ready := ComponentDependenciesMet(zap.S(), client, comp)
+	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.True(t, ready)
 }
