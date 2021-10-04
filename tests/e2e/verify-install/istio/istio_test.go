@@ -37,7 +37,6 @@ var _ = Describe("Istio", func() {
 				"istio-egressgateway",
 				"istio-ingressgateway",
 				"istiod",
-				"istiocoredns",
 			}
 
 			deploymentNames := func(deploymentList *appsv1.DeploymentList) []string {
