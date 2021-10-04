@@ -6,14 +6,24 @@ package verrazzano
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"go.uber.org/zap"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
+
+	istiocomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	k8sapps "k8s.io/api/apps/v1"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,6 +85,17 @@ func TestUpgradeNoVersion(t *testing.T) {
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			return nil
 		})
+
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, labels)
@@ -148,6 +169,17 @@ func TestUpgradeSameVersion(t *testing.T) {
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			return nil
 		})
+
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, labels)
@@ -588,7 +620,6 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
-/**
 // TestUpgradeCompleted tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile an verrazzano resource after install is completed
 // WHEN spec.version doesn't match status.version
@@ -610,12 +641,20 @@ func TestUpgradeCompleted(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
 	// Expect a call to get the Prometheus deployment and return a NotFound error.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-0"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
 			return errors2.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, name.Name)
 		})
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -662,15 +701,14 @@ func TestUpgradeCompleted(t *testing.T) {
 			return nil
 		})
 
-	// Inject a fake cmd runner to the real helm is not called
-	helm.SetCmdRunner(goodRunner{})
-	helmcomp.UpgradePrehooksEnabled = false
-
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return []byte(""), []byte(""), nil
 	})
-	defer helm.SetDefaultChartStatusFunction()
+	defer istiocomp.ResetIstioUpgradeFunction()
+	istiocomp.SetRestartComponentsFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
+		return nil
+	})
+	defer istiocomp.ResetRestartComponentsFn()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -683,9 +721,7 @@ func TestUpgradeCompleted(t *testing.T) {
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
-**/
 
-/**
 // TestUpgradeCompletedStatusReturnsError tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile an verrazzano resource after install is completed
 // WHEN the update of the VZ resource status fails and returns an error
@@ -707,12 +743,29 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
 	// Expect a call to get the Prometheus deployment and return a NotFound error.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-0"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
 			return errors2.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, name.Name)
 		})
+
+	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return []byte(""), []byte(""), nil
+	})
+	defer istiocomp.ResetIstioUpgradeFunction()
+	istiocomp.SetRestartComponentsFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
+		return nil
+	})
+	defer istiocomp.ResetRestartComponentsFn()
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -759,16 +812,6 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			return fmt.Errorf("Unexpected status error")
 		})
 
-	// Inject a fake cmd runner to the real helm is not called
-	helm.SetCmdRunner(goodRunner{})
-	helmcomp.UpgradePrehooksEnabled = false
-
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -779,7 +822,6 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	asserts.Error(err)
 	asserts.Equal(true, result.Requeue)
 }
-**/
 
 // TestUpgradeHelmError tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile an verrazzano resource after install is completed

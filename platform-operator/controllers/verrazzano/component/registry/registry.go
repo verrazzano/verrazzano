@@ -5,6 +5,7 @@ package registry
 
 import (
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -13,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -21,27 +23,43 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"go.uber.org/zap"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 )
+
+type GetCompoentsFnType func() []spi.Component
+
+var getComponentsFn = getComponents
+
+// OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
+func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
+	getComponentsFn = fnType
+}
+
+// ResetGetComponentsFn Restores the GetComponents implementation to the default if it's been overridden for testing
+func ResetGetComponentsFn() {
+	getComponentsFn = getComponents
+}
 
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 func GetComponents() []spi.Component {
+	return getComponents()
+}
+
+// getComponents is the internal impl function for GetComponents, to allow overriding it for testing purposes
+func getComponents() []spi.Component {
 	overridesDir := config.GetHelmOverridesDir()
 	helmChartsDir := config.GetHelmChartsDir()
 	thirdPartyChartsDir := config.GetThirdPartyDir()
+	injectedSystemNamespaces := config.GetInjectedSystemNamespaces()
 
 	return []spi.Component{
-		// TODO: remove istio helm components
 		helm.HelmComponent{
 			ReleaseName:             "istio-base",
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
 			ChartNamespace:          "istio-system",
 			IgnoreNamespaceOverride: true,
 			IgnoreImageOverrides:    true,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istiod",
@@ -51,6 +69,7 @@ func GetComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
 			ReadyStatusFunc:         istio.IstiodReadyCheck,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istio-ingress",
@@ -59,6 +78,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istio-egress",
@@ -67,6 +87,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "istiocoredns",
@@ -75,6 +96,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
+			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             nginx.ComponentName,
@@ -172,8 +194,10 @@ func GetComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
 			AppendOverridesFunc:     keycloak.AppendKeycloakOverrides,
 		},
-		// istio upgrade code still in development so cannot have IstioComponent instance in the registry yet
-		// istio.IstioComponent{},
+		istio.IstioComponent{
+			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
+			InjectedSystemNamespaces: injectedSystemNamespaces,
+		},
 	}
 }
 
@@ -187,8 +211,9 @@ func FindComponent(releaseName string) (bool, spi.Component) {
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available
-func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c spi.Component) bool {
-	trace, err := checkDependencies(log, client, c, nil)
+func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
+	log := context.Log()
+	trace, err := checkDependencies(c, context, nil)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -207,7 +232,7 @@ func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c sp
 }
 
 // checkDependencies Check the ready state of any dependencies and check for cycles
-func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Component, trace map[string]bool) (map[string]bool, error) {
+func checkDependencies(c spi.Component, context spi.ComponentContext, trace map[string]bool) (map[string]bool, error) {
 	for _, dependencyName := range c.GetDependencies() {
 		if trace == nil {
 			trace = make(map[string]bool)
@@ -219,10 +244,10 @@ func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Compo
 		if !found {
 			return trace, fmt.Errorf("Illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
 		}
-		if trace, err := checkDependencies(log, client, dependency, trace); err != nil {
+		if trace, err := checkDependencies(dependency, context, trace); err != nil {
 			return trace, err
 		}
-		if !dependency.IsReady(log, client, dependencyName) {
+		if !dependency.IsReady(context) {
 			trace[dependencyName] = false // dependency is not ready
 			continue
 		}

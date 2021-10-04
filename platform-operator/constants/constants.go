@@ -80,3 +80,9 @@ const ElasticsearchURLEnvVar = "ELASTICSEARCH_URL"
 
 // GlobalImagePullSecName is the name of the global image pull secret
 const GlobalImagePullSecName = "verrazzano-container-registry"
+
+// IngressNginxNamespace is the nginx ingress namespace name
+const IngressNginxNamespace = "ingress-nginx"
+
+//  KeycloakNamespace is the keycloak namespace name
+const KeycloakNamespace = "keycloak"

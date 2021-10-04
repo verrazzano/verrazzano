@@ -8,6 +8,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -24,6 +25,8 @@ import (
 func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogger, cr *vzapi.Verrazzano) (ctrl.Result, error) {
 
 	var requeue bool
+
+	compContext := spi.NewContext(log, r, cr, r.DryRun)
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
@@ -47,18 +50,18 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 
 		case vzapi.PreInstalling:
 			log.Infof("PreInstalling component %s", comp.Name())
-			if !registry.ComponentDependenciesMet(log, r.Client, comp) {
+			if !registry.ComponentDependenciesMet(comp, compContext) {
 				log.Infof("Dependencies not met for %s: %v", comp.Name(), comp.GetDependencies())
 				requeue = true
 				continue
 			}
-			if err := comp.PreInstall(log, r, cr.Namespace, r.DryRun); err != nil {
+			if err := comp.PreInstall(compContext); err != nil {
 				log.Errorf("Error calling comp.PreInstall for component %s: %v", comp.Name(), err.Error())
 				requeue = true
 				continue
 			}
 			// If component is not installed,install it
-			if err := comp.Install(log, r, cr.Namespace, r.DryRun); err != nil {
+			if err := comp.Install(compContext); err != nil {
 				log.Errorf("Error calling comp.Install for component %s: %v", comp.Name(), err.Error())
 				requeue = true
 				continue
@@ -72,8 +75,8 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			// If component is enabled -- need to replicate scripts' config merging logic here
 			// If component is in deployed state, continue
-			if comp.IsReady(log, r.Client, cr.Namespace) {
-				if err := comp.PostInstall(log, r, cr.Namespace, r.DryRun); err != nil {
+			if comp.IsReady(compContext) {
+				if err := comp.PostInstall(compContext); err != nil {
 					return newRequeueWithDelay(), err
 				}
 				log.Infof("Component %s successfully installed", comp.Name())
