@@ -76,7 +76,7 @@
       ]
     },
     {
-      "name":"external-dns",
+      "name": "external-dns",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -151,6 +151,29 @@
               "tag": "1.7.3",
               "helmImageKey": "global.proxy.image",
               "helmTagKey": "global.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "istio-1.10.2",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "istiod-1.10.2",
+          "images": [
+            {
+              "image": "pilot",
+              "tag": "1.10.2",
+              "helmFullImageKey": "values.pilot.image"
+            },
+            {
+              "image": "proxyv2",
+              "tag": "1.10.2",
+              "helmImageKey": "values.global.proxy.image",
+              "helmTagKey": "values.global.tag",
+              "helmRegistryAndRepoKey": "values.global.hub"
             }
           ]
         }
@@ -360,7 +383,7 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.3.0",
+              "tag": "3.3.2",
               "helmFullImageKey": "image"
             }
           ]
