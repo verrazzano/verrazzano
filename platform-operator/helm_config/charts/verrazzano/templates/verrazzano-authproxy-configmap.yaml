@@ -519,8 +519,12 @@ data:
                 ["Content-Type"] = "application/x-www-form-urlencoded",
             }
         })
-        -- ,keepalive_timeout = 60000,
-        -- keepalive_pool = 10
+        if err then
+            me.unauthorized("Error requesting token", err)
+        end
+        if not res then
+            me.unauthorized("Error requesting token: response was nil")
+        end
         local tokenRes = cjson.decode(res.body)
         if tokenRes.error or tokenRes.error_description then
             me.info("Error requesting token")
