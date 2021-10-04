@@ -1030,7 +1030,7 @@ def testHelidonExample(testSuitePath) {
     }
 }
 
-// Test the multicluster Helidon example
+// Test the multicluster sock-shop example
 def testSockExample(testSuitePath) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -1455,7 +1455,6 @@ def modifyHelloHelidonApp(newName) {
       export MC_PROJ_NAME="${newName}"
       ${GO_REPO_PATH}/verrazzano/ci/scripts/generate_mc_hello_deployment_files.sh
     """
-
 }
 
 def deploySampleApp() {

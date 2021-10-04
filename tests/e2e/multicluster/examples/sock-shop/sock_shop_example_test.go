@@ -40,18 +40,18 @@ var _ = AfterEach(func() {
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = BeforeSuite(func() {
 	// deploy the VerrazzanoProject
-	Eventually(func() error {
-		return DeploySockShopProject(adminKubeconfig, sourceDir)
-	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	//Eventually(func() error {
+	//	return DeploySockShopProject(adminKubeconfig, sourceDir)
+	//}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// wait for the namespace to be created on the cluster before deploying app
 	Eventually(func() bool {
 		return SockShopNamespaceExists(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
-	Eventually(func() error {
-		return DeploySockShopApp(adminKubeconfig, sourceDir)
-	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	//Eventually(func() error {
+	//	return DeploySockShopApp(adminKubeconfig, sourceDir)
+	//}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 })
 
 var _ = Describe("Multi-cluster verify sock-shop", func() {
