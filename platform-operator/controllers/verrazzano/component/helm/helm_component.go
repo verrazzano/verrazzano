@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -45,6 +46,9 @@ type HelmComponent struct {
 	// PreInstallFunc is an optional function to run before installing
 	PreInstallFunc preInstallFuncSig
 
+	// PostInstallFunc is an optional function to run after installing
+	PostInstallFunc postInstallFuncSig
+
 	// PreUpgradeFunc is an optional function to run before upgrading
 	PreUpgradeFunc preUpgradeFuncSig
 
@@ -78,7 +82,10 @@ type HelmComponent struct {
 var _ spi.Component = HelmComponent{}
 
 // preInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
-type preInstallFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error)
+type preInstallFuncSig func(log *zap.SugaredLogger, client clipkg.Client, cr *vzapi.Verrazzano, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error)
+
+// postInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
+type postInstallFuncSig func(log *zap.SugaredLogger, client clipkg.Client, cr *vzapi.Verrazzano, releaseName string, namespace string, dryRun bool) error
 
 // preUpgradeFuncSig is the signature for the optional preUgrade function
 type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
@@ -161,7 +168,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	var kvs []bom.KeyValue
 	if h.PreInstallFunc != nil {
-		preInstallValues, err := h.PreInstallFunc(context.Log(), context.Client(), h.ReleaseName, resolvedNamespace, h.ChartDir)
+		preInstallValues, err := h.PreInstallFunc(context.Log(), context.Client(), context.EffectiveCR(), h.ReleaseName, resolvedNamespace, h.ChartDir)
 		if err != nil {
 			return err
 		}
@@ -189,6 +196,9 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
+	if h.PostInstallFunc != nil {
+		h.PostInstallFunc(context.Log(), context.GetClient(), context.GetEffectiveCR(), h.ReleaseName, h.resolveNamespace(context.GetEffectiveCR().Namespace), context.IsDryRun())
+	}
 	return nil
 }
 
@@ -351,4 +361,27 @@ func setDefaultUpgradeFunc() {
 
 func (h HelmComponent) GetSkipUpgrade() bool {
 	return h.SkipUpgrade
+}
+
+// GetInstallArgs returns the list of install args as Helm value pairs
+func GetInstallArgs(args []vzapi.InstallArgs) []bom.KeyValue {
+	installArgs := []bom.KeyValue{}
+	for _, arg := range args {
+		installArg := bom.KeyValue{}
+		if arg.Value != "" {
+			installArg.Key = arg.Name
+			installArg.Value = arg.Value
+			if arg.SetString {
+				installArg.SetString = arg.SetString
+			}
+			installArgs = append(installArgs, installArg)
+			continue
+		}
+		for i, value := range arg.ValueList {
+			installArg.Key = fmt.Sprintf("%s[%d]", arg.Name, i)
+			installArg.Value = value
+			installArgs = append(installArgs, installArg)
+		}
+	}
+	return installArgs
 }

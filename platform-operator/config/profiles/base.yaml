@@ -1,0 +1,6 @@
+kind: Verrazzano
+spec:
+  environmentName: default
+  components:
+    ingress:
+      type: LoadBalancer

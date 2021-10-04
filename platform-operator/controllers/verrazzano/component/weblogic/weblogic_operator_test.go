@@ -3,6 +3,7 @@
 package weblogic
 
 import (
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,7 +46,7 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 //  THEN no errors are returned
 func Test_weblogicOperatorPreInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	kvs, err := WeblogicOperatorPreInstall(zap.S(), client, "weblogic-operator", "verrazzano-system", "")
+	kvs, err := WeblogicOperatorPreInstall(zap.S(), client, &vzapi.Verrazzano{}, "weblogic-operator", "verrazzano-system", "")
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 0)
 }

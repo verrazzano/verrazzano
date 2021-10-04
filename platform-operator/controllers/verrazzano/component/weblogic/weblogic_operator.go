@@ -6,7 +6,7 @@ package weblogic
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
 	"go.uber.org/zap"
@@ -48,7 +48,7 @@ func AppendWeblogicOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _
 	return kvs, nil
 }
 
-func WeblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string, _ string) ([]bom.KeyValue, error) {
+func WeblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, cr *vzapi.Verrazzano, _ string, namespace string, _ string) ([]bom.KeyValue, error) {
 	var serviceAccount corev1.ServiceAccount
 	const accountName = "weblogic-operator-sa"
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: accountName, Namespace: namespace}, &serviceAccount); err != nil {
@@ -80,7 +80,7 @@ func IsWeblogicOperatorReady(log *zap.SugaredLogger, c clipkg.Client, _ string, 
 }
 
 // IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(comp *v1alpha1.WebLogicOperatorComponent) bool {
+func IsEnabled(comp *vzapi.WebLogicOperatorComponent) bool {
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}

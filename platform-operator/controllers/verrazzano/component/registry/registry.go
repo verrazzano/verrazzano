@@ -5,7 +5,6 @@ package registry
 
 import (
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -103,7 +102,13 @@ func getComponents() []spi.Component {
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          "ingress-nginx",
 			IgnoreNamespaceOverride: true,
+			SupportsOperatorInstall: false,
+			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(overridesDir, "ingress-nginx-values.yaml"),
+			PreInstallFunc:          nginx.PreInstall,
+			PostInstallFunc:         nginx.PostInstall,
+			Dependencies:            []string{"istiod"},
+			ReadyStatusFunc:         nginx.IsReady,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "cert-manager",

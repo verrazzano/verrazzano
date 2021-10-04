@@ -273,7 +273,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
 		ValuesFile:              "ValuesFile",
-		PreInstallFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error) {
+		PreInstallFunc: func(log *zap.SugaredLogger, client clipkg.Client, cr *v1alpha1.Verrazzano, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error) {
 			return preInstallKVPairs, nil
 		},
 	}

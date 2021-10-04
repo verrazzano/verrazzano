@@ -1,0 +1,7 @@
+kind: Verrazzano
+spec:
+  components:
+    keycloak:
+      enabled: false
+    rancher:
+      enabled: false
