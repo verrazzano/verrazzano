@@ -593,7 +593,8 @@ TIMESTAMP=$(date +%s)
 DNS_TYPE=$(get_config_value ".dns.type")
 CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")
 
-action "Installing NGINX Ingress Controller" install_nginx_ingress_controller || exit 1
+#action "Installing NGINX Ingress Controller" install_nginx_ingress_controller || exit 1
+platform_operator_install_message "NGINX Ingress Controller"
 
 # We can only know the ingress IP after installing nginx ingress controller
 INGRESS_IP=$(get_verrazzano_ingress_ip)

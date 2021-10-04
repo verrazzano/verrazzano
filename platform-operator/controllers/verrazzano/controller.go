@@ -443,7 +443,7 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 				Labels:             vz.Labels,
 				ServiceAccountName: buildServiceAccountName(vz.Name),
 				JobImage:           os.Getenv("VZ_INSTALL_IMAGE"),
-				DryRun:             r.DryRun,
+				DryRun:             true, //r.DryRun,
 			},
 			ConfigMapName: configMapName,
 		})
