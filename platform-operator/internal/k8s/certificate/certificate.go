@@ -28,8 +28,8 @@ const (
 	OperatorNamespace = "verrazzano-install"
 )
 
-// CreateWebhookCertificates creates the needed certificates for the validating webhook
-func CreateWebhookCertificates(certDir string) (*bytes.Buffer, error) {
+// CreateSelfSignedCertificate creates the needed certificates for the validating webhook
+func CreateSelfSignedCertificate(certDir string) (*bytes.Buffer, error) {
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 
 	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
@@ -98,7 +98,7 @@ func CreateWebhookCertificates(certDir string) (*bytes.Buffer, error) {
 		return nil, err
 	}
 
-	// sign the server cert
+	// sign the server cert with the self-signed cert that was just created
 	serverCertBytes, err := x509.CreateCertificate(cryptorand.Reader, cert, ca, &serverPrivKey.PublicKey, caPrivKey)
 	if err != nil {
 		return nil, err

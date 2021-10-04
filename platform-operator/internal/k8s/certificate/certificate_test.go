@@ -21,7 +21,7 @@ import (
 
 // TestCreateWebhookCertificates tests that the certificates needed for webhooks are created
 // GIVEN an output directory for certificates
-//  WHEN I call CreateWebhookCertificates
+//  WHEN I call CreateSelfSignedCertificate
 //  THEN all the needed certificate artifacts are created
 func TestCreateWebhookCertificates(t *testing.T) {
 	assert := assert.New(t)
@@ -31,7 +31,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 		assert.Nil(err, "error should not be returned creating temporary directory")
 	}
 	defer os.RemoveAll(dir)
-	caBundle, err := CreateWebhookCertificates(dir)
+	caBundle, err := CreateSelfSignedCertificate(dir)
 	assert.Nil(err, "error should not be returned setting up certificates")
 	assert.NotNil(caBundle, "CA bundle should be returned")
 
@@ -55,12 +55,12 @@ func TestCreateWebhookCertificates(t *testing.T) {
 
 // TestCreateWebhookCertificatesFail tests that the certificates needed for webhooks are not created
 // GIVEN an invalid output directory for certificates
-//  WHEN I call CreateWebhookCertificates
+//  WHEN I call CreateSelfSignedCertificate
 //  THEN all the needed certificate artifacts are not created
 func TestCreateWebhookCertificatesFail(t *testing.T) {
 	assert := assert.New(t)
 
-	_, err := CreateWebhookCertificates("/bad-dir")
+	_, err := CreateSelfSignedCertificate("/bad-dir")
 	assert.Error(err, "error should be returned setting up certificates")
 }
 

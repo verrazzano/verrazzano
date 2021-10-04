@@ -65,7 +65,10 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 		log.Errorf("Failed to set NetworkPolicy labels on Istio namespace %s: %v", IstioNamespace, err)
 		return err
 	}
-
+	if err := namespace.AddLabels(log, client, IstioNamespace, nsLabelForNetPol); err != nil {
+		log.Errorf("Failed to set NetworkPolicy labels on Istio namespace %s: %v", IstioNamespace, err)
+		return err
+	}
 	// check for global image pull secret
 	kvs, err = addGlobalImagePullSecretHelmOverride(log, client, IstioNamespace, kvs, imagePullSecretHelmKey)
 	if err != nil {
