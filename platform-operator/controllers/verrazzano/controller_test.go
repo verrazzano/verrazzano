@@ -212,6 +212,75 @@ func TestSuccessfulInstall(t *testing.T) {
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
+// TestInstallInitComponents tests the reconcile method for the following use case
+// GIVEN a request to reconcile a verrazzano resource when Status.Components is empty
+// THEN ensure that the Status.components is populated
+func TestInstallInitComponents(t *testing.T) {
+	unitTesting = true
+	namespace := "verrazzano"
+	name := "test"
+	labels := map[string]string{"label1": "test"}
+	var verrazzanoToUse vzapi.Verrazzano
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	config.TestHelmConfigDir = "../../helm_config"
+
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+	verrazzanoToUse.Status.State = vzapi.Ready
+
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	// Expect a call to get the verrazzano resource.
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
 // TestCreateLocalRegistrationSecret tests the syncLocalRegistrationSecret method for the following use case
 // GIVEN a request to sync the local cluster MC registration secret
 // WHEN a the secret does not exist
@@ -1317,6 +1386,7 @@ func TestConfigMapGetError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1369,6 +1439,7 @@ func TestConfigMapCreateError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1426,6 +1497,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1482,6 +1554,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1543,6 +1616,7 @@ func TestJobGetError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1609,6 +1683,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1661,6 +1736,7 @@ func TestJobCreateError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
