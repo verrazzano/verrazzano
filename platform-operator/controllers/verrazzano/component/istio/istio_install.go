@@ -5,13 +5,15 @@ package istio
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
+	vzns "github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 )
 
 func (i IstioComponent) IsOperatorInstallSupported() bool {
@@ -22,10 +24,8 @@ func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, _ str
 	return false, nil
 }
 
-func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, client clipkg.Client, _ string, _ bool) error {
+func (i IstioComponent) Install(log *zap.SugaredLogger, vz *vzapi.Verrazzano, client clipkg.Client, _ string, _ bool) error {
 	const imagePullSecretHelmKey = "values.global.imagePullSecrets[0].name"
-	nsLabelForNetPol := map[string]string{"verrazzano.io/namespace": "istio-system"}
-
 	var tmpFile *os.File
 	var kvs []bom.KeyValue
 	var err error
@@ -56,19 +56,6 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 
-	// Ensure Isito namespace exists and label it for network policies
-	if err := namespace.EnsureExists(log, client, IstioNamespace); err != nil {
-		log.Errorf("Failed to ensure Istio namespace %s exists: %v", IstioNamespace, err)
-		return err
-	}
-	if err := namespace.AddLabels(log, client, IstioNamespace, nsLabelForNetPol); err != nil {
-		log.Errorf("Failed to set NetworkPolicy labels on Istio namespace %s: %v", IstioNamespace, err)
-		return err
-	}
-	if err := namespace.AddLabels(log, client, IstioNamespace, nsLabelForNetPol); err != nil {
-		log.Errorf("Failed to set NetworkPolicy labels on Istio namespace %s: %v", IstioNamespace, err)
-		return err
-	}
 	// check for global image pull secret
 	kvs, err = addGlobalImagePullSecretHelmOverride(log, client, IstioNamespace, kvs, imagePullSecretHelmKey)
 	if err != nil {
@@ -99,6 +86,34 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 }
 
 func (i IstioComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	nsLabelForNetPol := map[string]string{"verrazzano.io/namespace": "istio-system"}
+
+	// Ensure Istio namespace exists and label it for network policies
+	if err := vzns.EnsureExists(log, client, IstioNamespace); err != nil {
+		log.Errorf("Failed to ensure Istio namespace %s exists: %v", IstioNamespace, err)
+		return err
+	}
+
+	if err := vzns.AddLabels(log, client, IstioNamespace, nsLabelForNetPol); err != nil {
+		log.Errorf("Failed to set NetworkPolicy labels on Istio namespace %s: %v", IstioNamespace, err)
+		return err
+	}
+	if err := vzns.AddLabels(log, client, IstioNamespace, nsLabelForNetPol); err != nil {
+		log.Errorf("Failed to set NetworkPolicy labels on Istio namespace %s: %v", IstioNamespace, err)
+		return err
+	}
+	const certDir = ""
+	certConfig := certificate.Config{
+		CertDir:   certDir,
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().AddDate(1, 0, 0),
+	}
+	caCert, err := certificate.CreateSelfSignedCertificate(certConfig)
+	if err != nil {
+		log.Errorf("Failed to create Certificate for Istio: %v", err)
+		os.Exit(1)
+	}
+
 	return nil
 }
 

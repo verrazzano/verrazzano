@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 
@@ -36,9 +35,6 @@ type IstioComponent struct {
 	// This is for the istio helm components
 	SkipUpgrade bool
 }
-
-// Verify that IstioComponent implements Component
-var _ spi.Component = IstioComponent{}
 
 type upgradeFuncSig func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
@@ -70,7 +66,10 @@ func (i IstioComponent) Name() string {
 	return "istio"
 }
 
-func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, client clipkg.Client, _ string, _ bool) error {
+func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
+
+	log := context.Log()
+
 	// temp file to contain override values from istio install args
 	var tmpFile *os.File
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "values-*.yaml")
@@ -79,6 +78,7 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 		return err
 	}
 
+	vz := context.EffectiveCR()
 	defer os.Remove(tmpFile.Name())
 	if vz.Spec.Components.Istio != nil {
 		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
@@ -112,7 +112,7 @@ func (i IstioComponent) Upgrade(log *zap.SugaredLogger, vz *installv1alpha1.Verr
 		return err
 	}
 
-	err = restartComponentsFn(log, err, i, client)
+	err = restartComponentsFn(log, err, i, context.Client())
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func setDefaultUpgradeFunc() {
 	upgradeFunc = istio.Upgrade
 }
 
-func (i IstioComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
+func (i IstioComponent) IsReady(_ spi.ComponentContext) bool {
 	return true
 }
 
@@ -137,11 +137,11 @@ func (i IstioComponent) GetDependencies() []string {
 	return []string{}
 }
 
-func (i IstioComponent) PreUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (i IstioComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (i IstioComponent) PostUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (i IstioComponent) PostUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
