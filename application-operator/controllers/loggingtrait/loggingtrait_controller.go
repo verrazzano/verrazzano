@@ -306,6 +306,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				Name:            loggingNamePart,
 				Image:           trait.Spec.LoggingImage,
 				ImagePullPolicy: corev1.PullIfNotPresent,
+				Args:            []string{"-c", "/etc/fluent.conf"},
 			}
 
 			uLoggingContainer, err := struct2Unmarshal(loggingContainer)
