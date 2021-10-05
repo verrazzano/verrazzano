@@ -164,7 +164,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 
 		It("can be logged out", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
-				return pkg.GetWebPage(fmt.Sprintf("%s/%s",serverURL,"_logout"), "")
+				return pkg.GetWebPage(fmt.Sprintf("%s/%s", serverURL, "_logout"), "")
 			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusFound)))
 		})
 	})
