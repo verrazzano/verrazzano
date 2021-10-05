@@ -18,7 +18,7 @@ import (
 
 const (
 	multiclusterNamespace = "verrazzano-mc"
-	appConfigName         = "msockshop-appconf"
+	appConfigName         = "sockshop-appconf"
 	cartsComponent        = "carts-component"
 	catalogComponent      = "catalog-component"
 	ordersComponent       = "orders-component"
@@ -32,6 +32,7 @@ var expectedPodsSockShop = []string{"sock-shop-deployment"}
 
 // DeploySockShopProject deploys the sock-shop example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
+	fmt.Println("deploying vz-proj")
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("Failed to create %s project resource: %v", sourceDir, err)
 	}
@@ -40,9 +41,11 @@ func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
 
 // DeploySockShopApp deploys the sock-shop example application to the cluster with the given kubeConfigPath
 func DeploySockShopApp(kubeConfigPath string, sourceDir string) error {
+	fmt.Println("deploying s-s-comp")
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-comp.yaml", sourceDir), kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create multi-cluster %s component resources: %v", sourceDir, err)
 	}
+	fmt.Println("deploying s-s-app")
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-app.yaml", sourceDir), kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create multi-cluster %s application resource: %v", sourceDir, err)
 	}
