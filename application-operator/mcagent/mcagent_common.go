@@ -40,6 +40,8 @@ type Syncer struct {
 type adminStatusUpdateFuncType = func(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error
 
 const retryCount = 3
+const managedClusterLabel = "verrazzano.io/managed-cluster"
+const mcAppConfigsLabel = "verrazzano.io/mc-app-configs"
 
 var (
 	retryDelay = 3 * time.Second

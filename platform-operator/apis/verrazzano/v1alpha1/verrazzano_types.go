@@ -154,6 +154,9 @@ type ComponentStatusDetails struct {
 type ConditionType string
 
 const (
+	// PreInstall means an install about to start.
+	PreInstall ConditionType = "PreInstall"
+
 	// InstallStarted means an install is in progress.
 	InstallStarted ConditionType = "InstallStarted"
 
@@ -203,6 +206,9 @@ const (
 	// Disabled is the state for when a component is not currently installed
 	Disabled StateType = "Disabled"
 
+	// PreInstalling is the state when an install is about to be started
+	PreInstalling StateType = "PreInstalling"
+
 	// Installing is the state when an install is in progress
 	Installing StateType = "Installing"
 
@@ -234,9 +240,9 @@ type ComponentSpec struct {
 	// +optional
 	CertManager *CertManagerComponent `json:"certManager,omitempty"`
 
-	// Coherence configuration
+	// CoherenceOperator configuration
 	// +optional
-	Coherence *CoherenceComponent `json:"coherence,omitempty"`
+	CoherenceOperator *CoherenceOperatorComponent `json:"coherenceOperator,omitempty"`
 
 	// Console configuration
 	// +optional
@@ -282,9 +288,9 @@ type ComponentSpec struct {
 	// +optional
 	Rancher *RancherComponent `json:"rancher,omitempty"`
 
-	// WebLogic configuration
+	// WebLogicOperator configuration
 	// +optional
-	WebLogic *WebLogicComponent `json:"weblogic,omitempty"`
+	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
@@ -324,8 +330,8 @@ type CertManagerComponent struct {
 	Certificate Certificate `json:"certificate,omitempty"`
 }
 
-// CoherenceComponent specifies the Coherence configuration
-type CoherenceComponent struct {
+// CoherenceOperatorComponent specifies the Coherence Operator configuration
+type CoherenceOperatorComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }
@@ -411,8 +417,8 @@ type FluentdComponent struct {
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
 }
 
-// RancherComponent specifies the WebLogic configuration
-type WebLogicComponent struct {
+// WebLogicOperatorComponent specifies the WebLogic Operator configuration
+type WebLogicOperatorComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }
