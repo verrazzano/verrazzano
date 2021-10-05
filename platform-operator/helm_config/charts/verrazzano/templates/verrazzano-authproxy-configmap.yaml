@@ -18,7 +18,7 @@ data:
     end
     local ingressUri = 'https://'..ingressHost
     local callbackPath = "{{ .OidcCallbackPath }}"
-    local logoutPath = "/_logout"
+    local logoutPath = "{{ .OidcLogoutCallbackPath }}"
 
     local auth = require("auth").config({
         callbackUri = ingressUri..callbackPath,
