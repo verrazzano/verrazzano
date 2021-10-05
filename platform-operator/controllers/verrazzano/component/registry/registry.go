@@ -110,8 +110,8 @@ func getComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, nginx.ValuesFileOverride),
 			PreInstallFunc:          nginx.PreInstall,
 			PostInstallFunc:         nginx.PostInstall,
-			//Dependencies:            []string{"istiod"},
-			ReadyStatusFunc: nginx.IsReady,
+			Dependencies:            []string{"istiod"},
+			ReadyStatusFunc:         nginx.IsReady,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "cert-manager",

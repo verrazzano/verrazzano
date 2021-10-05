@@ -47,6 +47,7 @@ func PreInstall(log *zap.SugaredLogger, c client.Client, cr *vzapi.Verrazzano, n
 			ns.Labels = make(map[string]string)
 		}
 		ns.Labels["verrazzano.io/namespace"] = "ingress-nginx"
+		ns.Labels["istio-injection"] = "enabled"
 		return nil
 	}); err != nil {
 		return []bom.KeyValue{}, err
@@ -65,6 +66,7 @@ func PreInstall(log *zap.SugaredLogger, c client.Client, cr *vzapi.Verrazzano, n
 		kvs = append(kvs, bom.KeyValue{Key: "controller.service.annotations.external-dns.alpha.kubernetes.io/hostname", Value: hostName})
 	}
 
+	// Convert NGINX install-args to helm overrides
 	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
 	return kvs, nil
 }
