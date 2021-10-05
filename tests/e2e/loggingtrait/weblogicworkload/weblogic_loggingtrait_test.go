@@ -4,7 +4,8 @@
 package weblogiclogging
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"k8s.io/apimachinery/pkg/types"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -22,7 +23,10 @@ const (
 	namespace            = "weblogic-logging-trait"
 	componentsPath       = "testdata/loggingtrait/weblogicworkload/weblogic-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/weblogicworkload/weblogic-logging-application.yaml"
+	applicationPodName   = "tododomain-adminserver"
 )
+
+var kubeConfig = os.Getenv("KUBECONFIG")
 
 var _ = BeforeSuite(func() {
 	deployApplication()
@@ -116,23 +120,20 @@ var _ = Describe("Verify application.", func() {
 		// THEN the adminserver and mysql pods should be found running
 		It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
 			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{"mysql", "tododomain-adminserver"})
+				return pkg.PodsRunning(namespace, []string{"mysql", applicationPodName})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
 
 	Context("LoggingTrait.", func() {
-		var host = ""
-		var err error
-		// Get the host from the Istio gateway resource.
-		// GIVEN the Istio gateway for the test namespace
-		// WHEN GetHostnameFromGateway is called
-		// THEN return the host name found in the gateway.
-		It("Get host from gateway.", func() {
-			Eventually(func() (string, error) {
-				host, err = k8sutil.GetHostnameFromGateway(namespace, "")
-				return host, err
-			}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+		// GIVEN the app is deployed and the pods are running
+		// WHEN the app pod is inspected
+		// THEN the container for the logging trait should exist
+		It("Verify that 'logging-stdout' container exists in the 'tododomain-adminserver'", func() {
+			Eventually(func() bool {
+				containerExists, err := pkg.DoesLoggingSidecarExist(kubeConfig, types.NamespacedName{Name: applicationPodName, Namespace: namespace}, "logging-stdout")
+				return containerExists && errors.IsNotFound(err)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 	})
 })
