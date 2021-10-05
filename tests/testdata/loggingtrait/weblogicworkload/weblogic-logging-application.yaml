@@ -26,7 +26,7 @@ spec:
                 kind: VerrazzanoWebLogicWorkload
               loggingImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2
               loggingConfig:
-                fluentd.conf: "
+                fluentd.conf: |
 <match fluent.**>
   @type null
 </match>
@@ -84,7 +84,7 @@ spec:
 </filter>
 <match **>
 @type stdout
-</match>"
+</match>
     - componentName: todo-jdbc-configmap
     - componentName: todo-mysql-configmap
     - componentName: todo-mysql-service
