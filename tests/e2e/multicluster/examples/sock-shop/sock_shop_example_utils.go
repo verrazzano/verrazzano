@@ -19,16 +19,12 @@ import (
 const (
 	multiclusterNamespace = "verrazzano-mc"
 	appConfigName         = "sockshop-appconf"
-	cartsComponent        = "carts-component"
-	catalogComponent      = "catalog-component"
-	ordersComponent       = "orders-component"
-	paymentComponent      = "payment-component"
-	shippingComponent     = "shipping-component"
-	usersComponent        = "users-component"
+	componentName         = "carts-component" // check one of six components
 	workloadName          = "mc-sockshop-workload"
 )
 
-var expectedPodsSockShop = []string{"sock-shop-deployment"}
+var expectedPodsSockShop = []string{"carts-component", "catalog-component", "orders-component", "payment-component",
+	"shipping-component", "users-component"}
 
 // DeploySockShopProject deploys the sock-shop example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
@@ -157,7 +153,7 @@ func mcComponentExists(kubeconfigPath string, namespace string) bool {
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
 		Resource: "multiclustercomponents",
 	}
-	return resourceExists(gvr, namespace, cartsComponent, kubeconfigPath)
+	return resourceExists(gvr, namespace, componentName, kubeconfigPath)
 }
 
 func componentWorkloadExists(kubeconfigPath string, namespace string) bool {
