@@ -122,7 +122,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 			loggingContainer := &corev1.Container{
 				Name:            loggingNamePart,
 				Image:           image,
-				ImagePullPolicy: corev1.PullIfNotPresent,
+				ImagePullPolicy: corev1.PullPolicy(trait.Spec.ImagePullPolicy),
 				Env:             []corev1.EnvVar{*envFluentd},
 			}
 
@@ -311,7 +311,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			loggingContainer := &corev1.Container{
 				Name:            loggingNamePart,
 				Image:           trait.Spec.LoggingImage,
-				ImagePullPolicy: corev1.PullIfNotPresent,
+				ImagePullPolicy: corev1.PullPolicy(trait.Spec.ImagePullPolicy),
 				Env:             []corev1.EnvVar{*envFluentd},
 			}
 
