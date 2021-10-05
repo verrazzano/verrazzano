@@ -22,6 +22,10 @@ type LoggingTraitSpec struct {
 	// +optional
 	LoggingImage string `json:"loggingImage,omitempty"`
 
+	// ImagePullPolicy represents the optional image pull policy for the FluentD image provided by the user
+	// +optional
+	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
+
 	// The WorkloadReference to the workload to which this trait applies.
 	// This value is populated by the OAM runtime when a ApplicationConfiguration
 	// resource is processed.  When the ApplicationConfiguration is processed a trait and

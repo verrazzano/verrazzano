@@ -38,6 +38,10 @@ spec:
           spec:
             description: LoggingTraitSpec defines the desired state of LoggingTrait
             properties:
+              imagePullPolicy:
+                description: ImagePullPolicy represents the optional image pull policy
+                  for the FluentD image provided by the user
+                type: string
               loggingConfig:
                 additionalProperties:
                   type: string

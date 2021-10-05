@@ -717,7 +717,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	loggingContainer := &corev1.Container{
 		Name:            loggingNamePart,
 		Image:           image,
-		ImagePullPolicy: corev1.PullIfNotPresent,
+		ImagePullPolicy: corev1.PullPolicy(loggingTrait.Spec.ImagePullPolicy),
 		VolumeMounts:    extracted.VolumeMounts,
 		Env:             []corev1.EnvVar{*envFluentd},
 	}
