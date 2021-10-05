@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func DoesLoggingSidecarExist(kubeconfigPath string, name types.NamespacedName, contianerName string) (bool, error) {
+func DoesLoggingSidecarExist(kubeconfigPath string, name types.NamespacedName, containerName string) (bool, error) {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Could not get the clientset from the kubeconfig: %v", err))
@@ -21,8 +21,8 @@ func DoesLoggingSidecarExist(kubeconfigPath string, name types.NamespacedName, c
 		Log(Error, fmt.Sprintf("Could not get the application pod from the given name and namespace: %v", err))
 		return false, err
 	}
-	for _, container := range appPod.Spec.Containers{
-		if container.Name == contianerName {
+	for _, container := range appPod.Spec.Containers {
+		if container.Name == containerName {
 			return true, nil
 		}
 	}
