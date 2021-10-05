@@ -3,10 +3,10 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterApplicationConfiguration
 metadata:
-  name: unit-mcappconfig
+  name: unit-mcappconfig2
   namespace: unit-mcappconfig-namespace
   labels:
-    label1: test1
+    label1: test2
 spec:
   template:
     metadata:
@@ -23,4 +23,3 @@ spec:
       - name: managed1
   secrets:
     - secret1
-    - secret2
