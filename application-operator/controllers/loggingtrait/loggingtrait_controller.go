@@ -31,7 +31,6 @@ const (
 	configMapAPIVersion = "v1"
 	configMapKind       = "ConfigMap"
 	loggingMountPath    = "/fluentd/etc/fluentd.conf"
-	loggingVolume       = "logging-stdout-volume"
 	loggingKey          = "fluentd.conf"
 )
 
@@ -101,6 +100,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 
 	for _, resource := range resources {
 		isCombined := false
+		configMapName := loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind())
 
 		if ok, containersFieldPath := locateContainersField(resource); ok {
 			resourceContainers, ok, err := unstructured.NestedSlice(resource.Object, containersFieldPath...)
@@ -120,6 +120,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 				Name:            loggingNamePart,
 				Image:           image,
 				ImagePullPolicy: corev1.PullIfNotPresent,
+				Args:            []string{"-c", "/etc/fluent.conf"},
 			}
 
 			repeatNo := 0
@@ -155,11 +156,11 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 			}
 
 			loggingVolume := &corev1.Volume{
-				Name: loggingVolume,
+				Name: configMapName,
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: loggingNamePart + "-" + resource.GetName(),
+							Name: configMapName,
 						},
 						DefaultMode: func(mode int32) *int32 {
 							return &mode
@@ -259,6 +260,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 	isFound := false
 	for _, resource := range resources {
 		isCombined := false
+		configMapName := loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind())
 
 		if ok, containersFieldPath := locateContainersField(resource); ok {
 			resourceContainers, ok, err := unstructured.NestedSlice(resource.Object, containersFieldPath...)
@@ -268,7 +270,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			}
 			loggingVolumeMount := &corev1.VolumeMount{
 				MountPath: loggingMountPath,
-				Name:      loggingVolume,
+				Name:      configMapName,
 				SubPath:   loggingKey,
 				ReadOnly:  true,
 			}
@@ -304,6 +306,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				Name:            loggingNamePart,
 				Image:           trait.Spec.LoggingImage,
 				ImagePullPolicy: corev1.PullIfNotPresent,
+				Args:            []string{"-c", "/etc/fluent.conf"},
 			}
 
 			uLoggingContainer, err := struct2Unmarshal(loggingContainer)
@@ -353,11 +356,11 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			}
 
 			loggingVolume := &corev1.Volume{
-				Name: loggingVolume,
+				Name: configMapName,
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind()),
+							Name: configMapName,
 						},
 						DefaultMode: func(mode int32) *int32 {
 							return &mode
@@ -435,7 +438,8 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 // to do. If it doesn't exist, create it.
 func (r *LoggingTraitReconciler) ensureLoggingConfigMapExists(ctx context.Context, trait *oamv1alpha1.LoggingTrait, resource *unstructured.Unstructured) error {
 	// check if configmap exists
-	configMapExists, err := resourceExists(ctx, r, configMapAPIVersion, configMapKind, loggingNamePart+"-"+resource.GetName()+"-"+strings.ToLower(resource.GetKind()), resource.GetNamespace())
+	configMapName := loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind())
+	configMapExists, err := resourceExists(ctx, r, configMapAPIVersion, configMapKind, configMapName, resource.GetNamespace())
 	if err != nil {
 		return err
 	}
@@ -450,9 +454,10 @@ func (r *LoggingTraitReconciler) ensureLoggingConfigMapExists(ctx context.Contex
 
 // createLoggingConfigMap returns a configmap based on the logging trait
 func (r *LoggingTraitReconciler) createLoggingConfigMap(trait *oamv1alpha1.LoggingTrait, resource *unstructured.Unstructured) *corev1.ConfigMap {
+	configMapName := loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind())
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind()),
+			Name:      configMapName,
 			Namespace: resource.GetNamespace(),
 			Labels:    resource.GetLabels(),
 		},

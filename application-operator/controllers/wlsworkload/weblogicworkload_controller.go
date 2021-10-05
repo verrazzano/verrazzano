@@ -44,7 +44,6 @@ const (
 	destinationRuleKind       = "DestinationRule"
 	loggingNamePart           = "logging-stdout"
 	loggingMountPath          = "/fluentd/etc/fluentd.conf"
-	loggingVolume             = "logging-stdout-volume"
 	loggingKey                = "fluentd.conf"
 )
 
@@ -648,12 +647,13 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	if loggingTrait == nil {
 		return nil
 	}
+	configMapName := loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind())
 	configMap := &corev1.ConfigMap{}
 	err = r.Get(ctx, client.ObjectKey{Namespace: weblogic.GetNamespace(), Name: loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind())}, configMap)
 	if err != nil && k8serrors.IsNotFound(err) {
 		configMap = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind()),
+				Name:      configMapName,
 				Namespace: weblogic.GetNamespace(),
 				Labels:    weblogic.GetLabels(),
 			},
@@ -688,7 +688,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	loggingVolumeMount := &corev1.VolumeMount{
 		MountPath: loggingMountPath,
-		Name:      loggingVolume,
+		Name:      configMapName,
 		SubPath:   loggingKey,
 		ReadOnly:  true,
 	}
@@ -716,6 +716,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		Image:           image,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		VolumeMounts:    extracted.VolumeMounts,
+		Args:            []string{"-c", "/etc/fluent.conf"},
 	}
 	cIndex := -1
 	for i, c := range extracted.Containers {
@@ -730,11 +731,11 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 
 	loggingVolume := &corev1.Volume{
-		Name: loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind()),
+		Name: configMapName,
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind()),
+					Name: configMapName,
 				},
 				DefaultMode: func(mode int32) *int32 {
 					return &mode
@@ -744,7 +745,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	vIndex := -1
 	for i, v := range extracted.Volumes {
-		if v.Name == loggingNamePart+"-"+weblogic.GetName()+"-"+strings.ToLower(weblogic.GetKind()) {
+		if v.Name == configMapName {
 			vIndex = i
 		}
 	}
