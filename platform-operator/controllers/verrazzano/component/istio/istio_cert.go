@@ -8,6 +8,7 @@ import (
 	"crypto/x509/pkix"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"go.uber.org/zap"
+	"math/big"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -28,19 +29,43 @@ func createCert(log *zap.SugaredLogger, client clipkg.Client, namespace string) 
 
 func newRootCert() x509.Certificate {
 	cert := x509.Certificate{
-		Raw:                         nil,
-		RawTBSCertificate:           nil,
-		RawSubjectPublicKeyInfo:     nil,
-		RawSubject:                  nil,
-		RawIssuer:                   nil,
-		Signature:                   nil,
-		SignatureAlgorithm:          0,
-		PublicKeyAlgorithm:          0,
-		PublicKey:                   nil,
-		Version:                     0,
-		SerialNumber:                nil,
-		Issuer:                      pkix.Name{},
-		Subject:                     pkix.Name{},
+		Raw:                     nil,
+		RawTBSCertificate:       nil,
+		RawSubjectPublicKeyInfo: nil,
+		RawSubject:              nil,
+		RawIssuer:               nil,
+		Signature:               nil,
+		SignatureAlgorithm:      0,
+		PublicKeyAlgorithm:      0,
+		PublicKey:               nil,
+		Version:                 0,
+		SerialNumber:            &big.Int{},
+		Issuer: pkix.Name{
+			Country:            nil,
+			Organization:       nil,
+			OrganizationalUnit: nil,
+			Locality:           nil,
+			Province:           nil,
+			StreetAddress:      nil,
+			PostalCode:         nil,
+			SerialNumber:       "",
+			CommonName:         "",
+			Names:              nil,
+			ExtraNames:         nil,
+		},
+		Subject: pkix.Name{
+			Country:            nil,
+			Organization:       nil,
+			OrganizationalUnit: nil,
+			Locality:           nil,
+			Province:           nil,
+			StreetAddress:      nil,
+			PostalCode:         nil,
+			SerialNumber:       "",
+			CommonName:         "",
+			Names:              nil,
+			ExtraNames:         nil,
+		},
 		NotBefore:                   time.Time{},
 		NotAfter:                    time.Time{},
 		KeyUsage:                    0,
