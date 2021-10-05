@@ -11,6 +11,7 @@ import (
 const (
 	rootDir                = "/verrazzano"
 	platformDirSuffix      = "/platform-operator"
+	profilesDirSuffix      = "/platform-operator/config/profiles"
 	installDirSuffix       = "/platform-operator/scripts/install"
 	thirdPartyDirSuffix    = "/platform-operator/thirdparty/charts"
 	helmConfigDirSuffix    = "/platform-operator/helm_config"
@@ -127,6 +128,14 @@ func GetThirdPartyDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, thirdPartyDirSuffix)
 }
 
+// GetProfilesDir returns the profiles dir
+func GetProfilesDir() string {
+	return filepath.Join(instance.VerrazzanoRootDir, profilesDirSuffix)
+}
+
+func GetProfile(profile string) string {
+	return filepath.Join(GetProfilesDir(), profile+".yaml")
+}
 // SetDefaultBomFilePath Sets the global default location for the BOM file
 func SetDefaultBomFilePath(p string) {
 	bomFilePathOverride = p
