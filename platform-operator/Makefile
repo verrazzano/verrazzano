@@ -130,7 +130,6 @@ docker-push: docker-build
 
 ifeq ($(CREATE_LATEST_TAG), "1")
 	docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:latest;
-	echo "Hello"
 	$(call retry_docker_push,${DOCKER_IMAGE_FULLNAME}:latest);
 endif
 
