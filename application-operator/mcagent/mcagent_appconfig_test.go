@@ -257,6 +257,53 @@ func TestDeleteMCAppConfigShared(t *testing.T) {
 	assert.True(errors.IsNotFound(err))
 }
 
+// TestDeleteOrphanedComponents tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterApplicationConfiguration objects
+// WHEN an OAM component exists on a cluster that is no longer associated with any MultiClusterApplicationConfiguration
+// THEN ensure that the orphaned OAM component gets deleted
+func TestDeleteOrphanedComponents(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+
+	// Test data
+
+	// Add labels that would have been applied when the OAM component was synced to the local system
+	testComponent1, err := getSampleOamComponent("testdata/hello-component.yaml")
+	assert.NoError(err, "failed to read sample data for OAM Component")
+	testComponent1.Labels[managedClusterLabel] = testClusterName
+	testComponent1.Labels[mcAppConfigsLabel] = ""
+
+	// Do not add any Verrazzano labels to this component
+	testComponent2, err := getSampleOamComponent("testdata/goodbye-component.yaml")
+	assert.NoError(err, "failed to read sample data for OAM Component")
+
+	adminClient := fake.NewFakeClientWithScheme(newScheme())
+	localClient := fake.NewFakeClientWithScheme(newScheme(), &testComponent1, &testComponent2)
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminClient,
+		LocalClient:        localClient,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
+
+	// Validate the results
+	assert.NoError(err)
+
+	// Expect the orphaned OAM Component to be deleted from the local cluster
+	component1 := &oamv1alpha2.Component{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testComponent1.Name, Namespace: testComponent1.Namespace}, component1)
+	assert.True(errors.IsNotFound(err))
+
+	// Expect the OAM component that was not synced to still exist
+	component2 := &oamv1alpha2.Component{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testComponent2.Name, Namespace: testComponent2.Namespace}, component2)
+	assert.NoError(err)
+}
+
 // TestMCAppConfigPlacement tests the synchronization method for the following use case.
 // GIVEN a request to sync MultiClusterApplicationConfiguration objects
 // WHEN an object exists that is not targeted for the cluster
