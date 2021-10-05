@@ -108,6 +108,10 @@ func TestUpgradeNoVersion(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
+
+	config.TestProfilesDir = "../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
@@ -197,6 +201,9 @@ func TestUpgradeSameVersion(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
+
+	config.TestProfilesDir = "../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -710,6 +717,9 @@ func TestUpgradeCompleted(t *testing.T) {
 	})
 	defer istiocomp.ResetRestartComponentsFn()
 
+	config.TestProfilesDir = "../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -765,6 +775,9 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 		return nil
 	})
 	defer istiocomp.ResetRestartComponentsFn()
+
+	config.TestProfilesDir = "../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -842,6 +855,9 @@ func TestUpgradeHelmError(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	config.TestProfilesDir = "../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().

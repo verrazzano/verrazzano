@@ -28,6 +28,9 @@ var bomFilePathOverride string
 // TestHelmConfigDir is needed for unit tests
 var TestHelmConfigDir string
 
+// TestProfilesDir is needed for unit tests
+var TestProfilesDir string
+
 // OperatorConfig specfies the Verrazzano Platform Operator Config
 type OperatorConfig struct {
 
@@ -130,12 +133,16 @@ func GetThirdPartyDir() string {
 
 // GetProfilesDir returns the profiles dir
 func GetProfilesDir() string {
+	if TestProfilesDir != "" {
+		return TestProfilesDir
+	}
 	return filepath.Join(instance.VerrazzanoRootDir, profilesDirSuffix)
 }
 
 func GetProfile(profile string) string {
 	return filepath.Join(GetProfilesDir(), profile+".yaml")
 }
+
 // SetDefaultBomFilePath Sets the global default location for the BOM file
 func SetDefaultBomFilePath(p string) {
 	bomFilePathOverride = p

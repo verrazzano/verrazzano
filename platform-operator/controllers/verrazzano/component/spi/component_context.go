@@ -44,7 +44,7 @@ func getEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
 		profiles = append([]string{baseProfile}, strings.Split(string(actualCR.Spec.Profile), ",")...)
 	}
 	var profileFiles []string
-	for _, profile := range(profiles) {
+	for _, profile := range profiles {
 		profileFiles = append(profileFiles, config.GetProfile(profile))
 	}
 	// Merge the profile files into an effective profile YAML string

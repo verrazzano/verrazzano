@@ -116,6 +116,9 @@ func TestSuccessfulInstall(t *testing.T) {
 
 	config.TestHelmConfigDir = "../../helm_config"
 
+	config.TestProfilesDir = "../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
 		Kind:       "Verrazzano"}
@@ -229,6 +232,9 @@ func TestInstallInitComponents(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	config.TestHelmConfigDir = "../../helm_config"
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
@@ -397,6 +403,9 @@ func TestCreateVerrazzano(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
+
+	config.TestProfilesDir = "../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
@@ -567,6 +576,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
+
+	config.TestProfilesDir = "../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)

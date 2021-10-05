@@ -89,8 +89,13 @@ func TestUpgrade(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	err := comp.Upgrade(spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
-	assert.NoError(err, "Upgrade returned an error")
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext, err := spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(err)
+	assert.NoError(comp.Upgrade(compContext), "Upgrade returned an error")
 }
 
 // TestUpgradeIsInstalledUnexpectedError tests the component upgrade
@@ -102,7 +107,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	defer setDefaultUpgradeFunc()
@@ -114,8 +119,12 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 	})
 	defer helm.SetDefaultRunner()
 
-	err := comp.Upgrade(spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
-	assert.Error(err)
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext, err := spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(err)
+	assert.Error(comp.Upgrade(compContext))
 }
 
 // TestUpgradeReleaseNotInstalled tests the component upgrade
@@ -127,7 +136,7 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -135,8 +144,12 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
 
-	err := comp.Upgrade(spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext, err := spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
 	assert.NoError(err)
+	assert.NoError(comp.Upgrade(compContext))
 }
 
 // TestUpgradeWithEnvOverrides tests the component upgrade
@@ -162,6 +175,9 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
 	defer os.Unsetenv(constants.ImageRepoOverrideEnvVar)
 
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
 	fakeOverrides = "pilot.image=myreg.io/myrepo/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3,global.hub=myreg.io/myrepo/verrazzano"
 
@@ -174,8 +190,9 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	err := comp.Upgrade(spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
-	assert.NoError(err, "Upgrade returned an error")
+	compContext, err := spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(err)
+	assert.NoError(comp.Upgrade(compContext), "Upgrade returned an error")
 }
 
 // TestInstall tests the component install
@@ -212,9 +229,13 @@ func TestInstall(t *testing.T) {
 		return helm.ChartNotFound, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{}, false)
-	err := comp.Install(spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
-	assert.NoError(err, "Upgrade returned an error")
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(err)
+	assert.NoError(comp.Install(compContext), "Upgrade returned an error")
 }
 
 // TestInstallPreviousFailure tests the component install
@@ -251,8 +272,13 @@ func TestInstallPreviousFailure(t *testing.T) {
 		return helm.ChartStatusFailed, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
-	assert.NoError(err, "Upgrade returned an error")
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(err)
+	assert.NoError(comp.Install(compContext), "Upgrade returned an error")
 }
 
 // TestInstallWithPreInstallFunc tests the component install
@@ -297,7 +323,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
-	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
 		if overrides != expectedOverridesString {
 			return nil, nil, fmt.Errorf("Unexpected overrides string %s, expected %s", overrides, expectedOverridesString)
 		}
@@ -312,8 +338,13 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 		return helm.ChartNotFound, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
-	assert.NoError(err, "Upgrade returned an error")
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compCtx, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(err, "NewContext returned an error")
+	assert.NoError(comp.Install(compCtx), "Upgrade returned an error")
 }
 
 // TestOperatorInstallSupported tests IsOperatorInstallSupported
@@ -363,13 +394,21 @@ func TestIsInstalled(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
-	assert.True(comp.IsInstalled(spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)))
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compCtx, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(err)
+	assert.True(comp.IsInstalled(compCtx))
 	helm.SetCmdRunner(genericHelmTestRunner{
 		stdOut: []byte(""),
 		stdErr: []byte(""),
 		err:    fmt.Errorf("Not installed"),
 	})
-	assert.False(comp.IsInstalled(spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)))
+	compCtx, err = spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(err)
+	assert.False(comp.IsInstalled(compCtx))
 }
 
 // TestReady tests IsReady
@@ -386,8 +425,12 @@ func TestReady(t *testing.T) {
 	})
 	comp := HelmComponent{}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	compContext := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
-	//compContext := spi.ComponentContext{Log: zap.S(), Client: client, EffectiveCR: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}}
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(err)
 
 	assert.True(comp.IsReady(compContext))
 
@@ -428,7 +471,7 @@ func TestReady(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiod" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}

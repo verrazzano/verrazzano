@@ -60,9 +60,9 @@ func PreInstall(log *zap.SugaredLogger, c client.Client, cr *vzapi.Verrazzano, n
 	kvs = append(kvs, bom.KeyValue{Key: "controller.service.type", Value: string(ingressType)})
 
 	if cr.Spec.Components.DNS != nil && cr.Spec.Components.DNS.OCI != nil {
-		kvs = append(kvs, bom.KeyValue{Key: "controller.service.annotations.external-dns.alpha.kubernetes.io/ttl" , Value: "60", SetString: true})
+		kvs = append(kvs, bom.KeyValue{Key: "controller.service.annotations.external-dns.alpha.kubernetes.io/ttl", Value: "60", SetString: true})
 		hostName := fmt.Sprintf("verrazzano-ingress.%s.%s", cr.Spec.EnvironmentName, cr.Spec.Components.DNS.OCI.DNSZoneName)
-		kvs = append(kvs, bom.KeyValue{Key: "controller.service.annotations.external-dns.alpha.kubernetes.io/hostname" , Value: hostName})
+		kvs = append(kvs, bom.KeyValue{Key: "controller.service.annotations.external-dns.alpha.kubernetes.io/hostname", Value: hostName})
 	}
 
 	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)

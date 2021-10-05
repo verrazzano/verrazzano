@@ -7,6 +7,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
@@ -85,7 +86,13 @@ func TestComponentDependenciesMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, false))
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, false)
+	assert.NoError(t, err)
+	ready := ComponentDependenciesMet(comp, compContext)
 	assert.True(t, ready)
 }
 
@@ -117,7 +124,13 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(t, err)
+	ready := ComponentDependenciesMet(comp, compContext)
 	assert.False(t, ready)
 }
 
@@ -138,7 +151,13 @@ func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
 		return helm.ChartStatusPendingInstall, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(t, err)
+	ready := ComponentDependenciesMet(comp, compContext)
 	assert.False(t, ready)
 }
 
@@ -170,7 +189,13 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compCtx, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(t, err)
+	ready := ComponentDependenciesMet(comp, compCtx)
 	assert.False(t, ready)
 }
 
@@ -202,7 +227,13 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compCtx, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(t, err)
+	ready := ComponentDependenciesMet(comp, compCtx)
 	assert.True(t, ready)
 }
 
@@ -234,7 +265,16 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(t, err)
+	ready := ComponentDependenciesMet(comp, compContext)
 	assert.False(t, ready)
 }
 
@@ -249,6 +289,12 @@ func TestNoComponentDependencies(t *testing.T) {
 		ChartNamespace: "bar",
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+
+	config.TestProfilesDir = "../../../../config/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext, err := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false)
+	assert.NoError(t, err)
+	ready := ComponentDependenciesMet(comp, compContext)
 	assert.True(t, ready)
 }
