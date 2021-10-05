@@ -126,11 +126,13 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testComponent1.Name, Namespace: testComponent1.Namespace}, component1)
 	assert.NoError(err)
 	assert.Equal(s.ManagedClusterName, component1.Labels[managedClusterLabel])
+	assert.Equal(testMCAppConfig.Name, component1.Labels[mcAppConfigsLabel])
 
 	component2 := &oamv1alpha2.Component{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testComponent2.Name, Namespace: testComponent2.Namespace}, component2)
 	assert.NoError(err)
 	assert.Equal(s.ManagedClusterName, component2.Labels[managedClusterLabel])
+	assert.Equal(testMCAppConfig.Name, component2.Labels[mcAppConfigsLabel])
 }
 
 // TestDeleteMCAppConfig tests the synchronization method for the following use case.
