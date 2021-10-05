@@ -685,12 +685,16 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	} else {
 		image = os.Getenv("DEFAULT_FLUENTD_IMAGE")
 	}
+	envFluentd := &corev1.EnvVar{
+		Name:  "FLUENTD_CONF",
+		Value: "fluentd.conf",
+	}
 	loggingContainer := &corev1.Container{
 		Name:            loggingNamePart,
 		Image:           image,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		VolumeMounts:    extracted.VolumeMounts,
-		Args:            []string{"-c", "/etc/fluent.conf"},
+		Env:             []corev1.EnvVar{*envFluentd},
 	}
 	sIndex := -1
 	for i, s := range extracted.SideCars {
