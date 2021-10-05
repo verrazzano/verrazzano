@@ -240,13 +240,6 @@ func TestReconcileCreateHelidon(t *testing.T) {
 			appconf.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: "unit-test-component"}}
 			return nil
 		})
-	// expect a call to get the application configuration for the workload
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamapi.ApplicationConfiguration) error {
-			appConfig.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: componentName}}
-			return nil
-		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
@@ -368,13 +361,6 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 			appconf.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: "unit-test-component"}}
 			return nil
 		})
-	// expect a call to get the application configuration for the workload
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamapi.ApplicationConfiguration) error {
-			appConfig.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: componentName}}
-			return nil
-		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
@@ -448,8 +434,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
-	appConfigName := "test-appconf"
-	componentName := "test-component"
 	testNamespace := "test-namespace"
 	loggingSecretName := "test-secret-name"
 
@@ -494,13 +478,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 			assert.NoError(updateObjectFromYAMLTemplate(appconf, "test/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
 			return nil
 		}).Times(1)
-	// expect a call to get the application configuration for the workload
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: testNamespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamapi.ApplicationConfiguration) error {
-			appConfig.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: componentName}}
-			return nil
-		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
@@ -570,8 +547,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
-	appConfigName := "test-appconf"
-	componentName := "test-component"
 	testNamespace := "test-namespace"
 	loggingSecretName := "test-secret-name"
 
@@ -618,13 +593,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-appconf"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
 			assert.NoError(updateObjectFromYAMLTemplate(appconf, "test/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
-			return nil
-		})
-	// expect a call to get the application configuration for the workload
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: testNamespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamapi.ApplicationConfiguration) error {
-			appConfig.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
@@ -756,13 +724,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			assert.NoError(updateObjectFromYAMLTemplate(appconf, "test/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
 			return nil
 		}).Times(1)
-	// expect a call to get the application configuration for the workload
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: testNamespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamapi.ApplicationConfiguration) error {
-			appConfig.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: componentName}}
-			return nil
-		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
@@ -886,13 +847,6 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			assert.NoError(updateObjectFromYAMLTemplate(appconf, "test/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
 			return nil
 		}).Times(1)
-	// expect a call to get the application configuration for the workload
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: testNamespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamapi.ApplicationConfiguration) error {
-			appConfig.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: componentName}}
-			return nil
-		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
