@@ -163,7 +163,7 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][tagLen]string,
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
 			for _, image := range subcomponent.Images {
-				if image.Image == "pilot" || image.Image == "proxyv2" {
+				if image.Image == "pilot" || image.Image == "proxyv2" || image.Image == "istio-coredns-plugin" {
 					continue
 				}
 				if tags, ok := clusterImageMap[image.Image]; ok {
