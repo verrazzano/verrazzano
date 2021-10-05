@@ -115,12 +115,15 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 			} else {
 				image = os.Getenv("DEFAULT_FLUENTD_IMAGE")
 			}
-
+			envFluentd := &corev1.EnvVar{
+				Name:  "FLUENTD_CONF",
+				Value: "fluentd.conf",
+			}
 			loggingContainer := &corev1.Container{
 				Name:            loggingNamePart,
 				Image:           image,
 				ImagePullPolicy: corev1.PullIfNotPresent,
-				Args:            []string{"-c", "/etc/fluent.conf"},
+				Env:             []corev1.EnvVar{*envFluentd},
 			}
 
 			repeatNo := 0
@@ -301,12 +304,15 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			if iVolumeMount == -1 {
 				resourceVolumeMounts = append(resourceVolumeMounts, uLoggingVolumeMount.Object)
 			}
-
+			envFluentd := &corev1.EnvVar{
+				Name:  "FLUENTD_CONF",
+				Value: "fluentd.conf",
+			}
 			loggingContainer := &corev1.Container{
 				Name:            loggingNamePart,
 				Image:           trait.Spec.LoggingImage,
 				ImagePullPolicy: corev1.PullIfNotPresent,
-				Args:            []string{"-c", "/etc/fluent.conf"},
+				Env:             []corev1.EnvVar{*envFluentd},
 			}
 
 			uLoggingContainer, err := struct2Unmarshal(loggingContainer)
