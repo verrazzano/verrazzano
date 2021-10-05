@@ -7,7 +7,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	vzns "github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"go.uber.org/zap"
 	"io/ioutil"
@@ -85,6 +84,10 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, vz *vzapi.Verrazzano, cl
 }
 
 func (i IstioComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+	if dryRun {
+		return nil
+	}
+
 	nsLabelForNetPol := map[string]string{"verrazzano.io/namespace": "istio-system"}
 
 	// Ensure Istio namespace exists and label it for network policies
@@ -103,12 +106,10 @@ func (i IstioComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client,
 	}
 
 	// Create the cert used by Istio MTLS
-	certDir := os.TempDir()
-	config := certificate.CreateIstioCertConfig(certDir)
-	cert, err := certificate.CreateSelfSignedCert(config)
+	err := createCert(log, client, namespace)
 	if err != nil {
 		log.Errorf("Failed to create Certificate for Istio: %v", err)
-		retur
+		return err
 	}
 
 	return nil
@@ -137,12 +138,6 @@ func setInstallFunc(f installFuncSig) {
 
 func setDefaultInstallFunc() {
 	installFunc = istio.Install
-}
-
-// createCert creates certificates and istio secret to hold certificates if it doesn't exist
-func createCert(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string) error {
-
-	return nil
 }
 
 // # Create

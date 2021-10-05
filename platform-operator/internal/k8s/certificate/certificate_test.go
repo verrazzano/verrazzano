@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	adminv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -22,7 +21,7 @@ import (
 
 // TestCreateWebhookCertificates tests that the certificates needed for webhooks are created
 // GIVEN an output directory for certificates
-//  WHEN I call CreateSelfSignedCert
+//  WHEN I call CreateWebhookCertificates
 //  THEN all the needed certificate artifacts are created
 func TestCreateWebhookCertificates(t *testing.T) {
 	assert := assert.New(t)
@@ -32,7 +31,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 		assert.Nil(err, "error should not be returned creating temporary directory")
 	}
 	defer os.RemoveAll(dir)
-	caBundle, err := CreateWebhookCert(dir)
+	caBundle, err := CreateWebhookCertificates(dir)
 	assert.Nil(err, "error should not be returned setting up certificates")
 	assert.NotNil(caBundle, "CA bundle should be returned")
 
@@ -56,17 +55,12 @@ func TestCreateWebhookCertificates(t *testing.T) {
 
 // TestCreateWebhookCertificatesFail tests that the certificates needed for webhooks are not created
 // GIVEN an invalid output directory for certificates
-//  WHEN I call CreateSelfSignedCert
+//  WHEN I call CreateWebhookCertificates
 //  THEN all the needed certificate artifacts are not created
 func TestCreateWebhookCertificatesFail(t *testing.T) {
 	assert := assert.New(t)
 
-	certConfig := Config{
-		CertDir:   "/bad-dir",
-		NotBefore: time.Now(),
-		NotAfter:  time.Now().AddDate(1, 0, 0),
-	}
-	_, err := CreateSelfSignedCert(certConfig)
+	_, err := CreateWebhookCertificates("/bad-dir")
 	assert.Error(err, "error should be returned setting up certificates")
 }
 

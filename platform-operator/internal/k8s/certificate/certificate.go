@@ -28,82 +28,48 @@ const (
 	OperatorNamespace = "verrazzano-install"
 )
 
-// Config specifies the certificate configuration
-type Config struct {
-	// CertDir is the directory where the certificate should be written
-	CertDir string
+// CreateWebhookCertificates creates the needed certificates for the validating webhook
+func CreateWebhookCertificates(certDir string) (*bytes.Buffer, error) {
+	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 
-	// CommonName is the certificate common name
-	CommonName string
-
-	// NotBefore time when certificate is valid
-	NotBefore time.Time
-
-	// NotAfter time when certificate is valid
-	NotAfter time.Time
-
-	// FilenameRootCert is the filename in CertDir where the root cert PEM will be written
-	FilenameRootCert string
-
-	// FilenameRootPrivKey is the filename in CertDir where the root private key PEM will be written
-	FilenameRootPrivKey string
-
-	// FilenameIntermediateCert is the filename in CertDir where the intermediate cert PEM will be written
-	FilenameIntermediateCert string
-
-	// FilenameIntermediatePrivKey is the filename in CertDir where the intermediate private key PEM will be written
-	FilenameIntermediatePrivKey string
-
-	// FilenameCertChain is the filename in CertDir where that cert chain PEM (ca cert + root cert) will be written
-	FilenameCertChain string
-}
-
-// CreateSelfSignedCert creates the needed certificates for the validating webhook
-func CreateSelfSignedCert(config Config) (*bytes.Buffer, error) {
+	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
 	serialNumber, err := newSerialNumber()
 	if err != nil {
 		return nil, err
 	}
 
-	// create the root certificate info needed to create the certificate
-	rootCertInfo := &x509.Certificate{
-		DNSNames:     []string{config.CommonName},
+	// CA config
+	ca := &x509.Certificate{
+		DNSNames:     []string{commonName},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			CommonName: config.CommonName,
+			CommonName: commonName,
 		},
-		NotBefore:             config.NotBefore,
-		NotAfter:              config.NotAfter,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(1, 0, 0),
 		IsCA:                  true,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
 
-	// create root private key
-	rootPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
+	// CA private key
+	caPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
 		return nil, err
 	}
 
-	// PEM encode root private key
-	rootPrivKeyPEM := new(bytes.Buffer)
-	_ = pem.Encode(rootPrivKeyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(rootPrivKey),
-	})
-
-	// create root self-signed CA certificate
-	rootCertBytes, err := x509.CreateCertificate(cryptorand.Reader, rootCertInfo, rootCertInfo, &rootPrivKey.PublicKey, rootPrivKey)
+	// Self signed CA certificate
+	caBytes, err := x509.CreateCertificate(cryptorand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
 	if err != nil {
 		return nil, err
 	}
 
-	// PEM encode root cert
-	rootCertPEM := new(bytes.Buffer)
-	_ = pem.Encode(rootCertPEM, &pem.Block{
+	// PEM encode CA cert
+	caPEM = new(bytes.Buffer)
+	_ = pem.Encode(caPEM, &pem.Block{
 		Type:  "CERTIFICATE",
-		Bytes: rootCertBytes,
+		Bytes: caBytes,
 	})
 
 	serialNumber, err = newSerialNumber()
@@ -111,85 +77,62 @@ func CreateSelfSignedCert(config Config) (*bytes.Buffer, error) {
 		return nil, err
 	}
 
-	// create the intermediate certificate info needed to create the certificate
-	intermediateCertInfo := &x509.Certificate{
-		DNSNames:     []string{config.CommonName},
+	// server cert config
+	cert := &x509.Certificate{
+		DNSNames:     []string{commonName},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			CommonName: config.CommonName,
+			CommonName: commonName,
 		},
-		NotBefore:    config.NotBefore,
-		NotAfter:     config.NotAfter,
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(1, 0, 0),
 		IsCA:         true,
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 	}
 
-	// generate intermediate cert private key
-	intermediatePrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
+	// server private key
+	serverPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
 		return nil, err
 	}
 
-	// PEM encode the intermediate private key
-	intermediatePrivKeyPEM := new(bytes.Buffer)
-	_ = pem.Encode(intermediatePrivKeyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(intermediatePrivKey),
-	})
-
-	// sign the intermediate cert with the root cert
-	intermediateCertBytes, err := x509.CreateCertificate(cryptorand.Reader, intermediateCertInfo, rootCertInfo, &intermediatePrivKey.PublicKey, rootPrivKey)
+	// sign the server cert
+	serverCertBytes, err := x509.CreateCertificate(cryptorand.Reader, cert, ca, &serverPrivKey.PublicKey, caPrivKey)
 	if err != nil {
 		return nil, err
 	}
 
-	// PEM encode the intermediate cert and key
-	intermediateCertPEM := new(bytes.Buffer)
-	_ = pem.Encode(intermediateCertPEM, &pem.Block{
+	// PEM encode the server cert and key
+	serverCertPEM = new(bytes.Buffer)
+	_ = pem.Encode(serverCertPEM, &pem.Block{
 		Type:  "CERTIFICATE",
-		Bytes: intermediateCertBytes,
+		Bytes: serverCertBytes,
 	})
 
-	// Write the files that are specified in the config
-	certDir := config.CertDir
+	serverPrivKeyPEM = new(bytes.Buffer)
+	_ = pem.Encode(serverPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
+	})
+
 	err = os.MkdirAll(certDir, 0666)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(config.FilenameRootPrivKey) > 0 {
-		err = writeFile(fmt.Sprintf("%s/%s", certDir, config.FilenameRootPrivKey), rootPrivKeyPEM)
-		if err != nil {
-			return nil, err
-		}
+	err = writeFile(fmt.Sprintf("%s/tls.crt", certDir), serverCertPEM)
+	if err != nil {
+		return nil, err
 	}
-	if len(config.FilenameRootCert) > 0 {
-		err = writeFile(fmt.Sprintf("%s/%s", certDir, config.FilenameRootCert), rootCertPEM)
-		if err != nil {
-			return nil, err
-		}
+
+	err = writeFile(fmt.Sprintf("%s/tls.key", certDir), serverPrivKeyPEM)
+	if err != nil {
+		return nil, err
 	}
-	if len(config.FilenameIntermediateCert) > 0 {
-		err = writeFile(fmt.Sprintf("%s/%s", certDir, config.FilenameIntermediateCert), intermediateCertPEM)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if len(config.FilenameIntermediatePrivKey) > 0 {
-		err = writeFile(fmt.Sprintf("%s/%s", certDir, config.FilenameIntermediatePrivKey), intermediatePrivKeyPEM)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if len(config.FilenameCertChain) > 0 {
-		err = writeFile(fmt.Sprintf("%s/%s", certDir, config.FilenameCertChain), rootCertPEM, intermediateCertPEM)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return rootCertPEM, nil
+
+	return caPEM, nil
 }
 
 // newSerialNumber returns a new random serial number suitable for use in a certificate.
@@ -233,28 +176,4 @@ func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCe
 	}
 
 	return nil
-}
-
-// CreateWebhookCertConfig creates the config needed to create platform operator webhook certificate
-func CreateWebhookCertConfig(certDir string) Config {
-	return Config{
-		CertDir:                     certDir,
-		CommonName:                  fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace),
-		FilenameIntermediateCert:    "tls.crt",
-		FilenameIntermediatePrivKey: "tls.key",
-		NotBefore:                   time.Now(),
-		NotAfter:                    time.Now().AddDate(1, 0, 0),
-	}
-}
-
-// CreateIstioCertConfig creates the config needed to create an Istio certificate
-func CreateIstioCertConfig(certDir string) Config {
-	return Config{
-		CertDir:                     certDir,
-		CommonName:                  fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace),
-		FilenameIntermediateCert:    "tls.crt",
-		FilenameIntermediatePrivKey: "tls.key",
-		NotBefore:                   time.Now(),
-		NotAfter:                    time.Now().AddDate(1, 0, 0),
-	}
 }

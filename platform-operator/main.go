@@ -79,8 +79,7 @@ func main() {
 	// validatingWebhookConfiguration resource before the operator container runs.
 	if config.InitWebhooks {
 		setupLog.Info("Setting up certificates for webhook")
-
-		caCert, err := certificate.CreateSelfSignedCert(certificate.CreateWebhookCertConfig(config.CertDir))
+		caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
 		if err != nil {
 			setupLog.Errorf("unable to setup certificates for webhook: %v", err)
 			os.Exit(1)
