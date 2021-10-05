@@ -11,7 +11,7 @@ metadata:
     app: {{ .Values.api.name }}
 data:
   conf.lua: |
-    local clusterHostSuffix = {{ .Values.config.envName }}..'.'..{{ .Values.config.dnsSuffix }}
+    local clusterHostSuffix = '{{ .Values.config.envName }}'..'.'..'{{ .Values.config.dnsSuffix }}'
 {{- with .Values.api.proxy }}
     local ingressHost = ngx.req.get_headers()["x-forwarded-host"]
     if not ingressHost then
@@ -26,7 +26,7 @@ data:
     local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
 
     local auth = require("auth").config({
-        hostSuffix = clusterHostSuffix
+        hostSuffix = clusterHostSuffix,
         callbackUri = ingressUri..callbackPath,
         logoutCallbackUri = ingressUri..logoutCallbackPath
     })
@@ -291,19 +291,19 @@ data:
     end
 
     local authproxy_prefix = 'verrazzano-authproxy-'
-    local in_cluster_host_suffix = 'svc.cluster.local'
+    local in_cluster_host_suffix = 'verrazzano-system.svc.cluster.local'
     local vmi_system = 'vmi.system'
 
     function me.validateIngressHost(backend, hostname, in_cluster)
         -- assume backend, hostname, are always non-nil and non-empty
         local check_host = nil
         if in_cluster == true then
-            check_host = authproxy_prefix..backend_name..'.'..in_cluster_host_suffix
+            check_host = authproxy_prefix..backend..'.'..in_cluster_host_suffix
         else
             if backend == 'verrazzano' then
-                check_host = backend_name..'.'..hostSuffix
+                check_host = backend..'.'..me.hostSuffix
             else
-                check_host = backend_name..'.'..vmi_system..'.'..hostSuffix
+                check_host = backend..'.'..vmi_system..'.'..me.hostSuffix
             end
         end
         if check_host == hostname then
