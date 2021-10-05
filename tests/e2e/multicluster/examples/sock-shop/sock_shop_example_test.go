@@ -123,31 +123,31 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		}
 	})
 
-	Context("Logging", func() {
-		indexName := "verrazzano-namespace-sock-shop"
-
-		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the example application has been deployed to the admin cluster
-		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
-		It("Verify Elasticsearch index exists on admin cluster", func() {
-			Eventually(func() bool {
-				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for sock shop")
-		})
-
-		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the example application has been deployed to the admin cluster
-		// THEN expect recent Elasticsearch logs for the app exist on the admin cluster Elasticsearch
-		It("Verify recent Elasticsearch log record exists on admin cluster", func() {
-			Eventually(func() bool {
-				return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/component": "sock-shop-component",
-					"kubernetes.labels.app_oam_dev\\/name":      "sock-shop-appconf",
-					"kubernetes.container_name":                 "sock-shop-container",
-				}, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-		})
-	})
+	//Context("Logging", func() {
+	//	indexName := "verrazzano-namespace-sock-shop"
+	//
+	//	// GIVEN an admin cluster and at least one managed cluster
+	//	// WHEN the example application has been deployed to the admin cluster
+	//	// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
+	//	It("Verify Elasticsearch index exists on admin cluster", func() {
+	//		Eventually(func() bool {
+	//			return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
+	//		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for sock shop")
+	//	})
+	//
+	//	// GIVEN an admin cluster and at least one managed cluster
+	//	// WHEN the example application has been deployed to the admin cluster
+	//	// THEN expect recent Elasticsearch logs for the app exist on the admin cluster Elasticsearch
+	//	It("Verify recent Elasticsearch log record exists on admin cluster", func() {
+	//		Eventually(func() bool {
+	//			return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+	//				"kubernetes.labels.app_oam_dev\\/component": "sock-shop-component",
+	//				"kubernetes.labels.app_oam_dev\\/name":      "sock-shop-appconf",
+	//				"kubernetes.container_name":                 "sock-shop-container",
+	//			}, adminKubeconfig)
+	//		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+	//	})
+	//})
 
 	// GIVEN an admin cluster and at least one managed cluster
 	// WHEN the example application has been deployed to the admin cluster
