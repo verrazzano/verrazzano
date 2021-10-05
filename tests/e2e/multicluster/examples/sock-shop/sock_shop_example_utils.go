@@ -18,8 +18,13 @@ import (
 
 const (
 	multiclusterNamespace = "verrazzano-mc"
-	appConfigName         = "mc-sockshop-appconf"
-	componentName         = "mc-sockshop-component"
+	appConfigName         = "msockshop-appconf"
+	cartsComponent        = "carts-component"
+	catalogComponent      = "catalog-component"
+	ordersComponent       = "orders-component"
+	paymentComponent      = "payment-component"
+	shippingComponent     = "shipping-component"
+	usersComponent        = "users-component"
 	workloadName          = "mc-sockshop-workload"
 )
 
@@ -142,13 +147,14 @@ func mcAppConfExists(kubeconfigPath string, namespace string) bool {
 	return resourceExists(gvr, namespace, appConfigName, kubeconfigPath)
 }
 
+// Check if individual component exists
 func mcComponentExists(kubeconfigPath string, namespace string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
 		Resource: "multiclustercomponents",
 	}
-	return resourceExists(gvr, namespace, componentName, kubeconfigPath)
+	return resourceExists(gvr, namespace, cartsComponent, kubeconfigPath)
 }
 
 func componentWorkloadExists(kubeconfigPath string, namespace string) bool {

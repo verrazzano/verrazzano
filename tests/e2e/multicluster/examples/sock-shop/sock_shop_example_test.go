@@ -22,7 +22,7 @@ const (
 	consistentlyDuration = 1 * time.Minute
 	sourceDir            = "sock-shop"
 	testNamespace        = "mc-sockshop"
-	testProjectName      = "mc-sockshop"
+	testProjectName      = "sockshop"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -43,8 +43,6 @@ var _ = BeforeSuite(func() {
 	Eventually(func() error {
 		return DeploySockShopProject(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-
-	fmt.Println("got here 1")
 
 	// wait for the namespace to be created on the cluster before deploying app
 	Eventually(func() bool {
