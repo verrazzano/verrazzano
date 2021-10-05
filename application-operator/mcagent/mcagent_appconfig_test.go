@@ -60,6 +60,8 @@ func TestCreateMCAppConfig(t *testing.T) {
 	component := &oamv1alpha2.Component{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testComponent.Name, Namespace: testComponent.Namespace}, component)
 	assert.NoError(err)
+	assert.Equal(s.ManagedClusterName, component.Labels[managedClusterLabel])
+	assert.Equal(testMCAppConfig.Name, component.Labels[mcAppConfigsLabel])
 
 	// Verify MultiClusterApplicationConfiguration got created on local cluster
 	mcAppConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
@@ -118,6 +120,17 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	comp1 := mcAppConfig.Spec.Template.Spec.Components[1]
 	assert.Equal("hello-component", comp0.ComponentName)
 	assert.Equal("goodbye-component", comp1.ComponentName)
+
+	// Verify the associated OAM component got created on local cluster
+	component1 := &oamv1alpha2.Component{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testComponent1.Name, Namespace: testComponent1.Namespace}, component1)
+	assert.NoError(err)
+	assert.Equal(s.ManagedClusterName, component1.Labels[managedClusterLabel])
+
+	component2 := &oamv1alpha2.Component{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testComponent2.Name, Namespace: testComponent2.Namespace}, component2)
+	assert.NoError(err)
+	assert.Equal(s.ManagedClusterName, component2.Labels[managedClusterLabel])
 }
 
 // TestDeleteMCAppConfig tests the synchronization method for the following use case.
@@ -134,14 +147,12 @@ func TestDeleteMCAppConfig(t *testing.T) {
 
 	testMCAppConfigOrphan, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+	testMCAppConfigOrphan.Name = "orphaned-resource"
 
 	testComponent, err := getSampleOamComponent("testdata/hello-component.yaml")
 	assert.NoError(err, "failed to read sample data for OAM Component")
 
-	testMCAppConfigOrphan.Name = "orphaned-resource"
-
 	adminClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfig, &testComponent)
-
 	localClient := fake.NewFakeClientWithScheme(newScheme(), &testComponent, &testMCAppConfig, &testMCAppConfigOrphan)
 
 	// Make the request
@@ -160,6 +171,87 @@ func TestDeleteMCAppConfig(t *testing.T) {
 	// Expect the orphaned MultiClusterApplicationConfiguration object to be deleted from the local cluster
 	appConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfigOrphan.Name, Namespace: testMCAppConfigOrphan.Namespace}, appConfig)
+	assert.True(errors.IsNotFound(err))
+
+	// Delete the MultiClusterApplicationConfiguration from the admin cluster
+	err = s.AdminClient.Delete(s.Context, &testMCAppConfig)
+	assert.NoError(err)
+
+	// Synchronize again and check for cleanup on the local cluster
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
+	assert.NoError(err)
+
+	// Expect the MultiClusterApplicationConfiguration object to be deleted from the local cluster
+	appConfig2 := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfig.Name, Namespace: testMCAppConfig.Namespace}, appConfig2)
+	assert.True(errors.IsNotFound(err))
+
+	// Expect the OAM Component used by the application to be deleted from the local cluster
+	component := &oamv1alpha2.Component{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testComponent.Name, Namespace: testComponent.Namespace}, component)
+	assert.True(errors.IsNotFound(err))
+}
+
+// TestDeleteMCAppConfigShared tests the synchronization method for the following use case.
+// GIVEN a request to sync two MultiClusterApplicationConfiguration objects that shared an OAM Component
+// WHEN the object exists on the local cluster but not on the admin cluster
+// THEN ensure that if MultiClusterApplicationConfiguration is deleted, the shared OAM component is not
+func TestDeleteMCAppConfigShared(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+
+	// Test data
+	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
+	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+
+	testMCAppConfig2, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
+	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+	testMCAppConfig2.Name = testMCAppConfig.Name + "2"
+
+	testComponent, err := getSampleOamComponent("testdata/hello-component.yaml")
+	assert.NoError(err, "failed to read sample data for OAM Component")
+
+	adminClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfig, &testComponent)
+	localClient := fake.NewFakeClientWithScheme(newScheme(), &testComponent, &testMCAppConfig, &testMCAppConfig2)
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminClient,
+		LocalClient:        localClient,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
+
+	// Validate the results
+	assert.NoError(err)
+
+	// Expect the MultiClusterApplicationConfiguration object to be deleted from the local cluster
+	appConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfig2.Name, Namespace: testMCAppConfig2.Namespace}, appConfig)
+	assert.True(errors.IsNotFound(err))
+
+	// Expect the OAM Component shared by the applications to still exist on the local cluster
+	component := &oamv1alpha2.Component{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testComponent.Name, Namespace: testComponent.Namespace}, component)
+	assert.NoError(err)
+	assert.Equal(testMCAppConfig.Name, component.Labels[mcAppConfigsLabel])
+
+	// Delete the remaining MultiClusterApplicationConfiguration in the Admin cluster and verify cleanup on the local cluster
+	err = s.AdminClient.Delete(s.Context, &testMCAppConfig)
+	assert.NoError(err)
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
+	assert.NoError(err)
+
+	// Expect the MultiClusterApplicationConfiguration object to be deleted from the local cluster
+	appConfig2 := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfig.Name, Namespace: testMCAppConfig.Namespace}, appConfig2)
+	assert.True(errors.IsNotFound(err))
+
+	// Expect the OAM Component that used to be shared by the applications to be deleted from the local cluster
+	component2 := &oamv1alpha2.Component{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testComponent.Name, Namespace: testComponent.Namespace}, component2)
 	assert.True(errors.IsNotFound(err))
 }
 
