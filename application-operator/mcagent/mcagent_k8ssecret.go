@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -119,24 +121,7 @@ func mutateSecret(managedClusterName string, mcAppConfigName string, secret core
 		}
 	}
 
-	appConfigs, found := secretNew.Labels[mcAppConfigsLabel]
-	if found {
-		splitAppConfigs := strings.Split(appConfigs, ",")
-		dup := false
-		for _, ac := range splitAppConfigs {
-			if ac == mcAppConfigName {
-				dup = true
-			}
-		}
-		if !dup {
-			splitAppConfigs = append(splitAppConfigs, mcAppConfigName)
-			secretNew.Labels[mcAppConfigsLabel] = strings.Join(splitAppConfigs, ",")
-		}
-
-	} else {
-		secretNew.Labels[mcAppConfigsLabel] = mcAppConfigName
-	}
-
+	secretNew.Labels[mcAppConfigsLabel] = vzstring.AppendToCommaSeparatedString(secretNew.Labels[mcAppConfigsLabel], mcAppConfigName)
 	secretNew.Labels[managedClusterLabel] = managedClusterName
 
 	secretNew.Annotations = secret.Annotations
@@ -148,16 +133,13 @@ func mutateSecret(managedClusterName string, mcAppConfigName string, secret core
 
 // k8sSecretPlacedOnCluster returns boolean indicating if the secret is placed on the local cluster
 func (s *Syncer) k8sSecretPlacedOnCluster(secret corev1.Secret, allAdminMCAppConfigs *clustersv1alpha1.MultiClusterApplicationConfigurationList) bool {
-	labels := strings.Split(secret.Labels[mcAppConfigsLabel], ",")
 	for _, mcAppConfig := range allAdminMCAppConfigs.Items {
-		for _, label := range labels {
-			// Both a matching application configuration label and a matching cluster label be found for the
-			// secret to be placed on the local cluster.
-			if mcAppConfig.Name == label {
-				for _, cluster := range mcAppConfig.Spec.Placement.Clusters {
-					if cluster.Name == secret.Labels[managedClusterLabel] {
-						return true
-					}
+		// Both a matching application configuration label and a matching cluster label be found for the
+		// secret to be placed on the local cluster.
+		if vzstring.CommaSeparatedStringContains(secret.Labels[mcAppConfigsLabel], mcAppConfig.Name) {
+			for _, cluster := range mcAppConfig.Spec.Placement.Clusters {
+				if cluster.Name == secret.Labels[managedClusterLabel] {
+					return true
 				}
 			}
 		}
