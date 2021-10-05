@@ -32,30 +32,45 @@ const (
 type Config struct {
 	// CertDir is the directory where the certificate should be written
 	CertDir string
-	// X509 extensions
-	Extensions []pkix.Extension
+
+	// CommonName is the certificate common name
+	CommonName string
+
 	// NotBefore time when certificate is valid
 	NotBefore time.Time
+
 	// NotAfter time when certificate is valid
 	NotAfter time.Time
+
+	// FilenameRootCert is the filename in CertDir where the root cert PEM will be written
+	FilenameRootCert string
+
+	// FilenameRootPrivKey is the filename in CertDir where the root private key PEM will be written
+	FilenameRootPrivKey string
+
+	// FilenameIntermediateCert is the filename in CertDir where the intermediate cert PEM will be written
+	FilenameIntermediateCert string
+
+	// FilenameIntermediatePrivKey is the filename in CertDir where the intermediate private key PEM will be written
+	FilenameIntermediatePrivKey string
+
+	// FilenameCertChain is the filename in CertDir where that cert chain PEM (ca cert + root cert) will be written
+	FilenameCertChain string
 }
 
-// CreateSelfSignedCertificate creates the needed certificates for the validating webhook
-func CreateSelfSignedCertificate(config Config) (*bytes.Buffer, error) {
-	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
-
-	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
+// CreateSelfSignedCert creates the needed certificates for the validating webhook
+func CreateSelfSignedCert(config Config) (*bytes.Buffer, error) {
 	serialNumber, err := newSerialNumber()
 	if err != nil {
 		return nil, err
 	}
 
-	// CA config
-	ca := &x509.Certificate{
-		DNSNames:     []string{commonName},
+	// create the root certificate info needed to create the certificate
+	rootCertInfo := &x509.Certificate{
+		DNSNames:     []string{config.CommonName},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			CommonName: commonName,
+			CommonName: config.CommonName,
 		},
 		NotBefore:             config.NotBefore,
 		NotAfter:              config.NotAfter,
@@ -65,23 +80,30 @@ func CreateSelfSignedCertificate(config Config) (*bytes.Buffer, error) {
 		BasicConstraintsValid: true,
 	}
 
-	// CA private key
-	caPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
+	// create root private key
+	rootPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
 		return nil, err
 	}
 
-	// Self signed CA certificate
-	caBytes, err := x509.CreateCertificate(cryptorand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
+	// PEM encode root private key
+	rootPrivKeyPEM := new(bytes.Buffer)
+	_ = pem.Encode(rootPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(rootPrivKey),
+	})
+
+	// create root self-signed CA certificate
+	rootCertBytes, err := x509.CreateCertificate(cryptorand.Reader, rootCertInfo, rootCertInfo, &rootPrivKey.PublicKey, rootPrivKey)
 	if err != nil {
 		return nil, err
 	}
 
-	// PEM encode CA cert
-	caPEM = new(bytes.Buffer)
-	_ = pem.Encode(caPEM, &pem.Block{
+	// PEM encode root cert
+	rootCertPEM := new(bytes.Buffer)
+	_ = pem.Encode(rootCertPEM, &pem.Block{
 		Type:  "CERTIFICATE",
-		Bytes: caBytes,
+		Bytes: rootCertBytes,
 	})
 
 	serialNumber, err = newSerialNumber()
@@ -89,12 +111,12 @@ func CreateSelfSignedCertificate(config Config) (*bytes.Buffer, error) {
 		return nil, err
 	}
 
-	// server cert config
-	cert := &x509.Certificate{
-		DNSNames:     []string{commonName},
+	// create the intermediate certificate info needed to create the certificate
+	intermediateCertInfo := &x509.Certificate{
+		DNSNames:     []string{config.CommonName},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			CommonName: commonName,
+			CommonName: config.CommonName,
 		},
 		NotBefore:    config.NotBefore,
 		NotAfter:     config.NotAfter,
@@ -104,48 +126,70 @@ func CreateSelfSignedCertificate(config Config) (*bytes.Buffer, error) {
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 	}
 
-	// server private key
-	serverPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
+	// generate intermediate cert private key
+	intermediatePrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
 		return nil, err
 	}
 
-	// sign the server cert with the self-signed cert that was just created
-	serverCertBytes, err := x509.CreateCertificate(cryptorand.Reader, cert, ca, &serverPrivKey.PublicKey, caPrivKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// PEM encode the server cert and key
-	serverCertPEM = new(bytes.Buffer)
-	_ = pem.Encode(serverCertPEM, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: serverCertBytes,
-	})
-
-	serverPrivKeyPEM = new(bytes.Buffer)
-	_ = pem.Encode(serverPrivKeyPEM, &pem.Block{
+	// PEM encode the intermediate private key
+	intermediatePrivKeyPEM := new(bytes.Buffer)
+	_ = pem.Encode(intermediatePrivKeyPEM, &pem.Block{
 		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
+		Bytes: x509.MarshalPKCS1PrivateKey(intermediatePrivKey),
 	})
 
+	// sign the intermediate cert with the root cert
+	intermediateCertBytes, err := x509.CreateCertificate(cryptorand.Reader, intermediateCertInfo, rootCertInfo, &intermediatePrivKey.PublicKey, rootPrivKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// PEM encode the intermediate cert and key
+	intermediateCertPEM := new(bytes.Buffer)
+	_ = pem.Encode(intermediateCertPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: intermediateCertBytes,
+	})
+
+	// Write the files that are specified in the config
 	certDir := config.CertDir
 	err = os.MkdirAll(certDir, 0666)
 	if err != nil {
 		return nil, err
 	}
 
-	err = writeFile(fmt.Sprintf("%s/tls.crt", certDir), serverCertPEM)
-	if err != nil {
-		return nil, err
+	if len(config.FilenameRootPrivKey) > 0 {
+		err = writeFile(fmt.Sprintf("%s/%s", certDir, config.FilenameRootPrivKey), rootPrivKeyPEM)
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	err = writeFile(fmt.Sprintf("%s/tls.key", certDir), serverPrivKeyPEM)
-	if err != nil {
-		return nil, err
+	if len(config.FilenameRootCert) > 0 {
+		err = writeFile(fmt.Sprintf("%s/%s", certDir, config.FilenameRootCert), rootCertPEM)
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	return caPEM, nil
+	if len(config.FilenameIntermediateCert) > 0 {
+		err = writeFile(fmt.Sprintf("%s/%s", certDir, config.FilenameIntermediateCert), intermediateCertPEM)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if len(config.FilenameIntermediatePrivKey) > 0 {
+		err = writeFile(fmt.Sprintf("%s/%s", certDir, config.FilenameIntermediatePrivKey), intermediatePrivKeyPEM)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if len(config.FilenameCertChain) > 0 {
+		err = writeFile(fmt.Sprintf("%s/%s", certDir, config.FilenameCertChain), rootCertPEM, intermediateCertPEM)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return rootCertPEM, nil
 }
 
 // newSerialNumber returns a new random serial number suitable for use in a certificate.
@@ -155,18 +199,19 @@ func newSerialNumber() (*big.Int, error) {
 }
 
 // writeFile writes data in the file at the given path
-func writeFile(filepath string, pem *bytes.Buffer) error {
+func writeFile(filepath string, pems ...*bytes.Buffer) error {
 	f, err := os.Create(filepath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	_, err = f.Write(pem.Bytes())
-	if err != nil {
-		return err
+	for _, pem := range pems {
+		_, err = f.Write(pem.Bytes())
+		if err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 
@@ -188,4 +233,28 @@ func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCe
 	}
 
 	return nil
+}
+
+// CreateWebhookCertConfig creates the config needed to create platform operator webhook certificate
+func CreateWebhookCertConfig(certDir string) Config {
+	return Config{
+		CertDir:                     certDir,
+		CommonName:                  fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace),
+		FilenameIntermediateCert:    "tls.crt",
+		FilenameIntermediatePrivKey: "tls.key",
+		NotBefore:                   time.Now(),
+		NotAfter:                    time.Now().AddDate(1, 0, 0),
+	}
+}
+
+// CreateIstioCertConfig creates the config needed to create an Istio certificate
+func CreateIstioCertConfig(certDir string) Config {
+	return Config{
+		CertDir:                     certDir,
+		CommonName:                  fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace),
+		FilenameIntermediateCert:    "tls.crt",
+		FilenameIntermediatePrivKey: "tls.key",
+		NotBefore:                   time.Now(),
+		NotAfter:                    time.Now().AddDate(1, 0, 0),
+	}
 }

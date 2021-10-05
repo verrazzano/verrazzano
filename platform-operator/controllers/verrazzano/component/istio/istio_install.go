@@ -4,7 +4,6 @@
 package istio
 
 import (
-	"crypto/x509/pkix"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
@@ -14,7 +13,6 @@ import (
 	"io/ioutil"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 func (i IstioComponent) IsOperatorInstallSupported() bool {
@@ -105,20 +103,12 @@ func (i IstioComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client,
 	}
 
 	// Create the cert used by Istio MTLS
-	const certDir = ""
-	certConfig := certificate.Config{
-		CertDir:   certDir,
-		Extensions: pkix.Extension{
-			Id:       ,
-			Value:    nil,
-		}
-		NotBefore: time.Now(),
-		NotAfter:  time.Now().AddDate(1, 0, 0),
-	}
-	caCert, err := certificate.CreateSelfSignedCertificate(certConfig)
+	certDir := os.TempDir()
+	config := certificate.CreateIstioCertConfig(certDir)
+	cert, err := certificate.CreateSelfSignedCert(config)
 	if err != nil {
 		log.Errorf("Failed to create Certificate for Istio: %v", err)
-		os.Exit(1)
+		retur
 	}
 
 	return nil
@@ -149,8 +139,8 @@ func setDefaultInstallFunc() {
 	installFunc = istio.Install
 }
 
-// createCerts creates certificates and istio secret to hold certificates if it doesn't exist
-func createCerts(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string) error {
+// createCert creates certificates and istio secret to hold certificates if it doesn't exist
+func createCert(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string) error {
 
 	return nil
 }
