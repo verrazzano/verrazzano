@@ -5,6 +5,7 @@ package rbac_test
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -346,24 +347,60 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 				return pods, err
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
+			// get the kubernetes version
+			version, err := clientset.ServerVersion()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(version.Major).To(Equal("1"), "Kubernetes major version was not 1 - I don't know what to do!")
+			minor, err := strconv.Atoi(version.Minor)
+			Expect(err).ShouldNot(HaveOccurred())
+
 			secretMatched := false
-			for i := range pods.Items {
-				// Get the secret of the API proxy pod
-				GinkgoWriter.Write([]byte("IN RANGE i=" + fmt.Sprint(i) + " POD=" + pods.Items[i].Name + "\n"))
-				if strings.HasPrefix(pods.Items[i].Name, verrazzanoAPI) {
-					apiProxy := pods.Items[i]
-					for j := range apiProxy.Spec.Volumes {
-						if apiProxy.Spec.Volumes[j].Secret != nil {
-							GinkgoWriter.Write([]byte("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SECRET=" + apiProxy.Spec.Volumes[j].Secret.SecretName + "\n"))
-						} else {
-							GinkgoWriter.Write([]byte("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SECRET=NIL\n"))
+			if minor <= 20 {
+				// in k8s 1.20 and lower, the SA token is mounted as a regular volume mounted secret
+				for i := range pods.Items {
+					// Get the secret of the API proxy pod
+					GinkgoWriter.Write([]byte("IN RANGE i=" + fmt.Sprint(i) + " POD=" + pods.Items[i].Name + "\n"))
+					if strings.HasPrefix(pods.Items[i].Name, verrazzanoAPI) {
+						apiProxy := pods.Items[i]
+						for j := range apiProxy.Spec.Volumes {
+							if apiProxy.Spec.Volumes[j].Secret != nil {
+								GinkgoWriter.Write([]byte("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SECRET=" + apiProxy.Spec.Volumes[j].Secret.SecretName + "\n"))
+							} else {
+								GinkgoWriter.Write([]byte("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SECRET=NIL\n"))
+							}
+							if apiProxy.Spec.Volumes[j].Secret != nil && apiProxy.Spec.Volumes[j].Secret.SecretName == saSecret.Name {
+								secretMatched = true
+								break
+							}
 						}
-						if apiProxy.Spec.Volumes[j].Secret != nil && apiProxy.Spec.Volumes[j].Secret.SecretName == saSecret.Name {
-							secretMatched = true
-							break
-						}
+						break
 					}
-					break
+				}
+			} else {
+				// in k8s 1.21 and later, the SA token is mounted as a projected volume with a different name,
+				// so we just check that there is a volume of type secret and ignore the name
+				for i := range pods.Items {
+					// Get the secret of the API proxy pod
+					GinkgoWriter.Write([]byte("IN RANGE i=" + fmt.Sprint(i) + " POD=" + pods.Items[i].Name + "\n"))
+					if strings.HasPrefix(pods.Items[i].Name, verrazzanoAPI) {
+						apiProxy := pods.Items[i]
+						inner:
+						for j := range apiProxy.Spec.Volumes {
+							GinkgoWriter.Write([]byte("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SOURCE=" + apiProxy.Spec.Volumes[j].VolumeSource.String() + "\n"))
+							if apiProxy.Spec.Volumes[j].VolumeSource.Projected != nil {
+								if apiProxy.Spec.Volumes[j].VolumeSource.Projected.Sources != nil {
+									for k := range apiProxy.Spec.Volumes[j].VolumeSource.Projected.Sources {
+										if apiProxy.Spec.Volumes[j].VolumeSource.Projected.Sources[k].ServiceAccountToken != nil {
+											GinkgoWriter.Write([]byte("Found a Service Account Token in the projected volume\n"))
+											secretMatched = true
+											break inner
+										}
+									}
+								}
+							}
+						}
+						break
+					}
 				}
 			}
 			Expect(secretMatched).To(BeTrue(), fmt.Sprintf("FAIL: The secret name of ServiceAccount "+
