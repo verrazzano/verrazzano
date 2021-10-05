@@ -10,20 +10,30 @@ metadata:
   labels:
     app: {{ .Values.api.name }}
 data:
-{{- with .Values.api.proxy }}
   conf.lua: |
+    local clusterHostSuffix = {{ .Values.config.envName }}..'.'..{{ .Values.config.dnsSuffix }}
+{{- with .Values.api.proxy }}
     local ingressHost = ngx.req.get_headers()["x-forwarded-host"]
-    if not(ingressHost) then
+    if not ingressHost then
       ingressHost = ngx.req.get_headers()["host"]
     end
+    if not ingressHost or #ingressHost < 1 or #ingressHost > 256 then
+        ingressHost = 'invalid-hostname'
+    end
+
     local ingressUri = 'https://'..ingressHost
     local callbackPath = "{{ .OidcCallbackPath }}"
     local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
 
     local auth = require("auth").config({
+        hostSuffix = clusterHostSuffix
         callbackUri = ingressUri..callbackPath,
         logoutCallbackUri = ingressUri..logoutCallbackPath
     })
+
+    -- determine backend and set backend parameters
+    local backend = auth.getBackendNameFromIngressHost(ingressHost)
+    local backendUrl = auth.getBackendServerUrlFromName(backend)
 
     -- TODO: is this needed here? Is it better done via/at ingress?
     -- This was previously enabled only for oauth-proxy, but there is similar
@@ -37,10 +47,6 @@ data:
         ngx.status = 200
         ngx.exit(ngx.HTTP_OK)
     end
-
-    -- determine backend and set backend parameters
-    local backend = auth.getBackendNameFromIngressHost(ingressHost)
-    local backendUrl = auth.getBackendServerUrlFromName(backend)
 
     auth.info("Processing request for backend '"..ingressHost.."'")
 
@@ -284,17 +290,47 @@ data:
         return false
     end
 
+    local authproxy_prefix = 'verrazzano-authproxy-'
+    local in_cluster_host_suffix = 'svc.cluster.local'
+    local vmi_system = 'vmi.system'
+
+    function me.validateIngressHost(backend, hostname, in_cluster)
+        -- assume backend, hostname, are always non-nil and non-empty
+        local check_host = nil
+        if in_cluster == true then
+            check_host = authproxy_prefix..backend_name..'.'..in_cluster_host_suffix
+        else
+            if backend == 'verrazzano' then
+                check_host = backend_name..'.'..hostSuffix
+            else
+                check_host = backend_name..'.'..vmi_system..'.'..hostSuffix
+            end
+        end
+        if check_host == hostname then
+            return backend
+        end
+        return 'invalid'
+    end
+
     function me.getBackendNameFromIngressHost(ingressHost)
         local backend_name = 'unknown'
-        if ingressHost then
+        local hostname = nil
+        if ingressHost and #ingressHost > 0 then
             me.info("ingressHost is '"..ingressHost.."'")
-            -- Strip domain and/or port
+            -- Strip the port off, if present
             local first, last = nil
-            first, last, backend_name = ingressHost:find("([^.:]+)")
-            -- Strip the auth proxy prefix from the extracted backend name if present
-            local authproxy_prefix = 'verrazzano-authproxy-'
-            if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
-              backend_name = string.sub(backend_name, #authproxy_prefix+1, -1)
+            first, last, hostname = ingressHost:find("([^:]+)")
+            if hostname and #hostname > 0 then
+                first, last, backend_name = ingressHost:find("([^.]+)")
+                if backend_name and #backend_name > 0 then
+                    -- Strip the auth proxy prefix from the extracted backend name if present
+                    if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
+                        backend_name = string.sub(backend_name, #authproxy_prefix+1, -1)
+                        backend_name = me.validateIngressHost(backend_name, hostname, true)
+                    else
+                        backend_name = me.validateIngressHost(backend_name, hostname, false)
+                    end
+                end
             end
         end
         if backend_name == "verrazzano" then
@@ -339,7 +375,8 @@ data:
         return serverUrl
     end
 
-    -- console sends access token by itself (originally obtained via pkce client)
+    -- console originally sent access token by itself, as bearer token (originally obtained via pkce client)
+    -- with combined proxy, console no longer handles tokens, but tests may be sending ID tokens.
     function me.handleBearerToken(authHeader)
         local found, index = authHeader:find('Bearer')
         if found then
