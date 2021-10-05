@@ -120,6 +120,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 				Name:            loggingNamePart,
 				Image:           image,
 				ImagePullPolicy: corev1.PullIfNotPresent,
+				Args:            []string{"-c", "/etc/fluent.conf"},
 			}
 
 			repeatNo := 0
@@ -305,6 +306,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				Name:            loggingNamePart,
 				Image:           trait.Spec.LoggingImage,
 				ImagePullPolicy: corev1.PullIfNotPresent,
+				Args:            []string{"-c", "/etc/fluent.conf"},
 			}
 
 			uLoggingContainer, err := struct2Unmarshal(loggingContainer)

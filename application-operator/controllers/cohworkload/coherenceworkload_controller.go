@@ -690,6 +690,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		Image:           image,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		VolumeMounts:    extracted.VolumeMounts,
+		Args:            []string{"-c", "/etc/fluent.conf"},
 	}
 	sIndex := -1
 	for i, s := range extracted.SideCars {
