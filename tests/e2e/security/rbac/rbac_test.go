@@ -378,13 +378,13 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 				}
 			} else {
 				// in k8s 1.21 and later, the SA token is mounted as a projected volume with a different name,
-				// so we just check that there is a volume of type secret and ignore the name
+				// so we just check that there is a volume of type service account token and ignore the name
 				for i := range pods.Items {
 					// Get the secret of the API proxy pod
 					GinkgoWriter.Write([]byte("IN RANGE i=" + fmt.Sprint(i) + " POD=" + pods.Items[i].Name + "\n"))
 					if strings.HasPrefix(pods.Items[i].Name, verrazzanoAPI) {
 						apiProxy := pods.Items[i]
-						inner:
+					inner:
 						for j := range apiProxy.Spec.Volumes {
 							GinkgoWriter.Write([]byte("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SOURCE=" + apiProxy.Spec.Volumes[j].VolumeSource.String() + "\n"))
 							if apiProxy.Spec.Volumes[j].VolumeSource.Projected != nil {
