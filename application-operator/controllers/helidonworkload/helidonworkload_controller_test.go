@@ -37,13 +37,6 @@ import (
 )
 
 const namespace = "unit-test-namespace"
-const loggingTrait = `
-{
-	"apiVersion": "oam.verrazzano.io/v1alpha1",
-	"kind": "LoggingTrait",
-	"name": "my-logging-trait"
-}
-`
 
 // TestReconcilerSetupWithManager test the creation of the VerrazzanoHelidonWorkload reconciler.
 // GIVEN a controller implementation
@@ -1058,10 +1051,4 @@ func findContainer(containers []corev1.Container, name string) (*corev1.Containe
 		}
 	}
 	return nil, false
-}
-
-// Used for bool in struct literal
-func newTrue() *bool {
-	b := true
-	return &b
 }
