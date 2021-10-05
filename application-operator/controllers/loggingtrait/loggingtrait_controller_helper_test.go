@@ -75,12 +75,12 @@ func Test_appendSliceOfInterface(t *testing.T) {
 	var empty []interface{}
 	var noDuplicateMounts = []corev1.VolumeMount{
 		{
-			Name:             "test-volume-1",
-			MountPath:        "test/mount/path/1",
+			Name:      "test-volume-1",
+			MountPath: "test/mount/path/1",
 		},
 		{
-			Name:             "test-volume-2",
-			MountPath:        "test/mount/path/2",
+			Name:      "test-volume-2",
+			MountPath: "test/mount/path/2",
 		},
 	}
 	var noDuplicates = make([]interface{}, len(noDuplicateMounts))
@@ -90,12 +90,12 @@ func Test_appendSliceOfInterface(t *testing.T) {
 
 	var duplicateMounts1 = []corev1.VolumeMount{
 		{
-			Name:             "test-volume-1",
-			MountPath:        "test/mount/path/1",
+			Name:      "test-volume-1",
+			MountPath: "test/mount/path/1",
 		},
 		{
-			Name:             "test-volume-2",
-			MountPath:        "test/mount/path/2",
+			Name:      "test-volume-2",
+			MountPath: "test/mount/path/2",
 		},
 	}
 	var duplicates1 = make([]interface{}, 0)
@@ -105,12 +105,12 @@ func Test_appendSliceOfInterface(t *testing.T) {
 
 	var duplicateMounts2 = []corev1.VolumeMount{
 		{
-			Name:             "test-volume-2",
-			MountPath:        "test/mount/path/2",
+			Name:      "test-volume-2",
+			MountPath: "test/mount/path/2",
 		},
 		{
-			Name:             "test-volume-3",
-			MountPath:        "test/mount/path/3",
+			Name:      "test-volume-3",
+			MountPath: "test/mount/path/3",
 		},
 	}
 	var duplicates2 = make([]interface{}, 0)
@@ -120,16 +120,16 @@ func Test_appendSliceOfInterface(t *testing.T) {
 
 	var duplicateMountsWant = []corev1.VolumeMount{
 		{
-			Name:             "test-volume-2",
-			MountPath:        "test/mount/path/2",
+			Name:      "test-volume-2",
+			MountPath: "test/mount/path/2",
 		},
 		{
-			Name:             "test-volume-3",
-			MountPath:        "test/mount/path/3",
+			Name:      "test-volume-3",
+			MountPath: "test/mount/path/3",
 		},
 		{
-			Name:             "test-volume-1",
-			MountPath:        "test/mount/path/1",
+			Name:      "test-volume-1",
+			MountPath: "test/mount/path/1",
 		},
 	}
 	var duplicatesWant = make([]interface{}, 0)
@@ -167,7 +167,7 @@ func Test_appendSliceOfInterface(t *testing.T) {
 			want: duplicatesWant,
 		},
 	}
-		for _, tt := range tests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := appendSliceOfInterface(tt.args.aSlice, tt.args.bSlice); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("appendSliceOfInterface() = %v, want %v", got, tt.want)
