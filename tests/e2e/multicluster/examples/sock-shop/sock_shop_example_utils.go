@@ -119,6 +119,7 @@ func VerifyMCResourcesDeleted(kubeconfigPath string, namespace string, projectNa
 
 // SockShopExists - returns true if the sock-shop namespace exists in the given cluster
 func SockShopNamespaceExists(kubeconfigPath string, namespace string) bool {
+	fmt.Println("got here")
 	_, err := pkg.GetNamespaceInCluster(namespace, kubeconfigPath)
 	return err == nil
 }

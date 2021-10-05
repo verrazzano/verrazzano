@@ -40,6 +40,41 @@ var _ = AfterEach(func() {
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = BeforeSuite(func() {
+
+	fmt.Println("cleaning up resources")
+
+	It("Delete resources on admin cluster", func() {
+		Eventually(func() error {
+			return cleanUp(adminKubeconfig)
+		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	})
+
+	It("Verify deletion on admin cluster", func() {
+		Eventually(func() bool {
+			return examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
+		}, waitTimeout, pollingInterval).Should(BeTrue())
+	})
+
+	It("Verify automatic deletion on managed cluster", func() {
+		Eventually(func() bool {
+			return examples.VerifyHelloHelidonDeletedInManagedCluster(managedKubeconfig, testNamespace, testProjectName)
+		}, waitTimeout, pollingInterval).Should(BeTrue())
+	})
+
+	It("Delete test namespace on managed cluster", func() {
+		Eventually(func() error {
+			return pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig)
+		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	})
+
+	It("Delete test namespace on admin cluster", func() {
+		Eventually(func() error {
+			return pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig)
+		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	})
+
+	fmt.Println("resources cleaned")
+
 	// deploy the VerrazzanoProject
 	Eventually(func() error {
 		return examples.DeployHelloHelidonProject(adminKubeconfig, sourceDir)

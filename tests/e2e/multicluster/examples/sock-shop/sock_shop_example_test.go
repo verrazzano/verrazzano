@@ -44,9 +44,11 @@ var _ = BeforeSuite(func() {
 	//	return DeploySockShopProject(adminKubeconfig, sourceDir)
 	//}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
+	fmt.Println("got here 1")
+
 	// wait for the namespace to be created on the cluster before deploying app
 	Eventually(func() bool {
-		return SockShopNamespaceExists(adminKubeconfig, sourceDir)
+		return SockShopNamespaceExists(adminKubeconfig, testNamespace)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
 	//Eventually(func() error {
