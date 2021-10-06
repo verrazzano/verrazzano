@@ -86,6 +86,9 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 	if err != nil || workload == nil {
 		return reconcile.Result{}, err
 	}
+	if workload.GetKind() == "VerrazzanoCoherenceWorkload" || workload.GetKind() == "VerrazzanoWebLogicWorkload" {
+		return reconcile.Result{}, nil
+	}
 
 	// Retrieve the child resources of the workload
 	resources, err := vznav.FetchWorkloadChildren(ctx, r, log, workload)
