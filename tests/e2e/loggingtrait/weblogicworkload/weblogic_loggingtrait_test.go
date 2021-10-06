@@ -24,6 +24,7 @@ const (
 	componentsPath       = "testdata/loggingtrait/weblogicworkload/weblogic-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/weblogicworkload/weblogic-logging-application.yaml"
 	applicationPodName   = "tododomain-adminserver"
+	configMapName		 = "logging-stdout-todo-domain-domain"
 )
 
 var kubeConfig = os.Getenv("KUBECONFIG")
@@ -103,7 +104,7 @@ func undeployApplication() {
 
 	pkg.Log(pkg.Info, "Verify ConfigMap is Deleted")
 	Eventually(func() bool {
-		configMap, _ := pkg.GetConfigMap("logging-stdout-tododomain-domain", "weblogic-logging-trait")
+		configMap, _ := pkg.GetConfigMap(configMapName, namespace)
 		return (configMap == nil)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
@@ -147,7 +148,7 @@ var _ = Describe("Verify application.", func() {
 		// THEN the configmap for the logging trait should exist
 		It("Verify that 'logging-stdout-tododomain-domain' ConfigMap exists in the 'weblogic-logging-trait' namespace", func() {
 			Eventually(func() bool {
-				configMap, err := pkg.GetConfigMap("logging-stdout-todo-domain-domain", namespace)
+				configMap, err := pkg.GetConfigMap(configMapName, namespace)
 				return (configMap != nil) && (err == nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
