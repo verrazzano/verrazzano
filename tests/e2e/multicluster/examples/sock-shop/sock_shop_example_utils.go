@@ -60,7 +60,6 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 
 	// check each sock-shop component in expectedCompsSockShop
 	for _, comp := range expectedCompsSockShop {
-		fmt.Println(comp)
 		compExists = componentExists(kubeconfigPath, namespace, comp) && compExists
 	}
 
