@@ -129,10 +129,20 @@ var _ = Describe("Verify application.", func() {
 		// GIVEN the app is deployed and the pods are running
 		// WHEN the app pod is inspected
 		// THEN the container for the logging trait should exist
-		It("Verify that 'logging-stdout' container exists in the 'tododomain-adminserver'", func() {
+		It("Verify that 'logging-stdout' container exists in the 'tododomain-adminserver' pod", func() {
 			Eventually(func() bool {
 				containerExists, err := pkg.DoesLoggingSidecarExist(kubeConfig, types.NamespacedName{Name: applicationPodName, Namespace: namespace}, "logging-stdout")
 				return containerExists && (err == nil)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+		})
+
+		// GIVEN the app is deployed and the pods are running
+		// WHEN the configmaps in the app namespace are retrieved
+		// THEN the configmap for the logging trait should exist
+		It("Verify that 'logging-stdout-tododomain-domain' ConfigMap exists in the 'weblogic-logging-trait' namespace", func() {
+			Eventually(func() bool {
+				configMap, err := pkg.GetConfigMap("logging-stdout-tododomain-domain", "weblogic-logging-trait")
+				return (configMap != nil) && (err == nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 	})
