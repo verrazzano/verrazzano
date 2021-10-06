@@ -20,11 +20,11 @@ const (
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
-	namespace            = "helidon-logging-trait"
+	namespace            = "hello-helidon-logging"
 	componentsPath       = "testdata/loggingtrait/helidonworkload/helidon-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/helidonworkload/helidon-logging-application.yaml"
-	applicationPodName   = "tododomain-adminserver"
-	configMapName		 = "logging-stdout-todo-domain-domain"
+	applicationPodName   = "hello-helidon-deployment-"
+	configMapName		 = "logging-stdout-hello-helidon-deployment-deployment"
 )
 
 var kubeConfig = os.Getenv("KUBECONFIG")
@@ -39,13 +39,6 @@ var _ = AfterSuite(func() {
 
 func deployApplication() {
 	pkg.Log(pkg.Info, "Deploy test application")
-	wlsUser := "weblogic"
-	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
-	dbPass := pkg.GetRequiredEnvVarOrFail("DATABASE_PSW")
-	regServ := pkg.GetRequiredEnvVarOrFail("OCR_REPO")
-	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
-	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
-
 	// Wait for namespace to finish deletion possibly from a prior run.
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
@@ -58,26 +51,6 @@ func deployApplication() {
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
 		return pkg.CreateNamespace(namespace, nsLabels)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
-	pkg.Log(pkg.Info, "Create Docker repository secret")
-	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
-	pkg.Log(pkg.Info, "Create WebLogic credentials secret")
-	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
-	pkg.Log(pkg.Info, "Create database credentials secret")
-	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "cidomain"})
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
-	pkg.Log(pkg.Info, "Create encryption credentials secret")
-	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreatePasswordSecret(namespace, "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "cidomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create component resources")
@@ -127,7 +100,7 @@ var _ = Describe("Verify application.", func() {
 		// THEN the adminserver and mysql pods should be found running
 		It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
 			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{"mysql", applicationPodName})
+				return pkg.PodsRunning(namespace, []string{applicationPodName})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
@@ -136,7 +109,7 @@ var _ = Describe("Verify application.", func() {
 		// GIVEN the app is deployed and the pods are running
 		// WHEN the app pod is inspected
 		// THEN the container for the logging trait should exist
-		It("Verify that 'logging-stdout' container exists in the 'tododomain-adminserver' pod", func() {
+		It("Verify that 'logging-stdout' container exists in the 'hello-helidon-deployment' pod", func() {
 			Eventually(func() bool {
 				containerExists, err := pkg.DoesLoggingSidecarExist(kubeConfig, types.NamespacedName{Name: applicationPodName, Namespace: namespace}, "logging-stdout")
 				return containerExists && (err == nil)
@@ -146,7 +119,7 @@ var _ = Describe("Verify application.", func() {
 		// GIVEN the app is deployed and the pods are running
 		// WHEN the configmaps in the app namespace are retrieved
 		// THEN the configmap for the logging trait should exist
-		It("Verify that 'logging-stdout-tododomain-domain' ConfigMap exists in the 'weblogic-logging-trait' namespace", func() {
+		It("Verify that 'logging-stdout-hello-helidon-deployment-deployment' ConfigMap exists in the 'hello-helidon-logging' namespace", func() {
 			Eventually(func() bool {
 				configMap, err := pkg.GetConfigMap(configMapName, namespace)
 				return (configMap != nil) && (err == nil)

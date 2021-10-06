@@ -6,8 +6,10 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"strings"
 )
 
 func DoesLoggingSidecarExist(kubeconfigPath string, name types.NamespacedName, containerName string) (bool, error) {
@@ -16,10 +18,20 @@ func DoesLoggingSidecarExist(kubeconfigPath string, name types.NamespacedName, c
 		Log(Error, fmt.Sprintf("Could not get the clientset from the kubeconfig: %v", err))
 		return false, err
 	}
-	appPod, err := clientset.CoreV1().Pods(name.Namespace).Get(context.TODO(), name.Name, metav1.GetOptions{})
+	podList , err := clientset.CoreV1().Pods(name.Namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Could not get the application pod from the given name and namespace: %v", err))
+		Log(Error, fmt.Sprintf("Could not List the application pod from the given namespace: %v", err))
 		return false, err
+	}
+	var appPod v1.Pod
+	for _, pod := range podList.Items {
+		if strings.HasPrefix(pod.Name, name.Name) {
+			appPod = pod
+		}
+	}
+	if appPod.Name == "" {
+		Log(Error, fmt.Sprintf("Could not find the pod with the given name and namespace: %v", err))
+		return false, nil
 	}
 	for _, container := range appPod.Spec.Containers {
 		if container.Name == containerName {
