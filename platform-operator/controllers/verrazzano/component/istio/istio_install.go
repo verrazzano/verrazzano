@@ -5,32 +5,34 @@ package istio
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	vzns "github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (i IstioComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
-func (i IstioComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, _ string) (bool, error) {
+func (i IstioComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	return false, nil
 }
 
-func (i IstioComponent) Install(log *zap.SugaredLogger, vz *vzapi.Verrazzano, client clipkg.Client, _ string, _ bool) error {
+func (i IstioComponent) Install(context spi.ComponentContext) error {
 	const imagePullSecretHelmKey = "values.global.imagePullSecrets[0].name"
 	var tmpFile *os.File
 	var kvs []bom.KeyValue
 	var err error
+	cr := context.EffectiveCR()
+	log := context.Log()
+	client := context.Client()
 
 	// Only create override file if the CR has an Istio component
-	if vz.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
+	if cr.Spec.Components.Istio != nil {
+		istioOperatorYaml, err := BuildIstioOperatorYaml(cr.Spec.Components.Istio)
 		if err != nil {
 			log.Errorf("Failed to Build IstioOperator YAML: %v", err)
 			return err
@@ -83,8 +85,11 @@ func (i IstioComponent) Install(log *zap.SugaredLogger, vz *vzapi.Verrazzano, cl
 	return nil
 }
 
-func (i IstioComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
-	if dryRun {
+func (i IstioComponent) PreInstall(context spi.ComponentContext) error {
+	log := context.Log()
+	client := context.Client()
+
+	if context.IsDryRun() {
 		return nil
 	}
 
@@ -105,17 +110,17 @@ func (i IstioComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client,
 		return err
 	}
 
-	// Create the cert used by Istio MTLS
-	err := createCert(log, client, namespace)
-	if err != nil {
-		log.Errorf("Failed to create Certificate for Istio: %v", err)
-		return err
-	}
+	//// Create the cert used by Istio MTLS
+	//err := createCert(log, client, cr.)
+	//if err != nil {
+	//	log.Errorf("Failed to create Certificate for Istio: %v", err)
+	//	return err
+	//}
 
 	return nil
 }
 
-func (i IstioComponent) PostInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (i IstioComponent) PostInstall(context spi.ComponentContext) error {
 	return nil
 }
 

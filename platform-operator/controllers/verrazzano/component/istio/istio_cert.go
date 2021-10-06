@@ -24,7 +24,7 @@ func createCert(log *zap.SugaredLogger, client clipkg.Client, namespace string) 
 		return err
 	}
 
- 	return nil
+	return nil
 }
 
 func newRootCert() x509.Certificate {
