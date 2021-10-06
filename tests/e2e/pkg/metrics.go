@@ -16,7 +16,7 @@ func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label strin
 	if len(labelValue) == 0 {
 		return QueryMetric(metricsName, kubeconfigPath)
 	}
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s:\"%s\"}", getPrometheusIngressHost(kubeconfigPath), metricsName,
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s=\"%s\"}", getPrometheusIngressHost(kubeconfigPath), metricsName,
 		label, labelValue)
 
 	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
