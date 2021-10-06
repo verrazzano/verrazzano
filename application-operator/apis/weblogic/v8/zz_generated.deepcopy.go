@@ -8,7 +8,6 @@
 package v8
 
 import (
-	"encoding/json"
 	"k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -409,8 +408,10 @@ func (in *MonitoringExporterSpec) DeepCopyInto(out *MonitoringExporterSpec) {
 	*out = *in
 	if in.Configuration != nil {
 		in, out := &in.Configuration, &out.Configuration
-		*out = make(json.RawMessage, len(*in))
-		copy(*out, *in)
+		*out = make(map[string]interface{}, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 }
 
