@@ -9,7 +9,7 @@
 # we purposely cause the build to fail in this situation - we do not want the build to
 # rely on generated files that are not version controlled.
 
-if [[ -n $(git status) ]]; then
+if [[ -n $(git status --porcelain) ]]; then
   git status
   git diff
   echo "ERROR: Looks like you need to run 'make generate' and include the changes in your PR"
