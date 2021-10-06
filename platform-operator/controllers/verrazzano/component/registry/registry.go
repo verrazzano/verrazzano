@@ -42,7 +42,7 @@ func ResetGetComponentsFn() {
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 func GetComponents() []spi.Component {
-	return getComponents()
+	return getComponentsFn()
 }
 
 // getComponents is the internal impl function for GetComponents, to allow overriding it for testing purposes
