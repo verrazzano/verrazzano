@@ -260,7 +260,7 @@ func (s *Syncer) deleteOrphanedComponents() error {
 	}
 
 	// Process the list of OAM Components checking to see if they are part of any MultiClusterApplicationConfiguration
-	for _, oamComp := range oamCompList.Items {
+	for i, oamComp := range oamCompList.Items {
 		found := false
 		// Loop through the MultiClusterApplicationConfiguration objects checking for a reference
 		for _, mcAppConfig := range mcAppConfigList.Items {
@@ -279,7 +279,7 @@ func (s *Syncer) deleteOrphanedComponents() error {
 		if !found {
 			// Delete the orphaned OAM Component
 			s.Log.Info(fmt.Sprintf("Deleting orphaned OAM Component %s in namespace %s", oamComp.Name, oamComp.Namespace))
-			err = s.LocalClient.Delete(s.Context, &oamComp)
+			err = s.LocalClient.Delete(s.Context, &oamCompList.Items[i])
 			if err != nil {
 				return err
 			}
