@@ -163,7 +163,7 @@ func componentExists(kubeconfigPath string, namespace string, component string) 
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
-		Resource: "multiclustercomponents",
+		Resource: "components",
 	}
 	return resourceExists(gvr, namespace, component, kubeconfigPath)
 }
