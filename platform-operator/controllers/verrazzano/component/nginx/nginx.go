@@ -61,9 +61,9 @@ func PreInstall(log *zap.SugaredLogger, c client.Client, cr *vzapi.Verrazzano, n
 	kvs = append(kvs, bom.KeyValue{Key: "controller.service.type", Value: string(ingressType)})
 
 	if cr.Spec.Components.DNS != nil && cr.Spec.Components.DNS.OCI != nil {
-		kvs = append(kvs, bom.KeyValue{Key: "controller.service.annotations.external-dns.alpha.kubernetes.io/ttl", Value: "60", SetString: true})
+		kvs = append(kvs, bom.KeyValue{Key: "controller.service.annotations.external-dns\\.alpha\\.kubernetes\\.io/ttl", Value: "60", SetString: true})
 		hostName := fmt.Sprintf("verrazzano-ingress.%s.%s", cr.Spec.EnvironmentName, cr.Spec.Components.DNS.OCI.DNSZoneName)
-		kvs = append(kvs, bom.KeyValue{Key: "controller.service.annotations.external-dns.alpha.kubernetes.io/hostname", Value: hostName})
+		kvs = append(kvs, bom.KeyValue{Key: "controller.service.annotations.external-dns\\.alpha\\.kubernetes\\.io/hostname", Value: hostName})
 	}
 
 	// Convert NGINX install-args to helm overrides
@@ -100,16 +100,16 @@ func PostInstall(log *zap.SugaredLogger, c client.Client, cr *vzapi.Verrazzano, 
 	if len(ingressConfig.Ports) == 0 {
 		return nil
 	}
-	svc := v1.Service{}
-	if err := c.Get(context.TODO(), types.NamespacedName{Name: controllerName, Namespace: ComponentNamespace}, &svc); err != nil {
+	svcPatch := v1.Service{}
+	if err := c.Get(context.TODO(), types.NamespacedName{Name: controllerName, Namespace: ComponentNamespace}, &svcPatch); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}
 		return err
 	}
-	patch := client.MergeFrom(svc.DeepCopy())
-	svc.Spec.Ports = append(svc.Spec.Ports, ingressConfig.Ports...)
-	if err := c.Patch(context.TODO(), &svc, patch); err != nil {
+	mergeFromSvc := client.MergeFrom(svcPatch.DeepCopy())
+	svcPatch.Spec.Ports = ingressConfig.Ports
+	if err := c.Patch(context.TODO(), &svcPatch, mergeFromSvc); err != nil {
 		return err
 	}
 	return nil

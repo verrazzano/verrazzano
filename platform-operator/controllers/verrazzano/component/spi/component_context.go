@@ -21,6 +21,7 @@ const (
 
 // NewContext creates a ComponentContext from a raw CR
 func NewContext(log *zap.SugaredLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (ComponentContext, error) {
+	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
 	effectiveCR, err := getEffectiveCR(actualCR)
 	if err != nil {
 		return nil, err
@@ -30,7 +31,7 @@ func NewContext(log *zap.SugaredLogger, c clipkg.Client, actualCR *vzapi.Verrazz
 		client:      c,
 		dryRun:      dryRun,
 		cr:          actualCR,
-		effectiveCR: effectiveCR, // Eventually we will compute the merged effective CR
+		effectiveCR: effectiveCR,
 	}, nil
 }
 

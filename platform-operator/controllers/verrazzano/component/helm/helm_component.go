@@ -274,12 +274,14 @@ func (h HelmComponent) PostUpgrade(context spi.ComponentContext) error {
 	return nil
 }
 
-func (h HelmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, string, error) {
-	// Optionally create a second override file.  This will contain both image overridesString and any additional
-	// overridesString required by a component.
-	// Get image overridesString unless opt out
+// buildOverridesString Builds the helm overrides for a release, inluding image overrides
+// - returns a comma-separated list of --set overrides, a comma-separated list of --set-string overrides, and any error
+func (h HelmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (setOverrides string, setStringOverrides string, err error) {
+	// Optionally create a second override file.  This will contain both image setOverrides and any additional
+	// setOverrides required by a component.
+	// Get image setOverrides unless opt out
 	var kvs []bom.KeyValue
-	var err error
+	//var err error
 	if !h.IgnoreImageOverrides {
 		kvs, err = getImageOverrides(h.ReleaseName)
 		if err != nil {
@@ -287,7 +289,7 @@ func (h HelmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Cli
 		}
 	}
 
-	// Append any additional overridesString for the component (see Keycloak.go for example)
+	// Append any additional setOverrides for the component (see Keycloak.go for example)
 	if h.AppendOverridesFunc != nil {
 		overrideValues, err := h.AppendOverridesFunc(log, h.ReleaseName, namespace, h.ChartDir, []bom.KeyValue{})
 		if err != nil {
@@ -301,36 +303,29 @@ func (h HelmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Cli
 		kvs = append(kvs, additionalValues...)
 	}
 
-	// If there are overridesString the create a comma separated string
-	var overridesString string
-	var stringOverrides string
+	// Create comma separated strings for any --set or --set-string overrides
 	if len(kvs) > 0 {
 		// Build 2 comma-separated strings, one set of --set overrides and a set of --set-string overrides,
 		// depending on what's declared
-		// --set values
-		bldr := strings.Builder{}
-		for i, kv := range kvs {
-			if !kv.SetString {
-				if i > 0 {
-					bldr.WriteString(",")
-				}
-				bldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
-			}
-		}
-		overridesString = bldr.String()
-		// --set-string values
-		stringsBldr := strings.Builder{}
-		for i, kv := range kvs {
+		setOverridesBldr := strings.Builder{}
+		setstringOverridesBldr := strings.Builder{}
+		for _, kv := range kvs {
 			if kv.SetString {
-				if i > 0 {
-					stringsBldr.WriteString(",")
+				if setstringOverridesBldr.Len() > 0 {
+					setstringOverridesBldr.WriteString(",")
 				}
-				stringsBldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
+				setstringOverridesBldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
+			} else {
+				if setOverridesBldr.Len() > 0 {
+					setOverridesBldr.WriteString(",")
+				}
+				setOverridesBldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
 			}
 		}
-		stringOverrides = bldr.String()
+		setStringOverrides = setstringOverridesBldr.String()
+		setOverrides = setOverridesBldr.String()
 	}
-	return overridesString, stringOverrides, nil
+	return setOverrides, setStringOverrides, nil
 }
 
 // resolveNamespace Resolve/normalize the namespace for a Helm-based component
