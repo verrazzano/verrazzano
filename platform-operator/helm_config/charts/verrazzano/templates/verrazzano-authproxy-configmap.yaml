@@ -334,9 +334,9 @@ data:
             me.info("ingressHost is '"..ingressHost.."'")
             -- Strip the port off, if present
             local first, last = nil
-            first, last, hostname = ingressHost:find("([^:]+)")
+            first, last, hostname = ingressHost:find("^([^:]+)")
             if hostname and #hostname > 0 then
-                first, last, backend_name = ingressHost:find("([^.]+)")
+                first, last, backend_name = hostname:find("^([^.]+)")
                 if backend_name and #backend_name > 0 then
                     -- Strip the auth proxy prefix from the extracted backend name if present
                     if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
