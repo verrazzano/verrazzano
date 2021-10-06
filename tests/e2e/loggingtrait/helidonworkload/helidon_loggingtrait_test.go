@@ -98,7 +98,7 @@ var _ = Describe("Verify application.", func() {
 		// GIVEN the app is deployed
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
-		It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
+		It("Verify 'hello-helidon-deployment' pod is running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(namespace, []string{applicationPodName})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
