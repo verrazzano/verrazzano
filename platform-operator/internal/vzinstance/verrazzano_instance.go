@@ -10,7 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
-	 networkingv1 "k8s.io/api/networking/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
