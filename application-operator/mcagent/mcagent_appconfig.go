@@ -75,7 +75,7 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 
 	// Delete orphaned OAM Component resources.  These are OAM Components that were created as a result of being
 	// part of a MultiClusterApplicationConfiguration that no longer exists, but somehow were not deleted.
-	err = s.deleteOrphanedComponents()
+	err = s.deleteOrphanedComponents(allLocalMCAppConfigs, namespace)
 	if err != nil {
 		s.Log.Error(err, "error deleting orphaned OAM Components")
 	}
@@ -228,8 +228,8 @@ func (s *Syncer) mutateComponent(managedClusterName string, mcAppConfigName stri
 
 // deleteOrphanedComponents - delete OAM Components that should have been deleted when the MultiClusterApplicationConfiguration
 // resources they were associated with were deleted.
-func (s *Syncer) deleteOrphanedComponents() error {
-	// Process all OAM components that were synced to the local system
+func (s *Syncer) deleteOrphanedComponents(mcAppConfigList clustersv1alpha1.MultiClusterApplicationConfigurationList, namespace string) error {
+	// Only process OAM components that were synced to the local system
 	labels := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			managedClusterLabel: s.ManagedClusterName,
@@ -239,7 +239,7 @@ func (s *Syncer) deleteOrphanedComponents() error {
 	if err != nil {
 		return err
 	}
-	listOptions := &client.ListOptions{LabelSelector: selector}
+	listOptions := &client.ListOptions{Namespace: namespace, LabelSelector: selector}
 	oamCompList := &oamv1alpha2.ComponentList{}
 	err = s.LocalClient.List(s.Context, oamCompList, listOptions)
 	if err != nil {
@@ -249,13 +249,6 @@ func (s *Syncer) deleteOrphanedComponents() error {
 	// Nothing to do if no OAM components found
 	if len(oamCompList.Items) == 0 {
 		return nil
-	}
-
-	// Get the list of MultiClusterApplicationConfiguration resources
-	mcAppConfigList := &clustersv1alpha1.MultiClusterApplicationConfigurationList{}
-	err = s.LocalClient.List(s.Context, mcAppConfigList)
-	if err != nil {
-		return err
 	}
 
 	// Process the list of OAM Components checking to see if they are part of any MultiClusterApplicationConfiguration
