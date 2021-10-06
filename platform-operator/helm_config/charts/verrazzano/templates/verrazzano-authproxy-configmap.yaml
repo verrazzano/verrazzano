@@ -461,6 +461,9 @@ data:
             redirect_uri = me.callbackUri
         })
         local redirectURL = me.getOidcAuthUri()..'?'..redirectArgs
+        -- there could be an existing (expired) vz_authn cookie.
+        -- delete it to avoid exceeding max header size
+        me.deleteCookie("vz_authn")
         me.setCookie("vz_state", stateData, authStateTtlInSec, true)
         ngx.header["Cache-Control"] = "no-cache, no-store, max-age=0"
         ngx.redirect(redirectURL)
@@ -516,8 +519,12 @@ data:
                 ["Content-Type"] = "application/x-www-form-urlencoded",
             }
         })
-        -- ,keepalive_timeout = 60000,
-        -- keepalive_pool = 10
+        if err then
+            me.unauthorized("Error requesting token", err)
+        end
+        if not res then
+            me.unauthorized("Error requesting token: response was nil")
+        end
         local tokenRes = cjson.decode(res.body)
         if tokenRes.error or tokenRes.error_description then
             me.info("Error requesting token")
@@ -974,6 +981,7 @@ data:
 
         # Posts from Fluentd can require more than the default 1m max body size
         client_max_body_size {{ .MaxRequestSize }};
+        proxy_buffer_size {{ .ProxyBufferSize }};
 
         #keepalive_timeout  0;
         keepalive_timeout  65;
