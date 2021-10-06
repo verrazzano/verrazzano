@@ -669,14 +669,11 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		vols := configMapVolumes.([]interface{})
 		volIndex := -1
 		for i, v := range vols {
-			if reflect.DeepEqual(v.(map[string]interface{}), loggingVolumeMountUnstructured) {
+			if v.(map[string]interface{})["mountPath"] == loggingVolumeMountUnstructured["mountPath"] {
 				volIndex = i
 			}
 		}
-		if volIndex != -1 {
-			vols[volIndex] = loggingVolumeMountUnstructured
-
-		} else {
+		if volIndex == -1 {
 			vols = append(vols, loggingVolumeMountUnstructured)
 		}
 		coherenceSpec["configMapVolumes"] = vols
@@ -729,9 +726,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 			vIndex = i
 		}
 	}
-	if vIndex != -1 {
-		extracted.Volumes[vIndex] = *loggingVolume
-	} else {
+	if vIndex == -1 {
 		extracted.Volumes = append(extracted.Volumes, *loggingVolume)
 	}
 	// convert the containers, volumes, and mounts in extracted to unstructured and set

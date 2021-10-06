@@ -251,7 +251,9 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 	if err != nil || workload == nil {
 		return reconcile.Result{}, true, err
 	}
-
+	if workload.GetKind() == "VerrazzanoCoherenceWorkload" || workload.GetKind() == "VerrazzanoWebLogicWorkload" {
+		return reconcile.Result{}, true, nil
+	}
 	// Retrieve the child resources of the workload
 	resources, err := vznav.FetchWorkloadChildren(ctx, r, log, workload)
 	if err != nil {
