@@ -130,17 +130,7 @@ func getComponents() []spi.Component {
 		},
 		mysql.NewComponent(),
 		keycloak.NewComponent(),
-		helm.HelmComponent{
-			ReleaseName:             kiali.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, kiali.ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(overridesDir, "kiali-server-values.yaml"),
-			Dependencies:            []string{istio.ComponentName},
-			ReadyStatusFunc:         kiali.IsKialiReady,
-		},
+		kiali.NewComponent(),
 		istio.IstioComponent{
 			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
 			InjectedSystemNamespaces: injectedSystemNamespaces,

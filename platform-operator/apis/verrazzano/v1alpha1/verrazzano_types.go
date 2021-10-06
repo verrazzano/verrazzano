@@ -120,6 +120,8 @@ type InstanceInfo struct {
 	GrafanaURL *string `json:"grafanaUrl,omitempty"`
 	// PrometheusURL The Prometheus URL for this Verrazzano installation
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
+	// KialiURL The Kiali URL for this Verrazzano installation
+	KialiURL *string `json:"kialiUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of Verrazzano

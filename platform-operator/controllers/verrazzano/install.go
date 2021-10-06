@@ -34,8 +34,12 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 		if !comp.IsOperatorInstallSupported() {
 			continue
 		}
-		componentState := cr.Status.Components[comp.Name()].State
-		switch componentState {
+		componentStatus, ok := cr.Status.Components[comp.Name()]
+		if !ok {
+			log.Warn("Did not find status details in map for component %s", comp.Name())
+			continue
+		}
+		switch componentStatus.State {
 		case vzapi.Ready:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			continue
