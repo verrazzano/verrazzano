@@ -3,13 +3,15 @@
 
 package v8
 
+import "encoding/json"
+
 // MonitoringExporterSpec defines the desired state of monitoring exporter sidecar
 // +k8s:openapi-gen=true
 type MonitoringExporterSpec struct {
 	// The configuration for the WebLogic Monitoring Exporter. If WebLogic Server instances are already running and have
 	// the monitoring exporter sidecar container, then changes to this field will be propagated to the exporter without
 	// requiring the restart of the WebLogic Server instances.
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 
 	// The WebLogic Monitoring Exporter sidecar container image name.
 	Image string `json:"image,omitempty"`
