@@ -108,10 +108,6 @@ func TestUpgradeNoVersion(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-
-	config.TestProfilesDir = "../../config/profiles"
-	defer func() { config.TestProfilesDir = "" }()
-
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
@@ -201,9 +197,6 @@ func TestUpgradeSameVersion(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-
-	config.TestProfilesDir = "../../config/profiles"
-	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -704,7 +697,7 @@ func TestUpgradeCompleted(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			asserts.Equal(vzapi.UpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
+			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeComplete, "Incorrect conditions")
 			return nil
 		})
 
@@ -716,9 +709,6 @@ func TestUpgradeCompleted(t *testing.T) {
 		return nil
 	})
 	defer istiocomp.ResetRestartComponentsFn()
-
-	config.TestProfilesDir = "../../config/profiles"
-	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -775,9 +765,6 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 		return nil
 	})
 	defer istiocomp.ResetRestartComponentsFn()
-
-	config.TestProfilesDir = "../../config/profiles"
-	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -855,9 +842,6 @@ func TestUpgradeHelmError(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	config.TestProfilesDir = "../../config/profiles"
-	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().

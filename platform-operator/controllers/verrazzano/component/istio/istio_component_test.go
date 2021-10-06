@@ -69,13 +69,8 @@ func TestUpgrade(t *testing.T) {
 	defer istio.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
 	defer setDefaultUpgradeFunc()
-
-	config.TestProfilesDir = "../../../../config/profiles"
-	defer func() { config.TestProfilesDir = "" }()
-
-	compContext, err := spi.NewContext(zap.S(), getMock(t), vz, false)
-	assert.NoError(err)
-	assert.NoError(comp.Upgrade(compContext), "Upgrade returned an error")
+	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), vz, false))
+	assert.NoError(err, "Upgrade returned an error")
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
