@@ -58,5 +58,5 @@ endif
 
 # check if the repo is clean after running generate
 .PHONY: check-repo-clean
-check-repo-clean: generate
+check-repo-clean: generate platform-manifests application-manifests image-patch-manifests
 	../ci/scripts/check_if_clean_after_generate.sh
