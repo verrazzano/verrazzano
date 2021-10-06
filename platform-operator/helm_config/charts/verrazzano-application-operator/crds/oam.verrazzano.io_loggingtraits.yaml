@@ -43,12 +43,10 @@ spec:
                   for the FluentD image provided by the user
                 type: string
               loggingConfig:
-                additionalProperties:
-                  type: string
                 description: 'LoggingConfig represents the configuration provided
                   by the user for the FluentD configuration that consists of fluentd.conf:
                   "<source>\n ... and so on ...\n"'
-                type: object
+                type: string
               loggingImage:
                 description: LoggingImage represents the optional FluentD image provided
                   by the user
