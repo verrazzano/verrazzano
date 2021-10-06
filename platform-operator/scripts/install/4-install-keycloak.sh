@@ -128,7 +128,7 @@ function install_keycloak {
     # Check if using the optional imagePullSecret
     local KEYCLOAK_ARGUMENTS=""
     if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
-      KEYCLOAK_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+      KEYCLOAK_ARGUMENTS=" --set image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
     if ! kubectl get secret --namespace ${KEYCLOAK_NS} mysql ; then
@@ -141,6 +141,8 @@ function install_keycloak {
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string ingress.annotations.nginx\.ingress\.kubernetes\.io/service-upstream=true"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string ingress.annotations.nginx\.ingress\.kubernetes\.io/upstream-vhost=keycloak-http.keycloak.svc.cluster.local"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.rules[0].host=keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.rules[0].paths[0].path=/"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.tls[0].secretName=${ENV_NAME}-secret"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
@@ -162,6 +164,7 @@ function install_keycloak {
         ${KEYCLOAK_ARGUMENTS} \
         ${keycloak_image_args} \
         --set keycloak.extraInitContainers="${EXTRA_INIT_CONTAINERS_OVERRIDE}" \
+        --debug \
         || return $?
   fi
 
