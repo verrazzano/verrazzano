@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	longPollingInterval = 20 * time.Second
+	longPollingInterval = 15 * time.Second
 	longWaitTimeout     = 10 * time.Minute
 
 	// Constants for sample metrics of system components validated by the test
