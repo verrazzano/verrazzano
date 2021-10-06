@@ -13,8 +13,8 @@ import (
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	k8net "k8s.io/api/networking/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
