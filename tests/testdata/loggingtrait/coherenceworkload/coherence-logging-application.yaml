@@ -1,0 +1,51 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: sockshop-appconf
+  namespace: sockshop-logging
+  annotations:
+    version: v1.0.0
+    description: "OAM Sock Shop Application"
+spec:
+  components:
+    - componentName: carts
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            metadata:
+              name: carts-ingress
+            spec:
+              rules:
+                - paths:
+                    - path: "/carts"
+                      pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: carts-metrics
+            spec:
+              port: 7001
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: LoggingTrait
+            metadata:
+              name: logging-trait
+              namespace: sockshop-logging
+            spec:
+              workloadReference:
+                name: carts-coh
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: VerrazzanoCoherenceWorkload
+              loggingImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2
+              loggingConfig:
+                fluentd.conf: |
+                  <match fluent.**>
+                    @type null
+                  </match>
+                  <match **>
+                  @type stdout
+                  </match>
