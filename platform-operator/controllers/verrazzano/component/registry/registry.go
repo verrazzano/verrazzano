@@ -19,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
@@ -147,6 +148,17 @@ func getComponents() []spi.Component {
 		},
 		mysql.NewComponent(),
 		keycloak.NewComponent(),
+		helm.HelmComponent{
+			ReleaseName:             kiali.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, kiali.ComponentName),
+			ChartNamespace:          constants.VerrazzanoSystemNamespace,
+			IgnoreNamespaceOverride: true,
+			SupportsOperatorInstall: true,
+			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
+			ValuesFile:              filepath.Join(overridesDir, "kiali-server-values.yaml"),
+			Dependencies:            []string{"istiod"},
+			ReadyStatusFunc:         kiali.IsKialiReady,
+		},
 		istio.IstioComponent{
 			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
 			InjectedSystemNamespaces: injectedSystemNamespaces,

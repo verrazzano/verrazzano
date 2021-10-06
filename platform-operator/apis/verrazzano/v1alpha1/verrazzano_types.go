@@ -272,6 +272,10 @@ type ComponentSpec struct {
 	// +optional
 	Istio *IstioComponent `json:"istio,omitempty"`
 
+	// Kiali contains the Kiali component configuration
+	// +optional
+	Kiali *KialiComponent `json:"kiali,omitempty"`
+
 	// Keycloak contains the Keycloak component configuration
 	// +optional
 	Keycloak *KeycloakComponent `json:"keycloak,omitempty"`
@@ -332,6 +336,12 @@ type CertManagerComponent struct {
 
 // CoherenceOperatorComponent specifies the Coherence Operator configuration
 type CoherenceOperatorComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// KialiComponent specifies the Kiali configuration
+type KialiComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }
