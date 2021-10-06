@@ -48,6 +48,12 @@ type HelmComponent struct {
 	// PreUpgradeFunc is an optional function to run before upgrading
 	PreUpgradeFunc preUpgradeFuncSig
 
+	// PostInstallFunc is an optional function to run after installing
+	PostInstallFunc postInstallFuncSig
+
+	// PostUpgradeFunc is an optional function to run after upgrading
+	PostUpgradeFunc postUpgradeFuncSig
+
 	// AppendOverridesFunc is an optional function get additional override values
 	AppendOverridesFunc appendOverridesSig
 
@@ -82,6 +88,12 @@ type preInstallFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releas
 
 // preUpgradeFuncSig is the signature for the optional preUgrade function
 type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
+
+// postInstallFuncSig is the signature for the optional function to run after installing; any KeyValue pairs should be prepended to the Helm overrides list
+type postInstallFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error)
+
+// postUpgradeFuncSig is the signature for the optional postUgrade function
+type postUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
 
 // appendOverridesSig is an optional function called to generate additional overrides.
 type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)

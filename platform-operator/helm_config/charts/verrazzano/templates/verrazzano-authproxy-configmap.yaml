@@ -121,6 +121,7 @@ data:
     local oidcRealm = "{{ .OidcRealm }}"
     local oidcClient = "{{ .PKCEClientID }}"
     local oidcDirectAccessClient = "{{ .PGClientID }}"
+    local oidcAudienceVerrazzano = "verrazzano-system" -- TODO: make this configurable
     local requiredRole = "{{ .RequiredRealmRole }}"
 
     local authStateTtlInSec = tonumber("{{ .AuthnStateTTL }}")
@@ -623,6 +624,9 @@ data:
         local claim_spec = {
             typ = validators.equals_any_of({ "Bearer", "ID" }),
             iss = validators.equals( oidcIssuerUri ),
+            -- accept tokens issued to either client
+            -- the verrazzano-system audience is checked by oidcValidateTokenWithClaims()
+            aud = validators.contains_any_of({ oidcClient, oidcDirectAccessClient }),
             azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient })
         }
         me.oidcValidateTokenWithClaims(token, claim_spec)
@@ -656,6 +660,7 @@ data:
         local claim_spec = {
             typ = validators.equals( expectedType ),
             iss = validators.equals( expectedIssuer ),
+            aud = validators.contains_any_of({ clientName }),
             azp = validators.equals( clientName )
         }
         me.oidcValidateTokenWithClaims(token, claim_spec)
@@ -666,7 +671,7 @@ data:
         local default_claim_spec = {
             iat = validators.is_not_before(),
             exp = validators.is_not_expired(),
-            aud = validators.required()
+            aud = validators.contains_any_of({ oidcAudienceVerrazzano })
         }
         -- passing verify a function to retrieve key didn't seem to work, so doing load then verify
         local jwt_obj = jwt:load_jwt(token)

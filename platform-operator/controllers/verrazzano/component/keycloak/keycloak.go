@@ -6,11 +6,14 @@ package keycloak
 import (
 	"bytes"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"text/template"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	"go.uber.org/zap"
+
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -40,6 +43,14 @@ const kcInitContainerValueTemplate = `
 // imageData needed for template rendering
 type imageData struct {
 	Image string
+}
+
+func PostInstallFunc(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error) {
+	return nil, nil
+}
+
+func PostUpgradeFunc(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error {
+	return nil
 }
 
 // AppendKeycloakOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.

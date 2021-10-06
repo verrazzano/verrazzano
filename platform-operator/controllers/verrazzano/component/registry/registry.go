@@ -193,6 +193,8 @@ func getComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
 			AppendOverridesFunc:     keycloak.AppendKeycloakOverrides,
+			PostInstallFunc:         keycloak.PostInstallFunc,
+			PostUpgradeFunc:         keycloak.PostUpgradeFunc,
 		},
 		istio.IstioComponent{
 			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
