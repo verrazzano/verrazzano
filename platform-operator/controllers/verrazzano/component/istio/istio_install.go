@@ -6,11 +6,14 @@ package istio
 import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	vzns "github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 func (i IstioComponent) IsOperatorInstallSupported() bool {
@@ -111,11 +114,11 @@ func (i IstioComponent) PreInstall(context spi.ComponentContext) error {
 	}
 
 	//// Create the cert used by Istio MTLS
-	//err := createCert(log, client, cr.)
-	//if err != nil {
-	//	log.Errorf("Failed to create Certificate for Istio: %v", err)
-	//	return err
-	//}
+	certScript := filepath.Join(config.GetInstallDir(), "create-istio-cert.sh")
+	if _, stderr, err := vzos.RunBash(certScript); err != nil {
+		log.Errorf("Failed creating Istio certificate secret %s: %s", err, stderr)
+		return err
+	}
 
 	return nil
 }
