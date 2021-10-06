@@ -19,12 +19,14 @@ import (
 const (
 	multiclusterNamespace = "verrazzano-mc"
 	appConfigName         = "sockshop-appconf"
-	componentName         = "carts-component" // check one of six components
 	workloadName          = "mc-sockshop-workload"
 )
 
-var expectedPodsSockShop = []string{"carts-component", "catalog-component", "orders-component", "payment-component",
+var expectedCompsSockShop = []string{"carts-component", "catalog-component", "orders-component", "payment-component",
 	"shipping-component", "users-component"}
+
+// carts-coh
+var expectedPodsSockShop = []string{"carts-coh", "catalog-coh", "orders-coh", "payment-coh", "shipping-coh", "users-coh"}
 
 // DeploySockShopProject deploys the sock-shop example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
@@ -54,14 +56,20 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 	// call both mcAppConfExists and mcComponentExists and store the results, to avoid short-circuiting
 	// since we should check both in all cases
 	mcAppConfExists := mcAppConfExists(kubeconfigPath, namespace)
-	mcCompExists := mcComponentExists(kubeconfigPath, namespace)
+	compExists := true
+
+	// check each sock-shop component in expectedCompsSockShop
+	for _, comp := range expectedCompsSockShop {
+		fmt.Println(comp)
+		compExists = componentExists(kubeconfigPath, namespace, comp) && compExists
+	}
 
 	if isAdminCluster || placedInThisCluster {
 		// always expect MC resources on admin cluster - otherwise expect them only if placed here
-		return mcAppConfExists && mcCompExists
+		return mcAppConfExists && compExists
 	} else {
 		// don't expect either
-		return !mcAppConfExists && !mcCompExists
+		return !mcAppConfExists && !compExists
 	}
 }
 
@@ -69,16 +77,16 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 // depending on whether the app is placed in this cluster
 func VerifySockShopInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
 	projectExists := projectExists(kubeConfigPath, projectName)
-	workloadExists := componentWorkloadExists(kubeConfigPath, namespace)
+	// workloadExists := componentWorkloadExists(kubeConfigPath, namespace)
 	podsRunning := sockShopPodsRunning(kubeConfigPath, namespace)
 
 	if placedInThisCluster {
-		return projectExists && workloadExists && podsRunning
+		return projectExists && podsRunning
 	} else {
 		if isAdminCluster {
-			return projectExists && !workloadExists && !podsRunning
+			return projectExists && !podsRunning
 		} else {
-			return !workloadExists && !podsRunning && !projectExists
+			return !podsRunning && !projectExists
 		}
 	}
 }
@@ -116,7 +124,12 @@ func VerifyAppDeleted(kubeconfigPath string, namespace string) bool {
 // VerifyMCResourcesDeleted verifies that any resources created by the deployment are deleted on the specified cluster
 func VerifyMCResourcesDeleted(kubeconfigPath string, namespace string, projectName string) bool {
 	appConfExists := mcAppConfExists(kubeconfigPath, namespace)
-	compExists := mcComponentExists(kubeconfigPath, namespace)
+	compExists := true
+
+	// check each sock-shop component in expectedCompsSockShop
+	for _, comp := range expectedCompsSockShop {
+		compExists = componentExists(kubeconfigPath, namespace, comp) && compExists
+	}
 	projExists := projectExists(kubeconfigPath, projectName)
 	return !appConfExists && !compExists && !projExists
 }
@@ -147,13 +160,13 @@ func mcAppConfExists(kubeconfigPath string, namespace string) bool {
 }
 
 // Check if individual component exists
-func mcComponentExists(kubeconfigPath string, namespace string) bool {
+func componentExists(kubeconfigPath string, namespace string, component string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
 		Resource: "multiclustercomponents",
 	}
-	return resourceExists(gvr, namespace, componentName, kubeconfigPath)
+	return resourceExists(gvr, namespace, component, kubeconfigPath)
 }
 
 func componentWorkloadExists(kubeconfigPath string, namespace string) bool {
