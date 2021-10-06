@@ -408,6 +408,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 
 		if isCombined {
 			if isFound {
+
 				r.ensureLoggingConfigMapExists(ctx, trait, resource)
 			}
 			// make a copy of the resource spec since resource.Object will get overwritten in CreateOrUpdate
@@ -461,7 +462,7 @@ func (r *LoggingTraitReconciler) ensureLoggingConfigMapExists(ctx context.Contex
 // createLoggingConfigMap returns a configmap based on the logging trait
 func (r *LoggingTraitReconciler) createLoggingConfigMap(trait *oamv1alpha1.LoggingTrait, resource *unstructured.Unstructured) *corev1.ConfigMap {
 	configMapName := loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind())
-	return &corev1.ConfigMap{
+	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,
 			Namespace: resource.GetNamespace(),
@@ -469,6 +470,8 @@ func (r *LoggingTraitReconciler) createLoggingConfigMap(trait *oamv1alpha1.Loggi
 		},
 		Data: trait.Spec.LoggingConfig,
 	}
+	controllerutil.SetControllerReference(resource, configMap, r.Scheme)
+	return configMap
 }
 
 func (r *LoggingTraitReconciler) deleteLoggingConfigMap(ctx context.Context, trait *oamv1alpha1.LoggingTrait, resource *unstructured.Unstructured) error {
