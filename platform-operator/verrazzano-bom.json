@@ -108,7 +108,7 @@
             },
             {
               "image": "istio-coredns-plugin",
-              "tag": "0.2-20211005162952-2daca43d",
+              "tag": "0.2-20201016204812-23723dcb",
               "helmFullImageKey": "istiocoredns.coreDNSPluginImage"
             }
           ]
