@@ -345,6 +345,17 @@ pipeline {
                         }
                     }
                 }
+                stage('Push to OCIR') {
+                    steps {
+                        script {
+                            sh """
+                                if [ "${env.BRANCH_NAME}" == "master" ]; then
+                                    ci/scripts/periodic_push_to_ocir.sh
+                                fi
+                            """
+                        }
+                    }
+                }
             }
         }
     }

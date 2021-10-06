@@ -28,7 +28,7 @@ EOM
     exit 0
 }
 
-[ -z "$OCI_REGION" ] || [ -z "$OCIR_REPOSITORY_BASE" ] || [ -z "$OCIR_COMPARTMENT_ID" ] || [ -z "$OCIR_PATH_FILTER" ] || -z "$SCAN_RESULTS_DIR" || [ "$1" == "-h" ] && { usage; }
+[ -z "$OCI_REGION" ] || [ -z "$OCIR_REPOSITORY_BASE" ] || [ -z "$OCIR_COMPARTMENT_ID" ] || [ -z "$OCIR_PATH_FILTER" ] || [ -z "$SCAN_RESULTS_DIR" ] || [ "$1" == "-h" ] && { usage; }
 
 function get_repository_list() {
   # TBD: See if we can just filter of the OCI list results to use the path filter, limit the json as well
@@ -50,15 +50,61 @@ function check_for_missing_scans() {
   echo "TBD"
 }
 
+# This will generate a more human readable text report. More suitable for forming a BUG report with than the CSV alone.
+#
 # $1 Scan result OCID
 # $2 Result file name
-function get_scan_details() {
-  echo $1
-  echo $2
-  oci vulnerability-scanning container scan result get --container-scan-result-id $1 --region $OCI_REGION > $2-details.json
-  cat $2-details.json | jq -r '.data.problems[] | { sev: .severity, cve: ."cve-reference", description: .description } ' | jq -r '[.[]] | @csv' | sort -u > $2-details.csv
+# $1 Scan result severity
+# $2 Repository image
+# $3 Image tag
+# $4 Issue count
+# $5 Scan result OCID
+# $6 Result file basename (path and file prefix to use)
+function generate_detail_text_report() {
+  [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ] || [ -z "$6" ] || [ -z "$7" ] && { echo "ERROR: generate_detail_text_report invalid args: $1 $2 $3 $4 $5 $6 $7"; return }
+  RESULT_SEVERITY=$1
+  RESULT_REPOSITORY_IMAGE=$2
+  RESULT_IMAGE_TAG=$3
+  RESULT_COUNT=$4
+  SCAN_RESULT_OCID=$5
+  RESULT_FILE_BASE=$6
+  TIME_FINISHED=$7
+  # REVIEW: Rudimentary for now, can work on the format later, etc...
+  echo "OCIR Result Scan ID:  $SCAN_RESULT_OCID" > $RESULT_FILE_BASE-report.out
+  echo "Scan Finished:        $TIME_FINISHED" > $RESULT_FILE_BASE-report.out
+  echo "Image:                $RESULT_REPOSITORY_IMAGE:$RESULT_IMAGE_TAG" > $RESULT_FILE_BASE-report.out
+  echo "Issue Count:          $RESULT_COUNT" > $RESULT_FILE_BASE-report.out
+  echo "Highest Severity:     $RESULT_SERVERITY" > $RESULT_FILE_BASE-report.out
+  echo "" > $RESULT_FILE_BASE-report.out
+  echo "Issues:" > $RESULT_FILE_BASE-report.out
+  cat $RESULT_FILE_BASE-details.csv > $RESULT_FILE_BASE-report.out
 }
 
+# This will get the detailed scan results in JSON, form a CSV report, and also form a more human readable report
+#
+# $1 Scan result severity
+# $2 Repository image
+# $3 Image tag
+# $4 Issue count
+# $5 Scan result OCID
+# $6 Result file basename (path and file prefix to use)
+function get_scan_details() {
+  [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ] || [ -z "$6" ] && { echo "ERROR: get_scan_details invalid args: $1 $2 $3 $4 $5 $6"; return }
+  RESULT_SEVERITY=$1
+  RESULT_REPOSITORY_IMAGE=$2
+  RESULT_IMAGE_TAG=$3
+  RESULT_COUNT=$4
+  SCAN_RESULT_OCID=$5
+  RESULT_FILE_BASE=$6
+  oci vulnerability-scanning container scan result get --container-scan-result-id $5 --region $OCI_REGION > $RESULT_FILE_BASE-details.json
+  cat $RESULT_FILE_BASE-details.json | jq -r '.data.problems[] | { sev: .severity, cve: ."cve-reference", description: .description } ' | jq -r '[.[]] | @csv' | sort -u > $RESULT_FILE_BASE-details.csv
+  TIME_FINISHED=$(cat $RESULT_FILE_BASE-details.json | jr -r '.data."time-finished"')
+  generate_detail_text_report $1 $2 $3 $4 $5 $6 $7
+}
+
+# This will get the scan summaries and details for all of the repositories
+#
+# It will also verify that all repositories found have scan results as well
 function get_all_scan_details() {
   get_repository_list
   get_scan_summaries
@@ -70,12 +116,16 @@ function get_all_scan_details() {
 
   # For each scan result in the scan summary list, fetch the full details
   while read CSV_LINE; do
-    SCAN_RESULT_OCID=$(echo "$CSV_LINE" | cut -d, -f"5" | sed 's/"//g')
+    RESULT_SEVERITY=$(echo "$CSV_LINE" | cut -d, -f"1" | sed 's/"//g')
     RESULT_REPOSITORY_IMAGE=$(echo "$CSV_LINE" | cut -d, -f"2" | sed 's/"//g' | sed 's;/;_;g')
-    RESULT_IMAGE=$(echo "$CSV_LINE" | cut -d, -f"2" | sed 's/"//g')
-    # TBD: Not great but should ensure unique files as a start here
+    RESULT_IMAGE_TAG=$(echo "$CSV_LINE" | cut -d, -f"3" | sed 's/"//g')
+    RESULT_COUNT=$(echo "$CSV_LINE" | cut -d, -f"4" | sed 's/"//g')
+    SCAN_RESULT_OCID=$(echo "$CSV_LINE" | cut -d, -f"5" | sed 's/"//g')\
+
+    # REVIEW: Not great but should ensure unique files as a start here (see if we can use image names reliably here instead, but
+    #   we need to correlate the details and report to the exact scan results which are identified using an OCID)
     RESULT_FILE_PREFIX=$(echo "$SCAN_RESULTS_DIR/$SCAN_RESULT_OCID")
-    get_scan_details $SCAN_RESULT_OCID $RESULT_FILE_PREFIX
+    get_scan_details $RESULT_SEVERITY $RESULT_REPOSITORY_IMAGE $RESULT_IMAGE_TAG $RESULT_COUNT $SCAN_RESULT_OCID $RESULT_FILE_PREFIX
   done <$SCAN_RESULTS_DIR/scan-all-summary.csv
 }
 
