@@ -20,11 +20,11 @@ const (
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
-	namespace            = "hello-helidon-logging"
-	componentsPath       = "testdata/loggingtrait/helidonworkload/helidon-logging-components.yaml"
-	applicationPath      = "testdata/loggingtrait/helidonworkload/helidon-logging-application.yaml"
-	applicationPodName   = "hello-helidon-deployment-"
-	configMapName		 = "logging-stdout-hello-helidon-deployment-deployment"
+	namespace            = "sockshop-logging"
+	componentsPath       = "testdata/loggingtrait/coherenceworkload/coherence-logging-components.yaml"
+	applicationPath      = "testdata/loggingtrait/coherenceworkload/coherence-logging-application.yaml"
+	applicationPodName   = "carts-coh-0"
+	configMapName        = "logging-stdout-carts-coh-coherence"
 )
 
 var kubeConfig = os.Getenv("KUBECONFIG")
@@ -109,7 +109,7 @@ var _ = Describe("Verify application.", func() {
 		// GIVEN the app is deployed and the pods are running
 		// WHEN the app pod is inspected
 		// THEN the container for the logging trait should exist
-		It("Verify that 'logging-stdout' container exists in the 'hello-helidon-deployment' pod", func() {
+		It("Verify that 'logging-stdout' container exists in the 'carts-coh-0' pod", func() {
 			Eventually(func() bool {
 				containerExists, err := pkg.DoesLoggingSidecarExist(kubeConfig, types.NamespacedName{Name: applicationPodName, Namespace: namespace}, "logging-stdout")
 				return containerExists && (err == nil)
@@ -119,7 +119,7 @@ var _ = Describe("Verify application.", func() {
 		// GIVEN the app is deployed and the pods are running
 		// WHEN the configmaps in the app namespace are retrieved
 		// THEN the configmap for the logging trait should exist
-		It("Verify that 'logging-stdout-hello-helidon-deployment-deployment' ConfigMap exists in the 'hello-helidon-logging' namespace", func() {
+		It("Verify that 'logging-stdout-carts-coh-coherence' ConfigMap exists in the 'sockshop-logging' namespace", func() {
 			Eventually(func() bool {
 				configMap, err := pkg.GetConfigMap(configMapName, namespace)
 				return (configMap != nil) && (err == nil)

@@ -24,7 +24,7 @@ const (
 	componentsPath       = "testdata/loggingtrait/weblogicworkload/weblogic-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/weblogicworkload/weblogic-logging-application.yaml"
 	applicationPodName   = "tododomain-adminserver"
-	configMapName		 = "logging-stdout-todo-domain-domain"
+	configMapName        = "logging-stdout-todo-domain-domain"
 )
 
 var kubeConfig = os.Getenv("KUBECONFIG")

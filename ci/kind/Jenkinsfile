@@ -455,6 +455,22 @@ pipeline {
                                 runGinkgo('loggingtrait/weblogicworkload')
                             }
                         }
+                        stage('logging trait helidon workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/helidonworkload')
+                            }
+                        }
+                        stage('logging trait coherence workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/coherenceworkload')
+                            }
+                        }
                     }
                     post {
                         always {

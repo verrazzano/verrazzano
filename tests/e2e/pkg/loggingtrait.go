@@ -18,7 +18,7 @@ func DoesLoggingSidecarExist(kubeconfigPath string, name types.NamespacedName, c
 		Log(Error, fmt.Sprintf("Could not get the clientset from the kubeconfig: %v", err))
 		return false, err
 	}
-	podList , err := clientset.CoreV1().Pods(name.Namespace).List(context.TODO(), metav1.ListOptions{})
+	podList, err := clientset.CoreV1().Pods(name.Namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Could not List the application pod from the given namespace: %v", err))
 		return false, err

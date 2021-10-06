@@ -24,7 +24,7 @@ const (
 	componentsPath       = "testdata/loggingtrait/helidonworkload/helidon-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/helidonworkload/helidon-logging-application.yaml"
 	applicationPodName   = "hello-helidon-deployment-"
-	configMapName		 = "logging-stdout-hello-helidon-deployment-deployment"
+	configMapName        = "logging-stdout-hello-helidon-deployment-deployment"
 )
 
 var kubeConfig = os.Getenv("KUBECONFIG")
