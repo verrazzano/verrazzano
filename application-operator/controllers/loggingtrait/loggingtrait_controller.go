@@ -462,13 +462,15 @@ func (r *LoggingTraitReconciler) ensureLoggingConfigMapExists(ctx context.Contex
 // createLoggingConfigMap returns a configmap based on the logging trait
 func (r *LoggingTraitReconciler) createLoggingConfigMap(trait *oamv1alpha1.LoggingTrait, resource *unstructured.Unstructured) *corev1.ConfigMap {
 	configMapName := loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind())
+	data := make(map[string]string)
+	data["fluentd.conf"] = trait.Spec.LoggingConfig
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,
 			Namespace: resource.GetNamespace(),
 			Labels:    resource.GetLabels(),
 		},
-		Data: trait.Spec.LoggingConfig,
+		Data: data,
 	}
 	controllerutil.SetControllerReference(resource, configMap, r.Scheme)
 	return configMap

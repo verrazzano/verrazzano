@@ -651,13 +651,15 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	configMap := &corev1.ConfigMap{}
 	err = r.Get(ctx, client.ObjectKey{Namespace: weblogic.GetNamespace(), Name: loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind())}, configMap)
 	if err != nil && k8serrors.IsNotFound(err) {
+		data := make(map[string]string)
+		data["fluentd.conf"] = loggingTrait.Spec.LoggingConfig
 		configMap = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configMapName,
 				Namespace: weblogic.GetNamespace(),
 				Labels:    weblogic.GetLabels(),
 			},
-			Data: loggingTrait.Spec.LoggingConfig,
+			Data: data,
 		}
 		err = controllerutil.SetControllerReference(workload, configMap, r.Scheme)
 		if err != nil {
