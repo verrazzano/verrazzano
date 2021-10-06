@@ -159,6 +159,17 @@ func getComponents() []spi.Component {
 			Dependencies:            []string{"istiod"},
 			ReadyStatusFunc:         kiali.IsKialiReady,
 		},
+		helm.HelmComponent{
+			ReleaseName:             kiali.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, kiali.ComponentName),
+			ChartNamespace:          constants.VerrazzanoSystemNamespace,
+			IgnoreNamespaceOverride: true,
+			SupportsOperatorInstall: true,
+			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
+			ValuesFile:              filepath.Join(overridesDir, "kiali-server-values.yaml"),
+			Dependencies:            []string{"istiod"},
+			ReadyStatusFunc:         kiali.IsKialiReady,
+		},
 		istio.IstioComponent{
 			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
 			InjectedSystemNamespaces: injectedSystemNamespaces,
