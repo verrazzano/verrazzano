@@ -13,7 +13,7 @@ import (
 
 // QueryMetricWithLabel queries a metric using a label from the Prometheus host, derived from the kubeconfig
 func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label string, labelValue string) (string, error) {
-	if len(label) == 0 {
+	if len(labelValue) == 0 {
 		return QueryMetric(metricsName, kubeconfigPath)
 	}
 	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s:\"%s\"}", getPrometheusIngressHost(kubeconfigPath), metricsName,
