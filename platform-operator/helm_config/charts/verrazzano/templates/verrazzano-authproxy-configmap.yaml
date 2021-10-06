@@ -326,8 +326,10 @@ data:
                     -- Strip the auth proxy prefix from the extracted backend name if present
                     if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
                         backend_name = string.sub(backend_name, #authproxy_prefix+1, -1)
+                        me.info("Validating host (local): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
                         backend_name = me.validateIngressHost(backend_name, hostname, true)
                     else
+                        me.info("Validating host (ingress): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
                         backend_name = me.validateIngressHost(backend_name, hostname, false)
                     end
                 end
