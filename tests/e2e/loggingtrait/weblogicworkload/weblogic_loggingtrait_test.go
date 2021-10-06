@@ -132,7 +132,7 @@ var _ = Describe("Verify application.", func() {
 		It("Verify that 'logging-stdout' container exists in the 'tododomain-adminserver'", func() {
 			Eventually(func() bool {
 				containerExists, err := pkg.DoesLoggingSidecarExist(kubeConfig, types.NamespacedName{Name: applicationPodName, Namespace: namespace}, "logging-stdout")
-				return containerExists && errors.IsNotFound(err)
+				return containerExists && (err == nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 	})
