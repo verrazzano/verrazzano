@@ -16,7 +16,7 @@ const LoggingTraitKind string = "LoggingTrait"
 // LoggingTraitSpec defines the desired state of LoggingTrait
 type LoggingTraitSpec struct {
 	// LoggingConfig represents the configuration provided by the user for the FluentD configuration that consists of fluentd.conf: "<source>\n ... and so on ...\n"
-	LoggingConfig map[string]string `json:"loggingConfig,omitempty"`
+	LoggingConfig string `json:"loggingConfig,omitempty"`
 
 	// LoggingImage represents the optional FluentD image provided by the user
 	// +optional
