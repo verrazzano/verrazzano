@@ -669,7 +669,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		vols := configMapVolumes.([]interface{})
 		volIndex := -1
 		for i, v := range vols {
-			if v.(map[string]interface{})["mountPath"] == loggingVolumeMountUnstructured["mountPath"] {
+			if reflect.DeepEqual(v.(map[string]interface{}), loggingVolumeMountUnstructured) {
 				volIndex = i
 			}
 		}
@@ -725,7 +725,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	vIndex := -1
 	for i, v := range extracted.Volumes {
-		if v.Name == configMapName {
+		if v.Name == loggingVolume.Name {
 			vIndex = i
 		}
 	}
