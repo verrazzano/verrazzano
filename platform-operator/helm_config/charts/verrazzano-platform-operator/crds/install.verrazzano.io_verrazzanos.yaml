@@ -1986,6 +1986,12 @@ spec:
                             type: object
                         type: object
                     type: object
+                  kiali:
+                    description: Kiali contains the Kiali component configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   kibana:
                     description: Grafana configuration
                     properties:

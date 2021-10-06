@@ -7,6 +7,7 @@ import (
 	"context"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
@@ -104,6 +105,8 @@ func isComponentEnabled(cr *vzapi.Verrazzano, componentName string) bool {
 		return coherence.IsEnabled(cr.Spec.Components.CoherenceOperator)
 	case weblogic.ComponentName:
 		return weblogic.IsEnabled(cr.Spec.Components.WebLogicOperator)
+	case kiali.ComponentName:
+		return kiali.IsEnabled(cr.Spec.Components.Kiali)
 	}
 	return true
 }

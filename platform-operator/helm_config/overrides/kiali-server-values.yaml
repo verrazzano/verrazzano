@@ -17,9 +17,22 @@ istio_namespace: istio-system
 external_services:
   prometheus:
     url: http://vmi-system-prometheus:9090
-  tracing:
-    auth:
-      type: none
-    enabled: true
-    in_cluster_url: 'http://tracing.verrazzano-system/jaeger'
-    use_grpc: false
+### Turn Grafana off, Integration story still being worked
+#  grafana:
+#    auth:
+#      insecure_skip_verify: true
+#      type: basic
+#      user: "verrazzano"
+#      password: "somepassword"
+#    dashboards:
+#      - name: "Istio Mesh Dashboard"
+#    enabled: true
+#    in-cluster-url: http://vmi-system-grafana.verrazzano-system:3000
+#    url: https://grafana.vmi.system.default.100.50.125.175.nip.io
+### Turn Tracing off, Jaeger not installed yet
+#  tracing:
+#    auth:
+#      type: none
+#    enabled: true
+#    in_cluster_url: 'http://tracing.verrazzano-system/jaeger'
+#    use_grpc: false
