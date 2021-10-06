@@ -143,6 +143,7 @@ function install_keycloak {
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.rules[0].host=keycloak.${ENV_NAME}.${DNS_SUFFIX}"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.rules[0].paths[0].path=/"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.rules[0].paths[0].pathType=ImplementationSpecific"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.tls[0].secretName=${ENV_NAME}-secret"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
