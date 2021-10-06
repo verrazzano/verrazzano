@@ -6,9 +6,10 @@ package cohworkload
 import (
 	"context"
 	"fmt"
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"strings"
 	"testing"
+
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
@@ -409,6 +410,8 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 			return nil
 		})
 	// Define expected ConfigMap
+	data := make(map[string]string)
+	data["fluentd.conf"] = ""
 	customLoggingConfigMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "",
@@ -429,6 +432,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 				},
 			},
 		},
+		Data: data,
 	}
 	// expect a call to create the custom logging config map
 	cli.EXPECT().
