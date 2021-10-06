@@ -399,8 +399,8 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 		Containers:   extracted.Containers,
 		Volumes:      extracted.Volumes,
 		VolumeMounts: extracted.VolumeMounts,
-		LogPath:      BuildWLSLogPath(name),
-		HandlerEnv:   GetWlsSpecificContainerEnv(),
+		LogPath:      getWLSLogPath(name),
+		HandlerEnv:   getWlsSpecificContainerEnv(name),
 	}
 	fluentdManager := &logging.Fluentd{Context: ctx,
 		Log:                    r.Log,
@@ -445,7 +445,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 	}
 
 	// logHome and logHomeEnabled fields need to be set to turn on logging
-	err = unstructured.SetNestedField(weblogic.Object, BuildWLSLogHome(name), specField, "logHome")
+	err = unstructured.SetNestedField(weblogic.Object, getWLSLogHome(name), specField, "logHome")
 	if err != nil {
 		log.Error(err, "Unable to set logHome")
 		return err

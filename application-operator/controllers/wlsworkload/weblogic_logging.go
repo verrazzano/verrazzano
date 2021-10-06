@@ -4,9 +4,7 @@
 package wlsworkload
 
 import (
-	"bytes"
 	"fmt"
-	"text/template"
 
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 
@@ -25,25 +23,10 @@ const WlsFluentdParsingRules = `<match fluent.**>
 </match>
 <source>
   @type tail
-  path "#{ENV['LOG_PATH']}"
+  path "#{ENV['SERVER_LOG_PATH']}"
   pos_file /tmp/server.log.pos
   read_from_head true
-  tag "#{ENV['DOMAIN_UID']}"
-  # messages look like this:
-  #   firstline:  ####
-  #   format1:    <Mar 17, 2020 2:41:55,029 PM EDT> 
-  #   format2:    <Info> 
-  #   format3:    <WorkManager>
-  #   format4:    <meerkat>
-  #   format5:    <AdminServer>
-  #   format6:    <Timer-2> 
-  #   format7:    <<WLS Kernel>> 
-  #   format8:    <> 
-  #   format9:    <00ccb822-8beb-4ce0-905d-2039c4fd676f-00000010> 
-  #   format10:   <1584470515029> 
-  #   format11:   <[severity-value: 64] [rid: 0] [partition-id: 0] [partition-name: DOMAIN] > 
-  #   format12:   <BEA-002959> 
-  #   formart13:  <Self-tuning thread pool contains 0 running threads, 1 idle threads, and 12 standby threads> 
+  tag server_log
   <parse>
 	@type multiline
 	format_firstline /^####/
@@ -64,6 +47,52 @@ const WlsFluentdParsingRules = `<match fluent.**>
 	keep_time_key true
   </parse>
 </source>
+<source>
+  @type tail
+  path "#{ENV['DOMAIN_LOG_PATH']}"
+  pos_file /tmp/domain.log.pos
+  read_from_head true
+  tag domain_log
+  <parse>
+	@type multiline
+	format_firstline /^####/
+	format1 /^####<(?<timestamp>(.*?))>/
+	format2 / <(?<level>(.*?))>/
+	format3 / <(?<subSystem>(.*?))>/
+	format4 / <(?<serverName>(.*?))>/
+	format5 / <(?<serverName2>(.*?))>/
+	format6 / <(?<threadName>(.*?))>/
+	format7 / <(?<info1>(.*?))>/
+	format8 / <(?<info2>(.*?))>/
+	format9 / <(?<info3>(.*?))>/
+	format10 / <(?<sequenceNumber>(.*?))>/
+	format11 / <(?<severity>(.*?))>/
+	format12 / <(?<messageID>(.*?))>/
+	format13 / <(?<message>[^>]*)>[\s]*/
+	time_key timestamp
+	keep_time_key true
+  </parse>
+</source>
+<source>
+  @type tail
+  path "#{ENV['ACCESS_LOG_PATH']}"
+  pos_file /tmp/access.log.pos
+  read_from_head true
+  tag server_access_log
+  <parse>
+	@type none
+  </parse>
+</source>
+<source>
+  @type tail
+  path "#{ENV['NODEMANAGER_LOG_PATH']}"
+  pos_file /tmp/nodemanager.log.pos
+  read_from_head true
+  tag server_nodemanager_log
+  <parse>
+	@type none
+  </parse>
+</source>
 <filter **>
   @type record_transformer
   <record>
@@ -71,8 +100,32 @@ const WlsFluentdParsingRules = `<match fluent.**>
     oam.applicationconfiguration.namespace "#{ENV['NAMESPACE']}"
     oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
     oam.component.namespace "#{ENV['NAMESPACE']}"
-    oam.component.name  "#{ENV['COMPONENT_NAME']}"
-    verrazzano.cluster.name  "#{ENV['CLUSTER_NAME']}"
+    oam.component.name "#{ENV['COMPONENT_NAME']}"
+    verrazzano.cluster.name "#{ENV['CLUSTER_NAME']}"
+  </record>
+</filter>
+<filter server_log>
+  @type record_transformer
+  <record>
+    wls_log_stream "server_log"
+  </record>
+</filter>
+<filter domain_log>
+  @type record_transformer
+  <record>
+    wls_log_stream "domain_log"
+  </record>
+</filter>
+<filter server_access_log>
+  @type record_transformer
+  <record>
+    wls_log_stream "server_access_log"
+  </record>
+</filter>
+<filter server_nodemanager_log>
+  @type record_transformer
+  <record>
+    wls_log_stream "server_nodemanager_log"
   </record>
 </filter>
 <match **>
@@ -80,8 +133,8 @@ const WlsFluentdParsingRules = `<match fluent.**>
 </match>
 `
 
-// GetWlsSpecificContainerEnv builds WLS specific env vars
-func GetWlsSpecificContainerEnv() []v1.EnvVar {
+// getWlsSpecificContainerEnv builds WLS specific env vars
+func getWlsSpecificContainerEnv(name string) []v1.EnvVar {
 	return []v1.EnvVar{
 		{
 			Name: "DOMAIN_UID",
@@ -99,30 +152,46 @@ func GetWlsSpecificContainerEnv() []v1.EnvVar {
 				},
 			},
 		},
+		{
+			Name:  "SERVER_LOG_PATH",
+			Value: getWLSServerLogPath(name),
+		},
+		{
+			Name:  "ACCESS_LOG_PATH",
+			Value: getWLSServerAccessLogPath(name),
+		},
+		{
+			Name:  "NODEMANAGER_LOG_PATH",
+			Value: getWLSServerNodeManagerPath(name),
+		},
+		{
+			Name:  "DOMAIN_LOG_PATH",
+			Value: getWLSDomainLogPath(name),
+		},
 	}
 }
 
-type wlsEnv struct {
-	ScratchDir string
-	DomainName string
+func getWLSLogPath(name string) string {
+	return getWLSServerLogPath(name) + "," + getWLSServerAccessLogPath(name) + "," + getWLSServerNodeManagerPath(name) + "," + getWLSDomainLogPath(name)
 }
 
-// BuildWLSLogPath builds a log path given a resource name
-func BuildWLSLogPath(name string) string {
-	data := wlsEnv{logging.ScratchVolMountPath, name}
-	tmpl, err := template.New("logPath").Parse("{{.ScratchDir}}/logs/{{.DomainName}}/$(SERVER_NAME).log,{{.ScratchDir}}/logs/{{.DomainName}}/$(SERVER_NAME)_access.log,{{.ScratchDir}}/logs/{{.DomainName}}/$(SERVER_NAME)_nodemanager.log,{{.ScratchDir}}/logs/{{.DomainName}}/$(DOMAIN_UID).log")
-	if err != nil {
-		return ""
-	}
-	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, data)
-	if err != nil {
-		return ""
-	}
-	return buf.String()
+func getWLSServerLogPath(name string) string {
+	return fmt.Sprintf("%s/$(SERVER_NAME).log", getWLSLogHome(name))
 }
 
-// BuildWLSLogHome builds a log home give a resource name
-func BuildWLSLogHome(name string) string {
+func getWLSServerAccessLogPath(name string) string {
+	return fmt.Sprintf("%s/$(SERVER_NAME)_access.log", getWLSLogHome(name))
+}
+
+func getWLSServerNodeManagerPath(name string) string {
+	return fmt.Sprintf("%s/$(SERVER_NAME)_nodemanager.log", getWLSLogHome(name))
+}
+
+func getWLSDomainLogPath(name string) string {
+	return fmt.Sprintf("%s/$(DOMAIN_UID).log", getWLSLogHome(name))
+}
+
+// getWLSLogHome builds a log home give a resource name
+func getWLSLogHome(name string) string {
 	return fmt.Sprintf("%s/logs/%s", logging.ScratchVolMountPath, name)
 }
