@@ -44,6 +44,7 @@ generate: controller-gen
 controller-gen:
 ifeq (, $(shell command -v controller-gen))
 	$(GO) get sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION}
+	$(GO) get k8s.io/code-generator@v0.19.0
 	$(eval CONTROLLER_GEN=$(GOBIN)/controller-gen)
 else
 	$(eval CONTROLLER_GEN=$(shell command -v controller-gen))
