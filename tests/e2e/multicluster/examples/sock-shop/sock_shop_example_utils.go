@@ -56,10 +56,12 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 	// call both mcAppConfExists and mcComponentExists and store the results, to avoid short-circuiting
 	// since we should check both in all cases
 	mcAppConfExists := mcAppConfExists(kubeconfigPath, namespace)
+	fmt.Printf("debug 1: %t\n", mcAppConfExists)
 	compExists := true
 
 	// check each sock-shop component in expectedCompsSockShop
 	for _, comp := range expectedCompsSockShop {
+		fmt.Printf("debug 2: %t\n", compExists)
 		compExists = componentExists(kubeconfigPath, namespace, comp) && compExists
 	}
 

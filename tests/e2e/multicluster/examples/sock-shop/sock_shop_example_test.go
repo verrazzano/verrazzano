@@ -60,7 +60,6 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		// THEN expect that the multi-cluster resources have been created on the admin cluster
 		It("Has multi cluster resources", func() {
 			Eventually(func() bool {
-				fmt.Printf("debug 1: %t\n", VerifyMCResources(adminKubeconfig, true, false, testNamespace))
 				return VerifyMCResources(adminKubeconfig, true, false, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
