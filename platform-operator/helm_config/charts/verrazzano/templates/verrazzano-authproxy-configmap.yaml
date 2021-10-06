@@ -26,7 +26,7 @@ data:
     local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
 
     local auth = require("auth").config({
-        hostSuffix = clusterHostSuffix,
+        hostSuffix = '.'..clusterHostSuffix,
         callbackUri = ingressUri..callbackPath,
         logoutCallbackUri = ingressUri..logoutCallbackPath
     })
@@ -291,23 +291,38 @@ data:
     end
 
     local authproxy_prefix = 'verrazzano-authproxy-'
-    local in_cluster_host_suffix = 'verrazzano-system.svc.cluster.local'
-    local vmi_system = 'vmi.system'
+    local in_cluster_namespace = '.verrazzano-system'
+    local in_cluster_dns_suffix = '.svc.cluster.local'
+    local vmi_system = '.vmi.system'
 
     function me.validateIngressHost(backend, hostname, in_cluster)
         -- assume backend, hostname, are always non-nil and non-empty
         local check_host = nil
         if in_cluster == true then
-            check_host = authproxy_prefix..backend..'.'..in_cluster_host_suffix
+            -- try full path
+            check_host = authproxy_prefix..backend..in_cluster_namespace..in_cluster_dns_suffix
+            if check_host == hostname then
+                return backend
+            end
+            -- try with just the namespace
+            check_host = authproxy_prefix..backend..in_cluster_namespace
+            if check_host == hostname then
+                return backend
+            end
+            -- try without namespace or dns suffix
+            check_host = authproxy_prefix..backend
+            if check_host == hostname then
+                return backend
+            end
         else
             if backend == 'verrazzano' then
-                check_host = backend..'.'..me.hostSuffix
+                check_host = backend..me.hostSuffix
             else
-                check_host = backend..'.'..vmi_system..'.'..me.hostSuffix
+                check_host = backend..vmi_system..me.hostSuffix
             end
-        end
-        if check_host == hostname then
-            return backend
+            if check_host == hostname then
+                return backend
+            end
         end
         return 'invalid'
     end
@@ -319,9 +334,9 @@ data:
             me.info("ingressHost is '"..ingressHost.."'")
             -- Strip the port off, if present
             local first, last = nil
-            first, last, hostname = ingressHost:find("([^:]+)")
+            first, last, hostname = ingressHost:find("^([^:]+)")
             if hostname and #hostname > 0 then
-                first, last, backend_name = ingressHost:find("([^.]+)")
+                first, last, backend_name = ingressHost:find("^([^.]+)")
                 if backend_name and #backend_name > 0 then
                     -- Strip the auth proxy prefix from the extracted backend name if present
                     if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
