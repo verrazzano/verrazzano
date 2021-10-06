@@ -197,7 +197,10 @@ func TestDeleteMCAppConfig(t *testing.T) {
 // TestDeleteMCAppConfigShared tests the synchronization method for the following use case.
 // GIVEN a request to sync two MultiClusterApplicationConfiguration objects that shared an OAM Component
 // WHEN the object exists on the local cluster but not on the admin cluster
-// THEN ensure that if MultiClusterApplicationConfiguration is deleted, the shared OAM component is not
+// THEN ensure that when MultiClusterApplicationConfiguration is deleted, the shared OAM component is not
+// GIVEN a request to sync MultiClusterApplicationConfiguration objects
+// WHEN no remaining MultiClusterApplicationConfiguration exist on the admin cluster
+// THEN ensure that when MultiClusterApplicationConfiguration is deleted, the OAM component that is no longer shared is deleted
 func TestDeleteMCAppConfigShared(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
