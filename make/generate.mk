@@ -55,3 +55,8 @@ endif
 		echo  "Bad controller-gen version $${ACTUAL_CONTROLLER_GEN_VERSION}, please install ${CONTROLLER_GEN_VERSION}" ; \
 	fi ; \
 	}
+
+# check if the repo is clean after running generate
+.PHONY: check-repo-clean
+check-repo-clean: generate
+	../ci/scripts/check_if_clean_after_generate.sh
