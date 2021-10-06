@@ -268,7 +268,7 @@
             },
             {
               "image": "configmap-reload",
-              "tag": "0.3-20201016205243-4f24a0e",
+              "tag": "0.3-20211005162936-eced4f4",
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
