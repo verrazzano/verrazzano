@@ -12,7 +12,7 @@ import (
 )
 
 // QueryMetricWithLabel queries a metric using a label from the Prometheus host, derived from the kubeconfig
-func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label string, labelValue  string) (string, error) {
+func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label string, labelValue string) (string, error) {
 	if len(label) == 0 {
 		return QueryMetric(metricsName, kubeconfigPath)
 	}
@@ -29,7 +29,6 @@ func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label strin
 	Log(Info, fmt.Sprintf("metric: %s", resp.Body))
 	return string(resp.Body), nil
 }
-
 
 // QueryMetric queries a metric from the Prometheus host, derived from the kubeconfig
 func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
