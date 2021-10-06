@@ -29,7 +29,7 @@ import (
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	k8sapps "k8s.io/api/apps/v1"
 	k8score "k8s.io/api/core/v1"
-	k8net "k8s.io/api/networking/v1beta1"
+	k8net "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
