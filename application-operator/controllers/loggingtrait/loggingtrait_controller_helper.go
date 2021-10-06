@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-//Struct to unstructured
+//struct2Unmarshal - Struct to unstructured
 func struct2Unmarshal(obj interface{}) (unstructured.Unstructured, error) {
 	marshal, err := json.Marshal(obj)
 	var c unstructured.Unstructured
@@ -18,7 +18,7 @@ func struct2Unmarshal(obj interface{}) (unstructured.Unstructured, error) {
 	return c, err
 }
 
-//Append two slices of interfaces in to one slice without duplicates
+//appendSliceOfInterface - Append two slices of interfaces in to one slice without duplicates
 func appendSliceOfInterface(aSlice []interface{}, bSlice []interface{}) []interface{} {
 
 	res := make([]interface{}, 0)

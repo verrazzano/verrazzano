@@ -30,9 +30,6 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
-// These tests use Ginkgo (BDD-style Go testing framework). Refer to
-// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
-
 func TestReconcilerSetupWithManager(t *testing.T) {
 	assert := asserts.New(t)
 

@@ -719,7 +719,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 				},
 				DefaultMode: func(mode int32) *int32 {
 					return &mode
-				}(420),
+				}(400),
 			},
 		},
 	}
