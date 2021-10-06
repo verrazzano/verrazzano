@@ -36,3 +36,7 @@ spec:
   placement:
     clusters:
       - name: managed1
+  secrets:
+    - tododomain-repo-credentials
+    - tododomain-jdbc-tododb
+    - tododomain-weblogic-credentials
