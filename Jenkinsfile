@@ -190,6 +190,9 @@ pipeline {
             }
             steps {
                 buildAnalysisTool("${DOCKER_IMAGE_TAG}")
+                sh """
+                    verrazzano-helper -h
+                """
             }
             post {
                 failure {
