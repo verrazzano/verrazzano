@@ -24,7 +24,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	extv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	k8net "k8s.io/api/networking/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -1370,7 +1370,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil())).
 			DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 				ingress.TypeMeta = metav1.TypeMeta{
-					APIVersion: "extensions/v1beta1",
+					APIVersion: "networking.k8s.io/v1",
 					Kind:       "ingress"}
 				ingress.ObjectMeta = metav1.ObjectMeta{
 					Namespace: name.Namespace,
@@ -1414,14 +1414,14 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 	// Expect a call to get the keycloak ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "keycloak", Name: "keycloak"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *extv1beta1.Ingress) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.TLS = []extv1beta1.IngressTLS{{
+			ingress.Spec.TLS = []networkingv1.IngressTLS{{
 				Hosts: []string{"keycloak"},
 			}}
 			return nil
