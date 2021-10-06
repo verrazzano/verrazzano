@@ -101,6 +101,12 @@ func undeployApplication() {
 		return pkg.DeleteResourceFromFile(componentsPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	pkg.Log(pkg.Info, "Verify ConfigMap is Deleted")
+	Eventually(func() bool {
+		configMap, _ := pkg.GetConfigMap("logging-stdout-tododomain-domain", "weblogic-logging-trait")
+		return (configMap == nil)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
@@ -141,7 +147,7 @@ var _ = Describe("Verify application.", func() {
 		// THEN the configmap for the logging trait should exist
 		It("Verify that 'logging-stdout-tododomain-domain' ConfigMap exists in the 'weblogic-logging-trait' namespace", func() {
 			Eventually(func() bool {
-				configMap, err := pkg.GetConfigMap("logging-stdout-tododomain-domain", "weblogic-logging-trait")
+				configMap, err := pkg.GetConfigMap("logging-stdout-todo-domain-domain", namespace)
 				return (configMap != nil) && (err == nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
