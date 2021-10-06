@@ -23,8 +23,10 @@ func DoesLoggingSidecarExist(kubeconfigPath string, name types.NamespacedName, c
 	}
 	for _, container := range appPod.Spec.Containers {
 		if container.Name == containerName {
+			Log(Info, fmt.Sprintf("Container %v found", containerName))
 			return true, nil
 		}
 	}
+	Log(Info, fmt.Sprintf("Container was NOT found for the pod %v", name.Name))
 	return false, nil
 }
