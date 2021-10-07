@@ -13,7 +13,9 @@ import (
 	"go.uber.org/zap"
 	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -92,6 +94,7 @@ func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 }
 
 func (i IstioComponent) PreInstall(compContext spi.ComponentContext) error {
+	const IstioCertSecret = "cert"
 	log := compContext.Log()
 	if compContext.IsDryRun() {
 		return nil
@@ -109,11 +112,19 @@ func (i IstioComponent) PreInstall(compContext spi.ComponentContext) error {
 		return err
 	}
 
-	//// Create the cert used by Istio MTLS
-	certScript := filepath.Join(config.GetInstallDir(), "create-istio-cert.sh")
-	if _, stderr, err := vzos.RunBash(certScript); err != nil {
-		log.Errorf("Failed creating Istio certificate secret %s: %s", err, stderr)
-		return err
+	// Create the cert used by Istio MTLS if it doesn't exist
+	var secret v1.Secret
+	if err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: IstioNamespace, Name: IstioCertSecret}, &secret); err == nil {
+		if !errors.IsNotFound(err) {
+			// Unexpected error
+			return err
+		}
+		// Secret not found - create it
+		certScript := filepath.Join(config.GetInstallDir(), "create-istio-cert.sh")
+		if _, stderr, err := vzos.RunBash(certScript); err != nil {
+			log.Errorf("Failed creating Istio certificate secret %s: %s", err, stderr)
+			return err
+		}
 	}
 
 	return nil
