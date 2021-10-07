@@ -735,9 +735,9 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	if err != nil {
 		return err
 	}
-	coherenceSpec["sideCars"] = extractedUnstructured["sidecars"]
+	coherenceSpec["sideCars"] = extractedUnstructured["sideCars"]
 	coherenceSpec["volumes"] = extractedUnstructured["volumes"]
-	coherenceSpec["volumeMounts"] = extractedUnstructured["volumeMounts"]
+	// coherenceSpec["volumeMounts"] = extractedUnstructured["volumeMounts"]
 
 	return nil
 }
