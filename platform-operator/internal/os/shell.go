@@ -11,7 +11,7 @@ import (
 var runner CmdRunner = DefaultRunner{}
 
 // RunBash runs a bach script
-func RunBash(inArgs ...string, ) (string, string, error) {
+func RunBash(inArgs ...string) (string, string, error) {
 	args := []string{}
 	for i := range inArgs {
 		args = append(args, inArgs[i])
