@@ -278,7 +278,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20210517195222-f345ec2",
+              "tag": "v1.12.3-20210930152433-f345ec2",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -349,7 +349,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20210517195222-f345ec2",
+              "tag": "v1.12.3-20210930152433-f345ec2",
               "helmFullImageKey": "fluentdImage"
             }
           ]
