@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20210510134749-abc2d2088",
+              "tag": "0.46.0-20211005200943-bd017fde2",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "0.46.0-20210510134749-abc2d2088",
+              "tag": "0.46.0-20211005200943-bd017fde2",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -250,12 +250,12 @@
             },
             {
               "image": "node-exporter",
-              "tag": "1.0.0-20210513143333-a470f06",
+              "tag": "1.0.0-20211005172311-8bd6244",
               "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.1.0-20210926164141-16eee17",
+              "tag": "1.1.0-20210927142429-4416040",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -286,7 +286,7 @@
             },
             {
               "image": "configmap-reload",
-              "tag": "0.3-20201016205243-4f24a0e",
+              "tag": "0.3-20211005162936-eced4f4",
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
@@ -296,12 +296,12 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20210517195222-f345ec2",
+              "tag": "v1.12.3-20210930152433-f345ec2",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
               "image": "console",
-              "tag": "1.1.0-20210930202104-fcc55a2",
+              "tag": "1.1.0-20211006154030-4efa65f",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -345,7 +345,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20210222205541-9e8d4fb",
+              "tag": "v0.3.0-20211005155141-4b3e513",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -367,7 +367,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20210517195222-f345ec2",
+              "tag": "v1.12.3-20210930152433-f345ec2",
               "helmFullImageKey": "fluentdImage"
             }
           ]
