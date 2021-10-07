@@ -168,24 +168,26 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		return ctrl.Result{}, nil
 	}
 
-	//************   TEMP CODE for TESTING ISTIO COMPONENT
+	////************   TEMP CODE for TESTING ISTIO COMPONENT
+	//
+	//// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
+	//// since it is needed for the subsequent step to syncLocalRegistration secret.
+	//if err := r.createVerrazzanoSystemNamespace(ctx, log); err != nil {
+	//	log.Errorf("Failed to create namespace %v: %v", vzconst.VerrazzanoSystemNamespace, err)
+	//	return newRequeueWithDelay(), err
+	//}
+	//
+	//if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
+	//	return newRequeueWithDelay(), err
+	//} else if shouldRequeue(result) {
+	//	return result, nil
+	//}
+	//
+	//return ctrl.Result{}, nil
+	//
+	////*************   END TEMP CODE
+	//
 
-	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
-	// since it is needed for the subsequent step to syncLocalRegistration secret.
-	if err := r.createVerrazzanoSystemNamespace(ctx, log); err != nil {
-		log.Errorf("Failed to create namespace %v: %v", vzconst.VerrazzanoSystemNamespace, err)
-		return newRequeueWithDelay(), err
-	}
-
-	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	} else if shouldRequeue(result) {
-		return result, nil
-	}
-
-	return ctrl.Result{}, nil
-
-	//*************   END TEMP CODE
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
 	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
 		err := r.doesOCIDNSConfigSecretExist(vz)

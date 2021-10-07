@@ -20,6 +20,8 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const ComponentName = "istio"
+
 // IstioComponent represents an Istio component
 type IstioComponent struct {
 	// ValuesFile contains the path to the IstioOperator CR values file
@@ -63,7 +65,7 @@ func ResetRestartComponentsFn() {
 
 // Name returns the component name
 func (i IstioComponent) Name() string {
-	return "istio"
+	return ComponentName
 }
 
 func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
