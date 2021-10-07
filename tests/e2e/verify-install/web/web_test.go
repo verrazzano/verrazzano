@@ -161,5 +161,11 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
 			}
 		})
+
+		It("can be logged out", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				return pkg.GetWebPage(fmt.Sprintf("%s/%s", serverURL, "_logout"), "")
+			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusFound)))
+		})
 	})
 })
