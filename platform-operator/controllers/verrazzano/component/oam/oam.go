@@ -4,10 +4,9 @@
 package oam
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -16,9 +15,9 @@ const ComponentName = "oam-kubernetes-runtime"
 const oamOperatorDeploymentName = ComponentName
 
 // IsOAMReady checks if the OAM operator deployment is ready
-func IsOAMReady(log *zap.SugaredLogger, c client.Client, _ string, namespace string) bool {
+func IsOAMReady(context spi.ComponentContext, _ string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: oamOperatorDeploymentName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(log, c, deployments, 1)
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }

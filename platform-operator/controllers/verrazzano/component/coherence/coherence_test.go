@@ -3,6 +3,7 @@
 package coherence
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func TestIsCoherenceOperatorReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, IsCoherenceOperatorReady(zap.S(), fakeClient, "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, IsCoherenceOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
 
 // TestIsCoherenceOperatorNotReady tests the IsApplicationOperatorReady function
@@ -53,5 +54,5 @@ func TestIsCoherenceOperatorNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, IsCoherenceOperatorReady(zap.S(), fakeClient, "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, IsCoherenceOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
