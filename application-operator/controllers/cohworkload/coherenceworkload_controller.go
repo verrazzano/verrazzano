@@ -663,7 +663,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		for _, v := range extracted.VolumeMounts {
 			m[v] = 1
 		}
-		for k, _ := range m {
+		for k := range m {
 			volumeMounts = append(volumeMounts, k)
 		}
 		extracted.VolumeMounts = volumeMounts
