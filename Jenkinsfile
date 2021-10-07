@@ -398,7 +398,7 @@ pipeline {
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**,**/install.sh.log', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
