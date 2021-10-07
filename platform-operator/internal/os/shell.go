@@ -11,16 +11,15 @@ import (
 var runner CmdRunner = DefaultRunner{}
 
 // RunBash runs a bach script
-func RunBash(inArgs... string,) (string, string, error) {
+func RunBash(inArgs ...string, ) (string, string, error) {
 	args := []string{}
-	for i, _ := range inArgs {
+	for i := range inArgs {
 		args = append(args, inArgs[i])
 	}
 	cmd := osexec.Command("bash", args...)
 	stdout, stderr, err := runner.Run(cmd)
 	if err != nil {
-		return  string(stdout), string(stderr), err
+		return string(stdout), string(stderr), err
 	}
 	return "", "", err
 }
-

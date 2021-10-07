@@ -56,7 +56,7 @@ func Install(log *zap.SugaredLogger, overrideStrings string, overridesFiles ...s
 	// Add the override strings
 	if len(overrideStrings) > 0 {
 		segs := strings.Split(overrideStrings, ",")
-		for i, _ := range segs {
+		for i := range segs {
 			args = append(args, "--set")
 			args = append(args, segs[i])
 		}
