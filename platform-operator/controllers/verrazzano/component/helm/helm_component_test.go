@@ -273,8 +273,9 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
 		ValuesFile:              "ValuesFile",
-		PreInstallFunc: func(log *zap.SugaredLogger, client clipkg.Client, cr *v1alpha1.Verrazzano, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error) {
+		AppendOverridesFunc: func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 			return preInstallKVPairs, nil
+
 		},
 	}
 
@@ -407,7 +408,7 @@ func TestReady(t *testing.T) {
 	assert.False(comp.IsReady(compContext))
 
 	compInstalledWithNotReadyStatus := HelmComponent{
-		ReadyStatusFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool {
+		ReadyStatusFunc: func(ctx spi.ComponentContext, releaseName string, namespace string) bool {
 			return false
 		},
 	}
@@ -417,7 +418,7 @@ func TestReady(t *testing.T) {
 	assert.False(compInstalledWithNotReadyStatus.IsReady(compContext))
 
 	compInstalledWithReadyStatus := HelmComponent{
-		ReadyStatusFunc: func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool {
+		ReadyStatusFunc: func(ctx spi.ComponentContext, releaseName string, namespace string) bool {
 			return true
 		},
 	}
@@ -428,7 +429,7 @@ func TestReady(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, _ string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiod" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}

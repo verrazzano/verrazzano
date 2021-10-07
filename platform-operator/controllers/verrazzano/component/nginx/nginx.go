@@ -9,8 +9,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +22,7 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "ingress-controller"
 
-// Namespace is the NGINX namespace for verrazzano
+// ComponentNamespace is the NGINX namespace for verrazzano
 const ComponentNamespace = "ingress-nginx"
 
 // ValuesFileOverride Name of the values file override for NGINX
@@ -31,18 +31,43 @@ const ValuesFileOverride = "ingress-nginx-values.yaml"
 const controllerName = "ingress-controller-ingress-nginx-controller"
 const backendName = "ingress-controller-ingress-nginx-defaultbackend"
 
-func IsReady(log *zap.SugaredLogger, c client.Client, name string, namespace string) bool {
+func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: controllerName, Namespace: namespace},
 		{Name: backendName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(log, c, deployments, 1)
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
-func PreInstall(log *zap.SugaredLogger, c client.Client, cr *vzapi.Verrazzano, name string, namespace string, dir string) ([]bom.KeyValue, error) {
-	log.Infof("Adding label needed by network policies to ingress-nginx namespace")
+func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	cr := context.EffectiveCR()
+	ingressType, err := getServiceType(cr)
+	if err != nil {
+		return []bom.KeyValue{}, err
+	}
+
+	newKvs := append(kvs, bom.KeyValue{Key: "controller.service.type", Value: string(ingressType)})
+
+	if cr.Spec.Components.DNS != nil && cr.Spec.Components.DNS.OCI != nil {
+		newKvs = append(newKvs, bom.KeyValue{Key: "controller.service.annotations.external-dns\\.alpha\\.kubernetes\\.io/ttl", Value: "60", SetString: true})
+		hostName := fmt.Sprintf("verrazzano-ingress.%s.%s", cr.Spec.EnvironmentName, cr.Spec.Components.DNS.OCI.DNSZoneName)
+		newKvs = append(newKvs, bom.KeyValue{Key: "controller.service.annotations.external-dns\\.alpha\\.kubernetes\\.io/hostname", Value: hostName})
+	}
+
+	// Convert NGINX install-args to helm overrides
+	newKvs = append(newKvs, helm.GetInstallArgs(getInstallArgs(cr))...)
+	return newKvs, nil
+}
+
+// PreInstall Create and label the NGINX namespace, and create any override helm args needed
+func PreInstall(compContext spi.ComponentContext, name string, namespace string, dir string) error {
+	if compContext.IsDryRun() {
+		compContext.Log().Infof("NGINX PostInstall dry run")
+		return nil
+	}
+	compContext.Log().Infof("Adding label needed by network policies to ingress-nginx namespace")
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, &ns, func() error {
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		if ns.Labels == nil {
 			ns.Labels = make(map[string]string)
 		}
@@ -50,56 +75,27 @@ func PreInstall(log *zap.SugaredLogger, c client.Client, cr *vzapi.Verrazzano, n
 		ns.Labels["istio-injection"] = "enabled"
 		return nil
 	}); err != nil {
-		return []bom.KeyValue{}, err
+		return err
 	}
-
-	ingressType, err := getIngressType(cr)
-	if err != nil {
-		return []bom.KeyValue{}, err
-	}
-	var kvs []bom.KeyValue
-	kvs = append(kvs, bom.KeyValue{Key: "controller.service.type", Value: string(ingressType)})
-
-	if cr.Spec.Components.DNS != nil && cr.Spec.Components.DNS.OCI != nil {
-		kvs = append(kvs, bom.KeyValue{Key: "controller.service.annotations.external-dns\\.alpha\\.kubernetes\\.io/ttl", Value: "60", SetString: true})
-		hostName := fmt.Sprintf("verrazzano-ingress.%s.%s", cr.Spec.EnvironmentName, cr.Spec.Components.DNS.OCI.DNSZoneName)
-		kvs = append(kvs, bom.KeyValue{Key: "controller.service.annotations.external-dns\\.alpha\\.kubernetes\\.io/hostname", Value: hostName})
-	}
-
-	// Convert NGINX install-args to helm overrides
-	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
-	return kvs, nil
+	return nil
 }
 
-func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
-	if cr.Spec.Components.Ingress == nil {
-		return []vzapi.InstallArgs{}
+// PostInstall Patch the controller service ports based on any user-supplied overrides
+func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
+	if ctx.IsDryRun() {
+		ctx.Log().Infof("NGINX PostInstall dry run")
+		return nil
 	}
-	return cr.Spec.Components.Ingress.NGINXInstallArgs
-}
-
-func getIngressType(cr *vzapi.Verrazzano) (vzapi.IngressType, error) {
-	ingressConfig := cr.Spec.Components.Ingress
-	if ingressConfig == nil || len(ingressConfig.Type) == 0 {
-		return vzapi.LoadBalancer, nil
-	}
-	switch ingressConfig.Type {
-	case vzapi.NodePort, vzapi.LoadBalancer:
-		return ingressConfig.Type, nil
-	default:
-		return "", fmt.Errorf("Unrecognized ingress type %s", ingressConfig.Type)
-	}
-}
-
-func PostInstall(log *zap.SugaredLogger, c client.Client, cr *vzapi.Verrazzano, releaseName string, namespace string, dryRun bool) error {
 	// Add any port specs needed to the service after boot
-	ingressConfig := cr.Spec.Components.Ingress
+	ingressConfig := ctx.EffectiveCR().Spec.Components.Ingress
 	if ingressConfig == nil {
 		return nil
 	}
 	if len(ingressConfig.Ports) == 0 {
 		return nil
 	}
+
+	c := ctx.Client()
 	svcPatch := v1.Service{}
 	if err := c.Get(context.TODO(), types.NamespacedName{Name: controllerName, Namespace: ComponentNamespace}, &svcPatch); err != nil {
 		if errors.IsNotFound(err) {
@@ -113,4 +109,26 @@ func PostInstall(log *zap.SugaredLogger, c client.Client, cr *vzapi.Verrazzano, 
 		return err
 	}
 	return nil
+}
+
+// getInstallArgs get the install args for NGINX
+func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
+	if cr.Spec.Components.Ingress == nil {
+		return []vzapi.InstallArgs{}
+	}
+	return cr.Spec.Components.Ingress.NGINXInstallArgs
+}
+
+// Identify the service type, LB vs NodePort
+func getServiceType(cr *vzapi.Verrazzano) (vzapi.IngressType, error) {
+	ingressConfig := cr.Spec.Components.Ingress
+	if ingressConfig == nil || len(ingressConfig.Type) == 0 {
+		return vzapi.LoadBalancer, nil
+	}
+	switch ingressConfig.Type {
+	case vzapi.NodePort, vzapi.LoadBalancer:
+		return ingressConfig.Type, nil
+	default:
+		return "", fmt.Errorf("Unrecognized ingress type %s", ingressConfig.Type)
+	}
 }

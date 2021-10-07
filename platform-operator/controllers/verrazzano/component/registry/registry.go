@@ -109,6 +109,7 @@ func getComponents() []spi.Component {
 			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(overridesDir, nginx.ValuesFileOverride),
 			PreInstallFunc:          nginx.PreInstall,
+			AppendOverridesFunc:     nginx.AppendOverrides,
 			PostInstallFunc:         nginx.PostInstall,
 			Dependencies:            []string{"istiod"},
 			ReadyStatusFunc:         nginx.IsReady,
