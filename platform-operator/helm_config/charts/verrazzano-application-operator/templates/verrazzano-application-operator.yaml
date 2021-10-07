@@ -355,7 +355,7 @@ webhooks:
     sideEffects: NoneOnDryRun
     failurePolicy: Fail
     matchPolicy: Exact
-    timeoutSeconds: 30s
+    timeoutSeconds: 30
     admissionReviewVersions:
       - v1beta1
       - v1
@@ -387,7 +387,7 @@ webhooks:
     sideEffects: None
     failurePolicy: Fail
     matchPolicy: Exact
-    timeoutSeconds: 30s
+    timeoutSeconds: 30
     admissionReviewVersions:
       - v1beta1
       - v1
@@ -422,7 +422,7 @@ webhooks:
     sideEffects: None
     failurePolicy: Fail
     matchPolicy: Exact
-    timeoutSeconds: 30s
+    timeoutSeconds: 30
     admissionReviewVersions:
       - v1beta1
       - v1
@@ -454,7 +454,7 @@ webhooks:
     sideEffects: None
     failurePolicy: Fail
     matchPolicy: Exact
-    timeoutSeconds: 30s
+    timeoutSeconds: 30
     admissionReviewVersions:
       - v1beta1
       - v1
@@ -486,7 +486,7 @@ webhooks:
     sideEffects: None
     failurePolicy: Fail
     matchPolicy: Exact
-    timeoutSeconds: 30s
+    timeoutSeconds: 30
     admissionReviewVersions:
       - v1beta1
       - v1
@@ -518,7 +518,7 @@ webhooks:
     sideEffects: None
     failurePolicy: Fail
     matchPolicy: Exact
-    timeoutSeconds: 30s
+    timeoutSeconds: 30
     admissionReviewVersions:
       - v1beta1
       - v1
@@ -550,7 +550,7 @@ webhooks:
     sideEffects: None
     failurePolicy: Fail
     matchPolicy: Exact
-    timeoutSeconds: 30s
+    timeoutSeconds: 30
     admissionReviewVersions:
       - v1beta1
       - v1
@@ -582,7 +582,7 @@ webhooks:
     sideEffects: None
     failurePolicy: Fail
     matchPolicy: Exact
-    timeoutSeconds: 30s
+    timeoutSeconds: 30
     admissionReviewVersions:
       - v1beta1
       - v1
