@@ -187,7 +187,7 @@ pipeline {
 
         // sample app deployed before upgrade and UI console tests
         SAMPLE_APP_NAME="hello-helidon-sample"
-        SAMPLE_APP_NAMESPACE=SAMPLE_APP_NAME
+        SAMPLE_APP_NAMESPACE="${SAMPLE_APP_NAME}"
         SAMPLE_APP_COMPONENT="hello-helidon-component"
     }
 
@@ -1450,7 +1450,7 @@ def modifyHelloHelidonApp(newName, newNamespace) {
 }
 
 def deploySampleApp() {
-    modifyHelloHelidonApp(SAMPLE_APP_NAME, SAMPLE_APP_NAMESPACE)
+    modifyHelloHelidonApp($SAMPLE_APP_NAME, $SAMPLE_APP_NAMESPACE)
     sh """
       export KUBECONFIG=$ADMIN_KUBECONFIG
       kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/verrazzano-project.yaml
