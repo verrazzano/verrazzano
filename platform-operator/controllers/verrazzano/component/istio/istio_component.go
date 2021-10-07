@@ -6,7 +6,10 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strings"
 	"time"
@@ -20,7 +23,11 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ComponentName is the name of the component
 const ComponentName = "istio"
+
+// IstiodDeployment is the name of the istiod deployment
+const IstiodDeployment = "istiod"
 
 // IstioComponent represents an Istio component
 type IstioComponent struct {
@@ -54,6 +61,14 @@ func ResetIstioUpgradeFunction() {
 type restartComponentsFnType func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
 
 var restartComponentsFn = restartComponents
+
+// IsEnabled returns true if the component is enabled, which is the default
+func IsEnabled(comp *v1alpha1.IstioComponent) bool {
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
+}
 
 func SetRestartComponentsFn(fn restartComponentsFnType) {
 	restartComponentsFn = fn
@@ -130,8 +145,11 @@ func setDefaultUpgradeFunc() {
 	upgradeFunc = istio.Upgrade
 }
 
-func (i IstioComponent) IsReady(_ spi.ComponentContext) bool {
-	return true
+func (i IstioComponent) IsReady(context spi.ComponentContext) bool {
+	deployments := []types.NamespacedName{
+		{Name: IstiodDeployment, Namespace: IstioNamespace},
+	}
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
 // GetDependencies returns the dependencies of this component

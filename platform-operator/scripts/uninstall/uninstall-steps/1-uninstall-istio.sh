@@ -19,16 +19,21 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 CONFIG_DIR=$INSTALL_DIR/config
 
 function uninstall_istio() {
+
+  # Make attempt at calling helm to cleanup.  Do you fail on error, we cleanup manually below
+  helm delete -n istio-system istiod
+  helm delete -n istio-system istio-egress
+  helm delete -n istio-system istio-ingress
+  helm delete -n istio-system istiod
+
+  # Make attempt to delete using istioctl
+  istioctl x uninstall --purge -y
+
   # delete webhook configurations
   log "Removing Istio Webhook Configurations"
   kubectl delete MutatingWebhookConfiguration istio-sidecar-injector --ignore-not-found=true || err_return $? "Could not delete MutatingWebhookConfiguration from Istio" || return $?
   kubectl delete ValidatingWebhookConfiguration istiod-istio-system  --ignore-not-found=true || err_return $? "Could not delete ValidatingWebhookConfiguration from Istio" || return $?
   kubectl delete MutatingWebhookConfiguration istio-sidecar-injector-1-10-2 --ignore-not-found=true || err_return $? "Could not delete MutatingWebhookConfiguration from Istio" || return $?
-
-  # delete istio crds
-  log "Deleting Istio Custom Resource Definitions"
-  delete_k8s_resources crd ":metadata.name" "Could not delete CustomResourceDefinition from Istio" '/istio.io/ {print $1}' \
-    || return $? # return on pipefail
 
   # delete istio api services
   log "Deleting Istio API Services"
@@ -44,6 +49,12 @@ function uninstall_istio() {
   log "Deleting Istio Cluster Roles"
   delete_k8s_resources clusterrole ":metadata.name" "Could not delete ClusterRoles from Istio" '/istio-system|istio-reader|istiocoredns/ {print $1}' \
     || return $? # return on pipefail
+
+      # delete istio crds
+  log "Deleting Istio Custom Resource Definitions"
+  delete_k8s_resources crd ":metadata.name" "Could not delete CustomResourceDefinition from Istio" '/istio.io/ {print $1}' \
+    || return $? # return on pipefail
+
 }
 
 function delete_secrets() {

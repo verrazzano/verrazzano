@@ -20,6 +20,7 @@ import (
 
 const istioGlobalHubKey = "global.hub"
 
+// IstioNamespace is the default Istio namespace
 const IstioNamespace = "istio-system"
 
 // AppendIstioOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.

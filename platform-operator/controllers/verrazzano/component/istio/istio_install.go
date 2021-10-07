@@ -24,7 +24,7 @@ func (i IstioComponent) IsOperatorInstallSupported() bool {
 }
 
 func (i IstioComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
-	return false, nil
+	return istio.IsInstalled(context.Log())
 }
 
 func (i IstioComponent) Install(compContext spi.ComponentContext) error {

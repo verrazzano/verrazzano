@@ -71,6 +71,33 @@ func Install(log *zap.SugaredLogger, overrideStrings string, overridesFiles ...s
 	return stdout, stderr, nil
 }
 
+// IsInstalled returns true if Istio is installed
+func IsInstalled(log *zap.SugaredLogger) (bool, error) {
+
+	// Perform istioctl call of type upgrade
+	stdout, _, err := VerifyInstall(log)
+	if err != nil {
+		return false, err
+	}
+	if strings.Contains(string(stdout), "Istio is installed and verified successfully") {
+		return true, nil
+	}
+	return false, nil
+}
+
+// VerifyInstall verifies the Istio installation
+func VerifyInstall(log *zap.SugaredLogger) (stdout []byte, stderr []byte, err error) {
+	args := []string{}
+
+	// Perform istioctl call of type upgrade
+	stdout, stderr, err = runIstioctl(log, args, "verify-install")
+	if err != nil {
+		return stdout, stderr, err
+	}
+
+	return stdout, stderr, nil
+}
+
 // runIstioctl will perform istioctl calls with specified arguments  for operations
 // Note that operation name as of now does not affect the istioctl call (both upgrade and install call istioctl install)
 // The operationName field is just used for visibility of operation in logging at the moment
