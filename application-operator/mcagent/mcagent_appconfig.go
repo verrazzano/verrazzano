@@ -143,54 +143,6 @@ func (s *Syncer) syncComponentList(mcAppConfig clustersv1alpha1.MultiClusterAppl
 	return nil
 }
 
-// deleteComponentList - Delete the list of OAM Components contained in the MultiClusterApplicationConfiguration
-//                       that is being deleted.
-func (s *Syncer) deleteComponentList(mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration) error {
-	var errorStrings []string
-
-	// Get list of OAM Applications from the local client
-	listOptions := &client.ListOptions{Namespace: mcAppConfig.Namespace}
-	appList := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
-	err := s.LocalClient.List(s.Context, &appList, listOptions)
-	if err != nil {
-		return err
-	}
-
-	// Loop through the component list and get them one at a time.
-	for _, component := range mcAppConfig.Spec.Template.Spec.Components {
-		// Get the OAM component
-		oamComp := oamv1alpha2.Component{}
-		err := s.LocalClient.Get(s.Context, types.NamespacedName{Name: component.ComponentName, Namespace: mcAppConfig.Namespace}, &oamComp)
-		if err != nil {
-			errorStrings = append(errorStrings, err.Error())
-			continue
-		}
-
-		// Remove this MultiClusterApplicationConfiguration from the label list
-		newLabels := vzstring.RemoveFromCommaSeparatedString(oamComp.Labels[mcAppConfigsLabel], mcAppConfig.Name)
-		if newLabels == "" {
-			// Ok to delete this component because it is not shared by another MultiClusterApplicationConfiguration
-			err := s.LocalClient.Delete(s.Context, &oamComp)
-			if err != nil {
-				errorStrings = append(errorStrings, err.Error())
-			}
-		} else {
-			// Update the OAM Component labels to remove the name of the MultiClusterApplicationConfiguration that is deleted
-			oamComp.Labels[mcAppConfigsLabel] = newLabels
-			err := s.LocalClient.Update(s.Context, &oamComp)
-			if err != nil {
-				errorStrings = append(errorStrings, err.Error())
-			}
-		}
-	}
-
-	// Check if any errors were collected while processing the list
-	if len(errorStrings) > 0 {
-		return fmt.Errorf(strings.Join(errorStrings, "\n"))
-	}
-	return nil
-}
-
 // createOrUpdateComponent - create or update an OAM Component
 func (s *Syncer) createOrUpdateComponent(srcComp oamv1alpha2.Component, mcAppConfigName string) (controllerutil.OperationResult, error) {
 	var oamComp oamv1alpha2.Component
