@@ -1451,7 +1451,7 @@ def modifyHelloHelidonApp(newName, newNamespace) {
 }
 
 def deploySampleApp() {
-    modifyHelloHelidonApp($SAMPLE_APP_NAME, $SAMPLE_APP_NAMESPACE)
+    modifyHelloHelidonApp("${SAMPLE_APP_NAME}", "${SAMPLE_APP_NAMESPACE}")
     sh """
       export KUBECONFIG=$ADMIN_KUBECONFIG
       kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/verrazzano-project.yaml
