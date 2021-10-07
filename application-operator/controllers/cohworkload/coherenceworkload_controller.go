@@ -673,10 +673,12 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	keys := make(map[corev1.VolumeMount]bool)
 	volumeMounts := []corev1.VolumeMount{}
 	for _, entry := range extracted.VolumeMounts {
-		if _, value := keys[entry]; !value {
+		if _, ok := keys[entry]; !ok {
 			keys[entry] = true
-			volumeMounts = append(volumeMounts, entry)
 		}
+	}
+	for volMount := range keys {
+		volumeMounts = append(volumeMounts, volMount)
 	}
 	extracted.VolumeMounts = volumeMounts
 	loggingVolumeMountUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingVolumeMount)
@@ -758,7 +760,6 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		return err
 	}
 	coherenceSpec["sideCars"] = extractedUnstructured["sideCars"]
-	coherenceSpec["volumes"] = extractedUnstructured["volumes"]
 
 	return nil
 }
