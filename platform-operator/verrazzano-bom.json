@@ -227,7 +227,7 @@
             },
             {
               "image": "node-exporter",
-              "tag": "1.0.0-20210513143333-a470f06",
+              "tag": "1.0.0-20211005172311-8bd6244",
               "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
             },
             {
