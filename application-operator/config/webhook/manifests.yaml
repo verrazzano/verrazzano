@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   creationTimestamp: null
@@ -15,6 +15,12 @@ webhooks:
       namespace: system
       path: /appconfig-defaulter
   failurePolicy: Fail
+  sideEffects: None
+  matchPolicy: Exact
+  timeoutSeconds: 30s
+  admissionReviewVersions:
+    - v1beta1
+    - v1
   name: appconfig-defaulter.kb.io
   rules:
   - apiGroups:
@@ -28,7 +34,7 @@ webhooks:
     - ApplicationConfigurations
 
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   creationTimestamp: null
@@ -41,6 +47,12 @@ webhooks:
       namespace: system
       path: /validate-oam-verrazzano-io-v1alpha1-ingresstrait
   failurePolicy: Fail
+  sideEffects: None
+  matchPolicy: Exact
+  timeoutSeconds: 30s
+  admissionReviewVersions:
+    - v1beta1
+    - v1
   name: vingresstrait.kb.io
   rules:
   - apiGroups:
