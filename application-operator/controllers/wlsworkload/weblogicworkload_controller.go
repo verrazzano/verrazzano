@@ -407,7 +407,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 		Client:                 r.Client,
 		ParseRules:             WlsFluentdParsingRules,
 		StorageVolumeName:      storageVolumeName,
-		StorageVolumeMountPath: storageVolumeMountPath,
+		StorageVolumeMountPath: scratchVolMountPath,
 		WorkloadType:           workloadType,
 	}
 

@@ -38,7 +38,7 @@ func TestFluentdApply(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, ScratchVolMountPath, testWorkLoadType}
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 
 	// simulate config map not existing
 	mockClient.EXPECT().
@@ -82,7 +82,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPodForUpdate()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, ScratchVolMountPath, testWorkLoadType}
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 
 	// simulate config map existing
 	mockClient.EXPECT().
@@ -118,7 +118,7 @@ func TestFluentdRemove(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 
-	fluentd := &Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, ScratchVolMountPath, testWorkLoadType}
+	fluentd := &Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 	logInfo := createTestLogInfo(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
@@ -169,7 +169,7 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, ScratchVolMountPath, testWorkLoadType}
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 
 	// simulate config map not existing
 	mockClient.EXPECT().

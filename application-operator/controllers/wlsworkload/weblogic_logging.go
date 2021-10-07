@@ -6,15 +6,13 @@ package wlsworkload
 import (
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
-
 	v1 "k8s.io/api/core/v1"
 )
 
 const (
-	storageVolumeName      = "weblogic-domain-storage-volume"
-	storageVolumeMountPath = logging.ScratchVolMountPath
-	workloadType           = "weblogic"
+	storageVolumeName   = "weblogic-domain-storage-volume"
+	workloadType        = "weblogic"
+	scratchVolMountPath = "/scratch"
 )
 
 // WlsFluentdParsingRules defines the FLUENTD parsing rules for WLS
@@ -193,5 +191,5 @@ func getWLSDomainLogPath(name string) string {
 
 // getWLSLogHome builds a log home give a resource name
 func getWLSLogHome(name string) string {
-	return fmt.Sprintf("%s/logs/%s", logging.ScratchVolMountPath, name)
+	return fmt.Sprintf("%s/logs/%s", scratchVolMountPath, name)
 }
