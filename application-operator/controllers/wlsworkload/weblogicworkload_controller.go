@@ -39,12 +39,13 @@ import (
 )
 
 const (
-	specField                 = "spec"
-	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
-	destinationRuleKind       = "DestinationRule"
-	loggingNamePart           = "logging-stdout"
-	loggingMountPath          = "/fluentd/etc/fluentd.conf"
-	loggingKey                = "fluentd.conf"
+	specField                       = "spec"
+	destinationRuleAPIVersion       = "networking.istio.io/v1alpha3"
+	destinationRuleKind             = "DestinationRule"
+	loggingNamePart                 = "logging-stdout"
+	loggingMountPath                = "/fluentd/etc/fluentd.conf"
+	loggingKey                      = "fluentd.conf"
+	defaultMode               int32 = 400
 )
 
 const defaultMonitoringExporterData = `
@@ -744,7 +745,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 				},
 				DefaultMode: func(mode int32) *int32 {
 					return &mode
-				}(420),
+				}(defaultMode),
 			},
 		},
 	}

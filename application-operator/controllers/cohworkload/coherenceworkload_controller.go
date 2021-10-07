@@ -75,16 +75,17 @@ multiline_flush_interval 20s
 `
 
 const (
-	specField                 = "spec"
-	jvmField                  = "jvm"
-	argsField                 = "args"
-	workloadType              = "coherence"
-	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
-	destinationRuleKind       = "DestinationRule"
-	coherenceExtendPort       = 9000
-	loggingNamePart           = "logging-stdout"
-	loggingMountPath          = "/fluentd/etc/fluentd.conf"
-	loggingKey                = "fluentd.conf"
+	specField                       = "spec"
+	jvmField                        = "jvm"
+	argsField                       = "args"
+	workloadType                    = "coherence"
+	destinationRuleAPIVersion       = "networking.istio.io/v1alpha3"
+	destinationRuleKind             = "DestinationRule"
+	coherenceExtendPort             = 9000
+	loggingNamePart                 = "logging-stdout"
+	loggingMountPath                = "/fluentd/etc/fluentd.conf"
+	loggingKey                      = "fluentd.conf"
+	defaultMode               int32 = 400
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -716,7 +717,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 				},
 				DefaultMode: func(mode int32) *int32 {
 					return &mode
-				}(400),
+				}(defaultMode),
 			},
 		},
 	}

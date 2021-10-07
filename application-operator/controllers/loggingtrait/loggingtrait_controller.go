@@ -26,12 +26,13 @@ import (
 
 // Reconciler constants
 const (
-	loggingNamePart     = "logging-stdout"
-	errLoggingResource  = "cannot add logging sidecar to the resource"
-	configMapAPIVersion = "v1"
-	configMapKind       = "ConfigMap"
-	loggingMountPath    = "/fluentd/etc/fluentd.conf"
-	loggingKey          = "fluentd.conf"
+	loggingNamePart           = "logging-stdout"
+	errLoggingResource        = "cannot add logging sidecar to the resource"
+	configMapAPIVersion       = "v1"
+	configMapKind             = "ConfigMap"
+	loggingMountPath          = "/fluentd/etc/fluentd.conf"
+	loggingKey                = "fluentd.conf"
+	defaultMode         int32 = 400
 )
 
 // LoggingTraitReconciler reconciles a LoggingTrait object
@@ -170,7 +171,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 						},
 						DefaultMode: func(mode int32) *int32 {
 							return &mode
-						}(420),
+						}(defaultMode),
 					},
 				},
 			}
@@ -375,7 +376,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 						},
 						DefaultMode: func(mode int32) *int32 {
 							return &mode
-						}(420),
+						}(defaultMode),
 					},
 				},
 			}
