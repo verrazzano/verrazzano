@@ -150,6 +150,8 @@ function install_keycloak {
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbUser=${MYSQL_USERNAME}"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.dbUser=${MYSQL_USERNAME}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string dbUser=${MYSQL_USERNAME}"
 
     # Handle any additional Keycloak install args
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS $(get_keycloak_helm_args_from_config)"
