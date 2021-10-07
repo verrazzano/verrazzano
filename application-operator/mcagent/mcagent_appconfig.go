@@ -69,7 +69,7 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 		}
 	}
 
-	// Delete the OAM components listed in application
+	// Delete OAM components no longer associated with any MultiClusterApplicationConfiguration
 	err = s.deleteOrphanedComponents(namespace)
 	if err != nil {
 		s.Log.Error(err, fmt.Sprintf("error deleting orphaned OAM Components in namespace %q", namespace))
@@ -221,8 +221,8 @@ func (s *Syncer) mutateComponent(managedClusterName string, mcAppConfigName stri
 	componentNew.Annotations = component.Annotations
 }
 
-// deleteOrphanedComponents - delete OAM Components that should have been deleted when the MultiClusterApplicationConfiguration
-// resources they were associated with were deleted.
+// deleteOrphanedComponents - delete OAM components that are no longer associated with any MultiClusterApplicationConfigurations.
+// Also update the contents of the mcAppConfigsLabel for a component if the list of applications it is shared by has changed.
 func (s *Syncer) deleteOrphanedComponents(namespace string) error {
 	// Only process OAM components that were synced to the local system
 	labels := &metav1.LabelSelector{
@@ -246,6 +246,7 @@ func (s *Syncer) deleteOrphanedComponents(namespace string) error {
 		return nil
 	}
 
+	// Get the list of MultiClusterApplicationConfiguration objects
 	listOptions2 := &client.ListOptions{Namespace: namespace}
 	mcAppConfigList := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
 	err = s.LocalClient.List(s.Context, &mcAppConfigList, listOptions2)
@@ -259,7 +260,7 @@ func (s *Syncer) deleteOrphanedComponents(namespace string) error {
 		// Loop through the MultiClusterApplicationConfiguration objects checking for a reference
 		for _, mcAppConfig := range mcAppConfigList.Items {
 			for _, component := range mcAppConfig.Spec.Template.Spec.Components {
-				// If we get a match, no need to continue processing the component list of the application
+				// If we get a match, maintain a list of applications this OAM component is shared by
 				if component.ComponentName == oamComp.Name {
 					actualAppConfigs = append(actualAppConfigs, mcAppConfig.Name)
 				}
