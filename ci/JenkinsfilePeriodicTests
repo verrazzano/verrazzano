@@ -2,7 +2,10 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def GIT_COMMIT_TO_USE
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+
+// FIX BEFORE SUBMIT replace normal agentlabel
+def agentLabel = "phxlarge"
+// FIX def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def TESTS_FAILED = false
 def tarfilePrefix="verrazzano_periodic"
 def storeLocation=""
@@ -39,6 +42,10 @@ pipeline {
     }
 
     environment {
+	OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
+	OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
+        DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
@@ -76,6 +83,22 @@ pipeline {
                     // If the commit we were handed is not what the SCM says we are using, fail
                     if (!env.GIT_COMMIT.equals(GIT_COMMIT_TO_USE)) {
                         error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
+                    }
+                }
+
+                script {
+                    try {
+                        sh """
+                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+                            """
+                        }
                     }
                 }
 
@@ -345,11 +368,12 @@ pipeline {
                         }
                     }
                 }
+                // FIX BEFORE SUBMIT switch to master
                 stage('Push to OCIR') {
                     steps {
                         script {
                             sh """
-                                if [ "${env.BRANCH_NAME}" == "master" ]; then
+                                if [ "${env.BRANCH_NAME}" == "tvlatas/VZ-3656" ]; then
                                     ci/scripts/periodic_push_to_ocir.sh
                                 fi
                             """

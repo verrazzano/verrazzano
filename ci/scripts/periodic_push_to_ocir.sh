@@ -4,7 +4,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ]; then
+if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCIR_SCAN_REGISTRY" ]  || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
@@ -34,43 +34,26 @@ if [ ! -d "${WORKSPACE}/tar-files" ]; then
   exit 1
 fi
 
-# DOCKER LOGIN TO OCIR (do in Jenkinsfile)
+# This assumes that the docker login has happened, and that the OCI CLI has access as well with default profile
 
-export MYREG=iad.ocir.io
-export MYREPO=odsbuilddev/sandboxes/tony.vlatas/tony-scan-test-1.0.1
-export VPO_IMAGE=$(cat verrazzano-bom.json | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-operator") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
+# This also currently assumes that the repository structure has been setup. That assumption will go away
+# once we add in scripting which will ensure that the OCIR repositories for the images in the BOM are created
+# and setup for scanning. Most of the time these already will exist and be setup, but if there is a new image
+# or images it should get things setup for them.
+#
+# This will likely be done by enhancing the tests/e2e/config/scripts/create_ocir_repositories.sh script
+# to handle our use cases as well.
 
-# TBD: It may make more sense to create a combined script for our needs here. One that would do the findOrCreate repo that we need, and also that gives
-# us an exact list of the repositories that were created at the same time (ie: no need to get them from OCI later on). We also could integrate in adding
-# the scanner before we push any images at all to the repository, so it would all be setup before we push the images in.
+# Push the images. NOTE: If a new image was added before we do the above "ensure" step, this may have the side
+# effect of pushing that image to the root compartment rather than the desired sub-compartment (OCIR behaviour),
+# and that new image will not be getting scanned until that is rectified (manually)
 
-# Create repositories, TBD: We really need a find or create here, even with different BOMs most will exist already
-sh ~/src/github.com/verrazzano/verrazzano/tests/e2e/config/scripts/create_ocir_repositories.sh -p sandboxes/tony.vlatas/tony-scan-test-1.0.1 -r us-ashburn-1 -c insert-your-sandbox-compartment-id-here -d ${WORKSPACE}/tar-files
-
-# Push the images
-sh vz-registry-image-helper.sh -t $MYREG -r $MYREPO -l ${WORKSPACE}/tar-files
-
-# Get a filtered repository list
-oci artifacts container repository list --compartment-id ocid1.compartment.oc1..aaaaaaaatx2vnmw2wkcbkefseeym7nsqt4w2ulzlelzzm2dwuobvlcnnuepq --region us-ashburn-1 --all > iad-all-repos.jsoncat iad-all-repos.json | jq '.data.items[]."display-name" | select(test(".*1.0.1.*")?)'
-
-		  CONDITIONAL: Only execute this stage if the last-scanpush-commit.txt doesn't match the last-stable-commit.txt (Actually I think we can use the boms here as well, so only one new file needed)
-			- Pull down zip and extract files
-			- FindOrCreateRepositories
-				- Check each one that is required here
-				- I think we always run this, in case new images are added
-				- TBD: Removing old ones
-			- Checks for existence of repositories
-			- Creates repositories based on location
-			- adds scanners, etc...
-			- Pushes images to OCIR
-			- update last-scanpush-commit.txt to be have the current last-stable-commit.txt value for this run
-			- Also create a last-scanpush-bom.json, ie: the BOM used. That will be useful for the scan polling job to know exactly which images to look for results for
-
+sh vz-registry-image-helper.sh -t $OCIR_SCAN_REGISTRY -r $OCIR_SCAN_REPOSITORY_PATH -l ${WORKSPACE}/tar-files
 
 # Finally push the current verrazzano-bom.json up as the last-ocir-pushed-verrazzano-bom.json so we know those were the latest images
 # pushed up. This is used above for avoiding pushing things multiple times for no reason, and it also is used when polling for results
 # to know which images were last pushed for Master (which results are the latest)
 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/last-ocir-pushed-verrazzano-bom.json --file ${WORKSPACE}/verrazzano-bom.json
 
-
-# TBD: We could also save the list of repositories as well, that may save the polling job some work so it doesn't need to figure that out 
+# TBD: We could also save the list of repositories as well, that may save the polling job some work so it doesn't need to figure that out
+# or simply just rely on the BOM there and compute from that.
