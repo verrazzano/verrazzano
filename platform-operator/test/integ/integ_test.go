@@ -6,99 +6,166 @@ package integ_test
 import (
 	"fmt"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/k8s"
+	"github.com/verrazzano/verrazzano/platform-operator/test/integ/util"
 )
 
 const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
 const installNamespace = "verrazzano-install"
 
+const vzResourceNamespace = "default"
+const vzResourceName = "test"
+
 var K8sClient k8s.Client
 
-var _ = ginkgo.BeforeSuite(func() {
+var _ = BeforeSuite(func() {
 	var err error
-	kc, err := k8sutil.GetKubeConfigLocation()
+	K8sClient, err = k8s.NewClient(util.GetKubeconfig())
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Unable to fetch Kubeconfig, error: %v", err))
-	}
-
-	K8sClient, err = k8s.NewClient(kc)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
+		Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
 	}
 
 	// Platform operator pod is eventually running
 	isPodRunningYet := func() bool {
 		return K8sClient.IsPodRunning(platformOperator, installNamespace)
 	}
-	gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
+	Eventually(isPodRunningYet, "2m", "5s").Should(BeTrue(),
 		"The verrazzano-platform-operator pod should be in the Running state")
 
 	// Create multi-cluster namespace
 	if !K8sClient.DoesNamespaceExist(constants.VerrazzanoMultiClusterNamespace) {
 		err = K8sClient.EnsureNamespace(constants.VerrazzanoMultiClusterNamespace)
-		gomega.Expect(err).To(gomega.BeNil())
+		Expect(err).To(BeNil())
 	}
 
 	// Create verrazzano-system namespace
 	if !K8sClient.DoesNamespaceExist(constants.VerrazzanoSystemNamespace) {
 		err = K8sClient.EnsureNamespace(constants.VerrazzanoSystemNamespace)
-		gomega.Expect(err).To(gomega.BeNil())
+		Expect(err).To(BeNil())
 	}
 })
 
-var _ = ginkgo.AfterSuite(func() {
+var _ = AfterSuite(func() {
 })
 
-var _ = ginkgo.Describe("verrazzano-install namespace resources ", func() {
-	ginkgo.It(fmt.Sprintf("Namespace %s exists", installNamespace), func() {
-		gomega.Expect(K8sClient.DoesNamespaceExist(installNamespace)).To(gomega.BeTrue(),
+var _ = Describe("verrazzano-install namespace resources ", func() {
+	It(fmt.Sprintf("Namespace %s exists", installNamespace), func() {
+		Expect(K8sClient.DoesNamespaceExist(installNamespace)).To(BeTrue(),
 			"The install-namespace should exist")
 	})
-	ginkgo.It(fmt.Sprintf("ServiceAccount %s exists", platformOperator), func() {
-		gomega.Expect(K8sClient.DoesServiceAccountExist(platformOperator, installNamespace)).To(gomega.BeTrue(),
+	It(fmt.Sprintf("ServiceAccount %s exists", platformOperator), func() {
+		Expect(K8sClient.DoesServiceAccountExist(platformOperator, installNamespace)).To(BeTrue(),
 			"The verrazzano-platform-operator service should exist")
 	})
-	ginkgo.It(fmt.Sprintf("Deployment %s exists", platformOperator), func() {
-		gomega.Expect(K8sClient.DoesDeploymentExist(platformOperator, installNamespace)).To(gomega.BeTrue(),
+	It(fmt.Sprintf("Deployment %s exists", platformOperator), func() {
+		Expect(K8sClient.DoesDeploymentExist(platformOperator, installNamespace)).To(BeTrue(),
 			"The verrazzano-platform-operator should exist")
 	})
-	ginkgo.It(fmt.Sprintf("Pod prefixed by %s exists", platformOperator), func() {
-		gomega.Expect(K8sClient.DoesPodExist(platformOperator, installNamespace)).To(gomega.BeTrue(),
+	It(fmt.Sprintf("Pod prefixed by %s exists", platformOperator), func() {
+		Expect(K8sClient.DoesPodExist(platformOperator, installNamespace)).To(BeTrue(),
 			"The verrazzano-platform-operator pod should exist")
 	})
-	ginkgo.It("Platform operator pod is eventually running", func() {
+	It("Platform operator pod is eventually running", func() {
 		isPodRunningYet := func() bool {
 			return K8sClient.IsPodRunning(platformOperator, installNamespace)
 		}
-		gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
+		Eventually(isPodRunningYet, "2m", "5s").Should(BeTrue(),
 			"The verrazzano-platform-operator pod should be in the Running state")
 	})
 })
 
-var _ = ginkgo.Describe("Verrazzano cluster roles and bindings for platform operator", func() {
-	ginkgo.It(fmt.Sprintf("Cluster admin role %s exists", clusterAdmin), func() {
-		gomega.Expect(K8sClient.DoesClusterRoleExist(clusterAdmin)).To(gomega.BeTrue(),
+var _ = Describe("Verrazzano cluster roles and bindings for platform operator", func() {
+	It(fmt.Sprintf("Cluster admin role %s exists", clusterAdmin), func() {
+		Expect(K8sClient.DoesClusterRoleExist(clusterAdmin)).To(BeTrue(),
 			"The cluster-admin role should exist")
 	})
-	ginkgo.It(fmt.Sprintf("Cluster role binding for platform operator %s exists", platformOperator), func() {
-		gomega.Expect(K8sClient.DoesClusterRoleBindingExist(platformOperator)).To(gomega.BeTrue(),
+	It(fmt.Sprintf("Cluster role binding for platform operator %s exists", platformOperator), func() {
+		Expect(K8sClient.DoesClusterRoleBindingExist(platformOperator)).To(BeTrue(),
 			"The cluster role binding for verrazzano-platform-operator should exist")
 	})
 
 })
 
-var _ = ginkgo.Describe("Custom Resource Definition for verrazzano install", func() {
-	ginkgo.It("verrazzanos.install.verrazzano.io exists", func() {
-		gomega.Expect(K8sClient.DoesCRDExist("verrazzanos.install.verrazzano.io")).To(gomega.BeTrue(),
+var _ = Describe("Custom Resource Definition for verrazzano install", func() {
+	It("verrazzanos.install.verrazzano.io exists", func() {
+		Expect(K8sClient.DoesCRDExist("verrazzanos.install.verrazzano.io")).To(BeTrue(),
 			"The verrazzanos.install.verrazzano.io CRD should exist")
 	})
-	ginkgo.It("verrazzanomanagedclusters.clusters.verrazzano.io exists", func() {
-		gomega.Expect(K8sClient.DoesCRDExist("verrazzanomanagedclusters.clusters.verrazzano.io")).To(gomega.BeTrue(),
+	It("verrazzanomanagedclusters.clusters.verrazzano.io exists", func() {
+		Expect(K8sClient.DoesCRDExist("verrazzanomanagedclusters.clusters.verrazzano.io")).To(BeTrue(),
 			"The verrazzanomanagedclusters.clusters.verrazzano.io CRD should exist")
 	})
 })
+
+var _ = Describe("Install with enable/disable component", func() {
+	It("CRD verrazzanos.install.verrazzano.io exists", func() {
+		Expect(K8sClient.DoesCRDExist("verrazzanos.install.verrazzano.io")).To(BeTrue(),
+			"The verrazzanos.install.verrazzano.io CRD should exist")
+	})
+
+	It("Platform operator pod is eventually running", func() {
+		isPodRunningYet := func() bool {
+			return K8sClient.IsPodRunning(platformOperator, installNamespace)
+		}
+		Eventually(isPodRunningYet, "2m", "5s").Should(BeTrue(),
+			"The verrazzano-platform-operator pod should be in the Running state")
+	})
+
+	It("Verrazzano CR should have disabled components", func() {
+		_, stderr := util.Kubectl("apply -f testdata/install-disabled.yaml")
+		Expect(stderr).To(Equal(""))
+
+		Eventually(func() bool {
+			return checkAllComponentStates(vzapi.Disabled)
+		}, "10s", "1s").Should(BeTrue())
+	})
+	It("Verrazzano CR should have preInstalling or installing components", func() {
+		_, stderr := util.Kubectl("apply -f testdata/install-enabled.yaml")
+		Expect(stderr).To(Equal(""))
+
+		Eventually(func() bool {
+			return checkAllComponentStates(vzapi.PreInstalling, vzapi.Installing)
+
+		}, "30s", "1s").Should(BeTrue())
+	})
+})
+
+// Check if Verrazzano CR has one matching state all components being tested
+func checkAllComponentStates(states ...vzapi.StateType) bool {
+	if !checkStates(coherence.ComponentName, states...) {
+		return false
+	}
+	if !checkStates(weblogic.ComponentName, states...) {
+		return false
+	}
+	return true
+}
+
+// Check if Verrazzano CR has one matching state for specified component
+func checkStates(compName string, states ...vzapi.StateType) bool {
+	vzcr, err := K8sClient.GetVerrazzano(vzResourceNamespace, vzResourceName)
+	if err != nil {
+		return false
+	}
+	if vzcr.Status.Components == nil {
+		return false
+	}
+	// Check if the component matches one of the states
+	for _, comp := range vzcr.Status.Components {
+		if comp.Name == compName {
+			for _, state := range states {
+				if comp.State == state {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}

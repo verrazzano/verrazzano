@@ -39,12 +39,13 @@ import (
 )
 
 const (
-	specField                 = "spec"
-	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
-	destinationRuleKind       = "DestinationRule"
-	loggingNamePart           = "logging-stdout"
-	loggingMountPath          = "/fluentd/etc/fluentd.conf"
-	loggingKey                = "fluentd.conf"
+	specField                       = "spec"
+	destinationRuleAPIVersion       = "networking.istio.io/v1alpha3"
+	destinationRuleKind             = "DestinationRule"
+	loggingNamePart                 = "logging-stdout"
+	loggingMountPath                = "/fluentd/etc/fluentd.conf"
+	loggingKey                      = "fluentd.conf"
+	defaultMode               int32 = 400
 )
 
 const defaultMonitoringExporterData = `
@@ -651,13 +652,15 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	configMap := &corev1.ConfigMap{}
 	err = r.Get(ctx, client.ObjectKey{Namespace: weblogic.GetNamespace(), Name: loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind())}, configMap)
 	if err != nil && k8serrors.IsNotFound(err) {
+		data := make(map[string]string)
+		data["fluentd.conf"] = loggingTrait.Spec.LoggingConfig
 		configMap = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configMapName,
 				Namespace: weblogic.GetNamespace(),
 				Labels:    weblogic.GetLabels(),
 			},
-			Data: loggingTrait.Spec.LoggingConfig,
+			Data: data,
 		}
 		err = controllerutil.SetControllerReference(workload, configMap, r.Scheme)
 		if err != nil {
@@ -717,7 +720,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	loggingContainer := &corev1.Container{
 		Name:            loggingNamePart,
 		Image:           image,
-		ImagePullPolicy: corev1.PullIfNotPresent,
+		ImagePullPolicy: corev1.PullPolicy(loggingTrait.Spec.ImagePullPolicy),
 		VolumeMounts:    extracted.VolumeMounts,
 		Env:             []corev1.EnvVar{*envFluentd},
 	}
@@ -742,7 +745,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 				},
 				DefaultMode: func(mode int32) *int32 {
 					return &mode
-				}(420),
+				}(defaultMode),
 			},
 		},
 	}

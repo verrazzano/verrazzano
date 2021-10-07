@@ -18,14 +18,14 @@ KIND_IMAGE=""
 CALICO_SUFFIX=""
 
 create_kind_cluster() {
-  if [ ${K8S_VERSION} == 1.17 ]; then
-    KIND_IMAGE="v1.17.11@sha256:5240a7a2c34bf241afb54ac05669f8a46661912eab05705d660971eeb12f6555"
-  elif [ ${K8S_VERSION} == 1.18 ]; then
-    KIND_IMAGE="v1.18.8@sha256:f4bcc97a0ad6e7abaf3f643d890add7efe6ee4ab90baeb374b4f41a4c95567eb"
-  elif [ ${K8S_VERSION} == 1.19 ]; then
-    KIND_IMAGE="v1.19.1@sha256:98cf5288864662e37115e362b23e4369c8c4a408f99cbc06e58ac30ddc721600"
+  if [ ${K8S_VERSION} == 1.19 ]; then
+    KIND_IMAGE="v1.19.11@sha256:07db187ae84b4b7de440a73886f008cf903fcf5764ba8106a9fd5243d6f32729"
   elif [ ${K8S_VERSION} == 1.20 ]; then
-    KIND_IMAGE="v1.20.2@sha256:8f7ea6e7642c0da54f04a7ee10431549c0257315b3a634f6ef2fecaaedb19bab"
+    KIND_IMAGE="v1.20.7@sha256:cbeaf907fc78ac97ce7b625e4bf0de16e3ea725daf6b04f930bd14c67c671ff9"
+  elif [ ${K8S_VERSION} == 1.21 ]; then
+    KIND_IMAGE="v1.21.1@sha256:69860bda5563ac81e3c0057d654b5253219618a22ec3a346306239bba8cfa1a6"
+  elif [ ${K8S_VERSION} == 1.22 ]; then
+    KIND_IMAGE="v1.22.0@sha256:b8bda84bb3a190e6e028b1760d277454a72267a5454b57db34437c34a588d047"
   else
     echo "ERROR: Invalid value for Kubernetes Version ${K8S_VERSION}."
     exit 1

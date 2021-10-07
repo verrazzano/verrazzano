@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 	"time"
@@ -129,14 +130,14 @@ func TestSuccessfulInstall(t *testing.T) {
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer config.SetDefaultBomFilePath("")
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
 	})
-	defer helm.SetDefaultChartStatusFunction()
+	defer registry.ResetGetComponentsFn()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -209,6 +210,75 @@ func TestSuccessfulInstall(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestInstallInitComponents tests the reconcile method for the following use case
+// GIVEN a request to reconcile a verrazzano resource when Status.Components is empty
+// THEN ensure that the Status.components is populated
+func TestInstallInitComponents(t *testing.T) {
+	unitTesting = true
+	namespace := "verrazzano"
+	name := "test"
+	labels := map[string]string{"label1": "test"}
+	var verrazzanoToUse vzapi.Verrazzano
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	config.TestHelmConfigDir = "../../helm_config"
+
+	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+		Namespace: namespace,
+		Name:      name,
+		Labels:    labels}
+	verrazzanoToUse.Status.State = vzapi.Ready
+
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	// Expect a call to get the verrazzano resource.
+	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(true, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
@@ -563,8 +633,8 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			asserts.Equalf(getInstallNamespace(), configMap.Namespace, "ConfigMap namespace did not match")
 			asserts.Equalf(buildConfigMapName(name), configMap.Name, "ConfigMap name did not match")
 			asserts.Equalf(labels, configMap.Labels, "ConfigMap labels did not match")
-			asserts.NotNil(configMap.Data["config.json"], "Configuration entry not found")
-			asserts.NotNil(configMap.Data[vzapi.OciPrivateKeyFileName], "OCI Config entry not found")
+			asserts.NotNil(configMap.Data["config.json"], "CR entry not found")
+			asserts.NotNil(configMap.Data[vzapi.OciPrivateKeyFileName], "OCI CR entry not found")
 			return nil
 		})
 
@@ -1317,6 +1387,7 @@ func TestConfigMapGetError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1369,6 +1440,7 @@ func TestConfigMapCreateError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1426,6 +1498,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1482,6 +1555,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1543,6 +1617,7 @@ func TestJobGetError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1578,7 +1653,7 @@ func TestJobGetError(t *testing.T) {
 
 // TestGetOCIConfigSecretError tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an verrazzano resource
-// WHEN a there is an error getting the OCI Config secret
+// WHEN a there is an error getting the OCI CR secret
 // THEN return error
 func TestGetOCIConfigSecretError(t *testing.T) {
 	unitTesting = true
@@ -1609,6 +1684,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1661,6 +1737,7 @@ func TestJobCreateError(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)

@@ -4,24 +4,34 @@
 package istio
 
 import (
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
-	"go.uber.org/zap"
 	"os/exec"
+	"strings"
+
+	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+
+	"go.uber.org/zap"
 )
 
 // cmdRunner needed for unit tests
 var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
 // Upgrade function gets called from istio_component to perform istio upgrade
-func Upgrade(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func Upgrade(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	args := []string{"install", "-y"}
 
-	args = append(args, "--set")
-	args = append(args, "revision=1-10-2")
-
+	// Add override files to arg array
 	for _, overridesFileName := range overridesFiles {
 		args = append(args, "-f")
 		args = append(args, overridesFileName)
+	}
+
+	// Add the image override strings
+	if len(imageOverrideString) > 0 {
+		segs := strings.Split(imageOverrideString, ",")
+		for i := range segs {
+			args = append(args, "--set")
+			args = append(args, segs[i])
+		}
 	}
 
 	// Perform istioctl call of type upgrade
@@ -39,6 +49,7 @@ func Upgrade(log *zap.SugaredLogger, overridesFiles ...string) (stdout []byte, s
 func runIstioctl(log *zap.SugaredLogger, cmdArgs []string, operationName string) (stdout []byte, stderr []byte, err error) {
 	cmd := exec.Command("istioctl", cmdArgs...)
 	log.Infof("Running command: %s", cmd.String())
+
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
 		log.Errorf("istioctl %s failed: %s", operationName, stderr)

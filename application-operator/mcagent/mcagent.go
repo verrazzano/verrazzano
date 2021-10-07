@@ -154,6 +154,10 @@ func (s *Syncer) SyncMultiClusterResources() {
 
 	// Synchronize objects one namespace at a time
 	for _, namespace := range s.ProjectNamespaces {
+		err = s.syncSecretObjects(namespace)
+		if err != nil {
+			s.Log.Error(err, "Error syncing Secret objects")
+		}
 		err = s.syncMCSecretObjects(namespace)
 		if err != nil {
 			s.Log.Error(err, "Error syncing MultiClusterSecret objects")
@@ -215,6 +219,7 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = platformopclusters.AddToScheme(scheme)
 	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
+	_ = corev1.SchemeBuilder.AddToScheme(scheme)
 
 	clientset, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {

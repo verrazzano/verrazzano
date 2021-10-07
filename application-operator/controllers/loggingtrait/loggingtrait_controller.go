@@ -26,12 +26,13 @@ import (
 
 // Reconciler constants
 const (
-	loggingNamePart     = "logging-stdout"
-	errLoggingResource  = "cannot add logging sidecar to the resource"
-	configMapAPIVersion = "v1"
-	configMapKind       = "ConfigMap"
-	loggingMountPath    = "/fluentd/etc/fluentd.conf"
-	loggingKey          = "fluentd.conf"
+	loggingNamePart           = "logging-stdout"
+	errLoggingResource        = "cannot add logging sidecar to the resource"
+	configMapAPIVersion       = "v1"
+	configMapKind             = "ConfigMap"
+	loggingMountPath          = "/fluentd/etc/fluentd.conf"
+	loggingKey                = "fluentd.conf"
+	defaultMode         int32 = 400
 )
 
 // LoggingTraitReconciler reconciles a LoggingTrait object
@@ -86,6 +87,9 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 	if err != nil || workload == nil {
 		return reconcile.Result{}, err
 	}
+	if workload.GetKind() == "VerrazzanoCoherenceWorkload" || workload.GetKind() == "VerrazzanoWebLogicWorkload" {
+		return reconcile.Result{}, nil
+	}
 
 	// Retrieve the child resources of the workload
 	resources, err := vznav.FetchWorkloadChildren(ctx, r, log, workload)
@@ -122,7 +126,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 			loggingContainer := &corev1.Container{
 				Name:            loggingNamePart,
 				Image:           image,
-				ImagePullPolicy: corev1.PullIfNotPresent,
+				ImagePullPolicy: corev1.PullPolicy(trait.Spec.ImagePullPolicy),
 				Env:             []corev1.EnvVar{*envFluentd},
 			}
 
@@ -167,7 +171,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 						},
 						DefaultMode: func(mode int32) *int32 {
 							return &mode
-						}(420),
+						}(defaultMode),
 					},
 				},
 			}
@@ -248,7 +252,9 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 	if err != nil || workload == nil {
 		return reconcile.Result{}, true, err
 	}
-
+	if workload.GetKind() == "VerrazzanoCoherenceWorkload" || workload.GetKind() == "VerrazzanoWebLogicWorkload" {
+		return reconcile.Result{}, true, nil
+	}
 	// Retrieve the child resources of the workload
 	resources, err := vznav.FetchWorkloadChildren(ctx, r, log, workload)
 	if err != nil {
@@ -311,7 +317,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			loggingContainer := &corev1.Container{
 				Name:            loggingNamePart,
 				Image:           trait.Spec.LoggingImage,
-				ImagePullPolicy: corev1.PullIfNotPresent,
+				ImagePullPolicy: corev1.PullPolicy(trait.Spec.ImagePullPolicy),
 				Env:             []corev1.EnvVar{*envFluentd},
 			}
 
@@ -370,7 +376,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 						},
 						DefaultMode: func(mode int32) *int32 {
 							return &mode
-						}(420),
+						}(defaultMode),
 					},
 				},
 			}
@@ -408,6 +414,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 
 		if isCombined {
 			if isFound {
+
 				r.ensureLoggingConfigMapExists(ctx, trait, resource)
 			}
 			// make a copy of the resource spec since resource.Object will get overwritten in CreateOrUpdate
@@ -461,14 +468,18 @@ func (r *LoggingTraitReconciler) ensureLoggingConfigMapExists(ctx context.Contex
 // createLoggingConfigMap returns a configmap based on the logging trait
 func (r *LoggingTraitReconciler) createLoggingConfigMap(trait *oamv1alpha1.LoggingTrait, resource *unstructured.Unstructured) *corev1.ConfigMap {
 	configMapName := loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind())
-	return &corev1.ConfigMap{
+	data := make(map[string]string)
+	data["fluentd.conf"] = trait.Spec.LoggingConfig
+	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,
 			Namespace: resource.GetNamespace(),
 			Labels:    resource.GetLabels(),
 		},
-		Data: trait.Spec.LoggingConfig,
+		Data: data,
 	}
+	controllerutil.SetControllerReference(resource, configMap, r.Scheme)
+	return configMap
 }
 
 func (r *LoggingTraitReconciler) deleteLoggingConfigMap(ctx context.Context, trait *oamv1alpha1.LoggingTrait, resource *unstructured.Unstructured) error {

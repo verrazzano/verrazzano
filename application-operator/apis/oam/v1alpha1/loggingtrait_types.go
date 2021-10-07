@@ -16,11 +16,15 @@ const LoggingTraitKind string = "LoggingTrait"
 // LoggingTraitSpec defines the desired state of LoggingTrait
 type LoggingTraitSpec struct {
 	// LoggingConfig represents the configuration provided by the user for the FluentD configuration that consists of fluentd.conf: "<source>\n ... and so on ...\n"
-	LoggingConfig map[string]string `json:"loggingConfig,omitempty"`
+	LoggingConfig string `json:"loggingConfig,omitempty"`
 
 	// LoggingImage represents the optional FluentD image provided by the user
 	// +optional
 	LoggingImage string `json:"loggingImage,omitempty"`
+
+	// ImagePullPolicy represents the optional image pull policy for the FluentD image provided by the user
+	// +optional
+	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
 
 	// The WorkloadReference to the workload to which this trait applies.
 	// This value is populated by the OAM runtime when a ApplicationConfiguration

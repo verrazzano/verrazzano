@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -75,16 +74,17 @@ multiline_flush_interval 20s
 `
 
 const (
-	specField                 = "spec"
-	jvmField                  = "jvm"
-	argsField                 = "args"
-	workloadType              = "coherence"
-	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
-	destinationRuleKind       = "DestinationRule"
-	coherenceExtendPort       = 9000
-	loggingNamePart           = "logging-stdout"
-	loggingMountPath          = "/fluentd/etc/fluentd.conf"
-	loggingKey                = "fluentd.conf"
+	specField                       = "spec"
+	jvmField                        = "jvm"
+	argsField                       = "args"
+	workloadType                    = "coherence"
+	destinationRuleAPIVersion       = "networking.istio.io/v1alpha3"
+	destinationRuleKind             = "DestinationRule"
+	coherenceExtendPort             = 9000
+	loggingNamePart                 = "logging-stdout"
+	loggingMountPath                = "/fluentd/etc/fluentd.conf"
+	loggingKey                      = "fluentd.conf"
+	defaultMode               int32 = 400
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -607,13 +607,15 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	configMap := &corev1.ConfigMap{}
 	err = r.Get(ctx, client.ObjectKey{Namespace: coherence.GetNamespace(), Name: configMapName}, configMap)
 	if err != nil && k8serrors.IsNotFound(err) {
+		data := make(map[string]string)
+		data["fluentd.conf"] = loggingTrait.Spec.LoggingConfig
 		configMap = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      loggingNamePart + "-" + coherence.GetName() + "-" + strings.ToLower(coherence.GetKind()),
 				Namespace: coherence.GetNamespace(),
 				Labels:    coherence.GetLabels(),
 			},
-			Data: loggingTrait.Spec.LoggingConfig,
+			Data: data,
 		}
 		err = controllerutil.SetControllerReference(workload, configMap, r.Scheme)
 		if err != nil {
@@ -647,16 +649,36 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		ReadOnly:  true,
 	}
 	vmIndex := -1
+	collision := -1
 	for i, vm := range extracted.VolumeMounts {
-		if reflect.DeepEqual(vm, *loggingVolumeMount) {
-			vmIndex = i
+		if vm.MountPath == loggingMountPath {
+			if vm.Name == configMapName {
+				vmIndex = i
+			} else {
+				collision = i
+			}
 		}
 	}
+
 	if vmIndex != -1 {
 		extracted.VolumeMounts[vmIndex] = *loggingVolumeMount
 	} else {
 		extracted.VolumeMounts = append(extracted.VolumeMounts, *loggingVolumeMount)
 	}
+	if collision != -1 {
+		extracted.VolumeMounts[collision] = extracted.VolumeMounts[len(extracted.VolumeMounts)-1]
+		extracted.VolumeMounts = extracted.VolumeMounts[:len(extracted.VolumeMounts)-1]
+	}
+
+	keys := make(map[corev1.VolumeMount]bool)
+	volumeMounts := []corev1.VolumeMount{}
+	for _, entry := range extracted.VolumeMounts {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			volumeMounts = append(volumeMounts, entry)
+		}
+	}
+	extracted.VolumeMounts = volumeMounts
 	loggingVolumeMountUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingVolumeMount)
 	if err != nil {
 		return err
@@ -671,11 +693,10 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 				volIndex = i
 			}
 		}
-		if volIndex != -1 {
-			vols[volIndex] = loggingVolumeMountUnstructured
-
-		} else {
+		if volIndex == -1 {
 			vols = append(vols, loggingVolumeMountUnstructured)
+		} else {
+			vols[volIndex] = loggingVolumeMountUnstructured
 		}
 		coherenceSpec["configMapVolumes"] = vols
 	}
@@ -692,7 +713,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	loggingContainer := &corev1.Container{
 		Name:            loggingNamePart,
 		Image:           image,
-		ImagePullPolicy: corev1.PullIfNotPresent,
+		ImagePullPolicy: corev1.PullPolicy(loggingTrait.Spec.ImagePullPolicy),
 		VolumeMounts:    extracted.VolumeMounts,
 		Env:             []corev1.EnvVar{*envFluentd},
 	}
@@ -717,19 +738,17 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 				},
 				DefaultMode: func(mode int32) *int32 {
 					return &mode
-				}(420),
+				}(defaultMode),
 			},
 		},
 	}
 	vIndex := -1
 	for i, v := range extracted.Volumes {
-		if v.Name == configMapName {
+		if v.Name == loggingVolume.Name {
 			vIndex = i
 		}
 	}
-	if vIndex != -1 {
-		extracted.Volumes[vIndex] = *loggingVolume
-	} else {
+	if vIndex == -1 {
 		extracted.Volumes = append(extracted.Volumes, *loggingVolume)
 	}
 	// convert the containers, volumes, and mounts in extracted to unstructured and set
@@ -738,9 +757,8 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	if err != nil {
 		return err
 	}
-	coherenceSpec["sideCars"] = extractedUnstructured["sidecars"]
+	coherenceSpec["sideCars"] = extractedUnstructured["sideCars"]
 	coherenceSpec["volumes"] = extractedUnstructured["volumes"]
-	coherenceSpec["volumeMounts"] = extractedUnstructured["volumeMounts"]
 
 	return nil
 }
