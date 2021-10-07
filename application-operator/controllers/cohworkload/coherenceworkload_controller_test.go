@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
