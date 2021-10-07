@@ -5,6 +5,7 @@ package mcagent
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -65,19 +66,13 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterApplicationConfiguration with name %q in namespace %q", mcAppConfig.Name, mcAppConfig.Namespace))
 			}
-			// Delete the OAM components listed in application
-			err = s.deleteComponentList(mcAppConfig)
-			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("error deleting the OAM Components listed in the MultiClusterApplicationConfiguration with name %q in namespace %q", mcAppConfig.Name, mcAppConfig.Namespace))
-			}
 		}
 	}
 
-	// Delete orphaned OAM Component resources.  These are OAM Components that were created as a result of being
-	// part of a MultiClusterApplicationConfiguration that no longer exists, but somehow were not deleted.
-	err = s.deleteOrphanedComponents(allLocalMCAppConfigs, namespace)
+	// Delete the OAM components listed in application
+	err = s.deleteOrphanedComponents(namespace)
 	if err != nil {
-		s.Log.Error(err, "error deleting orphaned OAM Components")
+		s.Log.Error(err, fmt.Sprintf("error deleting orphaned OAM Components in namespace %q", namespace))
 	}
 
 	return nil
@@ -228,7 +223,7 @@ func (s *Syncer) mutateComponent(managedClusterName string, mcAppConfigName stri
 
 // deleteOrphanedComponents - delete OAM Components that should have been deleted when the MultiClusterApplicationConfiguration
 // resources they were associated with were deleted.
-func (s *Syncer) deleteOrphanedComponents(mcAppConfigList clustersv1alpha1.MultiClusterApplicationConfigurationList, namespace string) error {
+func (s *Syncer) deleteOrphanedComponents(namespace string) error {
 	// Only process OAM components that were synced to the local system
 	labels := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
@@ -251,29 +246,40 @@ func (s *Syncer) deleteOrphanedComponents(mcAppConfigList clustersv1alpha1.Multi
 		return nil
 	}
 
+	listOptions2 := &client.ListOptions{Namespace: namespace}
+	mcAppConfigList := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
+	err = s.LocalClient.List(s.Context, &mcAppConfigList, listOptions2)
+	if err != nil {
+		return err
+	}
+
 	// Process the list of OAM Components checking to see if they are part of any MultiClusterApplicationConfiguration
 	for i, oamComp := range oamCompList.Items {
-		found := false
+		var actualAppConfigs []string
 		// Loop through the MultiClusterApplicationConfiguration objects checking for a reference
 		for _, mcAppConfig := range mcAppConfigList.Items {
 			for _, component := range mcAppConfig.Spec.Template.Spec.Components {
+				// If we get a match, no need to continue processing the component list of the application
 				if component.ComponentName == oamComp.Name {
-					// Found, no need to check more components
-					found = true
-					break
+					actualAppConfigs = append(actualAppConfigs, mcAppConfig.Name)
 				}
 			}
-			if found {
-				// Found, no need to check more MultiClusterApplicationConfigurations
-				break
-			}
 		}
-		if !found {
+		if len(actualAppConfigs) == 0 {
 			// Delete the orphaned OAM Component
 			s.Log.Info(fmt.Sprintf("Deleting orphaned OAM Component %s in namespace %s", oamComp.Name, oamComp.Namespace))
 			err = s.LocalClient.Delete(s.Context, &oamCompList.Items[i])
 			if err != nil {
 				return err
+			}
+		} else {
+			// Has the list of applications this component is associated with changed?  If so update the label.
+			if !reflect.DeepEqual(strings.Split(oamComp.Labels[mcAppConfigsLabel], ","), actualAppConfigs) {
+				oamComp.Labels[mcAppConfigsLabel] = strings.Join(actualAppConfigs, ",")
+				err = s.LocalClient.Update(s.Context, &oamCompList.Items[i])
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
