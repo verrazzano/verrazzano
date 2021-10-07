@@ -186,7 +186,7 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	//return ctrl.Result{}, nil
 	//
 	////*************   END TEMP CODE
-	//
+
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
 	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {

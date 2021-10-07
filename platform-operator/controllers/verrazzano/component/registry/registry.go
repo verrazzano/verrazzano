@@ -54,19 +54,6 @@ func getComponents() []spi.Component {
 	thirdPartyChartsDir := config.GetThirdPartyDir()
 	injectedSystemNamespaces := config.GetInjectedSystemNamespaces()
 
-	//// **************   TEMP DEBUGGING ******************************************
-	//
-	//testing := true
-	//if testing {
-	//	return []spi.Component{
-	//		istio.IstioComponent{
-	//			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
-	//			InjectedSystemNamespaces: injectedSystemNamespaces,
-	//		},
-	//	}
-	//}
-	//// **************   END  TMPE DEBUGGING ***********************************************
-
 	return []spi.Component{
 		helm.HelmComponent{
 			ReleaseName:             nginx.ComponentName,
