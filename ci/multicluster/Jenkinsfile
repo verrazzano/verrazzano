@@ -184,6 +184,11 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
         K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION}"
+
+        // sample app deployed before upgrade and UI console tests
+        SAMPLE_APP_NAME="hello-helidon-sample"
+        SAMPLE_APP_NAMESPACE=SAMPLE_APP_NAME
+        SAMPLE_APP_COMPONENT="hello-helidon-component"
     }
 
     stages {
@@ -531,10 +536,16 @@ pipeline {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
                         CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
+                        // Set app information used by the application page UI tests to assert for app info
+                        CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
+                        CONSOLE_APP_NAMESPACE="${SAMPLE_APP_NAMESPACE}"
+                        CONSOLE_APP_CLUSTER="managed1"
+                        CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
                     }
                     steps {
                         // Console runs on admin cluster and the KUBECONFIG is pointed at it (which is cluster 1)
-                        sh "KUBECONFIG=${ADMIN_KUBECONFIG} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                        // Make sure that application page tests are also run
+                        sh "KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
                     }
                     post {
                         always {
@@ -1426,12 +1437,12 @@ def setDisplayName() {
     echo "End setDisplayName"
 }
 
-def modifyHelloHelidonApp(newName) {
+def modifyHelloHelidonApp(newName, newNamespace) {
     sh """
       # create modified versions of the hello helidon MC example
       export MC_HH_DEST_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/${newName}
       export MC_HH_SOURCE_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon
-      export MC_APP_NAMESPACE="${newName}"
+      export MC_APP_NAMESPACE="${newNamespace}"
       export MC_PROJ_NAME="${newName}"
       ${GO_REPO_PATH}/verrazzano/ci/scripts/generate_mc_hello_deployment_files.sh
     """
@@ -1439,7 +1450,7 @@ def modifyHelloHelidonApp(newName) {
 }
 
 def deploySampleApp() {
-    modifyHelloHelidonApp("hello-helidon-sample")
+    modifyHelloHelidonApp(SAMPLE_APP_NAME, SAMPLE_APP_NAMESPACE)
     sh """
       export KUBECONFIG=$ADMIN_KUBECONFIG
       kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/verrazzano-project.yaml
@@ -1459,7 +1470,7 @@ def undeploySampleApp() {
 
 def runHelidonNsOpsTest() {
     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-    modifyHelloHelidonApp("hello-helidon-ns")
+    modifyHelloHelidonApp("hello-helidon-ns", "hello-helidon-ns")
     sh """
       export MANAGED_CLUSTER_NAME="managed1"
       export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
