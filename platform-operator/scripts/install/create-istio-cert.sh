@@ -5,10 +5,7 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
-. $SCRIPT_DIR/common.sh
-. $SCRIPT_DIR/config.sh
-
-INGRESS_TYPE=$(get_config_value ".ingress.type")
+. ${SCRIPT_DIR}/logging.sh
 
 CONFIG_DIR=$SCRIPT_DIR/config
 TMP_DIR=$(mktemp -d)
@@ -69,8 +66,6 @@ if ! kubectl get secret cacerts -n istio-system > /dev/null 2>&1 ; then
   create_istio_cert_secret
   if [ $? -ne 0 ]; then
     echo "Failed to create Istio certificate"
-    return $?
+    exit 1
   fi
 fi
-
-return 0

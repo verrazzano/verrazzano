@@ -4,16 +4,19 @@
 package istio
 
 import (
+	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
-	vzns "github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"go.uber.org/zap"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 func (i IstioComponent) IsOperatorInstallSupported() bool {
@@ -24,14 +27,14 @@ func (i IstioComponent) IsInstalled(context spi.ComponentContext) (bool, error) 
 	return false, nil
 }
 
-func (i IstioComponent) Install(context spi.ComponentContext) error {
+func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 	const imagePullSecretHelmKey = "values.global.imagePullSecrets[0].name"
 	var tmpFile *os.File
 	var kvs []bom.KeyValue
 	var err error
-	cr := context.EffectiveCR()
-	log := context.Log()
-	client := context.Client()
+	cr := compContext.EffectiveCR()
+	log := compContext.Log()
+	client := compContext.Client()
 
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
@@ -88,28 +91,21 @@ func (i IstioComponent) Install(context spi.ComponentContext) error {
 	return nil
 }
 
-func (i IstioComponent) PreInstall(context spi.ComponentContext) error {
-	log := context.Log()
-	client := context.Client()
-
-	if context.IsDryRun() {
+func (i IstioComponent) PreInstall(compContext spi.ComponentContext) error {
+	log := compContext.Log()
+	if compContext.IsDryRun() {
 		return nil
 	}
 
-	nsLabelForNetPol := map[string]string{"verrazzano.io/namespace": "istio-system"}
-
 	// Ensure Istio namespace exists and label it for network policies
-	if err := vzns.EnsureExists(log, client, IstioNamespace); err != nil {
-		log.Errorf("Failed to ensure Istio namespace %s exists: %v", IstioNamespace, err)
-		return err
-	}
-
-	if err := vzns.AddLabels(log, client, IstioNamespace, nsLabelForNetPol); err != nil {
-		log.Errorf("Failed to set NetworkPolicy labels on Istio namespace %s: %v", IstioNamespace, err)
-		return err
-	}
-	if err := vzns.AddLabels(log, client, IstioNamespace, nsLabelForNetPol); err != nil {
-		log.Errorf("Failed to set NetworkPolicy labels on Istio namespace %s: %v", IstioNamespace, err)
+	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: IstioNamespace}}
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels["verrazzano.io/namespace"] = IstioNamespace
+		return nil
+	}); err != nil {
 		return err
 	}
 
