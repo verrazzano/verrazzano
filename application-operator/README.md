@@ -10,10 +10,6 @@
 * `kubectl`
 
 ## Build the Verrazzano application operator
-* To generate DeepCopy and DeepCopyInto methods for changes in types in APIs
-    ```
-    make generate
-    ```
 
 * To generate manifests, for example, CRD, RBAC, and such:
     ```
