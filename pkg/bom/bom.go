@@ -107,8 +107,9 @@ type BomImage struct {
 
 // keyVal defines the Key, Value pair used to override a single helm Value
 type KeyValue struct {
-	Key   string
-	Value string
+	Key       string
+	Value     string
+	SetString bool
 }
 
 // Create a new bom from a JSON file
