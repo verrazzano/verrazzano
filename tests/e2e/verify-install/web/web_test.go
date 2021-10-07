@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,7 +28,7 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
-var ingress *v1beta1.Ingress
+var ingress *networkingv1.Ingress
 var consoleUIConfigured bool = false
 
 var _ = BeforeSuite(func() {
@@ -38,9 +38,9 @@ var _ = BeforeSuite(func() {
 		clientset, err = k8sutil.GetKubernetesClientset()
 		return clientset, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-	Eventually(func() (*v1beta1.Ingress, error) {
+	Eventually(func() (*networkingv1.Ingress, error) {
 		var err error
-		ingress, err = clientset.ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
+		ingress, err = clientset.NetworkingV1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
 		return ingress, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
@@ -48,7 +48,7 @@ var _ = BeforeSuite(func() {
 
 	// Determine if the console UI is configured
 	for _, path := range ingress.Spec.Rules[0].HTTP.Paths {
-		if path.Backend.ServiceName == "verrazzano-console" {
+		if path.Backend.Service.Name == "verrazzano-console" {
 			consoleUIConfigured = true
 		}
 	}
