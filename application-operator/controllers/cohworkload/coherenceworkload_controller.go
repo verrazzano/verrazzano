@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -651,7 +650,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	vmIndex := -1
 	for i, vm := range extracted.VolumeMounts {
-		if reflect.DeepEqual(vm, *loggingVolumeMount) {
+		if vm.MountPath == loggingMountPath {
 			vmIndex = i
 		}
 	}
@@ -659,6 +658,15 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		extracted.VolumeMounts[vmIndex] = *loggingVolumeMount
 	} else {
 		extracted.VolumeMounts = append(extracted.VolumeMounts, *loggingVolumeMount)
+		var volumeMounts []corev1.VolumeMount
+		m := make(map[corev1.VolumeMount]int32)
+		for _, v := range extracted.VolumeMounts {
+			m[v] = 1
+		}
+		for k, _ := range m {
+			volumeMounts = append(volumeMounts, k)
+		}
+		extracted.VolumeMounts = volumeMounts
 	}
 	loggingVolumeMountUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingVolumeMount)
 	if err != nil {
@@ -676,6 +684,8 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		}
 		if volIndex == -1 {
 			vols = append(vols, loggingVolumeMountUnstructured)
+		} else {
+			vols[volIndex] = loggingVolumeMountUnstructured
 		}
 		coherenceSpec["configMapVolumes"] = vols
 	}
@@ -738,7 +748,6 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	coherenceSpec["sideCars"] = extractedUnstructured["sideCars"]
 	coherenceSpec["volumes"] = extractedUnstructured["volumes"]
-	// coherenceSpec["volumeMounts"] = extractedUnstructured["volumeMounts"]
 
 	return nil
 }
