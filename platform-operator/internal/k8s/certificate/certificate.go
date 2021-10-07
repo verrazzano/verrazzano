@@ -142,19 +142,18 @@ func newSerialNumber() (*big.Int, error) {
 }
 
 // writeFile writes data in the file at the given path
-func writeFile(filepath string, pems ...*bytes.Buffer) error {
+func writeFile(filepath string, pem *bytes.Buffer) error {
 	f, err := os.Create(filepath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	for _, pem := range pems {
-		_, err = f.Write(pem.Bytes())
-		if err != nil {
-			return err
-		}
+	_, err = f.Write(pem.Bytes())
+	if err != nil {
+		return err
 	}
+
 	return nil
 }
 
