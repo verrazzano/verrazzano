@@ -35,8 +35,14 @@ spec:
         ports:
             - containerPort: 8000
         env:
+          - name: VZ_UI_URL
+            value: "https://verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
           - name: VZ_API_URL
             value: "https://verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
+          - name: VZ_KEYCLOAK_URL
+            value: "https://keycloak.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
+          - name: VZ_CLIENT_ID
+            value: verrazzano-pkce
       serviceAccount: {{ .Values.console.name }}
 ---
 apiVersion: v1
