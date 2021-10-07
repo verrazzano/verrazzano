@@ -19,17 +19,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "ingress-controller"
+const (
+	// ComponentName is the name of the component
+	ComponentName = "ingress-controller"
 
-// ComponentNamespace is the NGINX namespace for verrazzano
-const ComponentNamespace = "ingress-nginx"
+	// ComponentNamespace is the NGINX namespace for verrazzano
+	ComponentNamespace = "ingress-nginx"
 
-// ValuesFileOverride Name of the values file override for NGINX
-const ValuesFileOverride = "ingress-nginx-values.yaml"
+	// ValuesFileOverride Name of the values file override for NGINX
+	ValuesFileOverride = "ingress-nginx-values.yaml"
 
-const controllerName = "ingress-controller-ingress-nginx-controller"
-const backendName = "ingress-controller-ingress-nginx-defaultbackend"
+	controllerName = "ingress-controller-ingress-nginx-controller"
+	backendName    = "ingress-controller-ingress-nginx-defaultbackend"
+)
 
 func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{

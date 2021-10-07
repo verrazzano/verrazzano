@@ -280,7 +280,6 @@ func (h HelmComponent) buildOverridesString(context spi.ComponentContext, namesp
 	// setOverrides required by a component.
 	// Get image setOverrides unless opt out
 	var kvs []bom.KeyValue
-	//var err error
 	if !h.IgnoreImageOverrides {
 		kvs, err = getImageOverrides(h.ReleaseName)
 		if err != nil {
