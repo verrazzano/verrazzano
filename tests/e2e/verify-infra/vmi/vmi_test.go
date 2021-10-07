@@ -23,7 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -52,7 +52,7 @@ func vmiIngressURLs() (map[string]string, error) {
 	return ingressURLs, nil
 }
 
-func verrazzanoMonitoringInstanceCRD() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
+func verrazzanoMonitoringInstanceCRD() (*apiextv1.CustomResourceDefinition, error) {
 	client, err := pkg.APIExtensionsClientSet()
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func verrazzanoMonitoringInstanceCRD() (*apiextensionsv1beta1.CustomResourceDefi
 	return crd, nil
 }
 
-func verrazzanoInstallerCRD() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
+func verrazzanoInstallerCRD() (*apiextv1.CustomResourceDefinition, error) {
 	client, err := pkg.APIExtensionsClientSet()
 	if err != nil {
 		return nil, err
@@ -78,8 +78,8 @@ func verrazzanoInstallerCRD() (*apiextensionsv1beta1.CustomResourceDefinition, e
 
 var (
 	creds                  *pkg.UsernamePassword
-	vmiCRD                 *apiextensionsv1beta1.CustomResourceDefinition
-	vzCRD                  *apiextensionsv1beta1.CustomResourceDefinition
+	vmiCRD                 *apiextv1.CustomResourceDefinition
+	vzCRD                  *apiextv1.CustomResourceDefinition
 	ingressURLs            map[string]string
 	volumeClaims           map[string]*corev1.PersistentVolumeClaim
 	elastic                *vmi.Elastic
@@ -92,7 +92,7 @@ var (
 var _ = BeforeSuite(func() {
 	var err error
 
-	Eventually(func() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
+	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vzCRD, err = verrazzanoInstallerCRD()
 		return vzCRD, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
@@ -107,7 +107,7 @@ var _ = BeforeSuite(func() {
 		return volumeClaims, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-	Eventually(func() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
+	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vmiCRD, err = verrazzanoMonitoringInstanceCRD()
 		return vmiCRD, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
