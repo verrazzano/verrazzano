@@ -162,7 +162,7 @@ var _ = Describe("Prometheus Metrics", func() {
 
 // Validate the Istio envoy stats for the pods in the namespaces defined in envoyStatsNamespaces
 func verifyEnvoyStats(metricName string) bool {
-	envoyStatsMetric, err := pkg.QueryMetric(metricName, adminKubeConfig)
+	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, labelManagedCluster, getClusterNameForPromQuery())
 	if err != nil {
 		return false
 	}
@@ -227,7 +227,7 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 
 // Validate the metrics contain the labels with values specified as key-value pairs of the map
 func metricsContainLabels(metricName string, kv map[string]string) bool {
-	compMetrics, err := pkg.QueryMetric(metricName, adminKubeConfig)
+	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, labelManagedCluster, getClusterNameForPromQuery())
 	if err != nil {
 		return false
 	}
@@ -267,4 +267,12 @@ func excludePods(pod string, excludeList []string) bool {
 		}
 	}
 	return false
+}
+
+// Return the cluster name used for the Prometheus query
+func getClusterNameForPromQuery() string {
+	if isManagedClusterProfile {
+		return clusterName
+	}
+	return ""
 }
