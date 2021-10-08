@@ -6,6 +6,8 @@ metadata:
   labels:
     app: istiod
     istio.io/rev: {{ .Values.revision | default "default" }}
+    install.operator.istio.io/owning-resource: {{ .Values.ownerName | default "unknown" }}
+    operator.istio.io/component: "Pilot"
     istio: pilot
     release: {{ .Release.Name }}
 {{- range $key, $val := .Values.pilot.deploymentLabels }}
@@ -23,7 +25,7 @@ spec:
       maxUnavailable: {{ .Values.pilot.rollingMaxUnavailable }}
   selector:
     matchLabels:
-      {{- if ne .Values.revision ""}}
+      {{- if ne .Values.revision "" }}
       app: istiod
       istio.io/rev: {{ .Values.revision | default "default" }}
       {{- else }}
@@ -34,10 +36,16 @@ spec:
       labels:
         app: istiod
         istio.io/rev: {{ .Values.revision | default "default" }}
-        {{- if eq .Values.revision ""}}
-        istio: pilot
-        {{- else }}
+        install.operator.istio.io/owning-resource: {{ .Values.ownerName | default "unknown" }}
+        sidecar.istio.io/inject: "false"
+        operator.istio.io/component: "Pilot"
+        {{- if ne .Values.revision "" }}
         istio: istiod
+        {{- else }}
+        istio: pilot
+        {{- end }}
+        {{- range $key, $val := .Values.pilot.podLabels }}
+        {{ $key }}: "{{ $val }}"
         {{- end }}
       annotations:
         {{- if .Values.meshConfig.enablePrometheusMerge }}
@@ -49,7 +57,7 @@ spec:
 {{ toYaml .Values.pilot.podAnnotations | indent 8 }}
         {{- end }}
     spec:
-      serviceAccountName: istiod-service-account
+      serviceAccountName: istiod{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}
 {{- if .Values.global.priorityClassName }}
       priorityClassName: "{{ .Values.global.priorityClassName }}"
 {{- end }}
@@ -80,9 +88,6 @@ spec:
           - "-a"
           - {{ .Release.Namespace }}
 {{- end }}
-{{- if .Values.global.trustDomain }}
-          - --trust-domain={{ .Values.global.trustDomain }}
-{{- end }}
 {{- if .Values.pilot.plugins }}
           - --plugins={{ .Values.pilot.plugins }}
 {{- end }}
@@ -90,9 +95,11 @@ spec:
           - "{{ .Values.pilot.keepaliveMaxServerConnectionAge }}"
           ports:
           - containerPort: 8080
+            protocol: TCP
           - containerPort: 15010
+            protocol: TCP
           - containerPort: 15017
-          - containerPort: 15053
+            protocol: TCP
           readinessProbe:
             httpGet:
               path: /ready
@@ -138,20 +145,16 @@ spec:
             value: "{{ .Values.pilot.enableProtocolSniffingForOutbound }}"
           - name: PILOT_ENABLE_PROTOCOL_SNIFFING_FOR_INBOUND
             value: "{{ .Values.pilot.enableProtocolSniffingForInbound }}"
-          - name: INJECTION_WEBHOOK_CONFIG_NAME
-          {{- if eq .Release.Namespace "istio-system" }}
-            value: istio-sidecar-injector{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}
-          {{- else }}
-            value: istio-sidecar-injector{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}-{{ .Release.Namespace }}
-          {{- end }}
           - name: ISTIOD_ADDR
             value: istiod{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}.{{ .Release.Namespace }}.svc:15012
           - name: PILOT_ENABLE_ANALYSIS
             value: "{{ .Values.global.istiod.enableAnalysis }}"
           - name: CLUSTER_ID
             value: "{{ $.Values.global.multiCluster.clusterName | default `Kubernetes` }}"
-          - name: CENTRAL_ISTIOD
-            value: "{{ $.Values.global.centralIstiod | default "false" }}"
+{{- if not .Values.telemetry.v2.enabled }}
+          - name: PILOT_ENDPOINT_TELEMETRY_LABEL
+            value: "false"
+{{- end }}
           resources:
 {{- if .Values.pilot.resources }}
 {{ toYaml .Values.pilot.resources | trim | indent 12 }}
@@ -159,6 +162,7 @@ spec:
 {{ toYaml .Values.global.defaultResources | trim | indent 12 }}
 {{- end }}
           securityContext:
+            readOnlyRootFilesystem: true
             runAsUser: 1337
             runAsGroup: 1337
             runAsNonRoot: true
@@ -166,8 +170,6 @@ spec:
               drop:
               - ALL
           volumeMounts:
-          - name: config-volume
-            mountPath: /etc/istio/config
           {{- if eq .Values.global.jwtPolicy "third-party-jwt" }}
           - name: istio-token
             mountPath: /var/run/secrets/tokens
@@ -180,9 +182,6 @@ spec:
             readOnly: true
           - name: istio-kubeconfig
             mountPath: /var/run/secrets/remote
-            readOnly: true
-          - name: inject
-            mountPath: /var/lib/istio/inject
             readOnly: true
           {{- if .Values.pilot.jwksResolverExtraRootCA }}
           - name: extracacerts
@@ -212,13 +211,6 @@ spec:
         secret:
           secretName: istio-kubeconfig
           optional: true
-      # Optional - image should have
-      - name: inject
-        configMap:
-          name: istio-sidecar-injector{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}
-      - name: config-volume
-        configMap:
-          name: istio{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}
   {{- if .Values.pilot.jwksResolverExtraRootCA }}
       - name: extracacerts
         configMap:

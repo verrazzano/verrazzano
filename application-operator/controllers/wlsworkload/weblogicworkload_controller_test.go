@@ -155,7 +155,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			assert.Equal(strings.Join(strings.Split(WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to get the namespace for the domain
@@ -252,7 +252,7 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			assert.Equal(strings.Join(strings.Split(WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to get the namespace for the domain
@@ -356,7 +356,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			assert.Equal(strings.Join(strings.Split(WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to get the namespace for the domain
@@ -795,7 +795,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			assert.Equal(strings.Join(strings.Split(WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to get the namespace for the domain
@@ -924,7 +924,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			assert.Equal(strings.Join(strings.Split(WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to get the namespace for the domain
@@ -1008,7 +1008,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(logging.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			assert.Equal(strings.Join(strings.Split(WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to get the namespace for the domain
@@ -1461,8 +1461,18 @@ func validateTestMonitoringExporter(u *unstructured.Unstructured, t *testing.T) 
 	asserts.Equal(t, "wls_jvm_", jvmRuntimePrefix, "query JVMRuntime prefix should be wls_jvm_")
 }
 
+
 // Used for bool in struct literal
 func newTrue() *bool {
 	b := true
 	return &b
+}
+
+// TestGetWLSLogPath tests getWLSLogPath correctly.
+// GIVEN a weblogic env
+// THEN the log path is built
+func TestGetWLSLogPath(t *testing.T) {
+	assert := asserts.New(t)
+	logPath := getWLSLogPath("test-domain")
+	assert.Equal("/scratch/logs/test-domain/$(SERVER_NAME).log,/scratch/logs/test-domain/$(SERVER_NAME)_access.log,/scratch/logs/test-domain/$(SERVER_NAME)_nodemanager.log,/scratch/logs/test-domain/$(DOMAIN_UID).log", logPath)
 }

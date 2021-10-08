@@ -10,20 +10,32 @@ metadata:
   labels:
     app: {{ .Values.api.name }}
 data:
-{{- with .Values.api.proxy }}
   conf.lua: |
+    local clusterHostSuffix = '{{ .Values.config.envName }}'..'.'..'{{ .Values.config.dnsSuffix }}'
+{{- with .Values.api.proxy }}
     local ingressHost = ngx.req.get_headers()["x-forwarded-host"]
-    if not(ingressHost) then
+    if not ingressHost then
       ingressHost = ngx.req.get_headers()["host"]
     end
+    if not ingressHost or #ingressHost < 1 or #ingressHost > 256 then
+        ingressHost = 'invalid-hostname'
+    end
+
     local ingressUri = 'https://'..ingressHost
     local callbackPath = "{{ .OidcCallbackPath }}"
-    local logoutCallbackPath = "{{ .OidcLogoutCallbackPath }}"
+    local logoutPath = "{{ .OidcLogoutCallbackPath }}"
+    local singleLogoutPath = "{{ .OidcSingleLogoutCallbackPath }}"
 
     local auth = require("auth").config({
+        hostSuffix = '.'..clusterHostSuffix,
         callbackUri = ingressUri..callbackPath,
-        logoutCallbackUri = ingressUri..logoutCallbackPath
+        singleLogoutUri = ingressUri..singleLogoutPath,
+        hostUri = ingressUri
     })
+
+    -- determine backend and set backend parameters
+    local backend = auth.getBackendNameFromIngressHost(ingressHost)
+    local backendUrl = auth.getBackendServerUrlFromName(backend)
 
     -- TODO: is this needed here? Is it better done via/at ingress?
     -- This was previously enabled only for oauth-proxy, but there is similar
@@ -38,12 +50,7 @@ data:
         ngx.exit(ngx.HTTP_OK)
     end
 
-    -- determine backend and set backend parameters
-    local backend = auth.getBackendNameFromIngressHost(ingressHost)
-    local backendUrl = auth.getBackendServerUrlFromName(backend)
-
     auth.info("Processing request for backend '"..ingressHost.."'")
-
     local authHeader = ngx.req.get_headers()["authorization"]
     local token = nil
     if authHeader then
@@ -61,10 +68,18 @@ data:
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
             auth.oidcHandleCallback()
-        elseif auth.requestUriMatches(ngx.var.request_uri, logoutCallbackPath) then
-            -- logout was triggered, and OP (always?) is calling our logout URL
-            auth.oidcHandleLogoutCallback()
         end
+
+        if auth.requestUriMatches(ngx.var.request_uri, logoutPath) then
+            -- logout was triggered
+            auth.logout()
+        end
+
+        if auth.requestUriMatches(ngx.var.request_uri, singleLogoutPath) then
+            -- single logout was triggered
+            auth.singleLogout()
+        end
+        
         -- no token yet, and the request is not progressing an OIDC flow.
         -- check if caller has an existing session with a valid token.
         token = auth.getTokenFromSession()
@@ -210,8 +225,7 @@ data:
     end
 
     function me.unauthorized(msg, err)
-        me.deleteCookie("vz_authn")
-        me.deleteCookie("vz_userinfo")
+        me.deleteCookies("vz_authn", "vz_userinfo", "vz_state")
         me.logJson(ngx.ERR, msg, err)
         ngx.status = ngx.HTTP_UNAUTHORIZED
         ngx.say("401 Unauthorized")
@@ -234,10 +248,29 @@ data:
 
     function me.logout()
         local redirectArgs = ngx.encode_args({
-            redirect_uri = me.logoutCallbackUri
+            redirect_uri = me.hostUri
         })
-        local redirectURL = me.oidcProviderUri.."/protocol/openid-connect/logout?"..redirectArgs
-        ngx.redirect(redirectURL)
+        local ck = me.readCookie("vz_authn")
+        if ck then
+            local rft = ck.rt
+            ngx.req.set_header("Content-Type","application/x-www-form-urlencoded")
+            ngx.req.set_method(ngx.HTTP_POST)
+            local redirectURL = me.getOidcProviderUri().."/protocol/openid-connect/logout?"..redirectArgs
+            local postArgs = ngx.encode_args({refresh_token = ck.rt,
+            redirect_uri = redirectURL,
+            client_id = oidcClient})
+            ngx.req.read_body()
+            ngx.req.set_body_data(postArgs)
+            me.deleteCookies("vz_authn", "vz_userinfo")
+            ngx.redirect(redirectURL)
+        end
+    end
+
+    function me.singleLogout()
+        -- Single logout not supported yet.
+        ngx.status = ngx.HTTP_METHOD_NOT_IMPLEMENTED
+        ngx.say("501 Single Logout not supported.")
+        ngx.exit(ngx.HTTP_METHOD_NOT_IMPLEMENTED)
     end
 
     function me.randomBase64(size)
@@ -284,17 +317,64 @@ data:
         return false
     end
 
+    local authproxy_prefix = 'verrazzano-authproxy-'
+    local in_cluster_namespace = '.verrazzano-system'
+    local in_cluster_dns_suffix = '.svc.cluster.local'
+    local vmi_system = '.vmi.system'
+
+    function me.validateIngressHost(backend, hostname, in_cluster)
+        -- assume backend, hostname, are always non-nil and non-empty
+        local check_host = nil
+        if in_cluster == true then
+            -- try full path
+            check_host = authproxy_prefix..backend..in_cluster_namespace..in_cluster_dns_suffix
+            if check_host == hostname then
+                return backend
+            end
+            -- try with just the namespace
+            check_host = authproxy_prefix..backend..in_cluster_namespace
+            if check_host == hostname then
+                return backend
+            end
+            -- try without namespace or dns suffix
+            check_host = authproxy_prefix..backend
+            if check_host == hostname then
+                return backend
+            end
+        else
+            if backend == 'verrazzano' then
+                check_host = backend..me.hostSuffix
+            else
+                check_host = backend..vmi_system..me.hostSuffix
+            end
+            if check_host == hostname then
+                return backend
+            end
+        end
+        return 'invalid'
+    end
+
     function me.getBackendNameFromIngressHost(ingressHost)
         local backend_name = 'unknown'
-        if ingressHost then
+        local hostname = nil
+        if ingressHost and #ingressHost > 0 then
             me.info("ingressHost is '"..ingressHost.."'")
-            -- Strip domain and/or port
+            -- Strip the port off, if present
             local first, last = nil
-            first, last, backend_name = ingressHost:find("([^.:]+)")
-            -- Strip the auth proxy prefix from the extracted backend name if present
-            local authproxy_prefix = 'verrazzano-authproxy-'
-            if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
-              backend_name = string.sub(backend_name, #authproxy_prefix+1, -1)
+            first, last, hostname = ingressHost:find("^([^:]+)")
+            if hostname and #hostname > 0 then
+                first, last, backend_name = hostname:find("^([^.]+)")
+                if backend_name and #backend_name > 0 then
+                    -- Strip the auth proxy prefix from the extracted backend name if present
+                    if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
+                        backend_name = string.sub(backend_name, #authproxy_prefix+1, -1)
+                        me.info("Validating host (local): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
+                        backend_name = me.validateIngressHost(backend_name, hostname, true)
+                    else
+                        me.info("Validating host (ingress): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
+                        backend_name = me.validateIngressHost(backend_name, hostname, false)
+                    end
+                end
             end
         end
         if backend_name == "verrazzano" then
@@ -339,7 +419,8 @@ data:
         return serverUrl
     end
 
-    -- console sends access token by itself (originally obtained via pkce client)
+    -- console originally sent access token by itself, as bearer token (originally obtained via pkce client)
+    -- with combined proxy, console no longer handles tokens, but tests may be sending ID tokens.
     function me.handleBearerToken(authHeader)
         local found, index = authHeader:find('Bearer')
         if found then
@@ -461,6 +542,9 @@ data:
             redirect_uri = me.callbackUri
         })
         local redirectURL = me.getOidcAuthUri()..'?'..redirectArgs
+        -- there could be an existing (expired) vz_authn cookie.
+        -- delete it (and vz_userinfo) to avoid exceeding max header size
+        me.deleteCookies("vz_authn", "vz_userinfo")
         me.setCookie("vz_state", stateData, authStateTtlInSec, true)
         ngx.header["Cache-Control"] = "no-cache, no-store, max-age=0"
         ngx.redirect(redirectURL)
@@ -476,7 +560,7 @@ data:
         if not cookie then
             me.unauthorized("Missing state cookie")
         end
-        me.deleteCookie("vz_state")
+        me.deleteCookies("vz_state")
         local stateCk = cookie.state
         -- local nonceCk = cookie.nonce
         local request_uri = cookie.request_uri
@@ -500,10 +584,6 @@ data:
         end
     end
 
-    function me.oidcHandleLogoutCallback()
-        me.unauthorized("User logged out")
-    end
-
     function me.oidcTokenRequest(formArgs)
         me.info("Requesting token from OP")
         local tokenUri = me.getOidcTokenUri()
@@ -516,8 +596,12 @@ data:
                 ["Content-Type"] = "application/x-www-form-urlencoded",
             }
         })
-        -- ,keepalive_timeout = 60000,
-        -- keepalive_pool = 10
+        if err then
+            me.unauthorized("Error requesting token", err)
+        end
+        if not res then
+            me.unauthorized("Error requesting token: response was nil")
+        end
         local tokenRes = cjson.decode(res.body)
         if tokenRes.error or tokenRes.error_description then
             me.info("Error requesting token")
@@ -649,30 +733,38 @@ data:
     -- returns id token, token is refreshed first, if necessary.
     -- nil token returned if no session or the refresh token has expired
     function me.getTokenFromSession()
-        me.info("Check for existing session")
+        -- me.info("Check for existing session")
         local ck = me.readCookie("vz_authn")
         if ck then
+            me.info("Existing session found")
             local rft = ck.rt
             local now = ngx.time()
             local expiry = tonumber(ck.expiry)
             local refresh_expiry = tonumber(ck.refresh_expiry)
             if now < expiry then
+                -- me.info("Returning ID token")
                 return ck.it
             else
                 if now < refresh_expiry then
+                    me.info("Token is expired, refreshing")
                     local tokenRes = me.oidcRefreshToken(rft, me.callbackUri)
                     if tokenRes then
                         me.oidcValidateIDTokenPKCE(tokenRes.id_token)
                         me.tokenToCookie(tokenRes)
-                        me.info("token refreshed",  tokenRes)
-                        return tokenRes.idt
+                        -- me.info("Token refreshed",  tokenRes)
+                        return tokenRes.id_token
+                    else
+                        me.info("No valid response from token refresh")
                     end
+                else
+                    me.info("Refresh token expired, cannot refresh")
                 end
             end
+        else
+            me.info("No existing session found")
         end
         -- no valid token found, delete cookie
-        me.deleteCookie("vz_authn")
-        me.deleteCookie("vz_userinfo")
+        me.deleteCookies("vz_authn", "vz_userinfo")
         return nil
     end
 
@@ -738,8 +830,13 @@ data:
         cookie:set({key=ckName, value=ckValue, path="/", secure=true, httponly=httponly, expires=expires})
     end
 
-    function me.deleteCookie(ckName)
-        ngx.header["Set-Cookie"] = ckName..'=; Path=/; Secure; HttpOnly; Expires=Thu, 01 Jan 1970 00:00:00 UTC;'
+     function me.deleteCookies(...)
+        local cookies = {}
+        local arg = {...}
+        for i,v in ipairs(arg) do
+            cookies[i] = tostring(v)..'=; Path=/; Secure; HttpOnly; Expires=Thu, 01 Jan 1970 00:00:00 UTC;'
+        end
+        ngx.header["Set-Cookie"] = cookies
     end
 
     function me.readCookie(ckName)
@@ -974,6 +1071,7 @@ data:
 
         # Posts from Fluentd can require more than the default 1m max body size
         client_max_body_size {{ .MaxRequestSize }};
+        proxy_buffer_size {{ .ProxyBufferSize }};
 
         #keepalive_timeout  0;
         keepalive_timeout  65;

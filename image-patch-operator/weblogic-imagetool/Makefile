@@ -3,6 +3,7 @@
 
 include ../../make/quality.mk
 include ../../make/generate.mk
+include ../../make/retry.mk
 
 SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 TOOLS_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../../tools
@@ -77,9 +78,9 @@ docker-build: get-installers
 .PHONY: docker-push
 docker-push: docker-build
 	docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
-	docker push ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
+	$(call retry_docker_push,${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG})
 
 ifeq ($(CREATE_LATEST_TAG), "1")
 	docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:latest;
-	docker push ${DOCKER_IMAGE_FULLNAME}:latest;
+	$(call retry_docker_push,${DOCKER_IMAGE_FULLNAME}:latest);
 endif

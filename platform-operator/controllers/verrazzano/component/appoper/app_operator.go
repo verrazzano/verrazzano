@@ -6,6 +6,7 @@ package appoper
 import (
 	"context"
 	"fmt"
+
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -20,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
 // ComponentName is the name of the component
@@ -30,7 +32,7 @@ const (
 
 // AppendApplicationOperatorOverrides Honor the APP_OPERATOR_IMAGE env var if set; this allows an explicit override
 // of the verrazzano-application-operator image when set.
-func AppendApplicationOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendApplicationOperatorOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	envImageOverride := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
 	if len(envImageOverride) == 0 {
 		return kvs, nil
@@ -44,11 +46,11 @@ func AppendApplicationOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string
 }
 
 // IsApplicationOperatorReady checks if the application operator deployment is ready
-func IsApplicationOperatorReady(log *zap.SugaredLogger, c client.Client, name string, namespace string) bool {
+func IsApplicationOperatorReady(ctx spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: "verrazzano-application-operator", Namespace: namespace},
 	}
-	return status.DeploymentsReady(log, c, deployments, 1)
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }
 
 func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _ string) error {

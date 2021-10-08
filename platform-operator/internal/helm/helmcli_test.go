@@ -91,7 +91,7 @@ func TestUpgradeFail(t *testing.T) {
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", false, false, "")
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", false, false, "", "")
 	assert.Error(err, "Upgrade should have returned an error")
 	assert.Len(stdout, 0, "Upgrade stdout should be empty")
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")
