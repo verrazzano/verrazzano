@@ -21,13 +21,13 @@ CONFIG_DIR=$INSTALL_DIR/config
 function uninstall_istio() {
 
   # Make attempt at calling helm to cleanup.  Do you fail on error, we cleanup manually below
-  helm delete -n istio-system istiod
-  helm delete -n istio-system istio-egress
-  helm delete -n istio-system istio-ingress
-  helm delete -n istio-system istiod
+  helm uninstall -n istio-system istiod || true
+  helm uninstall -n istio-system istio-egress || true
+  helm uninstall -n istio-system istio-ingress || true
+  helm uninstall -n istio-system istiod || true
 
   # Make attempt to delete using istioctl
-  istioctl x uninstall --purge -y
+  istioctl x uninstall --purge -y || true
 
   # delete webhook configurations
   log "Removing Istio Webhook Configurations"
