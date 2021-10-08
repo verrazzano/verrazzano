@@ -138,6 +138,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // ReadyState processes the CR while in the ready state
 func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Infof("Entering ReadyState func")
 	ctx := context.TODO()
 
 	// Check if verrazzano resource is being deleted
@@ -218,8 +219,10 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	}
 
 	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
+		log.Errorf("reconcileComponents error %v, requeuing", err)
 		return newRequeueWithDelay(), err
 	} else if shouldRequeue(result) {
+		log.Info("reconcileComponents requeuing")
 		return result, nil
 	}
 
@@ -233,10 +236,12 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 
 // InstallingState processes the CR while in the installing state
 func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Infof("Entering InstallingState func")
 	ctx := context.TODO()
 
 	// Check if verrazzano resource is being deleted
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		log.Info("DeletionTimestamp is not empty, deleting installation")
 		return r.procDelete(ctx, log, vz)
 	}
 
@@ -245,8 +250,10 @@ func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.Su
 	}
 
 	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
+		log.Errorf("reconcileComponents error %v, requeuing", err)
 		return newRequeueWithDelay(), err
 	} else if shouldRequeue(result) {
+		log.Info("reconcileComponents requeuing")
 		return result, nil
 	}
 
@@ -255,6 +262,7 @@ func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.Su
 
 // UninstallingState processes the CR while in the uninstalling state
 func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Infof("Entering UninstallingState func")
 	ctx := context.TODO()
 
 	// Update uninstall status
@@ -267,11 +275,13 @@ func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.
 
 // UpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Infof("Entering UpgradingState func")
 	return r.reconcileUpgrade(log, vz)
 }
 
 // FailedState only allows uninstall
 func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Infof("Entering FailedState func")
 	ctx := context.TODO()
 
 	// Update uninstall status
@@ -1162,9 +1172,11 @@ func getInstallNamespace() string {
 func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Finalizer is present, so lets do the uninstall
 	if containsString(vz.ObjectMeta.Finalizers, finalizerName) {
+		log.Errorf("Deleting the installation, the finalizers are still set")
+
 		// Delete the install job if it exists, cancelling any running install jobs before uninstalling
 		if err := r.deleteInstallJob(log, vz); err != nil {
-			log.Errorf("Failed creating the install job: %v", err)
+			log.Errorf("Failed deleting the install job: %v", err)
 			return newRequeueWithDelay(), err
 		}
 		// Create the uninstall job if it doesn't exist
