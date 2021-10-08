@@ -785,11 +785,6 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		log.Error(err, "Unable to set serverPod volumes")
 		return err
 	}
-	err = unstructured.SetNestedField(weblogic.Object, extractedUnstructured["volumeMounts"].([]interface{}), specServerPodVolumeMountsFields...)
-	if err != nil {
-		log.Error(err, "Unable to set serverPod volumeMounts")
-		return err
-	}
 
 	return nil
 }
