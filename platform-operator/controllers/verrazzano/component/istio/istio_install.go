@@ -64,11 +64,11 @@ func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 
-	// check for global image pull secret
-	kvs, err = addGlobalImagePullSecretHelmOverride(log, client, IstioNamespace, kvs, imagePullSecretHelmKey)
-	if err != nil {
-		return err
-	}
+	//// check for global image pull secret
+	//kvs, err = addGlobalImagePullSecretHelmOverride(log, client, IstioNamespace, kvs, imagePullSecretHelmKey)
+	//if err != nil {
+	//	return err
+	//}
 
 	// Build comma separated string of overrides that will be passed to
 	// isioctl as --set values.
