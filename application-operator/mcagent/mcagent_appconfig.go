@@ -9,6 +9,7 @@ import (
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -116,7 +117,19 @@ func (s *Syncer) syncComponentList(mcAppConfig clustersv1alpha1.MultiClusterAppl
 		oamComp := &oamv1alpha2.Component{}
 		err := s.AdminClient.Get(s.Context, objectKey, oamComp)
 		if err != nil {
-			return err
+			// If the OAM component object is not found then we check if the MultiClusterComponent object exists.
+			if apierrors.IsNotFound(err) {
+				mcComp := &clustersv1alpha1.MultiClusterComponent{}
+				errmc := s.LocalClient.Get(s.Context, objectKey, mcComp)
+				// Return the OAM component not found error if we fail to get the MultiClusterComponent
+				// with the same name.
+				if errmc != nil {
+					return err
+				}
+				break
+			} else {
+				return err
+			}
 		}
 		_, err = s.createOrUpdateComponent(*oamComp)
 		if err != nil {
