@@ -80,6 +80,10 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 
 // Update the Rancher registration status
 func (r *VerrazzanoManagedClusterReconciler) updateRancherStatus(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster, status clusterapi.RancherRegistrationStatus, message string) {
+	// Skip the update if the status has not changed
+	if vmc.Status.RancherRegistration.Status == status && vmc.Status.RancherRegistration.Message == message {
+		return
+	}
 	vmc.Status.RancherRegistration.Status = status
 	vmc.Status.RancherRegistration.Message = message
 	err := r.Status().Update(ctx, vmc)

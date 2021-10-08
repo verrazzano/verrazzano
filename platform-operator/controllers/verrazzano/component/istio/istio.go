@@ -5,18 +5,17 @@ package istio
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const istioGlobalHubKey = "global.hub"
 
 // AppendIstioOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
 // A go template is used to replace the image in the init container spec.
-func AppendIstioOverrides(_ *zap.SugaredLogger, releaseName string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
@@ -45,9 +44,9 @@ func AppendIstioOverrides(_ *zap.SugaredLogger, releaseName string, _ string, _ 
 }
 
 // IstiodReadyCheck Determines if istiod is up and has a minimum number of available replicas
-func IstiodReadyCheck(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string) bool {
+func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: "istiod", Namespace: namespace},
 	}
-	return status.DeploymentsReady(log, client, deployments, 1)
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }

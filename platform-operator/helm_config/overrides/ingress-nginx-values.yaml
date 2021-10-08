@@ -8,6 +8,7 @@ controller:
     digest:
   config:
     client-body-buffer-size: 64k
+    proxy-buffer-size: 8k
   metrics:
     enabled: true
   publishService:
