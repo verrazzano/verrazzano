@@ -6,9 +6,7 @@ package istio
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
@@ -108,22 +106,6 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 		for i := range scKvs {
 			kvs = append(kvs, scKvs[i])
 		}
-	}
-	return kvs, nil
-}
-
-// AddGlobalImagePullSecretHelmOverride Adds a helm override Key if the global image pull secret exists and was copied successfully to the target namespace
-func addGlobalImagePullSecretHelmOverride(log *zap.SugaredLogger, client clipkg.Client, ns string, kvs []bom.KeyValue, keyName string) ([]bom.KeyValue, error) {
-	secretExists, err := secret.CheckImagePullSecret(client, ns)
-	if err != nil {
-		log.Errorf("Error copying global image pull secret %s to %s namespace", constants.GlobalImagePullSecName, ns)
-		return kvs, err
-	}
-	if secretExists {
-		kvs = append(kvs, bom.KeyValue{
-			Key:   keyName,
-			Value: constants.GlobalImagePullSecName,
-		})
 	}
 	return kvs, nil
 }
