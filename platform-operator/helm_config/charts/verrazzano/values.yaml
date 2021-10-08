@@ -91,6 +91,7 @@ api:
     RequiredRealmRole: vz_api_access
     OidcCallbackPath: /_authentication_callback
     OidcLogoutCallbackPath: /_logout
+    OidcSingleLogoutCallbackPath: /_single_logout
     AuthnStateTTL: "300"
     MaxRequestSize: 65m
     ProxyBufferSize: 8k
