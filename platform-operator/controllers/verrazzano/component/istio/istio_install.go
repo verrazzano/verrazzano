@@ -131,6 +131,42 @@ func (i IstioComponent) PreInstall(compContext spi.ComponentContext) error {
 }
 
 func (i IstioComponent) PostInstall(context spi.ComponentContext) error {
+	// TODO Post Install
+	///     log "Setting Istio global mesh policy to STRICT mode"
+	//    kubectl apply -f <(echo "
+	//apiVersion: "security.istio.io/v1beta1"
+	//kind: "PeerAuthentication"
+	//metadata:
+	//  name: "default"
+	//  namespace: "istio-system"
+	//spec:
+	//  mtls:
+	//    mode: STRICT
+	//")
+	//
+	//    log "Adding Istio server header network filter"
+	//    kubectl apply -f <(echo "
+	//apiVersion: networking.istio.io/v1alpha3
+	//kind: EnvoyFilter
+	//metadata:
+	//  name: server-header-filter
+	//  namespace: istio-system
+	//spec:
+	//  configPatches:
+	//    - applyTo: NETWORK_FILTER
+	//      match:
+	//        listener:
+	//          filterChain:
+	//            filter:
+	//              name: envoy.filters.network.http_connection_manager
+	//      patch:
+	//        operation: MERGE
+	//        value:
+	//          typed_config:
+	//            '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+	//            server_header_transformation: PASS_THROUGH
+	//")
+	//}
 	return nil
 }
 
