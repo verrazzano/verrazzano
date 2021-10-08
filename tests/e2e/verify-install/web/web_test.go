@@ -28,10 +28,9 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
-var ingress *networkingv1.Ingress
-var consoleUIConfigured bool = false
-
+var serverURL string
 var _ = BeforeSuite(func() {
+	var ingress *networkingv1.Ingress
 	var clientset *kubernetes.Clientset
 	Eventually(func() (*kubernetes.Clientset, error) {
 		var err error
@@ -45,28 +44,12 @@ var _ = BeforeSuite(func() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	Expect(len(ingress.Spec.Rules)).To(Equal(1))
-
-	// Determine if the console UI is configured
-	for _, path := range ingress.Spec.Rules[0].HTTP.Paths {
-		if path.Backend.Service.Name == "verrazzano-console" {
-			consoleUIConfigured = true
-		}
-	}
+	ingressRules := ingress.Spec.Rules
+	serverURL = fmt.Sprintf("https://%s/", ingressRules[0].Host)
 })
 
 var _ = Describe("Verrazzano Web UI", func() {
 	When("the console UI is configured", func() {
-		var serverURL string
-
-		BeforeEach(func() {
-			if !consoleUIConfigured {
-				Skip("Skipping spec since console UI is not configured")
-			}
-
-			ingressRules := ingress.Spec.Rules
-			serverURL = fmt.Sprintf("https://%s/", ingressRules[0].Host)
-		})
-
 		It("can be accessed", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				return pkg.GetWebPage(serverURL, "")
@@ -160,6 +143,12 @@ var _ = Describe("Verrazzano Web UI", func() {
 			for headerName, headerValues := range resp.Header {
 				Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
 			}
+		})
+
+		It("can be logged out", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				return pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
+			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK)))
 		})
 	})
 })
