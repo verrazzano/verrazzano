@@ -98,33 +98,16 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "istiocoredns",
-          "images": [
-            {
-              "image": "coredns",
-              "tag": "1.6.2",
-              "helmFullImageKey": "istiocoredns.coreDNSImage",
-              "helmTagKey": "istiocoredns.coreDNSTag"
-            },
-            {
-              "image": "istio-coredns-plugin",
-              "tag": "0.2-20201016204812-23723dcb",
-              "helmFullImageKey": "istiocoredns.coreDNSPluginImage"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
           "name": "istiod",
           "images": [
             {
               "image": "pilot",
-              "tag": "1.7.3",
+              "tag": "1.10.2",
               "helmFullImageKey": "pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.7.3",
+              "tag": "1.10.2",
               "helmImageKey": "global.proxy.image",
               "helmTagKey": "global.tag"
             }
@@ -136,7 +119,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.7.3",
+              "tag": "1.10.2",
               "helmImageKey": "global.proxy.image",
               "helmTagKey": "global.tag"
             }
@@ -148,7 +131,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.7.3",
+              "tag": "1.10.2",
               "helmImageKey": "global.proxy.image",
               "helmTagKey": "global.tag"
             }
@@ -261,7 +244,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.7.3",
+              "tag": "1.10.2",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -301,7 +284,7 @@
             },
             {
               "image": "console",
-              "tag": "1.1.0-20211006154030-4efa65f",
+              "tag": "1.1.0-20211008135804-3b25741",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },

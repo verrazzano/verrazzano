@@ -13,8 +13,8 @@ import (
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
-	extv1beta1 "k8s.io/api/extensions/v1beta1"
-	k8net "k8s.io/api/networking/v1beta1"
+	k8net "k8s.io/api/networking/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -195,7 +195,7 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 
 // Get the keycloak URL
 func (r *VerrazzanoManagedClusterReconciler) getKeycloakURL() (string, error) {
-	var ingress = &extv1beta1.Ingress{}
+	var ingress = &networkingv1.Ingress{}
 	err := r.Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: "keycloak"}, ingress)
 	if err != nil {
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", "keycloak", "keycloak", err)

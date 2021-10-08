@@ -17,7 +17,7 @@ import (
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -450,14 +450,14 @@ func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
 	// Expect a call to get the console ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *extv1beta1.Ingress) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.TLS = []extv1beta1.IngressTLS{{
+			ingress.Spec.TLS = []networkingv1.IngressTLS{{
 				Hosts: []string{"console"},
 			}}
 			return nil
@@ -468,14 +468,14 @@ func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 	// Expect a call to get the prometheus ingress and return the host.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzPrometheusIngress}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *extv1beta1.Ingress) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.TLS = []extv1beta1.IngressTLS{{
+			ingress.Spec.TLS = []networkingv1.IngressTLS{{
 				Hosts: []string{"prometheus"},
 			}}
 			return nil

@@ -10,7 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
-	extv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -19,7 +19,7 @@ const systemNamespace = "verrazzano-system"
 // GetInstanceInfo returns the instance info for the local install.
 func GetInstanceInfo(client client.Client, cr *v1alpha1.Verrazzano) *v1alpha1.InstanceInfo {
 
-	ingressList := &extv1beta1.IngressList{}
+	ingressList := &networkingv1.IngressList{}
 	err := client.List(context.TODO(), ingressList)
 	if err != nil {
 		zap.S().Errorf("Error listing ingresses: %v", err)
@@ -49,7 +49,7 @@ func GetInstanceInfo(client client.Client, cr *v1alpha1.Verrazzano) *v1alpha1.In
 	return instanceInfo
 }
 
-func getSystemIngressURL(ingresses []extv1beta1.Ingress, namespace string, name string) *string {
+func getSystemIngressURL(ingresses []networkingv1.Ingress, namespace string, name string) *string {
 	var ingress = findIngress(ingresses, namespace, name)
 	if ingress == nil {
 		zap.S().Infof("No ingress found for %s/%s", namespace, name)
@@ -59,7 +59,7 @@ func getSystemIngressURL(ingresses []extv1beta1.Ingress, namespace string, name 
 	return &url
 }
 
-func findIngress(ingresses []extv1beta1.Ingress, namespace string, name string) *extv1beta1.Ingress {
+func findIngress(ingresses []networkingv1.Ingress, namespace string, name string) *networkingv1.Ingress {
 	for _, ingress := range ingresses {
 		if ingress.Name == name && ingress.Namespace == namespace {
 			return &ingress

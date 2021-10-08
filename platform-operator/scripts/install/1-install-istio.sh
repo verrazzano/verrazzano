@@ -90,6 +90,9 @@ function install_istio()
         || return $?
     fi
 
+    local EXTRA_ISTIOD_ARGUMENTS=""
+    EXTRA_ISTIOD_ARGUMENTS=$(get_istio_helm_args_from_config)
+
     if ! is_chart_deployed istiod istio-system ${ISTIO_CHART_DIR}/istio-control/istio-discovery ; then
       local chart_name=istiod
       build_image_overrides istio ${chart_name}
@@ -97,6 +100,7 @@ function install_istio()
         -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         ${HELM_IMAGE_ARGS} \
         ${ISTIO_HUB_OVERRIDE} \
+        ${EXTRA_ISTIOD_ARGUMENTS} \
         ${IMAGE_PULL_SECRETS_ARGUMENT} \
         || return $?
     fi
@@ -129,15 +133,15 @@ function install_istio()
         || return $?
     fi
 
-    if ! is_chart_deployed istiocoredns istio-system ${ISTIO_CHART_DIR}/istiocoredns ; then
-      local chart_name=istiocoredns
-      build_image_overrides istio ${chart_name}
-      helm_install_retry ${chart_name} ${ISTIO_CHART_DIR}/istiocoredns istio-system \
-        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-        ${HELM_IMAGE_ARGS} \
-        ${IMAGE_PULL_SECRETS_ARGUMENT} \
-        || return $?
-    fi
+#    if ! is_chart_deployed istiocoredns istio-system ${ISTIO_CHART_DIR}/istiocoredns ; then
+#      local chart_name=istiocoredns
+#      build_image_overrides istio ${chart_name}
+#      helm_install_retry ${chart_name} ${ISTIO_CHART_DIR}/istiocoredns istio-system \
+#        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+#        ${HELM_IMAGE_ARGS} \
+#        ${IMAGE_PULL_SECRETS_ARGUMENT} \
+#        || return $?
+#    fi
 
     log "Setting Istio global mesh policy to STRICT mode"
     kubectl apply -f <(echo "

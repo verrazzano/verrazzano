@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
 	k8score "k8s.io/api/core/v1"
-	k8snet "k8s.io/api/networking/v1beta1"
+	k8snet "k8s.io/api/networking/v1"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"

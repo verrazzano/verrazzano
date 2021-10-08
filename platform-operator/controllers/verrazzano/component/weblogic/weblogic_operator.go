@@ -6,15 +6,14 @@ package weblogic
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -23,7 +22,7 @@ const ComponentName = "weblogic-operator"
 const wlsOperatorDeploymentName = ComponentName
 
 // AppendWeblogicOperatorOverrides appends the WKO-specific helm Value overrides.
-func AppendWeblogicOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendWeblogicOperatorOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	keyValueOverrides := []bom.KeyValue{
 		{
 			Key:   "serviceAccount",
@@ -48,12 +47,13 @@ func AppendWeblogicOperatorOverrides(_ *zap.SugaredLogger, _ string, _ string, _
 	return kvs, nil
 }
 
-func WeblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string, _ string) ([]bom.KeyValue, error) {
+func WeblogicOperatorPreInstall(ctx spi.ComponentContext, _ string, namespace string, _ string) error {
 	var serviceAccount corev1.ServiceAccount
 	const accountName = "weblogic-operator-sa"
-	if err := client.Get(context.TODO(), types.NamespacedName{Name: accountName, Namespace: namespace}, &serviceAccount); err != nil {
+	c := ctx.Client()
+	if err := c.Get(context.TODO(), types.NamespacedName{Name: accountName, Namespace: namespace}, &serviceAccount); err != nil {
 		if !errors.IsNotFound(err) {
-			return []bom.KeyValue{}, err
+			return err
 		}
 	}
 	serviceAccount = corev1.ServiceAccount{
@@ -62,25 +62,25 @@ func WeblogicOperatorPreInstall(log *zap.SugaredLogger, client clipkg.Client, _ 
 			Namespace: namespace,
 		},
 	}
-	if err := client.Create(context.TODO(), &serviceAccount); err != nil {
+	if err := c.Create(context.TODO(), &serviceAccount); err != nil {
 		if errors.IsAlreadyExists(err) {
 			// Sometimes we get this, not an error it already exist.
-			return []bom.KeyValue{}, nil
+			return nil
 		}
-		return []bom.KeyValue{}, err
+		return err
 	}
-	return []bom.KeyValue{}, nil
+	return nil
 }
 
-func IsWeblogicOperatorReady(log *zap.SugaredLogger, c clipkg.Client, _ string, namespace string) bool {
+func IsWeblogicOperatorReady(ctx spi.ComponentContext, _ string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: wlsOperatorDeploymentName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(log, c, deployments, 1)
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }
 
 // IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(comp *v1alpha1.WebLogicOperatorComponent) bool {
+func IsEnabled(comp *vzapi.WebLogicOperatorComponent) bool {
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
