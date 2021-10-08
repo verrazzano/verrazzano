@@ -294,12 +294,6 @@ if [ $(is_vo_vmo_enabled) == "true" ]; then
 
   log "Adding label needed by network policies to ${MONITORING_NS} namespace"
   kubectl label namespace ${MONITORING_NS} "verrazzano.io/namespace=${MONITORING_NS}" --overwrite
-
-  if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
-    if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${MONITORING_NS} > /dev/null 2>&1 ; then
-      action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${MONITORING_NS} namespace" \
-          copy_registry_secret "${MONITORING_NS}"
-    fi
 fi
 
 # If Keycloak is being installed, create the Keycloak namespace if it doesn't exist so we can apply network policies
@@ -317,6 +311,10 @@ if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
     action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${VERRAZZANO_NS} namespace" \
         copy_registry_secret "${VERRAZZANO_NS}"
+  fi
+  if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${MONITORING_NS} > /dev/null 2>&1 ; then
+    action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${MONITORING_NS} namespace" \
+        copy_registry_secret "${MONITORING_NS}"
   fi
 fi
 
