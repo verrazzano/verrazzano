@@ -401,7 +401,7 @@ def isAlertingEnabled() {
 
 def isPagerDutyEnabled() {
     // this additionally controls whether PD alerts are enabled (note that you must also enable alerting in general as well if you want these)
-    if (NOTIFY_PAGERDUTY_FAILURES.equals("true")) {
+    if (NOTIFY_PAGERDUTY_PERIODIC_FAILURES.equals("true")) {
         echo "Pager-Duty notifications enabled via global override setting"
         return true
     }
