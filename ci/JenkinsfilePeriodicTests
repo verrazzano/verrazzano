@@ -3,9 +3,7 @@
 
 def GIT_COMMIT_TO_USE
 
-// FIX BEFORE SUBMIT replace normal agentlabel
-def agentLabel = "phxlarge"
-// FIX def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def TESTS_FAILED = false
 def tarfilePrefix="verrazzano_periodic"
 def storeLocation=""
@@ -368,12 +366,11 @@ pipeline {
                         }
                     }
                 }
-                // FIX BEFORE SUBMIT switch to master
                 stage('Push to OCIR') {
                     steps {
                         script {
                             sh """
-                                if [ "${env.BRANCH_NAME}" == "tvlatas/VZ-3656" ]; then
+                                if [ "${env.BRANCH_NAME}" == "master" ]; then
                                     ci/scripts/periodic_push_to_ocir.sh
                                 fi
                             """
