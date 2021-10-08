@@ -9,6 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
@@ -16,6 +17,7 @@ import (
 	"go.uber.org/zap"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -148,4 +150,45 @@ func getMock(t *testing.T) *mocks.MockClient {
 // fakeRunner overrides the istio run command
 func (r fakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte("success"), []byte(""), nil
+}
+
+// TestAppendIstioOverrides tests the Istio override for the global hub
+// GIVEN the registry ovverride env var is set
+//  WHEN I call AppendIstioOverrides
+//  THEN the Istio global.hub helm override is added to the provided array/slice.
+func TestAppendIstioOverrides(t *testing.T) {
+	assert := assert.New(t)
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
+	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
+
+	kvs, err := AppendIstioOverrides(nil, "istiod-1.10.2", "", "", nil)
+	assert.NoError(err, "AppendIstioOverrides returned an error ")
+	assert.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
+	assert.Equal(istioGlobalHubKey, kvs[0].Key)
+	assert.Equal("myreg.io/verrazzano", kvs[0].Value)
+
+	os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
+	defer os.Unsetenv(constants.ImageRepoOverrideEnvVar)
+	kvs, err = AppendIstioOverrides(nil, "istiod-1.10.2", "", "", nil)
+	assert.NoError(err, "AppendIstioOverrides returned an error ")
+	assert.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
+	assert.Equal(istioGlobalHubKey, kvs[0].Key)
+	assert.Equal("myreg.io/myrepo/verrazzano", kvs[0].Value)
+}
+
+// TestAppendIstioOverridesNoRegistryOverride tests the Istio override for the global hub when no registry override is specified
+// GIVEN the registry ovverride env var is NOT set
+//  WHEN I call AppendIstioOverrides
+//  THEN no overrides are added to the provided array/slice
+func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
+	assert := assert.New(t)
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	kvs, err := AppendIstioOverrides(nil, "istiod-1.10.2", "", "", nil)
+	assert.NoError(err, "AppendIstioOverrides returned an error ")
+	assert.Len(kvs, 0, "AppendIstioOverrides returned wrong number of Key:Value pairs")
 }

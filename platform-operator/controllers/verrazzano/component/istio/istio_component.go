@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,6 +29,11 @@ const ComponentName = "istio"
 
 // IstiodDeployment is the name of the istiod deployment
 const IstiodDeployment = "istiod"
+
+const istioGlobalHubKey = "global.hub"
+
+// IstioNamespace is the default Istio namespace
+const IstioNamespace = "istio-system"
 
 // IstioComponent represents an Istio component
 type IstioComponent struct {
@@ -64,10 +70,7 @@ var restartComponentsFn = restartComponents
 
 // IsEnabled returns true if the component is enabled, which is the default
 func IsEnabled(comp *v1alpha1.IstioComponent) bool {
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+	return true
 }
 
 func SetRestartComponentsFn(fn restartComponentsFnType) {
@@ -276,4 +279,93 @@ func buildImageOverridesString(log *zap.SugaredLogger) (string, error) {
 		overridesString = bldr.String()
 	}
 	return overridesString, nil
+}
+
+// AppendIstioOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
+// A go template is used to replace the image in the init container spec.
+func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// Create a Bom and get the Key Value overrides
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the istio component
+	sc, err := bomFile.GetSubcomponent(releaseName)
+	if err != nil {
+		return nil, err
+	}
+
+	registry := bomFile.ResolveRegistry(sc)
+	repo := bomFile.ResolveRepo(sc)
+
+	// Override the global.hub if either of the 2 env vars were defined
+	if registry != bomFile.GetRegistry() || repo != sc.Repository {
+		// Return a new Key:Value pair with the rendered Value
+		kvs = append(kvs, bom.KeyValue{
+			Key:   istioGlobalHubKey,
+			Value: registry + "/" + repo,
+		})
+	}
+
+	return kvs, nil
+}
+
+// IstiodReadyCheck Determines if istiod is up and has a minimum number of available replicas
+func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool {
+	deployments := []types.NamespacedName{
+		{Name: "istiod", Namespace: namespace},
+	}
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
+}
+
+func buildOverridesString(log *zap.SugaredLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
+	// Get the image overrides from the BOM
+	kvs, err := getImageOverrides()
+	if err != nil {
+		return "", err
+	}
+
+	// Append any special overrides passed in
+	if len(additionalValues) > 0 {
+		kvs = append(kvs, additionalValues...)
+	}
+
+	// If there are overridesString the create a comma separated string
+	var overridesString string
+	if len(kvs) > 0 {
+		bldr := strings.Builder{}
+		for i, kv := range kvs {
+			if i > 0 {
+				bldr.WriteString(",")
+			}
+			bldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
+		}
+		overridesString = bldr.String()
+	}
+	return overridesString, nil
+}
+
+// Get the image overrides from the BOM
+func getImageOverrides() ([]bom.KeyValue, error) {
+	const subcompIstiod = "istiod-1.10.2"
+	subComponentNames := []string{subcompIstiod}
+
+	// Create a Bom and get the Key Value overrides
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return nil, err
+	}
+
+	var kvs []bom.KeyValue
+	for _, scName := range subComponentNames {
+		scKvs, err := bomFile.BuildImageOverrides(scName)
+		if err != nil {
+			return nil, err
+		}
+		for i := range scKvs {
+			kvs = append(kvs, scKvs[i])
+		}
+	}
+	return kvs, nil
 }

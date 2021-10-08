@@ -369,9 +369,6 @@ type IngressNginxComponent struct {
 
 // IstioComponent specifies the Istio configuration
 type IstioComponent struct {
-	// Specifies whether Istio is installed.  Default is true.
-	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
 	// Arguments for installing Istio
 	// +optional
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty"`
