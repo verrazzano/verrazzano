@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -179,13 +178,13 @@ func getComponents() []spi.Component {
 			ReadyStatusFunc:         appoper.IsApplicationOperatorReady,
 			Dependencies:            []string{"oam-kubernetes-runtime"},
 		},
-		helm.HelmComponent{
-			ReleaseName:             mysql.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, mysql.ComponentName),
-			ChartNamespace:          "keycloak",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),
-		},
+		//helm.HelmComponent{
+		//	ReleaseName:             mysql.ComponentName,
+		//	ChartDir:                filepath.Join(thirdPartyChartsDir, mysql.ComponentName),
+		//	ChartNamespace:          "keycloak",
+		//	IgnoreNamespaceOverride: true,
+		//	ValuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),
+		//},
 		helm.HelmComponent{
 			ReleaseName:             "keycloak",
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "keycloak"),
