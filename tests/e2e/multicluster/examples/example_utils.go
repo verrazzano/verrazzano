@@ -171,9 +171,10 @@ func VerifyAppDeleted(kubeconfigPath string, namespace string) bool {
 
 func verifyMCResourcesDeleted(kubeconfigPath string, namespace string, projectName string) bool {
 	appConfExists := mcAppConfExists(kubeconfigPath, namespace)
-	compExists := mcComponentExists(kubeconfigPath, namespace)
+	mcCompExists := mcComponentExists(kubeconfigPath, namespace)
 	projExists := projectExists(kubeconfigPath, projectName)
-	return !appConfExists && !compExists && !projExists
+	compExists := componentExists(kubeconfigPath, namespace)
+	return !appConfExists && !compExists && !projExists && !mcCompExists
 }
 
 // HelidonNamespaceExists - returns true if the hello-helidon namespace exists in the given cluster
@@ -205,6 +206,15 @@ func mcComponentExists(kubeconfigPath string, namespace string) bool {
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
 		Resource: "multiclustercomponents",
+	}
+	return resourceExists(gvr, namespace, componentName, kubeconfigPath)
+}
+
+func componentExists(kubeconfigPath string, namespace string) bool {
+	gvr := schema.GroupVersionResource{
+		Group:    oamv1alpha1.SchemeGroupVersion.Group,
+		Version:  oamv1alpha1.SchemeGroupVersion.Version,
+		Resource: "components",
 	}
 	return resourceExists(gvr, namespace, componentName, kubeconfigPath)
 }

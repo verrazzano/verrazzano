@@ -331,15 +331,39 @@ var _ = Describe("Verify ToDo List example application.", func() {
 				})
 			},
 			func() {
-				It("Verify recent fluentd-stdout-sidecar log record exists", func() {
+				It("Verify recent fluentd-stdout-sidecar server log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "wls_log_stream", Value: "server_log"},
 								{Key: "stream", Value: "stdout"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent server log record")
+				})
+			},
+			func() {
+				It("Verify recent fluentd-stdout-sidecar domain log record exists", func() {
+					Eventually(func() bool {
+						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "serverName.keyword", Value: "tododomain-adminserver"}})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "wls_log_stream", Value: "domain_log"},
+								{Key: "stream", Value: "stdout"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent domain log record")
+				})
+			},
+			func() {
+				It("Verify recent fluentd-stdout-sidecar server nodemanager log record exists", func() {
+					Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "wls_log_stream", Value: "server_nodemanager_log"},
+								{Key: "stream", Value: "stdout"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent server nodemanager log record")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled

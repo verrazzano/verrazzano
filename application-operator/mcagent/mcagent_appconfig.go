@@ -5,11 +5,15 @@ package mcagent
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -61,9 +65,15 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 		if !s.appConfigPlacedOnCluster(&allAdminMCAppConfigs, mcAppConfig.Name, mcAppConfig.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &allLocalMCAppConfigs.Items[i])
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterApplicationConfiguration with name %q and namespace %q", mcAppConfig.Name, mcAppConfig.Namespace))
+				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterApplicationConfiguration with name %q in namespace %q", mcAppConfig.Name, mcAppConfig.Namespace))
 			}
 		}
+	}
+
+	// Delete OAM components no longer associated with any MultiClusterApplicationConfiguration
+	err = s.deleteOrphanedComponents(namespace)
+	if err != nil {
+		s.Log.Error(err, fmt.Sprintf("error deleting orphaned OAM Components in namespace %q", namespace))
 	}
 
 	return nil
@@ -111,6 +121,8 @@ func (s *Syncer) updateMultiClusterAppConfigStatus(name types.NamespacedName, ne
 
 // syncComponentList - Synchronize the list of OAM Components contained in the MultiClusterApplicationConfiguration
 func (s *Syncer) syncComponentList(mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration) error {
+	var errorStrings []string
+
 	// Loop through the component list and get them one at a time.
 	for _, component := range mcAppConfig.Spec.Template.Spec.Components {
 		objectKey := types.NamespacedName{Name: component.ComponentName, Namespace: mcAppConfig.Namespace}
@@ -131,28 +143,120 @@ func (s *Syncer) syncComponentList(mcAppConfig clustersv1alpha1.MultiClusterAppl
 				return err
 			}
 		}
-		_, err = s.createOrUpdateComponent(*oamComp)
+		_, err = s.createOrUpdateComponent(*oamComp, mcAppConfig.Name)
 		if err != nil {
-			return err
+			errorStrings = append(errorStrings, err.Error())
 		}
+	}
+
+	// Check if any errors were collected while processing the list
+	if len(errorStrings) > 0 {
+		return fmt.Errorf(strings.Join(errorStrings, "\n"))
 	}
 	return nil
 }
 
-func (s *Syncer) createOrUpdateComponent(srcComp oamv1alpha2.Component) (controllerutil.OperationResult, error) {
+// createOrUpdateComponent - create or update an OAM Component
+func (s *Syncer) createOrUpdateComponent(srcComp oamv1alpha2.Component, mcAppConfigName string) (controllerutil.OperationResult, error) {
 	var oamComp oamv1alpha2.Component
 	oamComp.Namespace = srcComp.Namespace
 	oamComp.Name = srcComp.Name
 
 	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &oamComp, func() error {
-		s.mutateComponent(srcComp, &oamComp)
+		s.mutateComponent(s.ManagedClusterName, mcAppConfigName, srcComp, &oamComp)
 		return nil
 	})
 }
 
 // mutateComponent mutates the OAM component to reflect the contents of the parent MultiClusterComponent
-func (s *Syncer) mutateComponent(srcComp oamv1alpha2.Component, localComp *oamv1alpha2.Component) {
-	localComp.Spec = srcComp.Spec
-	localComp.Labels = srcComp.Labels
-	localComp.Annotations = srcComp.Annotations
+func (s *Syncer) mutateComponent(managedClusterName string, mcAppConfigName string, component oamv1alpha2.Component, componentNew *oamv1alpha2.Component) {
+	// Initialize the labels field
+	if componentNew.Labels == nil {
+		componentNew.Labels = make(map[string]string)
+		if component.Labels != nil {
+			componentNew.Labels = component.Labels
+		}
+	}
+
+	// Add the name of this MultiClusterApplicationConfiguration to the label list
+	componentNew.Labels[mcAppConfigsLabel] = vzstring.AppendToCommaSeparatedString(componentNew.Labels[mcAppConfigsLabel], mcAppConfigName)
+
+	componentNew.Labels[managedClusterLabel] = managedClusterName
+	componentNew.Spec = component.Spec
+	componentNew.Annotations = component.Annotations
+}
+
+// deleteOrphanedComponents - delete OAM components that are no longer associated with any MultiClusterApplicationConfigurations.
+// Also update the contents of the mcAppConfigsLabel for a component if the list of applications it is shared by has changed.
+func (s *Syncer) deleteOrphanedComponents(namespace string) error {
+	// Only process OAM components that were synced to the local system
+	labels := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			managedClusterLabel: s.ManagedClusterName,
+		},
+	}
+	selector, err := metav1.LabelSelectorAsSelector(labels)
+	if err != nil {
+		return err
+	}
+	listOptions := &client.ListOptions{Namespace: namespace, LabelSelector: selector}
+	oamCompList := &oamv1alpha2.ComponentList{}
+	err = s.LocalClient.List(s.Context, oamCompList, listOptions)
+	if err != nil {
+		return err
+	}
+
+	// Nothing to do if no OAM components found
+	if len(oamCompList.Items) == 0 {
+		return nil
+	}
+
+	// Get the list of MultiClusterApplicationConfiguration objects
+	listOptions2 := &client.ListOptions{Namespace: namespace}
+	mcAppConfigList := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
+	err = s.LocalClient.List(s.Context, &mcAppConfigList, listOptions2)
+	if err != nil {
+		return err
+	}
+
+	// Process the list of OAM Components checking to see if they are part of any MultiClusterApplicationConfiguration
+	for i, oamComp := range oamCompList.Items {
+		// Don't delete OAM component objects that have a MultiClusterComponent object. These will be deleted
+		// when syncing MultiClusterComponent objects.
+		mcComp := &clustersv1alpha1.MultiClusterComponent{}
+		objectKey := types.NamespacedName{Name: oamComp.Name, Namespace: namespace}
+		err = s.LocalClient.Get(s.Context, objectKey, mcComp)
+		if err == nil {
+			break
+		}
+		var actualAppConfigs []string
+		// Loop through the MultiClusterApplicationConfiguration objects checking for a reference
+		for _, mcAppConfig := range mcAppConfigList.Items {
+			for _, component := range mcAppConfig.Spec.Template.Spec.Components {
+				// If we get a match, maintain a list of applications this OAM component is shared by
+				if component.ComponentName == oamComp.Name {
+					actualAppConfigs = append(actualAppConfigs, mcAppConfig.Name)
+				}
+			}
+		}
+		if len(actualAppConfigs) == 0 {
+			// Delete the orphaned OAM Component
+			s.Log.Info(fmt.Sprintf("Deleting orphaned OAM Component %s in namespace %s", oamComp.Name, oamComp.Namespace))
+			err = s.LocalClient.Delete(s.Context, &oamCompList.Items[i])
+			if err != nil {
+				return err
+			}
+		} else {
+			// Has the list of applications this component is associated with changed?  If so update the label.
+			if !reflect.DeepEqual(strings.Split(oamComp.Labels[mcAppConfigsLabel], ","), actualAppConfigs) {
+				oamComp.Labels[mcAppConfigsLabel] = strings.Join(actualAppConfigs, ",")
+				err = s.LocalClient.Update(s.Context, &oamCompList.Items[i])
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }
