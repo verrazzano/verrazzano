@@ -54,7 +54,7 @@ func IsApplicationOperatorReady(ctx spi.ComponentContext, name string, namespace
 
 func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _ string) error {
 	var err error
-	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crd")
+	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crds")
 
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
