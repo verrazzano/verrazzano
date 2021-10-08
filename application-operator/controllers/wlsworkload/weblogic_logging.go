@@ -88,7 +88,10 @@ const WlsFluentdParsingRules = `<match fluent.**>
   read_from_head true
   tag server_nodemanager_log
   <parse>
-	@type none
+    @type regexp
+    expression /^<(?<timestamp>(.*?))> <(?<level>(.*?))> <(?<domain>(.*?))> <(?<serverName>(.*?))> <(?<message>[^>]*)>[\s]*$/
+    time_key timestamp
+    keep_time_key true
   </parse>
 </source>
 <filter **>
