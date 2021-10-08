@@ -14,6 +14,13 @@ deployment:
 
 istio_namespace: istio-system
 
+kubernetes_config:
+# The default was to exclude Jobs also which caused repetitive error logging from Kaili
+  excluded_workloads:
+  - "CronJob"
+  - "DeploymentConfig"
+  - "ReplicationController"
+
 external_services:
   prometheus:
     url: http://vmi-system-prometheus:9090
