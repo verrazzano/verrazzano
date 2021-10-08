@@ -92,20 +92,8 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 //  WHEN the yaml is valid
 //  THEN no error is returned
 func TestIsApplyCRDYamlValid(t *testing.T) {
-
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      "verrazzano-application-operator",
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
-		},
-	})
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	config.TestHelmConfigDir = "../../../../helm_config"
 	logger := zap.SugaredLogger{}
-	assert.Nil(t, ApplyCRDYaml(&logger,fakeClient, "", "", ""))
+	assert.Nil(t, ApplyCRDYaml(&logger, fakeClient, "", "", ""))
 }
