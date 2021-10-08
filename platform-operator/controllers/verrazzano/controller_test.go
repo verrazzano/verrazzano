@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 	"time"
@@ -25,7 +26,7 @@ import (
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	extv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -129,14 +130,14 @@ func TestSuccessfulInstall(t *testing.T) {
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer config.SetDefaultBomFilePath("")
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
 	})
-	defer helm.SetDefaultChartStatusFunction()
+	defer registry.ResetGetComponentsFn()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -190,8 +191,8 @@ func TestSuccessfulInstall(t *testing.T) {
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *extv1beta1.IngressList) error {
-			ingressList.Items = []extv1beta1.Ingress{}
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+			ingressList.Items = []networkingv1.Ingress{}
 			return nil
 		})
 
@@ -632,8 +633,8 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			asserts.Equalf(getInstallNamespace(), configMap.Namespace, "ConfigMap namespace did not match")
 			asserts.Equalf(buildConfigMapName(name), configMap.Name, "ConfigMap name did not match")
 			asserts.Equalf(labels, configMap.Labels, "ConfigMap labels did not match")
-			asserts.NotNil(configMap.Data["config.json"], "Configuration entry not found")
-			asserts.NotNil(configMap.Data[vzapi.OciPrivateKeyFileName], "OCI Config entry not found")
+			asserts.NotNil(configMap.Data["config.json"], "CR entry not found")
+			asserts.NotNil(configMap.Data[vzapi.OciPrivateKeyFileName], "OCI CR entry not found")
 			return nil
 		})
 
@@ -1652,7 +1653,7 @@ func TestJobGetError(t *testing.T) {
 
 // TestGetOCIConfigSecretError tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an verrazzano resource
-// WHEN a there is an error getting the OCI Config secret
+// WHEN a there is an error getting the OCI CR secret
 // THEN return error
 func TestGetOCIConfigSecretError(t *testing.T) {
 	unitTesting = true

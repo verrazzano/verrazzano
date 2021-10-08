@@ -5,7 +5,6 @@ package registry
 
 import (
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -23,14 +22,33 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
-	"go.uber.org/zap"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+type GetCompoentsFnType func() []spi.Component
+
+var getComponentsFn = getComponents
+
+// OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
+func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
+	getComponentsFn = fnType
+}
+
+// ResetGetComponentsFn Restores the GetComponents implementation to the default if it's been overridden for testing
+func ResetGetComponentsFn() {
+	getComponentsFn = getComponents
+}
 
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
+// The components will be processed in the order items in the array
 func GetComponents() []spi.Component {
+	return getComponentsFn()
+}
+
+const defaultImagePullSecretKeyName = "imagePullSecrets[0].name"
+
+// getComponents is the internal impl function for GetComponents, to allow overriding it for testing purposes
+func getComponents() []spi.Component {
 	overridesDir := config.GetHelmOverridesDir()
 	helmChartsDir := config.GetHelmChartsDir()
 	thirdPartyChartsDir := config.GetThirdPartyDir()
@@ -74,20 +92,18 @@ func GetComponents() []spi.Component {
 			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "istiocoredns",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/istiocoredns"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-			AppendOverridesFunc:     istio.AppendIstioOverrides,
-			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
 			ReleaseName:             nginx.ComponentName,
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"), // Note name is different than release name
-			ChartNamespace:          "ingress-nginx",
+			ChartNamespace:          nginx.ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "ingress-nginx-values.yaml"),
+			SupportsOperatorInstall: false,
+			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
+			ValuesFile:              filepath.Join(overridesDir, nginx.ValuesFileOverride),
+			PreInstallFunc:          nginx.PreInstall,
+			AppendOverridesFunc:     nginx.AppendOverrides,
+			PostInstallFunc:         nginx.PostInstall,
+			Dependencies:            []string{"istiod"},
+			ReadyStatusFunc:         nginx.IsReady,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "cert-manager",
@@ -124,7 +140,7 @@ func GetComponents() []spi.Component {
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
+			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
 			ReadyStatusFunc:         coherence.IsCoherenceOperatorReady,
 		},
@@ -134,7 +150,7 @@ func GetComponents() []spi.Component {
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
+			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
 			PreInstallFunc:          weblogic.WeblogicOperatorPreInstall,
 			AppendOverridesFunc:     weblogic.AppendWeblogicOperatorOverrides,
@@ -148,7 +164,7 @@ func GetComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ValuesFile:              filepath.Join(overridesDir, "oam-kubernetes-runtime-values.yaml"),
-			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
+			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
 			ReadyStatusFunc:         oam.IsOAMReady,
 		},
 		helm.HelmComponent{
@@ -195,8 +211,9 @@ func FindComponent(releaseName string) (bool, spi.Component) {
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available
-func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c spi.Component) bool {
-	trace, err := checkDependencies(log, client, c, nil)
+func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
+	log := context.Log()
+	trace, err := checkDependencies(c, context, nil)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -215,7 +232,7 @@ func ComponentDependenciesMet(log *zap.SugaredLogger, client client.Client, c sp
 }
 
 // checkDependencies Check the ready state of any dependencies and check for cycles
-func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Component, trace map[string]bool) (map[string]bool, error) {
+func checkDependencies(c spi.Component, context spi.ComponentContext, trace map[string]bool) (map[string]bool, error) {
 	for _, dependencyName := range c.GetDependencies() {
 		if trace == nil {
 			trace = make(map[string]bool)
@@ -227,10 +244,10 @@ func checkDependencies(log *zap.SugaredLogger, client client.Client, c spi.Compo
 		if !found {
 			return trace, fmt.Errorf("Illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
 		}
-		if trace, err := checkDependencies(log, client, dependency, trace); err != nil {
+		if trace, err := checkDependencies(dependency, context, trace); err != nil {
 			return trace, err
 		}
-		if !dependency.IsReady(log, client, dependencyName) {
+		if !dependency.IsReady(context) {
 			trace[dependencyName] = false // dependency is not ready
 			continue
 		}

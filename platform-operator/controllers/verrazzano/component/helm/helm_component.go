@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -46,6 +46,9 @@ type HelmComponent struct {
 	// PreInstallFunc is an optional function to run before installing
 	PreInstallFunc preInstallFuncSig
 
+	// PostInstallFunc is an optional function to run after installing
+	PostInstallFunc postInstallFuncSig
+
 	// PreUpgradeFunc is an optional function to run before upgrading
 	PreUpgradeFunc preUpgradeFuncSig
 
@@ -79,22 +82,25 @@ type HelmComponent struct {
 var _ spi.Component = HelmComponent{}
 
 // preInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
-type preInstallFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) ([]bom.KeyValue, error)
+type preInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string) error
+
+// postInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
+type postInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string) error
 
 // preUpgradeFuncSig is the signature for the optional preUgrade function
 type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
 
 // appendOverridesSig is an optional function called to generate additional overrides.
-type appendOverridesSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
+type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error)
 
 // readyStatusFuncSig describes the function signature for doing deeper checks on a component's ready state
-type readyStatusFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string) bool
+type readyStatusFuncSig func(context spi.ComponentContext, releaseName string, namespace string) bool
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
@@ -118,27 +124,35 @@ func (h HelmComponent) IsOperatorInstallSupported() bool {
 }
 
 // IsInstalled Indicates whether or not the component is installed
-func (h HelmComponent) IsInstalled(_ *zap.SugaredLogger, _ clipkg.Client, namespace string) (bool, error) {
-	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, resolveNamespace(h, namespace))
+func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
+	if context.IsDryRun() {
+		context.Log().Infof("IsInstalled() dry run for %s", h.ReleaseName)
+		return true, nil
+	}
+	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace))
 	return installed, nil
 }
 
 // IsReady Indicates whether or not a component is available and ready
-func (h HelmComponent) IsReady(log *zap.SugaredLogger, client clipkg.Client, namespace string) bool {
-	ns := resolveNamespace(h, namespace)
-	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, resolveNamespace(h, namespace)); deployed {
+func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
+	if context.IsDryRun() {
+		context.Log().Infof("IsReady() dry run for %s", h.ReleaseName)
+		return true
+	}
+	ns := h.resolveNamespace(context.EffectiveCR().Namespace)
+	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); deployed {
 		if h.ReadyStatusFunc != nil {
-			return h.ReadyStatusFunc(log, client, h.ReleaseName, ns)
+			return h.ReadyStatusFunc(context, h.ReleaseName, ns)
 		}
 		return true
 	}
 	return false
 }
 
-func (h HelmComponent) Install(log *zap.SugaredLogger, _ *installv1alpha1.Verrazzano, client clipkg.Client, namespace string, dryRun bool) error {
+func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// Resolve the namespace
-	resolvedNamespace := resolveNamespace(h, namespace)
+	resolvedNamespace := h.resolveNamespace(context.EffectiveCR().Namespace)
 
 	failed, err := helm.IsReleaseFailed(h.ReleaseName, resolvedNamespace)
 	if err != nil {
@@ -149,39 +163,41 @@ func (h HelmComponent) Install(log *zap.SugaredLogger, _ *installv1alpha1.Verraz
 		// NOTE: we'll likely have to put in some more logic akin to what we do for the scripts, see
 		//       reset_chart() in the common.sh script.  Recovering chart state can be a bit difficult, we
 		//       may need to draw on both the 'ls' and 'status' output for that.
-		helm.Uninstall(log, h.ReleaseName, resolvedNamespace, dryRun)
+		helm.Uninstall(context.Log(), h.ReleaseName, resolvedNamespace, context.IsDryRun())
 	}
 
 	var kvs []bom.KeyValue
-	if h.PreInstallFunc != nil {
-		preInstallValues, err := h.PreInstallFunc(log, client, h.ReleaseName, resolvedNamespace, h.ChartDir)
-		if err != nil {
-			return err
-		}
-		kvs = append(kvs, preInstallValues...)
-	}
 	// check for global image pull secret
-	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(log, client, resolvedNamespace, kvs, h.ImagePullSecretKeyname)
+	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
 	if err != nil {
 		return err
 	}
 
 	// vz-specific chart overrides file
-	overridesString, err := h.buildOverridesString(log, client, resolvedNamespace, kvs...)
+	overridesString, stringOverrides, err := h.buildOverridesString(context, resolvedNamespace, kvs...)
 	if err != nil {
 		return err
 	}
 
 	// Perform a helm upgrade --install
-	_, _, err = upgradeFunc(log, h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, dryRun, overridesString, h.ValuesFile)
+	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overridesString, stringOverrides, h.ValuesFile)
 	return err
 }
 
-func (h HelmComponent) PreInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
+	if h.PreInstallFunc != nil {
+		err := h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace), h.ChartDir)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func (h HelmComponent) PostInstall(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
+	if h.PostInstallFunc != nil {
+		h.PostInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace))
+	}
 	return nil
 }
 
@@ -189,9 +205,9 @@ func (h HelmComponent) PostInstall(log *zap.SugaredLogger, client clipkg.Client,
 // that is included in the operator image, while retaining any helm Value overrides that were applied during
 // install. Along with the override files in helm_config, we need to generate image overrides using the
 // BOM json file.  Each component also has the ability to add additional override parameters.
-func (h HelmComponent) Upgrade(log *zap.SugaredLogger, _ *installv1alpha1.Verrazzano, client clipkg.Client, ns string, dryRun bool) error {
+func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Resolve the namespace
-	namespace := resolveNamespace(h, ns)
+	namespace := h.resolveNamespace(context.EffectiveCR().Namespace)
 
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(h.ReleaseName, namespace)
@@ -199,25 +215,25 @@ func (h HelmComponent) Upgrade(log *zap.SugaredLogger, _ *installv1alpha1.Verraz
 		return err
 	}
 	if !found {
-		log.Infof("Skipping upgrade of component %s since it is not installed", h.ReleaseName)
+		context.Log().Infof("Skipping upgrade of component %s since it is not installed", h.ReleaseName)
 		return nil
 	}
 
 	// Do the preUpgrade if the function is defined
 	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
-		log.Infof("Running preUpgrade function for %s", h.ReleaseName)
-		err := h.PreUpgradeFunc(log, client, h.ReleaseName, namespace, h.ChartDir)
+		context.Log().Infof("Running preUpgrade function for %s", h.ReleaseName)
+		err := h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, namespace, h.ChartDir)
 		if err != nil {
 			return err
 		}
 	}
 
-	overridesString, err := h.buildOverridesString(log, client, namespace)
+	overridesString, stringOverrides, err := h.buildOverridesString(context, namespace)
 	if err != nil {
 		return err
 	}
 
-	stdout, err := helm.GetValues(log, h.ReleaseName, namespace)
+	stdout, err := helm.GetValues(context.Log(), h.ReleaseName, namespace)
 	if err != nil {
 		return err
 	}
@@ -225,56 +241,57 @@ func (h HelmComponent) Upgrade(log *zap.SugaredLogger, _ *installv1alpha1.Verraz
 	var tmpFile *os.File
 	tmpFile, err = ioutil.TempFile(os.TempDir(), "values-*.yaml")
 	if err != nil {
-		log.Errorf("Failed to create temporary file: %v", err)
+		context.Log().Errorf("Failed to create temporary file: %v", err)
 		return err
 	}
 
 	defer os.Remove(tmpFile.Name())
 
 	if _, err = tmpFile.Write(stdout); err != nil {
-		log.Errorf("Failed to write to temporary file: %v", err)
+		context.Log().Errorf("Failed to write to temporary file: %v", err)
 		return err
 	}
 
 	// Close the file
 	if err := tmpFile.Close(); err != nil {
-		log.Errorf("Failed to close temporary file: %v", err)
+		context.Log().Errorf("Failed to close temporary file: %v", err)
 		return err
 	}
 
-	log.Infof("Created values file: %s", tmpFile.Name())
+	context.Log().Infof("Created values file: %s", tmpFile.Name())
 
 	// Perform a helm upgrade --install
-	_, _, err = upgradeFunc(log, h.ReleaseName, namespace, h.ChartDir, true, dryRun, overridesString, h.ValuesFile, tmpFile.Name())
+	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overridesString, stringOverrides, h.ValuesFile, tmpFile.Name())
 	return err
 }
 
-func (h HelmComponent) PreUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
 	return nil
 }
 
-func (h HelmComponent) PostUpgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string, dryRun bool) error {
+func (h HelmComponent) PostUpgrade(context spi.ComponentContext) error {
 	return nil
 }
 
-func (h HelmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
-	// Optionally create a second override file.  This will contain both image overridesString and any additional
-	// overridesString required by a component.
-	// Get image overridesString unless opt out
+// buildOverridesString Builds the helm overrides for a release, inluding image overrides
+// - returns a comma-separated list of --set overrides, a comma-separated list of --set-string overrides, and any error
+func (h HelmComponent) buildOverridesString(context spi.ComponentContext, namespace string, additionalValues ...bom.KeyValue) (setOverrides string, setStringOverrides string, err error) {
+	// Optionally create a second override file.  This will contain both image setOverrides and any additional
+	// setOverrides required by a component.
+	// Get image setOverrides unless opt out
 	var kvs []bom.KeyValue
-	var err error
 	if !h.IgnoreImageOverrides {
 		kvs, err = getImageOverrides(h.ReleaseName)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 
-	// Append any additional overridesString for the component (see Keycloak.go for example)
+	// Append any additional setOverrides for the component (see Keycloak.go for example)
 	if h.AppendOverridesFunc != nil {
-		overrideValues, err := h.AppendOverridesFunc(log, h.ReleaseName, namespace, h.ChartDir, []bom.KeyValue{})
+		overrideValues, err := h.AppendOverridesFunc(context, h.ReleaseName, namespace, h.ChartDir, []bom.KeyValue{})
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		kvs = append(kvs, overrideValues...)
 	}
@@ -284,26 +301,36 @@ func (h HelmComponent) buildOverridesString(log *zap.SugaredLogger, _ clipkg.Cli
 		kvs = append(kvs, additionalValues...)
 	}
 
-	// If there are overridesString the create a comma separated string
-	var overridesString string
+	// Create comma separated strings for any --set or --set-string overrides
 	if len(kvs) > 0 {
-		bldr := strings.Builder{}
-		for i, kv := range kvs {
-			if i > 0 {
-				bldr.WriteString(",")
+		// Build 2 comma-separated strings, one set of --set overrides and a set of --set-string overrides,
+		// depending on what's declared
+		setOverridesBldr := strings.Builder{}
+		setstringOverridesBldr := strings.Builder{}
+		for _, kv := range kvs {
+			if kv.SetString {
+				if setstringOverridesBldr.Len() > 0 {
+					setstringOverridesBldr.WriteString(",")
+				}
+				setstringOverridesBldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
+			} else {
+				if setOverridesBldr.Len() > 0 {
+					setOverridesBldr.WriteString(",")
+				}
+				setOverridesBldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
 			}
-			bldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
 		}
-		overridesString = bldr.String()
+		setStringOverrides = setstringOverridesBldr.String()
+		setOverrides = setOverridesBldr.String()
 	}
-	return overridesString, nil
+	return setOverrides, setStringOverrides, nil
 }
 
 // resolveNamespace Resolve/normalize the namespace for a Helm-based component
 //
 // The need for this stems from an issue with the Verrazzano component and the fact
 // that component charts underneath VZ component need to have the ns overridden
-func resolveNamespace(h HelmComponent, ns string) string {
+func (h HelmComponent) resolveNamespace(ns string) string {
 	namespace := ns
 	if h.ResolveNamespaceFunc != nil {
 		namespace = h.ResolveNamespaceFunc(namespace)
@@ -344,4 +371,27 @@ func setDefaultUpgradeFunc() {
 
 func (h HelmComponent) GetSkipUpgrade() bool {
 	return h.SkipUpgrade
+}
+
+// GetInstallArgs returns the list of install args as Helm value pairs
+func GetInstallArgs(args []vzapi.InstallArgs) []bom.KeyValue {
+	installArgs := []bom.KeyValue{}
+	for _, arg := range args {
+		installArg := bom.KeyValue{}
+		if arg.Value != "" {
+			installArg.Key = arg.Name
+			installArg.Value = arg.Value
+			if arg.SetString {
+				installArg.SetString = arg.SetString
+			}
+			installArgs = append(installArgs, installArg)
+			continue
+		}
+		for i, value := range arg.ValueList {
+			installArg.Key = fmt.Sprintf("%s[%d]", arg.Name, i)
+			installArg.Value = value
+			installArgs = append(installArgs, installArg)
+		}
+	}
+	return installArgs
 }

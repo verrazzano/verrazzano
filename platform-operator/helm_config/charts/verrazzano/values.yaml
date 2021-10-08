@@ -93,6 +93,7 @@ api:
     OidcLogoutCallbackPath: /_logout
     AuthnStateTTL: "300"
     MaxRequestSize: 65m
+    ProxyBufferSize: 8k
 
 # OCI-related values
 oci:

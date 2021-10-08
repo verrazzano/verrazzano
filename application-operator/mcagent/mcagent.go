@@ -18,7 +18,7 @@ import (
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -154,6 +154,10 @@ func (s *Syncer) SyncMultiClusterResources() {
 
 	// Synchronize objects one namespace at a time
 	for _, namespace := range s.ProjectNamespaces {
+		err = s.syncSecretObjects(namespace)
+		if err != nil {
+			s.Log.Error(err, "Error syncing Secret objects")
+		}
 		err = s.syncMCSecretObjects(namespace)
 		if err != nil {
 			s.Log.Error(err, "Error syncing MultiClusterSecret objects")
@@ -215,6 +219,7 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = platformopclusters.AddToScheme(scheme)
 	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
+	_ = corev1.SchemeBuilder.AddToScheme(scheme)
 
 	clientset, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
@@ -441,7 +446,7 @@ func discardStatusMessages(statusUpdateChannel chan clusters.StatusUpdateMessage
 
 // GetAPIServerURL returns the API Server URL for Verrazzano instance.
 func (s *Syncer) GetAPIServerURL() (string, error) {
-	ingress := &extv1beta1.Ingress{}
+	ingress := &networkingv1.Ingress{}
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.VzConsoleIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
 	if err != nil {
 		return "", fmt.Errorf("Unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzConsoleIngress, err)
@@ -451,7 +456,7 @@ func (s *Syncer) GetAPIServerURL() (string, error) {
 
 // GetPrometheusHost returns the prometheus host for Verrazzano instance.
 func (s *Syncer) GetPrometheusHost() (string, error) {
-	ingress := &extv1beta1.Ingress{}
+	ingress := &networkingv1.Ingress{}
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.VzPrometheusIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
 	if err != nil {
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)

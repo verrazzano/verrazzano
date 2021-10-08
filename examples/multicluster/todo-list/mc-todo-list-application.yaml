@@ -1,0 +1,42 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: MultiClusterApplicationConfiguration
+metadata:
+  name: todo-appconf
+  namespace: mc-todo-list
+spec:
+  template:
+    metadata:
+      annotations:
+        version: v1.0.0
+        description: "ToDo List example application"
+    spec:
+      components:
+        - componentName: todo-domain
+          traits:
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                spec:
+                  scraper: verrazzano-system/vmi-system-prometheus-0
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: IngressTrait
+                spec:
+                  rules:
+                    - paths:
+                        - path: "/todo"
+                          pathType: Prefix
+        - componentName: todo-jdbc-config
+        - componentName: mysql-initdb-config
+        - componentName: todo-mysql-service
+        - componentName: todo-mysql-deployment
+  placement:
+    clusters:
+      - name: managed1
+  secrets:
+    - tododomain-repo-credentials
+    - tododomain-jdbc-tododb
+    - tododomain-weblogic-credentials

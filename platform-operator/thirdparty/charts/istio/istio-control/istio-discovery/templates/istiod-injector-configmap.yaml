@@ -6,6 +6,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     istio.io/rev: {{ .Values.revision | default "default" }}
+    install.operator.istio.io/owning-resource: {{ .Values.ownerName | default "unknown" }}
+    operator.istio.io/component: "Pilot"
     release: {{ .Release.Name }}
 data:
 {{/* Scope the values to just top level fields used in the template, to reduce the size. */}}
@@ -18,6 +20,15 @@ data:
   # New fields should not use Values - it is a 'primary' config object, users should be able
   # to fine tune it or use it with kube-inject.
   config: |-
+    # defaultTemplates defines the default template to use for pods that do not explicitly specify a template
+    {{- if .Values.sidecarInjectorWebhook.defaultTemplates }}
+    defaultTemplates:
+{{- range .Values.sidecarInjectorWebhook.defaultTemplates}}
+    - {{ . }}
+{{- end }}
+    {{- else }}
+    defaultTemplates: [sidecar]
+    {{- end }}
     policy: {{ .Values.global.proxy.autoInject }}
     alwaysInjectSelector:
 {{ toYaml .Values.sidecarInjectorWebhook.alwaysInjectSelector | trim | indent 6 }}
@@ -27,7 +38,30 @@ data:
       {{- range $key, $val := .Values.sidecarInjectorWebhook.injectedAnnotations }}
       "{{ $key }}": "{{ $val }}"
       {{- end }}
-
-{{ .Files.Get "files/injection-template.yaml" | trim | indent 4 }}
+    {{- /* If someone ends up with this new template, but an older Istiod image, they will attempt to render this template
+         which will fail with "Pod injection failed: template: inject:1: function "Istio_1_9_Required_Template_And_Version_Mismatched" not defined".
+         This should make it obvious that their installation is broken.
+     */}}
+    template: {{ `{{ Template_Version_And_Istio_Version_Mismatched_Check_Installation }}` | quote }}
+    templates:
+{{- if not (hasKey .Values.sidecarInjectorWebhook.templates "sidecar") }}
+      sidecar: |
+{{ .Files.Get "files/injection-template.yaml" | trim | indent 8 }}
+{{- end }}
+{{- if not (hasKey .Values.sidecarInjectorWebhook.templates "gateway") }}
+      gateway: |
+{{ .Files.Get "files/gateway-injection-template.yaml" | trim | indent 8 }}
+{{- end }}
+{{- if not (hasKey .Values.sidecarInjectorWebhook.templates "grpc-simple") }}
+      grpc-simple: |
+{{ .Files.Get "files/grpc-simple.yaml" | trim | indent 8 }}
+{{- end }}
+{{- if not (hasKey .Values.sidecarInjectorWebhook.templates "grpc-agent") }}
+      grpc-agent: |
+{{ .Files.Get "files/grpc-agent.yaml" | trim | indent 8 }}
+{{- end }}
+{{- with .Values.sidecarInjectorWebhook.templates }}
+{{ toYaml . | trim | indent 6 }}
+{{- end }}
 
 {{- end }}

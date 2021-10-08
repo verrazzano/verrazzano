@@ -12,7 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	extv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
@@ -42,60 +42,60 @@ func TestGetInstanceInfo(t *testing.T) {
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *extv1beta1.IngressList) error {
-			ingressList.Items = []extv1beta1.Ingress{
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+			ingressList.Items = []networkingv1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "cattle-system", Name: "rancher"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
 							{Host: rancherURL},
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "keycloak"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
 							{Host: keycloakURL},
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-es-ingest"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
 							{Host: esURL},
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-prometheus"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
 							{Host: promURL},
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-grafana"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
 							{Host: grafanaURL},
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-kibana"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
 							{Host: kibanaURL},
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: constants.VzConsoleIngress},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
 							{Host: consoleURL},
 						},
 					},
@@ -150,36 +150,36 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *extv1beta1.IngressList) error {
-			ingressList.Items = []extv1beta1.Ingress{
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+			ingressList.Items = []networkingv1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "cattle-system", Name: "rancher"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
 							{Host: rancherURL},
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "keycloak"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
 							{Host: keycloakURL},
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-prometheus"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
 							{Host: promURL},
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: constants.VzConsoleIngress},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
 							{Host: consoleURL},
 						},
 					},
@@ -214,7 +214,7 @@ func TestGetInstanceInfoGetError(t *testing.T) {
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *extv1beta1.IngressList) error {
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
 			return fmt.Errorf("test error")
 		})
 
@@ -237,8 +237,8 @@ func TestGetInstanceInfoNoIngresses(t *testing.T) {
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *extv1beta1.IngressList) error {
-			ingressList.Items = []extv1beta1.Ingress{}
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+			ingressList.Items = []networkingv1.Ingress{}
 			return nil
 		})
 
