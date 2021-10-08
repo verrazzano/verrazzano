@@ -216,6 +216,17 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		return newRequeueWithDelay(), err
 	}
 
+	// Create the job only if istiod is ready.  This is because
+	// many of the components are in the mesh and istiod injects the Envoy sidecar
+	compContext := spi.NewContext(log, r, vz, r.DryRun)
+	if istio.IstiodReadyCheck(compContext, "", istio.IstioNamespace) {
+		if result, err := r.createInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
+			return newRequeueWithDelay(), err
+		} else if shouldRequeue(result) {
+			return result, nil
+		}
+	}
+
 	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
 		log.Errorf("reconcileComponents error %v, requeuing", err)
 		return newRequeueWithDelay(), err
