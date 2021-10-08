@@ -63,7 +63,7 @@ func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _
 	}
 	for _, file := range files {
 		u := &unstructured.Unstructured{Object: map[string]interface{}{}}
-		yamlBytes, err := ioutil.ReadFile(file.Name())
+		yamlBytes, err := ioutil.ReadFile(path + "/" + file.Name())
 		if err != nil {
 			log.Error(err, "Unable to read file")
 			return err
@@ -91,7 +91,7 @@ func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _
 	}
 	for _, file := range files {
 		u := &unstructured.Unstructured{Object: map[string]interface{}{}}
-		yamlBytes, err := ioutil.ReadFile(file.Name())
+		yamlBytes, err := ioutil.ReadFile(path + "/" + file.Name())
 		if err != nil {
 			log.Error(err, "Unable to read file")
 			return err
