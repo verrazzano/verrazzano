@@ -240,14 +240,14 @@ func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.Su
 		return r.procDelete(ctx, log, vz)
 	}
 
+	if err := r.checkInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
 		return newRequeueWithDelay(), err
 	} else if shouldRequeue(result) {
 		return result, nil
-	}
-
-	if err := r.checkInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
-		return newRequeueWithDelay(), err
 	}
 
 	return ctrl.Result{}, nil
