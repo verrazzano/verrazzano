@@ -18,6 +18,13 @@ extraEnv: |
     value: "3306"
   - name: DB_DATABASE
     value: keycloak
+  - name: DB_USER
+    value: "keycloak"
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: mysql
+        key: mysql-password
   - name: PROXY_ADDRESS_FORWARDING
     value: "true"
   - name: KEYCLOAK_USER
@@ -43,10 +50,6 @@ extraVolumeMounts: |
   - name: keycloak-http
     mountPath: /etc/keycloak-http
 
-extraEnvFrom: |
-  - secretRef:
-      name: '{{ include "keycloak.fullname" . }}-db'
-
 service:
   port: 8083
 
@@ -64,9 +67,3 @@ securityContext:
   runAsNonRoot: false
 
 replicas: 1
-
-secrets:
-  db:
-    stringData:
-      DB_USER: '{{ .Values.dbUser }}'
-      DB_PASSWORD: '{{ .Values.dbPassword }}'
