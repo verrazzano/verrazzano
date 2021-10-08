@@ -53,6 +53,7 @@ if [ "${MODE}" == "NOOP" ]; then
 elif [ "${MODE}" == "INSTALL" ]; then
   # Create a kubeconfig and run the installation
   create-kubeconfig
+  ./platform-operator/scripts/install/1-install-init.sh || dump-install-logs 1
   ./platform-operator/scripts/install/2-install-system-components.sh || dump-install-logs 1
   ./platform-operator/scripts/install/3-install-verrazzano.sh || dump-install-logs 1
   ./platform-operator/scripts/install/4-install-keycloak.sh || dump-install-logs 1
