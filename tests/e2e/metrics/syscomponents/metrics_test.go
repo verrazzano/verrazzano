@@ -16,14 +16,14 @@ import (
 )
 
 const (
-	longPollingInterval = 20 * time.Second
+	longPollingInterval = 8 * time.Second
 	longWaitTimeout     = 10 * time.Minute
 
 	// Constants for sample metrics of system components validated by the test
 	ingressControllerSuccess       = "nginx_ingress_controller_success"
 	containerStartTimeSeconds      = "container_start_time_seconds"
 	cpuSecondsTotal                = "node_cpu_seconds_total"
-	totolTCPConnectionsOpened      = "istio_tcp_connections_opened_total"
+	istioRequestsTotal             = "istio_requests_total"
 	sidecarInjectionRequests       = "sidecar_injection_requests_total"
 	prometheusTargetIntervalLength = "prometheus_target_interval_length_seconds"
 	envoyStatsRecentLookups        = "envoy_server_stats_recent_lookups"
@@ -129,7 +129,7 @@ var _ = Describe("Prometheus Metrics", func() {
 				kv := map[string]string{
 					namespace: verrazzanoSystemNamespace,
 				}
-				return metricsContainLabels(totolTCPConnectionsOpened, kv)
+				return metricsContainLabels(istioRequestsTotal, kv)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
