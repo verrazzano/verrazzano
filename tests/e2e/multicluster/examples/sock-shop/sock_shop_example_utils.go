@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -163,8 +164,8 @@ func mcAppConfExists(kubeconfigPath string, namespace string) bool {
 // Check if individual component exists
 func componentExists(kubeconfigPath string, namespace string, component string) bool {
 	gvr := schema.GroupVersionResource{
-		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
-		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
+		Group:    oamcore.Group,
+		Version:  oamcore.Version,
 		Resource: "components",
 	}
 	return resourceExists(gvr, namespace, component, kubeconfigPath)
