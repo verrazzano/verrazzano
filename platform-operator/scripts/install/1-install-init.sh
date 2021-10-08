@@ -53,6 +53,27 @@ function wait_for_nodes_to_exist {
     fi
 }
 
+function wait_for_istio {
+  for iter in {1..60}; do
+    if ! kubectl  get ns istio-system 2>&1 > /dev/null; then
+      echo "Waiting for istio-sytem namespace..."
+      sleep 5s
+    else
+      break
+    fi
+  done
+  for iter in {1..60}; do
+    if ! kubectl  get deployment istiod -n istio-system 2>&1 > /dev/null; then
+      echo "Waiting for istiod deployement..."
+      sleep 5s
+    else
+      break
+    fi
+  done
+  kubectl  wait --for=condition=available deployment -n istio-system istiod --timeout=7m
+  return $?
+}
+
 set -ueo pipefail
 
 action "Checking Kubernetes version" log_kube_version || exit 1
@@ -72,3 +93,6 @@ if [ $? -ne 0 ]; then
   echo "Failed to label kube-system namespace"
   exit 1
 fi
+
+# Wait for istio control plane to be ready
+action "Waiting for istio control plane to be ready" wait_for_istio || exit 1
