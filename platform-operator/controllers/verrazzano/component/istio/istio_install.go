@@ -131,19 +131,10 @@ func (i IstioComponent) PreInstall(compContext spi.ComponentContext) error {
 }
 
 func (i IstioComponent) PostInstall(context spi.ComponentContext) error {
-	// TODO Post Install
-	///     log "Setting Istio global mesh policy to STRICT mode"
-	//    kubectl apply -f <(echo "
-	//apiVersion: "security.istio.io/v1beta1"
-	//kind: "PeerAuthentication"
-	//metadata:
-	//  name: "default"
-	//  namespace: "istio-system"
-	//spec:
-	//  mtls:
-	//    mode: STRICT
-	//")
-	//
+	if err := createPeerAuthentication(context); err != nil {
+		return err
+	}
+
 	//    log "Adding Istio server header network filter"
 	//    kubectl apply -f <(echo "
 	//apiVersion: networking.istio.io/v1alpha3
@@ -167,6 +158,39 @@ func (i IstioComponent) PostInstall(context spi.ComponentContext) error {
 	//            server_header_transformation: PASS_THROUGH
 	//")
 	//}
+	return nil
+}
+
+// createPeerAuthentication creates the PeerAuthentication resource to enable STRICT MTLS
+func createPeerAuthentication(context spi.ComponentContext) error {
+
+	// TODO Post Install
+	///     log "Setting Istio global mesh policy to STRICT mode"
+	//    kubectl apply -f <(echo "
+	//apiVersion: "security.istio.io/v1beta1"
+	//kind: "PeerAuthentication"
+	//metadata:
+	//  name: "default"
+	//  namespace: "istio-system"
+	//spec:
+	//  mtls:
+	//    mode: STRICT
+	//")
+	//
+
+	//var secret corev1.Secret
+	//secret.Namespace = namespace
+	//secret.Name = name
+	//
+	//return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
+	//	secret.Type = corev1.SecretTypeOpaque
+	//	secret.Data = map[string][]byte{
+	//		KubeconfigKey:         []byte(kubeconfig),
+	//		ManagedClusterNameKey: []byte(manageClusterName),
+	//	}
+	//	return nil
+	//})
+
 	return nil
 }
 
