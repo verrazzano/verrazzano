@@ -40,7 +40,4 @@ resources:
 - group: oam
   kind: VerrazzanoHelidonWorkload
   version: v1alpha1
-- group: oam
-  kind: LoggingTrait
-  version: v1alpha1
 version: "2"

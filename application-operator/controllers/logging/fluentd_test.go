@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"testing"
 
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
@@ -279,4 +281,17 @@ func createFluentdESEnv() []v1.EnvVar {
 			Value: "true",
 		},
 	}
+}
+
+// createTestResourceRelation creates a new test QualifiedResourceRelation
+func createTestResourceRelation() vzapi.QualifiedResourceRelation {
+	resource := vzapi.QualifiedResourceRelation{
+		APIVersion: testAPIVersion,
+		Kind:       "Domain",
+		Namespace:  testNamespace,
+		Name:       "testName",
+		Role:       "",
+	}
+
+	return resource
 }
