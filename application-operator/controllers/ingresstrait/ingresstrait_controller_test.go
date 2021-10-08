@@ -29,7 +29,7 @@ import (
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	k8sapps "k8s.io/api/apps/v1"
 	k8score "k8s.io/api/core/v1"
-	k8net "k8s.io/api/networking/v1beta1"
+	k8net "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -169,7 +169,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
@@ -856,7 +856,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
@@ -1121,7 +1121,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
@@ -1196,7 +1196,7 @@ func TestBuildAppHostNameForDNS(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
@@ -1245,7 +1245,7 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
@@ -1288,7 +1288,7 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
@@ -1329,7 +1329,7 @@ func TestBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
@@ -1347,7 +1347,7 @@ func TestBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
 			service.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1"}
+				APIVersion: "networking.k8s.io/v1"}
 			service.Spec.Type = "LoadBalancer"
 			service.Status.LoadBalancer.Ingress = []k8score.LoadBalancerIngress{{
 				IP: "5.6.7.8",
@@ -1388,7 +1388,7 @@ func TestFailureBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
@@ -1406,7 +1406,7 @@ func TestFailureBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
 			service.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1"}
+				APIVersion: "networking.k8s.io/v1"}
 			service.Spec.Type = "LoadBalancer"
 			return nil
 		})
@@ -1444,7 +1444,7 @@ func TestBuildAppHostNameNodePortNIP(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
@@ -1462,7 +1462,7 @@ func TestBuildAppHostNameNodePortNIP(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
 			service.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1"}
+				APIVersion: "networking.k8s.io/v1"}
 			service.Spec.Type = "NodePort"
 			return nil
 		})
@@ -1512,7 +1512,7 @@ func TestFailureBuildAppHostNameNodePortNIP(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
@@ -1530,7 +1530,7 @@ func TestFailureBuildAppHostNameNodePortNIP(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
 			service.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1"}
+				APIVersion: "networking.k8s.io/v1"}
 			service.Spec.Type = "NodePort"
 			return nil
 		})
@@ -1681,7 +1681,7 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,

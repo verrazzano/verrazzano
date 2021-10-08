@@ -3,6 +3,8 @@
 package weblogic
 
 import (
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +22,7 @@ import (
 //  WHEN I call with no extra kvs
 //  THEN the correct number of KeyValue objects are returned and no errors occur
 func Test_appendWeblogicOperatorOverrides(t *testing.T) {
-	kvs, err := AppendWeblogicOperatorOverrides(zap.S(), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
+	kvs, err := AppendWeblogicOperatorOverrides(spi.NewContext(zap.S(), nil, nil, false), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 }
@@ -34,7 +36,7 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 		{Key: "Key", Value: "Value"},
 	}
 	var err error
-	kvs, err = AppendWeblogicOperatorOverrides(zap.S(), "weblogic-operator", "verrazzano-system", "", kvs)
+	kvs, err = AppendWeblogicOperatorOverrides(spi.NewContext(zap.S(), nil, nil, false), "weblogic-operator", "verrazzano-system", "", kvs)
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 5)
 }
@@ -45,9 +47,8 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 //  THEN no errors are returned
 func Test_weblogicOperatorPreInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	kvs, err := WeblogicOperatorPreInstall(zap.S(), client, "weblogic-operator", "verrazzano-system", "")
+	err := WeblogicOperatorPreInstall(spi.NewContext(zap.S(), client, &vzapi.Verrazzano{}, false), "weblogic-operator", "verrazzano-system", "")
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 0)
 }
 
 // TestIsWeblogicOperatorReady tests the IsWeblogicOperatorReady function
@@ -68,7 +69,7 @@ func TestIsWeblogicOperatorReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, IsWeblogicOperatorReady(zap.S(), fakeClient, "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, IsWeblogicOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
 
 // TestIsWeblogicOperatorNotReady tests the IsWeblogicOperatorReady function
@@ -89,5 +90,5 @@ func TestIsWeblogicOperatorNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, IsWeblogicOperatorReady(zap.S(), fakeClient, "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, IsWeblogicOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }

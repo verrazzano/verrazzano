@@ -46,7 +46,7 @@ func NewKeycloakAdminRESTClient() (*KeycloakRESTClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	ingress, err := clientset.ExtensionsV1beta1().Ingresses(keycloakNamespace).Get(context.TODO(), keycloadIngressName, k8smeta.GetOptions{})
+	ingress, err := clientset.NetworkingV1().Ingresses(keycloakNamespace).Get(context.TODO(), keycloadIngressName, k8smeta.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

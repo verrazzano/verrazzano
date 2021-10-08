@@ -21,3 +21,6 @@ spec:
   placement:
     clusters:
       - name: managed1
+  secrets:
+    - secret1
+    - secret2
