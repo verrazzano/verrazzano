@@ -400,6 +400,48 @@ pipeline {
                         }
                     }
                 }
+                stage ('Verify Install') {
+                    // NOTE: The stages are executed in parallel, however the tests themselves are executed against
+                    //       each cluster in sequence. If possible, we should parallelize that as well.
+                    parallel {
+                        stage ('multicluster/verify-install') {
+                            steps {
+                                runGinkgoRandomize('multicluster/verify-install')
+                            }
+                        }
+                        stage('verify-install') {
+                            steps {
+                                runGinkgoRandomize('verify-install')
+                            }
+                        }
+                        stage('verify-scripts') {
+                            steps {
+                                runGinkgo('scripts', "${ADMIN_KUBECONFIG}", "${params.TOTAL_CLUSTERS}")
+                            }
+                        }
+                        stage('verify-infra restapi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/restapi')
+                            }
+                        }
+                        stage('verify-infra oam') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/oam')
+                            }
+                        }
+                        stage('verify-infra vmi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/vmi')
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
                 stage ('Register managed clusters') {
                     steps {
                         registerManagedClusters()
@@ -408,6 +450,16 @@ pipeline {
                 stage ('Deploy Sample Application') {
                     steps {
                         deploySampleApp()
+                    }
+                }
+                stage ('Verify Register') {
+                    steps {
+                        verifyRegisterManagedClusters()
+                    }
+                }
+                stage ('Verify Metrics') {
+                    steps {
+                        runGinkgoRandomize('metrics/syscomponents')
                     }
                 }
                 stage("upgrade-platform-operator") {
@@ -430,8 +482,57 @@ pipeline {
             }
         }
 
+        stage('Verify Upgrade') {
+            // Rerun some stages to verify the upgrade
+            parallel {
+                stage ('Verify Register') {
+                    steps {
+                        verifyRegisterManagedClusters()
+                    }
+                }
+                stage ('Verify Managed Cluster Permissions') {
+                    steps {
+                        verifyManagedClusterPermissions()
+                    }
+                }
+                stage ('Verify Metrics') {
+                    steps {
+                        runGinkgoRandomize('metrics/syscomponents')
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-verify-upgrade")
+                    }
+                }
+            }
+        }
+
         stage('Acceptance Tests') {
             stages {
+                stage ('Example apps') {
+                    parallel {
+                        stage ('Examples Helidon') {
+                            steps {
+                                testHelidonExample("multicluster/examples/helidon")
+                            }
+                        }
+                        stage ('Examples Helidon Deprecated') {
+                            steps {
+                                testHelidonExample("multicluster/examples/helidon-deprecated")
+                            }
+                        }
+                        stage ('Delete Deployed App NS') {
+                            steps {
+                                script {
+                                    runHelidonNsOpsTest()
+                                }
+                            }
+                        }
+                    }
+                }
                 stage ('Console') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
