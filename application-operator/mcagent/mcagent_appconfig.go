@@ -138,7 +138,7 @@ func (s *Syncer) syncComponentList(mcAppConfig clustersv1alpha1.MultiClusterAppl
 				if errmc != nil {
 					return err
 				}
-				break
+				continue
 			} else {
 				return err
 			}
@@ -221,13 +221,13 @@ func (s *Syncer) deleteOrphanedComponents(namespace string) error {
 
 	// Process the list of OAM Components checking to see if they are part of any MultiClusterApplicationConfiguration
 	for i, oamComp := range oamCompList.Items {
-		// Don't delete OAM component objects that have a MultiClusterComponent object. These will be deleted
+		// Don't delete OAM component objects that have a MultiClusterComponent objects. These will be deleted
 		// when syncing MultiClusterComponent objects.
 		mcComp := &clustersv1alpha1.MultiClusterComponent{}
 		objectKey := types.NamespacedName{Name: oamComp.Name, Namespace: namespace}
 		err = s.LocalClient.Get(s.Context, objectKey, mcComp)
 		if err == nil {
-			break
+			continue
 		}
 		var actualAppConfigs []string
 		// Loop through the MultiClusterApplicationConfiguration objects checking for a reference
