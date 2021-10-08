@@ -4,19 +4,29 @@
 package appoper
 
 import (
+	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"k8s.io/apimachinery/pkg/types"
+	"io/ioutil"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/yaml"
 )
 
 // ComponentName is the name of the component
-const ComponentName = "verrazzano-application-operator"
+const (
+	ComponentName = "verrazzano-application-operator"
+	CrdDirectory  = ""
+)
 
 // AppendApplicationOperatorOverrides Honor the APP_OPERATOR_IMAGE env var if set; this allows an explicit override
 // of the verrazzano-application-operator image when set.
@@ -39,4 +49,73 @@ func IsApplicationOperatorReady(log *zap.SugaredLogger, c client.Client, name st
 		{Name: "verrazzano-application-operator", Namespace: namespace},
 	}
 	return status.DeploymentsReady(log, c, deployments, 1)
+}
+
+func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _ string) error {
+	var err error
+	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crd")
+
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		log.Error(err, "Unable to list files in directory")
+		return err
+	}
+	for _, file := range files {
+		u := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		yamlBytes, err := ioutil.ReadFile(file.Name())
+		if err != nil {
+			log.Error(err, "Unable to read file")
+			return err
+		}
+		err = yaml.Unmarshal(yamlBytes, u)
+		if err != nil {
+			log.Error(err, "Unable to unmarshal yaml")
+			return err
+		}
+		if u.GetKind() == "CustomResourceDefinition" {
+			specCopy, _, err := unstructured.NestedFieldCopy(u.Object, "spec")
+			if err != nil {
+				log.Error(err, "Unable to make a copy of the spec")
+				return err
+			}
+
+			_, err = controllerutil.CreateOrUpdate(context.TODO(), c, u, func() error {
+				return unstructured.SetNestedField(u.Object, specCopy, "spec")
+			})
+			if err != nil {
+				log.Error(err, "Unable persist object to kubernetes")
+				return err
+			}
+		}
+	}
+	for _, file := range files {
+		u := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		yamlBytes, err := ioutil.ReadFile(file.Name())
+		if err != nil {
+			log.Error(err, "Unable to read file")
+			return err
+		}
+		err = yaml.Unmarshal(yamlBytes, u)
+		if err != nil {
+			log.Error(err, "Unable to unmarshal yaml")
+			return err
+		}
+		if u.GetKind() != "CustomResourceDefinition" {
+			specCopy, _, err := unstructured.NestedFieldCopy(u.Object, "spec")
+			if err != nil {
+				log.Error(err, "Unable to make a copy of the spec")
+				return err
+			}
+
+			_, err = controllerutil.CreateOrUpdate(context.TODO(), c, u, func() error {
+				return unstructured.SetNestedField(u.Object, specCopy, "spec")
+			})
+			if err != nil {
+				log.Error(err, "Unable persist object to kubernetes")
+				return err
+			}
+		}
+	}
+
+	return nil
 }
