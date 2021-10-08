@@ -8,7 +8,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"path/filepath"
@@ -207,10 +209,6 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		return newRequeueWithDelay(), err
 	}
 
-	if err := r.createInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
-		return newRequeueWithDelay(), err
-	}
-
 	// Sync the local cluster registration secret that allows the use of MCxyz resources on the
 	// admin cluster without needing a VMC.
 	if err := r.syncLocalRegistrationSecret(); err != nil {
@@ -243,6 +241,17 @@ func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.Su
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info("DeletionTimestamp is not empty, deleting installation")
 		return r.procDelete(ctx, log, vz)
+	}
+
+	// Create the job only if istiod is ready.  This is because
+	// many of the components are in the mesh and istiod injects the Envoy sidecar
+	compContext := spi.NewContext(log, r, vz, r.DryRun)
+	if istio.IstiodReadyCheck(compContext, "", istio.IstioNamespace) {
+		if result, err := r.createInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
+			return newRequeueWithDelay(), err
+		} else if shouldRequeue(result) {
+			return result, nil
+		}
 	}
 
 	if err := r.checkInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
@@ -462,8 +471,21 @@ func (r *Reconciler) deleteInstallJob(log *zap.SugaredLogger, vz *installv1alpha
 }
 
 // createInstallJob creates the installation job
-func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
-	// Define a new install job resource
+func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) (ctrl.Result, error) {
+	// Check if the job for running the install scripts exist
+	jobFound := &batchv1.Job{}
+	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
+	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
+	// return if job exists
+	if err == nil {
+		return ctrl.Result{}, nil
+	}
+	// return if error getting the job
+	if !errors.IsNotFound(err) {
+		return newRequeueWithDelay(), err
+	}
+
+	// Job not found, create it
 	job := installjob.NewJob(
 		&installjob.JobConfig{
 			JobConfigCommon: k8s.JobConfigCommon{
@@ -477,46 +499,37 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 			ConfigMapName: configMapName,
 		})
 
-	// Check if the job for running the install scripts exist
-	jobFound := &batchv1.Job{}
-	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
-	if err != nil && errors.IsNotFound(err) {
-		log.Infof("Creating install job %s, dry-run=%v", buildInstallJobName(vz.Name), r.DryRun)
-		err = r.Create(ctx, job)
-		if err != nil {
-			return err
-		}
+	log.Infof("Creating install job %s, dry-run=%v", buildInstallJobName(vz.Name), r.DryRun)
+	err = r.Create(ctx, job)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
 
-		// Add our finalizer if not already added
-		if !containsString(vz.ObjectMeta.Finalizers, finalizerName) {
-			log.Infof("Adding finalizer %s", finalizerName)
-			vz.ObjectMeta.Finalizers = append(vz.ObjectMeta.Finalizers, finalizerName)
-			if err := r.Update(ctx, vz); err != nil {
-				return err
-			}
+	// Add our finalizer if not already added
+	if !containsString(vz.ObjectMeta.Finalizers, finalizerName) {
+		log.Infof("Adding finalizer %s", finalizerName)
+		vz.ObjectMeta.Finalizers = append(vz.ObjectMeta.Finalizers, finalizerName)
+		if err := r.Update(ctx, vz); err != nil {
+			return newRequeueWithDelay(), err
 		}
+	}
 
-		// Delete leftover uninstall job if we find one.
-		err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), getInstallNamespace(), log)
-		if err != nil {
-			return err
-		}
-
-	} else if err != nil {
-		return err
+	// Delete leftover uninstall job if we find one.
+	err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), getInstallNamespace(), log)
+	if err != nil {
+		return newRequeueWithDelay(), err
 	}
 
 	// Set the version in the status.  This will be updated when the starting install condition is updated.
 	bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
 	if err != nil {
-		return err
+		return newRequeueWithDelay(), err
 	}
 
 	vz.Status.Version = bomSemVer.ToString()
 	err = r.setInstallCondition(log, jobFound, vz)
 
-	return err
+	return ctrl.Result{}, err
 }
 
 // checkInstallJob checks the installation job
