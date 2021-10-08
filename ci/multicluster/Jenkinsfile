@@ -1472,7 +1472,7 @@ def undeploySampleApp() {
 
 def runHelidonNsOpsTest() {
     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-    modifyHelloHelidonApp(hello-helidon-ns", "hello-helidon-ns")
+    modifyHelloHelidonApp("hello-helidon-ns", "hello-helidon-ns")
     sh """
       export MANAGED_CLUSTER_NAME="managed1"
       export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
