@@ -34,7 +34,7 @@ func vmiIngressURLs() (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	ingressList, err := clientset.ExtensionsV1beta1().Ingresses(verrazzanoNamespace).List(context.TODO(), v1.ListOptions{})
+	ingressList, err := clientset.NetworkingV1().Ingresses(verrazzanoNamespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
