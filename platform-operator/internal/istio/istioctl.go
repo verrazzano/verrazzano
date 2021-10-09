@@ -4,7 +4,6 @@
 package istio
 
 import (
-	"fmt"
 	"os/exec"
 	"strings"
 
@@ -107,7 +106,6 @@ func runIstioctl(log *zap.SugaredLogger, cmdArgs []string, operationName string)
 
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
-		fmt.Printf("HERE=============     %v", err)
 		log.Errorf("istioctl %s failed: %s", operationName, stderr)
 		return stdout, stderr, err
 	}
