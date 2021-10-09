@@ -5,9 +5,7 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
@@ -28,19 +26,23 @@ func TestGetComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := GetComponents()
 
-	assert.Len(comps, 12, "Wrong number of components")
-	assert.Equal(comps[0].Name(), "ingress-controller")
-	assert.Equal(comps[1].Name(), "cert-manager")
-	assert.Equal(comps[2].Name(), "external-dns")
-	assert.Equal(comps[3].Name(), "rancher")
-	assert.Equal(comps[4].Name(), "verrazzano")
-	assert.Equal(comps[5].Name(), "coherence-operator")
-	assert.Equal(comps[6].Name(), "weblogic-operator")
-	assert.Equal(comps[7].Name(), "oam-kubernetes-runtime")
-	assert.Equal(comps[8].Name(), "verrazzano-application-operator")
-	assert.Equal(comps[9].Name(), "mysql")
-	assert.Equal(comps[10].Name(), "keycloak")
-	assert.Equal(comps[11].Name(), "istio")
+	assert.Len(comps, 16, "Wrong number of components")
+	assert.Equal(comps[0].Name(), "istio-base")
+	assert.Equal(comps[1].Name(), "istiod")
+	assert.Equal(comps[2].Name(), "istio-ingress")
+	assert.Equal(comps[3].Name(), "istio-egress")
+	assert.Equal(comps[4].Name(), "ingress-controller")
+	assert.Equal(comps[5].Name(), "cert-manager")
+	assert.Equal(comps[6].Name(), "external-dns")
+	assert.Equal(comps[7].Name(), "rancher")
+	assert.Equal(comps[8].Name(), "verrazzano")
+	assert.Equal(comps[9].Name(), "coherence-operator")
+	assert.Equal(comps[10].Name(), "weblogic-operator")
+	assert.Equal(comps[11].Name(), "oam-kubernetes-runtime")
+	assert.Equal(comps[12].Name(), "verrazzano-application-operator")
+	assert.Equal(comps[13].Name(), "mysql")
+	assert.Equal(comps[14].Name(), "keycloak")
+	assert.Equal(comps[15].Name(), "istio")
 }
 
 // TestFindComponent tests FindComponent
@@ -48,10 +50,10 @@ func TestGetComponents(t *testing.T) {
 //  WHEN I call FindComponent
 //  THEN the true and the component are returned, false and an empty comp otherwise
 func TestFindComponent(t *testing.T) {
-	found, comp := FindComponent("rancher")
+	found, comp := FindComponent("istiod")
 	assert.True(t, found)
 	assert.NotNil(t, comp)
-	assert.Equal(t, "rancher", comp.Name())
+	assert.Equal(t, "istiod", comp.Name())
 }
 
 // TestComponentDependenciesMet tests ComponentDependenciesMet
@@ -64,7 +66,7 @@ func TestComponentDependenciesMet(t *testing.T) {
 		ChartDir:        "chartDir",
 		ChartNamespace:  "bar",
 		ReadyStatusFunc: nil,
-		Dependencies:    []string{istio.ComponentName},
+		Dependencies:    []string{"istiod"},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -181,7 +183,7 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		ChartDir:        "chartDir",
 		ChartNamespace:  "bar",
 		ReadyStatusFunc: nil,
-		Dependencies:    []string{istio.ComponentName, certmanager.ComponentName},
+		Dependencies:    []string{"istiod", "cert-manager"},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -213,12 +215,12 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		ChartDir:        "chartDir",
 		ChartNamespace:  "bar",
 		ReadyStatusFunc: nil,
-		Dependencies:    []string{"istio", "cert-manager", "istio"},
+		Dependencies:    []string{"istiod", "cert-manager", "istiod"},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "istio-system",
-			Name:      "istio",
+			Name:      "istiod",
 		},
 		Status: appsv1.DeploymentStatus{
 			Replicas:            1,
