@@ -12,6 +12,9 @@ import (
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"go.uber.org/zap"
 	"io/ioutil"
+	istiosec "istio.io/api/security/v1beta1"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (i IstioComponent) IsOperatorInstallSupported() bool {
@@ -94,27 +98,36 @@ func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 }
 
 func (i IstioComponent) PreInstall(compContext spi.ComponentContext) error {
+	if err := labelNamespace(compContext); err != nil {
+		return err
+	}
+	if err := createCertSecret(compContext); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (i IstioComponent) PostInstall(compContext spi.ComponentContext) error {
+	if err := createPeerAuthentication(compContext); err != nil {
+		return err
+	}
+	if err := createEnvoyFilter(compContext); err != nil {
+		return err
+	}
+	return nil
+}
+
+func createCertSecret(compContext spi.ComponentContext) error {
 	const IstioCertSecret = "cert"
 	log := compContext.Log()
 	if compContext.IsDryRun() {
 		return nil
 	}
 
-	// Ensure Istio namespace exists and label it for network policies
-	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: IstioNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
-		if ns.Labels == nil {
-			ns.Labels = make(map[string]string)
-		}
-		ns.Labels["verrazzano.io/namespace"] = IstioNamespace
-		return nil
-	}); err != nil {
-		return err
-	}
-
 	// Create the cert used by Istio MTLS if it doesn't exist
 	var secret v1.Secret
-	if err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: IstioNamespace, Name: IstioCertSecret}, &secret); err == nil {
+	nsn := types.NamespacedName{Namespace: IstioNamespace, Name: IstioCertSecret}
+	if err := compContext.Client().Get(context.TODO(), nsn, &secret); err != nil {
 		if !errors.IsNotFound(err) {
 			// Unexpected error
 			return err
@@ -126,71 +139,60 @@ func (i IstioComponent) PreInstall(compContext spi.ComponentContext) error {
 			return err
 		}
 	}
-
 	return nil
 }
 
-func (i IstioComponent) PostInstall(context spi.ComponentContext) error {
-	if err := createPeerAuthentication(context); err != nil {
+// labelNamespace adds the label needed by network polices
+func labelNamespace(compContext spi.ComponentContext) error {
+	// Ensure Istio namespace exists and label it for network policies
+	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: IstioNamespace}}
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels["verrazzano.io/namespace"] = IstioNamespace
+		return nil
+	}); err != nil {
 		return err
 	}
-
-	//    log "Adding Istio server header network filter"
-	//    kubectl apply -f <(echo "
-	//apiVersion: networking.istio.io/v1alpha3
-	//kind: EnvoyFilter
-	//metadata:
-	//  name: server-header-filter
-	//  namespace: istio-system
-	//spec:
-	//  configPatches:
-	//    - applyTo: NETWORK_FILTER
-	//      match:
-	//        listener:
-	//          filterChain:
-	//            filter:
-	//              name: envoy.filters.network.http_connection_manager
-	//      patch:
-	//        operation: MERGE
-	//        value:
-	//          typed_config:
-	//            '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
-	//            server_header_transformation: PASS_THROUGH
-	//")
-	//}
 	return nil
 }
 
 // createPeerAuthentication creates the PeerAuthentication resource to enable STRICT MTLS
-func createPeerAuthentication(context spi.ComponentContext) error {
+func createPeerAuthentication(compContext spi.ComponentContext) error {
+	peer := istioclisec.PeerAuthentication{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "default",
+			Namespace: IstioNamespace,
+		},
+	}
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &peer, func() error {
+		if peer.Spec.Mtls == nil {
+			peer.Spec.Mtls = &istiosec.PeerAuthentication_MutualTLS{}
+		}
+		peer.Spec.Mtls.Mode = istiosec.PeerAuthentication_MutualTLS_STRICT
+		return nil
+	})
+	return err
+}
 
-	// TODO Post Install
-	///     log "Setting Istio global mesh policy to STRICT mode"
-	//    kubectl apply -f <(echo "
-	//apiVersion: "security.istio.io/v1beta1"
-	//kind: "PeerAuthentication"
-	//metadata:
-	//  name: "default"
-	//  namespace: "istio-system"
-	//spec:
-	//  mtls:
-	//    mode: STRICT
-	//")
-	//
-
-	//var secret corev1.Secret
-	//secret.Namespace = namespace
-	//secret.Name = name
-	//
-	//return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
-	//	secret.Type = corev1.SecretTypeOpaque
-	//	secret.Data = map[string][]byte{
-	//		KubeconfigKey:         []byte(kubeconfig),
-	//		ManagedClusterNameKey: []byte(manageClusterName),
-	//	}
-	//	return nil
-	//})
-
+// createEnvoyFilter creates the Envoy filter used by Istio
+func createEnvoyFilter(compContext spi.ComponentContext) error {
+	filter := istioclinet.EnvoyFilter{}
+	const filterName = "server-header-filter"
+	nsn := types.NamespacedName{Namespace: IstioNamespace, Name: filterName}
+	if err := compContext.Client().Get(context.TODO(), nsn, &filter); err != nil {
+		if !errors.IsNotFound(err) {
+			// Unexpected error
+			return err
+		}
+		// Filter not found - create it
+		script := filepath.Join(config.GetInstallDir(), "create-envoy-filter.sh")
+		if _, stderr, err := vzos.RunBash(script); err != nil {
+			compContext.Log().Errorf("Failed creating Envoy filter %s: %s", err, stderr)
+			return err
+		}
+	}
 	return nil
 }
 
