@@ -138,6 +138,7 @@ func (s *Syncer) syncComponentList(mcAppConfig clustersv1alpha1.MultiClusterAppl
 				if errmc != nil {
 					return err
 				}
+				// MulticlusterComponent object found so nothing to do
 				continue
 			} else {
 				return err

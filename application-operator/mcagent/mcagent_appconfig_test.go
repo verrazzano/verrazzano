@@ -243,8 +243,9 @@ func TestDeleteMCAppConfig(t *testing.T) {
 
 // TestDeleteMCAppConfigNoOAMComponent tests the synchronization method for the following use case.
 // GIVEN a request to sync MultiClusterApplicationConfiguration objects
-// WHEN the object exists on the local cluster but not on the admin cluster
-// THEN ensure that the MultiClusterApplicationConfiguration is deleted.
+// WHEN a MultiClusterApplicationConfiguration object is deleted from the admin cluster that references a
+//   MultiClusterComponent objec.
+// THEN ensure that the MultiClusterApplicationConfiguration is deleted and OAM component object is not deleted
 func TestDeleteMCAppConfigNoOAMComponent(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
@@ -289,11 +290,6 @@ func TestDeleteMCAppConfigNoOAMComponent(t *testing.T) {
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfig.Name, Namespace: testMCAppConfig.Namespace}, mcAppConfig)
 	assert.NoError(err)
 
-	// Verify MultiClusterComponent got created on local cluster
-	mcComp := &clustersv1alpha1.MultiClusterComponent{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCComponent.Name, Namespace: testMCComponent.Namespace}, mcComp)
-	assert.NoError(err)
-
 	// Delete the MultiClusterApplicationConfiguration from the admin cluster
 	err = s.AdminClient.Delete(s.Context, &testMCAppConfig)
 	assert.NoError(err)
@@ -310,11 +306,6 @@ func TestDeleteMCAppConfigNoOAMComponent(t *testing.T) {
 	// Expect the OAM Component used by the application to NOT be deleted from the local cluster
 	component = &oamv1alpha2.Component{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testOAMComponent.Name, Namespace: testOAMComponent.Namespace}, component)
-	assert.NoError(err)
-
-	// Expect the MultiClusterApplicationConfiguration object to NOT be deleted from the local cluster
-	mcComp = &clustersv1alpha1.MultiClusterComponent{}
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCComponent.Name, Namespace: testMCComponent.Namespace}, mcComp)
 	assert.NoError(err)
 }
 
