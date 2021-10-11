@@ -486,7 +486,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 		})
 	// Define expected ConfigMap
 	data := make(map[string]string)
-	data["fluentd.conf"] = ""
+	data["custom.conf"] = ""
 	customLoggingConfigMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "",
