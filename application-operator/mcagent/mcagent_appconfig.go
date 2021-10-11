@@ -12,6 +12,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -128,7 +129,20 @@ func (s *Syncer) syncComponentList(mcAppConfig clustersv1alpha1.MultiClusterAppl
 		oamComp := &oamv1alpha2.Component{}
 		err := s.AdminClient.Get(s.Context, objectKey, oamComp)
 		if err != nil {
-			return err
+			// If the OAM component object is not found then we check if the MultiClusterComponent object exists.
+			if apierrors.IsNotFound(err) {
+				mcComp := &clustersv1alpha1.MultiClusterComponent{}
+				errmc := s.LocalClient.Get(s.Context, objectKey, mcComp)
+				// Return the OAM component not found error if we fail to get the MultiClusterComponent
+				// with the same name.
+				if errmc != nil {
+					return err
+				}
+				// MulticlusterComponent object found so nothing to do
+				continue
+			} else {
+				return err
+			}
 		}
 		_, err = s.createOrUpdateComponent(*oamComp, mcAppConfig.Name)
 		if err != nil {
@@ -208,6 +222,14 @@ func (s *Syncer) deleteOrphanedComponents(namespace string) error {
 
 	// Process the list of OAM Components checking to see if they are part of any MultiClusterApplicationConfiguration
 	for i, oamComp := range oamCompList.Items {
+		// Don't delete OAM component objects that have a MultiClusterComponent objects. These will be deleted
+		// when syncing MultiClusterComponent objects.
+		mcComp := &clustersv1alpha1.MultiClusterComponent{}
+		objectKey := types.NamespacedName{Name: oamComp.Name, Namespace: namespace}
+		err = s.LocalClient.Get(s.Context, objectKey, mcComp)
+		if err == nil {
+			continue
+		}
 		var actualAppConfigs []string
 		// Loop through the MultiClusterApplicationConfiguration objects checking for a reference
 		for _, mcAppConfig := range mcAppConfigList.Items {
