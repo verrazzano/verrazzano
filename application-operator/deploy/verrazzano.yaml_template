@@ -242,7 +242,7 @@ spec:
           emptyDir: {}
       serviceAccount: verrazzano-application-operator
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: verrazzano-application-appconfig-defaulter
@@ -269,8 +269,13 @@ webhooks:
           - applicationconfigurations
     sideEffects: NoneOnDryRun
     failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: verrazzano-application-ingresstrait-validator
@@ -296,8 +301,13 @@ webhooks:
           - ingresstraits
     sideEffects: None
     failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: verrazzano-application-istio-defaulter
@@ -325,8 +335,13 @@ webhooks:
           - pods
     sideEffects: None
     failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: verrazzano-application-verrazzanoproject
@@ -352,8 +367,13 @@ webhooks:
           - verrazzanoprojects
     sideEffects: None
     failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: verrazzano-application-multiclusterapplicationconfiguration
@@ -379,8 +399,13 @@ webhooks:
           - multiclusterapplicationconfigurations
     sideEffects: None
     failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: verrazzano-application-multiclustercomponent
@@ -406,8 +431,13 @@ webhooks:
           - multiclustercomponents
     sideEffects: None
     failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: verrazzano-application-multiclusterconfigmap
@@ -433,8 +463,13 @@ webhooks:
           - multiclusterconfigmaps
     sideEffects: None
     failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: verrazzano-application-multiclustersecret
@@ -460,3 +495,8 @@ webhooks:
           - multiclustersecrets
     sideEffects: None
     failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
