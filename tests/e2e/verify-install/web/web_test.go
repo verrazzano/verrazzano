@@ -33,7 +33,7 @@ var isManagedClusterProfile bool
 var _ = BeforeSuite(func() {
 	var ingress *networkingv1.Ingress
 	var clientset *kubernetes.Clientset
-
+	isManagedClusterProfile = pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
 		return
 	}
