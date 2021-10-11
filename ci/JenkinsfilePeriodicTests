@@ -392,7 +392,7 @@ pipeline {
 
 def isAlertingEnabled() {
     // this controls whether any alerting happens for these tests
-    if (NOTIFY_PERIODIC_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master")) {
+    if (NOTIFY_PERIODIC_FAILURES.equals("true") && env.BRANCH_NAME.equals("master")) {
         echo "Alert notifications enabled for master"
         return true
     }
