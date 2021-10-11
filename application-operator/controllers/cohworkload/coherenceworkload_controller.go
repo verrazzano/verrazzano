@@ -647,37 +647,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		SubPath:   loggingKey,
 		ReadOnly:  true,
 	}
-	vmIndex := -1
-	collision := -1
-	for i, vm := range extracted.VolumeMounts {
-		if vm.MountPath == loggingMountPath {
-			if vm.Name == configMapName {
-				vmIndex = i
-			} else {
-				collision = i
-			}
-		}
-	}
 
-	if vmIndex != -1 {
-		extracted.VolumeMounts[vmIndex] = *loggingVolumeMount
-	} else {
-		extracted.VolumeMounts = append(extracted.VolumeMounts, *loggingVolumeMount)
-	}
-	if collision != -1 {
-		extracted.VolumeMounts[collision] = extracted.VolumeMounts[len(extracted.VolumeMounts)-1]
-		extracted.VolumeMounts = extracted.VolumeMounts[:len(extracted.VolumeMounts)-1]
-	}
-
-	keys := make(map[corev1.VolumeMount]bool)
-	volumeMounts := []corev1.VolumeMount{}
-	for _, entry := range extracted.VolumeMounts {
-		if _, ok := keys[entry]; !ok {
-			keys[entry] = true
-			volumeMounts = append(volumeMounts, entry)
-		}
-	}
-	extracted.VolumeMounts = volumeMounts
 	loggingVolumeMountUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingVolumeMount)
 	if err != nil {
 		return err
@@ -713,7 +683,6 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		Name:            loggingNamePart,
 		Image:           image,
 		ImagePullPolicy: corev1.PullPolicy(loggingTrait.Spec.ImagePullPolicy),
-		VolumeMounts:    extracted.VolumeMounts,
 		Env:             []corev1.EnvVar{*envFluentd},
 	}
 	sIndex := -1
