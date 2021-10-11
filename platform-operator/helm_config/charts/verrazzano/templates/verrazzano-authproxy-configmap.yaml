@@ -975,7 +975,7 @@ data:
             -- this group is needed for discovery, but not automatically set for impersonated users prior to v1.20.
             -- the group is ignored if duplicated >= v1.20, so no harm done if we always send it.
             -- adding it here so that it's present IFF we actually have a subject.
-            local sys_auth = "system-authenticated"
+            local sys_auth = "system:authenticated"
             me.logJson(ngx.INFO, ("Including group: " .. sys_auth))
             table.insert(groups, sys_auth)
         end
