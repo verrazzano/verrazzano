@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def GIT_COMMIT_TO_USE
+
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def TESTS_FAILED = false
 def tarfilePrefix="verrazzano_periodic"
@@ -39,6 +40,10 @@ pipeline {
     }
 
     environment {
+        OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
+        OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
+        DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
@@ -76,6 +81,22 @@ pipeline {
                     // If the commit we were handed is not what the SCM says we are using, fail
                     if (!env.GIT_COMMIT.equals(GIT_COMMIT_TO_USE)) {
                         error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
+                    }
+                }
+
+                script {
+                    try {
+                        sh """
+                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+                            """
+                        }
                     }
                 }
 
@@ -331,6 +352,17 @@ pipeline {
                         }
                     }
                 }
+                stage('Push to OCIR') {
+                    steps {
+                        script {
+                            sh """
+                                if [ "${env.BRANCH_NAME}" == "master" ]; then
+                                    ci/scripts/periodic_push_to_ocir.sh
+                                fi
+                            """
+                        }
+                    }
+                }
             }
         }
     }
@@ -342,9 +374,11 @@ pipeline {
                     mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
                     subject: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
                     body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n"
-                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY",
-                    incDescription: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
-                    incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                    if (isPagerDutyEnabled()) {
+                        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY",
+                        incDescription: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
+                        incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                    }
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n" )
                     echo "done alerts"
                 }
@@ -357,8 +391,18 @@ pipeline {
 }
 
 def isAlertingEnabled() {
-    if (env.BRANCH_NAME.equals("master")) {
-        echo "Slack/Pager-Duty notifications enabled for master"
+    // this controls whether any alerting happens for these tests
+    if (NOTIFY_PERIODIC_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master")) {
+        echo "Alert notifications enabled for master"
+        return true
+    }
+    return false
+}
+
+def isPagerDutyEnabled() {
+    // this additionally controls whether PD alerts are enabled (note that you must also enable alerting in general as well if you want these)
+    if (NOTIFY_PAGERDUTY_PERIODIC_FAILURES.equals("true")) {
+        echo "Pager-Duty notifications enabled via global override setting"
         return true
     }
     return false
