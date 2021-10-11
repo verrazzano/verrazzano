@@ -149,13 +149,13 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 	// GIVEN an admin cluster and at least one managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
-	Context("Metrics", func() {
-		It("Verify Prometheus metrics exist on admin cluster", func() {
-			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
+	//Context("Metrics", func() {
+	//	It("Verify Prometheus metrics exist on admin cluster", func() {
+	//		Eventually(func() bool {
+	//			return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, adminKubeconfig)
+	//		}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+	//	})
+	//})
 
 	//Context("Delete resources", func() {
 	//	It("Delete resources on admin cluster", func() {

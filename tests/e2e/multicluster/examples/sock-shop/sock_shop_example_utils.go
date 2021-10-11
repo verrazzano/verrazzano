@@ -31,7 +31,6 @@ var expectedPodsSockShop = []string{"carts-coh", "catalog-coh", "orders-coh", "p
 
 // DeploySockShopProject deploys the sock-shop example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
-	fmt.Println("deploying vz-proj")
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("Failed to create %s project resource: %v", sourceDir, err)
 	}
@@ -40,11 +39,9 @@ func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
 
 // DeploySockShopApp deploys the sock-shop example application to the cluster with the given kubeConfigPath
 func DeploySockShopApp(kubeConfigPath string, sourceDir string) error {
-	fmt.Println("deploying s-s-comp")
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-comp.yaml", sourceDir), kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create multi-cluster %s component resources: %v", sourceDir, err)
 	}
-	fmt.Println("deploying s-s-app")
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-app.yaml", sourceDir), kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create multi-cluster %s application resource: %v", sourceDir, err)
 	}
@@ -57,12 +54,10 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 	// call both mcAppConfExists and mcComponentExists and store the results, to avoid short-circuiting
 	// since we should check both in all cases
 	mcAppConfExists := mcAppConfExists(kubeconfigPath, namespace)
-	fmt.Printf("debug 1: %t\n", mcAppConfExists)
 	compExists := true
 
 	// check each sock-shop component in expectedCompsSockShop
 	for _, comp := range expectedCompsSockShop {
-		fmt.Printf("debug 2: %t\n", compExists)
 		compExists = componentExists(kubeconfigPath, namespace, comp) && compExists
 	}
 
@@ -81,6 +76,7 @@ func VerifySockShopInCluster(kubeConfigPath string, isAdminCluster bool, placedI
 	projectExists := projectExists(kubeConfigPath, projectName)
 	// workloadExists := componentWorkloadExists(kubeConfigPath, namespace)
 	podsRunning := sockShopPodsRunning(kubeConfigPath, namespace)
+	fmt.Printf("Pods running %t", podsRunning)
 
 	if placedInThisCluster {
 		return projectExists && podsRunning
