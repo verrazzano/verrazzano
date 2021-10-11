@@ -1,8 +1,6 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// +build disabled_test
-
 package web_test
 
 import (
@@ -31,9 +29,15 @@ const (
 )
 
 var serverURL string
+var isManagedClusterProfile bool
 var _ = BeforeSuite(func() {
 	var ingress *networkingv1.Ingress
 	var clientset *kubernetes.Clientset
+
+	if isManagedClusterProfile {
+		return
+	}
+
 	Eventually(func() (*kubernetes.Clientset, error) {
 		var err error
 		clientset, err = k8sutil.GetKubernetesClientset()
@@ -51,6 +55,10 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = Describe("Verrazzano Web UI", func() {
+	if isManagedClusterProfile {
+		return
+	}
+
 	When("the console UI is configured", func() {
 		It("can be accessed", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
