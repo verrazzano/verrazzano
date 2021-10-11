@@ -45,7 +45,7 @@ func TestInstall(t *testing.T) {
 	assert := assert.New(t)
 
 	comp := IstioComponent{
-		ValuesFile:               "test-values-file.yaml",
+		ValuesFile: "test-values-file.yaml",
 	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -116,7 +116,6 @@ func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 	return mock
 }
 
-
 // TestCreateCertSecret tests the cert secret
 // GIVEN a component
 //  WHEN I call createCertSecret
@@ -128,7 +127,6 @@ func TestCreateCertSecret(t *testing.T) {
 	err := createCertSecret(spi.NewContext(zap.S(), createCertSecretMock(t), installCR, false))
 	assert.NoError(err, "createCertSecret returned an error")
 }
-
 
 func createCertSecretMock(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
@@ -198,7 +196,7 @@ func fakeInstall(log *zap.SugaredLogger, imageOverridesString string, overridesF
 	if overridesFiles[0] != "test-values-file.yaml" {
 		return []byte("error"), []byte(""), fmt.Errorf("invalid values file")
 	}
-	if !strings.Contains(overridesFiles[1], "values-") || !strings.Contains(overridesFiles[1], ".yaml") {
+	if !strings.Contains(overridesFiles[1], "istio-") || !strings.Contains(overridesFiles[1], ".yaml") {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect install args overrides file")
 	}
 	installArgsFromFile, err := ioutil.ReadFile(overridesFiles[1])
@@ -213,5 +211,5 @@ func fakeInstall(log *zap.SugaredLogger, imageOverridesString string, overridesF
 
 // fakeBash verifies that the correct parameter values are passed to upgrade
 func fakeBash(_ ...string) (string, string, error) {
-	return "succes","", nil
+	return "succes", "", nil
 }

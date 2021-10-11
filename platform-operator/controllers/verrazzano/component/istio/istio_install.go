@@ -31,9 +31,11 @@ const IstioCertSecret = "cacerts"
 
 // create func vars for unit tests
 type installFuncSig func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+
 var installFunc installFuncSig = istio.Install
 
 type bashFuncSig func(inArgs ...string) (string, string, error)
+
 var bashFunc bashFuncSig = vzos.RunBash
 
 func setInstallFunc(f installFuncSig) {
@@ -56,7 +58,7 @@ func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 	// This IstioOperator YAML uses this imagePullSecret key
 	const imagePullSecretHelmKey = "values.global.imagePullSecrets[0]"
 
-	var tmpFile *os.File
+	var userFileCR *os.File
 	var kvs []bom.KeyValue
 	var err error
 	cr := compContext.EffectiveCR()
@@ -72,21 +74,21 @@ func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 		}
 
 		// Write the overrides to a tmp file
-		tmpFile, err = ioutil.TempFile(os.TempDir(), "istio-*.yaml")
+		userFileCR, err = ioutil.TempFile(os.TempDir(), "istio-*.yaml")
 		if err != nil {
 			log.Errorf("Failed to create temporary file for Istio install: %v", err)
 			return err
 		}
-		defer os.Remove(tmpFile.Name())
-		if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
+		defer os.Remove(userFileCR.Name())
+		if _, err = userFileCR.Write([]byte(istioOperatorYaml)); err != nil {
 			log.Errorf("Failed to write to temporary file: %v", err)
 			return err
 		}
-		if err := tmpFile.Close(); err != nil {
+		if err := userFileCR.Close(); err != nil {
 			log.Errorf("Failed to close temporary file: %v", err)
 			return err
 		}
-		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
+		log.Infof("Created values file from Istio install args: %s", userFileCR.Name())
 	}
 
 	// check for global image pull secret
@@ -103,13 +105,13 @@ func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 		return err
 	}
 
-	if tmpFile == nil {
+	if userFileCR == nil {
 		_, _, err := installFunc(log, overrideStrings, i.ValuesFile)
 		if err != nil {
 			return err
 		}
 	} else {
-		_, _, err := installFunc(log, overrideStrings, tmpFile.Name(), i.ValuesFile)
+		_, _, err := installFunc(log, overrideStrings, i.ValuesFile, userFileCR.Name())
 		if err != nil {
 			return err
 		}
