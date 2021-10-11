@@ -42,7 +42,7 @@ data:
     if h then
         auth.info("Origin header: "..h)
         if h == "*" then
-            -- this isn't a legit origin, and is almost certainly intended to make us overshare
+            -- not a legit origin, could be intended to trick us into oversharing
             auth.bad_request("Invalid Origin header: '*'")
         end
 
@@ -52,7 +52,7 @@ data:
         ngx.header["Access-Control-Allow-Credentials"] = "true"
 
         if ngx.req.get_method() == "OPTIONS" then
-            auth.info("Processing OPTIONS request, URI is '"..ngx.var.request_uri.."'")
+            -- auth.info("Processing OPTIONS request, URI is '"..ngx.var.request_uri.."'")
             ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
             ngx.header["Access-Control-Allow-Methods"] = "GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH"
             ngx.header["Content-Length"] = 0
@@ -60,7 +60,7 @@ data:
             ngx.exit(ngx.HTTP_OK)
         end
     else
-        auth.info("No Origin header found")
+        -- auth.info("No Origin header found")
         if ngx.req.get_method() == "OPTIONS" then
             auth.bad_request("OPTIONS request with no Origin header")
         end
