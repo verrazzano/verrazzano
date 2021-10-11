@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"path/filepath"
@@ -146,7 +147,7 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	}
 
 	// Pre-populate the component status fields
-	result, err := r.initializeComponentStatus(vz)
+	result, err := r.initializeComponentStatus(log, vz)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	} else if shouldRequeue(result) {
@@ -778,16 +779,26 @@ func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
 // operator-based in stall.  This is so that we know ahead of time exactly how many components we expect to install
 // via the operator, and when we're done installing.
-func (r *Reconciler) initializeComponentStatus(cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	if cr.Status.Components != nil {
 		return ctrl.Result{}, nil
 	}
 	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
+			// If the component is installed then mark it as ready
+			compContext := spi.NewContext(log, r, cr, r.DryRun)
+			state := installv1alpha1.Disabled
+			installed, err := comp.IsInstalled(compContext)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			if installed {
+				state = installv1alpha1.Ready
+			}
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
 				Name:  comp.Name(),
-				State: installv1alpha1.Disabled,
+				State: state,
 			}
 		}
 	}
