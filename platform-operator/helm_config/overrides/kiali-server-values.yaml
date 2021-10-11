@@ -15,7 +15,7 @@ deployment:
 istio_namespace: istio-system
 
 kubernetes_config:
-# The default was to exclude Jobs also which caused repetitive error logging from Kaili
+# The default was to exclude Jobs also which caused repetitive error logging from Kiali
   excluded_workloads:
   - "CronJob"
   - "DeploymentConfig"
