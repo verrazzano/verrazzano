@@ -675,10 +675,8 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	for _, entry := range extracted.VolumeMounts {
 		if _, ok := keys[entry]; !ok {
 			keys[entry] = true
+			volumeMounts = append(volumeMounts, entry)
 		}
-	}
-	for volMount := range keys {
-		volumeMounts = append(volumeMounts, volMount)
 	}
 	extracted.VolumeMounts = volumeMounts
 	loggingVolumeMountUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingVolumeMount)
@@ -691,7 +689,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		vols := configMapVolumes.([]interface{})
 		volIndex := -1
 		for i, v := range vols {
-			if v.(map[string]interface{})["mountPath"] == loggingVolumeMountUnstructured["mountPath"] {
+			if v.(map[string]interface{})["mountPath"] == loggingVolumeMountUnstructured["mountPath"] && v.(map[string]interface{})["name"] == loggingVolumeMountUnstructured["name"] {
 				volIndex = i
 			}
 		}
@@ -731,28 +729,6 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		extracted.SideCars = append(extracted.SideCars, *loggingContainer)
 	}
 
-	loggingVolume := &corev1.Volume{
-		Name: configMapName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: configMapName,
-				},
-				DefaultMode: func(mode int32) *int32 {
-					return &mode
-				}(defaultMode),
-			},
-		},
-	}
-	vIndex := -1
-	for i, v := range extracted.Volumes {
-		if v.Name == loggingVolume.Name {
-			vIndex = i
-		}
-	}
-	if vIndex == -1 {
-		extracted.Volumes = append(extracted.Volumes, *loggingVolume)
-	}
 	// convert the containers, volumes, and mounts in extracted to unstructured and set
 	// the values in the spec
 	extractedUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&extracted)

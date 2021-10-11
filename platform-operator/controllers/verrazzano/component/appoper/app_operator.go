@@ -68,11 +68,13 @@ func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _
 			log.Error(err, "Unable to read file")
 			return err
 		}
+		fmt.Println("File name is " + path + "/" + file.Name())
 		err = yaml.Unmarshal(yamlBytes, u)
 		if err != nil {
 			log.Error(err, "Unable to unmarshal yaml")
 			return err
 		}
+		fmt.Println("Kind is " + u.GetKind())
 		if u.GetKind() == "CustomResourceDefinition" {
 			specCopy, _, err := unstructured.NestedFieldCopy(u.Object, "spec")
 			if err != nil {
@@ -115,6 +117,7 @@ func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _
 				log.Error(err, "Unable persist object to kubernetes")
 				return err
 			}
+
 		}
 	}
 
