@@ -7,13 +7,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	k8sapps "k8s.io/api/apps/v1"
-	"testing"
-	"time"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -2273,14 +2273,6 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
-		})
-}
-
-func expectComponentDeploymentNotFound(mock *mocks.MockClient, namespace string, name string) {
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
-			return errors.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, name.Name)
 		})
 }
 
