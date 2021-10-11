@@ -74,17 +74,16 @@ multiline_flush_interval 20s
 `
 
 const (
-	specField                       = "spec"
-	jvmField                        = "jvm"
-	argsField                       = "args"
-	workloadType                    = "coherence"
-	destinationRuleAPIVersion       = "networking.istio.io/v1alpha3"
-	destinationRuleKind             = "DestinationRule"
-	coherenceExtendPort             = 9000
-	loggingNamePart                 = "logging-stdout"
-	loggingMountPath                = "/fluentd/etc/fluentd.conf"
-	loggingKey                      = "fluentd.conf"
-	defaultMode               int32 = 400
+	specField                 = "spec"
+	jvmField                  = "jvm"
+	argsField                 = "args"
+	workloadType              = "coherence"
+	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
+	destinationRuleKind       = "DestinationRule"
+	coherenceExtendPort       = 9000
+	loggingNamePart           = "logging-stdout"
+	loggingMountPath          = "/fluentd/etc/fluentd.conf"
+	loggingKey                = "fluentd.conf"
 )
 
 var specLabelsFields = []string{specField, "labels"}
