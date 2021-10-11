@@ -103,6 +103,7 @@ spec:
 ---
 # Network policy for Elasticsearch Data
 # Ingress: allow from ES master to port 9300
+#          allow from ES data to port 9300
 #          allow from ES ingest to port 9200 and 9300
 #          allow from Kibana to port 9200
 #          allow from Prometheus to scrape Envoy stats on port 15090
@@ -124,6 +125,14 @@ spec:
         - podSelector:
             matchLabels:
               app: system-es-master
+      ports:
+        - protocol: TCP
+          port: 9300
+    # Allow ingress from ES data
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-es-data
       ports:
         - protocol: TCP
           port: 9300
