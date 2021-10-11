@@ -17,8 +17,11 @@ import (
 	"go.uber.org/zap"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	"os/exec"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
 	"testing"
 )
@@ -27,7 +30,7 @@ import (
 type fakeRunner struct {
 }
 
-var vz = &installv1alpha1.Verrazzano{
+var crInstall = &installv1alpha1.Verrazzano{
 	Spec: installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
 			Istio: &installv1alpha1.IstioComponent{
@@ -71,7 +74,7 @@ func TestUpgrade(t *testing.T) {
 	defer istio.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
 	defer setDefaultUpgradeFunc()
-	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), vz, false))
+	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), crInstall, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -191,4 +194,28 @@ func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
 	kvs, err := AppendIstioOverrides(nil, "istiod-1.10.2", "", "", nil)
 	assert.NoError(err, "AppendIstioOverrides returned an error ")
 	assert.Len(kvs, 0, "AppendIstioOverrides returned wrong number of Key:Value pairs")
+}
+
+// TestIsReady tests the IsReady function
+// GIVEN a call to IsReady
+//  WHEN the deployment object has enough replicas available
+//  THEN true is returned
+func TestIsReady(t *testing.T) {
+
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: IstioNamespace,
+			Name:      IstiodDeployment,
+		},
+		Status: appsv1.DeploymentStatus{
+			Replicas:            1,
+			ReadyReplicas:       1,
+			AvailableReplicas:   1,
+			UnavailableReplicas: 0,
+		},
+	},
+	)
+	var iComp IstioComponent
+	compContext := spi.NewContext(zap.S(), fakeClient, nil, false)
+	assert.True(t, iComp.IsReady(compContext))
 }

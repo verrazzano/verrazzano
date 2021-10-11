@@ -26,6 +26,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// IstioCertSecret is the secret name used for Istio MTLS certs
+const IstioCertSecret = "cacerts"
+
+// create func vars for unit tests
+type installFuncSig func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+var installFunc installFuncSig = istio.Install
+
+type bashFuncSig func(inArgs ...string) (string, string, error)
+var bashFunc bashFuncSig = vzos.RunBash
+
+func setInstallFunc(f installFuncSig) {
+	installFunc = f
+}
+
+func setBashFunc(f bashFuncSig) {
+	bashFunc = f
+}
+
 func (i IstioComponent) IsOperatorInstallSupported() bool {
 	return true
 }
@@ -54,7 +72,7 @@ func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 		}
 
 		// Write the overrides to a tmp file
-		tmpFile, err := ioutil.TempFile(os.TempDir(), "istio-*.yaml")
+		tmpFile, err = ioutil.TempFile(os.TempDir(), "istio-*.yaml")
 		if err != nil {
 			log.Errorf("Failed to create temporary file for Istio install: %v", err)
 			return err
@@ -91,7 +109,7 @@ func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 			return err
 		}
 	} else {
-		_, _, err := installFunc(log, overrideStrings, i.ValuesFile, tmpFile.Name())
+		_, _, err := installFunc(log, overrideStrings, tmpFile.Name(), i.ValuesFile)
 		if err != nil {
 			return err
 		}
@@ -121,7 +139,6 @@ func (i IstioComponent) PostInstall(compContext spi.ComponentContext) error {
 }
 
 func createCertSecret(compContext spi.ComponentContext) error {
-	const IstioCertSecret = "cert"
 	log := compContext.Log()
 	if compContext.IsDryRun() {
 		return nil
@@ -137,7 +154,7 @@ func createCertSecret(compContext spi.ComponentContext) error {
 		}
 		// Secret not found - create it
 		certScript := filepath.Join(config.GetInstallDir(), "create-istio-cert.sh")
-		if _, stderr, err := vzos.RunBash(certScript); err != nil {
+		if _, stderr, err := bashFunc(certScript); err != nil {
 			log.Errorf("Failed creating Istio certificate secret %s: %s", err, stderr)
 			return err
 		}
@@ -191,23 +208,10 @@ func createEnvoyFilter(compContext spi.ComponentContext) error {
 		}
 		// Filter not found - create it
 		script := filepath.Join(config.GetInstallDir(), "create-envoy-filter.sh")
-		if _, stderr, err := vzos.RunBash(script); err != nil {
+		if _, stderr, err := bashFunc(script); err != nil {
 			compContext.Log().Errorf("Failed creating Envoy filter %s: %s", err, stderr)
 			return err
 		}
 	}
 	return nil
 }
-
-type installFuncSig func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
-
-// installFunc is the default install function
-var installFunc installFuncSig = istio.Install
-
-//func setInstallFunc(f installFuncSig) {
-//	installFunc = f
-//}
-//
-//func setDefaultInstallFunc() {
-//	installFunc = istio.Install
-//}
