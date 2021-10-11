@@ -1,6 +1,6 @@
 {{- $ingress := .Values.keycloak.ingress -}}
 {{- if $ingress.enabled -}}
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "keycloak.fullname" . }}
@@ -29,9 +29,11 @@ spec:
     - host: {{ . }}
       http:
         paths:
-          - path: {{ $ingress.path }}
-            backend:
-              serviceName: {{ include "keycloak.fullname" $ }}-http
-              servicePort: {{ $ingress.servicePort }}
+          - backend:
+              serivce:
+                name: {{ include "keycloak.fullname" $ }}-http
+                port: {{ $ingress.servicePort }}
+            path: {{ $ingress.path }}
+            pathType: ImplementationSpecific
   {{- end }}
 {{- end -}}
