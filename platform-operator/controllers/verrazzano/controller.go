@@ -789,12 +789,14 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 			// If the component is installed then mark it as ready
 			compContext := spi.NewContext(log, r, cr, r.DryRun)
 			state := installv1alpha1.Disabled
-			installed, err := comp.IsInstalled(compContext)
-			if err != nil {
-				return newRequeueWithDelay(), err
-			}
-			if installed {
-				state = installv1alpha1.Ready
+			if !unitTesting {
+				installed, err := comp.IsInstalled(compContext)
+				if err != nil {
+					return newRequeueWithDelay(), err
+				}
+				if installed {
+					state = installv1alpha1.Ready
+				}
 			}
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
 				Name:  comp.Name(),
