@@ -48,6 +48,13 @@ const (
 	serviceKind              = "Service"
 	clusterIPNone            = "None"
 	verrazzanoClusterIssuer  = "verrazzano-cluster-issuer"
+	httpServiceNamePrefix    = "http"
+	weblogicOperatorSelector = "weblogic.createdByOperator"
+)
+
+var (
+	weblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "http-default", "tcp-default",
+		"https-secure", "tls-ldaps", "tls-default", "tls-cbts", "tls-iiops", "https-admin"}
 )
 
 // Reconciler is used to reconcile an IngressTrait object
@@ -85,18 +92,18 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	// Find the service associated with the trait in the application configuration.
-	var service *corev1.Service
-	service, err = r.fetchServiceFromTrait(ctx, trait)
+	// Find the services associated with the trait in the application configuration.
+	var services []*corev1.Service
+	services, err = r.fetchServicesFromTrait(ctx, trait)
 	if err != nil {
 		return reconcile.Result{}, err
-	} else if service == nil {
+	} else if len(services) == 0 {
 		// This will be the case if the service has not started yet so we requeue and try again.
 		return reconcile.Result{Requeue: true}, err
 	}
 
 	// Create or update the child resources of the trait and collect the outcomes.
-	status := r.createOrUpdateChildResources(ctx, trait, service)
+	status := r.createOrUpdateChildResources(ctx, trait, services)
 
 	// Update the status of the trait resource using the outcomes of the create or update.
 	return r.updateTraitStatus(ctx, trait, status)
@@ -104,7 +111,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // createOrUpdateChildResources creates or updates the Gateway and VirtualService resources that
 // should be used to setup ingress to the service.
-func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, service *corev1.Service) *reconcileresults.ReconcileResults {
+func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, services []*corev1.Service) *reconcileresults.ReconcileResults {
 	status := reconcileresults.ReconcileResults{}
 	rules := trait.Spec.Rules
 	// If there are no rules, create a single default rule
@@ -120,7 +127,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 			} else {
 				gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, secretName, &status)
 				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
-				r.createOrUpdateVirtualService(ctx, trait, rule, vsName, service, gateway, &status)
+				r.createOrUpdateVirtualService(ctx, trait, rule, vsName, services, gateway, &status)
 			}
 		}
 	}
@@ -460,7 +467,7 @@ func findHost(hosts []string, newHost string) (int, bool) {
 
 // createOrUpdateVirtualService creates or updates the VirtualService child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, service *corev1.Service, gateway *istioclient.Gateway, status *reconcileresults.ReconcileResults) {
+func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, services []*corev1.Service, gateway *istioclient.Gateway, status *reconcileresults.ReconcileResults) {
 	// Create a virtual service populating only name metadata.
 	// This is used as default if the virtual service needs to be created.
 	virtualService := &istioclient.VirtualService{
@@ -472,7 +479,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 			Name:      name}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, virtualService, func() error {
-		return r.mutateVirtualService(virtualService, trait, rule, service, gateway)
+		return r.mutateVirtualService(virtualService, trait, rule, services, gateway)
 	})
 
 	ref := vzapi.QualifiedResourceRelation{APIVersion: virtualServiceAPIVersion, Kind: virtualServiceKind, Name: name, Role: "virtualservice"}
@@ -486,7 +493,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 }
 
 // mutateVirtualService mutates the output virtual service resource
-func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, service *corev1.Service, gateway *istioclient.Gateway) error {
+func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, services []*corev1.Service, gateway *istioclient.Gateway) error {
 	// Set the spec content.
 	var err error
 	virtualService.Spec.Gateways = []string{gateway.Name}
@@ -500,7 +507,7 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 		matches = append(matches, &istionet.HTTPMatchRequest{
 			Uri: createVirtualServiceMatchURIFromIngressTraitPath(path)})
 	}
-	dest, err := createDestinationFromRuleOrService(rule, service)
+	dest, err := createDestinationFromRuleOrService(rule, services)
 	if err != nil {
 		return err
 	}
@@ -516,8 +523,8 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 
 // createDestinationFromRuleOrService creates a destination from either the rule or the service.
 // If the rule contains destination information that is used.
-// Otherwise the previously selected service information is used.
-func createDestinationFromRuleOrService(rule vzapi.IngressRule, service *corev1.Service) (*istionet.HTTPRouteDestination, error) {
+// Otherwise the appropriate service is selected and its information is used.
+func createDestinationFromRuleOrService(rule vzapi.IngressRule, services []*corev1.Service) (*istionet.HTTPRouteDestination, error) {
 	if len(rule.Destination.Host) > 0 {
 		dest := &istionet.HTTPRouteDestination{Destination: &istionet.Destination{Host: rule.Destination.Host}}
 		if rule.Destination.Port != 0 {
@@ -525,7 +532,10 @@ func createDestinationFromRuleOrService(rule vzapi.IngressRule, service *corev1.
 		}
 		return dest, nil
 	}
-	return createDestinationFromService(service)
+	if rule.Destination.Port != 0 {
+		return createDestinationMatchRulePort(services, rule.Destination.Port)
+	}
+	return createDestinationFromService(services)
 }
 
 // getPathsFromRule gets the paths from a trait.
@@ -539,19 +549,163 @@ func getPathsFromRule(rule vzapi.IngressRule) []vzapi.IngressPath {
 	return paths
 }
 
-// createDestinationFromService creates a virtual service destination from a Service.
-// If the service does not have a port it is not included in the destination.
-func createDestinationFromService(service *corev1.Service) (*istionet.HTTPRouteDestination, error) {
-	if service == nil {
-		return nil, fmt.Errorf("unable to select default service for destination")
+// createDestinationFromService selects a Service and creates a virtual service destination for the selected service.
+// If the selected service does not have a port, it is not included in the destination. If the selected service
+// declares port(s), it selects the appropriate one and add it to the destination.
+func createDestinationFromService(services []*corev1.Service) (*istionet.HTTPRouteDestination, error) {
+	selectedService, err := selectServiceForDestination(services)
+	if err != nil {
+		return nil, err
 	}
 	dest := istionet.HTTPRouteDestination{
-		Destination: &istionet.Destination{Host: service.Name}}
-	// If the related service declares a port add it to the destination.
-	if len(service.Spec.Ports) > 0 {
-		dest.Destination.Port = &istionet.PortSelector{Number: uint32(service.Spec.Ports[0].Port)}
+		Destination: &istionet.Destination{Host: selectedService.Name}}
+	// If the selected service declares port(s), select the appropriate port and add it to the destination.
+	if len(selectedService.Spec.Ports) > 0 {
+		selectedPort, err := selectPortForDestination(selectedService)
+		if err != nil {
+			return nil, err
+		}
+		dest.Destination.Port = &istionet.PortSelector{Number: uint32(selectedPort.Port)}
 	}
 	return &dest, nil
+}
+
+// selectServiceForDestination selects a Service to be used for virtual service destination.
+// The service is selected based on the following logic:
+//   - If there is one service, return that service.
+//   - If there are multiple services and one service with cluster-IP, select that service.
+//   - If there are multiple services, select the service with http port. If there is no such service or
+//     multiple such services, return an error.
+//
+// A service is considered to be having http port if the service has a port named with "http" prefix or if it is a
+// weblogic service and the port name is from the known weblogic port names used by the weblogic operator.
+func selectServiceForDestination(services []*corev1.Service) (*corev1.Service, error) {
+	var clusterIPServices []*corev1.Service
+	var httpServices []*corev1.Service
+	var httpClusterIPServices []*corev1.Service
+
+	// If there is only one service, return that service
+	if len(services) == 1 {
+		return services[0], nil
+	}
+	// Multiple services case
+	for _, service := range services {
+		if service.Spec.ClusterIP != "" && service.Spec.ClusterIP != clusterIPNone {
+			clusterIPServices = append(clusterIPServices, service)
+		}
+		httpPorts := getHTTPPorts(service)
+		if len(httpPorts) > 0 {
+			httpServices = append(httpServices, service)
+		}
+		if service.Spec.ClusterIP != "" && service.Spec.ClusterIP != clusterIPNone && len(httpPorts) > 0 {
+			httpClusterIPServices = append(httpClusterIPServices, service)
+		}
+	}
+	// If there is no service with cluster-IP or no service with http port, return an error.
+	if len(clusterIPServices) == 0 && len(httpServices) == 0 {
+		return nil, fmt.Errorf("unable to select default service for destination")
+	} else if len(clusterIPServices) == 1 {
+		// If there is only one service with cluster IP, return that service.
+		return clusterIPServices[0], nil
+	} else {
+		// If there are multiple http services, and only one service with cluster IP, return that service.
+		if len(httpClusterIPServices) == 1 {
+			return httpClusterIPServices[0], nil
+		}
+		// If there is one http service, return that service.
+		if len(httpServices) == 1 {
+			return httpServices[0], nil
+		}
+	}
+	// In all other cases, return error.
+	return nil, fmt.Errorf("unable to select the service for destination. The service port " +
+		"should be named with prefix \"http\" if there are multiple services OR the IngressTrait must specify the port")
+}
+
+// selectPortForDestination selects a Service port to be used for virtual service destination port.
+// The port is selected based on the following logic:
+//   - If there is one port, return that port.
+//   - If there are multiple ports, select the http port.
+//   - If there are multiple ports and more than one http port, return an error.
+//   - If there are multiple ports and none of then are http ports, return an error.
+//
+// Note that a port is considered as http port if the port has a name with the prefix "http" or if it is a
+// known weblogic port name used by the weblogic operator.
+func selectPortForDestination(service *corev1.Service) (corev1.ServicePort, error) {
+	servicePorts := service.Spec.Ports
+	// If there is only one port, return that port
+	if len(servicePorts) == 1 {
+		return servicePorts[0], nil
+	}
+	httpPorts := getHTTPPorts(service)
+	// If there are multiple ports and one http port, return the http port
+	if len(servicePorts) > 1 && len(httpPorts) == 1 {
+		return httpPorts[0], nil
+	}
+	// If there are multiple ports and none of them are http ports, return an error
+	if len(servicePorts) > 1 && len(httpPorts) < 1 {
+		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. The service port " +
+			"should be named with prefix \"http\" if there are multiple ports OR the IngressTrait must specify the port")
+	}
+	// If there are multiple http ports, return an error
+	if len(httpPorts) > 1 {
+		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. Only one service " +
+			"port should be named with prefix \"http\" OR the IngressTrait must specify the port")
+	}
+	return corev1.ServicePort{}, fmt.Errorf("unable to select default port for destination")
+}
+
+// createDestinationMatchRulePort fetches a Service matching the specified rule port and creates virtual service
+// destination.
+func createDestinationMatchRulePort(services []*corev1.Service, rulePort uint32) (*istionet.HTTPRouteDestination, error) {
+	var eligibleServices []*corev1.Service
+	for _, service := range services {
+		for _, servicePort := range service.Spec.Ports {
+			if servicePort.Port == int32(rulePort) {
+				eligibleServices = append(eligibleServices, service)
+			}
+		}
+	}
+	selectedService, err := selectServiceForDestination(eligibleServices)
+	if err != nil {
+		return nil, err
+	}
+	if selectedService != nil {
+		dest := istionet.HTTPRouteDestination{
+			Destination: &istionet.Destination{Host: selectedService.Name}}
+		// Set the port to rule destination port
+		dest.Destination.Port = &istionet.PortSelector{Number: rulePort}
+		return &dest, nil
+	}
+	return nil, fmt.Errorf("unable to select service for specified destination port %d", rulePort)
+}
+
+// getHTTPPorts returns true if the service has any port name with http prefix otherwise false.
+// If the service is of weblogic workload having known weblogic port name, then also it returns true.
+func getHTTPPorts(service *corev1.Service) []corev1.ServicePort {
+	var httpPorts []corev1.ServicePort
+	weblogicService := false
+	selectorMap := service.Spec.Selector
+	value, ok := selectorMap[weblogicOperatorSelector]
+	if ok && value == "true" {
+		weblogicService = true
+	}
+	for _, servicePort := range service.Spec.Ports {
+		// Check if service port name has the http prefix
+		if strings.HasPrefix(servicePort.Name, httpServiceNamePrefix) {
+			httpPorts = append(httpPorts, servicePort)
+		} else {
+			// Check if service port name is one of the predefined weblogic port names
+			if weblogicService {
+				for _, weblogicPortName := range weblogicPortNames {
+					if servicePort.Name == weblogicPortName {
+						httpPorts = append(httpPorts, servicePort)
+					}
+				}
+			}
+		}
+	}
+	return httpPorts
 }
 
 // createVirtualServiceMatchURIFromIngressTraitPath create the virtual service match uri map from an ingress trait path
@@ -610,11 +764,11 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 	return validHosts, nil
 }
 
-// fetchServiceFromTrait traverses from an ingress trait resource to the related service resource and returns it.
+// fetchServicesFromTrait traverses from an ingress trait resource to the related service resources and returns it.
 // This is done by first finding the workload related to the trait.
 // Then the child resources of the workload are founds.
-// Finally those child resources are scanned to find a Service resource which is returned.
-func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.IngressTrait) (*corev1.Service, error) {
+// Finally those child resources are scanned to find Service resources which are returned.
+func (r *Reconciler) fetchServicesFromTrait(ctx context.Context, trait *vzapi.IngressTrait) ([]*corev1.Service, error) {
 	var err error
 
 	// Fetch workload resource
@@ -629,23 +783,22 @@ func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.Ing
 		return nil, err
 	}
 
-	// Find the service from within the list of unstructured child resources
-	var service *corev1.Service
-	service, err = r.extractServiceFromUnstructuredChildren(children)
+	// Find the services from within the list of unstructured child resources
+	var services []*corev1.Service
+	services, err = r.extractServicesFromUnstructuredChildren(children)
 	if err != nil {
 		return nil, err
 	}
 
-	return service, nil
+	return services, nil
 }
 
-// extractServiceFromUnstructuredChildren finds and returns Service in an array of unstructured child service.
-// The children array is scanned looking for Service's APIVersion and Kind, selecting the first service with a
-// cluster IP. If no service has a cluster IP, choose the first service.
+// extractServicesFromUnstructuredChildren finds and returns Services in an array of unstructured child service.
+// The children array is scanned looking for Service's APIVersion and Kind,
 // If found the unstructured data is converted to a Service object and returned.
 // children - An array of unstructured children
-func (r *Reconciler) extractServiceFromUnstructuredChildren(children []*unstructured.Unstructured) (*corev1.Service, error) {
-	var selectedService *corev1.Service
+func (r *Reconciler) extractServicesFromUnstructuredChildren(children []*unstructured.Unstructured) ([]*corev1.Service, error) {
+	var services []*corev1.Service
 
 	for _, child := range children {
 		if child.GetAPIVersion() == serviceAPIVersion && child.GetKind() == serviceKind {
@@ -655,25 +808,17 @@ func (r *Reconciler) extractServiceFromUnstructuredChildren(children []*unstruct
 				// maybe we should continue here and hope that another child can be converted?
 				return nil, err
 			}
-
-			if selectedService == nil {
-				selectedService = &service
-			}
-
-			if service.Spec.ClusterIP != clusterIPNone {
-				selectedService = &service
-				break
-			}
+			services = append(services, &service)
 		}
 	}
 
-	if selectedService != nil {
-		return selectedService, nil
+	if len(services) > 0 {
+		return services, nil
 	}
 
 	// Log that the child service was not found and return a nil service
 	r.Log.Info("No child service found")
-	return nil, nil
+	return services, nil
 }
 
 // convertAPIVersionAndKindToNamespacedName converts APIVersion and Kind of CR to a CRD namespaced name.
