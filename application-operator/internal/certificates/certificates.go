@@ -16,7 +16,7 @@ import (
 	"os"
 	"time"
 
-	adminv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	adminv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -175,13 +175,13 @@ func writeFile(filepath string, pem *bytes.Buffer) error {
 
 // UpdateValidatingWebhookConfiguration sets the CABundle
 func UpdateValidatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer, name string) error {
-	var validatingWebhook *adminv1beta1.ValidatingWebhookConfiguration
-	validatingWebhook, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
+	var validatingWebhook *adminv1.ValidatingWebhookConfiguration
+	validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
-	_, err = kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
+	_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -190,13 +190,13 @@ func UpdateValidatingWebhookConfiguration(kubeClient kubernetes.Interface, caCer
 
 // UpdateMutatingWebhookConfiguration sets the CABundle
 func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer, name string) error {
-	var webhook *adminv1beta1.MutatingWebhookConfiguration
-	webhook, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
+	var webhook *adminv1.MutatingWebhookConfiguration
+	webhook, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	webhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
-	_, err = kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Update(context.TODO(), webhook, metav1.UpdateOptions{})
+	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.TODO(), webhook, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
