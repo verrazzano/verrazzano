@@ -7,13 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"go.uber.org/zap"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"go.uber.org/zap"
 
 	istiocomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -254,7 +255,10 @@ func TestUpgradeInitComponents(t *testing.T) {
 			return nil
 		})
 
+	expectComponentDeploymentNotFound(mock, "ingress-nginx", "ingress-controller-ingress-nginx-controller")
+	expectComponentDeploymentNotFound(mock, "verrazzano-system", "weblogic-operator")
 	expectComponentDeploymentNotFound(mock, "verrazzano-system", "oam-kubernetes-runtime")
+	expectComponentDeploymentNotFound(mock, "verrazzano-system", "coherence-operator")
 	expectComponentDeploymentNotFound(mock, "verrazzano-system", "verrazzano-application-operator")
 
 	// Expect a call to get the service account
