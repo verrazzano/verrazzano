@@ -785,11 +785,15 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 	}
 	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	for _, comp := range registry.GetComponents() {
-		compContext := spi.NewContext(log, r, cr, r.DryRun)
-		if comp.IsOperatorInstallSupported() && !comp.IsReady(compContext){
+		if comp.IsOperatorInstallSupported() {
+			compContext := spi.NewContext(log, r, cr, r.DryRun)
+			state := installv1alpha1.Disabled
+			if comp.IsReady(compContext) {
+				state = installv1alpha1.Ready
+			}
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
 				Name:  comp.Name(),
-				State: installv1alpha1.Disabled,
+				State: state,
 			}
 		}
 	}
