@@ -3,6 +3,7 @@
 package oam
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func TestIsOAMOperatorReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, IsOAMReady(zap.S(), fakeClient, "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, IsOAMReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
 
 // TestIsOAMOperatorNotReady tests the IsOAMReady function
@@ -53,5 +54,5 @@ func TestIsOAMOperatorNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, IsOAMReady(zap.S(), fakeClient, "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, IsOAMReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }

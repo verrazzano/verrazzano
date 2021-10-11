@@ -1,6 +1,8 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+// +build disabled_test
+
 package web_test
 
 import (
@@ -19,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,45 +30,28 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
-var ingress *v1beta1.Ingress
-var consoleUIConfigured bool = false
-
+var serverURL string
 var _ = BeforeSuite(func() {
+	var ingress *networkingv1.Ingress
 	var clientset *kubernetes.Clientset
 	Eventually(func() (*kubernetes.Clientset, error) {
 		var err error
 		clientset, err = k8sutil.GetKubernetesClientset()
 		return clientset, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-	Eventually(func() (*v1beta1.Ingress, error) {
+	Eventually(func() (*networkingv1.Ingress, error) {
 		var err error
-		ingress, err = clientset.ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
+		ingress, err = clientset.NetworkingV1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
 		return ingress, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	Expect(len(ingress.Spec.Rules)).To(Equal(1))
-
-	// Determine if the console UI is configured
-	for _, path := range ingress.Spec.Rules[0].HTTP.Paths {
-		if path.Backend.ServiceName == "verrazzano-console" {
-			consoleUIConfigured = true
-		}
-	}
+	ingressRules := ingress.Spec.Rules
+	serverURL = fmt.Sprintf("https://%s/", ingressRules[0].Host)
 })
 
 var _ = Describe("Verrazzano Web UI", func() {
 	When("the console UI is configured", func() {
-		var serverURL string
-
-		BeforeEach(func() {
-			if !consoleUIConfigured {
-				Skip("Skipping spec since console UI is not configured")
-			}
-
-			ingressRules := ingress.Spec.Rules
-			serverURL = fmt.Sprintf("https://%s/", ingressRules[0].Host)
-		})
-
 		It("can be accessed", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				return pkg.GetWebPage(serverURL, "")
@@ -164,8 +149,8 @@ var _ = Describe("Verrazzano Web UI", func() {
 
 		It("can be logged out", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
-				return pkg.GetWebPage(fmt.Sprintf("%s/%s", serverURL, "_logout"), "")
-			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusFound)))
+				return pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
+			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK)))
 		})
 	})
 })
