@@ -787,9 +787,13 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
+			// If the component is installed then mark it as ready
 			compContext := spi.NewContext(log, r, cr, r.DryRun)
 			state := installv1alpha1.Disabled
-			installed, _ := comp.IsInstalled(compContext)
+			installed, err := comp.IsInstalled(compContext)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
 			if installed {
 				state = installv1alpha1.Ready
 			}

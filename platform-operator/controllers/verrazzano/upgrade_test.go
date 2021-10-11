@@ -255,12 +255,6 @@ func TestUpgradeInitComponents(t *testing.T) {
 			return nil
 		})
 
-	expectComponentDeploymentNotFound(mock, "ingress-nginx", "ingress-controller-ingress-nginx-controller")
-	expectComponentDeploymentNotFound(mock, "verrazzano-system", "weblogic-operator")
-	expectComponentDeploymentNotFound(mock, "verrazzano-system", "oam-kubernetes-runtime")
-	expectComponentDeploymentNotFound(mock, "verrazzano-system", "coherence-operator")
-	expectComponentDeploymentNotFound(mock, "verrazzano-system", "verrazzano-application-operator")
-
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
 
