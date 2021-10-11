@@ -697,7 +697,7 @@ func TestUpgradeCompleted(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeComplete, "Incorrect conditions")
+			asserts.Equal(vzapi.UpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
 			return nil
 		})
 

@@ -158,9 +158,11 @@ pipeline {
                     subject: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
                     body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n"
                     if (env.JOB_NAME == "verrazzano-flaky-tests/master") {
-                        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY",
-                            incDescription: "Verrazzano Flaky Tests: ${env.JOB_NAME} - Failed",
-                            incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                        if (isPagerDutyEnabled()) {
+                            pagerduty(resolve: false, serviceKey: "$SERVICE_KEY",
+                                incDescription: "Verrazzano Flaky Tests: ${env.JOB_NAME} - Failed",
+                                incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                        }
                         slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n" )
                     }
                 }
@@ -173,8 +175,18 @@ pipeline {
 }
 
 def isAlertingEnabled() {
+    // this controls whether any alerting happens for these tests
     if (NOTIFY_FLAKY_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master"))) {
-        echo "Slack/Pager-Duty notifications enabled via global override setting"
+        echo "Notifications enabled via global override setting"
+        return true
+    }
+    return false
+}
+
+def isPagerDutyEnabled() {
+    // this additionally controls whether PD alerts are enabled (note that you must also enable alerting in general as well if you want these)
+    if (NOTIFY_PAGERDUTY_FLAKY_FAILURES.equals("true")) {
+        echo "Pager-Duty notifications enabled via global override setting"
         return true
     }
     return false
