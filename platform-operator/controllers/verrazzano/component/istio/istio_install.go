@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
@@ -34,7 +35,9 @@ func (i IstioComponent) IsInstalled(context spi.ComponentContext) (bool, error) 
 }
 
 func (i IstioComponent) Install(compContext spi.ComponentContext) error {
-	const imagePullSecretHelmKey = "values.global.imagePullSecrets[0].name"
+	// This IstioOperator YAML uses this imagePullSecret key
+	const imagePullSecretHelmKey = "values.global.imagePullSecrets[0]"
+
 	var tmpFile *os.File
 	var kvs []bom.KeyValue
 	var err error
@@ -68,11 +71,11 @@ func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 
-	//// check for global image pull secret
-	//kvs, err = AddGlobalImagePullSecretHelmOverride(log, client, IstioNamespace, kvs, imagePullSecretHelmKey)
-	//if err != nil {
-	//	return err
-	//}
+	// check for global image pull secret
+	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(log, client, IstioNamespace, kvs, imagePullSecretHelmKey)
+	if err != nil {
+		return err
+	}
 
 	// Build comma separated string of overrides that will be passed to
 	// isioctl as --set values.
@@ -207,20 +210,4 @@ var installFunc installFuncSig = istio.Install
 //
 //func setDefaultInstallFunc() {
 //	installFunc = istio.Install
-//}
-
-// AddGlobalImagePullSecretHelmOverride Adds a helm override Key if the global image pull secret exists and was copied successfully to the target namespace
-//func addGlobalImagePullSecretHelmOverride(log *zap.SugaredLogger, client clipkg.Client, ns string, kvs []bom.KeyValue, keyName string) ([]bom.KeyValue, error) {
-//	secretExists, err := secret.CheckImagePullSecret(client, ns)
-//	if err != nil {
-//		log.Errorf("Error copying global image pull secret %s to %s namespace", constants.GlobalImagePullSecName, ns)
-//		return kvs, err
-//	}
-//	if secretExists {
-//		kvs = append(kvs, bom.KeyValue{
-//			Key:   keyName,
-//			Value: constants.GlobalImagePullSecName,
-//		})
-//	}
-//	return kvs, nil
 //}
