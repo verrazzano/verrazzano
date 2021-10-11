@@ -176,13 +176,15 @@ func componentExists(kubeconfigPath string, namespace string, component string) 
 	return resourceExists(gvr, namespace, component, kubeconfigPath)
 }
 
-func componentWorkloadExists(kubeconfigPath string, namespace string, workload string) bool {
+func componentWorkloadExists(kubeConfigPath string, namespace string, workload string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    oamv1alpha1.SchemeGroupVersion.Group,
 		Version:  oamv1alpha1.SchemeGroupVersion.Version,
 		Resource: "verrazzanocoherenceworkloads",
 	}
-	return resourceExists(gvr, namespace, workload, kubeconfigPath)
+	temp := resourceExists(gvr, namespace, workload, kubeConfigPath)
+	fmt.Printf("Workload: %s, val: %t\n", workload, temp)
+	return resourceExists(gvr, namespace, workload, kubeConfigPath)
 }
 
 func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
