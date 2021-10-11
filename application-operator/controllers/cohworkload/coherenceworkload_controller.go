@@ -82,8 +82,8 @@ const (
 	destinationRuleKind       = "DestinationRule"
 	coherenceExtendPort       = 9000
 	loggingNamePart           = "logging-stdout"
-	loggingMountPath          = "/fluentd/etc/fluentd.conf"
-	loggingKey                = "fluentd.conf"
+	loggingMountPath          = "/fluentd/etc/custom.conf"
+	loggingKey                = "custom.conf"
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -607,7 +607,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	err = r.Get(ctx, client.ObjectKey{Namespace: coherence.GetNamespace(), Name: configMapName}, configMap)
 	if err != nil && k8serrors.IsNotFound(err) {
 		data := make(map[string]string)
-		data["fluentd.conf"] = loggingTrait.Spec.LoggingConfig
+		data["custom.conf"] = loggingTrait.Spec.LoggingConfig
 		configMap = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      loggingNamePart + "-" + coherence.GetName() + "-" + strings.ToLower(coherence.GetKind()),
@@ -677,7 +677,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	envFluentd := &corev1.EnvVar{
 		Name:  "FLUENTD_CONF",
-		Value: "fluentd.conf",
+		Value: "custom.conf",
 	}
 	loggingContainer := &corev1.Container{
 		Name:            loggingNamePart,

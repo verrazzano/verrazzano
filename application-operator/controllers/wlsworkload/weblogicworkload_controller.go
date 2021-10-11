@@ -43,8 +43,8 @@ const (
 	destinationRuleAPIVersion       = "networking.istio.io/v1alpha3"
 	destinationRuleKind             = "DestinationRule"
 	loggingNamePart                 = "logging-stdout"
-	loggingMountPath                = "/fluentd/etc/fluentd.conf"
-	loggingKey                      = "fluentd.conf"
+	loggingMountPath                = "/fluentd/etc/custom.conf"
+	loggingKey                      = "custom.conf"
 	defaultMode               int32 = 400
 )
 
@@ -660,7 +660,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	err = r.Get(ctx, client.ObjectKey{Namespace: weblogic.GetNamespace(), Name: loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind())}, configMap)
 	if err != nil && k8serrors.IsNotFound(err) {
 		data := make(map[string]string)
-		data["fluentd.conf"] = loggingTrait.Spec.LoggingConfig
+		data["custom.conf"] = loggingTrait.Spec.LoggingConfig
 		configMap = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configMapName,
@@ -722,7 +722,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	envFluentd := &corev1.EnvVar{
 		Name:  "FLUENTD_CONF",
-		Value: "fluentd.conf",
+		Value: "custom.conf",
 	}
 	loggingContainer := &corev1.Container{
 		Name:            loggingNamePart,
