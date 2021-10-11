@@ -74,9 +74,10 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 // depending on whether the app is placed in this cluster
 func VerifySockShopInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
 	projectExists := projectExists(kubeConfigPath, projectName)
+	fmt.Printf("Project exists%t\n", projectExists)
 	// workloadExists := componentWorkloadExists(kubeConfigPath, namespace)
 	podsRunning := sockShopPodsRunning(kubeConfigPath, namespace)
-	fmt.Printf("Pods running %t", podsRunning)
+	fmt.Printf("Pods running %t\n", podsRunning)
 
 	if placedInThisCluster {
 		return projectExists && podsRunning
@@ -134,7 +135,6 @@ func VerifyMCResourcesDeleted(kubeconfigPath string, namespace string, projectNa
 
 // SockShopExists - returns true if the sock-shop namespace exists in the given cluster
 func SockShopNamespaceExists(kubeconfigPath string, namespace string) bool {
-	fmt.Println("got here")
 	_, err := pkg.GetNamespaceInCluster(namespace, kubeconfigPath)
 	return err == nil
 }
