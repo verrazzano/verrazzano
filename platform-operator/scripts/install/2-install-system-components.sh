@@ -10,11 +10,15 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 TMP_DIR=$(mktemp -d)
 trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
-set -eu
-
 VERRAZZANO_DEFAULT_SECRET_NAMESPACE="cert-manager"
 VERRAZZANO_DEFAULT_SECRET_NAME="verrazzano-ca-certificate-secret"
 VERRAZZANO_INSTALL_NS=verrazzano-install
+
+# Scaffolding while we move things into the VPO; we need to wait for NGINX to become ready before continuing
+function wait_for_nginx() {
+  wait_for_deployment ingress-nginx ingress-controller-ingress-nginx-controller
+  return $?
+}
 
 function install_nginx_ingress_controller()
 {
@@ -593,7 +597,11 @@ TIMESTAMP=$(date +%s)
 DNS_TYPE=$(get_config_value ".dns.type")
 CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")
 
-action "Installing NGINX Ingress Controller" install_nginx_ingress_controller || exit 1
+platform_operator_install_message "NGINX Ingress Controller"
+action "Wait for NGINX availability" wait_for_nginx || exit 1
+
+# Turn on fail on error/unset variables
+set -eu
 
 # We can only know the ingress IP after installing nginx ingress controller
 INGRESS_IP=$(get_verrazzano_ingress_ip)
