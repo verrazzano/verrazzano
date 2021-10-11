@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	k8sapps "k8s.io/api/apps/v1"
 	"testing"
 	"time"
 
@@ -252,6 +253,12 @@ func TestInstallInitComponents(t *testing.T) {
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
+
+	expectComponentDeploymentNotFound(mock, "ingress-nginx", "ingress-controller-ingress-nginx-controller")
+	expectComponentDeploymentNotFound(mock, "verrazzano-system", "weblogic-operator")
+	expectComponentDeploymentNotFound(mock, "verrazzano-system", "oam-kubernetes-runtime")
+	expectComponentDeploymentNotFound(mock, "verrazzano-system", "coherence-operator")
+	expectComponentDeploymentNotFound(mock, "verrazzano-system", "verrazzano-application-operator")
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
@@ -2272,6 +2279,14 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
+		})
+}
+
+func expectComponentDeploymentNotFound(mock *mocks.MockClient, namespace string, name string) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, name.Name)
 		})
 }
 

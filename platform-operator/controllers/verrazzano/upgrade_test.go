@@ -254,6 +254,9 @@ func TestUpgradeInitComponents(t *testing.T) {
 			return nil
 		})
 
+	expectComponentDeploymentNotFound(mock, "verrazzano-system", "oam-kubernetes-runtime")
+	expectComponentDeploymentNotFound(mock, "verrazzano-system", "verrazzano-application-operator")
+
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
 
