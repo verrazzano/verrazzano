@@ -15,6 +15,7 @@ const ComponentName = "kiali-server"
 
 const kialiDeploymentName = "kiali"
 
+// IsKialiReady checks if the Kiali deployment is ready
 func IsKialiReady(ctx spi.ComponentContext, _ string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: kialiDeploymentName, Namespace: namespace},
