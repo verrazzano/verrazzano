@@ -39,7 +39,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		Value: string(secret.Data["password"]),
 	})
 	kvs = append(kvs, bom.KeyValue{
-		Key:   HelmPwd,
+		Key:   HelmRootPwd,
 		Value: string(secret.Data["mysql-root-password"]),
 	})
 	newKvs := append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
