@@ -94,8 +94,8 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	})
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress\\.annotations\\.nginx\\.ingress\\.kubernetes\\.io/service-upstream",
-		Value: "true",
+		Key:       "ingress\\.annotations\\.nginx\\.ingress\\.kubernetes\\.io/service-upstream",
+		Value:     "true",
 		SetString: true,
 	})
 
