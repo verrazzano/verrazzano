@@ -9,7 +9,8 @@ import (
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+
+	//oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +56,6 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 	// since we should check both in all cases
 	mcAppConfExists := mcAppConfExists(kubeconfigPath, namespace)
 	compExists := true
-
 	// check each sock-shop component in expectedCompsSockShop
 	for _, comp := range expectedCompsSockShop {
 		compExists = componentExists(kubeconfigPath, namespace, comp) && compExists
@@ -76,19 +76,19 @@ func VerifySockShopInCluster(kubeConfigPath string, isAdminCluster bool, placedI
 	projectExists := projectExists(kubeConfigPath, projectName)
 	podsRunning := sockShopPodsRunning(kubeConfigPath, namespace)
 
-	workloadExists := true
-	// check each sock-shop workload in expectedWorkloads
-	for _, workload := range expectedWorkloads {
-		workloadExists = componentWorkloadExists(kubeConfigPath, namespace, workload) && workloadExists
-	}
+	//workloadExists := true
+	//// check each sock-shop workload in expectedWorkloads
+	//for _, workload := range expectedWorkloads {
+	//	workloadExists = componentWorkloadExists(kubeConfigPath, namespace, workload) && workloadExists
+	//}
 
 	if placedInThisCluster {
-		return projectExists && podsRunning && workloadExists
+		return projectExists && podsRunning
 	} else {
 		if isAdminCluster {
-			return projectExists && !podsRunning && !workloadExists
+			return projectExists && !podsRunning
 		} else {
-			return !podsRunning && !projectExists && !workloadExists
+			return !podsRunning && !projectExists
 		}
 	}
 }
@@ -119,14 +119,14 @@ func VerifySockShopDeleteOnManagedCluster(kubeconfigPath string, namespace strin
 // VerifyAppDeleted verifies that the workload and pods are deleted on the specified cluster
 func VerifyAppDeleted(kubeConfigPath string, namespace string) bool {
 
-	workloadExists := true
-	// check each sock-shop workload in expectedWorkloads
-	for _, workload := range expectedWorkloads {
-		workloadExists = componentWorkloadExists(kubeConfigPath, namespace, workload) && workloadExists
-	}
+	//workloadExists := true
+	//// check each sock-shop workload in expectedWorkloads
+	//for _, workload := range expectedWorkloads {
+	//	workloadExists = componentWorkloadExists(kubeConfigPath, namespace, workload) && workloadExists
+	//}
 
 	podsRunning := sockShopPodsRunning(kubeConfigPath, namespace)
-	return !workloadExists && !podsRunning
+	return !podsRunning
 }
 
 // VerifyMCResourcesDeleted verifies that any resources created by the deployment are deleted on the specified cluster
@@ -176,16 +176,16 @@ func componentExists(kubeconfigPath string, namespace string, component string) 
 	return resourceExists(gvr, namespace, component, kubeconfigPath)
 }
 
-func componentWorkloadExists(kubeConfigPath string, namespace string, workload string) bool {
-	gvr := schema.GroupVersionResource{
-		Group:    oamv1alpha1.SchemeGroupVersion.Group,
-		Version:  oamv1alpha1.SchemeGroupVersion.Version,
-		Resource: "verrazzanocoherenceworkloads",
-	}
-	temp := resourceExists(gvr, namespace, workload, kubeConfigPath)
-	fmt.Printf("Workload: %s, val: %t\n", workload, temp)
-	return resourceExists(gvr, namespace, workload, kubeConfigPath)
-}
+//func componentWorkloadExists(kubeConfigPath string, namespace string, workload string) bool {
+//	gvr := schema.GroupVersionResource{
+//		Group:    oamv1alpha1.SchemeGroupVersion.Group,
+//		Version:  oamv1alpha1.SchemeGroupVersion.Version,
+//		Resource: "verrazzanocoherenceworkloads",
+//	}
+//	temp := resourceExists(gvr, namespace, workload, kubeConfigPath)
+//	fmt.Printf("Workload: %s, val: %t\n", workload, temp)
+//	return resourceExists(gvr, namespace, workload, kubeConfigPath)
+//}
 
 func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
 	config, err := pkg.GetKubeConfigGivenPath(kubeconfigPath)

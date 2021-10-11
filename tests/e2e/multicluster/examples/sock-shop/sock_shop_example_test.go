@@ -6,6 +6,7 @@ package sock_shop
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -92,33 +93,33 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		})
 	})
 
-	//Context("Remaining Managed Clusters", func() {
-	//	clusterCountStr := os.Getenv("CLUSTER_COUNT")
-	//	if clusterCountStr == "" {
-	//		// skip tests
-	//		return
-	//	}
-	//	clusterCount, err := strconv.Atoi(clusterCountStr)
-	//	if err != nil {
-	//		// skip tests
-	//		return
-	//	}
-	//
-	//	kubeconfigDir := os.Getenv("KUBECONFIG_DIR")
-	//	for i := 3; i <= clusterCount; i++ {
-	//		kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
-	//		It("Does not have multi cluster resources", func() {
-	//			Eventually(func() bool {
-	//				return VerifyMCResources(kubeconfig, false, false, testNamespace)
-	//			}, waitTimeout, pollingInterval).Should(BeTrue())
-	//		})
-	//		It("Does not have application placed", func() {
-	//			Eventually(func() bool {
-	//				return VerifySockShopInCluster(kubeconfig, false, false, testProjectName, testNamespace)
-	//			}, waitTimeout, pollingInterval).Should(BeTrue())
-	//		})
-	//	}
-	//})
+	Context("Remaining Managed Clusters", func() {
+		clusterCountStr := os.Getenv("CLUSTER_COUNT")
+		if clusterCountStr == "" {
+			// skip tests
+			return
+		}
+		clusterCount, err := strconv.Atoi(clusterCountStr)
+		if err != nil {
+			// skip tests
+			return
+		}
+
+		kubeconfigDir := os.Getenv("KUBECONFIG_DIR")
+		for i := 3; i <= clusterCount; i++ {
+			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
+			It("Does not have multi cluster resources", func() {
+				Eventually(func() bool {
+					return VerifyMCResources(kubeconfig, false, false, testNamespace)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			})
+			It("Does not have application placed", func() {
+				Eventually(func() bool {
+					return VerifySockShopInCluster(kubeconfig, false, false, testProjectName, testNamespace)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			})
+		}
+	})
 
 	//Context("Logging", func() {
 	//	indexName := "verrazzano-namespace-sock-shop"
