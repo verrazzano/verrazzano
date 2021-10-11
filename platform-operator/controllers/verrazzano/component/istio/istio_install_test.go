@@ -16,10 +16,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
 	"io/ioutil"
+	istiosec "istio.io/api/security/v1beta1"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"testing"
 )
@@ -184,6 +187,62 @@ func createCertSecretMock(t *testing.T) *mocks.MockClient {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstioCertSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Secret"}, IstioCertSecret))
+
+	return mock
+}
+
+// TestCreatePeerAuthentication tests creating the PeerAuthentication resource
+// GIVEN a component
+//  WHEN I call createPeerAuthentication
+//  THEN the PeerAuthentication resource is created with STRICT MTLS
+func TestCreatePeerAuthentication(t *testing.T) {
+	assert := assert.New(t)
+
+	setBashFunc(fakeBash)
+	err := createPeerAuthentication(spi.NewContext(zap.S(), createPeerAuthenticationMock(t), installCR, false))
+	assert.NoError(err, "createPeerAuthentication returned an error")
+}
+
+func createPeerAuthenticationMock(t *testing.T) *mocks.MockClient {
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: "default"}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "PeerAuthentication"}, "default"))
+
+	// Expect a call to create the PeerAuthentication
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, peer *istioclisec.PeerAuthentication, opts ...client.CreateOption) error {
+			if peer.Spec.Mtls.Mode != istiosec.PeerAuthentication_MutualTLS_STRICT {
+				return errors.NewBadRequest("MTLS should be STRICT")
+			}
+			return nil
+		})
+
+	return mock
+}
+
+// TestCreateEnvoyFilter tests creating the Envoy filter
+// GIVEN a component
+//  WHEN I call createEnvoyFilter
+//  THEN the bash function is called to create the filter
+func TestCreateEnvoyFilter(t *testing.T) {
+	assert := assert.New(t)
+
+	setBashFunc(fakeBash)
+	err := createEnvoyFilter(spi.NewContext(zap.S(), createEnvoyFilterMock(t), installCR, false))
+	assert.NoError(err, "createEnvoyFilter returned an error")
+}
+
+func createEnvoyFilterMock(t *testing.T) *mocks.MockClient {
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstioEnvoyFilter}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "EnvoyFilter"}, IstioEnvoyFilter))
 
 	return mock
 }

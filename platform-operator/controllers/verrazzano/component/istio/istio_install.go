@@ -29,6 +29,9 @@ import (
 // IstioCertSecret is the secret name used for Istio MTLS certs
 const IstioCertSecret = "cacerts"
 
+// IstioEnvoyFilter is the Envoy header filter name
+const IstioEnvoyFilter = "server-header-filter"
+
 // create func vars for unit tests
 type installFuncSig func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
@@ -201,7 +204,7 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 // createEnvoyFilter creates the Envoy filter used by Istio
 func createEnvoyFilter(compContext spi.ComponentContext) error {
 	filter := istioclinet.EnvoyFilter{}
-	const filterName = "server-header-filter"
+	const filterName = IstioEnvoyFilter
 	nsn := types.NamespacedName{Namespace: IstioNamespace, Name: filterName}
 	if err := compContext.Client().Get(context.TODO(), nsn, &filter); err != nil {
 		if !errors.IsNotFound(err) {
