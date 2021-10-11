@@ -6,6 +6,7 @@ package helm
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os/exec"
 	"strings"
 
@@ -92,6 +93,15 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 			log.Debugf("Empty overrides file name for release %s", releaseName)
 			continue
 		}
+		b, err := ioutil.ReadFile(overridesFileName)
+		if err != nil {
+			fmt.Print(err)
+		}
+		str := string(b)
+		fmt.Println("Printing the contents of override file ", overridesFileName)
+		fmt.Println("------------------------------------------------------------------")
+		fmt.Println(str)
+		fmt.Println("------------------------------------------------------------------")
 		args = append(args, "-f")
 		args = append(args, overridesFileName)
 	}

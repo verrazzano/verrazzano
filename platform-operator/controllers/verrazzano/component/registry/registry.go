@@ -185,6 +185,7 @@ func getComponents() []spi.Component {
 			ChartNamespace:          "keycloak",
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),
+			AppendOverridesFunc:     mysql.AppendOverrides,
 		},
 		helm.HelmComponent{
 			ReleaseName:             "keycloak",
