@@ -8,16 +8,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/util/rand"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"strings"
-	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
 
@@ -788,7 +789,8 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 		if comp.IsOperatorInstallSupported() {
 			compContext := spi.NewContext(log, r, cr, r.DryRun)
 			state := installv1alpha1.Disabled
-			if comp.IsReady(compContext) {
+			installed, _ := comp.IsInstalled(compContext)
+			if installed {
 				state = installv1alpha1.Ready
 			}
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
