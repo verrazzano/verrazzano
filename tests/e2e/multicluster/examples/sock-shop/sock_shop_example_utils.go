@@ -20,13 +20,13 @@ import (
 const (
 	multiclusterNamespace = "verrazzano-mc"
 	appConfigName         = "sockshop-appconf"
-	workloadName          = "mc-sockshop-workload"
 )
 
 var expectedCompsSockShop = []string{"carts-component", "catalog-component", "orders-component", "payment-component",
 	"shipping-component", "users-component"}
 
-// carts-coh
+var expectedWorkloads = []string{"carts-coh", "catalog-coh", "orders-coh", "payment-coh", "shipping-coh", "users-coh"}
+
 var expectedPodsSockShop = []string{"carts-coh", "catalog-coh", "orders-coh", "payment-coh", "shipping-coh", "users-coh"}
 
 // DeploySockShopProject deploys the sock-shop example's VerrazzanoProject to the cluster with the given kubeConfigPath
@@ -74,18 +74,21 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 // depending on whether the app is placed in this cluster
 func VerifySockShopInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
 	projectExists := projectExists(kubeConfigPath, projectName)
-	fmt.Printf("Project exists%t\n", projectExists)
-	// workloadExists := componentWorkloadExists(kubeConfigPath, namespace)
 	podsRunning := sockShopPodsRunning(kubeConfigPath, namespace)
-	fmt.Printf("Pods running %t\n", podsRunning)
+
+	workloadExists := true
+	// check each sock-shop workload in expectedWorkloads
+	for _, workload := range expectedWorkloads {
+		workloadExists = componentWorkloadExists(kubeConfigPath, namespace, workload) && workloadExists
+	}
 
 	if placedInThisCluster {
-		return projectExists && podsRunning
+		return projectExists && podsRunning && workloadExists
 	} else {
 		if isAdminCluster {
-			return projectExists && !podsRunning
+			return projectExists && !podsRunning && !workloadExists
 		} else {
-			return !podsRunning && !projectExists
+			return !podsRunning && !projectExists && !workloadExists
 		}
 	}
 }
@@ -114,9 +117,15 @@ func VerifySockShopDeleteOnManagedCluster(kubeconfigPath string, namespace strin
 }
 
 // VerifyAppDeleted verifies that the workload and pods are deleted on the specified cluster
-func VerifyAppDeleted(kubeconfigPath string, namespace string) bool {
-	workloadExists := componentWorkloadExists(kubeconfigPath, namespace)
-	podsRunning := sockShopPodsRunning(kubeconfigPath, namespace)
+func VerifyAppDeleted(kubeConfigPath string, namespace string) bool {
+
+	workloadExists := true
+	// check each sock-shop workload in expectedWorkloads
+	for _, workload := range expectedWorkloads {
+		workloadExists = componentWorkloadExists(kubeConfigPath, namespace, workload) && workloadExists
+	}
+
+	podsRunning := sockShopPodsRunning(kubeConfigPath, namespace)
 	return !workloadExists && !podsRunning
 }
 
@@ -167,13 +176,13 @@ func componentExists(kubeconfigPath string, namespace string, component string) 
 	return resourceExists(gvr, namespace, component, kubeconfigPath)
 }
 
-func componentWorkloadExists(kubeconfigPath string, namespace string) bool {
+func componentWorkloadExists(kubeconfigPath string, namespace string, workload string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    oamv1alpha1.SchemeGroupVersion.Group,
 		Version:  oamv1alpha1.SchemeGroupVersion.Version,
-		Resource: "verrazzanosockshopworkloads",
+		Resource: "verrazzanocoherenceworkloads",
 	}
-	return resourceExists(gvr, namespace, workloadName, kubeconfigPath)
+	return resourceExists(gvr, namespace, workload, kubeconfigPath)
 }
 
 func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
