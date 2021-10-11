@@ -232,7 +232,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.1.0-20210927142429-4416040",
+              "tag": "1.1.0-20211011120918-ef25ef5",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
