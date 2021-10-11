@@ -265,12 +265,12 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("envoy_cluster_ssl_handshake", "pod_name", "bobbys-front-end-adminserver")
+						return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", "bobbys-front-end-adminserver")
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("envoy_cluster_ssl_handshake", "pod_name", "bobs-bookstore-adminserver")
+						return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", "bobs-bookstore-adminserver")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)

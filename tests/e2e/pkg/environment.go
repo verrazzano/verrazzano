@@ -11,7 +11,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -121,12 +121,12 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) (*v1.Service, error) {
 }
 
 // ListIngresses lists ingresses in namespace
-func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
+func ListIngresses(namespace string) (*networkingv1.IngressList, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
-	ingresses, err := clientset.ExtensionsV1beta1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
+	ingresses, err := clientset.NetworkingV1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

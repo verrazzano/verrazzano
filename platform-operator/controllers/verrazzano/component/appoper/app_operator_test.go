@@ -4,6 +4,7 @@
 package appoper
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"os"
 	"testing"
 
@@ -62,7 +63,7 @@ func TestIsApplicationOperatorReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, IsApplicationOperatorReady(zap.S(), fakeClient, "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, IsApplicationOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
 
 // TestIsApplicationOperatorNotReady tests the IsApplicationOperatorReady function
@@ -83,5 +84,5 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, IsApplicationOperatorReady(zap.S(), fakeClient, "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, IsApplicationOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }

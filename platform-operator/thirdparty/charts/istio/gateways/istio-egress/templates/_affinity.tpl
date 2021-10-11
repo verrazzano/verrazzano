@@ -1,11 +1,11 @@
 {{/* affinity - https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ */}}
 
-{{- define "nodeaffinity" }}
-  nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-    {{- include "nodeAffinityRequiredDuringScheduling" . }}
-    preferredDuringSchedulingIgnoredDuringExecution:
-    {{- include "nodeAffinityPreferredDuringScheduling" . }}
+{{ define "nodeaffinity" }}
+nodeAffinity:
+  requiredDuringSchedulingIgnoredDuringExecution:
+  {{- include "nodeAffinityRequiredDuringScheduling" . }}
+  preferredDuringSchedulingIgnoredDuringExecution:
+  {{- include "nodeAffinityPreferredDuringScheduling" . }}
 {{- end }}
 
 {{- define "nodeAffinityRequiredDuringScheduling" }}
@@ -70,6 +70,13 @@
           {{- end }}
           {{- end }}
       topologyKey: {{ $item.topologyKey }}
+      {{- if $item.namespaces }}
+      namespaces:
+      {{- $ns := split "," $item.namespaces }}
+      {{- range $i, $n := $ns }}
+      - {{ $n | quote }}
+      {{- end }}
+      {{- end }}
     {{- end }}
 {{- end }}
 
