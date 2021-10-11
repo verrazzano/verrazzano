@@ -92,15 +92,6 @@ func getComponents() []spi.Component {
 			SkipUpgrade:             true,
 		},
 		helm.HelmComponent{
-			ReleaseName:             "istiocoredns",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/istiocoredns"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-			AppendOverridesFunc:     istio.AppendIstioOverrides,
-			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
 			ReleaseName:             nginx.ComponentName,
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          nginx.ComponentNamespace,

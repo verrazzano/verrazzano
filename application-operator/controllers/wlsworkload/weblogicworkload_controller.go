@@ -399,10 +399,17 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 		Containers:   extracted.Containers,
 		Volumes:      extracted.Volumes,
 		VolumeMounts: extracted.VolumeMounts,
-		LogPath:      logging.BuildWLSLogPath(name),
-		HandlerEnv:   logging.GetWlsSpecificContainerEnv(),
+		LogPath:      getWLSLogPath(name),
+		HandlerEnv:   getWlsSpecificContainerEnv(name),
 	}
-	fluentdManager := logging.GetFluentd(ctx, r.Log, r.Client)
+	fluentdManager := &logging.Fluentd{Context: ctx,
+		Log:                    r.Log,
+		Client:                 r.Client,
+		ParseRules:             WlsFluentdParsingRules,
+		StorageVolumeName:      storageVolumeName,
+		StorageVolumeMountPath: scratchVolMountPath,
+		WorkloadType:           workloadType,
+	}
 
 	// fluentdManager.Apply wants a QRR but it only cares about the namespace (at least for
 	// this use case)
@@ -438,7 +445,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 	}
 
 	// logHome and logHomeEnabled fields need to be set to turn on logging
-	err = unstructured.SetNestedField(weblogic.Object, logging.BuildWLSLogHome(name), specField, "logHome")
+	err = unstructured.SetNestedField(weblogic.Object, getWLSLogHome(name), specField, "logHome")
 	if err != nil {
 		log.Error(err, "Unable to set logHome")
 		return err

@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -38,7 +38,7 @@ func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
 	if err != nil {
 		return nil, err
 	}
-	ingress, err := clientset.ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
+	ingress, err := clientset.NetworkingV1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func getAPIURL(kubeconfigPath string) (string, error) {
 		return "", err
 	}
 
-	ingress, err := clientset.ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
+	ingress, err := clientset.NetworkingV1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -150,8 +150,8 @@ func ProcessHTTPResponse(resp *http.Response) (*HTTPResponse, error) {
 }
 
 //GetIngress fetches ingress from api
-func (api *APIEndpoint) GetIngress(namespace, name string) (*extensionsv1beta1.Ingress, error) {
-	response, err := api.Get(fmt.Sprintf("apis/extensions/v1beta1/namespaces/%s/ingresses/%s", namespace, name))
+func (api *APIEndpoint) GetIngress(namespace, name string) (*networkingv1.Ingress, error) {
+	response, err := api.Get(fmt.Sprintf("apis/networking.k8s.io/v1/namespaces/%s/ingresses/%s", namespace, name))
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error fetching ingress %s/%s from api, error: %v", namespace, name, err))
 		return nil, err
@@ -161,7 +161,7 @@ func (api *APIEndpoint) GetIngress(namespace, name string) (*extensionsv1beta1.I
 		return nil, fmt.Errorf("unexpected HTTP status code: %d", response.StatusCode)
 	}
 
-	ingress := extensionsv1beta1.Ingress{}
+	ingress := networkingv1.Ingress{}
 	err = json.Unmarshal(response.Body, &ingress)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Invalid response for ingress %s/%s from api, error: %v", namespace, name, err))

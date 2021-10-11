@@ -22,9 +22,6 @@ pilot:
       cpu: 500m
       memory: 2048Mi
 
-  # Applications namespace list pilot manages
-  appNamespaces: []
-
   env: {}
 
   cpu:
@@ -36,8 +33,8 @@ pilot:
   enableProtocolSniffingForInbound: true
 
   nodeSelector: {}
-  tolerations: []
   podAnnotations: {}
+  serviceAnnotations: {}
 
   # You can use jwksResolverExtraRootCA to provide a root certificate
   # in PEM format. This will then be trusted by pilot when resolving
@@ -51,27 +48,6 @@ pilot:
     subscribedResources: []
 
   plugins: []
-
-  # Specify the pod anti-affinity that allows you to constrain which nodes
-  # your pod is eligible to be scheduled based on labels on pods that are
-  # already running on the node rather than based on labels on nodes.
-  # There are currently two types of anti-affinity:
-  #    "requiredDuringSchedulingIgnoredDuringExecution"
-  #    "preferredDuringSchedulingIgnoredDuringExecution"
-  # which denote "hard" vs. "soft" requirements, you can define your values
-  # in "podAntiAffinityLabelSelector" and "podAntiAffinityTermLabelSelector"
-  # correspondingly.
-  # For example:
-  # podAntiAffinityLabelSelector:
-  # - key: security
-  #   operator: In
-  #   values: S1,S2
-  #   topologyKey: "kubernetes.io/hostname"
-  # This pod anti-affinity rule says that the pod requires not to be scheduled
-  # onto a node if that node is already running a pod with label having key
-  # "security" and value "S1".
-  podAntiAffinityLabelSelector: []
-  podAntiAffinityTermLabelSelector: []
 
   # The following is used to limit how long a sidecar can be connected
   # to a pilot. It balances out load across pilot instances at the cost of
@@ -88,13 +64,9 @@ pilot:
   # If false, pilot wil use default values (by default) or user-supplied values.
   configMap: true
 
+  # Additional labels to apply on the pod level for monitoring and logging configuration.
+  podLabels: {}
 
-## Mixer settings
-mixer:
-  telemetry:
-    sessionAffinityEnabled: false
-  policy:
-    enabled: false
 
 sidecarInjectorWebhook:
   # You can use the field called alwaysInjectSelector and neverInjectSelector which will always inject the sidecar or
@@ -122,25 +94,55 @@ sidecarInjectorWebhook:
   # Only one environment should have this enabled.
   enableNamespacesByDefault: false
 
-  # If set, will use the value as injection label. The value must match the 'release' label of the injector,
-  # except when 1.2 istio-injection label is used, which must be set to "enabled".
-  injectLabel: istio-injection
-
-  # Enable objectSelector to filter out pods with no need for sidecar before calling istio-sidecar-injector.
-  # It is disabled by default since this function will only work after k8s v1.15.
+  # Enable objectSelector to filter out pods with no need for sidecar before calling istiod.
+  # It is enabled by default as the minimum supported Kubernetes version is 1.15+
   objectSelector:
-    enabled: false
+    enabled: true
     autoInject: true
 
   rewriteAppHTTPProbe: true
 
+  # Templates defines a set of custom injection templates that can be used. For example, defining:
+  #
+  # templates:
+  #   hello: |
+  #     metadata:
+  #       labels:
+  #         hello: world
+  #
+  # Then starting a pod with the `inject.istio.io/templates: hello` annotation, will result in the pod
+  # being injected with the hello=world labels.
+  # This is intended for advanced configuration only; most users should use the built in template
+  templates: {}
+
+  # Default templates specifies a set of default templates that are used in sidecar injection.
+  # By default, a template `sidecar` is always provided, which contains the template of default sidecar. 
+  # To inject other additional templates, define it using the `templates` option, and add it to 
+  # the default templates list.
+  # For example:
+  #
+  # templates:
+  #   hello: |
+  #     metadata:
+  #       labels:
+  #         hello: world
+  #
+  # defaultTemplates: ["sidecar", "hello"]
+  defaultTemplates: []
+istiodRemote:
+  # Sidecar injector mutating webhook configuration clientConfig.url value.
+  # For example: https://$remotePilotAddress:15017/inject
+  # The host should not refer to a service running in the cluster; use a service reference by specifying
+  # the clientConfig.service field instead.
+  injectionURL: ""
+
+  # Sidecar injector mutating webhook configuration path value for the clientConfig.service field.
+  # Override to pass env variables, for example: /inject/cluster/remote/net/network2
+  injectionPath: "/inject"
 telemetry:
   enabled: true
-  v1:
-    # Set true to enable Mixer based telemetry
-    enabled: false
   v2:
-    # For Null VM case now. If enabled, will set disableMixerHttpReports to true and not define mixerReportServer
+    # For Null VM case now.
     # This also enables metadata exchange.
     enabled: true
     metadataExchange:
@@ -151,7 +153,7 @@ telemetry:
       enabled: true
       # Indicates whether to enable WebAssembly runtime for stats filter.
       wasmEnabled: false
-      # overrides stats EnvoyFilter configuration. 
+      # overrides stats EnvoyFilter configuration.
       configOverride:
         gateway: {}
         inboundSidecar: {}
@@ -161,15 +163,13 @@ telemetry:
       enabled: false
       logging: false
       monitoring: false
-      topology: false
+      topology: false # deprecated. setting this to true will have no effect, as this option is no longer supported.
       disableOutbound: false
       #  configOverride parts give you the ability to override the low level configuration params passed to envoy filter.
 
       configOverride: {}
       #  e.g.
-      #  enable_mesh_edges_reporting: true
       #  disable_server_access_logging: false
-      #  meshEdgesReportingDuration: 500s
       #  disable_host_header_fallback: true
     # Access Log Policy Filter Settings. This enables filtering of access logs from stackdriver.
     accessLogPolicy:
@@ -180,35 +180,33 @@ telemetry:
 # Revision is set as 'version' label and part of the resource names when installing multiple control planes.
 revision: ""
 
+# Revision tags are aliases to Istio control plane revisions
+revisionTags: []
+
+# For Helm compatibility.
+ownerName: ""
+
 # meshConfig defines runtime configuration of components, including Istiod and istio-agent behavior
 # See https://istio.io/docs/reference/config/istio.mesh.v1alpha1/ for all available options
 meshConfig:
-
+  enablePrometheusMerge: true
   # Config for the default ProxyConfig.
   # Initially using directly the proxy metadata - can also be activated using annotations
   # on the pod. This is an unsupported low-level API, pending review and decisions on
   # enabling the feature. Enabling the DNS listener is safe - and allows further testing
   # and gradual adoption by setting capture only on specific workloads. It also allows
   # VMs to use other DNS options, like dnsmasq or unbound.
-  defaultConfig:
-    proxyMetadata:
-      # If empty, agent will not start :15013 DNS listener and will not attempt
-      # to connect to Istiod DNS-TLS. This will also disable the core dns sidecar in
-      # istiod and the dns-over-tls listener.
-      # DNS_AGENT: DNS-TLS
-      DNS_AGENT: ""
-
-      # If empty, DNS capture is disabled.
-      # If set, intercept UDP port :53 and redirect to localhost:15013
-      # Currently only 'ALL' capture is supported - we may refine it if we want
-      # finer grained control.
-      # ISTIO_META_DNS_CAPTURE: ALL
 
   # The namespace to treat as the administrative root namespace for Istio configuration.
   # When processing a leaf namespace Istio will search for declarations in that namespace first
   # and if none are found it will search in the root namespace. Any matching declaration found in the root namespace
   # is processed as if it were declared in the leaf namespace.
-  rootNamespace: "istio-system"
+
+  rootNamespace:
+
+  # The trust domain corresponds to the trust root of a system
+  # Refer to https://github.com/spiffe/spiffe/blob/master/standards/SPIFFE-ID.md#21-trust-domain
+  trustDomain: "cluster.local"
 
   # TODO: the intent is to eventually have this enabled by default when security is used.
   # It is not clear if user should normally need to configure - the metadata is typically
@@ -219,6 +217,8 @@ meshConfig:
   # No hurry to do this in 1.6, we're trying to prove the code.
 
 global:
+  # Used to locate istiod.
+  istioNamespace: istio-system
   # enable pod disruption budget for the control plane, which is used to
   # ensure Istio control plane components are gradually upgraded or recovered.
   defaultPodDisruptionBudget:
@@ -323,6 +323,8 @@ global:
     # examples:
     #     Redirect only selected ports:            --includeInboundPorts="80,8080"
     excludeInboundPorts: ""
+    includeInboundPorts: "*"
+
 
     # istio egress capture allowlist
     # https://istio.io/docs/tasks/traffic-management/egress.html#calling-external-services-directly
@@ -331,6 +333,7 @@ global:
     # be allowed by the sidecar
     includeIPRanges: "*"
     excludeIPRanges: ""
+    includeOutboundPorts: ""
     excludeOutboundPorts: ""
 
     # Log level for proxy, applies to gateways and sidecars.
@@ -381,8 +384,6 @@ global:
 
   # configure remote pilot and istiod service and endpoint
   remotePilotAddress: ""
-  remotePolicyAddress: ""
-  remoteTelemetryAddress: ""
 
   ##############################################################################################
   # The following values are found in other charts. To effectively modify these values, make   #
@@ -391,17 +392,16 @@ global:
 
   # The customized CA address to retrieve certificates for the pods in the cluster.
   # CSR clients such as the Istio Agent and ingress gateways can use this to specify the CA endpoint.
+  # If not set explicitly, default to the Istio discovery address.
   caAddress: ""
 
-  # One central istiod controls all remote clusters: disabled by default
-  centralIstiod: false
+  # Configure a remote cluster data plane controlled by an external istiod.
+  # When set to true, istiod is not deployed locally and only a subset of the other
+  # discovery charts are enabled.
+  externalIstiod: false
 
-  # controlPlaneMtls enabled. Will result in delays starting the pods while secrets are
-  # propagated, not recommended for tests.
-  controlPlaneSecurityEnabled: true
-
-  # Settings for remote cluster.
-  createRemoteSvcEndpoints: false
+  #  Configure a remote cluster as the config cluster for an external istiod.
+  configCluster: false
 
   # Configure the policy for validating JWT.
   # Currently, two options are supported: "third-party-jwt" and "first-party-jwt".
@@ -482,10 +482,6 @@ global:
   # Istiod is the default
   pilotCertProvider: istiod
 
-  # Namespaces for Istio components
-  telemetryNamespace: istio-system
-  policyNamespace: istio-system
-
   sds:
     # The JWT token for SDS and the aud field of such JWT. See RFC 7519, section 4.1.3.
     # When a CSR is sent from Istio Agent to the CA (e.g. Istiod), this aud is to make sure the
@@ -525,13 +521,9 @@ global:
       # zipkin service (port 9411) in the same namespace as the other istio components.
       address: ""
 
-  # The trust domain corresponds to the trust root of a system
-  # Refer to https://github.com/spiffe/spiffe/blob/master/standards/SPIFFE-ID.md#21-trust-domain
-  # Indicate the domain used in SPIFFE identity URL
-  # The default depends on the environment.
-  #   kubernetes: cluster.local
-  #   else:  default dns domain
-  trustDomain: "cluster.local"
-
-  # Use the Mesh Control Protocol (MCP) for configuring Mixer and Pilot. Requires an MCP source.
+  # Use the Mesh Control Protocol (MCP) for configuring Istiod. Requires an MCP source.
   useMCP: false
+
+base:
+  # For istioctl usage to disable istio config crds in base
+  enableIstioConfigCRDs: true
