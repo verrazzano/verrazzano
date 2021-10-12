@@ -121,28 +121,43 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		}
 	})
 
+	Context("Logging", func() {
+		indexName := "verrazzano-namespace-mc-sockshop"
+
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
+		It("Verify Elasticsearch index exists on admin cluster", func() {
+			Eventually(func() bool {
+				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for sock-shop")
+		})
+
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect recent Elasticsearch logs for the app exist on the admin cluster Elasticsearch
+		//It("Verify recent Elasticsearch log record exists on admin cluster", func() {
+		//	Eventually(func() bool {
+		//		return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+		//			"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
+		//			"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-appconf",
+		//			"kubernetes.container_name":                 "hello-helidon-container",
+		//		}, adminKubeconfig)
+		//	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+		//})
+	})
+
 	// GIVEN an admin cluster and at least one managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
-	//Context("Metrics", func() {
-	//	It("Verify Prometheus metrics exist on admin cluster", func() {
-	//		Eventually(func() bool {
-	//			return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, adminKubeconfig)
-	//		}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-	//	})
-	//})
-
 	Context("Metrics", func() {
 		It("Verify Prometheus metrics exist on admin cluster", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(appMetricsExists(clusterName, adminKubeconfig), waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(appMetricsExists(clusterName, adminKubeconfig), longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(appComponentMetricsExists(clusterName, adminKubeconfig), waitTimeout, pollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(appConfigMetricsExists(clusterName, adminKubeconfig), waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(appComponentMetricsExists(clusterName, adminKubeconfig), longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 			)
 		})

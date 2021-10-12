@@ -214,8 +214,3 @@ func appMetricsExists(clusterName string, kubeconfigPath string) bool {
 func appComponentMetricsExists(clusterName string, kubeconfigPath string) bool {
 	return pkg.MetricsExistInCluster("vendor_requests_count_total", "managed_cluster", clusterName, kubeconfigPath)
 }
-
-// appConfigMetricsExists checks whether config metrics are available
-func appConfigMetricsExists(clusterName string, kubeconfigPath string) bool {
-	return pkg.MetricsExistInCluster("vendor_requests_count_total", "managed_cluster", clusterName, kubeconfigPath)
-}
