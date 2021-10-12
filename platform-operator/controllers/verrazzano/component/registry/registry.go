@@ -5,7 +5,7 @@ package registry
 
 import (
 	"fmt"
-	"path/filepath
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
@@ -91,15 +91,6 @@ func getComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			AppendOverridesFunc:     istio.AppendIstioOverrides,
 			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "istiocoredns",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/istiocoredns"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-			AppendOverridesFunc:     istio.AppendIstioOverrides,
-			UninstallComponent:      true,
 		},
 		helm.HelmComponent{
 			ReleaseName:             nginx.ComponentName,

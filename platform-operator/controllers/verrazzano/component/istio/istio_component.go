@@ -6,6 +6,8 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -153,8 +155,16 @@ func (i IstioComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (i IstioComponent) PostUpgrade(_ spi.ComponentContext) error {
-	return nil
+func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
+	// Check if the component is installed before trying to upgrade
+	found, err := helm.IsReleaseInstalled("istiocoredns", constants.IstioSystemNamespace)
+	if err != nil {
+		return err
+	}
+	if found {
+		_, _, err = helm.Uninstall(context.Log(), "istiocoredns", constants.IstioSystemNamespace, context.IsDryRun())
+	}
+	return err
 }
 
 func (i IstioComponent) PreInstall(_ spi.ComponentContext) error {

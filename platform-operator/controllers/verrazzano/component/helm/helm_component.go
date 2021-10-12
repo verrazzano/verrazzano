@@ -224,11 +224,6 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return nil
 	}
 
-	if h.UninstallComponent {
-		_, _, err = helm.Uninstall(context.Log(), h.ReleaseName, namespace, context.IsDryRun())
-		return err
-	}
-
 	// Do the preUpgrade if the function is defined
 	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
 		context.Log().Infof("Running preUpgrade function for %s", h.ReleaseName)
