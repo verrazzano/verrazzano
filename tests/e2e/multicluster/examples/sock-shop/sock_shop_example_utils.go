@@ -6,6 +6,8 @@ package sock_shop
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -16,6 +18,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -23,12 +27,55 @@ const (
 	appConfigName         = "sockshop-appconf"
 )
 
-var expectedCompsSockShop = []string{"carts-component", "catalog-component", "orders-component", "payment-component",
-	"shipping-component", "users-component"}
+// Constants for log levels
+const (
+	Debug = pkg.Debug
+	Info  = pkg.Info
+	Error = pkg.Error
+)
 
-var expectedWorkloads = []string{"carts-coh", "catalog-coh", "orders-coh", "payment-coh", "shipping-coh", "users-coh"}
+// SockShop encapsulates all testing information related to interactions with the sock shop app
+type SockShop struct {
+	Ingress    string
+	username   string
+	password   string
+	hostHeader string
+}
 
-var expectedPodsSockShop = []string{"carts-coh", "catalog-coh", "orders-coh", "payment-coh", "shipping-coh", "users-coh"}
+// user registration template
+const registerTemp = `{
+  "username":"%v",
+  "password":"%v",
+  "email":"foo@oracle.com",
+  "firstName":"foo",
+  "lastName":"coo"
+}`
+
+var (
+	expectedCompsSockShop = []string{
+		"carts-component",
+		"catalog-component",
+		"orders-component",
+		"payment-component",
+		"shipping-component",
+		"users-component"}
+	expectedPodsSockShop = []string{
+		"carts-coh",
+		"catalog-coh",
+		"orders-coh",
+		"payment-coh",
+		"shipping-coh",
+		"users-coh"}
+)
+
+// NewSockShop creates a new sockshop instance
+func NewSockShop(username, password, ingress string) SockShop {
+	var sockShop SockShop
+	sockShop.username = username
+	sockShop.password = password
+	sockShop.Ingress = ingress
+	return sockShop
+}
 
 // DeploySockShopProject deploys the sock-shop example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
@@ -39,11 +86,11 @@ func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
 }
 
 // DeploySockShopApp deploys the sock-shop example application to the cluster with the given kubeConfigPath
-func DeploySockShopApp(kubeConfigPath string, sourceDir string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-comp.yaml", sourceDir), kubeConfigPath); err != nil {
+func DeploySockShopApp(kubeconfigPath string, sourceDir string) error {
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-comp.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("Failed to create multi-cluster %s component resources: %v", sourceDir, err)
 	}
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-app.yaml", sourceDir), kubeConfigPath); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-app.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("Failed to create multi-cluster %s application resource: %v", sourceDir, err)
 	}
 	return nil
@@ -54,7 +101,8 @@ func DeploySockShopApp(kubeConfigPath string, sourceDir string) error {
 func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, namespace string) bool {
 	// call both mcAppConfExists and mcComponentExists and store the results, to avoid short-circuiting
 	// since we should check both in all cases
-	mcAppConfExists := mcAppConfExists(kubeconfigPath, namespace)
+	mcAppConfExists := appConfExists(kubeconfigPath, namespace)
+
 	compExists := true
 	// check each sock-shop component in expectedCompsSockShop
 	for _, comp := range expectedCompsSockShop {
@@ -72,15 +120,9 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 
 // VerifySockShopInCluster verifies that the sock-shop app resources are either present or absent
 // depending on whether the app is placed in this cluster
-func VerifySockShopInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
-	projectExists := projectExists(kubeConfigPath, projectName)
-	podsRunning := sockShopPodsRunning(kubeConfigPath, namespace)
-	//
-	//workloadExists := true
-	//// check each sock-shop workload in expectedWorkloads
-	//for _, workload := range expectedWorkloads {
-	//	workloadExists = componentWorkloadExists(kubeConfigPath, namespace, workload) && workloadExists
-	//}
+func VerifySockShopInCluster(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
+	projectExists := projectExists(kubeconfigPath, projectName)
+	podsRunning := sockShopPodsRunning(kubeconfigPath, namespace)
 
 	if placedInThisCluster {
 		return projectExists && podsRunning
@@ -93,6 +135,20 @@ func VerifySockShopInCluster(kubeConfigPath string, isAdminCluster bool, placedI
 	}
 }
 
+// RegisterUser interacts with sock shop to create a user
+func (s *SockShop) RegisterUser(body string, hostname string) bool {
+	url := fmt.Sprintf("https://%v/register", hostname)
+	resp, err := pkg.PostWithHostHeader(url, "application/json", s.hostHeader, strings.NewReader(body))
+	Expect(err).ShouldNot(HaveOccurred())
+	pkg.Log(Info, fmt.Sprintf("Finished register %s status: %v", resp.Body, resp.StatusCode))
+	return (resp.StatusCode == http.StatusOK) && (strings.Contains(string(resp.Body), "username"))
+}
+
+// SetHostHeader sets the ingress host
+func (s *SockShop) SetHostHeader(host string) {
+	s.hostHeader = host
+}
+
 // VerifySockShopDeleteOnAdminCluster verifies that the sock shop app resources have been deleted from the admin
 // cluster after the application has been deleted
 func VerifySockShopDeleteOnAdminCluster(kubeconfigPath string, placedInCluster bool, namespace string, projectName string) bool {
@@ -100,7 +156,6 @@ func VerifySockShopDeleteOnAdminCluster(kubeconfigPath string, placedInCluster b
 	if !placedInCluster {
 		return mcResDeleted
 	}
-
 	appDeleted := VerifyAppDeleted(kubeconfigPath, namespace)
 
 	return mcResDeleted && appDeleted
@@ -117,28 +172,23 @@ func VerifySockShopDeleteOnManagedCluster(kubeconfigPath string, namespace strin
 }
 
 // VerifyAppDeleted verifies that the workload and pods are deleted on the specified cluster
-func VerifyAppDeleted(kubeConfigPath string, namespace string) bool {
+func VerifyAppDeleted(kubeconfigPath string, namespace string) bool {
+	podsRunning := sockShopPodsRunning(kubeconfigPath, namespace)
 
-	//workloadExists := true
-	//// check each sock-shop workload in expectedWorkloads
-	//for _, workload := range expectedWorkloads {
-	//	workloadExists = componentWorkloadExists(kubeConfigPath, namespace, workload) && workloadExists
-	//}
-
-	podsRunning := sockShopPodsRunning(kubeConfigPath, namespace)
 	return !podsRunning
 }
 
 // VerifyMCResourcesDeleted verifies that any resources created by the deployment are deleted on the specified cluster
 func VerifyMCResourcesDeleted(kubeconfigPath string, namespace string, projectName string) bool {
-	appConfExists := mcAppConfExists(kubeconfigPath, namespace)
-	compExists := true
+	appConfExists := appConfExists(kubeconfigPath, namespace)
+	projExists := projectExists(kubeconfigPath, projectName)
 
+	compExists := true
 	// check each sock-shop component in expectedCompsSockShop
 	for _, comp := range expectedCompsSockShop {
 		compExists = componentExists(kubeconfigPath, namespace, comp) && compExists
 	}
-	projExists := projectExists(kubeconfigPath, projectName)
+
 	return !appConfExists && !compExists && !projExists
 }
 
@@ -148,6 +198,7 @@ func SockShopNamespaceExists(kubeconfigPath string, namespace string) bool {
 	return err == nil
 }
 
+// projectExists Check if sockshop project exists
 func projectExists(kubeconfigPath string, projectName string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
@@ -157,7 +208,8 @@ func projectExists(kubeconfigPath string, projectName string) bool {
 	return resourceExists(gvr, multiclusterNamespace, projectName, kubeconfigPath)
 }
 
-func mcAppConfExists(kubeconfigPath string, namespace string) bool {
+// appConfExists Check if app config exists
+func appConfExists(kubeconfigPath string, namespace string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
@@ -166,7 +218,7 @@ func mcAppConfExists(kubeconfigPath string, namespace string) bool {
 	return resourceExists(gvr, namespace, appConfigName, kubeconfigPath)
 }
 
-// Check if individual component exists
+// componentExists Check if individual component exists
 func componentExists(kubeconfigPath string, namespace string, component string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    oamcore.Group,
