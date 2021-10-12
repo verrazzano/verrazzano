@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -15,8 +16,14 @@ import (
 	"text/template"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "keycloak"
+const (
+	// ComponentName is the name of the component
+	ComponentName = "keycloak"
+	dnsTarget     = "dnsTarget"
+	rulesHost     = "rulesHost"
+	tlsHosts      = "tlsHosts"
+	tlsSecret     = "tlsSecret"
+)
 
 // Define the keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
@@ -76,70 +83,46 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		return nil, err
 	}
 
-	// Return a new Key:Value pair with the rendered Value
 	kvs = append(kvs, bom.KeyValue{
 		Key:   kcInitContainerKey,
 		Value: b.String(),
 	})
 
+	// Additional overrides for Keycloak 15.0.2 charts.
 	var ingress = &networkingv1.Ingress{}
-	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: "verrazzano-ingress", Namespace: "verrazzano-system"}, ingress)
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: constants.VzConsoleIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
 	if err != nil {
-		return nil, fmt.Errorf("unable to fetch ingress %s/%s, %v", "verrazzano-ingress", "verrazzano-system", err)
+		return nil, fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VzConsoleIngress, constants.VerrazzanoSystemNamespace, err)
 	}
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress\\.annotations\\.external-dns\\.alpha\\.kubernetes\\.io/target",
-		Value: ingress.Spec.TLS[0].Hosts[0],
-	})
-
-	kvs = append(kvs, bom.KeyValue{
-		Key:       "ingress\\.annotations\\.nginx\\.ingress\\.kubernetes\\.io/service-upstream",
-		Value:     "true",
+		Key:       dnsTarget,
+		Value:     ingress.Spec.TLS[0].Hosts[0],
 		SetString: true,
 	})
 
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress\\.annotations\\.nginx\\.ingress\\.kubernetes\\.io/upstream-vhost",
-		Value: "keycloak-http.keycloak.svc.cluster.local",
-	})
-
 	var keycloakIngress = &networkingv1.Ingress{}
-	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: "keycloak"}, keycloakIngress)
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: constants.KeycloakIngress, Namespace: constants.KeycloakNamespace}, keycloakIngress)
 	if err != nil {
-		return nil, fmt.Errorf("unable to fetch ingress %s/%s, %v", "keycloak", "keycloak", err)
+		return nil, fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.KeycloakIngress, constants.KeycloakNamespace, err)
 	}
 
-	ingressHosts := fmt.Sprintf("{%s}", keycloakIngress.Spec.TLS[0].Hosts[0])
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress\\.hosts",
-		Value: ingressHosts,
-	})
-
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress\\.rules[0]\\.host",
+		Key:   rulesHost,
 		Value: keycloakIngress.Spec.TLS[0].Hosts[0],
 	})
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress\\.rules[0]\\.paths[0]\\.path",
-		Value: "/",
+		Key:   tlsHosts,
+		Value: keycloakIngress.Spec.TLS[0].Hosts[0],
 	})
 
+	tlsSecretValue := fmt.Sprintf("%s-secret", compContext.EffectiveCR().Spec.EnvironmentName)
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress\\.rules[0]\\.paths[0]\\.pathType",
-		Value: "ImplementationSpecific",
+		Key:   tlsSecret,
+		Value: tlsSecretValue,
 	})
 
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress\\.tls[0]\\.hosts",
-		Value: ingressHosts,
-	})
-
-	tlsSecret := fmt.Sprintf("%s-secret", compContext.EffectiveCR().Spec.EnvironmentName)
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress\\.tls[0]\\.secretName",
-		Value: tlsSecret,
-	})
+	// Return a new Key:Value pair with the rendered Value
 	return kvs, nil
 }

@@ -136,20 +136,10 @@ function install_keycloak {
       exit 1
     fi
 
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.username=${KCADMIN_USERNAME}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string ingress.annotations.external-dns\.alpha\.kubernetes\.io/target=${DNS_TARGET_NAME}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string ingress.annotations.nginx\.ingress\.kubernetes\.io/service-upstream=true"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string ingress.annotations.nginx\.ingress\.kubernetes\.io/upstream-vhost=keycloak-http.keycloak.svc.cluster.local"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.rules[0].host=keycloak.${ENV_NAME}.${DNS_SUFFIX}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.rules[0].paths[0].path=/"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.rules[0].paths[0].pathType=ImplementationSpecific"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set ingress.tls[0].secretName=${ENV_NAME}-secret"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbUser=${MYSQL_USERNAME}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.dbUser=${MYSQL_USERNAME}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string dnsTarget=${DNS_TARGET_NAME}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set rulesHost=keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set tlsHosts=keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set tlsSecret=${ENV_NAME}-secret"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string dbUser=${MYSQL_USERNAME}"
 

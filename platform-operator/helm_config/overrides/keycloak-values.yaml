@@ -61,6 +61,18 @@ ingress:
     external-dns.alpha.kubernetes.io/ttl: "60"
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/upstream-vhost: "keycloak-http.${namespace}.svc.cluster.local"
+    external-dns.alpha.kubernetes.io/target: "{{ .Values.dnsTarget }}"
+  rules:
+    -
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+      host: "{{ .Values.rulesHost }}"
+  tls:
+    -
+      hosts:
+        - "{{ .Values.tlsHosts }}"
+      secretName: "{{ .Values.tlsSecret }}"
 
 securityContext:
   runAsUser: 0
