@@ -15,6 +15,10 @@ import (
 // cmdRunner needed for unit tests
 var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
+// fakeIstioInstalledRunner is used to test if Istio is installed
+type fakeIstioInstalledRunner struct {
+}
+
 // Upgrade function gets called from istio_component to perform istio upgrade
 func Upgrade(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	args := []string{"install", "-y"}

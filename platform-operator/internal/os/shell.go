@@ -7,8 +7,8 @@ import (
 	osexec "os/exec"
 )
 
-// cmdRunner needed for unit tests
-var runner CmdRunner = DefaultRunner{}
+// bashRunner needed for unit tests
+var bashRunner CmdRunner = DefaultRunner{}
 
 // RunBash runs a bach script
 func RunBash(inArgs ...string) (string, string, error) {
@@ -17,9 +17,9 @@ func RunBash(inArgs ...string) (string, string, error) {
 		args = append(args, inArgs[i])
 	}
 	cmd := osexec.Command("bash", args...)
-	stdout, stderr, err := runner.Run(cmd)
+	stdout, stderr, err := bashRunner.Run(cmd)
 	if err != nil {
 		return string(stdout), string(stderr), err
 	}
-	return "", "", err
+	return string(stdout), "", err
 }

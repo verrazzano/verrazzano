@@ -23,10 +23,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"testing"
 )
+
+// fakeIstioInstalledRunner is used to test if Istio is installed
+type fakeIstioInstalledRunner struct {
+}
 
 var installCR = &installv1alpha1.Verrazzano{
 	Spec: installv1alpha1.VerrazzanoSpec{
@@ -50,6 +55,19 @@ func TestIsOperatorInstallSupported(t *testing.T) {
 
 	b := comp.IsOperatorInstallSupported()
 	assert.True(b, "IsOperatorInstallSupported returned the wrong value")
+}
+
+// TestIsInstalled tests if the component is installed
+// GIVEN a component
+//  WHEN I call IsInstalled
+//  THEN true is returned
+func TestIsInstalled(t *testing.T) {
+	assert := assert.New(t)
+
+	istio.SetCmdRunner(fakeIstioInstalledRunner{})
+	b, err := comp.IsInstalled(spi.NewContext(zap.S(), nil, installCR, false))
+	assert.NoError(err, "IsInstalled returned an error")
+	assert.True(b, "IsInstalled returned false")
 }
 
 // TestInstall tests the component install
@@ -316,4 +334,9 @@ func fakeInstall(log *zap.SugaredLogger, imageOverridesString string, overridesF
 // fakeBash verifies that the correct parameter values are passed to upgrade
 func fakeBash(_ ...string) (string, string, error) {
 	return "succes", "", nil
+}
+
+// fakeIsInstalledRunner overrides the istio run command
+func (r fakeIstioInstalledRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return []byte("Istio is installed and verified successfully"), []byte(""), nil
 }
