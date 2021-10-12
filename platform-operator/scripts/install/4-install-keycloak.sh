@@ -157,7 +157,6 @@ function install_keycloak {
         ${KEYCLOAK_ARGUMENTS} \
         ${keycloak_image_args} \
         --set keycloak.extraInitContainers="${EXTRA_INIT_CONTAINERS_OVERRIDE}" \
-        --debug \
         || return $?
   fi
 
