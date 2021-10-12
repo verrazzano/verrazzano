@@ -74,17 +74,16 @@ multiline_flush_interval 20s
 `
 
 const (
-	specField                       = "spec"
-	jvmField                        = "jvm"
-	argsField                       = "args"
-	workloadType                    = "coherence"
-	destinationRuleAPIVersion       = "networking.istio.io/v1alpha3"
-	destinationRuleKind             = "DestinationRule"
-	coherenceExtendPort             = 9000
-	loggingNamePart                 = "logging-stdout"
-	loggingMountPath                = "/fluentd/etc/fluentd.conf"
-	loggingKey                      = "fluentd.conf"
-	defaultMode               int32 = 400
+	specField                 = "spec"
+	jvmField                  = "jvm"
+	argsField                 = "args"
+	workloadType              = "coherence"
+	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
+	destinationRuleKind       = "DestinationRule"
+	coherenceExtendPort       = 9000
+	loggingNamePart           = "logging-stdout"
+	loggingMountPath          = "/fluentd/etc/custom.conf"
+	loggingKey                = "custom.conf"
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -608,7 +607,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	err = r.Get(ctx, client.ObjectKey{Namespace: coherence.GetNamespace(), Name: configMapName}, configMap)
 	if err != nil && k8serrors.IsNotFound(err) {
 		data := make(map[string]string)
-		data["fluentd.conf"] = loggingTrait.Spec.LoggingConfig
+		data["custom.conf"] = loggingTrait.Spec.LoggingConfig
 		configMap = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      loggingNamePart + "-" + coherence.GetName() + "-" + strings.ToLower(coherence.GetKind()),
@@ -648,37 +647,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		SubPath:   loggingKey,
 		ReadOnly:  true,
 	}
-	vmIndex := -1
-	collision := -1
-	for i, vm := range extracted.VolumeMounts {
-		if vm.MountPath == loggingMountPath {
-			if vm.Name == configMapName {
-				vmIndex = i
-			} else {
-				collision = i
-			}
-		}
-	}
 
-	if vmIndex != -1 {
-		extracted.VolumeMounts[vmIndex] = *loggingVolumeMount
-	} else {
-		extracted.VolumeMounts = append(extracted.VolumeMounts, *loggingVolumeMount)
-	}
-	if collision != -1 {
-		extracted.VolumeMounts[collision] = extracted.VolumeMounts[len(extracted.VolumeMounts)-1]
-		extracted.VolumeMounts = extracted.VolumeMounts[:len(extracted.VolumeMounts)-1]
-	}
-
-	keys := make(map[corev1.VolumeMount]bool)
-	volumeMounts := []corev1.VolumeMount{}
-	for _, entry := range extracted.VolumeMounts {
-		if _, value := keys[entry]; !value {
-			keys[entry] = true
-			volumeMounts = append(volumeMounts, entry)
-		}
-	}
-	extracted.VolumeMounts = volumeMounts
 	loggingVolumeMountUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&loggingVolumeMount)
 	if err != nil {
 		return err
@@ -689,7 +658,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		vols := configMapVolumes.([]interface{})
 		volIndex := -1
 		for i, v := range vols {
-			if v.(map[string]interface{})["mountPath"] == loggingVolumeMountUnstructured["mountPath"] {
+			if v.(map[string]interface{})["mountPath"] == loggingVolumeMountUnstructured["mountPath"] && v.(map[string]interface{})["name"] == loggingVolumeMountUnstructured["name"] {
 				volIndex = i
 			}
 		}
@@ -708,13 +677,12 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	envFluentd := &corev1.EnvVar{
 		Name:  "FLUENTD_CONF",
-		Value: "fluentd.conf",
+		Value: "custom.conf",
 	}
 	loggingContainer := &corev1.Container{
 		Name:            loggingNamePart,
 		Image:           image,
 		ImagePullPolicy: corev1.PullPolicy(loggingTrait.Spec.ImagePullPolicy),
-		VolumeMounts:    extracted.VolumeMounts,
 		Env:             []corev1.EnvVar{*envFluentd},
 	}
 	sIndex := -1
@@ -729,28 +697,6 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		extracted.SideCars = append(extracted.SideCars, *loggingContainer)
 	}
 
-	loggingVolume := &corev1.Volume{
-		Name: configMapName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: configMapName,
-				},
-				DefaultMode: func(mode int32) *int32 {
-					return &mode
-				}(defaultMode),
-			},
-		},
-	}
-	vIndex := -1
-	for i, v := range extracted.Volumes {
-		if v.Name == loggingVolume.Name {
-			vIndex = i
-		}
-	}
-	if vIndex == -1 {
-		extracted.Volumes = append(extracted.Volumes, *loggingVolume)
-	}
 	// convert the containers, volumes, and mounts in extracted to unstructured and set
 	// the values in the spec
 	extractedUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&extracted)
@@ -758,7 +704,6 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		return err
 	}
 	coherenceSpec["sideCars"] = extractedUnstructured["sideCars"]
-	coherenceSpec["volumes"] = extractedUnstructured["volumes"]
 
 	return nil
 }

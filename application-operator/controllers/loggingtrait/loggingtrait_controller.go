@@ -30,8 +30,8 @@ const (
 	errLoggingResource        = "cannot add logging sidecar to the resource"
 	configMapAPIVersion       = "v1"
 	configMapKind             = "ConfigMap"
-	loggingMountPath          = "/fluentd/etc/fluentd.conf"
-	loggingKey                = "fluentd.conf"
+	loggingMountPath          = "/fluentd/etc/custom.conf"
+	loggingKey                = "custom.conf"
 	defaultMode         int32 = 400
 )
 
@@ -121,7 +121,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 			}
 			envFluentd := &corev1.EnvVar{
 				Name:  "FLUENTD_CONF",
-				Value: "fluentd.conf",
+				Value: "custom.conf",
 			}
 			loggingContainer := &corev1.Container{
 				Name:            loggingNamePart,
@@ -312,7 +312,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			}
 			envFluentd := &corev1.EnvVar{
 				Name:  "FLUENTD_CONF",
-				Value: "fluentd.conf",
+				Value: "custom.conf",
 			}
 			loggingContainer := &corev1.Container{
 				Name:            loggingNamePart,
@@ -469,7 +469,7 @@ func (r *LoggingTraitReconciler) ensureLoggingConfigMapExists(ctx context.Contex
 func (r *LoggingTraitReconciler) createLoggingConfigMap(trait *oamv1alpha1.LoggingTrait, resource *unstructured.Unstructured) *corev1.ConfigMap {
 	configMapName := loggingNamePart + "-" + resource.GetName() + "-" + strings.ToLower(resource.GetKind())
 	data := make(map[string]string)
-	data["fluentd.conf"] = trait.Spec.LoggingConfig
+	data["custom.conf"] = trait.Spec.LoggingConfig
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,

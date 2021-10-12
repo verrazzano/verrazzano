@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
+
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -410,7 +412,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 		})
 	// Define expected ConfigMap
 	data := make(map[string]string)
-	data["fluentd.conf"] = ""
+	data["custom.conf"] = ""
 	customLoggingConfigMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "",

@@ -43,8 +43,8 @@ const (
 	destinationRuleAPIVersion       = "networking.istio.io/v1alpha3"
 	destinationRuleKind             = "DestinationRule"
 	loggingNamePart                 = "logging-stdout"
-	loggingMountPath                = "/fluentd/etc/fluentd.conf"
-	loggingKey                      = "fluentd.conf"
+	loggingMountPath                = "/fluentd/etc/custom.conf"
+	loggingKey                      = "custom.conf"
 	defaultMode               int32 = 400
 )
 
@@ -411,10 +411,17 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 		Containers:   extracted.Containers,
 		Volumes:      extracted.Volumes,
 		VolumeMounts: extracted.VolumeMounts,
-		LogPath:      logging.BuildWLSLogPath(name),
-		HandlerEnv:   logging.GetWlsSpecificContainerEnv(),
+		LogPath:      getWLSLogPath(name),
+		HandlerEnv:   getWlsSpecificContainerEnv(name),
 	}
-	fluentdManager := logging.GetFluentd(ctx, r.Log, r.Client)
+	fluentdManager := &logging.Fluentd{Context: ctx,
+		Log:                    r.Log,
+		Client:                 r.Client,
+		ParseRules:             WlsFluentdParsingRules,
+		StorageVolumeName:      storageVolumeName,
+		StorageVolumeMountPath: scratchVolMountPath,
+		WorkloadType:           workloadType,
+	}
 
 	// fluentdManager.Apply wants a QRR but it only cares about the namespace (at least for
 	// this use case)
@@ -450,7 +457,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 	}
 
 	// logHome and logHomeEnabled fields need to be set to turn on logging
-	err = unstructured.SetNestedField(weblogic.Object, logging.BuildWLSLogHome(name), specField, "logHome")
+	err = unstructured.SetNestedField(weblogic.Object, getWLSLogHome(name), specField, "logHome")
 	if err != nil {
 		log.Error(err, "Unable to set logHome")
 		return err
@@ -653,7 +660,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	err = r.Get(ctx, client.ObjectKey{Namespace: weblogic.GetNamespace(), Name: loggingNamePart + "-" + weblogic.GetName() + "-" + strings.ToLower(weblogic.GetKind())}, configMap)
 	if err != nil && k8serrors.IsNotFound(err) {
 		data := make(map[string]string)
-		data["fluentd.conf"] = loggingTrait.Spec.LoggingConfig
+		data["custom.conf"] = loggingTrait.Spec.LoggingConfig
 		configMap = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configMapName,
@@ -715,7 +722,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	envFluentd := &corev1.EnvVar{
 		Name:  "FLUENTD_CONF",
-		Value: "fluentd.conf",
+		Value: "custom.conf",
 	}
 	loggingContainer := &corev1.Container{
 		Name:            loggingNamePart,
@@ -776,11 +783,6 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	err = unstructured.SetNestedSlice(weblogic.Object, extractedUnstructured["volumes"].([]interface{}), specServerPodVolumesFields...)
 	if err != nil {
 		log.Error(err, "Unable to set serverPod volumes")
-		return err
-	}
-	err = unstructured.SetNestedField(weblogic.Object, extractedUnstructured["volumeMounts"].([]interface{}), specServerPodVolumeMountsFields...)
-	if err != nil {
-		log.Error(err, "Unable to set serverPod volumeMounts")
 		return err
 	}
 

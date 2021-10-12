@@ -16,14 +16,14 @@ import (
 )
 
 const (
-	longPollingInterval = 20 * time.Second
+	longPollingInterval = 8 * time.Second
 	longWaitTimeout     = 10 * time.Minute
 
 	// Constants for sample metrics of system components validated by the test
 	ingressControllerSuccess       = "nginx_ingress_controller_success"
 	containerStartTimeSeconds      = "container_start_time_seconds"
 	cpuSecondsTotal                = "node_cpu_seconds_total"
-	totolTCPConnectionsOpened      = "istio_tcp_connections_opened_total"
+	istioRequestsTotal             = "istio_requests_total"
 	sidecarInjectionRequests       = "sidecar_injection_requests_total"
 	prometheusTargetIntervalLength = "prometheus_target_interval_length_seconds"
 	envoyStatsRecentLookups        = "envoy_server_stats_recent_lookups"
@@ -129,7 +129,7 @@ var _ = Describe("Prometheus Metrics", func() {
 				kv := map[string]string{
 					namespace: verrazzanoSystemNamespace,
 				}
-				return metricsContainLabels(totolTCPConnectionsOpened, kv)
+				return metricsContainLabels(istioRequestsTotal, kv)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
@@ -162,7 +162,7 @@ var _ = Describe("Prometheus Metrics", func() {
 
 // Validate the Istio envoy stats for the pods in the namespaces defined in envoyStatsNamespaces
 func verifyEnvoyStats(metricName string) bool {
-	envoyStatsMetric, err := pkg.QueryMetric(metricName, adminKubeConfig)
+	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, labelManagedCluster, getClusterNameForPromQuery())
 	if err != nil {
 		return false
 	}
@@ -227,7 +227,7 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 
 // Validate the metrics contain the labels with values specified as key-value pairs of the map
 func metricsContainLabels(metricName string, kv map[string]string) bool {
-	compMetrics, err := pkg.QueryMetric(metricName, adminKubeConfig)
+	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, labelManagedCluster, getClusterNameForPromQuery())
 	if err != nil {
 		return false
 	}
@@ -267,4 +267,12 @@ func excludePods(pod string, excludeList []string) bool {
 		}
 	}
 	return false
+}
+
+// Return the cluster name used for the Prometheus query
+func getClusterNameForPromQuery() string {
+	if isManagedClusterProfile {
+		return clusterName
+	}
+	return ""
 }
