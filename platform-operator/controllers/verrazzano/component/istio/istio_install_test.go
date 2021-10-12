@@ -65,9 +65,44 @@ func TestIsInstalled(t *testing.T) {
 	assert := assert.New(t)
 
 	istio.SetCmdRunner(fakeIstioInstalledRunner{})
-	b, err := comp.IsInstalled(spi.NewContext(zap.S(), nil, installCR, false))
+	b, err := comp.IsInstalled(spi.NewContext(zap.S(), getIsInstalledMock(t), installCR, false))
 	assert.NoError(err, "IsInstalled returned an error")
 	assert.True(b, "IsInstalled returned false")
+}
+
+func getIsInstalledMock(t *testing.T) *mocks.MockClient {
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// Expect a call to create the PeerAuthentication
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstiodDeployment}, gomock.Not(gomock.Nil())).
+		Return(nil)
+	return mock
+}
+
+// TestIsNotInstalled tests if the component is not installed
+// GIVEN a component
+//  WHEN I call IsInstalled
+//  THEN false is returned
+func TestIsNotInstalled(t *testing.T) {
+	assert := assert.New(t)
+
+	istio.SetCmdRunner(fakeIstioInstalledRunner{})
+	b, err := comp.IsInstalled(spi.NewContext(zap.S(), getIsNotInstalledMock(t), installCR, false))
+	assert.NoError(err, "IsInstalled returned an error")
+	assert.False(b, "IsInstalled returned true")
+}
+
+func getIsNotInstalledMock(t *testing.T) *mocks.MockClient {
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// Expect a call to create the PeerAuthentication
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstiodDeployment}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Deployment"}, IstiodDeployment))
+	return mock
 }
 
 // TestInstall tests the component install

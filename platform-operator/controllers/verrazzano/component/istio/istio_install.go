@@ -16,6 +16,7 @@ import (
 	istiosec "istio.io/api/security/v1beta1"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,8 +54,18 @@ func (i IstioComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
-func (i IstioComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
-	return istio.IsInstalled(context.Log())
+// IsInstalled checks if Istio is installed by looking for the Istio control plane deployment
+func (i IstioComponent) IsInstalled(compContext spi.ComponentContext) (bool, error) {
+	deployment := appsv1.Deployment{}
+	nsn := types.NamespacedName{Name: IstiodDeployment, Namespace: IstioNamespace}
+	if err := compContext.Client().Get(context.TODO(), nsn, &deployment); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		// Unexpected error
+		return false, err
+	}
+	return true, nil
 }
 
 func (i IstioComponent) Install(compContext spi.ComponentContext) error {
