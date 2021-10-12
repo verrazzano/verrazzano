@@ -391,8 +391,8 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 	}
 
 	coherenceSpec["sideCars"] = fluentdPodUnstructured["containers"]
-	coherenceSpec["volumes"] = fluentdPodUnstructured["volumes"]
-	coherenceSpec["volumeMounts"] = fluentdPodUnstructured["volumeMounts"]
+	//coherenceSpec["volumes"] = fluentdPodUnstructured["volumes"]
+	//coherenceSpec["volumeMounts"] = fluentdPodUnstructured["volumeMounts"]
 
 	addJvmArgs(coherenceSpec)
 
