@@ -41,7 +41,7 @@ spec:
             metrics:
               enabled: true
           ports:
-            - name: extend
+            - name: tcp-extend
               port: 9000
               service:
                 name: roberts-coherence-extend
@@ -117,7 +117,7 @@ spec:
             metrics:
               enabled: true
           ports:
-            - name: extend
+            - name: tcp-extend
               port: 9000
               service:
                 name: bobbys-coherence-extend

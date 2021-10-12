@@ -5,10 +5,9 @@ package coherence
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -17,11 +16,11 @@ const ComponentName = "coherence-operator"
 const coherenceOperatorDeploymentName = ComponentName
 
 // IsCoherenceOperatorReady checks if the COH operator deployment is ready
-func IsCoherenceOperatorReady(log *zap.SugaredLogger, c clipkg.Client, _ string, namespace string) bool {
+func IsCoherenceOperatorReady(ctx spi.ComponentContext, _ string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: coherenceOperatorDeploymentName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(log, c, deployments, 1)
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }
 
 // IsEnabled returns true if the component is enabled, which is the default

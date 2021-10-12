@@ -23,6 +23,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+const testMCAppConfigNamespace = "unit-mcappconfig-namespace"
+
 // TestSyncer_AgentReadyToSync tests the AgentReadyToSync method of Syncer
 func TestSyncer_AgentReadyToSync(t *testing.T) {
 	type fields struct {

@@ -23,7 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	k8net "k8s.io/api/networking/v1beta1"
+	k8net "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -123,7 +123,6 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 
 	regYAML = overrideRancherImageLocation(regYAML, log)
 
-	log.Infof("Successfully registered managed cluster in Rancher with name: %s", clusterName)
 	return regYAML, nil
 }
 
@@ -191,7 +190,7 @@ func importClusterToRancher(rc *rancherConfig, clusterName string, log *zap.Suga
 	if response != nil && response.StatusCode == http.StatusUnprocessableEntity {
 		// if we've already imported this cluster, we get an HTTP 422, so attempt to fetch the existing cluster
 		// and get the cluster ID from the response
-		log.Infof("Cluster %s already registered with Rancher, attempting to fetch it", clusterName)
+		log.Debugf("Cluster %s already registered with Rancher, attempting to fetch it", clusterName)
 		clusterID, err := getClusterIDFromRancher(rc, clusterName, log)
 		if err != nil {
 			return "", err
@@ -207,6 +206,7 @@ func importClusterToRancher(rc *rancherConfig, clusterName string, log *zap.Suga
 	if err != nil {
 		return "", err
 	}
+	log.Infof("Successfully registered managed cluster in Rancher with name: %s", clusterName)
 
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "id", "unable to find cluster id in Rancher response")
 }

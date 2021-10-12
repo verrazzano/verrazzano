@@ -7,12 +7,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"testing"
-	"time"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -26,7 +27,7 @@ import (
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	extv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -191,8 +192,8 @@ func TestSuccessfulInstall(t *testing.T) {
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *extv1beta1.IngressList) error {
-			ingressList.Items = []extv1beta1.Ingress{}
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+			ingressList.Items = []networkingv1.Ingress{}
 			return nil
 		})
 
