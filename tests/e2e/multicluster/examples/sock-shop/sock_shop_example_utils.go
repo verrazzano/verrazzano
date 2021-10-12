@@ -75,7 +75,7 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 func VerifySockShopInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
 	projectExists := projectExists(kubeConfigPath, projectName)
 	podsRunning := sockShopPodsRunning(kubeConfigPath, namespace)
-
+	//
 	//workloadExists := true
 	//// check each sock-shop workload in expectedWorkloads
 	//for _, workload := range expectedWorkloads {
@@ -142,7 +142,7 @@ func VerifyMCResourcesDeleted(kubeconfigPath string, namespace string, projectNa
 	return !appConfExists && !compExists && !projExists
 }
 
-// SockShopExists - returns true if the sock-shop namespace exists in the given cluster
+// SockShopNamespaceExists SockShopExists - returns true if the sock-shop namespace exists in the given cluster
 func SockShopNamespaceExists(kubeconfigPath string, namespace string) bool {
 	_, err := pkg.GetNamespaceInCluster(namespace, kubeconfigPath)
 	return err == nil
@@ -176,6 +176,7 @@ func componentExists(kubeconfigPath string, namespace string, component string) 
 	return resourceExists(gvr, namespace, component, kubeconfigPath)
 }
 
+//
 //func componentWorkloadExists(kubeConfigPath string, namespace string, workload string) bool {
 //	gvr := schema.GroupVersionResource{
 //		Group:    oamv1alpha1.SchemeGroupVersion.Group,
