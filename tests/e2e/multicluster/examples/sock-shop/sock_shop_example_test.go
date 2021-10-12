@@ -4,13 +4,10 @@
 package sock_shop
 
 import (
-	b64 "encoding/base64"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,9 +29,6 @@ var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
-var sockShop SockShop
-var username, password string
-
 // failed indicates whether any of the tests has failed
 var failed = false
 
@@ -45,10 +39,6 @@ var _ = AfterEach(func() {
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = BeforeSuite(func() {
-	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
-	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
-	sockShop = NewSockShop(username, password, pkg.Ingress())
-
 	// deploy the VerrazzanoProject
 	Eventually(func() error {
 		return DeploySockShopProject(adminKubeconfig, sourceDir)
@@ -134,29 +124,28 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 	// GIVEN an admin cluster and at least one managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
+	//Context("Metrics", func() {
+	//	It("Verify Prometheus metrics exist on admin cluster", func() {
+	//		Eventually(func() bool {
+	//			return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, adminKubeconfig)
+	//		}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+	//	})
+	//})
+
 	Context("Metrics", func() {
 		It("Verify Prometheus metrics exist on admin cluster", func() {
-			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			pkg.Concurrently(
+				func() {
+					Eventually(appMetricsExists(clusterName, adminKubeconfig), waitTimeout, pollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appComponentMetricsExists(clusterName, adminKubeconfig), waitTimeout, pollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appConfigMetricsExists(clusterName, adminKubeconfig), waitTimeout, pollingInterval).Should(BeTrue())
+				},
+			)
 		})
-	})
-
-	var hostname = ""
-	var err error
-	It("Get host from gateway.", func() {
-		Eventually(func() (string, error) {
-			hostname, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
-			return hostname, err
-		}, waitTimeout, pollingInterval).Should(Not(BeEmpty()))
-	})
-
-	sockShop.SetHostHeader(hostname)
-
-	It("SockShop can be accessed and user can be registered", func() {
-		Eventually(func() bool {
-			return sockShop.RegisterUser(fmt.Sprintf(registerTemp, username, password), hostname)
-		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to register SockShop User")
 	})
 
 	Context("Delete resources", func() {

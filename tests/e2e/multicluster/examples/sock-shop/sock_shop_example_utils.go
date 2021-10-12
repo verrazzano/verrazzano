@@ -6,50 +6,20 @@ package sock_shop
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"strings"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-
-	//oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-
-	. "github.com/onsi/gomega"
 )
 
 const (
 	multiclusterNamespace = "verrazzano-mc"
 	appConfigName         = "sockshop-appconf"
 )
-
-// Constants for log levels
-const (
-	Debug = pkg.Debug
-	Info  = pkg.Info
-	Error = pkg.Error
-)
-
-// SockShop encapsulates all testing information related to interactions with the sock shop app
-type SockShop struct {
-	Ingress    string
-	username   string
-	password   string
-	hostHeader string
-}
-
-// user registration template
-const registerTemp = `{
-  "username":"%v",
-  "password":"%v",
-  "email":"foo@oracle.com",
-  "firstName":"foo",
-  "lastName":"coo"
-}`
 
 var (
 	expectedCompsSockShop = []string{
@@ -68,19 +38,10 @@ var (
 		"users-coh"}
 )
 
-// NewSockShop creates a new sockshop instance
-func NewSockShop(username, password, ingress string) SockShop {
-	var sockShop SockShop
-	sockShop.username = username
-	sockShop.password = password
-	sockShop.Ingress = ingress
-	return sockShop
-}
-
 // DeploySockShopProject deploys the sock-shop example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
-		return fmt.Errorf("Failed to create %s project resource: %v", sourceDir, err)
+		return fmt.Errorf("failed to create %s project resource: %v", sourceDir, err)
 	}
 	return nil
 }
@@ -88,10 +49,10 @@ func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
 // DeploySockShopApp deploys the sock-shop example application to the cluster with the given kubeConfigPath
 func DeploySockShopApp(kubeconfigPath string, sourceDir string) error {
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-comp.yaml", sourceDir), kubeconfigPath); err != nil {
-		return fmt.Errorf("Failed to create multi-cluster %s component resources: %v", sourceDir, err)
+		return fmt.Errorf("failed to create multi-cluster %s component resources: %v", sourceDir, err)
 	}
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-app.yaml", sourceDir), kubeconfigPath); err != nil {
-		return fmt.Errorf("Failed to create multi-cluster %s application resource: %v", sourceDir, err)
+		return fmt.Errorf("failed to create multi-cluster %s application resource: %v", sourceDir, err)
 	}
 	return nil
 }
@@ -99,7 +60,7 @@ func DeploySockShopApp(kubeconfigPath string, sourceDir string) error {
 // VerifyMCResources verifies that the MC resources are present or absent depending on whether this is an admin
 // cluster and whether the resources are placed in the given cluster
 func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, namespace string) bool {
-	// call both mcAppConfExists and mcComponentExists and store the results, to avoid short-circuiting
+	// call both appConfExists and componentExists and store the results, to avoid short-circuiting
 	// since we should check both in all cases
 	mcAppConfExists := appConfExists(kubeconfigPath, namespace)
 
@@ -133,20 +94,6 @@ func VerifySockShopInCluster(kubeconfigPath string, isAdminCluster bool, placedI
 			return !podsRunning && !projectExists
 		}
 	}
-}
-
-// RegisterUser interacts with sock shop to create a user
-func (s *SockShop) RegisterUser(body string, hostname string) bool {
-	url := fmt.Sprintf("https://%v/register", hostname)
-	resp, err := pkg.PostWithHostHeader(url, "application/json", s.hostHeader, strings.NewReader(body))
-	Expect(err).ShouldNot(HaveOccurred())
-	pkg.Log(Info, fmt.Sprintf("Finished register %s status: %v", resp.Body, resp.StatusCode))
-	return (resp.StatusCode == http.StatusOK) && (strings.Contains(string(resp.Body), "username"))
-}
-
-// SetHostHeader sets the ingress host
-func (s *SockShop) SetHostHeader(host string) {
-	s.hostHeader = host
 }
 
 // VerifySockShopDeleteOnAdminCluster verifies that the sock shop app resources have been deleted from the admin
@@ -228,18 +175,7 @@ func componentExists(kubeconfigPath string, namespace string, component string) 
 	return resourceExists(gvr, namespace, component, kubeconfigPath)
 }
 
-//
-//func componentWorkloadExists(kubeConfigPath string, namespace string, workload string) bool {
-//	gvr := schema.GroupVersionResource{
-//		Group:    oamv1alpha1.SchemeGroupVersion.Group,
-//		Version:  oamv1alpha1.SchemeGroupVersion.Version,
-//		Resource: "verrazzanocoherenceworkloads",
-//	}
-//	temp := resourceExists(gvr, namespace, workload, kubeConfigPath)
-//	fmt.Printf("Workload: %s, val: %t\n", workload, temp)
-//	return resourceExists(gvr, namespace, workload, kubeConfigPath)
-//}
-
+// resourceExists Check if given resource exists
 func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
 	config, err := pkg.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
@@ -264,6 +200,22 @@ func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kub
 	return u != nil
 }
 
+// sockShopPodsRunning Check if expected pods are running on a given cluster
 func sockShopPodsRunning(kubeconfigPath string, namespace string) bool {
 	return pkg.PodsRunningInCluster(namespace, expectedPodsSockShop, kubeconfigPath)
+}
+
+// appMetricsExists checks whether app related metrics are available
+func appMetricsExists(clusterName string, kubeconfigPath string) bool {
+	return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, kubeconfigPath)
+}
+
+// appComponentMetricsExists checks whether component related metrics are available
+func appComponentMetricsExists(clusterName string, kubeconfigPath string) bool {
+	return pkg.MetricsExistInCluster("vendor_requests_count_total", "managed_cluster", clusterName, kubeconfigPath)
+}
+
+// appConfigMetricsExists checks whether config metrics are available
+func appConfigMetricsExists(clusterName string, kubeconfigPath string) bool {
+	return pkg.MetricsExistInCluster("vendor_requests_count_total", "managed_cluster", clusterName, kubeconfigPath)
 }
