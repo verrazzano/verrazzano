@@ -6,7 +6,11 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strings"
 	"time"
