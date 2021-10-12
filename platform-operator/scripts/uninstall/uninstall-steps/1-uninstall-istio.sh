@@ -33,7 +33,6 @@ function uninstall_istio() {
   log "Removing Istio Webhook Configurations"
   kubectl delete MutatingWebhookConfiguration istio-sidecar-injector --ignore-not-found=true || err_return $? "Could not delete MutatingWebhookConfiguration from Istio" || return $?
   kubectl delete ValidatingWebhookConfiguration istiod-istio-system  --ignore-not-found=true || err_return $? "Could not delete ValidatingWebhookConfiguration from Istio" || return $?
-  kubectl delete MutatingWebhookConfiguration istio-sidecar-injector-1-10-2 --ignore-not-found=true || err_return $? "Could not delete MutatingWebhookConfiguration from Istio" || return $?
 
   # delete istio api services
   log "Deleting Istio API Services"
