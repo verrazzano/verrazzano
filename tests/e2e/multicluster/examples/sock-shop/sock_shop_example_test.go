@@ -146,7 +146,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 	var err error
 	It("Get host from gateway.", func() {
 		Eventually(func() (string, error) {
-			hostname, err = k8sutil.GetHostnameFromGateway("sockshop", "")
+			hostname, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
 			return hostname, err
 		}, waitTimeout, pollingInterval).Should(Not(BeEmpty()))
 	})
