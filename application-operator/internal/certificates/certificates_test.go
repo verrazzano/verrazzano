@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	adminv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	adminv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -76,33 +76,33 @@ func TestUpdateValidatingWebhookConfiguration(t *testing.T) {
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
 	path := "/validate-oam-verrazzano-io-v1alpha1-ingresstrait"
-	service := adminv1beta1.ServiceReference{
+	service := adminv1.ServiceReference{
 		Name:      OperatorName,
 		Namespace: OperatorNamespace,
 		Path:      &path,
 	}
-	webhook := adminv1beta1.ValidatingWebhookConfiguration{
+	webhook := adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: IngressTraitValidatingWebhookName,
 		},
-		Webhooks: []adminv1beta1.ValidatingWebhook{
+		Webhooks: []adminv1.ValidatingWebhook{
 			{
 				Name: "install.verrazzano.io",
-				ClientConfig: adminv1beta1.WebhookClientConfig{
+				ClientConfig: adminv1.WebhookClientConfig{
 					Service: &service,
 				},
 			},
 		},
 	}
 
-	_, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateValidatingWebhookConfiguration(kubeClient, &caCert, IngressTraitValidatingWebhookName)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
-	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), IngressTraitValidatingWebhookName, metav1.GetOptions{})
+	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), IngressTraitValidatingWebhookName, metav1.GetOptions{})
 	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
@@ -119,27 +119,27 @@ func TestUpdateValidatingWebhookConfigurationFail(t *testing.T) {
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
 	path := "/validate-oam-verrazzano-io-v1alpha1-ingresstrait"
-	service := adminv1beta1.ServiceReference{
+	service := adminv1.ServiceReference{
 		Name:      OperatorName,
 		Namespace: OperatorNamespace,
 		Path:      &path,
 	}
-	webhook := adminv1beta1.ValidatingWebhookConfiguration{
+	webhook := adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "InvalidName",
 		},
-		Webhooks: []adminv1beta1.ValidatingWebhook{
+		Webhooks: []adminv1.ValidatingWebhook{
 			{
 				Name: "install.verrazzano.io",
-				ClientConfig: adminv1beta1.WebhookClientConfig{
+				ClientConfig: adminv1.WebhookClientConfig{
 					Service: &service,
 				},
 			},
 		},
 	}
 
-	_, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateValidatingWebhookConfiguration(kubeClient, &caCert, IngressTraitValidatingWebhookName)
@@ -159,33 +159,33 @@ func TestUpdateAppConfigMutatingWebhookConfiguration(t *testing.T) {
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
 	path := "/appconfig-defaulter"
-	service := adminv1beta1.ServiceReference{
+	service := adminv1.ServiceReference{
 		Name:      OperatorName,
 		Namespace: OperatorNamespace,
 		Path:      &path,
 	}
-	webhook := adminv1beta1.MutatingWebhookConfiguration{
+	webhook := adminv1.MutatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: AppConfigMutatingWebhookName,
 		},
-		Webhooks: []adminv1beta1.MutatingWebhook{
+		Webhooks: []adminv1.MutatingWebhook{
 			{
 				Name: "install.verrazzano.io",
-				ClientConfig: adminv1beta1.WebhookClientConfig{
+				ClientConfig: adminv1.WebhookClientConfig{
 					Service: &service,
 				},
 			},
 		},
 	}
 
-	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+	_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, AppConfigMutatingWebhookName)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
-	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), AppConfigMutatingWebhookName, metav1.GetOptions{})
+	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), AppConfigMutatingWebhookName, metav1.GetOptions{})
 	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
@@ -202,27 +202,27 @@ func TestUpdateAppConfigMutatingWebhookConfigurationFail(t *testing.T) {
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
 	path := "/appconfig-defaulter"
-	service := adminv1beta1.ServiceReference{
+	service := adminv1.ServiceReference{
 		Name:      OperatorName,
 		Namespace: OperatorNamespace,
 		Path:      &path,
 	}
-	webhook := adminv1beta1.MutatingWebhookConfiguration{
+	webhook := adminv1.MutatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "InvalidName",
 		},
-		Webhooks: []adminv1beta1.MutatingWebhook{
+		Webhooks: []adminv1.MutatingWebhook{
 			{
 				Name: "install.verrazzano.io",
-				ClientConfig: adminv1beta1.WebhookClientConfig{
+				ClientConfig: adminv1.WebhookClientConfig{
 					Service: &service,
 				},
 			},
 		},
 	}
 
-	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+	_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, AppConfigMutatingWebhookName)
@@ -242,33 +242,33 @@ func TestUpdateIstioMutatingWebhookConfiguration(t *testing.T) {
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
 	path := "/istio-defaulter"
-	service := adminv1beta1.ServiceReference{
+	service := adminv1.ServiceReference{
 		Name:      OperatorName,
 		Namespace: OperatorNamespace,
 		Path:      &path,
 	}
-	webhook := adminv1beta1.MutatingWebhookConfiguration{
+	webhook := adminv1.MutatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: IstioMutatingWebhookName,
 		},
-		Webhooks: []adminv1beta1.MutatingWebhook{
+		Webhooks: []adminv1.MutatingWebhook{
 			{
 				Name: "install.verrazzano.io",
-				ClientConfig: adminv1beta1.WebhookClientConfig{
+				ClientConfig: adminv1.WebhookClientConfig{
 					Service: &service,
 				},
 			},
 		},
 	}
 
-	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+	_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, IstioMutatingWebhookName)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
-	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), IstioMutatingWebhookName, metav1.GetOptions{})
+	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), IstioMutatingWebhookName, metav1.GetOptions{})
 	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
@@ -285,27 +285,27 @@ func TestUpdateIstioMutatingWebhookConfigurationFail(t *testing.T) {
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
 	path := "/istio-defaulter"
-	service := adminv1beta1.ServiceReference{
+	service := adminv1.ServiceReference{
 		Name:      OperatorName,
 		Namespace: OperatorNamespace,
 		Path:      &path,
 	}
-	webhook := adminv1beta1.MutatingWebhookConfiguration{
+	webhook := adminv1.MutatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "InvalidName",
 		},
-		Webhooks: []adminv1beta1.MutatingWebhook{
+		Webhooks: []adminv1.MutatingWebhook{
 			{
 				Name: "install.verrazzano.io",
-				ClientConfig: adminv1beta1.WebhookClientConfig{
+				ClientConfig: adminv1.WebhookClientConfig{
 					Service: &service,
 				},
 			},
 		},
 	}
 
-	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+	_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, IstioMutatingWebhookName)
