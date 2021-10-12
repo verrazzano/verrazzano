@@ -427,7 +427,7 @@ pipeline {
                                 runGinkgoKeepGoing('ingress/console')
                             }
                         }
-                        stage('logging trait weblogic workload') {
+                        stage('logging trait WebLogic workload') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
                             }
@@ -435,7 +435,7 @@ pipeline {
                                 runGinkgo('loggingtrait/weblogicworkload')
                             }
                         }
-                        stage('logging trait helidon workload') {
+                        stage('logging trait Helidon workload') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
                             }
@@ -443,7 +443,7 @@ pipeline {
                                 runGinkgo('loggingtrait/helidonworkload')
                             }
                         }
-                        stage('logging trait coherence workload') {
+                        stage('logging trait Coherence workload') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
                             }

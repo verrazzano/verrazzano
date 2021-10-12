@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// TestWebLogicLoggingTrait tests an ingress trait setup for console access.
+// TestHelidonLoggingTrait tests an ingress trait setup for console access.
 func TestHelidonLoggingTrait(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("helidon-loggingtrait-%d-test-result.xml", config.GinkgoConfig.ParallelNode))

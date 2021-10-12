@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// TestWebLogicLoggingTrait tests an ingress trait setup for console access.
+// TestCoherenceLoggingTrait tests an ingress trait setup for console access.
 func TestCoherenceLoggingTrait(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("coherence-loggingtrait-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
