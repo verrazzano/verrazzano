@@ -96,7 +96,7 @@ func getComponents() []spi.Component {
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          nginx.ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: false,
+			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(overridesDir, nginx.ValuesFileOverride),
 			PreInstallFunc:          nginx.PreInstall,
@@ -178,6 +178,7 @@ func getComponents() []spi.Component {
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			ReadyStatusFunc:         appoper.IsApplicationOperatorReady,
 			Dependencies:            []string{"oam-kubernetes-runtime"},
+			PreUpgradeFunc:          appoper.ApplyCRDYaml,
 		},
 		helm.HelmComponent{
 			ReleaseName:             mysql.ComponentName,

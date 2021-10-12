@@ -4,19 +4,21 @@
 package config
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
 const (
-	rootDir                = "/verrazzano"
-	platformDirSuffix      = "/platform-operator"
-	installDirSuffix       = "/platform-operator/scripts/install"
-	thirdPartyDirSuffix    = "/platform-operator/thirdparty/charts"
-	helmConfigDirSuffix    = "/platform-operator/helm_config"
-	helmChartsDirSuffix    = "/platform-operator/helm_config/charts"
-	helmVzChartsDirSuffix  = "/platform-operator/helm_config/charts/verrazzano"
-	helmOverridesDirSuffix = "/platform-operator/helm_config/overrides"
+	rootDir                  = "/verrazzano"
+	platformDirSuffix        = "/platform-operator"
+	installDirSuffix         = "/platform-operator/scripts/install"
+	thirdPartyDirSuffix      = "/platform-operator/thirdparty/charts"
+	helmConfigDirSuffix      = "/platform-operator/helm_config"
+	helmChartsDirSuffix      = "/platform-operator/helm_config/charts"
+	helmVzChartsDirSuffix    = "/platform-operator/helm_config/charts/verrazzano"
+	helmAppOpChartsDirSuffix = "/platform-operator/helm_config/charts/verrazzano-application-operator"
+	helmOverridesDirSuffix   = "/platform-operator/helm_config/overrides"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -102,6 +104,14 @@ func GetHelmVzChartsDir() string {
 		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano")
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, helmVzChartsDirSuffix)
+}
+
+// GetHelmAppOpChartsDir returns the Verrazzano Application Operator helm charts dir
+func GetHelmAppOpChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-application-operator")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmAppOpChartsDirSuffix)
 }
 
 // GetHelmOverridesDir returns the helm overrides dir
