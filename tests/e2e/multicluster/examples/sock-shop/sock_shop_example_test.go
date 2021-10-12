@@ -133,18 +133,18 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for sock-shop")
 		})
 
-		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the example application has been deployed to the admin cluster
-		// THEN expect recent Elasticsearch logs for the app exist on the admin cluster Elasticsearch
-		//It("Verify recent Elasticsearch log record exists on admin cluster", func() {
-		//	Eventually(func() bool {
-		//		return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-		//			"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
-		//			"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-appconf",
-		//			"kubernetes.container_name":                 "hello-helidon-container",
-		//		}, adminKubeconfig)
-		//	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-		//})
+		//GIVEN an admin cluster and at least one managed cluster
+		//WHEN the example application has been deployed to the admin cluster
+		//THEN expect recent Elasticsearch logs for the app exist on the admin cluster Elasticsearch
+		It("Verify recent Elasticsearch log record exists on admin cluster", func() {
+			Eventually(func() bool {
+				return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"kubernetes.labels.app_oam_dev\\/component": "orders-component",
+					"kubernetes.labels.app_oam_dev\\/name":      "sockshop-appconf",
+					"kubernetes.container_name":                 "orders-container",
+				}, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+		})
 	})
 
 	// GIVEN an admin cluster and at least one managed cluster
@@ -163,37 +163,37 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		})
 	})
 
-	Context("Delete resources", func() {
-		It("Delete resources on admin cluster", func() {
-			Eventually(func() error {
-				return cleanUp(adminKubeconfig)
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-		})
-
-		It("Verify deletion on admin cluster", func() {
-			Eventually(func() bool {
-				return VerifySockShopDeleteOnAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-
-		It("Verify automatic deletion on managed cluster", func() {
-			Eventually(func() bool {
-				return VerifySockShopDeleteOnManagedCluster(managedKubeconfig, testNamespace, testProjectName)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-
-		It("Delete test namespace on managed cluster", func() {
-			Eventually(func() error {
-				return pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig)
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-		})
-
-		It("Delete test namespace on admin cluster", func() {
-			Eventually(func() error {
-				return pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig)
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-		})
-	})
+	//Context("Delete resources", func() {
+	//	It("Delete resources on admin cluster", func() {
+	//		Eventually(func() error {
+	//			return cleanUp(adminKubeconfig)
+	//		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	//	})
+	//
+	//	It("Verify deletion on admin cluster", func() {
+	//		Eventually(func() bool {
+	//			return VerifySockShopDeleteOnAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
+	//		}, waitTimeout, pollingInterval).Should(BeTrue())
+	//	})
+	//
+	//	It("Verify automatic deletion on managed cluster", func() {
+	//		Eventually(func() bool {
+	//			return VerifySockShopDeleteOnManagedCluster(managedKubeconfig, testNamespace, testProjectName)
+	//		}, waitTimeout, pollingInterval).Should(BeTrue())
+	//	})
+	//
+	//	It("Delete test namespace on managed cluster", func() {
+	//		Eventually(func() error {
+	//			return pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig)
+	//		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	//	})
+	//
+	//	It("Delete test namespace on admin cluster", func() {
+	//		Eventually(func() error {
+	//			return pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig)
+	//		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	//	})
+	//})
 })
 
 var _ = AfterSuite(func() {
