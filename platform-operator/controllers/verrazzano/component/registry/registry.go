@@ -178,6 +178,7 @@ func getComponents() []spi.Component {
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			ReadyStatusFunc:         appoper.IsApplicationOperatorReady,
 			Dependencies:            []string{"oam-kubernetes-runtime"},
+			PreUpgradeFunc:          appoper.ApplyCRDYaml,
 		},
 		helm.HelmComponent{
 			ReleaseName:             mysql.ComponentName,

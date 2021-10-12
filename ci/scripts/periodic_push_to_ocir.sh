@@ -3,6 +3,8 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
+SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
+TOOL_SCRIPT_DIR=${SCRIPT_DIR}/../../tools/scripts
 
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCIR_SCAN_REGISTRY" ]  || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
@@ -48,7 +50,7 @@ fi
 # effect of pushing that image to the root compartment rather than the desired sub-compartment (OCIR behaviour),
 # and that new image will not be getting scanned until that is rectified (manually)
 
-sh vz-registry-image-helper.sh -t $OCIR_SCAN_REGISTRY -r $OCIR_SCAN_REPOSITORY_PATH -l ${WORKSPACE}/tar-files
+sh $TOOL_SCRIPT_DIR/vz-registry-image-helper.sh -t $OCIR_SCAN_REGISTRY -r $OCIR_SCAN_REPOSITORY_PATH -l ${WORKSPACE}/tar-files
 
 # Finally push the current verrazzano-bom.json up as the last-ocir-pushed-verrazzano-bom.json so we know those were the latest images
 # pushed up. This is used above for avoiding pushing things multiple times for no reason, and it also is used when polling for results
