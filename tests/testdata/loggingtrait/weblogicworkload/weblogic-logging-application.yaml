@@ -20,10 +20,6 @@ spec:
               name: logging-trait
               namespace: weblogic-logging-trait
             spec:
-              workloadReference:
-                name: todo-domain
-                apiVersion: oam.verrazzano.io/v1alpha1
-                kind: VerrazzanoWebLogicWorkload
               loggingImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2
               loggingConfig: |
                   <match fluent.**>

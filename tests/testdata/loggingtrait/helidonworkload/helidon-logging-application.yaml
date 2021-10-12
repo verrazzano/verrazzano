@@ -35,10 +35,6 @@ spec:
               name: logging-trait
               namespace: hello-helidon-logging
             spec:
-              workloadReference:
-                name: hello-helidon-workload
-                apiVersion: oam.verrazzano.io/v1alpha1
-                kind: VerrazzanoHelidonWorkload
               loggingImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2
               loggingConfig: |
                   <match fluent.**>

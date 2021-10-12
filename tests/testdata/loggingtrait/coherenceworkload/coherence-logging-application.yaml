@@ -36,10 +36,6 @@ spec:
               name: logging-trait
               namespace: sockshop-logging
             spec:
-              workloadReference:
-                name: carts-coh
-                apiVersion: oam.verrazzano.io/v1alpha1
-                kind: VerrazzanoCoherenceWorkload
               loggingImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2
               loggingConfig: |
                   <match fluent.**>
