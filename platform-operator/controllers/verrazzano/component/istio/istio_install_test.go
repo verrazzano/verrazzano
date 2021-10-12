@@ -19,6 +19,7 @@ import (
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -38,6 +39,17 @@ var installCR = &installv1alpha1.Verrazzano{
 			},
 		},
 	},
+}
+
+// TestIsOperatorInstallSupported tests if the install is supported
+// GIVEN a component
+//  WHEN I call IsOperatorInstallSupported
+//  THEN true is returned
+func TestIsOperatorInstallSupported(t *testing.T) {
+	assert := assert.New(t)
+
+	b := comp.IsOperatorInstallSupported()
+	assert.True(b, "IsOperatorInstallSupported returned the wrong value")
 }
 
 // TestInstall tests the component install
@@ -217,6 +229,39 @@ func createPeerAuthenticationMock(t *testing.T) *mocks.MockClient {
 		DoAndReturn(func(ctx context.Context, peer *istioclisec.PeerAuthentication, opts ...client.CreateOption) error {
 			if peer.Spec.Mtls.Mode != istiosec.PeerAuthentication_MutualTLS_STRICT {
 				return errors.NewBadRequest("MTLS should be STRICT")
+			}
+			return nil
+		})
+
+	return mock
+}
+
+// TestLabelNamespace tests creating the labelNamespace resource
+// GIVEN a component
+//  WHEN I call labelNamespace
+//  THEN the namespace is labelled
+func TestLabelNamespace(t *testing.T) {
+	assert := assert.New(t)
+
+	setBashFunc(fakeBash)
+	err := labelNamespace(spi.NewContext(zap.S(), labelNamespaceMock(t), installCR, false))
+	assert.NoError(err, "labelNamespace returned an error")
+}
+
+func labelNamespaceMock(t *testing.T) *mocks.MockClient {
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: IstioNamespace}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Namespace"}, IstioNamespace))
+
+	// Expect a call to create the NameSpace
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
+			if ns.ObjectMeta.Labels == nil {
+				ns.ObjectMeta.Labels["verrazzano.io/namespace"] = IstioNamespace
 			}
 			return nil
 		})
