@@ -529,15 +529,26 @@ EOF
   export DEBUG=${PRESERVE_DEBUG}
 }
 
-# configure the prometheus deployment to limit istio proxy based communication to the keycloak service only.  Other
-# outbound requests (scrapings) are done by prometheus using the mounted istio certs.
+# configure the prometheus deployment
+#   If keycloak is installed, limit istio proxy based communication to the keycloak service only.  Other
+#   outbound requests (scrapings) are done by prometheus using the mounted istio certs.
+#
+#   If keycloak is not installed, exclude Istio sidecar for metrics scraping
 function patch_prometheus {
-  # get the keycloak service IP
-  keycloak_service_ip=$(kubectl get service/keycloak-http -n keycloak -o jsonpath='{.spec.clusterIP}')
-  log "Setting ${keycloak_service_ip} as keycloak http pod IP for prometheus deployment"
-  # patch the prometheus deployment
-  if ! kubectl patch deployment vmi-system-prometheus-0 -n verrazzano-system --type='json' -p='[{"op": "add", "path": "/spec/template/metadata/annotations/traffic.sidecar.istio.io~1includeOutboundIPRanges", "value":'\"${keycloak_service_ip}'/32"}]'; then
-    fail "Failed to patch the prometheus deployment"
+  if [ $(is_prometheus_console_enabled) == "true" ]; then
+    # get the keycloak service IP
+    keycloak_service_ip=$(kubectl get service/keycloak-http -n keycloak -o jsonpath='{.spec.clusterIP}')
+    log "Setting ${keycloak_service_ip} as keycloak http pod IP for prometheus deployment"
+    # patch the prometheus deployment
+    if ! kubectl patch deployment vmi-system-prometheus-0 -n verrazzano-system --type='json' -p='[{"op": "add", "path": "/spec/template/metadata/annotations/traffic.sidecar.istio.io~1includeOutboundIPRanges", "value":'\"${keycloak_service_ip}'/32"}]'; then
+      fail "Failed to patch the prometheus deployment"
+    fi
+  else
+    # Avoid the Istio sidecar for metrics scraping
+    log "Setting 0.0.0.0/0 as excludeOutboundIPRanges for prometheus deployment"
+    if ! kubectl patch deployment vmi-system-prometheus-0 -n verrazzano-system --type='json' -p='[{"op": "add", "path": "/spec/template/metadata/annotations/traffic.sidecar.istio.io~excludeOutboundIPRanges", "value": "0.0.0.0/0"}]'; then
+      fail "Failed to patch the prometheus deployment"
+    fi
   fi
 }
 
@@ -562,9 +573,7 @@ if [ $(is_keycloak_enabled) == "true" ]; then
 
   action "Installing Keycloak" install_keycloak || exit 1
 
-  if [ $(is_prometheus_console_enabled) == "true" ]; then
-    action "patching the prometheus deployment to enable communication with keycloak" patch_prometheus || exit 1
-  fi
+  action "patching the prometheus deployment" patch_prometheus || exit 1
 
 else
   log "Skip Keycloak installation, disabled"
