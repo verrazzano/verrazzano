@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"strings"
 
+	"net/http/httptrace"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
@@ -206,6 +208,67 @@ func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reade
 	return doReq(url, "PUT", contentType, hostHeader, "", "", body, client)
 }
 
+// transport is an http.RoundTripper that keeps track of the in-flight
+// request and implements hooks to report HTTP tracing events.
+type transport struct {
+	current *http.Request
+}
+
+// RoundTrip wraps http.DefaultTransport.RoundTrip to keep track
+// of the current request.
+func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
+	t.current = req
+	return http.DefaultTransport.RoundTrip(req)
+}
+
+// GotConn prints whether the connection has been used previously
+// for the current request.
+func (t *transport) GotConn(info httptrace.GotConnInfo) {
+	Log(Info, fmt.Sprintf("GotConn: %v", info))
+}
+
+// GotConn prints whether the connection has been used previously
+// for the current request.
+func (t *transport) ConnectStart(network, addr string) {
+	Log(Info, fmt.Sprintf("ConnectStart network: %s, addr: %s", network, addr))
+}
+
+// GotConn prints whether the connection has been used previously
+// for the current request.
+func (t *transport) GotFirstResponseByte() {
+	Log(Info, fmt.Sprintf("GotFirstResponseByte: %v", t.current.URL))
+}
+
+// GotConn prints whether the connection has been used previously
+// for the current request.
+func (t *transport) DNSDone(info httptrace.DNSDoneInfo) {
+	Log(Info, fmt.Sprintf("DNSDone: %v", info))
+}
+
+// GotConn prints whether the connection has been used previously
+// for the current request.
+func (t *transport) ConnectDone(network string, addr string, err error) {
+	Log(Info, fmt.Sprintf("ConnectDone network: %v, addr: %v, err: %v", network, addr, err))
+}
+
+// GotConn prints whether the connection has been used previously
+// for the current request.
+func (t *transport) TLSHandshakeDone(state tls.ConnectionState, err error) {
+	Log(Info, fmt.Sprintf("TLSHandshakeDone state: %v, error: %v", state, err))
+}
+
+// GotConn prints whether the connection has been used previously
+// for the current request.
+func (t *transport) WroteHeaders() {
+	Log(Info, fmt.Sprintf("WroteHeaders: %v", t.current.Method))
+}
+
+// GotConn prints whether the connection has been used previously
+// for the current request.
+func (t *transport) WroteRequest(info httptrace.WroteRequestInfo) {
+	Log(Info, fmt.Sprintf("WroteRequest: %v", info))
+}
+
 // doReq executes an HTTP request with the specified method (GET, POST, DELETE, etc)
 func doReq(url, method string, contentType string, hostHeader string, username string, password string,
 	body io.Reader, httpClient *retryablehttp.Client) (*HTTPResponse, error) {
@@ -213,6 +276,18 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	if err != nil {
 		return nil, err
 	}
+	t := &transport{}
+	trace := &httptrace.ClientTrace{
+		GotConn:              t.GotConn,
+		ConnectStart:         t.ConnectStart,
+		GotFirstResponseByte: t.GotFirstResponseByte,
+		DNSDone:              t.DNSDone,
+		ConnectDone:          t.ConnectDone,
+		TLSHandshakeDone:     t.TLSHandshakeDone,
+		WroteHeaders:         t.WroteHeaders,
+		WroteRequest:         t.WroteRequest,
+	}
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
@@ -222,6 +297,7 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	if username != "" && password != "" {
 		req.SetBasicAuth(username, password)
 	}
+	httpClient.HTTPClient.Transport = t
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
