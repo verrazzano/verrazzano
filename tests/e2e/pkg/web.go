@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/textproto"
 	"strings"
 
 	"net/http/httptrace"
@@ -261,6 +262,39 @@ func (t *transport) WroteRequest(info httptrace.WroteRequestInfo) {
 	Log(Info, fmt.Sprintf("WroteRequest: %v", info))
 }
 
+func (t *transport) GetConn(hostPort string) {
+	Log(Info, fmt.Sprintf("GetConn: %v", hostPort))
+}
+
+func (t *transport) PutIdleConn(err error) {
+	Log(Info, fmt.Sprintf("PutIdleConn: %v", err))
+}
+
+func (t *transport) Got100Continue() {
+	Log(Info, "Got100Continue")
+}
+
+func (t *transport) Got1xxResponse(code int, header textproto.MIMEHeader) error {
+	Log(Info, fmt.Sprintf("Got1xxResponse code: %v, header: %v", code, header))
+	return nil
+}
+
+func (t *transport) DNSStart(info httptrace.DNSStartInfo) {
+	Log(Info, fmt.Sprintf("DNSStart: %v", info))
+}
+
+func (t *transport) TLSHandshakeStart() {
+	Log(Info, "TLSHandshakeStart")
+}
+
+func (t *transport) WroteHeaderField(key string, value []string) {
+	Log(Info, fmt.Sprintf("WroteHeaderField key: %v, value: %v", key, value))
+}
+
+func (t *transport) Wait100Continue() {
+	Log(Info, "Wait100Continue")
+}
+
 // doReq executes an HTTP request with the specified method (GET, POST, DELETE, etc)
 func doReq(url, method string, contentType string, hostHeader string, username string, password string,
 	body io.Reader, httpClient *retryablehttp.Client) (*HTTPResponse, error) {
@@ -278,6 +312,14 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 		TLSHandshakeDone:     t.TLSHandshakeDone,
 		WroteHeaders:         t.WroteHeaders,
 		WroteRequest:         t.WroteRequest,
+		GetConn:              t.GetConn,
+		PutIdleConn:          t.PutIdleConn,
+		Got100Continue:       t.Got100Continue,
+		Got1xxResponse:       t.Got1xxResponse,
+		DNSStart:             t.DNSStart,
+		TLSHandshakeStart:    t.TLSHandshakeStart,
+		WroteHeaderField:     t.WroteHeaderField,
+		Wait100Continue:      t.Wait100Continue,
 	}
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 	if contentType != "" {

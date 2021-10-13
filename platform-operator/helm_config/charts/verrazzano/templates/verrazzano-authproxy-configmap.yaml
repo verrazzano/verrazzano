@@ -33,6 +33,8 @@ data:
         hostUri = ingressUri
     })
 
+    auth.info("Start Processing request for backend '"..ingressHost.."'")
+
     -- determine backend and set backend parameters
     local backend = auth.getBackendNameFromIngressHost(ingressHost)
     local backendUrl = auth.getBackendServerUrlFromName(backend)
