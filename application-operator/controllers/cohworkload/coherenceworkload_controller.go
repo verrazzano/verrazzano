@@ -84,6 +84,7 @@ const (
 	loggingNamePart           = "logging-stdout"
 	loggingMountPath          = "/fluentd/etc/custom.conf"
 	loggingKey                = "custom.conf"
+	fluentdVolumeName         = "fluentd-config-volume"
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -483,6 +484,18 @@ func moveConfigMapVolume(log logr.Logger, fluentdPod *logging.FluentdPod, cohere
 		}
 	} else {
 		log.Info("Expected to find config map volume mount in fluentd container but did not")
+	}
+
+	volumes := fluentdPod.Volumes
+	vIndex := -1
+	for v, volume := range volumes {
+		if volume.Name == fluentdVolumeName {
+			vIndex = v
+		}
+	}
+	if vIndex != -1 {
+		volumes[vIndex] = volumes[len(volumes)-1]
+		fluentdPod.Volumes = volumes[:len(volumes)-1]
 	}
 
 	return nil
