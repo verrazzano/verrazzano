@@ -204,13 +204,3 @@ func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kub
 func sockShopPodsRunning(kubeconfigPath string, namespace string) bool {
 	return pkg.PodsRunningInCluster(namespace, expectedPodsSockShop, kubeconfigPath)
 }
-
-// appMetricsExists checks whether app related metrics are available
-func appMetricsExists(clusterName string, kubeconfigPath string) bool {
-	return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, kubeconfigPath)
-}
-
-// appComponentMetricsExists checks whether component related metrics are available
-func appComponentMetricsExists(clusterName string, kubeconfigPath string) bool {
-	return pkg.MetricsExistInCluster("vendor_requests_count_total", "managed_cluster", clusterName, kubeconfigPath)
-}
