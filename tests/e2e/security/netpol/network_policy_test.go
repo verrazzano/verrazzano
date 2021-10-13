@@ -4,6 +4,7 @@
 package netpol
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -179,9 +180,7 @@ var _ = Describe("Test Network Policies", func() {
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test node-exporter ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"verrazzano.io/namespace": "monitoring"}}, "monitoring", nodeExporterMetricsPort, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test node-exporter ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"verrazzano.io/namespace": "monitoring"}}, "monitoring", envoyStatsMetricsPort, true)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "node-exporter"}}, "monitoring", nodeExporterMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test node-exporter ingress rules failed: reason = %s", err))
 			},
 			func() {
@@ -330,7 +329,7 @@ var _ = Describe("Test Network Policies", func() {
 			},
 			func() {
 				pkg.Log(pkg.Info, "Negative test verrazzano-monitoring-operator ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-monitoring-operator"}}, "verrazzano-system", 8000, false)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"k8s-app": "verrazzano-monitoring-operator"}}, "verrazzano-system", 8000, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-monitoring-operator ingress rules failed: reason = %s", err))
 			},
 			func() {
@@ -386,28 +385,30 @@ func testAccess(fromSelector metav1.LabelSelector, fromNamespace string, toSelec
 		pods, err = pkg.GetPodsFromSelector(&fromSelector, fromNamespace)
 		return err
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	mapFromSelector, _ := metav1.LabelSelectorAsMap(&fromSelector)
+	jsonFromSelector, _ := json.Marshal(mapFromSelector)
+	Expect(len(pods) > 0).To(BeTrue(), fmt.Sprintf("FAIL: Pod not found with label: %s in namespace: %s", jsonFromSelector, fromNamespace))
+	fromPod := pods[0]
 
-	if len(pods) > 0 {
-		fromPod := pods[0]
-		// get the TO pod
-		Eventually(func() error {
-			var err error
-			pods, err = pkg.GetPodsFromSelector(&toSelector, toNamespace)
-			return err
-		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	// get the TO pod
+	Eventually(func() error {
+		var err error
+		pods, err = pkg.GetPodsFromSelector(&toSelector, toNamespace)
+		return err
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	mapToSelector, _ := metav1.LabelSelectorAsMap(&toSelector)
+	jsonToSelector, _ := json.Marshal(mapToSelector)
+	Expect(len(pods) > 0).To(BeTrue(), fmt.Sprintf("FAIL: Pod not found with label: %s in namespace: %s", jsonToSelector, toNamespace))
+	toPod := pods[0]
 
-		if len(pods) > 0 {
-			toPod := pods[0]
-			if expectAccess {
-				Eventually(func() bool {
-					return attemptConnection(&fromPod, &toPod, port, 10)
-				}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Should be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
-			} else {
-				Consistently(func() bool {
-					return attemptConnection(&fromPod, &toPod, port, 10)
-				}, shortWaitTimeout, shortPollingInterval).Should(BeFalse(), fmt.Sprintf("Should NOT be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
-			}
-		}
+	if expectAccess {
+		Eventually(func() bool {
+			return attemptConnection(&fromPod, &toPod, port, 10)
+		}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Should be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
+	} else {
+		Consistently(func() bool {
+			return attemptConnection(&fromPod, &toPod, port, 10)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeFalse(), fmt.Sprintf("Should NOT be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
 	}
 	return nil
 }
