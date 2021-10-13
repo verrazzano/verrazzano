@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
 	"os"
 	"strings"
 	"time"
@@ -167,20 +168,12 @@ func (i IstioComponent) PreUpgrade(_ spi.ComponentContext) error {
 }
 
 func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
-	const istioCoreDNSReleaseName = "istiocoredns"
-
-	// Check if the component is installed before trying to upgrade
-	found, err := helm.IsReleaseInstalled(istioCoreDNSReleaseName, constants.IstioSystemNamespace)
+	err := deleteIstioCoreDNS(context)
 	if err != nil {
-		context.Log().Errorf("Error returned when searching for release: %v", err)
+		return err
 	}
-	if found {
-		_, _, err = helmUninstallFunction(context.Log(), istioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
-		if err != nil {
-			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
-		}
-	}
-	return nil
+	err = removeIstioHelmSecrets(context)
+	return err
 }
 
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets
@@ -258,14 +251,44 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 	return nil
 }
 
-// contains is a helper function that should be a build-in
-func contains(arr []string, s string) bool {
-	for _, str := range arr {
-		if str == s {
-			return true
+func deleteIstioCoreDNS(context spi.ComponentContext) error {
+	const istioCoreDNSReleaseName = "istiocoredns"
+
+	// Check if the component is installed before trying to upgrade
+	found, err := helm.IsReleaseInstalled(istioCoreDNSReleaseName, constants.IstioSystemNamespace)
+	if err != nil {
+		context.Log().Errorf("Error returned when searching for release: %v", err)
+	}
+	if found {
+		_, _, err = helmUninstallFunction(context.Log(), istioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		if err != nil {
+			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
 		}
 	}
-	return false
+	return nil
+}
+
+func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
+	const helmSecretType = "helm.sh/release.v1"
+	client := compContext.Client()
+	var secretList v1.SecretList
+	err := client.List(context.TODO(), &secretList, &clipkg.ListOptions{Namespace: constants.IstioSystemNamespace})
+	if err != nil {
+		compContext.Log().Errorf("Error retrieving list of secrets in the istio-system namespace: %v", err)
+	}
+	for index := range secretList.Items {
+		secret := &secretList.Items[index]
+		secretName := secret.Name
+		if secret.Type == helmSecretType {
+			err = client.Delete(context.TODO(), secret)
+			if err != nil {
+				compContext.Log().Errorf("Error deleting helm secret %v: %v", secretName, err)
+			} else {
+				compContext.Log().Infof("Deleted helm secret %v", secretName)
+			}
+		}
+	}
+	return nil
 }
 
 func buildImageOverridesString(_ *zap.SugaredLogger) (string, error) {
@@ -379,4 +402,14 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 		}
 	}
 	return kvs, nil
+}
+
+// contains is a helper function that should be a build-in
+func contains(arr []string, s string) bool {
+	for _, str := range arr {
+		if str == s {
+			return true
+		}
+	}
+	return false
 }
