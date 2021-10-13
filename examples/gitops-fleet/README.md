@@ -13,7 +13,7 @@ kubectl label namespace hello-helidon verrazzano-managed=true istio-injection=en
 
 ## Create GitRepo instance
 
-Git repositories are register by creating a `GitRepo`. Apply this yaml to deploy the hello-helidon example via GitOps with fleet
+Git repositories are register by creating a `GitRepo`. Apply this yaml to deploy the hello-helidon example via GitOps with Fleet
 
 Copyright (c) 2021, Oracle and/or its affiliates.
 
