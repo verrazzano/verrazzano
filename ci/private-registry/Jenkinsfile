@@ -18,11 +18,11 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "${agentLabel}"
+            label "largeexperimental"
         }
     }
 
@@ -156,7 +156,7 @@ pipeline {
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
                 """
-                println("agentlabel: ${agentLabel}")
+                println("agentlabel: largeexperimental")
                 sh """
                     echo "${NODE_LABELS}"
                 """
