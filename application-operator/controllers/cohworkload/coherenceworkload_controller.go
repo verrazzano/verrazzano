@@ -84,7 +84,7 @@ const (
 	loggingNamePart           = "logging-stdout"
 	loggingMountPath          = "/fluentd/etc/custom.conf"
 	loggingKey                = "custom.conf"
-	fluentdVolumeName         = "fluentd-config-coherence"
+	fluentdVolumeName         = "fluentd-config-volume"
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -379,7 +379,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 	// with the existing spec data
 
 	// Coherence wants the volume mount for the FLUENTD config map stored in "configMapVolumes", so
-	// we have to move it from the FLUENTD container volume mounts & volumes
+	// we have to move it from the FLUENTD container volume mounts
 	if err = moveConfigMapVolume(log, fluentdPod, coherenceSpec); err != nil {
 		return err
 	}
@@ -393,6 +393,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	coherenceSpec["sideCars"] = fluentdPodUnstructured["containers"]
 	coherenceSpec["volumes"] = fluentdPodUnstructured["volumes"]
+	coherenceSpec["volumeMounts"] = fluentdPodUnstructured["volumeMounts"]
 
 	addJvmArgs(coherenceSpec)
 
@@ -467,16 +468,6 @@ func moveConfigMapVolume(log logr.Logger, fluentdPod *logging.FluentdPod, cohere
 			break
 		}
 	}
-	vIndex := -1
-	for v, volume := range fluentdPod.Volumes {
-		if volume.Name == fluentdVolumeName {
-			vIndex = v
-		}
-	}
-	if vIndex != -1 {
-		fluentdPod.Volumes[vIndex] = fluentdPod.Volumes[len(fluentdPod.Volumes)-1]
-		fluentdPod.Volumes = fluentdPod.Volumes[:len(fluentdPod.Volumes)-1]
-	}
 
 	// add the config map volume mount to "configMapVolumes" in the spec
 	if fluentdVolMount.Name != "" {
@@ -493,6 +484,18 @@ func moveConfigMapVolume(log logr.Logger, fluentdPod *logging.FluentdPod, cohere
 		}
 	} else {
 		log.Info("Expected to find config map volume mount in fluentd container but did not")
+	}
+
+	volumes := fluentdPod.Volumes
+	vIndex := -1
+	for v, volume := range volumes {
+		if volume.Name == fluentdVolumeName {
+			vIndex = v
+		}
+	}
+	if vIndex != -1 {
+		volumes[vIndex] = volumes[len(volumes)-1]
+		fluentdPod.Volumes = volumes[:len(volumes)-1]
 	}
 
 	return nil
