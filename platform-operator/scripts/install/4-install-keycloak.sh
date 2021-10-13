@@ -572,12 +572,11 @@ if [ $(is_keycloak_enabled) == "true" ]; then
     fi
 
   action "Installing Keycloak" install_keycloak || exit 1
-
-  action "patching the prometheus deployment" patch_prometheus || exit 1
-
 else
   log "Skip Keycloak installation, disabled"
 fi
+
+action "patching the prometheus deployment" patch_prometheus || exit 1
 
 rm -rf $TMP_DIR
 
