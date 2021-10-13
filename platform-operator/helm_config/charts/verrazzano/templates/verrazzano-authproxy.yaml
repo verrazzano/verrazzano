@@ -144,3 +144,13 @@ imagePullSecrets:
 - name: {{ . }}
 {{- end }}
 {{- end }}
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: {{ .Values.api.name }}-secret
+  namespace: {{ .Release.Namespace }}
+data:
+  # encryption key generated dynamically and overridden on helm command line
+  cookie-encryption-key: {{ randAscii 64 | quote }}
