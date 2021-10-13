@@ -409,11 +409,6 @@ pipeline {
                                 runGinkgoRandomize('multicluster/verify-install')
                             }
                         }
-                        stage('verify-install') {
-                            steps {
-                                runGinkgoRandomize('verify-install')
-                            }
-                        }
                         stage('verify-scripts') {
                             steps {
                                 runGinkgo('scripts', "${ADMIN_KUBECONFIG}", "${params.TOTAL_CLUSTERS}")
@@ -531,6 +526,11 @@ pipeline {
                                 }
                             }
                         }
+                    }
+                }
+                stage('verify-install') {
+                    steps {
+                        runGinkgoRandomize('verify-install')
                     }
                 }
                 stage ('Console') {
