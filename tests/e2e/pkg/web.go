@@ -228,7 +228,7 @@ func (t *transport) ConnectStart(network, addr string) {
 // GotConn prints whether the connection has been used previously
 // for the current request.
 func (t *transport) GotFirstResponseByte() {
-	Log(Info, fmt.Sprintf("GotFirstResponseByte"))
+	Log(Info, "GotFirstResponseByte")
 }
 
 // GotConn prints whether the connection has been used previously
@@ -252,7 +252,7 @@ func (t *transport) TLSHandshakeDone(state tls.ConnectionState, err error) {
 // GotConn prints whether the connection has been used previously
 // for the current request.
 func (t *transport) WroteHeaders() {
-	Log(Info, fmt.Sprintf("WroteHeaders"))
+	Log(Info, "WroteHeaders")
 }
 
 // GotConn prints whether the connection has been used previously
