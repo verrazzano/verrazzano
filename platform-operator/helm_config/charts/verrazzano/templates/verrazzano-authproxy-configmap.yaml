@@ -244,7 +244,7 @@ data:
     function me.not_found(msg, err)
         me.logJson(ngx.ERR, msg, err)
         ngx.status = ngx.HTTP_NOT_FOUND
-        ngx.say("404 Not Found")
+        ngx.say("404 Not Found from authproxy")
         ngx.exit(ngx.HTTP_NOT_FOUND)
     end
 

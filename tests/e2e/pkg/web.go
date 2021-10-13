@@ -455,6 +455,10 @@ func HasStatus(expected int) types.GomegaMatcher {
 		if response == nil {
 			return 0
 		}
+
+		if response.StatusCode == 404 {
+			Log(Info, string(response.Body))
+		}
 		return response.StatusCode
 	}, gomega.Equal(expected))
 }
