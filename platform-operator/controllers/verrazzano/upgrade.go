@@ -48,10 +48,6 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}
-		// If SkipUpgrade field is true, skip this component
-		if comp.GetSkipUpgrade() {
-			continue
-		}
 		err := comp.Upgrade(upgradeContext)
 		if err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)

@@ -6,24 +6,26 @@ package istio
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+
 	"go.uber.org/zap"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
 )
 
 // fakeRunner is used to test istio without actually running an OS exec command
@@ -70,10 +72,8 @@ func TestUpgrade(t *testing.T) {
 	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	istio.SetCmdRunner(fakeRunner{})
-	defer istio.SetDefaultRunner()
-	setUpgradeFunc(fakeUpgrade)
-	defer setDefaultUpgradeFunc()
+	SetIstioUpgradeFunction(fakeUpgrade)
+	defer SetDefaultIstioUpgradeFunction()
 	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), crInstall, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
@@ -95,6 +95,30 @@ func fakeUpgrade(log *zap.SugaredLogger, imageOverridesString string, overridesF
 	}
 	if !strings.Contains(string(installArgsFromFile), "val1") {
 		return []byte("error"), []byte(""), fmt.Errorf("install args overrides file does not contain install args")
+	}
+	return []byte("success"), []byte(""), nil
+}
+
+func TestPostUpgrade(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := IstioComponent{}
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helm.SetCmdRunner(fakeRunner{})
+	defer helm.SetDefaultRunner()
+	SetHelmUninstallFunction(fakeHelmUninstall)
+	SetDefaultHelmUninstallFunction()
+	err := comp.PostUpgrade(spi.NewContext(zap.S(), nil, crInstall, false))
+	assert.NoError(err, "PostUpgrade returned an error")
+}
+
+func fakeHelmUninstall(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+	if releaseName != "istiocoredns" {
+		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
+	}
+	if releaseName != "istio-system" {
+		return []byte("error"), []byte(""), fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
 	}
 	return []byte("success"), []byte(""), nil
 }

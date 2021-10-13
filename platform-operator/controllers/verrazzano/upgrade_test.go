@@ -705,11 +705,11 @@ func TestUpgradeCompleted(t *testing.T) {
 	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 		return []byte(""), []byte(""), nil
 	})
-	defer istiocomp.ResetIstioUpgradeFunction()
-	istiocomp.SetRestartComponentsFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
+	defer istiocomp.SetDefaultIstioUpgradeFunction()
+	istiocomp.SetRestartComponentsFunction(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
 		return nil
 	})
-	defer istiocomp.ResetRestartComponentsFn()
+	defer istiocomp.SetDefaultRestartComponentsFunction()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -761,11 +761,11 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 		return []byte(""), []byte(""), nil
 	})
-	defer istiocomp.ResetIstioUpgradeFunction()
-	istiocomp.SetRestartComponentsFn(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
+	defer istiocomp.SetDefaultIstioUpgradeFunction()
+	istiocomp.SetRestartComponentsFunction(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
 		return nil
 	})
-	defer istiocomp.ResetRestartComponentsFn()
+	defer istiocomp.SetDefaultRestartComponentsFunction()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
