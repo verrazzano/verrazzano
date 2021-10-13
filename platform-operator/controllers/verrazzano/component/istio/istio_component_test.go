@@ -73,7 +73,7 @@ func TestUpgrade(t *testing.T) {
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	SetIstioUpgradeFunction(fakeUpgrade)
-	defer ResetIstioUpgradeFunction()
+	defer SetDefaultIstioUpgradeFunction()
 	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), crInstall, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
@@ -107,8 +107,8 @@ func TestPostUpgrade(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(fakeRunner{})
 	defer helm.SetDefaultRunner()
-	SetHelmUninstallFn(fakeHelmUninstall)
-	ResetHelmUninstallFn()
+	SetHelmUninstallFunction(fakeHelmUninstall)
+	SetDefaultHelmUninstallFunction()
 	err := comp.PostUpgrade(spi.NewContext(zap.S(), nil, crInstall, false))
 	assert.NoError(err, "PostUpgrade returned an error")
 }

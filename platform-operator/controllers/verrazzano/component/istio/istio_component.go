@@ -49,46 +49,46 @@ type IstioComponent struct {
 	InjectedSystemNamespaces []string
 }
 
-type upgradeFnType func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
-var upgradeFunc upgradeFnType = istio.Upgrade
+var upgradeFunc upgradeFuncSig = istio.Upgrade
 
-func SetIstioUpgradeFunction(fn upgradeFnType) {
+func SetIstioUpgradeFunction(fn upgradeFuncSig) {
 	upgradeFunc = fn
 }
 
-func ResetIstioUpgradeFunction() {
+func SetDefaultIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
-type restartComponentsFnType func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
+type restartComponentsFuncSig func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
 
-var restartComponentsFn = restartComponents
+var restartComponentsFunction = restartComponents
+
+func SetRestartComponentsFunction(fn restartComponentsFuncSig) {
+	restartComponentsFunction = fn
+}
+
+func SetDefaultRestartComponentsFunction() {
+	restartComponentsFunction = restartComponents
+}
+
+type helmUninstallFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
+
+var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
+
+func SetHelmUninstallFunction(fn helmUninstallFuncSig) {
+	helmUninstallFunction = fn
+}
+
+func SetDefaultHelmUninstallFunction() {
+	helmUninstallFunction = helm.Uninstall
+}
 
 // IsEnabled returns true if the component is enabled, which is the default
 func IsEnabled(_ *v1alpha1.IstioComponent) bool {
 	return true
-}
-
-func SetRestartComponentsFn(fn restartComponentsFnType) {
-	restartComponentsFn = fn
-}
-
-func ResetRestartComponentsFn() {
-	restartComponentsFn = restartComponents
-}
-
-type helmUninstallFnType func(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
-
-var helmUninstallFn helmUninstallFnType = helm.Uninstall
-
-func SetHelmUninstallFn(fn helmUninstallFnType) {
-	helmUninstallFn = fn
-}
-
-func ResetHelmUninstallFn() {
-	helmUninstallFn = helm.Uninstall
 }
 
 // Name returns the component name
@@ -142,7 +142,7 @@ func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	err = restartComponentsFn(log, err, i, context.Client())
+	err = restartComponentsFunction(log, err, i, context.Client())
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
 		return err
 	}
 	if found {
-		_, _, err = helmUninstallFn(context.Log(), istioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		_, _, err = helmUninstallFunction(context.Log(), istioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
 	}
 	return err
 }
