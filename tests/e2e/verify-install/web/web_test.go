@@ -166,7 +166,16 @@ var _ = Describe("Verrazzano Web UI", func() {
 		It("can be logged out", func() {
 			if !isManagedClusterProfile {
 				Eventually(func() (*pkg.HTTPResponse, error) {
-					return pkg.GetWebPage(fmt.Sprintf("%s/%s", serverURL, "_logout"), "")
+					response, err := pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
+					if response != nil {
+						pkg.Log(pkg.Info, fmt.Sprintf("response: %v", string(response.Body)))
+					}
+
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("error: %v", err))
+					}
+
+					return response, err
 				}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK)))
 			}
 		})

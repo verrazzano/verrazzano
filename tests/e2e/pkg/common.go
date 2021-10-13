@@ -247,6 +247,14 @@ func GetRetryPolicy() func(ctx context.Context, resp *http.Response, err error) 
 		if resp != nil {
 			status := resp.StatusCode
 			if status == http.StatusNotFound {
+				defer resp.Body.Close()
+				bodyBytes, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					Log(Error, fmt.Sprintf("error: %v", err))
+					return true, nil
+				}
+				bodyString := string(bodyBytes)
+				Log(Info, fmt.Sprintf("response: %v", bodyString))
 				return true, nil
 			}
 		}
