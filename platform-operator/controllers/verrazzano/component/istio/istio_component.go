@@ -167,7 +167,7 @@ func (i IstioComponent) PreUpgrade(_ spi.ComponentContext) error {
 }
 
 func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
-	istioCoreDNSReleaseName := "istiocoredns"
+	const istioCoreDNSReleaseName = "istiocoredns"
 
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(istioCoreDNSReleaseName, constants.IstioSystemNamespace)
