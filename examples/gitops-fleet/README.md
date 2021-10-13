@@ -20,5 +20,6 @@ spec:
   - examples/gitops-fleet
   - examples/hello-helidon
 
-  targets: local
+  targets:
+  - name: local
 ```
