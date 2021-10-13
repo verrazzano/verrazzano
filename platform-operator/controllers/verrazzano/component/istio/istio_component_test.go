@@ -45,7 +45,7 @@ var crInstall = &installv1alpha1.Verrazzano{
 
 var comp = IstioComponent{}
 
-const testBomFilePath = "../../testdata/test_bom_istio_1.10.2.json"
+const testBomFilePath = "../../testdata/test_bom.json"
 
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
