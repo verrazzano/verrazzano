@@ -78,7 +78,7 @@ func TestUpgrade(t *testing.T) {
 	}
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.10.2,global.proxy.image=proxyv2,global.tag=1.10.2"
+	fakeOverrides = "values.pilot.image=ghcr.io/verrazzano/pilot:1.10.2,values.global.hub=ghcr.io/verrazzano,values.global.proxy.image=proxyv2,values.global.tag=1.10.2"
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -163,7 +163,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	defer os.Unsetenv(constants.ImageRepoOverrideEnvVar)
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.10.2,global.proxy.image=proxyv2,global.tag=1.10.2"
+	fakeOverrides = "values.pilot.image=myreg.io/myrepo/verrazzano/pilot:1.10.2,values.global.hub=myreg.io/myrepo/verrazzano,values.global.proxy.image=proxyv2,values.global.tag=1.10.2,global.hub=myreg.io/myrepo/verrazzano"
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -197,7 +197,7 @@ func TestInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.10.2,global.proxy.image=proxyv2,global.tag=1.10.2"
+	fakeOverrides = "values.pilot.image=ghcr.io/verrazzano/pilot:1.10.2,values.global.hub=ghcr.io/verrazzano,values.global.proxy.image=proxyv2,values.global.tag=1.10.2"
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -225,7 +225,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 	assert := assert.New(t)
 
 	comp := HelmComponent{
-		ReleaseName:             "istiod",
+		ReleaseName:             "rancher",
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
@@ -236,12 +236,12 @@ func TestInstallPreviousFailure(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = "pilot.image=ghcr.io/verrazzano/pilot:1.10.2,global.proxy.image=proxyv2,global.tag=1.10.2"
+	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher"
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
-	setUpgradeFunc(fakeUpgrade)
+	setUpgradeFunc(fakeUpgradeRancher)
 	defer setDefaultUpgradeFunc()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartNotFound, nil
@@ -268,7 +268,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 	}
 
 	comp := HelmComponent{
-		ReleaseName:             "istiod",
+		ReleaseName:             "rancher",
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
@@ -284,7 +284,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function,
 	// plus values returned from the preInstall function if present
 	var buffer bytes.Buffer
-	buffer.WriteString("pilot.image=ghcr.io/verrazzano/pilot:1.7.3,global.proxy.image=proxyv2,global.tag=1.7.3,")
+	buffer.WriteString("rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/ranche")
 	for i, kv := range preInstallKVPairs {
 		buffer.WriteString(kv.Key)
 		buffer.WriteString("=")
@@ -431,6 +431,29 @@ func TestReady(t *testing.T) {
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
 func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, _ string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiod" {
+		return []byte("error"), []byte(""), errors.New("Invalid release name")
+	}
+	if chartDir != "ChartDir" {
+		return []byte("error"), []byte(""), errors.New("Invalid chart directory name")
+	}
+	if namespace != "chartNS" {
+		return []byte("error"), []byte(""), errors.New("Invalid chart namespace")
+	}
+	for _, file := range overridesFiles {
+		if file != "ValuesFile" && file == "" {
+			return []byte("error"), []byte(""), errors.New("Invalid values file")
+		}
+	}
+	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	if overrides != fakeOverrides {
+		return []byte("error"), []byte(""), errors.New("Invalid overrides")
+	}
+	return []byte("success"), []byte(""), nil
+}
+
+// fakeUpgrade verifies that the correct parameter values are passed to upgrade
+func fakeUpgradeRancher(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, _ string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+	if releaseName != "rancher" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
 	if chartDir != "ChartDir" {
