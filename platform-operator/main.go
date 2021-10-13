@@ -14,6 +14,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
 	"go.uber.org/zap"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -32,6 +35,10 @@ func init() {
 
 	_ = installv1alpha1.AddToScheme(scheme)
 	_ = clustersv1alpha1.AddToScheme(scheme)
+
+	_ = istioclinet.AddToScheme(scheme)
+	_ = istioclisec.AddToScheme(scheme)
+
 	// +kubebuilder:scaffold:scheme
 }
 

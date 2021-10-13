@@ -13,7 +13,6 @@ import (
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/golang/mock/gomock"
@@ -138,14 +137,14 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	helidonTestContainerPort := v1.ContainerPort{
+	helidonTestContainerPort := corev1.ContainerPort{
 		ContainerPort: 8080,
 		Name:          "http",
 	}
-	helidonTestContainer := v1.Container{
+	helidonTestContainer := corev1.Container{
 		Name:  "hello-helidon-container-new",
 		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
-		Ports: []v1.ContainerPort{
+		Ports: []corev1.ContainerPort{
 			helidonTestContainerPort,
 		},
 	}
@@ -156,8 +155,8 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 				"app": "hello-helidon-deploy-new",
 			},
 		},
-		PodSpec: v1.PodSpec{
-			Containers: []v1.Container{
+		PodSpec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				helidonTestContainer,
 			},
 		},
@@ -199,14 +198,14 @@ func TestReconcileCreateHelidon(t *testing.T) {
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	helidonTestContainerPort := v1.ContainerPort{
+	helidonTestContainerPort := corev1.ContainerPort{
 		ContainerPort: 8080,
 		Name:          "http",
 	}
-	helidonTestContainer := v1.Container{
+	helidonTestContainer := corev1.Container{
 		Name:  "hello-helidon-container-new",
 		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
-		Ports: []v1.ContainerPort{
+		Ports: []corev1.ContainerPort{
 			helidonTestContainerPort,
 		},
 	}
@@ -218,8 +217,8 @@ func TestReconcileCreateHelidon(t *testing.T) {
 				"app": "hello-helidon-deploy-new",
 			},
 		},
-		PodSpec: v1.PodSpec{
-			Containers: []v1.Container{
+		PodSpec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				helidonTestContainer,
 			},
 		},
@@ -260,7 +259,7 @@ func TestReconcileCreateHelidon(t *testing.T) {
 			assert.Equal(deploymentKind, deploy.Kind)
 			// make sure the OAM component and app name labels were copied
 			assert.Equal(map[string]string{"app": "hello-helidon-deploy-new", "app.oam.dev/component": "unit-test-component", "app.oam.dev/name": "unit-test-app-config"}, deploy.GetLabels())
-			assert.Equal([]v1.Container{
+			assert.Equal([]corev1.Container{
 				helidonTestContainer,
 			}, deploy.Spec.Template.Spec.Containers)
 			return nil
@@ -268,7 +267,7 @@ func TestReconcileCreateHelidon(t *testing.T) {
 	// expect a call to create the Service
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, service *v1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
+		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
 			return nil
@@ -307,26 +306,26 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	helidonTestContainerPort := v1.ContainerPort{
+	helidonTestContainerPort := corev1.ContainerPort{
 		ContainerPort: 8080,
 		Name:          "http",
 	}
-	helidonTestContainerPort2 := v1.ContainerPort{
+	helidonTestContainerPort2 := corev1.ContainerPort{
 		ContainerPort: 8081,
 		Name:          "udp",
 		Protocol:      corev1.ProtocolUDP,
 	}
-	helidonTestContainer := v1.Container{
+	helidonTestContainer := corev1.Container{
 		Name:  "hello-helidon-container-new",
 		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
-		Ports: []v1.ContainerPort{
+		Ports: []corev1.ContainerPort{
 			helidonTestContainerPort,
 		},
 	}
-	helidonTestContainer2 := v1.Container{
+	helidonTestContainer2 := corev1.Container{
 		Name:  "hello-helidon-container-new2",
 		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
-		Ports: []v1.ContainerPort{
+		Ports: []corev1.ContainerPort{
 			helidonTestContainerPort2,
 		},
 	}
@@ -338,8 +337,8 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 				"app": "hello-helidon-deploy-new",
 			},
 		},
-		PodSpec: v1.PodSpec{
-			Containers: []v1.Container{
+		PodSpec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				helidonTestContainer,
 				helidonTestContainer2,
 			},
@@ -381,7 +380,7 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 			assert.Equal(deploymentKind, deploy.Kind)
 			// make sure the OAM component and app name labels were copied
 			assert.Equal(map[string]string{"app": "hello-helidon-deploy-new", "app.oam.dev/component": "unit-test-component", "app.oam.dev/name": "unit-test-app-config"}, deploy.GetLabels())
-			assert.Equal([]v1.Container{
+			assert.Equal([]corev1.Container{
 				helidonTestContainer,
 				helidonTestContainer2,
 			}, deploy.Spec.Template.Spec.Containers)
@@ -391,7 +390,7 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 	// expect a call to create the Service
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, service *v1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
+		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
 			assert.Equal(service.Spec.Ports[0].Name, helidonTestContainer.Name+"-"+strconv.FormatInt(int64(helidonTestContainer.Ports[0].ContainerPort), 10))
@@ -511,7 +510,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 	// expect a call to create the Service
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, service *v1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
+		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
 			return nil
@@ -639,7 +638,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 	// expect a call to create the Service
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, service *v1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
+		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
 			return nil
@@ -759,7 +758,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	// expect a call to create the Service
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, service *v1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
+		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
 			return nil
@@ -882,7 +881,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	// expect a call to create the Service
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, service *v1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
+		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
 			return nil
@@ -999,7 +998,7 @@ func updateObjectFromYAMLTemplate(obj interface{}, template string, params ...ma
 }
 
 // findContainer finds a container in a slice by name.
-func findContainer(containers []v1.Container, name string) (*v1.Container, bool) {
+func findContainer(containers []corev1.Container, name string) (*corev1.Container, bool) {
 	for i, c := range containers {
 		if c.Name == name {
 			return &containers[i], true
