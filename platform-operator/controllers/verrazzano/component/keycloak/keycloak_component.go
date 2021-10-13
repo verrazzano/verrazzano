@@ -5,6 +5,7 @@ package keycloak
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"path/filepath"
@@ -19,6 +20,7 @@ var hc = helm.HelmComponent{
 	ChartNamespace:          ComponentName,
 	IgnoreNamespaceOverride: true,
 	ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
+	Dependencies:            []string{istio.ComponentName},
 	AppendOverridesFunc:     AppendKeycloakOverrides,
 }
 
