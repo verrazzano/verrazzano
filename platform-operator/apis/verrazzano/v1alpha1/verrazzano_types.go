@@ -291,10 +291,6 @@ type ComponentSpec struct {
 	// WebLogicOperator configuration
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
-
-	// MySQL configuration
-	// +optional
-	MySQL *MySQLComponent `json:"mysql,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
