@@ -348,7 +348,7 @@ func buildOverridesString(log *zap.SugaredLogger, client clipkg.Client, namespac
 
 // Get the image overrides from the BOM
 func getImageOverrides() ([]bom.KeyValue, error) {
-	const subcompIstiod = "istiod-1.10.2"
+	const subcompIstiod = "istiod"
 	subComponentNames := []string{subcompIstiod}
 
 	// Create a Bom and get the Key Value overrides
