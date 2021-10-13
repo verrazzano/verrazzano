@@ -13,6 +13,15 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "keycloak"
 
+var hc = helm.HelmComponent{
+	ReleaseName:             ComponentName,
+	ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
+	ChartNamespace:          ComponentName,
+	IgnoreNamespaceOverride: true,
+	ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
+	AppendOverridesFunc:     AppendKeycloakOverrides,
+}
+
 // KeycloakComponent represents an Keycloak component
 type KeycloakComponent struct {
 }
@@ -20,13 +29,9 @@ type KeycloakComponent struct {
 // Verify that KeycloakComponent implements Component
 var _ spi.Component = KeycloakComponent{}
 
-var hc = helm.HelmComponent{
-	ReleaseName:             "keycloak",
-	ChartDir:                filepath.Join(config.GetThirdPartyDir(), "keycloak"),
-	ChartNamespace:          "keycloak",
-	IgnoreNamespaceOverride: true,
-	ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-	AppendOverridesFunc:     AppendKeycloakOverrides,
+// NewComponent returns a new Keycloak component
+func NewComponent() spi.Component {
+	return KeycloakComponent{}
 }
 
 // --------------------------------------

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -143,15 +144,14 @@ func getComponents() []spi.Component {
 			Dependencies:            []string{"oam-kubernetes-runtime"},
 			PreUpgradeFunc:          appoper.ApplyCRDYaml,
 		},
-		keycloak.KeycloakComponent{},
 		helm.HelmComponent{
-			ReleaseName:             "keycloak",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "keycloak"),
+			ReleaseName:             mysql.ComponentName,
+			ChartDir:                filepath.Join(thirdPartyChartsDir, mysql.ComponentName),
 			ChartNamespace:          "keycloak",
 			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
-			AppendOverridesFunc:     keycloak.AppendKeycloakOverrides,
+			ValuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),
 		},
+		keycloak.NewComponent(),
 		istio.IstioComponent{
 			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
 			InjectedSystemNamespaces: injectedSystemNamespaces,
