@@ -530,11 +530,14 @@ EOF
 }
 
 # configure the prometheus deployment
-#   If keycloak is installed, limit istio proxy based communication to the keycloak service only.  Other
+#   If keycloak is installed, limit Istio proxy based communication to the keycloak service only.  Other
 #   outbound requests (scrapings) are done by prometheus using the mounted istio certs.
 #
 #   If keycloak is not installed, exclude Istio sidecar for metrics scraping
 function patch_prometheus {
+  log "Waiting for the deployment vmi-system-prometheus-0 in verrazzano-system to be ready"
+  wait_for_deployment verrazzano-system vmi-system-prometheus-0
+
   if [ $(is_prometheus_console_enabled) == "true" ]; then
     # get the keycloak service IP
     keycloak_service_ip=$(kubectl get service/keycloak-http -n keycloak -o jsonpath='{.spec.clusterIP}')
@@ -546,7 +549,6 @@ function patch_prometheus {
   else
     # Avoid the Istio sidecar for metrics scraping
     log "Setting 0.0.0.0/0 as excludeOutboundIPRanges for prometheus deployment"
-    kubectl get deployments -n verrazzano-system
     if ! kubectl patch deployment vmi-system-prometheus-0 -n verrazzano-system --type='json' -p='[{"op": "add", "path": "/spec/template/metadata/annotations/traffic.sidecar.istio.io~excludeOutboundIPRanges", "value": "0.0.0.0/0"}]'; then
       fail "Failed to patch the prometheus deployment"
     fi
