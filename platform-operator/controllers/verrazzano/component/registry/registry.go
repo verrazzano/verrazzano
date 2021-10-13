@@ -103,7 +103,7 @@ func getComponents() []spi.Component {
 			PreInstallFunc:          nginx.PreInstall,
 			AppendOverridesFunc:     nginx.AppendOverrides,
 			PostInstallFunc:         nginx.PostInstall,
-			Dependencies:            []string{"istiod"},
+			Dependencies:            []string{istio.ComponentName},
 			ReadyStatusFunc:         nginx.IsReady,
 		},
 		helm.HelmComponent{
@@ -155,7 +155,7 @@ func getComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
 			PreInstallFunc:          weblogic.WeblogicOperatorPreInstall,
 			AppendOverridesFunc:     weblogic.AppendWeblogicOperatorOverrides,
-			Dependencies:            []string{"istiod"},
+			Dependencies:            []string{istio.ComponentName},
 			ReadyStatusFunc:         weblogic.IsWeblogicOperatorReady,
 		},
 		helm.HelmComponent{
