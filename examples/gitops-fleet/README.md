@@ -1,8 +1,22 @@
 # GitOps with Verrazzano using Fleet
+## Hello World Helidon
+
+The Hello World Helidon example is a [Helidon](https://helidon.io/#/)-based service that returns a "Hello World" response when invoked.
+
+For more information and the source code of this application, see the [Verrazzano Examples](https://github.com/verrazzano/examples).
+
+## Create hello-helidon namespace
+```
+kubectl create namespace hello-helidon
+kubectl label namespace hello-helidon verrazzano-managed=true istio-injection=enabled
+```
 
 ## Create GitRepo instance
 
 Git repositories are register by creating a `GitRepo`. Apply this yaml to deploy the hello-helidon example via GitOps with fleet
+
+Copyright (c) 2021, Oracle and/or its affiliates.
+
 
 ```yaml
 kind: GitRepo
