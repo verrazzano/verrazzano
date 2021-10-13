@@ -67,13 +67,13 @@ const StatusUpdateChannelBufferSize = 50
 // process each time it wakes up
 const StatusUpdateBatchSize = 10
 
-// LabelUpgradeVersion - label which allows users to indicate that a running app should be upgraded to latest version of
-// Verrazzano. When an application is deployed, the value of this label is set on workload.Status.CurrentUpgradeVersion.
-// When reconciling, if the value provided in the label is different than the value in the workload status, the application
+// AnnotationUpgradeVersion - Annotation which allows users to indicate that a running app should be upgraded to latest version of
+// Verrazzano. When an application is deployed, the value of this annotation is set on workload.Status.CurrentUpgradeVersion.
+// When reconciling, if the value provided in the annotation is different than the value in the workload status, the application
 // will be 'upgraded' to use the resources provided by current version of Verrazzano. If any of these resources have
 // changed since the application was deployed, the application will pick up the latest values and be restarted. If the
-// label value matches the value in the workload status, all Verrazzano provided resources will remain unchanged.
-const LabelUpgradeVersion = "upgrade-version"
+// annotation value matches the value in the workload status, all Verrazzano provided resources will remain unchanged.
+const AnnotationUpgradeVersion = "upgrade-version"
 
 // VzConsoleIngress - the name of the ingress for verrazzano console and api
 const VzConsoleIngress = "verrazzano-ingress"

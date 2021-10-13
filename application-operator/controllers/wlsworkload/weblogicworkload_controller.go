@@ -247,7 +247,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
 	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
-	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Labels, workload.Status.CurrentUpgradeVersion)
+	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Annotations, workload.Status.CurrentUpgradeVersion)
 
 	// Add the Fluentd sidecar container required for logging to the Domain
 	if err = r.addLogging(ctx, log, workload, upgradeApp, u, &existingDomain); err != nil {
@@ -576,8 +576,8 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 }
 
 func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-	if workload.Labels[constants.LabelUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
-		workload.Status.CurrentUpgradeVersion = workload.Labels[constants.LabelUpgradeVersion]
+	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
+		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
 		return r.Status().Update(ctx, workload)
 	}
 	return nil

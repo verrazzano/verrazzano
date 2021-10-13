@@ -182,7 +182,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
 	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
-	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Labels, workload.Status.CurrentUpgradeVersion)
+	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Annotations, workload.Status.CurrentUpgradeVersion)
 
 	// Add the Fluentd sidecar container required for logging to the Coherence StatefulSet
 	if err = r.addLogging(ctx, log, workload, upgradeApp, spec, &existingCoherence); err != nil {
@@ -278,10 +278,6 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, coherence *un
 
 	if appName, ok := workloadLabels[oam.LabelAppName]; ok {
 		labels[oam.LabelAppName] = appName
-	}
-
-	if upgradeVersion, ok := workloadLabels[constants.LabelUpgradeVersion]; ok {
-		labels[constants.LabelUpgradeVersion] = upgradeVersion
 	}
 
 	err := unstructured.SetNestedStringMap(coherence.Object, labels, specLabelsFields...)
@@ -586,8 +582,8 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 }
 
 func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-	if workload.Labels[constants.LabelUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
-		workload.Status.CurrentUpgradeVersion = workload.Labels[constants.LabelUpgradeVersion]
+	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
+		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
 		return r.Status().Update(ctx, workload)
 	}
 	return nil
