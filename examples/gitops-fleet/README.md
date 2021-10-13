@@ -26,10 +26,10 @@ metadata:
   namespace: fleet-local
 spec:
 
-  repo: https://github.com/verrazzano/zerrazzano
+  repo: https://github.com/verrazzano/verrazzano
 
   branch: btidd/VZ-3660
-
+  # revision: v0.3.0
   paths:
   - examples/gitops-fleet
   - examples/hello-helidon
