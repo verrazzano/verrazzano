@@ -190,7 +190,7 @@
             },
             {
               "image": "fleet-agent",
-              "tag": "v0.3.4"
+              "tag": "v0.3.7"
             },
             {
               "image": "fleet",
