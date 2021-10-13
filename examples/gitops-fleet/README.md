@@ -22,4 +22,7 @@ spec:
 
   targets:
   - name: local
+    clusterSelector:
+      matchLabels:
+        name: local
 ```
