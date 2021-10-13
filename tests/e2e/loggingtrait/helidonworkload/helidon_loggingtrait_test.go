@@ -4,6 +4,7 @@
 package helidonlogging
 
 import (
+	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"time"
@@ -11,8 +12,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -30,67 +29,12 @@ const (
 var kubeConfig = os.Getenv("KUBECONFIG")
 
 var _ = BeforeSuite(func() {
-	deployApplication()
+	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath)
 })
 
 var _ = AfterSuite(func() {
-	undeployApplication()
+	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName)
 })
-
-func deployApplication() {
-	pkg.Log(pkg.Info, "Deploy test application")
-	// Wait for namespace to finish deletion possibly from a prior run.
-	Eventually(func() bool {
-		_, err := pkg.GetNamespace(namespace)
-		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-
-	pkg.Log(pkg.Info, "Create namespace")
-	Eventually(func() (*v1.Namespace, error) {
-		nsLabels := map[string]string{
-			"verrazzano-managed": "true",
-			"istio-injection":    "enabled"}
-		return pkg.CreateNamespace(namespace, nsLabels)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
-	pkg.Log(pkg.Info, "Create component resources")
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile(componentsPath)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	pkg.Log(pkg.Info, "Create application resources")
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile(applicationPath)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-}
-
-func undeployApplication() {
-	pkg.Log(pkg.Info, "Delete application")
-	Eventually(func() error {
-		return pkg.DeleteResourceFromFile(applicationPath)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	pkg.Log(pkg.Info, "Delete components")
-	Eventually(func() error {
-		return pkg.DeleteResourceFromFile(componentsPath)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	pkg.Log(pkg.Info, "Verify ConfigMap is Deleted")
-	Eventually(func() bool {
-		configMap, _ := pkg.GetConfigMap(configMapName, namespace)
-		return (configMap == nil)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-
-	pkg.Log(pkg.Info, "Delete namespace")
-	Eventually(func() error {
-		return pkg.DeleteNamespace(namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() bool {
-		_, err := pkg.GetNamespace(namespace)
-		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-}
 
 var _ = Describe("Verify application.", func() {
 

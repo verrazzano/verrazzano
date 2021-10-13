@@ -4,6 +4,7 @@
 package weblogiclogging
 
 import (
+	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"time"
@@ -30,14 +31,14 @@ const (
 var kubeConfig = os.Getenv("KUBECONFIG")
 
 var _ = BeforeSuite(func() {
-	deployApplication()
+	deployWebLogicApplication()
 })
 
 var _ = AfterSuite(func() {
-	undeployApplication()
+	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName)
 })
 
-func deployApplication() {
+func deployWebLogicApplication() {
 	pkg.Log(pkg.Info, "Deploy test application")
 	wlsUser := "weblogic"
 	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
@@ -89,34 +90,6 @@ func deployApplication() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile(applicationPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-}
-
-func undeployApplication() {
-	pkg.Log(pkg.Info, "Delete application")
-	Eventually(func() error {
-		return pkg.DeleteResourceFromFile(applicationPath)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	pkg.Log(pkg.Info, "Delete components")
-	Eventually(func() error {
-		return pkg.DeleteResourceFromFile(componentsPath)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	pkg.Log(pkg.Info, "Verify ConfigMap is Deleted")
-	Eventually(func() bool {
-		configMap, _ := pkg.GetConfigMap(configMapName, namespace)
-		return (configMap == nil)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-
-	pkg.Log(pkg.Info, "Delete namespace")
-	Eventually(func() error {
-		return pkg.DeleteNamespace(namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() bool {
-		_, err := pkg.GetNamespace(namespace)
-		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 }
 
 var _ = Describe("Verify application.", func() {
