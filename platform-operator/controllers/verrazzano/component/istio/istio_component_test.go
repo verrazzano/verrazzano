@@ -11,7 +11,7 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
 	"io/ioutil"
@@ -98,8 +98,8 @@ func TestPostUpgrade(t *testing.T) {
 	comp := IstioComponent{}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	istio.SetCmdRunner(fakeRunner{})
-	defer istio.SetDefaultRunner()
+	helm.SetCmdRunner(fakeRunner{})
+	defer helm.SetDefaultRunner()
 	SetIstioUpgradeFunction(fakeUpgrade)
 	defer ResetIstioUpgradeFunction()
 	err := comp.PostUpgrade(spi.NewContext(zap.S(), nil, vz, false))
