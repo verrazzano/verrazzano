@@ -4,4 +4,8 @@ metadata:
   labels:
     istio-injection: enabled
     verrazzano-managed: "true"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: hello-helidon-examples-gitops-fleet
+    meta.helm.sh/release-namespace: hello-helidon
   name: hello-helidon
