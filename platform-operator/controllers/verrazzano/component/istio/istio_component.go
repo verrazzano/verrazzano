@@ -6,21 +6,23 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -45,10 +47,6 @@ type IstioComponent struct {
 
 	// InjectedSystemNamespaces are the system namespaces injected with istio
 	InjectedSystemNamespaces []string
-
-	// SkipUpgrade when true will skip upgrading this component in the upgrade loop
-	// This is for the istio helm components
-	SkipUpgrade bool
 }
 
 type upgradeFuncSig func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
@@ -60,25 +58,37 @@ func SetIstioUpgradeFunction(fn upgradeFuncSig) {
 	upgradeFunc = fn
 }
 
-func ResetIstioUpgradeFunction() {
+func SetDefaultIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
-type restartComponentsFnType func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
+type restartComponentsFuncSig func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
 
-var restartComponentsFn = restartComponents
+var restartComponentsFunction = restartComponents
+
+func SetRestartComponentsFunction(fn restartComponentsFuncSig) {
+	restartComponentsFunction = fn
+}
+
+func SetDefaultRestartComponentsFunction() {
+	restartComponentsFunction = restartComponents
+}
+
+type helmUninstallFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
+
+var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
+
+func SetHelmUninstallFunction(fn helmUninstallFuncSig) {
+	helmUninstallFunction = fn
+}
+
+func SetDefaultHelmUninstallFunction() {
+	helmUninstallFunction = helm.Uninstall
+}
 
 // IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(comp *v1alpha1.IstioComponent) bool {
+func IsEnabled(_ *v1alpha1.IstioComponent) bool {
 	return true
-}
-
-func SetRestartComponentsFn(fn restartComponentsFnType) {
-	restartComponentsFn = fn
-}
-
-func ResetRestartComponentsFn() {
-	restartComponentsFn = restartComponents
 }
 
 // Name returns the component name
@@ -132,20 +142,12 @@ func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	err = restartComponentsFn(log, err, i, context.Client())
+	err = restartComponentsFunction(log, err, i, context.Client())
 	if err != nil {
 		return err
 	}
 
 	return err
-}
-
-func setUpgradeFunc(f upgradeFuncSig) {
-	upgradeFunc = f
-}
-
-func setDefaultUpgradeFunc() {
-	upgradeFunc = istio.Upgrade
 }
 
 func (i IstioComponent) IsReady(context spi.ComponentContext) bool {
@@ -164,7 +166,20 @@ func (i IstioComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (i IstioComponent) PostUpgrade(_ spi.ComponentContext) error {
+func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
+	const istioCoreDNSReleaseName = "istiocoredns"
+
+	// Check if the component is installed before trying to upgrade
+	found, err := helm.IsReleaseInstalled(istioCoreDNSReleaseName, constants.IstioSystemNamespace)
+	if err != nil {
+		context.Log().Errorf("Error returned when searching for release: %v", err)
+	}
+	if found {
+		_, _, err = helmUninstallFunction(context.Log(), istioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		if err != nil {
+			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
+		}
+	}
 	return nil
 }
 
@@ -253,11 +268,7 @@ func contains(arr []string, s string) bool {
 	return false
 }
 
-func (i IstioComponent) GetSkipUpgrade() bool {
-	return i.SkipUpgrade
-}
-
-func buildImageOverridesString(log *zap.SugaredLogger) (string, error) {
+func buildImageOverridesString(_ *zap.SugaredLogger) (string, error) {
 	// Get the image overrides from the BOM
 	var kvs []bom.KeyValue
 	var err error
