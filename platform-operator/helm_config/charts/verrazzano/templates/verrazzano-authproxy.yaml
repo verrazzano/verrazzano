@@ -65,6 +65,11 @@ spec:
                     path: admin-ca-bundle
                   - key: keycloak-url
                     path: keycloak-url
+            - secret:
+                name: verrazzano-authproxy-secret
+                items:
+                  - key: cookie-encryption-key
+                    path: cookie-encryption-key
             - configMap:
                 name: verrazzano-authproxy-config
                 items:
