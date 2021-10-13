@@ -549,7 +549,7 @@ function patch_prometheus {
   else
     # Avoid the Istio sidecar for metrics scraping
     log "Setting 0.0.0.0/0 as excludeOutboundIPRanges for prometheus deployment"
-    if ! kubectl patch deployment vmi-system-prometheus-0 -n verrazzano-system --type='json' -p='[{"op": "add", "path": "/spec/template/metadata/annotations/traffic.sidecar.istio.io~excludeOutboundIPRanges", "value": "0.0.0.0/0"}]'; then
+    if ! kubectl patch deployment vmi-system-prometheus-0 -n verrazzano-system --type='json' -p='[{"op": "add", "path": "/spec/template/metadata/annotations/traffic.sidecar.istio.io~1excludeOutboundIPRanges", "value": "0.0.0.0/0"}]'; then
       fail "Failed to patch the prometheus deployment"
     fi
   fi
