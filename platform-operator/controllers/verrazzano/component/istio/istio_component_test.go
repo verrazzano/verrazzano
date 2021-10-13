@@ -65,10 +65,8 @@ func TestUpgrade(t *testing.T) {
 	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	istio.SetCmdRunner(fakeRunner{})
-	defer istio.SetDefaultRunner()
-	setUpgradeFunc(fakeUpgrade)
-	defer setDefaultUpgradeFunc()
+	SetIstioUpgradeFunction(fakeUpgrade)
+	defer ResetIstioUpgradeFunction()
 	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), vz, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
@@ -90,6 +88,30 @@ func fakeUpgrade(log *zap.SugaredLogger, imageOverridesString string, overridesF
 	}
 	if !strings.Contains(string(installArgsFromFile), "val1") {
 		return []byte("error"), []byte(""), fmt.Errorf("install args overrides file does not contain install args")
+	}
+	return []byte("success"), []byte(""), nil
+}
+
+func TestPostUpgrade(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := IstioComponent{}
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	istio.SetCmdRunner(fakeRunner{})
+	defer istio.SetDefaultRunner()
+	SetIstioUpgradeFunction(fakeUpgrade)
+	defer ResetIstioUpgradeFunction()
+	err := comp.PostUpgrade(spi.NewContext(zap.S(), nil, vz, false))
+	assert.NoError(err, "PostUpgrade returned an error")
+}
+
+func fakePostUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+	if releaseName != "istiocoredns" {
+		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
+	}
+	if releaseName != "istio-system" {
+		return []byte("error"), []byte(""), fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
 	}
 	return []byte("success"), []byte(""), nil
 }

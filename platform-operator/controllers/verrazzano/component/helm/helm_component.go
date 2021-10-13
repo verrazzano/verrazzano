@@ -105,6 +105,14 @@ type readyStatusFuncSig func(context spi.ComponentContext, releaseName string, n
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
 
+func setUpgradeFunc(f upgradeFuncSig) {
+	upgradeFunc = f
+}
+
+func setDefaultUpgradeFunc() {
+	upgradeFunc = helm.Upgrade
+}
+
 // UpgradePrehooksEnabled is needed so that higher level units tests can disable as needed
 var UpgradePrehooksEnabled = true
 
@@ -364,14 +372,6 @@ func getImageOverrides(subcomponentName string) ([]bom.KeyValue, error) {
 		return nil, err
 	}
 	return kvs, nil
-}
-
-func setUpgradeFunc(f upgradeFuncSig) {
-	upgradeFunc = f
-}
-
-func setDefaultUpgradeFunc() {
-	upgradeFunc = helm.Upgrade
 }
 
 func (h HelmComponent) GetSkipUpgrade() bool {

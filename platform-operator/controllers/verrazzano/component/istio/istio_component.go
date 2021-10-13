@@ -38,12 +38,12 @@ type IstioComponent struct {
 // Verify that IstioComponent implements Component
 var _ spi.Component = IstioComponent{}
 
-type upgradeFuncSig func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+type upgradeFnType func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
-var upgradeFunc upgradeFuncSig = istio.Upgrade
+var upgradeFunc upgradeFnType = istio.Upgrade
 
-func SetIstioUpgradeFunction(fn upgradeFuncSig) {
+func SetIstioUpgradeFunction(fn upgradeFnType) {
 	upgradeFunc = fn
 }
 
@@ -61,6 +61,18 @@ func SetRestartComponentsFn(fn restartComponentsFnType) {
 
 func ResetRestartComponentsFn() {
 	restartComponentsFn = restartComponents
+}
+
+type helmUninstallFnType func(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
+
+var helmUninstallFn helmUninstallFnType = helm.Uninstall
+
+func SetHelmUninstallFn(fn helmUninstallFnType) {
+	helmUninstallFn = fn
+}
+
+func ResetHelmUninstallFn() {
+	helmUninstallFn = helm.Uninstall
 }
 
 // Name returns the component name
@@ -134,14 +146,6 @@ func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
-func setUpgradeFunc(f upgradeFuncSig) {
-	upgradeFunc = f
-}
-
-func setDefaultUpgradeFunc() {
-	upgradeFunc = istio.Upgrade
-}
-
 func (i IstioComponent) IsReady(_ spi.ComponentContext) bool {
 	return true
 }
@@ -156,13 +160,15 @@ func (i IstioComponent) PreUpgrade(_ spi.ComponentContext) error {
 }
 
 func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
+	istioCoreDNSReleaseName := "istiocoredns"
+
 	// Check if the component is installed before trying to upgrade
-	found, err := helm.IsReleaseInstalled("istiocoredns", constants.IstioSystemNamespace)
+	found, err := helm.IsReleaseInstalled(istioCoreDNSReleaseName, constants.IstioSystemNamespace)
 	if err != nil {
 		return err
 	}
 	if found {
-		_, _, err = helm.Uninstall(context.Log(), "istiocoredns", constants.IstioSystemNamespace, context.IsDryRun())
+		_, _, err = helmUninstallFn(context.Log(), istioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
 	}
 	return err
 }
