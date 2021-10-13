@@ -211,14 +211,6 @@ func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reade
 // transport is an http.RoundTripper that keeps track of the in-flight
 // request and implements hooks to report HTTP tracing events.
 type transport struct {
-	current *http.Request
-}
-
-// RoundTrip wraps http.DefaultTransport.RoundTrip to keep track
-// of the current request.
-func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
-	t.current = req
-	return http.DefaultTransport.RoundTrip(req)
 }
 
 // GotConn prints whether the connection has been used previously
@@ -236,7 +228,7 @@ func (t *transport) ConnectStart(network, addr string) {
 // GotConn prints whether the connection has been used previously
 // for the current request.
 func (t *transport) GotFirstResponseByte() {
-	Log(Info, fmt.Sprintf("GotFirstResponseByte: %v", t.current.URL))
+	Log(Info, fmt.Sprintf("GotFirstResponseByte"))
 }
 
 // GotConn prints whether the connection has been used previously
@@ -260,7 +252,7 @@ func (t *transport) TLSHandshakeDone(state tls.ConnectionState, err error) {
 // GotConn prints whether the connection has been used previously
 // for the current request.
 func (t *transport) WroteHeaders() {
-	Log(Info, fmt.Sprintf("WroteHeaders: %v", t.current.Method))
+	Log(Info, fmt.Sprintf("WroteHeaders"))
 }
 
 // GotConn prints whether the connection has been used previously
@@ -297,7 +289,7 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	if username != "" && password != "" {
 		req.SetBasicAuth(username, password)
 	}
-	httpClient.HTTPClient.Transport = t
+
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
