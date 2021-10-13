@@ -56,42 +56,6 @@ func getComponents() []spi.Component {
 
 	return []spi.Component{
 		helm.HelmComponent{
-			ReleaseName:             "istio-base",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			IgnoreImageOverrides:    true,
-			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "istiod",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/istio-control/istio-discovery"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-			AppendOverridesFunc:     istio.AppendIstioOverrides,
-			ReadyStatusFunc:         istio.IstiodReadyCheck,
-			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "istio-ingress",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/gateways/istio-ingress"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-			AppendOverridesFunc:     istio.AppendIstioOverrides,
-			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "istio-egress",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "istio/gateways/istio-egress"),
-			ChartNamespace:          "istio-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-			AppendOverridesFunc:     istio.AppendIstioOverrides,
-			SkipUpgrade:             true,
-		},
-		helm.HelmComponent{
 			ReleaseName:             nginx.ComponentName,
 			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          nginx.ComponentNamespace,
@@ -102,7 +66,7 @@ func getComponents() []spi.Component {
 			PreInstallFunc:          nginx.PreInstall,
 			AppendOverridesFunc:     nginx.AppendOverrides,
 			PostInstallFunc:         nginx.PostInstall,
-			Dependencies:            []string{"istiod"},
+			Dependencies:            []string{istio.ComponentName},
 			ReadyStatusFunc:         nginx.IsReady,
 		},
 		helm.HelmComponent{
@@ -154,7 +118,7 @@ func getComponents() []spi.Component {
 			ValuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
 			PreInstallFunc:          weblogic.WeblogicOperatorPreInstall,
 			AppendOverridesFunc:     weblogic.AppendWeblogicOperatorOverrides,
-			Dependencies:            []string{"istiod"},
+			Dependencies:            []string{istio.ComponentName},
 			ReadyStatusFunc:         weblogic.IsWeblogicOperatorReady,
 		},
 		helm.HelmComponent{

@@ -33,7 +33,7 @@ func TestCopyPullSecret(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace},
 	},
 	)
-	copied, err := checkImagePullSecret(client, constants.VerrazzanoSystemNamespace)
+	copied, err := CheckImagePullSecret(client, constants.VerrazzanoSystemNamespace)
 	assert.NoError(t, err)
 	assert.True(t, copied)
 }
@@ -44,7 +44,7 @@ func TestCopyPullSecret(t *testing.T) {
 // THEN false is returned
 func TestCopyGlobalPullSecretDoesNotExist(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	copied, err := checkImagePullSecret(client, constants.VerrazzanoSystemNamespace)
+	copied, err := CheckImagePullSecret(client, constants.VerrazzanoSystemNamespace)
 	assert.NoError(t, err)
 	assert.False(t, copied)
 }
@@ -59,7 +59,7 @@ func TestTargetPullSecretAlreadyExists(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace},
 	},
 	)
-	copied, err := checkImagePullSecret(client, constants.VerrazzanoSystemNamespace)
+	copied, err := CheckImagePullSecret(client, constants.VerrazzanoSystemNamespace)
 	assert.NoError(t, err)
 	assert.True(t, copied)
 }
@@ -83,7 +83,7 @@ func TestUnexpectedErrorGetTargetSecret(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *corev1.Secret) error {
 			return fmt.Errorf("Unexpected error")
 		})
-	copied, err := checkImagePullSecret(mock, constants.VerrazzanoSystemNamespace)
+	copied, err := CheckImagePullSecret(mock, constants.VerrazzanoSystemNamespace)
 	assert.NotNil(t, err)
 	assert.False(t, copied)
 }
@@ -122,7 +122,7 @@ func TestUnexpectedErrorOnCreate(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret) error {
 			return fmt.Errorf("Unexpected error")
 		})
-	copied, err := checkImagePullSecret(mock, constants.VerrazzanoSystemNamespace)
+	copied, err := CheckImagePullSecret(mock, constants.VerrazzanoSystemNamespace)
 	assert.NotNil(t, err)
 	assert.False(t, copied)
 }
@@ -153,7 +153,7 @@ func TestUnexpectedErrorGetSourceSecret(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret) error {
 			return fmt.Errorf("unexpected error")
 		})
-	copied, err := checkImagePullSecret(mock, constants.VerrazzanoSystemNamespace)
+	copied, err := CheckImagePullSecret(mock, constants.VerrazzanoSystemNamespace)
 	assert.NotNil(t, err)
 	assert.False(t, copied)
 }

@@ -6,10 +6,9 @@ package cohworkload
 import (
 	"context"
 	"fmt"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"strings"
 	"testing"
-
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
