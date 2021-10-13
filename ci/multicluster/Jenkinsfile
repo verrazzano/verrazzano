@@ -429,6 +429,11 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
+                        stage('verify-install') {
+                            steps {
+                                runGinkgoRandomize('verify-install')
+                            }
+                        }
                     }
                     post {
                         always {
@@ -526,11 +531,6 @@ pipeline {
                                 }
                             }
                         }
-                    }
-                }
-                stage('verify-install') {
-                    steps {
-                        runGinkgoRandomize('verify-install')
                     }
                 }
                 stage ('Console') {
