@@ -6,6 +6,11 @@ package istio
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -14,12 +19,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+
 	"go.uber.org/zap"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
-	"os/exec"
-	"strings"
-	"testing"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // fakeRunner is used to test istio without actually running an OS exec command
@@ -68,7 +74,7 @@ func TestUpgrade(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	SetIstioUpgradeFunction(fakeUpgrade)
 	defer ResetIstioUpgradeFunction()
-	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), vz, false))
+	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), crInstall, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -101,13 +107,13 @@ func TestPostUpgrade(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(fakeRunner{})
 	defer helm.SetDefaultRunner()
-	SetIstioUpgradeFunction(fakeUpgrade)
-	defer ResetIstioUpgradeFunction()
-	err := comp.PostUpgrade(spi.NewContext(zap.S(), nil, vz, false))
+	SetHelmUninstallFn(fakeHelmUninstall)
+	ResetHelmUninstallFn()
+	err := comp.PostUpgrade(spi.NewContext(zap.S(), nil, crInstall, false))
 	assert.NoError(err, "PostUpgrade returned an error")
 }
 
-func fakePostUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+func fakeHelmUninstall(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiocoredns" {
 		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
 	}

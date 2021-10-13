@@ -11,15 +11,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"k8s.io/apimachinery/pkg/types"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -63,7 +67,7 @@ type restartComponentsFnType func(log *zap.SugaredLogger, err error, i IstioComp
 var restartComponentsFn = restartComponents
 
 // IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(comp *v1alpha1.IstioComponent) bool {
+func IsEnabled(_ *v1alpha1.IstioComponent) bool {
 	return true
 }
 
@@ -144,14 +148,6 @@ func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
 	}
 
 	return err
-}
-
-func setUpgradeFunc(f upgradeFuncSig) {
-	upgradeFunc = f
-}
-
-func setDefaultUpgradeFunc() {
-	upgradeFunc = istio.Upgrade
 }
 
 func (i IstioComponent) IsReady(context spi.ComponentContext) bool {
@@ -269,11 +265,7 @@ func contains(arr []string, s string) bool {
 	return false
 }
 
-func (i IstioComponent) GetSkipUpgrade() bool {
-	return i.SkipUpgrade
-}
-
-func buildImageOverridesString(log *zap.SugaredLogger) (string, error) {
+func buildImageOverridesString(_ *zap.SugaredLogger) (string, error) {
 	// Get the image overrides from the BOM
 	var kvs []bom.KeyValue
 	var err error
