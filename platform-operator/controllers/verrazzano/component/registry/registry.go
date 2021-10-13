@@ -144,13 +144,7 @@ func getComponents() []spi.Component {
 			Dependencies:            []string{"oam-kubernetes-runtime"},
 			PreUpgradeFunc:          appoper.ApplyCRDYaml,
 		},
-		helm.HelmComponent{
-			ReleaseName:             mysql.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, mysql.ComponentName),
-			ChartNamespace:          "keycloak",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),
-		},
+		mysql.NewComponent(),
 		keycloak.NewComponent(),
 		istio.IstioComponent{
 			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
