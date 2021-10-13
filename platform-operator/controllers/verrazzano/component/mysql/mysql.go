@@ -47,7 +47,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 }
 
 func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
-	if cr.Spec.Components.Ingress == nil {
+	if cr.Spec.Components.MySQL == nil {
 		return []vzapi.InstallArgs{}
 	}
 	return cr.Spec.Components.MySQL.MySQLInstallArgs
