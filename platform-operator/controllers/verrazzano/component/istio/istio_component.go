@@ -172,12 +172,15 @@ func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(istioCoreDNSReleaseName, constants.IstioSystemNamespace)
 	if err != nil {
-		return err
+		context.Log().Errorf("Error returned when searching for release: %v", err)
 	}
 	if found {
 		_, _, err = helmUninstallFunction(context.Log(), istioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		if err != nil {
+			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
+		}
 	}
-	return err
+	return nil
 }
 
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets
