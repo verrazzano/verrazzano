@@ -18,6 +18,11 @@ type upgradeRunner struct {
 	t *testing.T
 }
 
+// installRunner is used to test istioctl install without actually running an OS exec command
+type installRunner struct {
+	t *testing.T
+}
+
 // badRunner is used to test istioctl errors without actually running an OS exec command
 type badRunner struct {
 	t *testing.T
@@ -55,8 +60,54 @@ func TestUpgradeFail(t *testing.T) {
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")
 }
 
+// TestInstall tests the istioctl install command
+// GIVEN a set of upgrade parameters
+//  WHEN I call Install
+//  THEN the istioctl install returns success and the cmd object has correct values
+func TestInstall(t *testing.T) {
+	overrideYaml := "my-override.yaml"
+
+	assert := assert.New(t)
+	SetCmdRunner(installRunner{t: t})
+	defer SetDefaultRunner()
+
+	stdout, stderr, err := Install(zap.S(), overrideYaml)
+	assert.NoError(err, "Install returned an error")
+	assert.Len(stderr, 0, "Install stderr should be empty")
+	assert.NotZero(stdout, "Install stdout should not be empty")
+}
+
+// TestIsInstalled tests if the component is installed
+// GIVEN a component
+//  WHEN I call IsInstalled
+//  THEN true is returned
+func TestIsInstalled(t *testing.T) {
+	assert := assert.New(t)
+
+	SetCmdRunner(fakeIstioInstalledRunner{})
+	b, err := IsInstalled(zap.S())
+	assert.NoError(err, "IsInstalled returned an error")
+	assert.True(b, "IsInstalled returned false")
+}
+
+// fakeIsInstalledRunner overrides the istio run command
+func (r fakeIstioInstalledRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return []byte("Istio is installed and verified successfully"), []byte(""), nil
+}
+
 // Run should assert the command parameters are correct then return a success with stdout contents
 func (r upgradeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	assert := assert.New(r.t)
+	assert.Contains(cmd.Path, "istioctl", "command should contain istioctl")
+	assert.Contains(cmd.Args[0], "istioctl", "args should contain istioctl")
+	assert.Contains(cmd.Args[1], "install", "args should contain install")
+	assert.Contains(cmd.Args[2], "-y", "args should contain -y")
+
+	return []byte("success"), []byte(""), nil
+}
+
+// Run should assert the command parameters are correct then return a success with stdout contents
+func (r installRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	assert := assert.New(r.t)
 	assert.Contains(cmd.Path, "istioctl", "command should contain istioctl")
 	assert.Contains(cmd.Args[0], "istioctl", "args should contain istioctl")

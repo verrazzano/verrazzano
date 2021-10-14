@@ -98,59 +98,19 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "istiocoredns",
-          "images": [
-            {
-              "image": "coredns",
-              "tag": "1.6.2",
-              "helmFullImageKey": "istiocoredns.coreDNSImage",
-              "helmTagKey": "istiocoredns.coreDNSTag"
-            },
-            {
-              "image": "istio-coredns-plugin",
-              "tag": "0.2-20201016204812-23723dcb",
-              "helmFullImageKey": "istiocoredns.coreDNSPluginImage"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
           "name": "istiod",
           "images": [
             {
               "image": "pilot",
-              "tag": "1.7.3",
-              "helmFullImageKey": "pilot.image"
+              "tag": "1.10.2",
+              "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.7.3",
-              "helmImageKey": "global.proxy.image",
-              "helmTagKey": "global.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "istio-ingress",
-          "images": [
-            {
-              "image": "proxyv2",
-              "tag": "1.7.3",
-              "helmImageKey": "global.proxy.image",
-              "helmTagKey": "global.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "istio-egress",
-          "images": [
-            {
-              "image": "proxyv2",
-              "tag": "1.7.3",
-              "helmImageKey": "global.proxy.image",
-              "helmTagKey": "global.tag"
+              "tag": "1.10.2",
+              "helmImageKey": "values.global.proxy.image",
+              "helmTagKey": "values.global.tag",
+              "helmRegistryAndRepoKey": "values.global.hub"
             }
           ]
         }

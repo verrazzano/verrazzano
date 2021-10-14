@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
@@ -41,9 +41,12 @@ spec:
       http:
         paths:
           - backend:
-              serviceName: {{ .Values.api.name }}
-              servicePort: {{ .Values.api.port }}
+              service:
+                name: {{ .Values.api.name }}
+                port:
+                  number: {{ .Values.api.port }}
             path: /()(.*)
+            pathType: ImplementationSpecific
   tls:
     - hosts:
         - verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}

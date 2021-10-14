@@ -7,14 +7,10 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"text/template"
-
-	"go.uber.org/zap"
 )
-
-// ComponentName is the name of the component
-const ComponentName = "keycloak"
 
 // Define the keylcloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
@@ -44,7 +40,7 @@ type imageData struct {
 
 // AppendKeycloakOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
 // A go template is used to replace the image in the init container spec.
-func AppendKeycloakOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendKeycloakOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {

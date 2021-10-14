@@ -15,6 +15,10 @@ import (
 // cmdRunner needed for unit tests
 var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
+// fakeIstioInstalledRunner is used to test if Istio is installed
+type fakeIstioInstalledRunner struct {
+}
+
 // Upgrade function gets called from istio_component to perform istio upgrade
 func Upgrade(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	args := []string{"install", "-y"}
@@ -36,6 +40,60 @@ func Upgrade(log *zap.SugaredLogger, imageOverrideString string, overridesFiles 
 
 	// Perform istioctl call of type upgrade
 	stdout, stderr, err = runIstioctl(log, args, "upgrade")
+	if err != nil {
+		return stdout, stderr, err
+	}
+
+	return stdout, stderr, nil
+}
+
+// Install does and Istio installation using or or more IstioOperator YAML files
+func Install(log *zap.SugaredLogger, overrideStrings string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+	args := []string{"install", "-y"}
+
+	for _, overridesFileName := range overridesFiles {
+		args = append(args, "-f")
+		args = append(args, overridesFileName)
+	}
+
+	// Add the override strings
+	if len(overrideStrings) > 0 {
+		segs := strings.Split(overrideStrings, ",")
+		for i := range segs {
+			args = append(args, "--set")
+			args = append(args, segs[i])
+		}
+	}
+
+	// Perform istioctl call of type upgrade
+	stdout, stderr, err = runIstioctl(log, args, "install")
+	if err != nil {
+		return stdout, stderr, err
+	}
+
+	return stdout, stderr, nil
+}
+
+// IsInstalled returns true if Istio is installed
+func IsInstalled(log *zap.SugaredLogger) (bool, error) {
+
+	// Perform istioctl call of type upgrade
+	stdout, _, err := VerifyInstall(log)
+	if err != nil {
+		return false, err
+	}
+	if strings.Contains(string(stdout), "Istio is installed and verified successfully") {
+		return true, nil
+	}
+	return false, nil
+}
+
+// VerifyInstall verifies the Istio installation
+func VerifyInstall(log *zap.SugaredLogger) (stdout []byte, stderr []byte, err error) {
+	args := []string{}
+
+	// Perform istioctl call of type upgrade
+	stdout, stderr, err = runIstioctl(log, args, "verify-install")
 	if err != nil {
 		return stdout, stderr, err
 	}
