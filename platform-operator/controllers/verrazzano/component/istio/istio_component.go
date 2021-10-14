@@ -273,21 +273,21 @@ func deleteIstioCoreDNS(context spi.ComponentContext) error {
 	return err
 }
 
+// removeIstioHelmSecrets deletes the release metadata that helm uses to access to access and control the releases
+// this is sufficient to prevent helm from trying to operator on deployments it doesn't control anymore
+// however it does not delete the underlying resources
 func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	client := compContext.Client()
 	var secretList v1.SecretList
 	listOptions := clipkg.ListOptions{Namespace: constants.IstioSystemNamespace}
 	err := client.List(context.TODO(), &secretList, &listOptions)
-
 	if err != nil {
 		compContext.Log().Errorf("Error retrieving list of secrets in the istio-system namespace: %v", err)
 	}
 	for index := range secretList.Items {
-		fmt.Printf("Here")
 		secret := &secretList.Items[index]
 		secretName := secret.Name
 		if secret.Type == HelmScrtType {
-			fmt.Printf("AB")
 			err = client.Delete(context.TODO(), secret)
 			if err != nil {
 				compContext.Log().Errorf("Error deleting helm secret %v: %v", secretName, err)
