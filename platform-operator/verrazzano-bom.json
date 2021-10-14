@@ -347,16 +347,6 @@
               "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
               "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
               "helmFullImageKey": "image"
-            },
-            {
-              "image": "proxyv2",
-              "tag": "1.10.2",
-              "helmFullImageKey": "istioProxyImage"
-            },
-            {
-              "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20210930152433-f345ec2",
-              "helmFullImageKey": "fluentdImage"
             }
           ]
         }
