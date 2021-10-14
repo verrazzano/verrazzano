@@ -23,6 +23,7 @@ const (
 	sourceDir            = "sock-shop"
 	testNamespace        = "mc-sockshop"
 	testProjectName      = "sockshop"
+	testCluster          = "SockShop"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -137,12 +138,24 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 	// GIVEN an admin cluster and at least one managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
-	Context("Metrics", func() {
+	Context("Prometheus Metrics", func() {
 
-		It("Verify Prometheus app metrics exist on admin cluster", func() {
+		It("Verify base_jvm_uptime_seconds metrics exist on admin cluster", func() {
 			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "cluster", "SockShop", adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find app metrics for sock-shop on admin")
+				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "cluster", testCluster, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
+		})
+
+		It("Verify vendor_requests_count_total metrics exist on admin cluster", func() {
+			Eventually(func() bool {
+				return pkg.MetricsExistInCluster("vendor_requests_count_total", "cluster", testCluster, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
+		})
+
+		It("Verify container_cpu_cfs_periods_total metrics exist on admin cluster", func() {
+			Eventually(func() bool {
+				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", "namespace", testNamespace, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
 		})
 
 		It("Verify Prometheus component metrics exist on admin cluster", func() {
