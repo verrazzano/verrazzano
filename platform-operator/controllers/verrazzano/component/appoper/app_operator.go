@@ -32,13 +32,12 @@ const (
 // of the verrazzano-application-operator image when set.
 func AppendApplicationOperatorOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	envImageOverride := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
-	if len(envImageOverride) == 0 {
-		return kvs, nil
+	if len(envImageOverride) > 0 {
+		kvs = append(kvs, bom.KeyValue{
+			Key:   "image",
+			Value: envImageOverride,
+		})
 	}
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "image",
-		Value: envImageOverride,
-	})
 
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
