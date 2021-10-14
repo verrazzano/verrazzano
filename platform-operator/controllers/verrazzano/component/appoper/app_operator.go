@@ -5,6 +5,7 @@ package appoper
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,13 +32,53 @@ const (
 // of the verrazzano-application-operator image when set.
 func AppendApplicationOperatorOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	envImageOverride := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
-	if len(envImageOverride) == 0 {
-		return kvs, nil
+	if len(envImageOverride) > 0 {
+		kvs = append(kvs, bom.KeyValue{
+			Key:   "image",
+			Value: envImageOverride,
+		})
 	}
+
+	// Create a Bom and get the Key Value overrides
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return nil, err
+	}
+
+	// Get fluentd and istio proxy images
+	var fluentdImage string
+	var istioProxyImage string
+	images, err := bomFile.BuildImageOverrides("verrazzano")
+	if err != nil {
+		return nil, err
+	}
+	for _, image := range images {
+		if image.Key == "logging.fluentdImage" {
+			fluentdImage = image.Value
+		}
+		if image.Key == "monitoringOperator.istioProxyImage" {
+			istioProxyImage = image.Value
+		}
+	}
+	if len(fluentdImage) == 0 {
+		return nil, fmt.Errorf("Can not find logging.fluentdImage in BOM")
+	}
+	if len(istioProxyImage) == 0 {
+		return nil, fmt.Errorf("Can not find monitoringOperator.istioProxyImage in BOM")
+	}
+
+	// fluentdImage for ENV DEFAULT_FLUENTD_IMAGE
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "image",
-		Value: envImageOverride,
+		Key:   "fluentdImage",
+		Value: fluentdImage,
 	})
+
+	// istioProxyImage for ENV ISTIO_PROXY_IMAGE
+	kvs = append(kvs, bom.KeyValue{
+		Key:   "istioProxyImage",
+		Value: istioProxyImage,
+	})
+
 	return kvs, nil
 }
 
