@@ -141,7 +141,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 
 		It("Verify Prometheus app metrics exist on admin cluster", func() {
 			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds{cluster=\"SockShop\", managed_cluster=\"managed1\"}", "managed_cluster", clusterName, adminKubeconfig)
+				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "cluster", "SockShop", adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find app metrics for sock-shop on admin")
 		})
 
