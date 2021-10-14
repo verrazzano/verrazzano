@@ -163,9 +163,6 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][tagLen]string,
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
 			for _, image := range subcomponent.Images {
-				if image.Image == "pilot" || image.Image == "proxyv2" {
-					continue
-				}
 				if tags, ok := clusterImageMap[image.Image]; ok {
 					var tagFound bool = false
 					for _, tag := range tags {
