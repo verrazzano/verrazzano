@@ -278,7 +278,6 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	var secretList v1.SecretList
 	listOptions := clipkg.ListOptions{Namespace: constants.IstioSystemNamespace}
 	err := client.List(context.TODO(), &secretList, &listOptions)
-
 	if err != nil {
 		compContext.Log().Errorf("Error retrieving list of secrets in the istio-system namespace: %v", err)
 	}
