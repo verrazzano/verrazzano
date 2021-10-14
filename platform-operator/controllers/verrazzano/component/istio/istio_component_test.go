@@ -6,8 +6,10 @@ package istio
 import (
 	"context"
 	"fmt"
+	v1 "k8s.io/api/core/v1"
 	"os"
 	"os/exec"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"testing"
 
@@ -109,7 +111,7 @@ func TestPostUpgrade(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	SetHelmUninstallFunction(fakeHelmUninstall)
 	SetDefaultHelmUninstallFunction()
-	err := comp.PostUpgrade(spi.NewContext(zap.S(), nil, crInstall, false))
+	err := comp.PostUpgrade(spi.NewContext(zap.S(), getMock(t), crInstall, false))
 	assert.NoError(err, "PostUpgrade returned an error")
 }
 
@@ -171,6 +173,19 @@ func getMock(t *testing.T) *mocks.MockClient {
 			ds.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
 			return nil
 		}).AnyTimes()
+
+	mock.EXPECT().
+		List(gomock.Any(), &v1.SecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, options *client.ListOptions) error {
+			secretList.Items = []v1.Secret{{Type: HelmScrtType}, {Type: "generic"}, {Type: HelmScrtType}}
+			return nil
+		})
+
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret) error {
+			return nil
+		}).Times(2)
 	return mock
 }
 

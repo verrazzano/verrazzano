@@ -38,6 +38,12 @@ const istioGlobalHubKey = "global.hub"
 // IstioNamespace is the default Istio namespace
 const IstioNamespace = "istio-system"
 
+// IstioCoreDNSReleaseName is the name of the istiocoredns release
+const IstioCoreDNSReleaseName = "istiocoredns"
+
+// HelmScrtType is the secret type that helm uses to specify its releases
+const HelmScrtType = "helm.sh/release.v1"
+
 // IstioComponent represents an Istio component
 type IstioComponent struct {
 	// ValuesFile contains the path to the IstioOperator CR values file
@@ -252,34 +258,36 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 }
 
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
-	const istioCoreDNSReleaseName = "istiocoredns"
-
 	// Check if the component is installed before trying to upgrade
-	found, err := helm.IsReleaseInstalled(istioCoreDNSReleaseName, constants.IstioSystemNamespace)
+	found, err := helm.IsReleaseInstalled(IstioCoreDNSReleaseName, constants.IstioSystemNamespace)
 	if err != nil {
 		context.Log().Errorf("Error returned when searching for release: %v", err)
+		return err
 	}
 	if found {
-		_, _, err = helmUninstallFunction(context.Log(), istioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		_, _, err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
 		if err != nil {
 			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
 		}
 	}
-	return nil
+	return err
 }
 
 func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
-	const helmSecretType = "helm.sh/release.v1"
 	client := compContext.Client()
 	var secretList v1.SecretList
-	err := client.List(context.TODO(), &secretList, &clipkg.ListOptions{Namespace: constants.IstioSystemNamespace})
+	listOptions := clipkg.ListOptions{Namespace: constants.IstioSystemNamespace}
+	err := client.List(context.TODO(), &secretList, &listOptions)
+
 	if err != nil {
 		compContext.Log().Errorf("Error retrieving list of secrets in the istio-system namespace: %v", err)
 	}
 	for index := range secretList.Items {
+		fmt.Printf("Here")
 		secret := &secretList.Items[index]
 		secretName := secret.Name
-		if secret.Type == helmSecretType {
+		if secret.Type == HelmScrtType {
+			fmt.Printf("AB")
 			err = client.Delete(context.TODO(), secret)
 			if err != nil {
 				compContext.Log().Errorf("Error deleting helm secret %v: %v", secretName, err)
