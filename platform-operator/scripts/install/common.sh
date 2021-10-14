@@ -166,22 +166,6 @@ function check_registry_secret_exists() {
   echo ${result}
 }
 
-# Check if a kubernetes object exists
-function check_object_exists() {
-  KIND=$1
-  NAME=$2
-  NAMESPACE=$3
-
-  local result
-  kubectl get ${KIND} ${NAME} -n ${NAMESPACE} > /dev/null 2>&1
-  if [ $? -eq 0 ]; then
-    result="TRUE"
-  else
-    result="FALSE"
-  fi
-  echo ${result}
-}
-
 # Copy global registry secret to the namespace passed in the first argument
 function copy_registry_secret()
 {

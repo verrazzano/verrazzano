@@ -535,13 +535,12 @@ EOF
 #
 #   If keycloak is not installed, exclude Istio sidecar for metrics scraping
 function patch_prometheus {
-  # Check if the Prometheus deployment exists
-  if [ $(check_object_exists deployment vmi-system-prometheus-0 ${VERRAZZANO_NS}) == "FALSE" ]; then
-    return 0
-  fi
-
   log "Waiting for the deployment vmi-system-prometheus-0 in verrazzano-system to be ready"
   wait_for_deployment ${VERRAZZANO_NS} vmi-system-prometheus-0
+  if [ $? -ne 0 ]; then
+    log "Skipping patch of Prometheus because deployment not found"
+    return 0
+  fi
 
   if [ $(is_keycloak_enabled) == "true" ]; then
     # get the keycloak service IP
