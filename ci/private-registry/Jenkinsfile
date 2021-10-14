@@ -452,7 +452,6 @@ pipeline {
                             }
                         }
                     }
-                    }
                     post {
                         always {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
