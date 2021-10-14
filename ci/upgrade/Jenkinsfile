@@ -297,9 +297,6 @@ pipeline {
                             echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
                             cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
 
-                        """
-
-                        sh """
                             echo "Validating helm istio releases have been deleted"
                             if [[ "" != $(helm list -n istio-system | grep istiod -o -m 1) ]]; then
                                 echo "helm release istiod found in istio-system namespace after upgrade"
@@ -307,6 +304,15 @@ pipeline {
                                 exit 1
                             fi
                         """
+
+//                         sh """
+//                             echo "Validating helm istio releases have been deleted"
+//                             if [[ "" != $(helm list -n istio-system | grep istiod -o -m 1) ]]; then
+//                                 echo "helm release istiod found in istio-system namespace after upgrade"
+//                                 helm list -n istio-system
+//                                 exit 1
+//                             fi
+//                         """
 //                             if [[ "" != $(helm list -n istio-system | grep istio-ingress -o -m 1) ]]; then
 //                                 echo "helm release istio-ingress found in istio-system namespace after upgrade"
 //                                 helm list -n istio-system
