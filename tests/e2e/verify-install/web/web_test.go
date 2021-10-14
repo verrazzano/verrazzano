@@ -170,8 +170,8 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 				Expect(err).ShouldNot(HaveOccurred())
-				pkg.Log(pkg.Info, "Version: "+vz.Spec.Version)
-				if v1alpha1.ValidateVersionHigherOrEqual(fmt.Sprintf("v%s", vz.Spec.Version), "v1.0.1") {
+				pkg.Log(pkg.Info, "Version: "+vz.Status.Version)
+				if v1alpha1.ValidateVersionHigherOrEqual(fmt.Sprintf("v%s", vz.Status.Version), "v1.0.1") {
 					Eventually(func() (*pkg.HTTPResponse, error) {
 						return pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
 					}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK)))
