@@ -25,8 +25,8 @@ spec:
 
   repo: https://github.com/verrazzano/verrazzano
 
-  branch: btidd/VZ-3660
-  # revision: v0.3.0
+  revision: fleet-blog
+  
   paths:
   - examples/gitops-fleet
   - examples/hello-helidon
