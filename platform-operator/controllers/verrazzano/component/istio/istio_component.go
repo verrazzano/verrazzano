@@ -14,6 +14,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzString "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -196,7 +197,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 		deployment := &deploymentList.Items[index]
 
 		// Check if deployment is in an Istio injected system namespace
-		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
+		if vzString.SliceContainsString(i.InjectedSystemNamespaces, deployment.Namespace) {
 			if deployment.Spec.Paused {
 				return fmt.Errorf("Deployment %v can't be restarted because it is paused", deployment.Name)
 			}
@@ -221,7 +222,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 		statefulSet := &statefulSetList.Items[index]
 
 		// Check if StatefulSet is in an Istio injected system namespace
-		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
+		if vzString.SliceContainsString(i.InjectedSystemNamespaces, statefulSet.Namespace) {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
@@ -243,7 +244,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 		daemonSet := &daemonSetList.Items[index]
 
 		// Check if DaemonSet is in an Istio injected system namespace
-		if contains(i.InjectedSystemNamespaces, daemonSet.Namespace) {
+		if vzString.SliceContainsString(i.InjectedSystemNamespaces, daemonSet.Namespace) {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
@@ -410,14 +411,4 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 		}
 	}
 	return kvs, nil
-}
-
-// contains is a helper function that should be a build-in
-func contains(arr []string, s string) bool {
-	for _, str := range arr {
-		if str == s {
-			return true
-		}
-	}
-	return false
 }
