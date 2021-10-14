@@ -165,21 +165,11 @@ var _ = Describe("Verrazzano Web UI", func() {
 		})
 
 		It("can be logged out", func() {
-			if !isManagedClusterProfile && v1alpha1.ValidateVersionHigherOrEqual("1.0.1") {
+			if !isManagedClusterProfile && v1alpha1.ValidateVersionHigherOrEqual("v1.0.1") {
 				Eventually(func() (*pkg.HTTPResponse, error) {
-					response, err := pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
-					if response != nil {
-						pkg.Log(pkg.Info, fmt.Sprintf("response: %v", string(response.Body)))
-					}
-
-					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("error: %v", err))
-					}
-
-					return response, err
+					return pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
 				}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK)))
 			}
 		})
-
 	})
 })

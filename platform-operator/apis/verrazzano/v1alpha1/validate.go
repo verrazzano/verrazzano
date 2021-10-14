@@ -170,7 +170,7 @@ func isWebLogicEnabled(comp *WebLogicOperatorComponent) bool {
 	return *comp.Enabled
 }
 
-// ValidateVersionHigherOrEqual check that requestedVersion matches BOM requestedVersion or is a higher version
+// ValidateVersionHigherOrEqual check that requestedVersion matches BOM version or is a higher version
 func ValidateVersionHigherOrEqual(requestedVersion string) bool {
 	log := zap.S().With("validate", "version")
 	log.Info("Validate version")

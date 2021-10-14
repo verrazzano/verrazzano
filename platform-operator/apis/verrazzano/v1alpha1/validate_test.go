@@ -707,9 +707,9 @@ func TestValidateVersionHigherOrEqualInvalidVersion(t *testing.T) {
 	assert.False(t, ValidateVersionHigherOrEqual("xyy.zz"))
 }
 
-// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() version is empty
-// GIVEN a request for the validating version equal or higher than current current VZ Bom version
-// WHEN the version equal to current VZ version provided
+// TestValidateVersionHigherOrEqualEmptyVersion Tests ValidateVersionHigherOrEqual() version is equal
+// GIVEN a request for validating a version equal or higher than current VZ Bom version
+// WHEN the requested version is equal to current VZ version
 // THEN success is returned
 func TestValidateVersionHigherOrEqualCurrentVersion(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -718,9 +718,9 @@ func TestValidateVersionHigherOrEqualCurrentVersion(t *testing.T) {
 	assert.True(t, ValidateVersionHigherOrEqual(fmt.Sprintf("v%s", curentVersion.ToString())))
 }
 
-// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() version is empty
-// GIVEN a request for the validating version equal or higher than current current VZ Bom version
-// WHEN the version greater than current VZ version provided
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() version is higher
+// GIVEN a request for validating a version equal or higher than current VZ Bom version
+// WHEN the requested version is greater than current VZ version
 // THEN success is returned
 func TestValidateVersionHigherOrEqualHigherVersion(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -731,9 +731,9 @@ func TestValidateVersionHigherOrEqualHigherVersion(t *testing.T) {
 	assert.True(t, ValidateVersionHigherOrEqual(fmt.Sprintf("v%s", requestedVersion.ToString())))
 }
 
-// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() version is empty
-// GIVEN a request for the validating version equal or higher than current current VZ Bom version
-// WHEN the version lower than current VZ version provided
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() version is lower
+// GIVEN a request for validating a version equal or higher than current VZ Bom version
+// WHEN the requested version is lower than current VZ version
 // THEN failure is returned
 func TestValidateVersionHigherOrEqualLowerVersion(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)

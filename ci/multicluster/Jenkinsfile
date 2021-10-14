@@ -404,6 +404,11 @@ pipeline {
                     // NOTE: The stages are executed in parallel, however the tests themselves are executed against
                     //       each cluster in sequence. If possible, we should parallelize that as well.
                     parallel {
+                        stage('verify-install') {
+                            steps {
+                                runGinkgoRandomize('verify-install')
+                            }
+                        }
                         stage ('multicluster/verify-install') {
                             steps {
                                 runGinkgoRandomize('multicluster/verify-install')
@@ -427,11 +432,6 @@ pipeline {
                         stage('verify-infra vmi') {
                             steps {
                                 runGinkgoRandomize('verify-infra/vmi')
-                            }
-                        }
-                        stage('verify-install') {
-                            steps {
-                                runGinkgoRandomize('verify-install')
                             }
                         }
                     }
