@@ -290,7 +290,7 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 		if secret.Type == HelmScrtType {
 			err = client.Delete(context.TODO(), secret)
 			if err != nil {
-				compContext.Log().Errorf("Error deleting helm secret %v: %v", secretName, err)
+				compContext.Log().Errorf("Error deleting helm secret %s: %v", secretName, err)
 			} else {
 				compContext.Log().Infof("Deleted helm secret %v", secretName)
 			}
