@@ -117,6 +117,14 @@ type readyStatusFuncSig func(context spi.ComponentContext, releaseName string, n
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
 
+func setUpgradeFunc(f upgradeFuncSig) {
+	upgradeFunc = f
+}
+
+func setDefaultUpgradeFunc() {
+	upgradeFunc = helm.Upgrade
+}
+
 // UpgradePrehooksEnabled is needed so that higher level units tests can disable as needed
 var UpgradePrehooksEnabled = true
 
@@ -218,6 +226,11 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 // install. Along with the override files in helm_config, we need to generate image overrides using the
 // BOM json file.  Each component also has the ability to add additional override parameters.
 func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
+	if h.SkipUpgrade {
+		context.Log().Infof("Upgrade skipped for %v", h.ReleaseName)
+		return nil
+	}
+
 	// Resolve the namespace
 	namespace := h.resolveNamespace(context.EffectiveCR().Namespace)
 
@@ -371,14 +384,6 @@ func getImageOverrides(subcomponentName string) ([]bom.KeyValue, error) {
 		return nil, err
 	}
 	return kvs, nil
-}
-
-func setUpgradeFunc(f upgradeFuncSig) {
-	upgradeFunc = f
-}
-
-func setDefaultUpgradeFunc() {
-	upgradeFunc = helm.Upgrade
 }
 
 func (h HelmComponent) GetSkipUpgrade() bool {

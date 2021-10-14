@@ -86,3 +86,14 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 	})
 	assert.False(t, IsApplicationOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
+
+//  TestIsApplyCRDYamlValid tests the ApplyCRDYaml function
+//  GIVEN a call to ApplyCRDYaml
+//  WHEN the yaml is valid
+//  THEN no error is returned
+func TestIsApplyCRDYamlValid(t *testing.T) {
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	config.TestHelmConfigDir = "../../../../helm_config"
+	logger := zap.SugaredLogger{}
+	assert.Nil(t, ApplyCRDYaml(&logger, fakeClient, "", "", ""))
+}

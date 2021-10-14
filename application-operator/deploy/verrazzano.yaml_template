@@ -132,7 +132,7 @@ rules:
       - oam.verrazzano.io
     resources:
       - ingresstraits
-      - loggingscopes
+      - loggingtraits
       - metricstraits
       - verrazzanocoherenceworkloads
       - verrazzanohelidonworkloads
@@ -143,7 +143,7 @@ rules:
       - oam.verrazzano.io
     resources:
       - ingresstraits/status
-      - loggingscopes/status
+      - loggingtraits/status
       - metricstraits/status
       - verrazzanocoherenceworkloads/status
       - verrazzanohelidonworkloads/status
