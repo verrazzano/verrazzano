@@ -298,7 +298,7 @@ pipeline {
                             cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
 
                             echo "Validating helm istio releases have been deleted"
-                            if [[ "" != $(helm list -n istio-system | grep istiod -o -m 1) ]]; then
+                            if [ "" != $(helm list -n istio-system | grep istiod -o -m 1) ]; then
                               echo "helm release istiod found in istio-system namespace after upgrade"
                               helm list -n istio-system
                               exit 1
