@@ -15,15 +15,15 @@ import (
 
 // ComponentName is the name of the component
 const (
-	ComponentName = "mysql"
-	secretName    = "mysql"
-	helmPwd       = "mysqlPassword"
-	helmRootPwd   = "mysqlRootPassword"
-	mysqlKey      = "mysql-password"
-	mysqlRootKey  = "mysql-root-password"
+	secretName   = "mysql"
+	helmPwd      = "mysqlPassword"
+	helmRootPwd  = "mysqlRootPassword"
+	mysqlKey     = "mysql-password"
+	mysqlRootKey = "mysql-root-password"
 )
 
-func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+// AppendMySQLOverrides appends the the password for database user and root user.
+func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: vzconst.KeycloakNamespace,

@@ -47,7 +47,7 @@ var crInstall = &installv1alpha1.Verrazzano{
 
 var comp = IstioComponent{}
 
-const testBomFilePath = "../../testdata/test_bom_istio_1.10.2.json"
+const testBomFilePath = "../../testdata/test_bom.json"
 
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
@@ -191,7 +191,7 @@ func TestAppendIstioOverrides(t *testing.T) {
 	os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
 	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
 
-	kvs, err := AppendIstioOverrides(nil, "istiod-1.10.2", "", "", nil)
+	kvs, err := AppendIstioOverrides(nil, "istiod", "", "", nil)
 	assert.NoError(err, "AppendIstioOverrides returned an error ")
 	assert.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
 	assert.Equal(istioGlobalHubKey, kvs[0].Key)
@@ -199,7 +199,7 @@ func TestAppendIstioOverrides(t *testing.T) {
 
 	os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
 	defer os.Unsetenv(constants.ImageRepoOverrideEnvVar)
-	kvs, err = AppendIstioOverrides(nil, "istiod-1.10.2", "", "", nil)
+	kvs, err = AppendIstioOverrides(nil, "istiod", "", "", nil)
 	assert.NoError(err, "AppendIstioOverrides returned an error ")
 	assert.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
 	assert.Equal(istioGlobalHubKey, kvs[0].Key)
@@ -215,7 +215,7 @@ func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 
-	kvs, err := AppendIstioOverrides(nil, "istiod-1.10.2", "", "", nil)
+	kvs, err := AppendIstioOverrides(nil, "istiod", "", "", nil)
 	assert.NoError(err, "AppendIstioOverrides returned an error ")
 	assert.Len(kvs, 0, "AppendIstioOverrides returned wrong number of Key:Value pairs")
 }

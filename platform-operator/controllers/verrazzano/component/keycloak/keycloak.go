@@ -18,17 +18,15 @@ import (
 )
 
 const (
-	// ComponentName is the name of the component
-	ComponentName = "keycloak"
-	dnsTarget     = "dnsTarget"
-	rulesHost     = "rulesHost"
-	tlsHosts      = "tlsHosts"
-	tlsSecret     = "tlsSecret"
+	dnsTarget = "dnsTarget"
+	rulesHost = "rulesHost"
+	tlsHosts  = "tlsHosts"
+	tlsSecret = "tlsSecret"
 )
 
 // Define the keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
-const kcInitContainerKey = "extraInitContainers"
+const kcInitContainerKey = "keycloak.extraInitContainers"
 const kcInitContainerValueTemplate = `
     - name: theme-provider
       image: {{.Image}}
