@@ -5,9 +5,11 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/semver"
 
@@ -687,4 +689,57 @@ func TestValidateOciDnsSecretNoOci(t *testing.T) {
 func newBool(v bool) *bool {
 	b := v
 	return &b
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() version is empty
+// GIVEN a request for the validating version equal or higher than current current VZ Bom version
+// WHEN the version provided is emptty
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualEmptyVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual(""))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() version is empty
+// GIVEN a request for the validating version equal or higher than current current VZ Bom version
+// WHEN the version provided is invalid
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualInvalidVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual("xyy.zz"))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() version is empty
+// GIVEN a request for the validating version equal or higher than current current VZ Bom version
+// WHEN the version equal to current VZ version provided
+// THEN success is returned
+func TestValidateVersionHigherOrEqualCurrentVersion(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	curentVersion, err := GetCurrentBomVersion()
+	assert.NoError(t, err)
+	assert.True(t, ValidateVersionHigherOrEqual(fmt.Sprintf("v%s", curentVersion.ToString())))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() version is empty
+// GIVEN a request for the validating version equal or higher than current current VZ Bom version
+// WHEN the version greater than current VZ version provided
+// THEN success is returned
+func TestValidateVersionHigherOrEqualHigherVersion(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	curentVersion, err := GetCurrentBomVersion()
+	assert.NoError(t, err)
+	requestedVersion, err := semver.NewSemVersion(fmt.Sprintf("v%v.%v.%v", curentVersion.Major, curentVersion.Minor, curentVersion.Patch+1))
+	assert.NoError(t, err)
+	assert.True(t, ValidateVersionHigherOrEqual(fmt.Sprintf("v%s", requestedVersion.ToString())))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() version is empty
+// GIVEN a request for the validating version equal or higher than current current VZ Bom version
+// WHEN the version lower than current VZ version provided
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualLowerVersion(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	curentVersion, err := GetCurrentBomVersion()
+	assert.NoError(t, err)
+	requestedVersion, err := semver.NewSemVersion(fmt.Sprintf("v%v.%v.%v", curentVersion.Major, curentVersion.Minor-1, curentVersion.Patch))
+	assert.NoError(t, err)
+	assert.False(t, ValidateVersionHigherOrEqual(fmt.Sprintf("v%s", requestedVersion.ToString())))
 }

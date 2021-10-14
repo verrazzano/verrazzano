@@ -18,6 +18,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	networkingv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -164,7 +165,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 		})
 
 		It("can be logged out", func() {
-			if !isManagedClusterProfile {
+			if !isManagedClusterProfile && v1alpha1.ValidateVersionHigherOrEqual("1.0.1") {
 				Eventually(func() (*pkg.HTTPResponse, error) {
 					response, err := pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
 					if response != nil {

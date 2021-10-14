@@ -7,9 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"reflect"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/semver"
@@ -167,4 +168,29 @@ func isWebLogicEnabled(comp *WebLogicOperatorComponent) bool {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// ValidateVersionHigherOrEqual check that requestedVersion matches BOM requestedVersion or is a higher version
+func ValidateVersionHigherOrEqual(requestedVersion string) bool {
+	log := zap.S().With("validate", "version")
+	log.Info("Validate version")
+	if len(requestedVersion) == 0 {
+		log.Error("Invalid requestedVersion of length 0.")
+		return false
+	}
+
+	requestedSemVer, err := semver.NewSemVersion(requestedVersion)
+	if err != nil {
+		log.Error(fmt.Sprintf("Invalid requestedVersion : %s, error: %v.", requestedVersion, err))
+		return false
+	}
+
+	bomSemVer, err := GetCurrentBomVersion()
+	if err != nil {
+		log.Error(fmt.Sprintf("Error getting current bom version, error: %v.", err))
+		return false
+	}
+
+	return requestedSemVer.IsEqualTo(bomSemVer) || requestedSemVer.IsGreatherThan(bomSemVer)
+
 }
