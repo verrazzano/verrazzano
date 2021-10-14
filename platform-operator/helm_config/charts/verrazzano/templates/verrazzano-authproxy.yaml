@@ -153,4 +153,4 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   # encryption key generated dynamically and overridden on helm command line
-  cookie-encryption-key: {{ randAscii 64 | quote }}
+  cookie-encryption-key: {{ randAscii 64 | b64enc | quote }}
