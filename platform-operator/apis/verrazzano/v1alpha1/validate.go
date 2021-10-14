@@ -192,7 +192,7 @@ func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string
 
 	currentSemVer, err := semver.NewSemVersion(currentVersion)
 	if err != nil {
-		log.Error(fmt.Sprintf("Invalid requestedVersion : %s, error: %v.", requestedVersion, err))
+		log.Error(fmt.Sprintf("Invalid currentVersion : %s, error: %v.", currentVersion, err))
 		return false
 	}
 
