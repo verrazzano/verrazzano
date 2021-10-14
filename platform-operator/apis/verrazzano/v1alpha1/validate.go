@@ -170,12 +170,17 @@ func isWebLogicEnabled(comp *WebLogicOperatorComponent) bool {
 	return *comp.Enabled
 }
 
-// ValidateVersionHigherOrEqual check that requestedVersion matches BOM version or is a higher version
-func ValidateVersionHigherOrEqual(requestedVersion string) bool {
+//ValidateVersionHigherOrEqual check that currentVersion matches requestedVersion or is a higher version
+func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string) bool {
 	log := zap.S().With("validate", "version")
 	log.Info("Validate version")
 	if len(requestedVersion) == 0 {
 		log.Error("Invalid requestedVersion of length 0.")
+		return false
+	}
+
+	if len(currentVersion) == 0 {
+		log.Error("Invalid currentVersion of length 0.")
 		return false
 	}
 
@@ -185,12 +190,12 @@ func ValidateVersionHigherOrEqual(requestedVersion string) bool {
 		return false
 	}
 
-	bomSemVer, err := GetCurrentBomVersion()
+	currentSemVer, err := semver.NewSemVersion(currentVersion)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error getting current bom version, error: %v.", err))
+		log.Error(fmt.Sprintf("Invalid requestedVersion : %s, error: %v.", requestedVersion, err))
 		return false
 	}
 
-	return requestedSemVer.IsEqualTo(bomSemVer) || requestedSemVer.IsGreatherThan(bomSemVer)
+	return currentSemVer.IsEqualTo(requestedSemVer) || currentSemVer.IsGreatherThan(requestedSemVer)
 
 }

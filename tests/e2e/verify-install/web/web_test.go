@@ -165,10 +165,16 @@ var _ = Describe("Verrazzano Web UI", func() {
 		})
 
 		It("can be logged out", func() {
-			if !isManagedClusterProfile && v1alpha1.ValidateVersionHigherOrEqual("v1.0.1") {
-				Eventually(func() (*pkg.HTTPResponse, error) {
-					return pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
-				}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK)))
+			if !isManagedClusterProfile {
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				Expect(err).ShouldNot(HaveOccurred())
+				vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+				Expect(err).ShouldNot(HaveOccurred())
+				if v1alpha1.ValidateVersionHigherOrEqual(vz.Spec.Version, "v1.0.1") {
+					Eventually(func() (*pkg.HTTPResponse, error) {
+						return pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
+					}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK)))
+				}
 			}
 		})
 	})
