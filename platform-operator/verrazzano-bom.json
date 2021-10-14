@@ -103,52 +103,6 @@
             {
               "image": "pilot",
               "tag": "1.10.2",
-              "helmFullImageKey": "pilot.image"
-            },
-            {
-              "image": "proxyv2",
-              "tag": "1.10.2",
-              "helmImageKey": "global.proxy.image",
-              "helmTagKey": "global.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "istio-ingress",
-          "images": [
-            {
-              "image": "proxyv2",
-              "tag": "1.10.2",
-              "helmImageKey": "global.proxy.image",
-              "helmTagKey": "global.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "istio-egress",
-          "images": [
-            {
-              "image": "proxyv2",
-              "tag": "1.10.2",
-              "helmImageKey": "global.proxy.image",
-              "helmTagKey": "global.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "istio-1.10.2",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "istiod-1.10.2",
-          "images": [
-            {
-              "image": "pilot",
-              "tag": "1.10.2",
               "helmFullImageKey": "values.pilot.image"
             },
             {
