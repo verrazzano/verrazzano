@@ -46,8 +46,9 @@ func AppendApplicationOperatorOverrides(_ spi.ComponentContext, _ string, _ stri
 		return nil, err
 	}
 
-	// Get fluentd image
+	// Get fluentd and istio proxy images
 	var fluentdImage string
+	var istioProxyImage string
 	images, err := bomFile.BuildImageOverrides("verrazzano")
 	if err != nil {
 		return nil, err
@@ -55,24 +56,13 @@ func AppendApplicationOperatorOverrides(_ spi.ComponentContext, _ string, _ stri
 	for _, image := range images {
 		if image.Key == "logging.fluentdImage" {
 			fluentdImage = image.Value
-			break
+		}
+		if image.Key == "monitoringOperator.istioProxyImage" {
+			istioProxyImage = image.Value
 		}
 	}
 	if len(fluentdImage) == 0 {
 		return nil, fmt.Errorf("Can not find logging.fluentdImage in BOM")
-	}
-
-	// Get istio proxy image
-	var istioProxyImage string
-	images, err = bomFile.BuildImageOverrides("verrazzano")
-	if err != nil {
-		return nil, err
-	}
-	for _, image := range images {
-		if image.Key == "monitoringOperator.istioProxyImage" {
-			istioProxyImage = image.Value
-			break
-		}
 	}
 	if len(istioProxyImage) == 0 {
 		return nil, fmt.Errorf("Can not find monitoringOperator.istioProxyImage in BOM")
