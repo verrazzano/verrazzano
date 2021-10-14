@@ -531,6 +531,11 @@ pipeline {
                                 }
                             }
                         }
+                        stage ('Examples Sock Shop') {
+                            steps {
+                                testSockExample("multicluster/examples/sock-shop")
+                            }
+                        }
                     }
                 }
                 stage ('Console') {
@@ -1036,7 +1041,22 @@ def testHelidonExample(testSuitePath) {
             ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
+}
 
+// Test the multicluster sock-shop example
+def testSockExample(testSuitePath) {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        sh """
+            export MANAGED_CLUSTER_NAME="managed1"
+            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export CLUSTER_COUNT=$clusterCount
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-sock"
+            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+        """
+    }
 }
 
 // Run a test suite against all clusters
@@ -1448,7 +1468,6 @@ def modifyHelloHelidonApp(newNamespace, newProjName) {
       export MC_PROJ_NAME="${newProjName}"
       ${GO_REPO_PATH}/verrazzano/ci/scripts/generate_mc_hello_deployment_files.sh
     """
-
 }
 
 def deploySampleApp() {

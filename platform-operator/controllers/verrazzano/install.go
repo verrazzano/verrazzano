@@ -105,5 +105,6 @@ func isComponentEnabled(cr *vzapi.Verrazzano, componentName string) bool {
 	case weblogic.ComponentName:
 		return weblogic.IsEnabled(cr.Spec.Components.WebLogicOperator)
 	}
+
 	return true
 }

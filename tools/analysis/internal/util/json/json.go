@@ -8,13 +8,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+
+	"go.uber.org/zap"
 )
 
 var jsonDataMap = make(map[string]interface{})
@@ -281,7 +282,7 @@ func getIfPresent(path string) (jsonData interface{}) {
 	cacheMutex.Lock()
 	jsonDataTest := jsonDataMap[path]
 	if jsonDataTest != nil {
-		jsonData = jsonDataTest.(interface{})
+		jsonData = jsonDataTest
 		cacheHits++
 	}
 	cacheMutex.Unlock()

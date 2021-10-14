@@ -39,17 +39,33 @@ data:
     local backend = auth.getBackendNameFromIngressHost(ingressHost)
     local backendUrl = auth.getBackendServerUrlFromName(backend)
 
-    -- TODO: is this needed here? Is it better done via/at ingress?
-    -- This was previously enabled only for oauth-proxy, but there is similar
-    -- code in nginx.conf that was executed only for api-proxy but now executes
-    -- for both.
-    -- TODO: Rationalize OPTIONS method processing: do this only for OPTIONS requests (not all),
-    -- and do it all in one place (here or nginx.conf) for both api-proxy and oauth-proxy traffic
-    ngx.header["Access-Control-Allow-Headers"] = "authorization"
+    -- CORS handling
+    local h, _ = ngx.req.get_headers()["origin"]
+    if h then
+        auth.info("Origin header: "..h)
+        if h == "*" then
+            -- not a legit origin, could be intended to trick us into oversharing
+            auth.bad_request("Invalid Origin header: '*'")
+        end
 
-    if ngx.req.get_method() == "OPTIONS" then
-        ngx.status = 200
-        ngx.exit(ngx.HTTP_OK)
+        -- treat "null" like any other origin; the fetch spec, which defines CORS, says to
+        -- include the literal value of the Origin header (if you aren't returning "*"")
+        ngx.header["Access-Control-Allow-Origin"] = h
+        ngx.header["Access-Control-Allow-Credentials"] = "true"
+
+        if ngx.req.get_method() == "OPTIONS" then
+            -- auth.info("Processing OPTIONS request, URI is '"..ngx.var.request_uri.."'")
+            ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
+            ngx.header["Access-Control-Allow-Methods"] = "GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH"
+            ngx.header["Content-Length"] = 0
+            ngx.status = 200
+            ngx.exit(ngx.HTTP_OK)
+        end
+    else
+        -- auth.info("No Origin header found")
+        if ngx.req.get_method() == "OPTIONS" then
+            auth.bad_request("OPTIONS request with no Origin header")
+        end
     end
 
     auth.info("Processing request for backend '"..ingressHost.."'")
@@ -246,6 +262,13 @@ data:
         ngx.status = ngx.HTTP_NOT_FOUND
         ngx.say("404 Not Found from authproxy")
         ngx.exit(ngx.HTTP_NOT_FOUND)
+    end
+
+    function me.bad_request(msg, err)
+        me.logJson(ngx.ERR, msg, err)
+        ngx.status = ngx.HTTP_BAD_REQUEST
+        ngx.say("400 Bad Request")
+        ngx.exit(ngx.HTTP_BAD_REQUEST)
     end
 
     function me.logout()
@@ -977,7 +1000,7 @@ data:
             -- this group is needed for discovery, but not automatically set for impersonated users prior to v1.20.
             -- the group is ignored if duplicated >= v1.20, so no harm done if we always send it.
             -- adding it here so that it's present IFF we actually have a subject.
-            local sys_auth = "system-authenticated"
+            local sys_auth = "system:authenticated"
             me.logJson(ngx.INFO, ("Including group: " .. sys_auth))
             table.insert(groups, sys_auth)
         end
@@ -1118,14 +1141,6 @@ data:
                 proxy_set_header X-WEBAUTH-USER $oidc_user;
                 proxy_pass $backend_server_url;
                 proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
-                # this should only happen for origin requests - move to conf.lua?
-                header_filter_by_lua_block {
-                    local h, _ = ngx.req.get_headers()["origin"]
-                    if h and h ~= "*" and  h ~= "null" then
-                        ngx.header["Access-Control-Allow-Origin"] = h
-                    end
-                    ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
-                }
             }
         }
     }

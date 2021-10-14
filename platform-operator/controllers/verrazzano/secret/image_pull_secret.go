@@ -14,9 +14,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// checkImagePullSecret Checks if the global image pull secret exists and copies it into the specified namespace; returns
+// CheckImagePullSecret Checks if the global image pull secret exists and copies it into the specified namespace; returns
 // true if the image pull secret exists and was copied successfully.
-func checkImagePullSecret(client client.Client, targetNamespace string) (bool, error) {
+func CheckImagePullSecret(client client.Client, targetNamespace string) (bool, error) {
 	var targetSecret v1.Secret
 	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: targetNamespace, Name: constants.GlobalImagePullSecName}, &targetSecret); err == nil {
 		return true, nil
@@ -52,7 +52,7 @@ func checkImagePullSecret(client client.Client, targetNamespace string) (bool, e
 
 // AddGlobalImagePullSecretHelmOverride Adds a helm override Key if the global image pull secret exists and was copied successfully to the target namespace
 func AddGlobalImagePullSecretHelmOverride(log *zap.SugaredLogger, client client.Client, ns string, kvs []bom.KeyValue, keyName string) ([]bom.KeyValue, error) {
-	secretExists, err := checkImagePullSecret(client, ns)
+	secretExists, err := CheckImagePullSecret(client, ns)
 	if err != nil {
 		log.Errorf("Error copying global image pull secret %s to %s namespace", constants.GlobalImagePullSecName, ns)
 		return kvs, err
