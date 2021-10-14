@@ -162,14 +162,20 @@ data:
         for key, val in pairs(opts) do
             me[key] = val
         end
-        if not cookiekey then
-            -- this is a global variable, initialize it exactly once
-            cookiekey = me.randomBase64(32)
-        end
-        local aes = require "resty.aes"
-        me.aes256 = aes:new(cookiekey, nil, aes.cipher(256))
+        me.initCookieEncryptor()
         me.initOidcProviderUris()
         return me
+    end
+
+    function me.initCookieEncryptor()
+        local aes = require "resty.aes"
+        local key = me.read_file("/api-config/cookie-encryption-key")
+        if not key then
+            me.info("Error getting cookie key! (generating random key for this request)")
+            key = me.randomBase64(32)
+        end
+        -- me.info("Got encryption key from secret: '" .. key .. "'")
+        me.aes256 = aes:new(key, nil, aes.cipher(256))
     end
 
     function me.initOidcProviderUris()
