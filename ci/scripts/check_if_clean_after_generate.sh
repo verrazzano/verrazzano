@@ -12,8 +12,8 @@
 if [[ -n $(git status --porcelain) ]]; then
   git status
   git diff
-  echo "****************************************************************************************"
-  echo "* ERROR: Looks like you need to run 'make generate' and include the changes in your PR *"
-  echo "****************************************************************************************"
+  echo "***************************************************************************************************************"
+  echo "* ERROR: Looks like you need to run 'make generate' and/or 'make manifest' and include the changes in your PR *"
+  echo "***************************************************************************************************************"
   exit 1
 fi
