@@ -10,10 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/textproto"
 	"strings"
-
-	"net/http/httptrace"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
@@ -209,92 +206,6 @@ func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reade
 	return doReq(url, "PUT", contentType, hostHeader, "", "", body, client)
 }
 
-// transport is an http.RoundTripper that keeps track of the in-flight
-// request and implements hooks to report HTTP tracing events.
-type transport struct {
-}
-
-// GotConn prints whether the connection has been used previously
-// for the current request.
-func (t *transport) GotConn(info httptrace.GotConnInfo) {
-	Log(Info, fmt.Sprintf("GotConn: %v", info))
-}
-
-// GotConn prints whether the connection has been used previously
-// for the current request.
-func (t *transport) ConnectStart(network, addr string) {
-	Log(Info, fmt.Sprintf("ConnectStart network: %s, addr: %s", network, addr))
-}
-
-// GotConn prints whether the connection has been used previously
-// for the current request.
-func (t *transport) GotFirstResponseByte() {
-	Log(Info, "GotFirstResponseByte")
-}
-
-// GotConn prints whether the connection has been used previously
-// for the current request.
-func (t *transport) DNSDone(info httptrace.DNSDoneInfo) {
-	Log(Info, fmt.Sprintf("DNSDone: %v", info))
-}
-
-// GotConn prints whether the connection has been used previously
-// for the current request.
-func (t *transport) ConnectDone(network string, addr string, err error) {
-	Log(Info, fmt.Sprintf("ConnectDone network: %v, addr: %v, err: %v", network, addr, err))
-}
-
-// GotConn prints whether the connection has been used previously
-// for the current request.
-func (t *transport) TLSHandshakeDone(state tls.ConnectionState, err error) {
-	Log(Info, fmt.Sprintf("TLSHandshakeDone state: %v, error: %v", state, err))
-}
-
-// GotConn prints whether the connection has been used previously
-// for the current request.
-func (t *transport) WroteHeaders() {
-	Log(Info, "WroteHeaders")
-}
-
-// GotConn prints whether the connection has been used previously
-// for the current request.
-func (t *transport) WroteRequest(info httptrace.WroteRequestInfo) {
-	Log(Info, fmt.Sprintf("WroteRequest: %v", info))
-}
-
-func (t *transport) GetConn(hostPort string) {
-	Log(Info, fmt.Sprintf("GetConn: %v", hostPort))
-}
-
-func (t *transport) PutIdleConn(err error) {
-	Log(Info, fmt.Sprintf("PutIdleConn: %v", err))
-}
-
-func (t *transport) Got100Continue() {
-	Log(Info, "Got100Continue")
-}
-
-func (t *transport) Got1xxResponse(code int, header textproto.MIMEHeader) error {
-	Log(Info, fmt.Sprintf("Got1xxResponse code: %v, header: %v", code, header))
-	return nil
-}
-
-func (t *transport) DNSStart(info httptrace.DNSStartInfo) {
-	Log(Info, fmt.Sprintf("DNSStart: %v", info))
-}
-
-func (t *transport) TLSHandshakeStart() {
-	Log(Info, "TLSHandshakeStart")
-}
-
-func (t *transport) WroteHeaderField(key string, value []string) {
-	Log(Info, fmt.Sprintf("WroteHeaderField key: %v, value: %v", key, value))
-}
-
-func (t *transport) Wait100Continue() {
-	Log(Info, "Wait100Continue")
-}
-
 // doReq executes an HTTP request with the specified method (GET, POST, DELETE, etc)
 func doReq(url, method string, contentType string, hostHeader string, username string, password string,
 	body io.Reader, httpClient *retryablehttp.Client) (*HTTPResponse, error) {
@@ -302,26 +213,6 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	if err != nil {
 		return nil, err
 	}
-	t := &transport{}
-	trace := &httptrace.ClientTrace{
-		GotConn:              t.GotConn,
-		ConnectStart:         t.ConnectStart,
-		GotFirstResponseByte: t.GotFirstResponseByte,
-		DNSDone:              t.DNSDone,
-		ConnectDone:          t.ConnectDone,
-		TLSHandshakeDone:     t.TLSHandshakeDone,
-		WroteHeaders:         t.WroteHeaders,
-		WroteRequest:         t.WroteRequest,
-		GetConn:              t.GetConn,
-		PutIdleConn:          t.PutIdleConn,
-		Got100Continue:       t.Got100Continue,
-		Got1xxResponse:       t.Got1xxResponse,
-		DNSStart:             t.DNSStart,
-		TLSHandshakeStart:    t.TLSHandshakeStart,
-		WroteHeaderField:     t.WroteHeaderField,
-		Wait100Continue:      t.Wait100Continue,
-	}
-	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
@@ -331,7 +222,6 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	if username != "" && password != "" {
 		req.SetBasicAuth(username, password)
 	}
-
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -455,7 +345,6 @@ func HasStatus(expected int) types.GomegaMatcher {
 		if response == nil {
 			return 0
 		}
-
 		return response.StatusCode
 	}, gomega.Equal(expected))
 }

@@ -33,8 +33,6 @@ data:
         hostUri = ingressUri
     })
 
-    auth.info("Start Processing request for backend '"..ingressHost.."'")
-
     -- determine backend and set backend parameters
     local backend = auth.getBackendNameFromIngressHost(ingressHost)
     local backendUrl = auth.getBackendServerUrlFromName(backend)
@@ -260,7 +258,7 @@ data:
     function me.not_found(msg, err)
         me.logJson(ngx.ERR, msg, err)
         ngx.status = ngx.HTTP_NOT_FOUND
-        ngx.say("404 Not Found from authproxy")
+        ngx.say("404 Not Found")
         ngx.exit(ngx.HTTP_NOT_FOUND)
     end
 
