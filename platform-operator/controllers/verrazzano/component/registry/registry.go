@@ -156,7 +156,7 @@ func getComponents() []spi.Component {
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(overridesDir, "kiali-server-values.yaml"),
-			Dependencies:            []string{"istiod"},
+			Dependencies:            []string{istio.ComponentName},
 			ReadyStatusFunc:         kiali.IsKialiReady,
 		},
 		istio.IstioComponent{
