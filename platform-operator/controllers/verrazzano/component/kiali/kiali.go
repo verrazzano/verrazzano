@@ -26,7 +26,7 @@ func IsKialiReady(ctx spi.ComponentContext, _ string, namespace string) bool {
 // IsEnabled returns true if the component is enabled, which is the default
 func IsEnabled(comp *v1alpha1.KialiComponent) bool {
 	if comp == nil || comp.Enabled == nil {
-		return false
+		return true
 	}
 	return *comp.Enabled
 }
