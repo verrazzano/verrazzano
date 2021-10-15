@@ -154,28 +154,40 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
 	Context("Prometheus Metrics", func() {
 
-		It("Verify base_jvm_uptime_seconds metrics exist on admin cluster", func() {
+		It("Verify base_jvm_uptime_seconds metrics exist on managed cluster", func() {
 			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "namespace", testNamespace, adminKubeconfig)
+				m := make(map[string]string)
+				m["app"] = testNamespace
+				m["managed_cluster"] = clusterName
+				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
 		})
 
-		It("Verify vendor_requests_count_total metrics exist on admin cluster", func() {
+		It("Verify DNE base_jvm_uptime_seconds metrics does not exist on managed cluster", func() {
 			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("vendor_requests_count_total", "namespace", testNamespace, adminKubeconfig)
+				m := make(map[string]string)
+				m["cluster"] = testNamespace
+				m["managed_cluster"] = "DNE"
+				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
+		})
+
+		It("Verify vendor_requests_count_total metrics exist on managed cluster", func() {
+			Eventually(func() bool {
+				m := make(map[string]string)
+				m["app"] = testNamespace
+				m["managed_cluster"] = clusterName
+				return pkg.MetricsExistInCluster("vendor_requests_count_total", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
 		})
 
-		It("Verify container_cpu_cfs_periods_total metrics exist on admin cluster", func() {
+		It("Verify container_cpu_cfs_periods_total metrics exist on managed cluster", func() {
 			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", "namespace", testNamespace, adminKubeconfig)
+				m := make(map[string]string)
+				m["namespace"] = testNamespace
+				m["managed_cluster"] = clusterName
+				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
-		})
-
-		It("Verify Prometheus component metrics exist on admin cluster", func() {
-			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("vendor_requests_count_total", "managed_cluster", clusterName, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find component metrics for sock-shop on admin")
 		})
 	})
 
