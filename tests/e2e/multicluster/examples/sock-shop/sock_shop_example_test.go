@@ -158,23 +158,23 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
 		})
 
-		//It("Verify vendor_requests_count_total metrics exist on admin cluster", func() {
-		//	Eventually(func() bool {
-		//		return pkg.MetricsExistInCluster("vendor_requests_count_total", "cluster", testCluster, adminKubeconfig)
-		//	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
-		//})
+		It("Verify vendor_requests_count_total metrics exist on managed cluster", func() {
+			Eventually(func() bool {
+				m := make(map[string]string)
+				m["cluster"] = testCluster
+				m["managed_cluster"] = "managed1"
+				return pkg.MetricsExistInCluster("vendor_requests_count_total", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
+		})
 
-		//It("Verify container_cpu_cfs_periods_total metrics exist on admin cluster", func() {
-		//	Eventually(func() bool {
-		//		return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", "namespace", testNamespace, adminKubeconfig)
-		//	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
-		//})
-
-		//It("Verify Prometheus component metrics exist on admin cluster", func() {
-		//	Eventually(func() bool {
-		//		return pkg.MetricsExistInCluster("vendor_requests_count_total", "managed_cluster", clusterName, adminKubeconfig)
-		//	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find component metrics for sock-shop on admin")
-		//})
+		It("Verify container_cpu_cfs_periods_total metrics exist on managed cluster", func() {
+			Eventually(func() bool {
+				m := make(map[string]string)
+				m["namespace"] = testNamespace
+				m["managed_cluster"] = "managed1"
+				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
+		})
 	})
 
 	Context("Delete resources", func() {
