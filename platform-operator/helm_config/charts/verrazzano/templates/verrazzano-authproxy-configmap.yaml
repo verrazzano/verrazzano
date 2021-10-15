@@ -171,11 +171,16 @@ data:
         local aes = require "resty.aes"
         local key = me.read_file("/api-config/cookie-encryption-key")
         if not key then
-            me.info("Error getting cookie key! (generating random key for this request)")
-            key = me.randomBase64(32)
+            me.internal_server_error("Error getting cookie key")
         end
-        -- me.info("Got encryption key from secret: '" .. key .. "'")
-        me.aes256 = aes:new(key, nil, aes.cipher(256))
+        local salt = string.sub(key, 17, 24)
+        -- me.info("Got encryption key from secret: '"..key.."', length: "..#key)
+        -- me.info("Salt is: '"..salt.."', length: "..#salt)
+        local aes256, err = aes:new(key, salt, aes.cipher(256, "cbc"), aes.hash.sha256, 3)
+        if err or not aes256 then
+            me.internal_server_error("Unable to get encryptor, error is: '"..err.."'")
+        end
+        me.aes256 = aes256
     end
 
     function me.initOidcProviderUris()
@@ -244,6 +249,13 @@ data:
             end
             return req_uri:sub(begin, endin-1)
         end
+    end
+
+    function me.internal_server_error(msg, err)
+        me.logJson(ngx.ERR, msg, err)
+        ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+        ngx.say("500 Internal Server Error")
+        ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
 
     function me.unauthorized(msg, err)
