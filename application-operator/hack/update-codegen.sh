@@ -18,6 +18,9 @@ echo "script_root = ${SCRIPT_ROOT}"
 # Obtain k8s.io/code-generator version
 codeGenVer=$(go list -m -f '{{.Version}}' k8s.io/code-generator)
 
+# ensure code-generator has been downloaded
+go get -d k8s.io/code-generator@${codeGenVer}
+
 CODEGEN_PKG=${CODEGEN_PKG:-${GOPATH:-${HOME}/go}/pkg/mod/${CODEGEN_PATH}@${codeGenVer}}
 echo "codegen_pkg = ${CODEGEN_PKG}"
 chmod +x ${CODEGEN_PKG}/generate-groups.sh
