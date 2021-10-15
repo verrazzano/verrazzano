@@ -26,7 +26,7 @@ const (
 
 // Define the keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
-const kcInitContainerKey = "keycloak.extraInitContainers"
+const kcInitContainerKey = "extraInitContainers"
 const kcInitContainerValueTemplate = `
     - name: theme-provider
       image: {{.Image}}
