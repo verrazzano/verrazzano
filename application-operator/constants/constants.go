@@ -73,7 +73,7 @@ const StatusUpdateBatchSize = 10
 // will be 'upgraded' to use the resources provided by current version of Verrazzano. If any of these resources have
 // changed since the application was deployed, the application will pick up the latest values and be restarted. If the
 // annotation value matches the value in the workload status, all Verrazzano provided resources will remain unchanged.
-const AnnotationUpgradeVersion = "verrazzano.io/upgradeVersion"
+const AnnotationUpgradeVersion = "verrazzano.io/upgrade-version"
 
 // VzConsoleIngress - the name of the ingress for verrazzano console and api
 const VzConsoleIngress = "verrazzano-ingress"
