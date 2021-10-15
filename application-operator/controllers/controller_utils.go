@@ -4,8 +4,9 @@
 package controllers
 
 import (
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 )
 
 // ConvertAPIVersionToGroupAndVersion splits APIVersion into API and version parts.
@@ -26,6 +27,6 @@ func ConvertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 // a user can mark an application to indicate that it should use the latest resources defined by Verrazzano.
 // A response of 'true' indicates that reconcile should use the latest resources defined by Verrazzano and a response
 // of 'false' indicates that the application should continue to use the current values.
-func IsWorkloadMarkedForUpgrade(labels map[string]string, previousUpgrade string) bool {
-	return labels[constants.LabelUpgradeVersion] != previousUpgrade
+func IsWorkloadMarkedForUpgrade(annotations map[string]string, previousUpgrade string) bool {
+	return annotations[constants.AnnotationUpgradeVersion] != previousUpgrade
 }

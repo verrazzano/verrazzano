@@ -307,10 +307,6 @@ spec:
                   istio:
                     description: Istio contains the istio component configuration
                     properties:
-                      enabled:
-                        description: Specifies whether Istio is installed.  Default
-                          is true.
-                        type: boolean
                       istioInstallArgs:
                         description: Arguments for installing Istio
                         items:
