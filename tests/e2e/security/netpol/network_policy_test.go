@@ -27,6 +27,7 @@ const (
 	envoyStatsMetricsPort        = 15090
 	istiodMetricsPort            = 15014
 	nodeExporterMetricsPort      = 9100
+	kialiMetricsPort             = 9090
 )
 
 var (
@@ -272,6 +273,15 @@ var _ = Describe("Test Network Policies", func() {
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
 			},
+			func() {
+				pkg.Log(pkg.Info, "Test kiali ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, "verrazzano-system", 20001, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Kiali network ingress from verrazzano-authproxy failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, "verrazzano-system", kialiMetricsPort, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Kiali network ingress from prometheus failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, "verrazzano-system", envoyStatsMetricsPort, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Kiali network ingress from istiod failed: reason = %s", err))
+			},
 		)
 	})
 
@@ -383,6 +393,11 @@ var _ = Describe("Test Network Policies", func() {
 				pkg.Log(pkg.Info, "Negative test weblogic-operator ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", 8000, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test weblogic-operator ingress rules failed: reason = %s", err))
+			},
+			func() {
+				pkg.Log(pkg.Info, "Negative test kiali ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, "verrazzano-system", kialiMetricsPort, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test kiali ingress rules failed: reason = %s", err))
 			},
 		)
 	})
