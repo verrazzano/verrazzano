@@ -749,8 +749,11 @@ def listHelmReleases(customMessage) {
 
 def validateHelmIstioReleasesDeleted() {
     echo "Validating helm istio releases have been removed"
+    all =  sh(returnStdout: true, script: 'helm list -A').trim()
+    echo all
     try {
         istiod = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiod -o -m 1').trim()
+        echo istiod
         if ("" != istiod.toString()) {
             echo "helm release istiod found in istio-system namespace after upgrade"
             helm list -n istio-system
@@ -761,6 +764,7 @@ def validateHelmIstioReleasesDeleted() {
         echo "helm release istiod successfully removed"
     }
     try {
+        echo istio-ingress
         istio_ingress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-ingress -o -m 1').trim()
         if ("" != istio_ingress.toString()) {
             echo "helm release istio-ingress found in istio-system namespace after upgrade"
@@ -771,6 +775,7 @@ def validateHelmIstioReleasesDeleted() {
         echo "helm release istio-ingress successfully removed"
     }
     try {
+        echo istio-egress
         istio_egress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-egress -o -m 1').trim()
         if ("" != istio_egress.toString()) {
             echo "helm release istio-egress found in istio-system namespace after upgrade"
@@ -781,6 +786,7 @@ def validateHelmIstioReleasesDeleted() {
         echo "helm release istio-egress successfully removed"
     }
     try {
+        echo istiocoredns
         istiocoredns = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiocoredns -o -m 1').trim()
         if ("" != istiocoredns.toString()) {
             echo "helm release istiocoredns found in istio-system namespace after upgrade"
