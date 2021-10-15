@@ -6,13 +6,18 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 // ComponentName is the name of the component
@@ -114,4 +119,20 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client client.Client, namespa
 	err = client.Update(context.TODO(), &daemonSet)
 
 	return err
+}
+
+// AppendOverrides appends the image overrides for the monitoring-init-images subcomponent
+func AppendOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return nil, err
+	}
+
+	imageOverrides, err := bomFile.BuildImageOverrides("monitoring-init-images")
+	if err != nil {
+		return nil, err
+	}
+
+	kvs = append(kvs, imageOverrides...)
+	return kvs, nil
 }

@@ -98,6 +98,7 @@ func getComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ResolveNamespaceFunc:    verrazzano.ResolveVerrazzanoNamespace,
 			PreUpgradeFunc:          verrazzano.VerrazzanoPreUpgrade,
+			AppendOverridesFunc:     verrazzano.AppendOverrides,
 		},
 		helm.HelmComponent{
 			ReleaseName:             coherence.ComponentName,
