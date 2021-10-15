@@ -24,6 +24,7 @@ const (
 	sourceDir            = "hello-helidon"
 	testNamespace        = "hello-helidon"
 	testProjectName      = "hello-helidon"
+	testApp              = "hello-helidon"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -154,16 +155,16 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
 	Context("Prometheus Metrics", func() {
 
-		It("Verify base_jvm_uptime_seconds metrics exist on managed cluster", func() {
+		It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
 			Eventually(func() bool {
 				m := make(map[string]string)
-				m["app"] = testNamespace
+				m["app"] = testApp
 				m["managed_cluster"] = clusterName
 				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
 		})
 
-		It("Verify DNE base_jvm_uptime_seconds metrics does not exist on managed cluster", func() {
+		It("Verify DNE base_jvm_uptime_seconds metrics does not exist for managed cluster", func() {
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testNamespace
@@ -172,16 +173,16 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
 		})
 
-		It("Verify vendor_requests_count_total metrics exist on managed cluster", func() {
+		It("Verify vendor_requests_count_total metrics exist for managed cluster", func() {
 			Eventually(func() bool {
 				m := make(map[string]string)
-				m["app"] = testNamespace
+				m["app"] = testApp
 				m["managed_cluster"] = clusterName
 				return pkg.MetricsExistInCluster("vendor_requests_count_total", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
 		})
 
-		It("Verify container_cpu_cfs_periods_total metrics exist on managed cluster", func() {
+		It("Verify container_cpu_cfs_periods_total metrics exist for managed cluster", func() {
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
