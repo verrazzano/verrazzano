@@ -227,6 +227,11 @@ pipeline {
                         }
                     }
                 }
+                stage("Make sure checks work") {
+                    steps {
+                        validateHelmIstioReleasesDeleted()
+                    }
+                }
                 stage("upgrade-platform-operator") {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
@@ -299,30 +304,7 @@ pipeline {
 
                         """
 
-                        sh """
-                            echo "Validating helm istio releases have been deleted"
-                            if [[ "" != ${helm list -n istio-system | grep istiod -o -m 1} ]]; then
-                                echo "helm release istiod found in istio-system namespace after upgrade"
-                                helm list -n istio-system
-                                exit 1
-                            fi
-                            if [[ "" != ${helm list -n istio-system | grep istio-ingress -o -m 1} ]]; then
-                                echo "helm release istio-ingress found in istio-system namespace after upgrade"
-                                helm list -n istio-system
-                                exit 1
-                            fi
-                            if [[ "" != ${helm list -n istio-system | grep istio-egress -o -m 1} ]]; then
-                                echo "helm release istio-egress found in istio-system namespace after upgrade"
-                                helm list -n istio-system
-                                exit 1
-                            fi
-                            if [[ "" != ${helm list -n istio-system | grep istiocoredns -o -m 1} ]]; then
-                                echo "helm release istiocoredns found in istio-system namespace after upgrade"
-                                helm list -n istio-system
-                                exit 1
-                            fi
-                            echo "All helm istio releases deleted"
-                        """
+                        validateHelmIstioReleasesDeleted()
                     }
                     post {
                         always {
@@ -766,28 +748,47 @@ def listHelmReleases(customMessage) {
 }
 
 def validateHelmIstioReleasesDeleted() {
-    sh """
-        echo "Validating helm istio releases have been deleted"
-        if [[ "" != ${helm list -n istio-system | grep istiod -o -m 1} ]]; then
+    echo "Validating helm istio releases have been removed"
+    try {
+        istiod = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiod -o -m 1').trim()
+        if ("" != istiod.toString()) {
             echo "helm release istiod found in istio-system namespace after upgrade"
             helm list -n istio-system
             exit 1
-        fi
-        if [[ "" != ${helm list -n istio-system | grep istio-ingress -o -m 1} ]]; then
+        }
+    }
+    catch(error) {
+        echo "helm release istiod successfully removed"
+    }
+    try {
+        istio_ingress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-ingress -o -m 1').trim()
+        if ("" != istio_ingress.toString()) {
             echo "helm release istio-ingress found in istio-system namespace after upgrade"
             helm list -n istio-system
             exit 1
-        fi
-        if [[ "" != ${helm list -n istio-system | grep istio-egress -o -m 1} ]]; then
+        }
+    } catch(error) {
+        echo "helm release istio-ingress successfully removed"
+    }
+    try {
+        istio_egress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-egress -o -m 1').trim()
+        if ("" != istio_egress.toString()) {
             echo "helm release istio-egress found in istio-system namespace after upgrade"
             helm list -n istio-system
             exit 1
-        fi
-        if [[ "" != ${helm list -n istio-system | grep istiocoredns -o -m 1} ]]; then
+        }
+    } catch(error) {
+        echo "helm release istio-egress successfully removed"
+    }
+    try {
+        istiocoredns = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiocoredns -o -m 1').trim()
+        if ("" != istiocoredns.toString()) {
             echo "helm release istiocoredns found in istio-system namespace after upgrade"
             helm list -n istio-system
             exit 1
-        fi
-        echo "All helm istio releases deleted"
-    """
+        }
+    } catch(error) {
+        echo "helm release istiocoredns successfully removed"
+    }
+    echo "All helm istio releases removed"
 }
