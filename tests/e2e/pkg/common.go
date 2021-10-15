@@ -268,7 +268,6 @@ func findMetric(metrics []interface{}, keyMap map[string]string) bool {
 				exists = true
 			}
 			allExist = exists && allExist
-			fmt.Printf("key: %s, value: %s, allExist: %t\n", key, value, allExist)
 		}
 		if allExist {
 			return true

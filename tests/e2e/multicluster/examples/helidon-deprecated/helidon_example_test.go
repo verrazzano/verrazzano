@@ -164,7 +164,9 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	Context("Metrics", func() {
 		It("Verify Prometheus metrics exist on admin cluster", func() {
 			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, adminKubeconfig)
+				m := make(map[string]string)
+				m["managed_cluster"] = clusterName
+				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
