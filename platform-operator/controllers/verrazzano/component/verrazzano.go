@@ -113,8 +113,8 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client client.Client, namespa
 	return err
 }
 
-// AppendVerrazzanoOverrides appends the image overrides for the monitoring-init-images subcomponent
-func AppendVerrazzanoOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []keyValue) ([]keyValue, error) {
+// appendVerrazzanoOverrides appends the image overrides for the monitoring-init-images subcomponent
+func appendVerrazzanoOverrides(_ *zap.SugaredLogger, _ string, _ string, _ string, kvs []keyValue) ([]keyValue, error) {
 	bomFile, err := NewBom(DefaultBomFilePath())
 	if err != nil {
 		return nil, err

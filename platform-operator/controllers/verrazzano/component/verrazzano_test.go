@@ -161,7 +161,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 	assert := assert.New(t)
 	SetUnitTestBomFilePath(testBomFilePath)
 
-	kvs, err := AppendVerrazzanoOverrides(nil, "", "", "", []keyValue{})
+	kvs, err := appendVerrazzanoOverrides(nil, "", "", "", []keyValue{})
 
 	assert.NoError(err)
 	assert.Len(kvs, 2)
