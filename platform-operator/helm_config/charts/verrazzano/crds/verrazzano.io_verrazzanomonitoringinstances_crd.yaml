@@ -13,9 +13,9 @@ spec:
     kind: VerrazzanoMonitoringInstance
     listKind: VerrazzanoMonitoringInstanceList
     plural: verrazzanomonitoringinstances
+    singular: verrazzanomonitoringinstance
     shortNames:
       - vmi
-    singular: verrazzanomonitoringinstance
   scope: Namespaced
   versions:
     - name: v1
@@ -45,7 +45,7 @@ spec:
                       pattern: '[A-Za-z0-9-_]+'
                       type: string
                     configMap:
-                      pattern: ^\w[^.]+$
+                      pattern: '^\w[^.]+$'
                       type: string
                     enabled:
                       type: boolean
@@ -53,16 +53,16 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         limitMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                         requestCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         requestMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                   required:
                     - enabled
@@ -70,22 +70,22 @@ spec:
                   type: object
                   properties:
                     replicas:
-                      pattern: \d+
+                      pattern: '\d+'
                       type: number
                     resources:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         limitMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                         requestCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         requestMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                 autoSecret:
                   type: boolean
@@ -94,7 +94,7 @@ spec:
                   properties:
                     url:
                       items:
-                        pattern: ^(http(s?)://)?((\w+\.)?\w+\.\w+|((2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})\.){3}(2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})(:[1-9]\d*)?)(/)?$
+                        pattern: '^(http(s?)://)?((\w+\.)?\w+\.\w+|((2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})\.){3}(2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})(:[1-9]\d*)?)(/)?$'
                         type: string
                       type: array
                 elasticsearch:
@@ -103,43 +103,43 @@ spec:
                     enabled:
                       type: boolean
                     openPeriodDays:
-                      pattern: \d+
+                      pattern: '\d+'
                       type: number
                     openPeriodMonths:
-                      pattern: \d+
+                      pattern: '\d+'
                       type: number
                     resources:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         limitMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                         maxSizeDisk:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                         minSizeDisk:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                         requestCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         requestMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                     retentionPeriodDays:
-                      pattern: \d+
+                      pattern: '\d+'
                       type: number
                     retentionPeriodMonths:
-                      pattern: \d+
+                      pattern: '\d+'
                       type: number
                     storage:
                       type: object
                       properties:
                         availabilityDomain:
-                          pattern: ^[A-Z]+(-?[A-Z0-9]+)*$
+                          pattern: '^[A-Z]+(-?[A-Z0-9]+)*$'
                           type: string
                         pvcNames:
                           items:
@@ -148,7 +148,7 @@ spec:
                           minItems: 0
                           type: array
                         size:
-                          pattern: ^[1-9]+\d*(Mi|Gi)$
+                          pattern: '^[1-9]+\d*(Mi|Gi)$'
                           type: string
                 externalSiteMonitor:
                   type: object
@@ -175,10 +175,10 @@ spec:
                   type: object
                   properties:
                     dashboardsConfigMap:
-                      pattern: ^\w[^.]+$
+                      pattern: '^\w[^.]+$'
                       type: string
                     datasourcesConfigMap:
-                      pattern: ^\w[^.]+$
+                      pattern: '^\w[^.]+$'
                       type: string
                     enabled:
                       type: boolean
@@ -186,22 +186,22 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         limitMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                         requestCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         requestMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                     storage:
                       type: object
                       properties:
                         availabilityDomain:
-                          pattern: ^[A-Z]+(-?[A-Z0-9]+)*$
+                          pattern: '^[A-Z]+(-?[A-Z0-9]+)*$'
                           type: string
                         pvcNames:
                           items:
@@ -210,7 +210,7 @@ spec:
                           minItems: 0
                           type: array
                         size:
-                          pattern: ^[1-9]+\d*(Mi|Gi)$
+                          pattern: '^[1-9]+\d*(Mi|Gi)$'
                           type: string
                 ingresstargetdnsname:
                   pattern: '[a-z]+[a-z0-9-.]*'
@@ -227,16 +227,16 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         limitMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                         requestCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         requestMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                 lock:
                   type: boolean
@@ -260,25 +260,25 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         limitMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                         maxSizeDisk:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                         minSizeDisk:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                         requestCPU:
-                          pattern: ^([1-9]\d*|\d+\.\d{1,2})m?$
+                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
                           type: string
                         requestMemory:
-                          pattern: ^[1-9]\d*(Mi|Gi)$
+                          pattern: '^[1-9]\d*(Mi|Gi)$'
                           type: string
                     retentionPeriod:
-                      pattern: \d+
+                      pattern: '\d+'
                       type: number
                     rulesConfig:
                       pattern: '[A-Za-z0-9-_]+'
@@ -287,7 +287,7 @@ spec:
                       type: object
                       properties:
                         availabilityDomain:
-                          pattern: ^[A-Z]+(-?[A-Z0-9]+)*$
+                          pattern: '^[A-Z]+(-?[A-Z0-9]+)*$'
                           type: string
                         pvcNames:
                           items:
@@ -296,7 +296,7 @@ spec:
                           minItems: 0
                           type: array
                         size:
-                          pattern: ^[1-9]+\d*(Mi|Gi)$
+                          pattern: '^[1-9]+\d*(Mi|Gi)$'
                           type: string
                 secretsName:
                   pattern: ^\w[^.]+$
@@ -311,7 +311,7 @@ spec:
                       pattern: '[A-Za-z0-9-_]+'
                       type: string
                     url:
-                      pattern: ^(http(s?)://)?((\w+\.)?\w+\.\w+|((2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})\.){3}(2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})(:[1-9]\d*)?)(/)?$
+                      pattern: '^(http(s?)://)?((\w+\.)?\w+\.\w+|((2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})\.){3}(2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})(:[1-9]\d*)?)(/)?$'
                       type: string
                 uri:
                   pattern: '[A-Za-z0-9-_]+'
