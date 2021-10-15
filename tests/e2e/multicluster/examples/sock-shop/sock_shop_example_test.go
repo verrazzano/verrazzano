@@ -140,13 +140,22 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
 	Context("Prometheus Metrics", func() {
 
-		It("Verify base_jvm_uptime_seconds metrics exist on admin cluster", func() {
+		It("Verify base_jvm_uptime_seconds metrics exist on managed cluster", func() {
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
 				m["managed_cluster"] = "managed1"
 				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
+		})
+
+		It("Verify DNE base_jvm_uptime_seconds metrics does not exist on managed cluster", func() {
+			Eventually(func() bool {
+				m := make(map[string]string)
+				m["cluster"] = testCluster
+				m["managed_cluster"] = "DNE"
+				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
 		})
 
 		//It("Verify vendor_requests_count_total metrics exist on admin cluster", func() {
