@@ -73,39 +73,41 @@ const registerTemp = `{
 var _ = Describe("Sock Shop Application", func() {
 	It("Verify application pods are running", func() {
 		// checks that all pods are up and running
+		GinkgoWriter.Write([]byte("MARK: before the eventually\n"))
 		Eventually(sockshopPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+		GinkgoWriter.Write([]byte("MARK: after the eventually\n"))
 		// checks that all application services are up
-		pkg.Concurrently(
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("catalogue")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			},
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("carts")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			},
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("orders")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			},
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("payment-http")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			},
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("shipping-http")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			},
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("user")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			})
+		//pkg.Concurrently(
+		//	func() {
+		//		Eventually(func() bool {
+		//			return isSockShopServiceReady("catalogue")
+		//		}, waitTimeout, pollingInterval).Should(BeTrue())
+		//	},
+		//	func() {
+		//		Eventually(func() bool {
+		//			return isSockShopServiceReady("carts")
+		//		}, waitTimeout, pollingInterval).Should(BeTrue())
+		//	},
+		//	func() {
+		//		Eventually(func() bool {
+		//			return isSockShopServiceReady("orders")
+		//		}, waitTimeout, pollingInterval).Should(BeTrue())
+		//	},
+		//	func() {
+		//		Eventually(func() bool {
+		//			return isSockShopServiceReady("payment-http")
+		//		}, waitTimeout, pollingInterval).Should(BeTrue())
+		//	},
+		//	func() {
+		//		Eventually(func() bool {
+		//			return isSockShopServiceReady("shipping-http")
+		//		}, waitTimeout, pollingInterval).Should(BeTrue())
+		//	},
+		//	func() {
+		//		Eventually(func() bool {
+		//			return isSockShopServiceReady("user")
+		//		}, waitTimeout, pollingInterval).Should(BeTrue())
+		//	})
 	})
 
 	var hostname = ""
@@ -251,7 +253,7 @@ var _ = Describe("Sock Shop Application", func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("For all those leg lovers out there.")))
 	})
 
-	Describe("Verify Prometheus scraped metrics", func() {
+	PDescribe("Verify Prometheus scraped metrics", func() {
 		It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
@@ -332,6 +334,7 @@ func isSockShopServiceReady(name string) bool {
 
 // sockshopPodsRunning checks whether the application pods are ready
 func sockshopPodsRunning() bool {
+	GinkgoWriter.Write([]byte("MARK: entered sockshopPodsRunning()\n"))
 	return pkg.PodsRunning("sockshop", expectedPods)
 }
 
