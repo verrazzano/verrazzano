@@ -247,7 +247,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
 	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
-	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Labels, workload.Status.CurrentUpgradeVersion)
+	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Annotations, workload.Status.CurrentUpgradeVersion)
 
 	// Add the Fluentd sidecar container required for logging to the Domain
 	if err = r.addLogging(ctx, log, workload, upgradeApp, u, &existingDomain); err != nil {
@@ -379,23 +379,11 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 		}
 	}
 
-	// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
-	// not the fields will be empty and we will set these fields to defaults below
-	scope, err := logging.NewLogInfo(existingFluentdImage)
-	if err != nil {
-		return err
-	}
-
-	if scope == nil {
-		log.Info("No logging scope found for workload, nothing to do")
-		return nil
-	}
-
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the FLUENTD data
 	var extracted containersMountsVolumes
 	if serverPod, found, _ := unstructured.NestedMap(weblogic.Object, specServerPodFields...); found {
-		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(serverPod, &extracted); err != nil {
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(serverPod, &extracted); err != nil {
 			return errors.New("unable to extract containers, volumes, and volume mounts from WebLogic spec")
 		}
 	}
@@ -429,7 +417,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err = fluentdManager.Apply(scope, resource, fluentdPod); err != nil {
+	if _, err := fluentdManager.Apply(logging.NewLogInfo(existingFluentdImage), resource, fluentdPod); err != nil {
 		return err
 	}
 
@@ -588,8 +576,8 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 }
 
 func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-	if workload.Labels[constants.LabelUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
-		workload.Status.CurrentUpgradeVersion = workload.Labels[constants.LabelUpgradeVersion]
+	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
+		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
 		return r.Status().Update(ctx, workload)
 	}
 	return nil

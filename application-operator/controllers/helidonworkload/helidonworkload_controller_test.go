@@ -681,7 +681,8 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	componentName := "test-component"
 	existingUpgradeVersion := "existing-upgrade-version"
 	newUpgradeVersion := "new-upgrade-version"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: newUpgradeVersion}
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+	annotations := map[string]string{constants.AnnotationUpgradeVersion: newUpgradeVersion}
 
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
@@ -730,6 +731,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload.yaml", params))
 			workload.ObjectMeta.Labels = labels
+			workload.ObjectMeta.Annotations = annotations
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
 			return nil
 		}).Times(1)
@@ -800,7 +802,8 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	appConfigName := "test-appconf"
 	componentName := "test-component"
 	existingUpgradeVersion := "existing-upgrade-version"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: existingUpgradeVersion}
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+	annotations := map[string]string{constants.AnnotationUpgradeVersion: existingUpgradeVersion}
 
 	existingFluentdImage := "unit-test-image:latest"
 	fluentdImage := "unit-test-image:latest"
@@ -853,6 +856,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload.yaml", params))
 			workload.ObjectMeta.Labels = labels
+			workload.ObjectMeta.Annotations = annotations
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
 			return nil
 		}).Times(1)
