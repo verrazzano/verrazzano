@@ -169,8 +169,6 @@ var _ = Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
 			ginkgoExt.Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
 			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
-			// Kiali is not installed by default currently, verify that
-			ginkgoExt.Entry("does not include kiali", "kiali", false),
 		)
 
 		It("Expected pods are running", func() {
