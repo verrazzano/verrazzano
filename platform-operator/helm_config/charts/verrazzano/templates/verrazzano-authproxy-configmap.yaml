@@ -34,7 +34,7 @@ data:
     })
 
     -- determine backend and set backend parameters
-    local backend = auth.getBackendNameFromIngressHost(ingressHost)
+    local backend, can_redirect = auth.getBackendNameFromIngressHost(ingressHost)
     local backendUrl = auth.getBackendServerUrlFromName(backend)
 
     -- CORS handling
@@ -46,16 +46,28 @@ data:
             auth.bad_request("Invalid Origin header: '*'")
         end
 
-        -- treat "null" like any other origin; the fetch spec, which defines CORS, says to
-        -- include the literal value of the Origin header (if you aren't returning "*"")
-        ngx.header["Access-Control-Allow-Origin"] = h
-        ngx.header["Access-Control-Allow-Credentials"] = "true"
+        -- don't respond to CORS request if Origin is null; i.e., disallow the request
+        -- notes:
+        --   -- fetch spec, which defines CORS, says to include the literal value of
+        --      the Origin header (if you aren't returning "*""), with no mention of null
+        --   -- but https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin,
+        --      referencing https://w3c.github.io/webappsec-cors-for-developers/, says NOT to return
+        --      null in allowed origins.
+
+        if h ~= null then
+            ngx.header["Access-Control-Allow-Origin"] = h
+            ngx.header["Access-Control-Allow-Credentials"] = "true"
+            ngx.header["Vary"] = "Origin"
+
+            if ngx.req.get_method() == "OPTIONS" then
+                -- auth.info("Processing OPTIONS request, URI is '"..ngx.var.request_uri.."'")
+                ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
+                ngx.header["Access-Control-Allow-Methods"] = "GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH"
+                ngx.header["Content-Length"] = 0
+            end
+        end
 
         if ngx.req.get_method() == "OPTIONS" then
-            -- auth.info("Processing OPTIONS request, URI is '"..ngx.var.request_uri.."'")
-            ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
-            ngx.header["Access-Control-Allow-Methods"] = "GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH"
-            ngx.header["Content-Length"] = 0
             ngx.status = 200
             ngx.exit(ngx.HTTP_OK)
         end
@@ -95,13 +107,13 @@ data:
             -- single logout was triggered
             auth.singleLogout()
         end
-        
+
         -- no token yet, and the request is not progressing an OIDC flow.
         -- check if caller has an existing session with a valid token.
         token = auth.getTokenFromSession()
 
         -- still no token? redirect to OP to authenticate user (if request is not a verrazzano API call)
-        if not token and backend ~= 'verrazzano' then
+        if not token and can_redirect == true then
             auth.oidcAuthenticate()
         end
     end
@@ -385,6 +397,7 @@ data:
 
     function me.getBackendNameFromIngressHost(ingressHost)
         local backend_name = 'unknown'
+        local able_to_redirect = true
         local hostname = nil
         if ingressHost and #ingressHost > 0 then
             me.info("ingressHost is '"..ingressHost.."'")
@@ -406,15 +419,26 @@ data:
                 end
             end
         end
+        local uri = ngx.var.request_uri
         if backend_name == "verrazzano" then
-            local uri = ngx.var.request_uri
             local first, last = uri:find("/20210501/")
             if not first or first ~= 1 then
                 backend_name = "console"
+            else
+                able_to_redirect = false
             end
         end
-        me.info("returning backend_name '"..backend_name.."'")
-        return backend_name
+        if backend_name == "kibana" then
+            if not (uri == "/" or uri:find("/app/kibana") == 1) then
+                able_to_redirect = false
+            end
+        end
+        if able_to_redirect == true then
+            me.info("returning backend_name '"..backend_name.."', able_to_redirect is true")
+        else
+            me.info("returning backend_name '"..backend_name.."', able_to_redirect is false")
+        end
+        return backend_name, able_to_redirect
     end
 
     function me.makeConsoleBackendUrl(port)
