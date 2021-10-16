@@ -756,7 +756,8 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	fluentdImage := "unit-test-image:latest"
 	newUpgradeVersion := "new-upgrade"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
-		constants.LabelUpgradeVersion: newUpgradeVersion, constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
+		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
+	annotations := map[string]string{constants.AnnotationUpgradeVersion: newUpgradeVersion}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -776,6 +777,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
 			workload.ObjectMeta.Labels = labels
+			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
@@ -881,7 +883,8 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	existingFluentdImage := "unit-test-image:existing"
 	previousUpgradeVersion := "new-upgrade"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
-		constants.LabelUpgradeVersion: previousUpgradeVersion, constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
+		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
+	annotations := map[string]string{constants.AnnotationUpgradeVersion: previousUpgradeVersion}
 
 	// existing domain containers
 	containers := []corev1.Container{{Name: logging.FluentdStdoutSidecarName, Image: existingFluentdImage}}
@@ -905,6 +908,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
 			workload.ObjectMeta.Labels = labels
+			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
