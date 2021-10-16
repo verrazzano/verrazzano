@@ -95,7 +95,7 @@ data:
             -- single logout was triggered
             auth.singleLogout()
         end
-        
+
         -- no token yet, and the request is not progressing an OIDC flow.
         -- check if caller has an existing session with a valid token.
         token = auth.getTokenFromSession()
@@ -170,17 +170,17 @@ data:
     function me.initCookieEncryptor()
         local aes = require "resty.aes"
         local key = me.read_file("/api-config/cookie-encryption-key")
-        if not key then
+        if not key or #key ~= 64 then
             me.internal_server_error("Error getting cookie key")
         end
-        local salt = string.sub(key, 17, 24)
+        local salt = string.sub(key, 49, 56)
         -- me.info("Got encryption key from secret: '"..key.."', length: "..#key)
         -- me.info("Salt is: '"..salt.."', length: "..#salt)
-        local aes256, err = aes:new(key, salt, aes.cipher(256, "cbc"), aes.hash.sha256, 3)
-        if err or not aes256 then
+        local encryptor, err = aes:new(key, salt, aes.cipher(256, "cbc"), aes.hash.sha256, 3)
+        if err or not encryptor then
             me.internal_server_error("Unable to get encryptor, error is: '"..err.."'")
         end
-        me.aes256 = aes256
+        me.aes256 = encryptor
     end
 
     function me.initOidcProviderUris()
