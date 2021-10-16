@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"net/http"
 	"os"
 	"strings"
@@ -676,6 +677,39 @@ func DoesRoleBindingExist(name string, namespace string) (bool, error) {
 	}
 
 	return rolebinding != nil, nil
+}
+
+// DoesPodExist returns true if a Pod with the given prefix exists
+func DoesPodExist(name string, namespace string) bool {
+	pods, err := c.Clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail("Could not get list of pods" + err.Error())
+	}
+	for i := range pods.Items {
+		if strings.HasPrefix(pods.Items[i].Name, name) {
+			return true
+		}
+	}
+	return false
+}
+
+
+// DoesDeploymentExist returns true if the deployment exists
+func DoesDeploymentExist(name string, namespace string) (bool, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return false, err
+	}
+	_, err = clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return false, nil
+		}
+		Log(Info, fmt.Sprintf("Error getting deployment %s in namespace %s : %v", name, namespace, err))
+		return false, err
+	}
+	return true, nil
 }
 
 // Execute executes the given command on the pod and container identified by the given names and returns the
