@@ -600,7 +600,7 @@ spec:
 # Network policy for Kiali
 # Ingress: allow connect from istio-system
 #          allow connect from the ingress controller to port 20001
-#          allow connect from prometheus to port 9090
+#          allow connect from prometheus to port 9090 and the envoy metrics port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -637,4 +637,6 @@ spec:
               app: system-prometheus
       ports:
         - port: 9090
+          protocol: TCP
+        - port: 15090
           protocol: TCP
