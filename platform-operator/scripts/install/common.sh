@@ -51,6 +51,32 @@ function wait_for_ingress_ip() {
   fi
 }
 
+# Wait for a deployment to become available in target namespace
+# - scaffolding support while we move some things to the platform operator; some components have dependencies
+#   on others during install at present
+function wait_for_deployment {
+  local ns=$1
+  local deployment=$2
+  for iter in {1..60}; do
+    if ! kubectl get namespace ${ns} 2>&1 > /dev/null; then
+      echo Waiting for namespace ${ns}...
+      sleep 5s
+    else
+      break
+    fi
+  done
+  for iter in {1..60}; do
+    if ! kubectl get -n ${ns}  deployment ${deployment} 2>&1 > /dev/null; then
+      echo Waiting for deployment ${deployment}...
+      sleep 5s
+    else
+      break
+    fi
+  done
+  kubectl  wait --for=condition=available deployment ${deployment} -n ${ns}  --timeout=7m
+  return $?
+}
+
 function get_rancher_access_token {
   local rancher_hostname=$1
   local rancher_password=$2
