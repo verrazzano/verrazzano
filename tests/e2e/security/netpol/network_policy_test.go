@@ -51,7 +51,7 @@ type accessCheckConfig struct {
 
 var (
 	expectedPods         = []string{"netpol-test"}
-	waitTimeout          = 3 * time.Minute
+	waitTimeout          = 5 * time.Minute
 	pollingInterval      = 30 * time.Second
 	shortWaitTimeout     = 30 * time.Second
 	shortPollingInterval = 10 * time.Second
