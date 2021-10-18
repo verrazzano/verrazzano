@@ -156,7 +156,7 @@ function install_keycloak {
         -f $VZ_OVERRIDES_DIR/keycloak-values.yaml \
         ${KEYCLOAK_ARGUMENTS} \
         ${keycloak_image_args} \
-        --set keycloak.extraInitContainers="${EXTRA_INIT_CONTAINERS_OVERRIDE}" \
+        --set extraInitContainers="${EXTRA_INIT_CONTAINERS_OVERRIDE}" \
         || return $?
   fi
 
