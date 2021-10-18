@@ -747,7 +747,6 @@ def validateHelmIstioReleasesDeleted() {
     try {
         istiod = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiod -o -m 1').trim()
     } catch(error) {
-        echo "helm release istiod successfully removed"
         istiod = ""
     }
     if ("" != istiod.toString()) {
@@ -759,7 +758,6 @@ def validateHelmIstioReleasesDeleted() {
     try {
         istio_base = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-base -o -m 1').trim()
     } catch(error) {
-        echo "helm release istio-base successfully removed"
         istio_base = ""
     }
     if ("" != istio_base.toString()) {
@@ -771,7 +769,6 @@ def validateHelmIstioReleasesDeleted() {
     try {
         istio_ingress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-ingress -o -m 1').trim()
     } catch(error) {
-        echo "helm release istio-ingress successfully removed"
         istio_ingress = ""
     }
     if ("" != istio_ingress.toString()) {
@@ -783,7 +780,6 @@ def validateHelmIstioReleasesDeleted() {
     try {
         istio_egress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-egress -o -m 1').trim()
     } catch(error) {
-        echo "helm release istio-egress successfully removed"
         istio_egress = ""
     }
     if ("" != istio_egress.toString()) {
@@ -795,7 +791,6 @@ def validateHelmIstioReleasesDeleted() {
     try {
         istiocoredns = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiocoredns -o -m 1').trim()
     } catch(error) {
-        echo "helm release istiocoredns successfully removed"
         istiocoredns = ""
     }
     if ("" != istiocoredns.toString()) {
