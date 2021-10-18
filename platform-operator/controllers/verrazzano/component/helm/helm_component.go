@@ -171,7 +171,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 		// NOTE: we'll likely have to put in some more logic akin to what we do for the scripts, see
 		//       reset_chart() in the common.sh script.  Recovering chart state can be a bit difficult, we
 		//       may need to draw on both the 'ls' and 'status' output for that.
-		helm.Uninstall(context.Log(), h.ReleaseName, resolvedNamespace, false, true)
+		helm.Uninstall(context.Log(), h.ReleaseName, resolvedNamespace, context.IsDryRun())
 	}
 
 	var kvs []bom.KeyValue
