@@ -53,16 +53,16 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         limitMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                   required:
                     - enabled
@@ -76,16 +76,16 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         limitMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                 autoSecret:
                   type: boolean
@@ -112,22 +112,22 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         limitMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         maxSizeDisk:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         minSizeDisk:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                     retentionPeriodDays:
                       pattern: '\d+'
@@ -186,16 +186,16 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         limitMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                     storage:
                       type: object
@@ -227,16 +227,16 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         limitMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                 lock:
                   type: boolean
@@ -260,22 +260,22 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         limitMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         maxSizeDisk:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         minSizeDisk:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestCPU:
-                          pattern: '^([1-9]\d*|\d+\.\d{1,2})m?$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                         requestMemory:
-                          pattern: '^[1-9]\d*(Mi|Gi)$'
+                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           type: string
                     retentionPeriod:
                       pattern: '\d+'
