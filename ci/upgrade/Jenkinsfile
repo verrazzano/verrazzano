@@ -807,7 +807,7 @@ def validateIstioCoreDNSUninstall() {
         try {
             sh(returnStdout: true, script: 'helm list -n istio-system | grep istiocoredns -o -m 1').trim()
         } catch(error) {
-            exit 0
+            return
         }
         sleep(10)
     }
