@@ -288,7 +288,7 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	for index := range secretList.Items {
 		secret := &secretList.Items[index]
 		secretName := secret.Name
-		if secret.Type == HelmScrtType {
+		if secret.Type == HelmScrtType && !strings.Contains(secretName, IstioCoreDNSReleaseName) {
 			err = client.Delete(context.TODO(), secret)
 			if err != nil {
 				compContext.Log().Errorf("Error deleting helm secret %s: %v", secretName, err)
