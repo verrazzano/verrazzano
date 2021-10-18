@@ -103,52 +103,6 @@
             {
               "image": "pilot",
               "tag": "1.10.2",
-              "helmFullImageKey": "pilot.image"
-            },
-            {
-              "image": "proxyv2",
-              "tag": "1.10.2",
-              "helmImageKey": "global.proxy.image",
-              "helmTagKey": "global.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "istio-ingress",
-          "images": [
-            {
-              "image": "proxyv2",
-              "tag": "1.10.2",
-              "helmImageKey": "global.proxy.image",
-              "helmTagKey": "global.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "istio-egress",
-          "images": [
-            {
-              "image": "proxyv2",
-              "tag": "1.10.2",
-              "helmImageKey": "global.proxy.image",
-              "helmTagKey": "global.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "istio-1.10.2",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "istiod-1.10.2",
-          "images": [
-            {
-              "image": "pilot",
-              "tag": "1.10.2",
               "helmFullImageKey": "values.pilot.image"
             },
             {
@@ -171,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.5.9-20210716224636-3e2504adb",
+              "tag": "v2.5.9-20211013170111-ec72f6a2f",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.5.9-20210716224636-3e2504adb"
+              "tag": "v2.5.9-20211013170111-ec72f6a2f"
             }
           ]
         },
@@ -347,11 +301,6 @@
               "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
               "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
               "helmFullImageKey": "image"
-            },
-            {
-              "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20210930152433-f345ec2",
-              "helmFullImageKey": "fluentdImage"
             }
           ]
         }
