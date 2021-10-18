@@ -61,7 +61,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 			if !isManagedClusterProfile {
 				Eventually(func() (*pkg.HTTPResponse, error) {
 					return pkg.GetWebPage(serverURL, "")
-				}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty(), pkg.BodyDoesNotContain("404")))
+				}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty()))
 			}
 		})
 
