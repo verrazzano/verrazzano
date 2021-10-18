@@ -1,0 +1,44 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: carts
+  namespace: sockshop-logging
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoCoherenceWorkload
+    spec:
+      template:
+        metadata:
+          name: carts-coh
+        spec:
+          cluster: SockShop
+          role: Carts
+          replicas: 1
+          image: ghcr.io/helidon-sockshop/carts-coherence:2.2.0
+          imagePullPolicy: IfNotPresent
+          application:
+            type: helidon
+          jvm:
+            args:
+              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+              - "-Dcoherence.metrics.legacy.names=false"
+            memory:
+              heapSize: 2g
+          coherence:
+            logLevel: 9
+          ports:
+            - name: http
+              port: 7001
+              service:
+                name: carts
+                port: 80
+              serviceMonitor:
+                enabled: true
+            - name: metrics
+              port: 7001
+              serviceMonitor:
+                enabled: true

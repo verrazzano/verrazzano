@@ -84,6 +84,7 @@ const (
 	loggingNamePart           = "logging-stdout"
 	loggingMountPath          = "/fluentd/etc/custom.conf"
 	loggingKey                = "custom.conf"
+	fluentdVolumeName         = "fluentd-config-volume"
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -181,7 +182,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
 	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
-	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Labels, workload.Status.CurrentUpgradeVersion)
+	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Annotations, workload.Status.CurrentUpgradeVersion)
 
 	// Add the Fluentd sidecar container required for logging to the Coherence StatefulSet
 	if err = r.addLogging(ctx, log, workload, upgradeApp, spec, &existingCoherence); err != nil {
@@ -279,10 +280,6 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, coherence *un
 		labels[oam.LabelAppName] = appName
 	}
 
-	if upgradeVersion, ok := workloadLabels[constants.LabelUpgradeVersion]; ok {
-		labels[constants.LabelUpgradeVersion] = upgradeVersion
-	}
-
 	err := unstructured.SetNestedStringMap(coherence.Object, labels, specLabelsFields...)
 	if err != nil {
 		log.Error(err, "Unable to set labels in spec")
@@ -327,18 +324,6 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 		}
 	}
 
-	// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
-	// not the fields will be empty and we will set these fields to defaults below
-	scope, err := logging.NewLogInfo(existingFluentdImage)
-	if err != nil {
-		return err
-	}
-
-	if scope == nil {
-		log.Info("No logging scope found for workload, nothing to do")
-		return nil
-	}
-
 	// extract just enough of the Coherence data into concrete types so we can merge with
 	// the FLUENTD data
 	var extracted containersMountsVolumes
@@ -370,7 +355,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err = fluentdManager.Apply(scope, resource, fluentdPod); err != nil {
+	if _, err := fluentdManager.Apply(logging.NewLogInfo(existingFluentdImage), resource, fluentdPod); err != nil {
 		return err
 	}
 
@@ -379,7 +364,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// Coherence wants the volume mount for the FLUENTD config map stored in "configMapVolumes", so
 	// we have to move it from the FLUENTD container volume mounts
-	if err = moveConfigMapVolume(log, fluentdPod, coherenceSpec); err != nil {
+	if err := moveConfigMapVolume(log, fluentdPod, coherenceSpec); err != nil {
 		return err
 	}
 
@@ -485,6 +470,18 @@ func moveConfigMapVolume(log logr.Logger, fluentdPod *logging.FluentdPod, cohere
 		log.Info("Expected to find config map volume mount in fluentd container but did not")
 	}
 
+	volumes := fluentdPod.Volumes
+	vIndex := -1
+	for v, volume := range volumes {
+		if volume.Name == fluentdVolumeName {
+			vIndex = v
+		}
+	}
+	if vIndex != -1 {
+		volumes[vIndex] = volumes[len(volumes)-1]
+		fluentdPod.Volumes = volumes[:len(volumes)-1]
+	}
+
 	return nil
 }
 
@@ -585,8 +582,8 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 }
 
 func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-	if workload.Labels[constants.LabelUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
-		workload.Status.CurrentUpgradeVersion = workload.Labels[constants.LabelUpgradeVersion]
+	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
+		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
 		return r.Status().Update(ctx, workload)
 	}
 	return nil

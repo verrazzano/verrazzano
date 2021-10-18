@@ -6,10 +6,9 @@ package cohworkload
 import (
 	"context"
 	"fmt"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"strings"
 	"testing"
-
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
@@ -659,7 +658,8 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	fluentdImage := "unit-test-image:latest"
 	existingUpgradeVersion := "existing-upgrade-version"
 	newUpgradeVersion := "new-upgrade-version"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: newUpgradeVersion}
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+	annotations := map[string]string{constants.AnnotationUpgradeVersion: newUpgradeVersion}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -680,6 +680,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
+			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
@@ -790,7 +791,8 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	fluentdImage := "unit-test-image:latest"
 	existingFluentdImage := "unit-test-image:existing"
 	existingUpgradeVersion := "existing-upgrade-version"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName, constants.LabelUpgradeVersion: existingUpgradeVersion}
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+	annotations := map[string]string{constants.AnnotationUpgradeVersion: existingUpgradeVersion}
 	containers := []corev1.Container{{Name: logging.FluentdStdoutSidecarName, Image: existingFluentdImage}}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
@@ -821,6 +823,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
+			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace

@@ -254,10 +254,22 @@ func GetRetryPolicy() func(ctx context.Context, resp *http.Response, err error) 
 	}
 }
 
-// findMetric parses a Prometheus response to find a specified metric value
-func findMetric(metrics []interface{}, key, value string) bool {
+// findMetric parses a Prometheus response to find a specified set of metric values
+func findMetric(metrics []interface{}, keyMap map[string]string) bool {
 	for _, metric := range metrics {
-		if Jq(metric, "metric", key) == value {
+
+		// allExist only remains true if all metrics are found in a given JSON response
+		allExist := true
+
+		for key, value := range keyMap {
+			exists := false
+			if Jq(metric, "metric", key) == value {
+				// exists is true if the specific key-value pair is found in a given JSON response
+				exists = true
+			}
+			allExist = exists && allExist
+		}
+		if allExist {
 			return true
 		}
 	}
@@ -272,18 +284,22 @@ func MetricsExist(metricsName, key, value string) bool {
 		return false
 	}
 
-	return MetricsExistInCluster(metricsName, key, value, kubeconfigPath)
+	// map with single key-value pair
+	m := make(map[string]string)
+	m[key] = value
+
+	return MetricsExistInCluster(metricsName, m, kubeconfigPath)
 }
 
 // MetricsExist validates the availability of a given metric in the given cluster
-func MetricsExistInCluster(metricsName, key, value, kubeconfigPath string) bool {
+func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubeconfigPath string) bool {
 	metric, err := QueryMetric(metricsName, kubeconfigPath)
 	if err != nil {
 		return false
 	}
 	metrics := JTq(metric, "data", "result").([]interface{})
 	if metrics != nil {
-		return findMetric(metrics, key, value)
+		return findMetric(metrics, keyMap)
 	}
 	return false
 }

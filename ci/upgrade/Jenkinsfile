@@ -298,6 +298,8 @@ pipeline {
                             cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
 
                         """
+
+                        validateHelmIstioReleasesDeleted()
                     }
                     post {
                         always {
@@ -738,4 +740,51 @@ def listHelmReleases(customMessage) {
         helm list -A
         echo "-----------------------------------------------------"
     """
+}
+
+def validateHelmIstioReleasesDeleted() {
+    echo "Validating helm istio releases have been removed"
+    try {
+        istiod = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiod -o -m 1').trim()
+    } catch(error) {
+        istiod = ""
+    }
+    if ("" != istiod.toString()) {
+        echo "helm release istiod found in istio-system namespace after upgrade"
+        helm list -n istio-system
+        exit 1
+    }
+
+    try {
+        istio_base = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-base -o -m 1').trim()
+    } catch(error) {
+        istio_base = ""
+    }
+    if ("" != istio_base.toString()) {
+        echo "helm release istio-base found in istio-system namespace after upgrade"
+        helm list -n istio-system
+        exit 1
+    }
+
+    try {
+        istio_ingress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-ingress -o -m 1').trim()
+    } catch(error) {
+        istio_ingress = ""
+    }
+    if ("" != istio_ingress.toString()) {
+        echo "helm release istio-ingress found in istio-system namespace after upgrade"
+        helm list -n istio-system
+        exit 1
+    }
+
+    try {
+        istio_egress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-egress -o -m 1').trim()
+    } catch(error) {
+        istio_egress = ""
+    }
+    if ("" != istio_egress.toString()) {
+        echo "helm release istio-egress found in istio-system namespace after upgrade"
+        helm list -n istio-system
+        exit 1
+    }
 }

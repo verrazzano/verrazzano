@@ -58,9 +58,6 @@ type ComponentUpgrader interface {
 	Upgrade(context ComponentContext) error
 	// PostUpgrade allows components to perform any post-processing required after upgrading
 	PostUpgrade(context ComponentContext) error
-	// GetSkipUpgrade returns the value of the SkipUpgrade field
-	// - Scaffolding for now during the Istio 1.10.2 upgrade process
-	GetSkipUpgrade() bool
 }
 
 // Component interface defines the methods implemented by components

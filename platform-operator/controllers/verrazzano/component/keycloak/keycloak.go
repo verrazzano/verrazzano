@@ -12,9 +12,6 @@ import (
 	"text/template"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "keycloak"
-
 // Define the keylcloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
 const kcInitContainerKey = "keycloak.extraInitContainers"

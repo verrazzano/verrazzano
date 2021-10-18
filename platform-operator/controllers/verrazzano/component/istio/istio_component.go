@@ -7,19 +7,43 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzString "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// ComponentName is the name of the component
+const ComponentName = "istio"
+
+// IstiodDeployment is the name of the istiod deployment
+const IstiodDeployment = "istiod"
+
+const istioGlobalHubKey = "global.hub"
+
+// IstioNamespace is the default Istio namespace
+const IstioNamespace = "istio-system"
+
+// IstioCoreDNSReleaseName is the name of the istiocoredns release
+const IstioCoreDNSReleaseName = "istiocoredns"
+
+// HelmScrtType is the secret type that helm uses to specify its releases
+const HelmScrtType = "helm.sh/release.v1"
 
 // IstioComponent represents an Istio component
 type IstioComponent struct {
@@ -31,14 +55,7 @@ type IstioComponent struct {
 
 	// InjectedSystemNamespaces are the system namespaces injected with istio
 	InjectedSystemNamespaces []string
-
-	// SkipUpgrade when true will skip upgrading this component in the upgrade loop
-	// This is for the istio helm components
-	SkipUpgrade bool
 }
-
-// Verify that IstioComponent implements Component
-var _ spi.Component = IstioComponent{}
 
 type upgradeFuncSig func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
@@ -49,37 +66,42 @@ func SetIstioUpgradeFunction(fn upgradeFuncSig) {
 	upgradeFunc = fn
 }
 
-func ResetIstioUpgradeFunction() {
+func SetDefaultIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
-type restartComponentsFnType func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
+type restartComponentsFuncSig func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
 
-var restartComponentsFn = restartComponents
+var restartComponentsFunction = restartComponents
 
-func SetRestartComponentsFn(fn restartComponentsFnType) {
-	restartComponentsFn = fn
+func SetRestartComponentsFunction(fn restartComponentsFuncSig) {
+	restartComponentsFunction = fn
 }
 
-func ResetRestartComponentsFn() {
-	restartComponentsFn = restartComponents
+func SetDefaultRestartComponentsFunction() {
+	restartComponentsFunction = restartComponents
+}
+
+type helmUninstallFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
+
+var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
+
+func SetHelmUninstallFunction(fn helmUninstallFuncSig) {
+	helmUninstallFunction = fn
+}
+
+func SetDefaultHelmUninstallFunction() {
+	helmUninstallFunction = helm.Uninstall
+}
+
+// IsEnabled returns true if the component is enabled, which is the default
+func IsEnabled(_ *v1alpha1.IstioComponent) bool {
+	return true
 }
 
 // Name returns the component name
 func (i IstioComponent) Name() string {
-	return "istio"
-}
-
-func (i IstioComponent) IsOperatorInstallSupported() bool {
-	return false
-}
-
-func (i IstioComponent) IsInstalled(_ spi.ComponentContext) (bool, error) {
-	return false, nil
-}
-
-func (i IstioComponent) Install(_ spi.ComponentContext) error {
-	return nil
+	return ComponentName
 }
 
 func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
@@ -128,7 +150,7 @@ func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	err = restartComponentsFn(log, err, i, context.Client())
+	err = restartComponentsFunction(log, err, i, context.Client())
 	if err != nil {
 		return err
 	}
@@ -136,16 +158,11 @@ func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
-func setUpgradeFunc(f upgradeFuncSig) {
-	upgradeFunc = f
-}
-
-func setDefaultUpgradeFunc() {
-	upgradeFunc = istio.Upgrade
-}
-
-func (i IstioComponent) IsReady(_ spi.ComponentContext) bool {
-	return true
+func (i IstioComponent) IsReady(context spi.ComponentContext) bool {
+	deployments := []types.NamespacedName{
+		{Name: IstiodDeployment, Namespace: IstioNamespace},
+	}
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
 // GetDependencies returns the dependencies of this component
@@ -157,16 +174,13 @@ func (i IstioComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (i IstioComponent) PostUpgrade(_ spi.ComponentContext) error {
-	return nil
-}
-
-func (i IstioComponent) PreInstall(_ spi.ComponentContext) error {
-	return nil
-}
-
-func (i IstioComponent) PostInstall(_ spi.ComponentContext) error {
-	return nil
+func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
+	err := deleteIstioCoreDNS(context)
+	if err != nil {
+		return err
+	}
+	err = removeIstioHelmSecrets(context)
+	return err
 }
 
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets
@@ -183,7 +197,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 		deployment := &deploymentList.Items[index]
 
 		// Check if deployment is in an Istio injected system namespace
-		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
+		if vzString.SliceContainsString(i.InjectedSystemNamespaces, deployment.Namespace) {
 			if deployment.Spec.Paused {
 				return fmt.Errorf("Deployment %v can't be restarted because it is paused", deployment.Name)
 			}
@@ -208,7 +222,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 		statefulSet := &statefulSetList.Items[index]
 
 		// Check if StatefulSet is in an Istio injected system namespace
-		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
+		if vzString.SliceContainsString(i.InjectedSystemNamespaces, statefulSet.Namespace) {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
@@ -230,7 +244,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 		daemonSet := &daemonSetList.Items[index]
 
 		// Check if DaemonSet is in an Istio injected system namespace
-		if contains(i.InjectedSystemNamespaces, daemonSet.Namespace) {
+		if vzString.SliceContainsString(i.InjectedSystemNamespaces, daemonSet.Namespace) {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
@@ -244,21 +258,49 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 	return nil
 }
 
-// contains is a helper function that should be a build-in
-func contains(arr []string, s string) bool {
-	for _, str := range arr {
-		if str == s {
-			return true
+func deleteIstioCoreDNS(context spi.ComponentContext) error {
+	// Check if the component is installed before trying to upgrade
+	found, err := helm.IsReleaseInstalled(IstioCoreDNSReleaseName, constants.IstioSystemNamespace)
+	if err != nil {
+		context.Log().Errorf("Error returned when searching for release: %v", err)
+		return err
+	}
+	if found {
+		_, _, err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		if err != nil {
+			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
 		}
 	}
-	return false
+	return err
 }
 
-func (i IstioComponent) GetSkipUpgrade() bool {
-	return i.SkipUpgrade
+// removeIstioHelmSecrets deletes the release metadata that helm uses to access to access and control the releases
+// this is sufficient to prevent helm from trying to operator on deployments it doesn't control anymore
+// however it does not delete the underlying resources
+func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
+	client := compContext.Client()
+	var secretList v1.SecretList
+	listOptions := clipkg.ListOptions{Namespace: constants.IstioSystemNamespace}
+	err := client.List(context.TODO(), &secretList, &listOptions)
+	if err != nil {
+		compContext.Log().Errorf("Error retrieving list of secrets in the istio-system namespace: %v", err)
+	}
+	for index := range secretList.Items {
+		secret := &secretList.Items[index]
+		secretName := secret.Name
+		if secret.Type == HelmScrtType && !strings.Contains(secretName, IstioCoreDNSReleaseName) {
+			err = client.Delete(context.TODO(), secret)
+			if err != nil {
+				compContext.Log().Errorf("Error deleting helm secret %s: %v", secretName, err)
+			} else {
+				compContext.Log().Infof("Deleted helm secret %v", secretName)
+			}
+		}
+	}
+	return nil
 }
 
-func buildImageOverridesString(log *zap.SugaredLogger) (string, error) {
+func buildImageOverridesString(_ *zap.SugaredLogger) (string, error) {
 	// Get the image overrides from the BOM
 	var kvs []bom.KeyValue
 	var err error
@@ -282,10 +324,74 @@ func buildImageOverridesString(log *zap.SugaredLogger) (string, error) {
 	return overridesString, nil
 }
 
+// AppendIstioOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
+// A go template is used to replace the image in the init container spec.
+func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// Create a Bom and get the Key Value overrides
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the istio component
+	sc, err := bomFile.GetSubcomponent(releaseName)
+	if err != nil {
+		return nil, err
+	}
+
+	registry := bomFile.ResolveRegistry(sc)
+	repo := bomFile.ResolveRepo(sc)
+
+	// Override the global.hub if either of the 2 env vars were defined
+	if registry != bomFile.GetRegistry() || repo != sc.Repository {
+		// Return a new Key:Value pair with the rendered Value
+		kvs = append(kvs, bom.KeyValue{
+			Key:   istioGlobalHubKey,
+			Value: registry + "/" + repo,
+		})
+	}
+
+	return kvs, nil
+}
+
+// IstiodReadyCheck Determines if istiod is up and has a minimum number of available replicas
+func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool {
+	deployments := []types.NamespacedName{
+		{Name: "istiod", Namespace: namespace},
+	}
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
+}
+
+func buildOverridesString(log *zap.SugaredLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
+	// Get the image overrides from the BOM
+	kvs, err := getImageOverrides()
+	if err != nil {
+		return "", err
+	}
+
+	// Append any special overrides passed in
+	if len(additionalValues) > 0 {
+		kvs = append(kvs, additionalValues...)
+	}
+
+	// If there are overridesString the create a comma separated string
+	var overridesString string
+	if len(kvs) > 0 {
+		bldr := strings.Builder{}
+		for i, kv := range kvs {
+			if i > 0 {
+				bldr.WriteString(",")
+			}
+			bldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
+		}
+		overridesString = bldr.String()
+	}
+	return overridesString, nil
+}
+
 // Get the image overrides from the BOM
 func getImageOverrides() ([]bom.KeyValue, error) {
-
-	const subcompIstiod = "istiod-1.10.2"
+	const subcompIstiod = "istiod"
 	subComponentNames := []string{subcompIstiod}
 
 	// Create a Bom and get the Key Value overrides
@@ -304,6 +410,5 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 			kvs = append(kvs, scKvs[i])
 		}
 	}
-
 	return kvs, nil
 }

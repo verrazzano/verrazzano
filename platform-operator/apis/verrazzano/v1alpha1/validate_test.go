@@ -5,9 +5,10 @@ package v1alpha1
 
 import (
 	"context"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/semver"
 
@@ -687,4 +688,60 @@ func TestValidateOciDnsSecretNoOci(t *testing.T) {
 func newBool(v bool) *bool {
 	b := v
 	return &b
+}
+
+// TestValidateVersionHigherOrEqualEmptyRequestedVersion Tests ValidateVersionHigherOrEqual() requestedVersion is empty
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the requestedVersion provided is emptty
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualEmptyRequestedVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual("v1.0.1", ""))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() currentVersion is empty
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the currentVersion provided is emptty
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualEmptyCurrentVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual("", "v1.0.1"))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() requestedVersion is invalid
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the requestedVersion provided is invalid
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualInvalidRequestedVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual("v1.0.1", "xyz.zz"))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() currentVersion is invalid
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the currentVersion provided is invalid
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualInvalidVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual("xyz.zz", "v1.0.1"))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests ValidateVersionHigherOrEqual() versions are equal
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the requested version is equal to current version
+// THEN success is returned
+func TestValidateVersionHigherOrEqualCurrentVersion(t *testing.T) {
+	assert.True(t, ValidateVersionHigherOrEqual("v1.0.1", "v1.0.1"))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() requestedVersion is higher
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the requested version is greater than current ersion
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualHigherVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual("v1.0.1", "v1.0.2"))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() requestedVersion is lower
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the requested version is lower than current version
+// THEN success is returned
+func TestValidateVersionHigherOrEqualLowerVersion(t *testing.T) {
+	assert.True(t, ValidateVersionHigherOrEqual("v1.0.2", "v1.0.1"))
 }

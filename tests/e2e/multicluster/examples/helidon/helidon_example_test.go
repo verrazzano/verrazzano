@@ -24,6 +24,7 @@ const (
 	sourceDir            = "hello-helidon"
 	testNamespace        = "hello-helidon"
 	testProjectName      = "hello-helidon"
+	testApp              = "hello-helidon"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -40,6 +41,7 @@ var _ = AfterEach(func() {
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = BeforeSuite(func() {
+
 	// deploy the VerrazzanoProject
 	Eventually(func() error {
 		return examples.DeployHelloHelidonProject(adminKubeconfig, sourceDir)
@@ -151,11 +153,42 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	// GIVEN an admin cluster and at least one managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
-	Context("Metrics", func() {
-		It("Verify Prometheus metrics exist on admin cluster", func() {
+	Context("Prometheus Metrics", func() {
+
+		It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
 			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				m := make(map[string]string)
+				m["app"] = testApp
+				m["managed_cluster"] = clusterName
+				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
+		})
+
+		It("Verify DNE base_jvm_uptime_seconds metrics does not exist for managed cluster", func() {
+			Eventually(func() bool {
+				m := make(map[string]string)
+				m["cluster"] = testNamespace
+				m["managed_cluster"] = "DNE"
+				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
+		})
+
+		It("Verify vendor_requests_count_total metrics exist for managed cluster", func() {
+			Eventually(func() bool {
+				m := make(map[string]string)
+				m["app"] = testApp
+				m["managed_cluster"] = clusterName
+				return pkg.MetricsExistInCluster("vendor_requests_count_total", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
+		})
+
+		It("Verify container_cpu_cfs_periods_total metrics exist for managed cluster", func() {
+			Eventually(func() bool {
+				m := make(map[string]string)
+				m["namespace"] = testNamespace
+				m["managed_cluster"] = clusterName
+				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
 		})
 	})
 
@@ -258,15 +291,15 @@ var _ = AfterSuite(func() {
 })
 
 func cleanUp(kubeconfigPath string) error {
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/mc-hello-helidon-app.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon application resource: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/hello-helidon-comp.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/hello-helidon-comp.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon component resources: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeconfigPath); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete hello-helidon project resource: %v", err)
 	}
 	return nil
