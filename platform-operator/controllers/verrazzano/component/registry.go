@@ -92,6 +92,7 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			resolveNamespaceFunc:    resolveVerrazzanoNamespace,
 			preUpgradeFunc:          verrazzanoPreUpgrade,
+			appendOverridesFunc:     appendVerrazzanoOverrides,
 		},
 		helmComponent{
 			releaseName:             "coherence-operator",

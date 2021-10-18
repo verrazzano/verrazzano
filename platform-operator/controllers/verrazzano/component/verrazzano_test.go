@@ -152,3 +152,25 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	assert.Equal("some-url", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].Value)
 	assert.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom)
 }
+
+// Test_appendVerrazzanoOverrides tests the AppendOverrides function
+// GIVEN a call to AppendOverrides
+//  WHEN I call with no extra kvs
+//  THEN the correct KeyValue objects are returned and no error occurs
+func Test_appendVerrazzanoOverrides(t *testing.T) {
+	assert := assert.New(t)
+	SetUnitTestBomFilePath(testBomFilePath)
+
+	kvs, err := appendVerrazzanoOverrides(nil, "", "", "", []keyValue{})
+
+	assert.NoError(err)
+	assert.Len(kvs, 2)
+	assert.Contains(kvs, keyValue{
+		key:   "monitoringOperator.prometheusInitImage",
+		value: "ghcr.io/oracle/oraclelinux:7-slim",
+	})
+	assert.Contains(kvs, keyValue{
+		key:   "monitoringOperator.esInitImage",
+		value: "ghcr.io/oracle/oraclelinux:7.8",
+	})
+}
