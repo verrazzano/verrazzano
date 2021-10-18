@@ -42,7 +42,7 @@ const kcInitContainerValueTemplate = `
         - name: theme
           mountPath: /theme
         - name: cacerts
-          mountPath: /cacerts"
+          mountPath: /cacerts
 `
 
 // imageData needed for template rendering
@@ -116,12 +116,12 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		Value: host,
 	})
 
+	// this secret contains the keycloak TLS certificate created by cert-manager during the original keycloak installation
 	tlsSecretValue := fmt.Sprintf("%s-secret", compContext.EffectiveCR().Spec.EnvironmentName)
 	kvs = append(kvs, bom.KeyValue{
 		Key:   tlsSecret,
 		Value: tlsSecretValue,
 	})
 
-	// Return a new Key:Value pair with the rendered Value
 	return kvs, nil
 }
