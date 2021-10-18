@@ -20,9 +20,6 @@ import (
 )
 
 const (
-	// ComponentName is the name of the component
-	ComponentName = "ingress-controller"
-
 	// ComponentNamespace is the NGINX namespace for verrazzano
 	ComponentNamespace = "ingress-nginx"
 

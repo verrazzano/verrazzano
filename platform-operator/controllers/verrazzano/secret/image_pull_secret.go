@@ -14,6 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const DefaultImagePullSecretKeyName = "imagePullSecrets[0].name"
+
 // CheckImagePullSecret Checks if the global image pull secret exists and copies it into the specified namespace; returns
 // true if the image pull secret exists and was copied successfully.
 func CheckImagePullSecret(client client.Client, targetNamespace string) (bool, error) {
