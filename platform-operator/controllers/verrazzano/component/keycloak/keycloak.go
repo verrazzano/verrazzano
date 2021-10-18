@@ -88,32 +88,32 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	})
 
 	// Additional overrides for Keycloak 15.0.2 charts.
-	var ingress = &networkingv1.Ingress{}
-	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: constants.VzConsoleIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
-	if err != nil {
-		return nil, fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VzConsoleIngress, constants.VerrazzanoSystemNamespace, err)
-	}
-
-	kvs = append(kvs, bom.KeyValue{
-		Key:       dnsTarget,
-		Value:     ingress.Spec.TLS[0].Hosts[0],
-		SetString: true,
-	})
-
 	var keycloakIngress = &networkingv1.Ingress{}
 	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: constants.KeycloakIngress, Namespace: constants.KeycloakNamespace}, keycloakIngress)
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.KeycloakIngress, constants.KeycloakNamespace, err)
 	}
 
+	if len(keycloakIngress.Spec.TLS) == 0 || len(keycloakIngress.Spec.TLS[0].Hosts) == 0 {
+		return nil, fmt.Errorf("no ingress hosts found for %s/%s, %v", constants.KeycloakIngress, constants.KeycloakNamespace, err)
+	}
+
+	host := keycloakIngress.Spec.TLS[0].Hosts[0]
+
+	kvs = append(kvs, bom.KeyValue{
+		Key:       dnsTarget,
+		Value:     host,
+		SetString: true,
+	})
+
 	kvs = append(kvs, bom.KeyValue{
 		Key:   rulesHost,
-		Value: keycloakIngress.Spec.TLS[0].Hosts[0],
+		Value: host,
 	})
 
 	kvs = append(kvs, bom.KeyValue{
 		Key:   tlsHosts,
-		Value: keycloakIngress.Spec.TLS[0].Hosts[0],
+		Value: host,
 	})
 
 	tlsSecretValue := fmt.Sprintf("%s-secret", compContext.EffectiveCR().Spec.EnvironmentName)

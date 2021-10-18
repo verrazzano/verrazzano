@@ -23,9 +23,7 @@ import (
 )
 
 const (
-	testBomFilePath = "../../testdata/test_bom.json"
-
-	testConsoleIngressHost  = "console-ingress-host"
+	testBomFilePath         = "../../testdata/test_bom.json"
 	testKeycloakIngressHost = "keycloak-ingress-host"
 )
 
@@ -55,7 +53,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 
 	assert.Contains(kvs, bom.KeyValue{
 		Key:       dnsTarget,
-		Value:     testConsoleIngressHost,
+		Value:     testKeycloakIngressHost,
 		SetString: true,
 	})
 	assert.Contains(kvs, bom.KeyValue{
@@ -75,25 +73,6 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 // createIngresses creates the k8s ingress resources that AppendKeycloakOverrides will fetch
 func createIngresses(cli client.Client) error {
 	ingress := &networkingv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      constants.VzConsoleIngress,
-		},
-		Spec: networkingv1.IngressSpec{
-			TLS: []networkingv1.IngressTLS{
-				{
-					Hosts: []string{
-						testConsoleIngressHost,
-					},
-				},
-			},
-		},
-	}
-	if err := cli.Create(context.TODO(), ingress); err != nil {
-		return err
-	}
-
-	ingress = &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.KeycloakNamespace,
 			Name:      constants.KeycloakIngress,
