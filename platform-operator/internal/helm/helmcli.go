@@ -115,12 +115,12 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 }
 
 // Uninstall will uninstall the release in the specified namespace  using helm uninstall
-func Uninstall(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+func Uninstall(log *zap.SugaredLogger, releaseName string, namespace string, wait bool, dryRun bool) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
 	args := []string{}
 
-	stdout, stderr, err = runHelm(log, releaseName, namespace, "", "uninstall", false, args, dryRun)
+	stdout, stderr, err = runHelm(log, releaseName, namespace, "", "uninstall", wait, args, dryRun)
 	if err != nil {
 		return stdout, stderr, err
 	}

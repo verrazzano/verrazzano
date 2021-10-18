@@ -115,7 +115,7 @@ func TestPostUpgrade(t *testing.T) {
 	assert.NoError(err, "PostUpgrade returned an error")
 }
 
-func fakeHelmUninstall(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+func fakeHelmUninstall(log *zap.SugaredLogger, releaseName string, namespace string, wait bool, dryRun bool) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiocoredns" {
 		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
 	}

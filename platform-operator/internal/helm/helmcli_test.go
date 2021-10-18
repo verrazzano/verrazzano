@@ -111,7 +111,7 @@ func TestUninstall(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	_, _, err := Uninstall(zap.S(), "weblogic-operator", "verrazzano-system", false)
+	_, _, err := Uninstall(zap.S(), "weblogic-operator", "verrazzano-system", false, false)
 	assert.NoError(t, err)
 }
 
@@ -129,7 +129,7 @@ func TestUninstallError(t *testing.T) {
 		err:    fmt.Errorf("Unexpected uninstall error"),
 	})
 	defer SetDefaultRunner()
-	_, _, err := Uninstall(zap.S(), "weblogic-operator", "verrazzano-system", false)
+	_, _, err := Uninstall(zap.S(), "weblogic-operator", "verrazzano-system", false, false)
 	assert.Error(t, err)
 }
 
