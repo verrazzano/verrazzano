@@ -309,7 +309,7 @@ pipeline {
 
                 stage("Validate Upgrade") {
                     stages {
-                        stage("validateBOM") {
+                        stage("Validate BOM") {
                             when {
                                 allOf {
                                     expression{params.RUN_BOM_VALIDATOR == true}
@@ -326,6 +326,16 @@ pipeline {
                                     chmod +x ${WORKSPACE}/bom-validator
                                     ${WORKSPACE}/bom-validator
                                 """
+                            }
+                        }
+                        stage("Validate helm istio releases removed") {
+                            steps {
+                                validateHelmIstioReleasesDeleted()
+                            }
+                        }
+                        stage("Validate istiocoredns uninstalled") {
+                            steps {
+                                validateIstioCoreDNSUninstall()
                             }
                         }
                     }
@@ -795,7 +805,7 @@ def validateIstioCoreDNSUninstall() {
     retries = 12
     for(int retry=0; retry<retries; retry++) {
         try {
-            istiocoredns = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiocoredns -o -m 1').trim()
+            sh(returnStdout: true, script: 'helm list -n istio-system | grep istiocoredns -o -m 1').trim()
         } catch(error) {
             exit 0
         }
