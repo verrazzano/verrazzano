@@ -227,11 +227,6 @@ pipeline {
                         }
                     }
                 }
-                stage("Make sure checks work") {
-                    steps {
-                        validateHelmIstioReleasesDeleted()
-                    }
-                }
                 stage("upgrade-platform-operator") {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
@@ -749,11 +744,8 @@ def listHelmReleases(customMessage) {
 
 def validateHelmIstioReleasesDeleted() {
     echo "Validating helm istio releases have been removed"
-    all =  sh(returnStdout: true, script: 'helm list -A').trim()
-    echo all
     try {
         istiod = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiod -o -m 1').trim()
-        echo istiod
     } catch(error) {
         echo "helm release istiod successfully removed"
         istiod = ""
@@ -766,7 +758,6 @@ def validateHelmIstioReleasesDeleted() {
 
     try {
         istio_base = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-base -o -m 1').trim()
-        echo istio-base
     } catch(error) {
         echo "helm release istio-base successfully removed"
         istio_base = ""
@@ -779,7 +770,6 @@ def validateHelmIstioReleasesDeleted() {
 
     try {
         istio_ingress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-ingress -o -m 1').trim()
-        echo istio-ingress
     } catch(error) {
         echo "helm release istio-ingress successfully removed"
         istio_ingress = ""
@@ -792,7 +782,6 @@ def validateHelmIstioReleasesDeleted() {
 
     try {
         istio_egress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-egress -o -m 1').trim()
-        echo istio-egress
     } catch(error) {
         echo "helm release istio-egress successfully removed"
         istio_egress = ""
@@ -805,7 +794,6 @@ def validateHelmIstioReleasesDeleted() {
 
     try {
         istiocoredns = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiocoredns -o -m 1').trim()
-        echo istiocoredns
     } catch(error) {
         echo "helm release istiocoredns successfully removed"
         istiocoredns = ""
@@ -815,4 +803,5 @@ def validateHelmIstioReleasesDeleted() {
         helm list -n istio-system
         exit 1
     }
+    echo "All helm istio releases removed"
 }
