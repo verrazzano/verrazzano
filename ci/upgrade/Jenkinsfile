@@ -815,3 +815,4 @@ def validateHelmIstioReleasesDeleted() {
         helm list -n istio-system
         exit 1
     }
+}
