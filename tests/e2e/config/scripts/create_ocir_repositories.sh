@@ -26,6 +26,10 @@ $0  -p <parent-repo> -c <compartment-id> [ -r <region> -d <path> ]
 -p Parent repo, without the tenancy namespace
 -c Compartment ID
 -d Images directory
+-t Target ID. This is an existing Target-Id used for OCIR scanning. Repositories which are not already targeted there
+   will be created as PRIVATE-ONLY and will also added to the target list for this existing Target Id. If not found
+   this will fail. Note that repositories which are already targeted will be skipped for creation (they already exist).
+   This is used by the CI for OCIR scanning setup.
 
 Example, to create a repo in compartment ocid.compartment.oc1..blah, where the desired docker path with tenancy namespace
 to the image is "myreporoot/testuser/myrepo/v8o", and the extracted tarball location is /tmp/exploded:
@@ -34,8 +38,109 @@ $0 -p myreporoot/testuser/myrepo/v8o -r uk-london-1 -c ocid.compartment.oc1..bla
   """
 }
 
+# Function to check the env for OCIR scan related functions
+function checkEnvForScan() {
+  if [ -z $OCIR_SCAN_TARGET_ID ]; then
+    echo "OCIR_SCAN_TARGET_ID is required to be defined"
+    return 1
+  fi
+
+  if [ -z $REGION ]; then
+    echo "REGION is required to be defined"
+    return 1
+  fi
+  return 0
+}
+
+# getTargetJson
+function getTargetJson() {
+  checkEnvForScan
+  if [ $? -ne 0 ]; then
+    return 1
+  fi
+
+  if [ -z $1 ]; then
+    echo "Please specify the name of the environment variable to return the target json filename into"
+    return 1
+  fi
+  local  __resultvar=$1
+
+  local targetfile=$(mktemp temp-target-XXXXXX.json)
+  oci vulnerability-scanning container scan target get --container-scan-target-id $OCIR_SCAN_TARGET_ID --region ${REGION} > $targetfile
+  if [ $? -ne 0 ]; then
+    echo "Failed to get target $OCIR_SCAN_TARGET_ID in $REGION"
+    return 1
+  fi
+
+  # Set the target output filename into the supplied environment variable
+  eval $__resultvar="'$targetfile'"
+  return 0
+}
+
+# addNewRepositoriesToTarget:  This will update the existing target by adding new repositories into it
+#   $1 array of repositories to add
+#   $2 target.json
+function addNewRepositoriesToTarget() {
+  checkEnvForScan
+  local retval=0
+  if [ $? ne 0 ]; then
+    return 1
+  fi
+
+  if [ -z $1 ] || [ -z $2 ] || [ ! -f $2 ]; then
+    echo "Invalid arguments supplied to addNewRepositoriesToTarget"
+    return "error"
+  fi
+
+  # REVIEW: If we can give the array to jq all at once that will be nice, but for now
+  # just adding one element at a time here
+  local newtargetfile=$(mktemp temp-new-target-XXXXXX.json)
+  cp $2 $newtargetfile
+  read -ra repo_array <<< $1
+  for repo_name in "${repo_array[@]}"
+  do
+    echo $(jq --arg $repo_name repo '.data."target-registry".repositories += [$repo]' $newtargetfile) > $newtargetfile
+    if [ $? ne 0 ]; then
+      echo "Problem adding new repositories into the existing Target"
+      retval=1
+    fi
+  done
+
+  if [ $retval eq 0 ]; then
+    cat $newtargetfile
+    # Update the target using the new target file
+    oci vulnerability-scanning container scan target update --from-json $newtargetfile --container-scan-target-id $OCIR_SCAN_TARGET_ID --region ${REGION}
+    if [ $? ne 0 ]; then
+      echo "Problem updating the Target"
+      retval=1
+    fi
+  fi
+  rm $newtargetfile
+  return $retval
+}
+
+# isRepositoryTargeted. returns true if found in the list, false if not found, and error if arguments are invalid
+#  $1 name of repository
+#  $2 target.json
+function isRepositoryTargeted() {
+  if [ -z $1 ] || [ -z $2 ] || [ ! -f $2 ]; then
+    echo "Invalid arguments supplied to isRepositoryTargeted"
+    return 2
+  fi
+  grep $1 $2 > /dev/null
+  return $?
+}
+
 # Main driver for processing images from a locally downloaded set of tarballs
 function create_image_repos_from_archives() {
+  declare -a added_repositories=()
+  local target_file=""
+
+  # If we have a scan target
+  if [ ! -z $OCIR_SCAN_TARGET_ID ]; then
+    getTargetJson "target_file"
+  fi
+
   # Loop through tar files
   echo "Using local image downloads"
   for file in ${IMAGES_DIR}/*.tar; do
@@ -49,8 +154,9 @@ function create_image_repos_from_archives() {
     local from_image_name=$(basename $from_image | cut -d \: -f 1)
     local from_repository=$(dirname $from_image | cut -d \/ -f 2-)
 
+    # When OCIR_SCAN_TARGET_ID is set, all of the repositories used for scanning are created as private (we only use them for scanning)
     local is_public="false"
-    if [ "$from_repository" == "rancher" ] || [ "$from_image_name" == "verrazzano-platform-operator" ]; then
+    if [ "$from_repository" == "rancher" ] || [ "$from_image_name" == "verrazzano-platform-operator" ] && [ -z $OCIR_SCAN_TARGET_ID ]; then
       # Rancher repos must be public
       is_public="true"
     fi
@@ -60,17 +166,43 @@ function create_image_repos_from_archives() {
       repo_path=${PARENT_REPO}/${repo_path}
     fi
 
+    # If we have a scan target, we can see if it is targeted already (if it is we can skip creating it)
+    # if not we track the ones we go ahead and create so we can target them afterwards
+    if [ ! -z $OCIR_SCAN_TARGET_ID ]; then
+      isRepositoryTargeted $repo_path $target_file
+      local repository_targeted=$?
+      if [ $repository_targeted -eq 2 ]; then
+        echo "Error checking if repository was targeted ${repo_path}"
+        rm $target_file
+        exit 1
+      fi
+      # If it is targeted already, then it exists and we skip creating a new repository
+      if [ $repository_targeted -eq 0 ]; then
+        echo "$repo_path is already targeted"
+        continue
+      fi
+      # If we got here, we will create a repository, so add it to the list of new ones
+      added_repositories+=("$repo_path")
+    fi
+
     echo "Creating repository ${repo_path} in ${REGION}, public: ${is_public}"
     oci --region ${REGION} artifacts container repository create --display-name ${repo_path} \
       --is-public ${is_public} --compartment-id ${COMPARTMENT_ID}
   done
+
+  # If we added new repositories, we need to get them added to the target so they will get scanned
+  if [ -z $OCIR_SCAN_TARGET_ID ]; then
+    addNewRepositoriesToTarget "${added_repositories}" $target_file
+	rm $target_file
+  fi
 }
 
 IMAGES_DIR=.
 REGION=""
 REGION_SHORT_NAME=""
+OCIR_SCAN_TARGET_ID=""
 
-while getopts ":s:c:r:p:d:" opt; do
+while getopts ":s:c:r:p:d:t:" opt; do
   case ${opt} in
   c) # compartment ID
     COMPARTMENT_ID=${OPTARG}
@@ -86,6 +218,9 @@ while getopts ":s:c:r:p:d:" opt; do
     ;;
   s )
     REGION_SHORT_NAME="${OPTARG}"
+    ;;
+  t )
+    OCIR_SCAN_TARGET_ID="${OPTARG}"
     ;;
   \?)
     usage
