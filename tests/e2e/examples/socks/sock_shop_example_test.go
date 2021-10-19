@@ -48,7 +48,7 @@ var _ = BeforeSuite(func() {
 	if variant != "helidon" && variant != "micronaut" && variant != "spring" {
 		variant = "helidon"
 	}
-	GinkgoWriter.Write([]byte(fmt.Sprintf("*** Socks shop test is running against variant: %s", variant)))
+	GinkgoWriter.Write([]byte(fmt.Sprintf("*** Socks shop test is running against variant: %s\n", variant)))
 
 	// deploy the application here
 	Eventually(func() (*v1.Namespace, error) {

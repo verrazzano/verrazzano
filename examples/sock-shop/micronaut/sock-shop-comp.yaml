@@ -1,0 +1,256 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: carts
+  namespace: sockshop
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoCoherenceWorkload
+    spec:
+      template:
+        metadata:
+          name: carts-coh
+        spec:
+          cluster: SockShop
+          role: Carts
+          replicas: 1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-carts:1.0.0
+          imagePullPolicy: IfNotPresent
+          application:
+            main: com.oracle.coherence.examples.sockshop.micronaut.carts.Application
+          jvm:
+            memory:
+              heapSize: 2g
+          coherence:
+            logLevel: 9
+            metrics:
+              enabled: true
+          ports:
+            - name: http
+              port: 8080
+              service:
+                name: carts
+                port: 8080
+              serviceMonitor:
+                enabled: true
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: catalog
+  namespace: sockshop
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoCoherenceWorkload
+    spec:
+      template:
+        metadata:
+          name: catalog-coh
+        spec:
+          cluster: SockShop
+          role: Catalog
+          replicas: 1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-catalog:1.0.0
+          imagePullPolicy: IfNotPresent
+          application:
+            main: com.oracle.coherence.examples.sockshop.micronaut.catalog.Application
+          jvm:
+            memory:
+              heapSize: 2g
+          coherence:
+            logLevel: 9
+            metrics:
+              enabled: true
+          ports:
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true
+            - name: http
+              port: 8080
+              service:
+                name: catalogue  # for compatibility with the existing front-end implementation
+                port: 8080
+              serviceMonitor:
+                enabled: true
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: orders
+  namespace: sockshop
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoCoherenceWorkload
+    spec:
+      template:
+        metadata:
+          name: orders-coh
+        spec:
+          cluster: SockShop
+          role: Orders
+          replicas: 1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-orders:1.0.0
+          imagePullPolicy: IfNotPresent
+          application:
+            main: com.oracle.coherence.examples.sockshop.micronaut.orders.Application
+          jvm:
+            memory:
+              heapSize: 2g
+          coherence:
+            logLevel: 9
+            metrics:
+              enabled: true
+          ports:
+            - name: http
+              port: 8080
+              service:
+                name: orders
+                port: 8080
+              serviceMonitor:
+                enabled: true
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: payment
+  namespace: sockshop
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoCoherenceWorkload
+    spec:
+      template:
+        metadata:
+          name: payment-coh
+        spec:
+          cluster: SockShop
+          role: Payment
+          replicas: 1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-payment:1.0.0
+          imagePullPolicy: IfNotPresent
+          application:
+            main: com.oracle.coherence.examples.sockshop.micronaut.payment.Application
+          jvm:
+            memory:
+              heapSize: 2g
+          coherence:
+            logLevel: 9
+            metrics:
+              enabled: true
+          ports:
+            - name: grpc
+              port: 1408
+              service:
+                name: payment
+            - name: http
+              port: 8080
+              service:
+                name: payment-http
+                port: 8080
+              serviceMonitor:
+                enabled: true
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: shipping
+  namespace: sockshop
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoCoherenceWorkload
+    spec:
+      template:
+        metadata:
+          name: shipping-coh
+        spec:
+          cluster: SockShop
+          role: Shipping
+          replicas: 1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-shipping:1.0.0
+          imagePullPolicy: IfNotPresent
+          application:
+            main: com.oracle.coherence.examples.sockshop.micronaut.shipping.Application
+          jvm:
+            memory:
+              heapSize: 2g
+          coherence:
+            logLevel: 9
+            metrics:
+              enabled: true
+          ports:
+            - name: http
+              port: 8080
+              service:
+                name: shipping-http
+                port: 8080
+              serviceMonitor:
+                enabled: true
+            - name: grpc
+              port: 1408
+              service:
+                name: shipping
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: users
+  namespace: sockshop
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoCoherenceWorkload
+    spec:
+      template:
+        metadata:
+          name: users-coh
+        spec:
+          cluster: SockShop
+          role: Users
+          replicas: 1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-users:1.0.0
+          imagePullPolicy: IfNotPresent
+          application:
+            main: com.oracle.coherence.examples.sockshop.micronaut.users.Application
+          jvm:
+            memory:
+              heapSize: 2g
+          coherence:
+            logLevel: 9
+            metrics:
+              enabled: true
+          ports:
+            - name: http
+              port: 8080
+              service:
+                name: user  # for compatibility with the existing front-end implementation
+                port: 8080
+              serviceMonitor:
+                enabled: true
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true
