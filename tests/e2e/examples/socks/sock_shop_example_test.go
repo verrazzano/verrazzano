@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -32,11 +33,22 @@ const (
 var sockShop SockShop
 var username, password string
 
+// variant is used to pass in which version of the sock shop we want to run the test
+// suite against (helidon, micronaut, or spring)
+var variant string
+
 // creates the sockshop namespace and applies the components and application yaml
 var _ = BeforeSuite(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
 	sockShop = NewSockShop(username, password, pkg.Ingress())
+
+	// read the variant from the environment - if not specified, default to "helidon"
+	variant := os.Getenv("SOCKS_SHOP_VARIANT")
+	if variant != "helidon" && variant != "micronaut" && variant != "spring" {
+		variant = "helidon"
+	}
+	GinkgoWriter.Write([]byte(fmt.Sprintf("*** Socks shop test is running against variant: %s", variant)))
 
 	// deploy the application here
 	Eventually(func() (*v1.Namespace, error) {
@@ -44,11 +56,11 @@ var _ = BeforeSuite(func() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml")
+		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
+		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
 })
 
