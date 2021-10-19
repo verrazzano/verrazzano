@@ -14,18 +14,9 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "keycloak"
 
-var hc = helm.HelmComponent{
-	ReleaseName:             ComponentName,
-	ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-	ChartNamespace:          ComponentName,
-	IgnoreNamespaceOverride: true,
-	ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-	Dependencies:            []string{istio.ComponentName},
-	AppendOverridesFunc:     AppendKeycloakOverrides,
-}
-
 // KeycloakComponent represents an Keycloak component
 type KeycloakComponent struct {
+	helmComponent helm.HelmComponent
 }
 
 // Verify that KeycloakComponent implements Component
@@ -33,7 +24,17 @@ var _ spi.Component = KeycloakComponent{}
 
 // NewComponent returns a new Keycloak component
 func NewComponent() spi.Component {
-	return KeycloakComponent{}
+	return KeycloakComponent{
+		helm.HelmComponent{
+			ReleaseName:             ComponentName,
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartNamespace:          ComponentName,
+			IgnoreNamespaceOverride: true,
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
+			Dependencies:            []string{istio.ComponentName},
+			AppendOverridesFunc:     AppendKeycloakOverrides,
+		},
+	}
 }
 
 // --------------------------------------
@@ -42,17 +43,17 @@ func NewComponent() spi.Component {
 
 // Log returns the logger for the context
 func (k KeycloakComponent) Name() string {
-	return hc.Name()
+	return k.helmComponent.Name()
 }
 
 // Log returns the logger for the context
 func (k KeycloakComponent) GetDependencies() []string {
-	return hc.GetDependencies()
+	return k.helmComponent.GetDependencies()
 }
 
 // IsReady Indicates whether or not a component is available and ready
 func (k KeycloakComponent) IsReady(context spi.ComponentContext) bool {
-	return hc.IsReady(context)
+	return k.helmComponent.IsReady(context)
 }
 
 // --------------------------------------
@@ -62,27 +63,27 @@ func (k KeycloakComponent) IsReady(context spi.ComponentContext) bool {
 // IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
 // - scaffolding while we move components from the scripts to the operator
 func (k KeycloakComponent) IsOperatorInstallSupported() bool {
-	return hc.IsOperatorInstallSupported()
+	return k.helmComponent.IsOperatorInstallSupported()
 }
 
 // IsInstalled Indicates whether or not the component is installed
 func (k KeycloakComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
-	return hc.IsInstalled(context)
+	return k.helmComponent.IsInstalled(context)
 }
 
 // PreInstall allows components to perform any pre-processing required prior to initial install
 func (k KeycloakComponent) PreInstall(context spi.ComponentContext) error {
-	return hc.PreInstall(context)
+	return k.helmComponent.PreInstall(context)
 }
 
 // Install performs the initial install of a component
 func (k KeycloakComponent) Install(context spi.ComponentContext) error {
-	return hc.Install(context)
+	return k.helmComponent.Install(context)
 }
 
 // PostInstall allows components to perform any post-processing required after initial install
 func (k KeycloakComponent) PostInstall(context spi.ComponentContext) error {
-	return hc.PostInstall(context)
+	return k.helmComponent.PostInstall(context)
 }
 
 // --------------------------------------
@@ -91,21 +92,21 @@ func (k KeycloakComponent) PostInstall(context spi.ComponentContext) error {
 
 // PreUpgrade allows components to perform any pre-processing required prior to upgrading
 func (k KeycloakComponent) PreUpgrade(context spi.ComponentContext) error {
-	return hc.PreUpgrade(context)
+	return k.helmComponent.PreUpgrade(context)
 }
 
 // Upgrade will upgrade the Verrazzano component specified in the CR.Version field
 func (k KeycloakComponent) Upgrade(context spi.ComponentContext) error {
-	return hc.Upgrade(context)
+	return k.helmComponent.Upgrade(context)
 }
 
 // PostUpgrade allows components to perform any post-processing required after upgrading
 func (k KeycloakComponent) PostUpgrade(context spi.ComponentContext) error {
-	return hc.PostUpgrade(context)
+	return k.helmComponent.PostUpgrade(context)
 }
 
 // GetSkipUpgrade returns the value of the SkipUpgrade field
 // - Scaffolding for now during the Istio 1.10.2 upgrade process
 func (k KeycloakComponent) GetSkipUpgrade() bool {
-	return hc.GetSkipUpgrade()
+	return k.helmComponent.GetSkipUpgrade()
 }
