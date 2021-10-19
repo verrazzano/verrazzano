@@ -553,9 +553,13 @@ func createDestinationFromService(services []*corev1.Service) (*istionet.HTTPRou
 	}
 	dest := istionet.HTTPRouteDestination{
 		Destination: &istionet.Destination{Host: selectedService.Name}}
-	// If the selected service declares a port add it to the destination.
+	// If the selected service declares port(s), select the appropriate port and add it to the destination.
 	if len(selectedService.Spec.Ports) > 0 {
-		dest.Destination.Port = &istionet.PortSelector{Number: uint32(selectedService.Spec.Ports[0].Port)}
+		selectedPort, err := selectPortForDestination(selectedService.Spec.Ports)
+		if err != nil {
+			return nil, err
+		}
+		dest.Destination.Port = &istionet.PortSelector{Number: uint32(selectedPort.Port)}
 	}
 	return &dest, nil
 }
@@ -565,9 +569,9 @@ func createDestinationFromService(services []*corev1.Service) (*istionet.HTTPRou
 //   - If there is one service, return that service.
 //   - If there are multiple services and no service with cluster-IP, return an error.
 //   - If there are multiple services and one service with cluster-IP, select that service.
-//   - If there are multiple services with cluster-IP, select the service named with "http" prefix.
-//   - If there are multiple services with cluster-IP and more than one named with "http" prefix, return an error.
-//   - If there are multiple services with cluster-IP and none of their names prefixed with "http", return an error.
+//   - If there are multiple services with cluster-IP, select the service named with "http" prefix if there is only one
+//     such service.
+//   - If there are multiple services with cluster-IP and not one of them named with "http" prefix, return an error.
 func selectServiceForDestination(services []*corev1.Service) (*corev1.Service, error) {
 	var clusterIPServices []*corev1.Service
 	var httpServices []*corev1.Service
@@ -585,29 +589,55 @@ func selectServiceForDestination(services []*corev1.Service) (*corev1.Service, e
 			httpServices = append(httpServices, service)
 		}
 	}
-	// If there is only one service with cluster IP, return that service.
-	if len(clusterIPServices) == 1 {
-		return clusterIPServices[0], nil
-	}
-	// If there are multiple services, return the one with prefix "http"
-	if len(clusterIPServices) > 1 && len(httpServices) == 1 {
-		return httpServices[0], nil
-	}
 	// If there is no service with cluster-IP, return an error
 	if len(clusterIPServices) == 0 {
 		return nil, fmt.Errorf("unable to select default service for destination")
+	} else if len(clusterIPServices) == 1 {
+		// If there is only one service with cluster IP, return that service.
+		return clusterIPServices[0], nil
+	} else {
+		// If there are multiple services, return the one with prefix "http" if there is only one such service
+		if len(httpServices) == 1 {
+			return httpServices[0], nil
+		}
 	}
-	// If there are multiple services and none of them named with prefix "http", return an error
-	if len(clusterIPServices) > 1 && len(httpServices) < 1 {
-		return nil, fmt.Errorf("unable to select the service port for destination. The service port should be " +
-			"prefixed \"http\" if there are multiple ports OR the IngressTrait must specify the port")
+	return nil, fmt.Errorf("unable to select the service for destination. The IngressTrait rule destination " +
+		"must specify the host and port")
+}
+
+// selectPortForDestination selects a Service port to be used for virtual service destination port.
+// The port is selected based on the following logic:
+//   - If there is one port, return that port.
+//   - If there are multiple ports, select the port named with "http" prefix.
+//   - If there are multiple ports and more than one named with "http" prefix, return an error.
+//   - If there are multiple ports and none of their names prefixed with "http", return an error.
+func selectPortForDestination(servicePorts []corev1.ServicePort) (corev1.ServicePort, error) {
+	var httpPorts []corev1.ServicePort
+
+	// If there is only one port, return that port
+	if len(servicePorts) == 1 {
+		return servicePorts[0], nil
 	}
-	// If multiple services are named with prefix "http", return an error
-	if len(httpServices) > 1 {
-		return nil, fmt.Errorf("unable to select the service port for destination. Only one service port should be " +
-			"prefixed \"http\" OR the IngressTrait must specify the port")
+	for _, port := range servicePorts {
+		if strings.HasPrefix(port.Name, httpServiceNamePrefix) {
+			httpPorts = append(httpPorts, port)
+		}
 	}
-	return nil, fmt.Errorf("unable to select default service for destination")
+	// If there are multiple ports, return the one with prefix "http"
+	if len(servicePorts) > 1 && len(httpPorts) == 1 {
+		return httpPorts[0], nil
+	}
+	// If there are multiple ports and none of them named with prefix "http", return an error
+	if len(servicePorts) > 1 && len(httpPorts) < 1 {
+		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. The service " +
+			"port should be prefixed \"http\" if there are multiple ports OR the IngressTrait must specify the port")
+	}
+	// If multiple ports are named with prefix "http", return an error
+	if len(httpPorts) > 1 {
+		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. Only one service " +
+			"port should be prefixed \"http\" OR the IngressTrait must specify the port")
+	}
+	return corev1.ServicePort{}, fmt.Errorf("unable to select default port for destination")
 }
 
 // createDestinationMatchRulePort fetches a Service matching the specified rule port and creates virtual service
@@ -615,8 +645,8 @@ func selectServiceForDestination(services []*corev1.Service) (*corev1.Service, e
 func createDestinationMatchRulePort(services []*corev1.Service, rulePort uint32) (*istionet.HTTPRouteDestination, error) {
 	var selectedService *corev1.Service
 	for _, service := range services {
-		if len(service.Spec.Ports) > 0 {
-			if service.Spec.Ports[0].Port == int32(rulePort) {
+		for _, servicePort := range service.Spec.Ports {
+			if servicePort.Port == int32(rulePort) {
 				selectedService = service
 				break
 			}
