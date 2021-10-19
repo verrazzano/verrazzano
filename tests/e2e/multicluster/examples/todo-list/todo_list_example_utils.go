@@ -46,7 +46,7 @@ func TodoListNamespaceExists(kubeconfigPath string, namespace string) bool {
 }
 
 // DeployTodoListApp deploys the sock-shop example application to the cluster with the given kubeConfigPath
-func DeployTodoListApp(kubeconfigPath string, sourceDir string) error {
+func DeployTodoListApp(kubeconfigPath string, sourceDir string, namespace string) error {
 
 	pkg.Log(pkg.Info, "Deploy ToDoList example")
 	wlsUser := "weblogic"
@@ -58,17 +58,17 @@ func DeployTodoListApp(kubeconfigPath string, sourceDir string) error {
 
 	// create Docker repository secret
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateDockerSecret("todo-list", "tododomain-repo-credentials", regServ, regUser, regPass)
+		return pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// create Weblogic credentials secret
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret("todo-list", "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
+		return pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// create database credentials secret
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret("todo-list", "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"})
+		return pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/todo-list-components.yaml", sourceDir), kubeconfigPath); err != nil {
