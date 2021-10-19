@@ -629,13 +629,13 @@ func selectPortForDestination(servicePorts []corev1.ServicePort) (corev1.Service
 	}
 	// If there are multiple ports and none of them named with prefix "http", return an error
 	if len(servicePorts) > 1 && len(httpPorts) < 1 {
-		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. The service " +
-			"port should be prefixed \"http\" if there are multiple ports OR the IngressTrait must specify the port")
+		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. The service port " +
+			"should be named with prefix \"http\" if there are multiple ports OR the IngressTrait must specify the port")
 	}
 	// If multiple ports are named with prefix "http", return an error
 	if len(httpPorts) > 1 {
 		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. Only one service " +
-			"port should be prefixed \"http\" OR the IngressTrait must specify the port")
+			"port should be named with prefix \"http\" OR the IngressTrait must specify the port")
 	}
 	return corev1.ServicePort{}, fmt.Errorf("unable to select default port for destination")
 }
