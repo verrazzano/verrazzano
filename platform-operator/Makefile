@@ -184,8 +184,8 @@ create-cluster:
 			--wait 5m \
 			--config=test/${KIND_CONFIG} ;\
 		if [ $$? -ne 0 ] ; then \
-			mkdir $WORKSPACE/kind-logs ;\
-			kind export logs $WORKSPACE/kind-logs ;\
+			mkdir ${WORKSPACE}/kind-logs ;\
+			kind export logs ${WORKSPACE}/kind-logs ;\
 			echo "Kind cluster creation failed" ;\
 			exit 1 ;\
 		fi ;\
