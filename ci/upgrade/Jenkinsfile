@@ -190,7 +190,7 @@ pipeline {
 
         stage('Acceptance Tests') {
             stages {
-                stage('Prepare AT environment') {
+                stage('Install Latest Release') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_CLI_AUTH="instance_principal"
@@ -224,6 +224,73 @@ pipeline {
                                 metricTimerStart("${VZ_TEST_METRIC}")
                             }
                             archiveArtifacts artifacts: "**/logs/**,${env.INSTALL_CONFIG_FILE_KIND}", allowEmptyArchive: true
+                        }
+                    }
+                }
+                stage('Run Acceptance Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                    }
+                    parallel {
+                        stage('verify-install') {
+                            steps {
+                                runGinkgoRandomize('verify-install')
+                            }
+                        }
+                        stage('verify-infra restapi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/restapi')
+                            }
+                        }
+                        stage('verify-infra oam') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/oam')
+                            }
+                        }
+                        stage('verify-infra vmi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/vmi')
+                            }
+                        }
+                        stage('examples todo') {
+                            steps {
+                                runGinkgo('examples/todo', "false", "true")
+                            }
+                        }
+                        stage('examples socks') {
+                            steps {
+                                runGinkgo('examples/socks', "false", "true")
+                            }
+                        }
+                        stage('examples spring') {
+                            steps {
+                                runGinkgo('examples/springboot', "false", "true")
+                            }
+                        }
+                        stage('examples helidon') {
+                            steps {
+                                runGinkgo('examples/helidon', "false", "true")
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                        failure {
+                            script {
+                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('install-failure-cluster-dump')
+                                }
+                            }
+                        }
+                        success {
+                            script {
+                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('install-success-cluster-dump')
+                                }
+                            }
                         }
                     }
                 }
@@ -356,22 +423,22 @@ pipeline {
                         }
                         stage('examples todo') {
                             steps {
-                                runGinkgo('examples/todo')
+                                runGinkgo('examples/todo', "true", "false")
                             }
                         }
                         stage('examples socks') {
                             steps {
-                                runGinkgo('examples/socks')
+                                runGinkgo('examples/socks', "true", "false")
                             }
                         }
                         stage('examples spring') {
                             steps {
-                                runGinkgo('examples/springboot')
+                                runGinkgo('examples/springboot', "true", "false")
                             }
                         }
                         stage('examples helidon') {
                             steps {
-                                runGinkgo('examples/helidon')
+                                runGinkgo('examples/helidon', "true", "false")
                             }
                         }
                     }
@@ -383,14 +450,14 @@ pipeline {
                         failure {
                             script {
                                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('upgrade-failure-cluster-dump')
+                                    dumpK8sCluster('install-failure-cluster-dump')
                                 }
                             }
                         }
                         success {
                             script {
                                 if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('upgrade-success-cluster-dump')
+                                    dumpK8sCluster('install-success-cluster-dump')
                                 }
                             }
                         }
@@ -537,11 +604,11 @@ def runGinkgoRandomize(testSuitePath) {
     }
 }
 
-def runGinkgo(testSuitePath) {
+def runGinkgo(testSuitePath, skipInstall, skipUninstall) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/... -- --skipInstall=${skipInstall} --skipUninstall=${skipUninstall}
         """
     }
 }
