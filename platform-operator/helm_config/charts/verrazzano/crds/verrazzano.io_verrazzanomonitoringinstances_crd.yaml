@@ -1,6 +1,5 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -13,26 +12,18 @@ spec:
     kind: VerrazzanoMonitoringInstance
     listKind: VerrazzanoMonitoringInstanceList
     plural: verrazzanomonitoringinstances
-    singular: verrazzanomonitoringinstance
     shortNames:
       - vmi
+    singular: verrazzanomonitoringinstance
   scope: Namespaced
   versions:
     - name: v1
+      served: true
+      storage: true
       schema:
         openAPIV3Schema:
           type: object
           properties:
-            apiVersion:
-              description: 'APIVersion defines the versioned schema of this representation
-                of an object. Servers should convert recognized schemas to the latest
-                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-              type: string
-            kind:
-              description: 'Kind is a string value representing the REST resource this
-                object represents. Servers may infer this from the endpoint the client
-                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-              type: string
             metadata:
               type: object
             spec:
@@ -45,24 +36,29 @@ spec:
                       pattern: '[A-Za-z0-9-_]+'
                       type: string
                     configMap:
-                      pattern: '^\w[^.]+$'
+                      pattern: ^\w[^.]+$
                       type: string
+                    versionsConfigMap:
+                      type: string
+                    replicas:
+                      pattern: \d+
+                      type: number
                     enabled:
                       type: boolean
                     resources:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         limitMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         requestCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         requestMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                   required:
                     - enabled
@@ -70,76 +66,104 @@ spec:
                   type: object
                   properties:
                     replicas:
-                      pattern: '\d+'
+                      pattern: \d+
                       type: number
                     resources:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         limitMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         requestCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         requestMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                 autoSecret:
                   type: boolean
-                bastille:
-                  type: object
-                  properties:
-                    url:
-                      items:
-                        pattern: '^(http(s?)://)?((\w+\.)?\w+\.\w+|((2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})\.){3}(2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})(:[1-9]\d*)?)(/)?$'
-                        type: string
-                      type: array
                 elasticsearch:
                   type: object
                   properties:
                     enabled:
                       type: boolean
-                    openPeriodDays:
-                      pattern: '\d+'
-                      type: number
-                    openPeriodMonths:
-                      pattern: '\d+'
-                      type: number
-                    resources:
+                    masterNode:
                       type: object
                       properties:
-                        limitCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        replicas:
+                          pattern: \d+
+                          type: number
+                        javaOpts:
                           type: string
-                        limitMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        resources:
+                          type: object
+                          properties:
+                            limitCPU:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            limitMemory:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            requestCPU:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            requestMemory:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                    dataNode:
+                      type: object
+                      properties:
+                        replicas:
+                          pattern: \d+
+                          type: number
+                        javaOpts:
                           type: string
-                        maxSizeDisk:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        resources:
+                          type: object
+                          properties:
+                            limitCPU:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            limitMemory:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            requestCPU:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            requestMemory:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                    ingestNode:
+                      type: object
+                      properties:
+                        replicas:
+                          pattern: \d+
+                          type: number
+                        javaOpts:
                           type: string
-                        minSizeDisk:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
-                          type: string
-                        requestCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
-                          type: string
-                        requestMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
-                          type: string
-                    retentionPeriodDays:
-                      pattern: '\d+'
-                      type: number
-                    retentionPeriodMonths:
-                      pattern: '\d+'
-                      type: number
+                        resources:
+                          type: object
+                          properties:
+                            limitCPU:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            limitMemory:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            requestCPU:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            requestMemory:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
                     storage:
                       type: object
                       properties:
                         availabilityDomain:
-                          pattern: '^[A-Z]+(-?[A-Z0-9]+)*$'
+                          pattern: ^[A-Z]+(-?[A-Z0-9]+)*$
                           type: string
                         pvcNames:
                           items:
@@ -148,37 +172,16 @@ spec:
                           minItems: 0
                           type: array
                         size:
-                          pattern: '^[1-9]+\d*(Mi|Gi)$'
+                          pattern: ^[1-9]+\d*(Mi|Gi)$
                           type: string
-                externalSiteMonitor:
-                  type: object
-                  properties:
-                    alertContact:
-                      pattern: '[A-Za-z0-9-_]+'
-                      type: string
-                    alertRecurrenceMinutes:
-                      type: number
-                    alertThresholdMinutes:
-                      type: number
-                    basicAuthSecretName:
-                      type: number
-                    ignoreSSLErrors:
-                      type: boolean
-                    monitorIntervalSeconds:
-                      type: number
-                    providers:
-                      items:
-                        pattern: '[A-Za-z0-9-_]+'
-                        type: string
-                      type: array
                 grafana:
                   type: object
                   properties:
                     dashboardsConfigMap:
-                      pattern: '^\w[^.]+$'
+                      pattern: ^\w[^.]+$
                       type: string
                     datasourcesConfigMap:
-                      pattern: '^\w[^.]+$'
+                      pattern: ^\w[^.]+$
                       type: string
                     enabled:
                       type: boolean
@@ -186,22 +189,22 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         limitMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         requestCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         requestMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                     storage:
                       type: object
                       properties:
                         availabilityDomain:
-                          pattern: '^[A-Z]+(-?[A-Z0-9]+)*$'
+                          pattern: ^[A-Z]+(-?[A-Z0-9]+)*$
                           type: string
                         pvcNames:
                           items:
@@ -210,9 +213,9 @@ spec:
                           minItems: 0
                           type: array
                         size:
-                          pattern: '^[1-9]+\d*(Mi|Gi)$'
+                          pattern: ^[1-9]+\d*(Mi|Gi)$
                           type: string
-                ingresstargetdnsname:
+                ingressTargetDNSName:
                   pattern: '[a-z]+[a-z0-9-.]*'
                   type: string
                 kibana:
@@ -227,67 +230,67 @@ spec:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         limitMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         requestCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         requestMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
-                lock:
+                cascadingDelete:
                   type: boolean
-                pagerduty:
-                  type: object
-                  properties:
-                    id:
-                      pattern: '[A-Za-z0-9]+'
-                      type: string
-                preserveOnDelete:
+                lock:
                   type: boolean
                 prometheus:
                   type: object
                   properties:
-                    config:
-                      pattern: '[A-Za-z0-9-_]+'
-                      type: string
                     enabled:
                       type: boolean
+                    configMap:
+                      pattern: ^\w[^.]+$
+                      type: string
+                    versionsConfigMap:
+                      type: string
+                    rulesConfigMap:
+                      type: string
+                    rulesVersionsConfigMap:
+                      type: string
+                    retentionPeriod:
+                      pattern: \d+
+                      type: number
+                    replicas:
+                      pattern: \d+
+                      type: number
                     resources:
                       type: object
                       properties:
                         limitCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         limitMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         maxSizeDisk:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         minSizeDisk:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         requestCPU:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         requestMemory:
-                          pattern: '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
-                    retentionPeriod:
-                      pattern: '\d+'
-                      type: number
-                    rulesConfig:
-                      pattern: '[A-Za-z0-9-_]+'
-                      type: string
                     storage:
                       type: object
                       properties:
                         availabilityDomain:
-                          pattern: '^[A-Z]+(-?[A-Z0-9]+)*$'
+                          pattern: ^[A-Z]+(-?[A-Z0-9]+)*$
                           type: string
                         pvcNames:
                           items:
@@ -296,7 +299,7 @@ spec:
                           minItems: 0
                           type: array
                         size:
-                          pattern: '^[1-9]+\d*(Mi|Gi)$'
+                          pattern: ^[1-9]+\d*(Mi|Gi)$
                           type: string
                 secretsName:
                   pattern: ^\w[^.]+$
@@ -311,7 +314,7 @@ spec:
                       pattern: '[A-Za-z0-9-_]+'
                       type: string
                     url:
-                      pattern: '^(http(s?)://)?((\w+\.)?\w+\.\w+|((2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})\.){3}(2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})(:[1-9]\d*)?)(/)?$'
+                      pattern: ^(http(s?)://)?((\w+\.)?\w+\.\w+|((2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})\.){3}(2[0-5]{2}|1[0-9]{2}|[0-9]{1,2})(:[1-9]\d*)?)(/)?$
                       type: string
                 uri:
                   pattern: '[A-Za-z0-9-_]+'
@@ -325,8 +328,14 @@ spec:
                     desiredVersion:
                       pattern: '[A-Za-z0-9-_]+'
                       type: string
+                contactemail:
+                  type: string
+                natGatewayIPs:
+                  items:
+                    type: string
+                  minItems: 0
+                  type: array
           required:
             - metadata
             - spec
-      storage: true
-      served: true
+    
