@@ -51,6 +51,16 @@ var _ = BeforeSuite(func() {
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 })
 
+var _ = Describe("Multi-cluster verify sock-shop", func() {
+	Context("Delete resources", func() {
+		It("Delete resources on admin cluster", func() {
+			Eventually(func() error {
+				return cleanUp(adminKubeconfig)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+		})
+	})
+})
+
 var _ = AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
@@ -63,6 +73,18 @@ func cleanUp(kubeconfigPath string) error {
 	}
 
 	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/todo-list-components.yaml", sourceDir), kubeconfigPath); err != nil {
+		return fmt.Errorf("failed to delete multi-cluster sock-shop component resources: %v", err)
+	}
+
+	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/tododb-secret.yaml", sourceDir), kubeconfigPath); err != nil {
+		return fmt.Errorf("failed to delete multi-cluster sock-shop component resources: %v", err)
+	}
+
+	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/weblogic-domain-secret.yaml", sourceDir), kubeconfigPath); err != nil {
+		return fmt.Errorf("failed to delete multi-cluster sock-shop component resources: %v", err)
+	}
+
+	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/docker-registry-secret.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster sock-shop component resources: %v", err)
 	}
 
