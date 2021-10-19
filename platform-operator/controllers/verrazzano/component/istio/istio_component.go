@@ -7,12 +7,14 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzString "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -36,6 +38,12 @@ const istioGlobalHubKey = "global.hub"
 
 // IstioNamespace is the default Istio namespace
 const IstioNamespace = "istio-system"
+
+// IstioCoreDNSReleaseName is the name of the istiocoredns release
+const IstioCoreDNSReleaseName = "istiocoredns"
+
+// HelmScrtType is the secret type that helm uses to specify its releases
+const HelmScrtType = "helm.sh/release.v1"
 
 // IstioComponent represents an Istio component
 type IstioComponent struct {
@@ -167,20 +175,12 @@ func (i IstioComponent) PreUpgrade(_ spi.ComponentContext) error {
 }
 
 func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
-	const istioCoreDNSReleaseName = "istiocoredns"
-
-	// Check if the component is installed before trying to upgrade
-	found, err := helm.IsReleaseInstalled(istioCoreDNSReleaseName, constants.IstioSystemNamespace)
+	err := deleteIstioCoreDNS(context)
 	if err != nil {
-		context.Log().Errorf("Error returned when searching for release: %v", err)
+		return err
 	}
-	if found {
-		_, _, err = helmUninstallFunction(context.Log(), istioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
-		if err != nil {
-			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
-		}
-	}
-	return nil
+	err = removeIstioHelmSecrets(context)
+	return err
 }
 
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets
@@ -197,7 +197,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 		deployment := &deploymentList.Items[index]
 
 		// Check if deployment is in an Istio injected system namespace
-		if contains(i.InjectedSystemNamespaces, deployment.Namespace) {
+		if vzString.SliceContainsString(i.InjectedSystemNamespaces, deployment.Namespace) {
 			if deployment.Spec.Paused {
 				return fmt.Errorf("Deployment %v can't be restarted because it is paused", deployment.Name)
 			}
@@ -222,7 +222,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 		statefulSet := &statefulSetList.Items[index]
 
 		// Check if StatefulSet is in an Istio injected system namespace
-		if contains(i.InjectedSystemNamespaces, statefulSet.Namespace) {
+		if vzString.SliceContainsString(i.InjectedSystemNamespaces, statefulSet.Namespace) {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
@@ -244,7 +244,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 		daemonSet := &daemonSetList.Items[index]
 
 		// Check if DaemonSet is in an Istio injected system namespace
-		if contains(i.InjectedSystemNamespaces, daemonSet.Namespace) {
+		if vzString.SliceContainsString(i.InjectedSystemNamespaces, daemonSet.Namespace) {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
@@ -258,14 +258,46 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 	return nil
 }
 
-// contains is a helper function that should be a build-in
-func contains(arr []string, s string) bool {
-	for _, str := range arr {
-		if str == s {
-			return true
+func deleteIstioCoreDNS(context spi.ComponentContext) error {
+	// Check if the component is installed before trying to upgrade
+	found, err := helm.IsReleaseInstalled(IstioCoreDNSReleaseName, constants.IstioSystemNamespace)
+	if err != nil {
+		context.Log().Errorf("Error returned when searching for release: %v", err)
+		return err
+	}
+	if found {
+		_, _, err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		if err != nil {
+			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
 		}
 	}
-	return false
+	return err
+}
+
+// removeIstioHelmSecrets deletes the release metadata that helm uses to access to access and control the releases
+// this is sufficient to prevent helm from trying to operator on deployments it doesn't control anymore
+// however it does not delete the underlying resources
+func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
+	client := compContext.Client()
+	var secretList v1.SecretList
+	listOptions := clipkg.ListOptions{Namespace: constants.IstioSystemNamespace}
+	err := client.List(context.TODO(), &secretList, &listOptions)
+	if err != nil {
+		compContext.Log().Errorf("Error retrieving list of secrets in the istio-system namespace: %v", err)
+	}
+	for index := range secretList.Items {
+		secret := &secretList.Items[index]
+		secretName := secret.Name
+		if secret.Type == HelmScrtType && !strings.Contains(secretName, IstioCoreDNSReleaseName) {
+			err = client.Delete(context.TODO(), secret)
+			if err != nil {
+				compContext.Log().Errorf("Error deleting helm secret %s: %v", secretName, err)
+			} else {
+				compContext.Log().Infof("Deleted helm secret %v", secretName)
+			}
+		}
+	}
+	return nil
 }
 
 func buildImageOverridesString(_ *zap.SugaredLogger) (string, error) {
