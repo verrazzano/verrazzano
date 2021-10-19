@@ -140,8 +140,6 @@ function install_keycloak {
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set rulesHost=keycloak.${ENV_NAME}.${DNS_SUFFIX}"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set tlsHosts=keycloak.${ENV_NAME}.${DNS_SUFFIX}"
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set tlsSecret=${ENV_NAME}-secret"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string dbUser=${MYSQL_USERNAME}"
 
     # Handle any additional Keycloak install args
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS $(get_keycloak_helm_args_from_config)"
