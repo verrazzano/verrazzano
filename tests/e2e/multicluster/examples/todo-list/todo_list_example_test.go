@@ -1,11 +1,12 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package todo
+package todo_list
 
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -20,7 +21,12 @@ const (
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
+	sourceDir            = "todo-list"
 )
+
+var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
+var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
 var _ = BeforeSuite(func() {
 	deployToDoListExample()
