@@ -16,11 +16,5 @@ git clone https://${DOCKER_CREDS_USR}:${DOCKER_CREDS_PSW}@github.com/verrazzano/
 cd console
 git checkout ${CONSOLE_REPO_BRANCH}
 
-# Run the basic UI tests
+# Run the tests
 make run-ui-tests
-
-# Run the application page UI tests if specified
-if [ "true" == "${RUN_APP_TESTS}" ]; then
-  echo "Running Application Page UI tests"
-  make run-app-page-test
-fi
