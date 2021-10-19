@@ -570,7 +570,6 @@ pipeline {
         success {
             script {
                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
-                }
             }
         }
         failure {
