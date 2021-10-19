@@ -461,14 +461,14 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('install-failure-cluster-dump')
+                            dumpK8sCluster('upgrade-failure-cluster-dump')
                         }
                     }
                 }
                 success {
                     script {
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('install-success-cluster-dump')
+                            dumpK8sCluster('upgrade-success-cluster-dump')
                         }
                     }
                 }
@@ -570,8 +570,6 @@ pipeline {
         success {
             script {
                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
-                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpK8sCluster('upgrade-success-post-run-cluster-dump')
                 }
             }
         }
@@ -580,15 +578,10 @@ pipeline {
                     subject: "Verrazzano: ${env.JOB_NAME} - Failed",
                     body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
             script {
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                 if (env.BRANCH_NAME == "master") {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
-                }
-            }
-            script {
-                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpK8sCluster('upgrade-failure-post-run-cluster-dump')
                 }
             }
         }
