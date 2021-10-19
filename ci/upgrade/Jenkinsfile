@@ -99,7 +99,7 @@ pipeline {
     }
 
     stages {
-        stage('Clean workspace and checkout') {
+        stage('Clean Workspace and Checkout') {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
@@ -291,7 +291,7 @@ pipeline {
                 }
             }
         }
-        stage("upgrade-platform-operator") {
+        stage("Upgrade Platform Operator") {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
@@ -320,7 +320,7 @@ pipeline {
             }
         }
 
-        stage("upgrade-verrazzano") {
+        stage("Upgrade Verrazzano") {
             steps {
                 script {
                     // Download the bom for the target version that we are upgrading to, then extract the version
