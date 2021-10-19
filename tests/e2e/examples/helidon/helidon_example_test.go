@@ -26,35 +26,39 @@ const (
 )
 
 var _ = BeforeSuite(func() {
-	Eventually(func() (*v1.Namespace, error) {
-		nsLabels := map[string]string{
-			"verrazzano-managed": "true",
-			"istio-injection":    "enabled"}
-		return pkg.CreateNamespace("hello-helidon", nsLabels)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+	if skipInstall != "true" {
+		Eventually(func() (*v1.Namespace, error) {
+			nsLabels := map[string]string{
+				"verrazzano-managed": "true",
+				"istio-injection":    "enabled"}
+			return pkg.CreateNamespace("hello-helidon", nsLabels)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+		Eventually(func() error {
+			return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
+		Eventually(func() error {
+			return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
+	}
 })
 
 var _ = AfterSuite(func() {
-	// undeploy the application here
-	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	if skipUninstall != "true" {
+		// undeploy the application here
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
-		return pkg.DeleteNamespace("hello-helidon")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+		Eventually(func() error {
+			return pkg.DeleteNamespace("hello-helidon")
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}
 })
 
 var (

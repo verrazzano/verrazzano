@@ -4,6 +4,7 @@
 package helidonconfig
 
 import (
+	"flag"
 	"fmt"
 	"testing"
 
@@ -12,6 +13,14 @@ import (
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
+
+var skipInstall string
+var skipUninstall string
+
+func init() {
+	flag.StringVar(&skipInstall, "skipInstall", "false", "skipInstall skips the call to install the application")
+	flag.StringVar(&skipUninstall, "skipUninstall", "false", "skipUninstall skips the call to install the application")
+}
 
 func TestHelidonExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)

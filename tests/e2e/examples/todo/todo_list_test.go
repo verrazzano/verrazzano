@@ -26,7 +26,9 @@ const (
 )
 
 var _ = BeforeSuite(func() {
-	deployToDoListExample()
+	if skipInstall != "true" {
+		deployToDoListExample()
+	}
 })
 
 var failed = false
@@ -38,7 +40,9 @@ var _ = AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
-	undeployToDoListExample()
+	if skipUninstall != "true" {
+		undeployToDoListExample()
+	}
 })
 
 func deployToDoListExample() {

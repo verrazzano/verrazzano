@@ -4,6 +4,7 @@
 package socks
 
 import (
+	"flag"
 	"fmt"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
@@ -11,6 +12,14 @@ import (
 	"github.com/onsi/gomega"
 	"testing"
 )
+
+var skipInstall string
+var skipUninstall string
+
+func init() {
+	flag.StringVar(&skipInstall, "skipInstall", "false", "skipInstall skips the call to install the application")
+	flag.StringVar(&skipUninstall, "skipUninstall", "false", "skipUninstall skips the call to install the application")
+}
 
 func TestSockShopApplication(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
