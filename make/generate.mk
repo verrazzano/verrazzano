@@ -21,7 +21,6 @@ application-manifests: controller-gen
 	./hack/update-codegen.sh "oam:v1alpha1" "oam" "boilerplate.go.txt"
 	# Add copyright headers to the kubebuilder generated manifests
 	./hack/add-yml-header.sh PROJECT
-	./hack/add-yml-header.sh config/rbac/role.yaml
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: image-patch-manifests
@@ -43,7 +42,7 @@ generate: controller-gen
 .PHONY: controller-gen
 controller-gen:
 ifeq (, $(shell command -v controller-gen))
-	$(GO) get sigs.k8s.io/controller-tools/cmd/controller-gen
+	$(GO) get sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION}
 	$(eval CONTROLLER_GEN=$(GOBIN)/controller-gen)
 else
 	$(eval CONTROLLER_GEN=$(shell command -v controller-gen))
@@ -55,3 +54,8 @@ endif
 		echo  "Bad controller-gen version $${ACTUAL_CONTROLLER_GEN_VERSION}, please install ${CONTROLLER_GEN_VERSION}" ; \
 	fi ; \
 	}
+
+# check if the repo is clean after running generate
+.PHONY: check-repo-clean
+check-repo-clean: generate manifests
+	../ci/scripts/check_if_clean_after_generate.sh

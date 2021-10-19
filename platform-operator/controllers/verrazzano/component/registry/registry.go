@@ -5,6 +5,8 @@ package registry
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
@@ -46,8 +48,6 @@ func GetComponents() []spi.Component {
 	return getComponentsFn()
 }
 
-const defaultImagePullSecretKeyName = "imagePullSecrets[0].name"
-
 // getComponents is the internal impl function for GetComponents, to allow overriding it for testing purposes
 func getComponents() []spi.Component {
 	overridesDir := config.GetHelmOverridesDir()
@@ -56,27 +56,8 @@ func getComponents() []spi.Component {
 	injectedSystemNamespaces := config.GetInjectedSystemNamespaces()
 
 	return []spi.Component{
-		helm.HelmComponent{
-			ReleaseName:             nginx.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"), // Note name is different than release name
-			ChartNamespace:          nginx.ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(overridesDir, nginx.ValuesFileOverride),
-			PreInstallFunc:          nginx.PreInstall,
-			AppendOverridesFunc:     nginx.AppendOverrides,
-			PostInstallFunc:         nginx.PostInstall,
-			Dependencies:            []string{istio.ComponentName},
-			ReadyStatusFunc:         nginx.IsReady,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "cert-manager",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "cert-manager"),
-			ChartNamespace:          "cert-manager",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "cert-manager-values.yaml"),
-		},
+		nginx.NewComponent(),
+		certmanager.NewComponent(),
 		helm.HelmComponent{
 			ReleaseName:             externaldns.ComponentName,
 			ChartDir:                filepath.Join(thirdPartyChartsDir, externaldns.ComponentName),
@@ -98,6 +79,7 @@ func getComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			ResolveNamespaceFunc:    verrazzano.ResolveVerrazzanoNamespace,
 			PreUpgradeFunc:          verrazzano.VerrazzanoPreUpgrade,
+			AppendOverridesFunc:     verrazzano.AppendOverrides,
 		},
 		helm.HelmComponent{
 			ReleaseName:             coherence.ComponentName,
@@ -105,7 +87,7 @@ func getComponents() []spi.Component {
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
+			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
 			ReadyStatusFunc:         coherence.IsCoherenceOperatorReady,
 		},
@@ -115,7 +97,7 @@ func getComponents() []spi.Component {
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
+			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
 			PreInstallFunc:          weblogic.WeblogicOperatorPreInstall,
 			AppendOverridesFunc:     weblogic.AppendWeblogicOperatorOverrides,
@@ -129,7 +111,7 @@ func getComponents() []spi.Component {
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ValuesFile:              filepath.Join(overridesDir, "oam-kubernetes-runtime-values.yaml"),
-			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
+			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ReadyStatusFunc:         oam.IsOAMReady,
 		},
 		helm.HelmComponent{

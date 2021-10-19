@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package mysql
+package certmanager
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -11,26 +11,25 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "mysql"
+const ComponentName = "cert-manager"
 
-// MySQLComponent represents an MySQL component
-type MySQLComponent struct {
+// CertManagerComponent represents an CertManager component
+type CertManagerComponent struct {
 	helmComponent helm.HelmComponent
 }
 
-// Verify that MySQLComponent implements Component
-var _ spi.Component = MySQLComponent{}
+// Verify that CertManagerComponent implements Component
+var _ spi.Component = CertManagerComponent{}
 
-// NewComponent returns a new MySQL component
+// NewComponent returns a new CertManager component
 func NewComponent() spi.Component {
-	return MySQLComponent{
+	return CertManagerComponent{
 		helmComponent: helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          "keycloak",
+			ReleaseName:             "cert-manager",
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "cert-manager"),
+			ChartNamespace:          "cert-manager",
 			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
-			AppendOverridesFunc:     AppendMySQLOverrides,
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "cert-manager-values.yaml"),
 		},
 	}
 }
@@ -40,18 +39,18 @@ func NewComponent() spi.Component {
 // --------------------------------------
 
 // Log returns the logger for the context
-func (k MySQLComponent) Name() string {
-	return k.helmComponent.Name()
+func (c CertManagerComponent) Name() string {
+	return c.helmComponent.Name()
 }
 
 // Log returns the logger for the context
-func (k MySQLComponent) GetDependencies() []string {
-	return k.helmComponent.GetDependencies()
+func (c CertManagerComponent) GetDependencies() []string {
+	return c.helmComponent.GetDependencies()
 }
 
 // IsReady Indicates whether or not a component is available and ready
-func (k MySQLComponent) IsReady(context spi.ComponentContext) bool {
-	return k.helmComponent.IsReady(context)
+func (c CertManagerComponent) IsReady(context spi.ComponentContext) bool {
+	return c.helmComponent.IsReady(context)
 }
 
 // --------------------------------------
@@ -60,28 +59,28 @@ func (k MySQLComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
 // - scaffolding while we move components from the scripts to the operator
-func (k MySQLComponent) IsOperatorInstallSupported() bool {
-	return k.helmComponent.IsOperatorInstallSupported()
+func (c CertManagerComponent) IsOperatorInstallSupported() bool {
+	return c.helmComponent.IsOperatorInstallSupported()
 }
 
 // IsInstalled Indicates whether or not the component is installed
-func (k MySQLComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
-	return k.helmComponent.IsInstalled(context)
+func (c CertManagerComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
+	return c.helmComponent.IsInstalled(context)
 }
 
 // PreInstall allows components to perform any pre-processing required prior to initial install
-func (k MySQLComponent) PreInstall(context spi.ComponentContext) error {
-	return k.helmComponent.PreInstall(context)
+func (c CertManagerComponent) PreInstall(context spi.ComponentContext) error {
+	return c.helmComponent.PreInstall(context)
 }
 
 // Install performs the initial install of a component
-func (k MySQLComponent) Install(context spi.ComponentContext) error {
-	return k.helmComponent.Install(context)
+func (c CertManagerComponent) Install(context spi.ComponentContext) error {
+	return c.helmComponent.Install(context)
 }
 
 // PostInstall allows components to perform any post-processing required after initial install
-func (k MySQLComponent) PostInstall(context spi.ComponentContext) error {
-	return k.helmComponent.PostInstall(context)
+func (c CertManagerComponent) PostInstall(context spi.ComponentContext) error {
+	return c.helmComponent.PostInstall(context)
 }
 
 // --------------------------------------
@@ -89,22 +88,22 @@ func (k MySQLComponent) PostInstall(context spi.ComponentContext) error {
 // --------------------------------------
 
 // PreUpgrade allows components to perform any pre-processing required prior to upgrading
-func (k MySQLComponent) PreUpgrade(context spi.ComponentContext) error {
-	return k.helmComponent.PreUpgrade(context)
+func (c CertManagerComponent) PreUpgrade(context spi.ComponentContext) error {
+	return c.helmComponent.PreUpgrade(context)
 }
 
 // Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-func (k MySQLComponent) Upgrade(context spi.ComponentContext) error {
-	return k.helmComponent.Upgrade(context)
+func (c CertManagerComponent) Upgrade(context spi.ComponentContext) error {
+	return c.helmComponent.Upgrade(context)
 }
 
 // PostUpgrade allows components to perform any post-processing required after upgrading
-func (k MySQLComponent) PostUpgrade(context spi.ComponentContext) error {
-	return k.helmComponent.PostUpgrade(context)
+func (c CertManagerComponent) PostUpgrade(context spi.ComponentContext) error {
+	return c.helmComponent.PostUpgrade(context)
 }
 
 // GetSkipUpgrade returns the value of the SkipUpgrade field
 // - Scaffolding for now during the Istio 1.10.2 upgrade process
-func (k MySQLComponent) GetSkipUpgrade() bool {
-	return k.helmComponent.GetSkipUpgrade()
+func (c CertManagerComponent) GetSkipUpgrade() bool {
+	return c.helmComponent.GetSkipUpgrade()
 }

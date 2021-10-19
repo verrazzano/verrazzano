@@ -40,18 +40,18 @@ func TestConvertAPIVersionToGroupAndVersion(t *testing.T) {
 }
 
 // TestIsWorkloadMarkedForUpgrade tests IsWorkloadMarkedForUpgrade to ensure that it returns the correct response
-// based on a map of labels and a current version.
+// based on a map of annotations and a current version.
 func TestIsWorkloadMarkedForUpgrade(t *testing.T) {
 	assert := asserts.New(t)
-	labels := map[string]string{"foo": "bar", constants.LabelUpgradeVersion: "12345"}
+	annotations := map[string]string{"foo": "bar", constants.AnnotationUpgradeVersion: "12345"}
 
-	// GIVEN a current upgrade version that matches the corresponding label
+	// GIVEN a current upgrade version that matches the corresponding annotation
 	// WHEN IsWorkloadMarkedForUpgrade is called
 	// THEN false is returned
-	assert.False(IsWorkloadMarkedForUpgrade(labels, "12345"))
+	assert.False(IsWorkloadMarkedForUpgrade(annotations, "12345"))
 
-	// GIVEN a current upgrade version that doesn't match the corresponding label
+	// GIVEN a current upgrade version that doesn't match the corresponding annotation
 	// WHEN IsWorkloadMarkedForUpgrade is called
 	// THEN true is returned
-	assert.True(IsWorkloadMarkedForUpgrade(labels, "99999"))
+	assert.True(IsWorkloadMarkedForUpgrade(annotations, "99999"))
 }

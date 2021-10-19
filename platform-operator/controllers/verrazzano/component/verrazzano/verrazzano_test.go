@@ -8,7 +8,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -151,4 +154,28 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	assert.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].ValueFrom)
 	assert.Equal("some-url", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].Value)
 	assert.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom)
+}
+
+const testBomFilePath = "../../testdata/test_bom.json"
+
+// Test_appendOverrides tests the AppendOverrides function
+// GIVEN a call to AppendOverrides
+//  WHEN I call with no extra kvs
+//  THEN the correct KeyValue objects are returned and no error occurs
+func Test_appendOverrides(t *testing.T) {
+	assert := assert.New(t)
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	kvs, err := AppendOverrides(spi.NewContext(zap.S(), nil, nil, false), "", "", "", []bom.KeyValue{})
+
+	assert.NoError(err)
+	assert.Len(kvs, 2)
+	assert.Contains(kvs, bom.KeyValue{
+		Key:   "monitoringOperator.prometheusInitImage",
+		Value: "ghcr.io/oracle/oraclelinux:7-slim",
+	})
+	assert.Contains(kvs, bom.KeyValue{
+		Key:   "monitoringOperator.esInitImage",
+		Value: "ghcr.io/oracle/oraclelinux:7.8",
+	})
 }
