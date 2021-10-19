@@ -27,7 +27,9 @@ var longWaitTimeout = 10 * time.Minute
 var longPollingInterval = 20 * time.Second
 
 var _ = BeforeSuite(func() {
-	deploySpringBootApplication()
+	if skipInstall == "true" {
+		deploySpringBootApplication()
+	}
 })
 
 var failed = false
@@ -39,7 +41,9 @@ var _ = AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
-	undeploySpringBootApplication()
+	if skipUninstall == "true" {
+		undeploySpringBootApplication()
+	}
 })
 
 func deploySpringBootApplication() {
