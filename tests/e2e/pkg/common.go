@@ -13,6 +13,7 @@ import (
 	neturl "net/url"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -104,7 +105,6 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 
 // PodsRunning is identical to PodsRunningInCluster, except that it uses the cluster specified in the environment
 func PodsRunning(namespace string, namePrefixes []string) bool {
-	Log(Info, "MARK: entered PodsRunning()")
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
@@ -116,33 +116,36 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 
 // PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
 func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) bool {
-	Log(Info, "MARK: entered PodsRunningInCluster()")
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting clientset for cluster, error: %v", err))
 		return false
 	}
-	Log(Info, "MARK: listing pods...")
 	pods, err := ListPodsInCluster(namespace, clientset)
-	Log(Info, "MARK: back from listing pods")
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 		return false
 	}
-	Log(Info, "MARK: finding missing pods...")
 	missing := notRunning(pods.Items, namePrefixes...)
-	Log(Info, "MARK: back from finding missing pods...")
 	if len(missing) > 0 {
 		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
 		for _, pod := range pods.Items {
 			if isReadyAndRunning(pod) {
 				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
 			} else {
-				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, "MARK")) //pod.Status.ContainerStatuses))
+				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
 			}
 		}
 	}
 	return len(missing) == 0
+}
+
+func formatContainerStatuses(containerStatuses []v1.ContainerStatus) string {
+	output := ""
+	for _, cs := range containerStatuses {
+		output += fmt.Sprintf("Container name:%s ready:%s. ", cs.Name, strconv.FormatBool(cs.Ready))
+	}
+	return output
 }
 
 // PodsNotRunning returns true if all pods in namePrefixes are not running

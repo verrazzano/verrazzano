@@ -403,7 +403,6 @@ pipeline {
                             steps {
                                 runSocksVariant('helidon')
                                 runSocksVariant('micronaut')
-                                runSocksVariant('spring')
                             }
                         }
                         stage('examples spring') {
