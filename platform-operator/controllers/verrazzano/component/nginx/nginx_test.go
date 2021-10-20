@@ -660,3 +660,72 @@ func TestNewComponent(t *testing.T) {
 	assert.NotNil(t, component)
 	assert.Equal(t, ComponentName, component.Name())
 }
+
+// TestIsExternalDNSEnabledDefault tests the IsExternalDNSEnabled function
+// GIVEN a call to IsExternalDNSEnabled
+//  WHEN the VZ config does not explicitly configure DNS
+//  THEN false is returned
+func TestIsExternalDNSEnabledDefault(t *testing.T) {
+	vz := &vzapi.Verrazzano{}
+	assert.False(t, IsExternalDNSEnabled(vz))
+}
+
+// TestIsExternalDNSEnabledOCIDNS tests the IsExternalDNSEnabled function
+// GIVEN a call to IsExternalDNSEnabled
+//  WHEN the VZ config has OCI DNS configured
+//  THEN true is returned
+func TestIsExternalDNSEnabledOCIDNS(t *testing.T) {
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			},
+		},
+	}
+	assert.True(t, IsExternalDNSEnabled(vz))
+}
+
+// TestIsExternalDNSEnabledWildcardDNS tests the IsExternalDNSEnabled function
+// GIVEN a call to IsExternalDNSEnabled
+//  WHEN the VZ config has Wildcard DNS explicitly configured
+//  THEN false is returned
+func TestIsExternalDNSEnabledWildcardDNS(t *testing.T) {
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					Wildcard: &vzapi.Wildcard{
+						Domain: "xip.io",
+					},
+				},
+			},
+		},
+	}
+	assert.False(t, IsExternalDNSEnabled(vz))
+}
+
+// TestIsExternalDNSEnabledExternalDNS tests the IsExternalDNSEnabled function
+// GIVEN a call to IsExternalDNSEnabled
+//  WHEN the VZ config has External DNS explicitly configured
+//  THEN false is returned
+func TestIsExternalDNSEnabledExternalDNS(t *testing.T) {
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					External: &vzapi.External{
+						Suffix: "mydomain.io",
+					},
+				},
+			},
+		},
+	}
+	assert.False(t, IsExternalDNSEnabled(vz))
+}

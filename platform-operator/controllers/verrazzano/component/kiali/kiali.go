@@ -105,14 +105,16 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		if ingress.Annotations == nil {
 			ingress.Annotations = make(map[string]string)
 		}
-		ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
-		ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
 		ingress.Annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = "6M"
 		ingress.Annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2"
 		ingress.Annotations["nginx.ingress.kubernetes.io/secure-backends"] = "false"
 		ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"] = "HTTP"
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
+		if nginx.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
+			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
+		}
 		return nil
 	})
 	ctx.Log().Debugf("Kiali ingress operation result: %s", opResult)

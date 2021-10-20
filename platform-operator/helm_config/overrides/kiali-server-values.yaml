@@ -18,6 +18,7 @@ deployment:
   version_label: v1.34
   # The platform operator will manage the Kiali ingress
   ingress_enabled: false
+  view_only_mode: true
 
 kubernetes_config:
 # The default was to exclude Jobs also which caused repetitive error logging from Kiali

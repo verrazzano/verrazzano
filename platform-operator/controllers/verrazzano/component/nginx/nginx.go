@@ -202,6 +202,14 @@ func GetEnvName(vz *vzapi.Verrazzano) string {
 	return envName
 }
 
+// IsExternalDNSEnabled Indicates if the external-dns service is expected to be deployed, true if OCI DNS is configured
+func IsExternalDNSEnabled(vz *vzapi.Verrazzano) bool {
+	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
+		return true
+	}
+	return false
+}
+
 // getWildcardDomain Get the wildcard domain from the Verrazzano config
 func getWildcardDomain(dnsConfig *vzapi.DNSComponent) string {
 	wildcardDomain := "nip.io"
