@@ -185,3 +185,46 @@ func projectExists(kubeconfigPath string, projectName string) bool {
 func todoListPodsRunning(kubeconfigPath string, namespace string) bool {
 	return pkg.PodsRunningInCluster(namespace, expectedPodsTodoList, kubeconfigPath)
 }
+
+// VerifySockShopDeleteOnAdminCluster verifies that the sock shop app resources have been deleted from the admin
+// cluster after the application has been deleted
+func VerifyTodoListDeleteOnAdminCluster(kubeconfigPath string, placedInCluster bool, namespace string, projectName string) bool {
+	mcResDeleted := VerifyMCResourcesDeleted(kubeconfigPath, namespace, projectName)
+	if !placedInCluster {
+		return mcResDeleted
+	}
+	appDeleted := VerifyAppDeleted(kubeconfigPath, namespace)
+
+	return mcResDeleted && appDeleted
+}
+
+// VerifySockShopDeleteOnManagedCluster verifies that the sock shop app resources have been deleted from the managed
+// cluster after the application has been deleted
+func VerifyTodoListDeleteOnManagedCluster(kubeconfigPath string, namespace string, projectName string) bool {
+	mcResDeleted := VerifyMCResourcesDeleted(kubeconfigPath, namespace, projectName)
+	appDeleted := VerifyAppDeleted(kubeconfigPath, namespace)
+
+	return mcResDeleted && appDeleted
+
+}
+
+// VerifyAppDeleted verifies that the workload and pods are deleted on the specified cluster
+func VerifyAppDeleted(kubeconfigPath string, namespace string) bool {
+	podsRunning := todoListPodsRunning(kubeconfigPath, namespace)
+
+	return !podsRunning
+}
+
+// VerifyMCResourcesDeleted verifies that any resources created by the deployment are deleted on the specified cluster
+func VerifyMCResourcesDeleted(kubeconfigPath string, namespace string, projectName string) bool {
+	appConfExists := appConfExists(kubeconfigPath, namespace)
+	projExists := projectExists(kubeconfigPath, projectName)
+
+	compExists := true
+	// check each sock-shop component in expectedCompsSockShop
+	for _, comp := range expectedCompsTodoList {
+		compExists = componentExists(kubeconfigPath, namespace, comp) && compExists
+	}
+
+	return !appConfExists && !compExists && !projExists
+}
