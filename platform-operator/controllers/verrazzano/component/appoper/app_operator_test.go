@@ -106,6 +106,29 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 func TestIsApplyCRDYamlValid(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	config.TestHelmConfigDir = "../../../../helm_config"
-	logger := zap.SugaredLogger{}
-	assert.Nil(t, ApplyCRDYaml(&logger, fakeClient, "", "", ""))
+	logger := zap.NewExample().Sugar()
+	assert.Nil(t, ApplyCRDYaml(logger, fakeClient, "", "", ""))
+}
+
+
+//  TestIsApplyCRDYamlInvalidPath tests the ApplyCRDYaml function
+//  GIVEN a call to ApplyCRDYaml
+//  WHEN the path is invalid
+//  THEN an appropriate error is returned
+func TestIsApplyCRDYamlInvalidPath(t *testing.T) {
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	config.TestHelmConfigDir = "./testdata"
+	logger := zap.NewExample().Sugar()
+	assert.Error(t, ApplyCRDYaml(logger, fakeClient, "", "", ""))
+}
+
+//  TestIsApplyCRDYamlInvalidChart tests the ApplyCRDYaml function
+//  GIVEN a call to ApplyCRDYaml
+//  WHEN the yaml is invalid
+//  THEN an appropriate error is returned
+func TestIsApplyCRDYamlInvalidChart(t *testing.T) {
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	config.TestHelmConfigDir = "invalidPath"
+	logger := zap.NewExample().Sugar()
+	assert.Error(t, ApplyCRDYaml(logger, fakeClient, "", "", ""))
 }
