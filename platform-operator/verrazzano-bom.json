@@ -102,7 +102,7 @@
           "images": [
             {
               "image": "coredns",
-              "tag": "1.6.2",
+              "tag": "1.6.2-1",
               "helmFullImageKey": "istiocoredns.coreDNSImage",
               "helmTagKey": "istiocoredns.coreDNSTag"
             },
