@@ -30,6 +30,7 @@ func NewComponent() spi.Component {
 			ChartNamespace:          "keycloak",
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
+			AppendOverridesFunc:     AppendMySQLOverrides,
 		},
 	}
 }
