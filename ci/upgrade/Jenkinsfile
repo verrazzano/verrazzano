@@ -249,11 +249,6 @@ pipeline {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
-                stage('examples todo') {
-                    steps {
-                        runGinkgo('examples/todo', "false", "true")
-                    }
-                }
                 stage('examples socks') {
                     steps {
                         runGinkgo('examples/socks', "false", "true")
@@ -430,11 +425,6 @@ pipeline {
                 stage('verify-infra vmi') {
                     steps {
                         runGinkgoRandomize('verify-infra/vmi')
-                    }
-                }
-                stage('examples todo') {
-                    steps {
-                        runGinkgo('examples/todo', "true", "false")
                     }
                 }
                 stage('examples socks') {
