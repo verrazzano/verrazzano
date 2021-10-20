@@ -94,11 +94,11 @@ pipeline {
             steps {
                 script {
                     // major or minor release should be leveraging master branch and have a target version that ends in 0
-                    if ((params.TEST_RUN || env.GIT_BRANCH.equals('master')) && params.TARGET_VERSION =~ /^\d+\.\d+\.0$/) {
+                    if ( params.TARGET_VERSION =~ /^\d+\.\d+\.0$/) {
                         echo "major/minor release detected. test=${params.TEST_RUN}"
                         IS_PATCH_RELEASE = 'false'
                     // patch should be using a "release-#.#" branch and have a version ending in a digit other than 0
-                    } else if (env.GIT_BRANCH =~ /release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
+                    } else if ( params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
                         echo "patch release detected"
                         IS_PATCH_RELEASE = 'true'
                     } else if (params.TEST_RUN && env.GIT_BRANCH =~ /mock-release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
