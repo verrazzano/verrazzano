@@ -21,6 +21,7 @@ CLEAN_ALL=false
 DRY_RUN=false
 INCLUDE_COMPONENTS=
 EXCLUDE_COMPONENTS=
+LIST_IMAGES_ONLY=false
 
 function usage() {
   ec=${1:-0}
@@ -43,6 +44,7 @@ Options:
  -z                     Incrementally clean each local image after it has been successfully pushed
  -d                     Dry-run only, do not perform Docker operations
  -o                     List components
+ -m                     List images, do not process them
 
 Examples:
 
@@ -368,7 +370,11 @@ function process_images_from_bom() {
         # Build up the image name and target image name, and do a pull/tag/push
         local from_image=${from_image_prefix}/${base_image}
         local to_image=${to_image_prefix}/${base_image}
-        process_image ${from_image} ${to_image}
+        if [ "${LIST_IMAGES_ONLY}" == "true" ]; then
+          echo ${to_image}
+        else
+          process_image ${from_image} ${to_image}
+        fi
       done
     done
   done
@@ -396,7 +402,7 @@ function main() {
   fi
 }
 
-while getopts 'hzcdob:t:f:r:l:i:e:' opt; do
+while getopts 'hzcdomb:t:f:r:l:i:e:' opt; do
   case $opt in
   d)
     DRY_RUN=true
@@ -433,6 +439,9 @@ while getopts 'hzcdob:t:f:r:l:i:e:' opt; do
   o)
     output_bom_components
     exit 0
+    ;;
+  m)
+    LIST_IMAGES_ONLY=true
     ;;
   l)
     USELOCAL=1
