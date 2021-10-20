@@ -152,7 +152,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		// THEN return the host name found in the gateway.
 		It("Get host from gateway.", func() {
 			Eventually(func() (string, error) {
-				host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
+				host, err = k8sutil.GetHostnameFromGatewayInCluster(testNamespace, "", managedKubeconfig)
 				return host, err
 			}, waitTimeout, pollingInterval).Should(Not(BeEmpty()))
 		})
