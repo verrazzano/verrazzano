@@ -110,7 +110,6 @@ func TestIsApplyCRDYamlValid(t *testing.T) {
 	assert.Nil(t, ApplyCRDYaml(logger, fakeClient, "", "", ""))
 }
 
-
 //  TestIsApplyCRDYamlInvalidPath tests the ApplyCRDYaml function
 //  GIVEN a call to ApplyCRDYaml
 //  WHEN the path is invalid
