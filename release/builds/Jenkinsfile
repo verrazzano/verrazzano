@@ -154,7 +154,7 @@ pipeline {
                     steps {
                         script {
                             if (IS_PATCH_RELEASE == 'true') {
-                                RELEASE_JOB_NAME = 'verrazzano/' + env.GIT_BRANCH
+                                RELEASE_JOB_NAME = 'verrazzano/' + env.BRANCH_NAME
                             } else {
                                 def parts = params.TARGET_VERSION.split("\\.")
                                 def MAJOR=parts[0]
