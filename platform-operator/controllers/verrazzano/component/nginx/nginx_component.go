@@ -15,17 +15,17 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "ingress-controller"
 
-// NginxComponent represents an Nginx component
-type NginxComponent struct {
+// nginxComponent represents an Nginx component
+type nginxComponent struct {
 	helm.HelmComponent
 }
 
-// Verify that NginxComponent implements Component
-var _ spi.Component = NginxComponent{}
+// Verify that nginxComponent implements Component
+var _ spi.Component = nginxComponent{}
 
 // NewComponent returns a new Nginx component
 func NewComponent() spi.Component {
-	return NginxComponent{
+	return nginxComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
