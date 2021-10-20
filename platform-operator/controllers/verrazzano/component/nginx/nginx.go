@@ -151,7 +151,7 @@ func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
 		if len(svc.Status.LoadBalancer.Ingress) > 0 {
 			ingressIP = svc.Status.LoadBalancer.Ingress[0].IP
 		} else if len(svc.Spec.ExternalIPs) > 0 {
-			// In case of OLCNE, it would return null
+			// In case of OLCNE, the Status.LoadBalancer.Ingress field will be empty, so use the external IP if present
 			ingressIP = svc.Spec.ExternalIPs[0]
 		} else {
 			return "", fmt.Errorf("No IP found for LoadBalancer service type")

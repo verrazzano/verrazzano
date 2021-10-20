@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -56,6 +57,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
+// createOrUpdateKialiIngress Creates or updates the Kiali authproxy ingress
 func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) error {
 	ingress := v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: namespace},
@@ -81,9 +83,9 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 							PathType: &pathType,
 							Backend: v1.IngressBackend{
 								Service: &v1.IngressServiceBackend{
-									Name: "verrazzano-authproxy",
+									Name: constants.VerrazzanoAuthProxyServiceName,
 									Port: v1.ServiceBackendPort{
-										Number: 8775,
+										Number: constants.VerrazzanoAuthProxyServicePort,
 									},
 								},
 								Resource: nil,
@@ -93,11 +95,10 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 				},
 			},
 		}
-
 		ingress.Spec.TLS = []v1.IngressTLS{
 			{
 				Hosts:      []string{kialiHostName},
-				SecretName: "system-tls",
+				SecretName: constants.VerrazzanoSystemTLSSecretName,
 			},
 		}
 		ingress.Spec.Rules = []v1.IngressRule{ingRule}
