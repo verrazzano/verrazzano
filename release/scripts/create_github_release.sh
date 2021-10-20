@@ -81,15 +81,20 @@ verify_release_binaries_exist || exit 1
 # Validate Github CLI
 validate_github_cli || exit 1
 
+echo ${GITHUB_ACCESS_TOKEN}|gh auth login --with-token
+
+gh auth status
+
 if [ $TEST_RUN == true ] ; then
     echo "TEST_RUN is set to true, not doing a github release."
 else
     echo "TEST_RUN is set to false, doing a github release now."
     # Setting an empty string for notes, as the release notes will be prepared separately
-    gh release create "${VERSION}" \
-      --target "${RELEASE_COMMIT}" \
-      --notes "" \
-      --title "Verrazzano release ${VERSION}" \
-    ${releaseArtifacts[*]}
+    #gh release create "${VERSION}" \
+    #  --target "${RELEASE_COMMIT}" \
+    #  --notes "" \
+    #  --title "Verrazzano release ${VERSION}" \
+    #${releaseArtifacts[*]}
+    #verify_released_artifacts || exit 1
 fi
-verify_released_artifacts || exit 1
+
