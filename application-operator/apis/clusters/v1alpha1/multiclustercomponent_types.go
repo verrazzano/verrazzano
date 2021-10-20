@@ -4,7 +4,7 @@
 package v1alpha1
 
 import (
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

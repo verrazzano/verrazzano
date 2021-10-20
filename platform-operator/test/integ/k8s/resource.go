@@ -113,7 +113,7 @@ func (c Client) DoesServiceAccountExist(name string, namespace string) bool {
 
 // DoesIngressExist returns true if the given Ingress exists
 func (c Client) DoesIngressExist(name string, namespace string) bool {
-	_, err := c.Clientset.NetworkingV1beta1().Ingresses(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	_, err := c.Clientset.NetworkingV1().Ingresses(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	return procExistsStatus(err, "Ingress")
 }
 

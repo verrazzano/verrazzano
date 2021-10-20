@@ -15,13 +15,13 @@ import (
 	"text/template"
 	"time"
 
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/golang/mock/gomock"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/oam-kubernetes-runtime/apis/core"
+	"github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/verrazzano/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
@@ -222,7 +222,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 	// Create and make the request
 	request := newRequest("test-space", "test-trait-name")
 	reconciler := newIngressTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -360,7 +360,7 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 	// Create and make the request
 	request := newRequest("test-space", "test-trait-name")
 	reconciler := newIngressTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -517,7 +517,7 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 	// Create and make the request
 	request := newRequest("test-space", "test-trait-name")
 	reconciler := newIngressTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -618,7 +618,7 @@ func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
 	// Create and make the request
 	request := newRequest("test-space", "test-trait-name")
 	reconciler := newIngressTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -718,7 +718,7 @@ func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
 	// Create and make the request
 	request := newRequest("test-space", "test-trait-name")
 	reconciler := newIngressTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -901,7 +901,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 	// Create and make the request
 	request := newRequest("test-space", "test-trait-name")
 	reconciler := newIngressTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -947,7 +947,7 @@ func TestFailureToGetWorkload(t *testing.T) {
 	// Create and make the request
 	request := newRequest("test-space", "test-trait-name")
 	reconciler := newIngressTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1005,7 +1005,7 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 	// Create and make the request
 	request := newRequest("test-space", "test-trait-name")
 	reconciler := newIngressTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1161,7 +1161,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 	// Create and make the request
 	request := newRequest("test-space", "test-trait-name")
 	reconciler := newIngressTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1565,7 +1565,7 @@ func TestGetTraitFailurePropagated(t *testing.T) {
 		AnyTimes()
 	reconciler := newIngressTraitReconciler(mock)
 	request := newRequest("test-space", "test-name")
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 	mocker.Finish()
 	assert.Contains(err.Error(), "test-error")
 	assert.Equal(false, result.Requeue)
@@ -1586,7 +1586,7 @@ func TestGetNotFoundResource(t *testing.T) {
 		AnyTimes()
 	reconciler := newIngressTraitReconciler(mock)
 	request := newRequest("test-space", "test-name")
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
@@ -1919,7 +1919,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	// Perform Reconcile
 	request := newRequest(params["TRAIT_NAMESPACE"], params["TRAIT_NAME"])
 	reconciler := newIngressTraitReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 	assert.Equal(true, result.Requeue, "Expected a requeue due to status update.")
 
@@ -2019,7 +2019,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	// Perform Reconcile
 	request := newRequest(params["TRAIT_NAMESPACE"], params["TRAIT_NAME"])
 	reconciler := newIngressTraitReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 	assert.Equal(true, result.Requeue, "Expected a requeue due to status update.")
 
@@ -2124,7 +2124,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	// Perform Reconcile
 	request := newRequest(params["TRAIT_NAMESPACE"], params["TRAIT_NAME"])
 	reconciler := newIngressTraitReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err, "No error because reconcile worked but needs to be retried.")
 	assert.Equal(true, result.Requeue, "Expected a requeue because the discovered service has multiple ports.")
 
@@ -2253,7 +2253,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	// Perform Reconcile
 	request := newRequest(params["TRAIT_NAMESPACE"], params["TRAIT_NAME"])
 	reconciler := newIngressTraitReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err, "No error because reconcile worked but needs to be retried.")
 	assert.Equal(true, result.Requeue, "Expected a requeue because the discovered service has multiple ports.")
 
@@ -2332,7 +2332,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	// Perform Reconcile
 	request := newRequest(params["TRAIT_NAMESPACE"], params["TRAIT_NAME"])
 	reconciler := newIngressTraitReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 	assert.Equal(true, result.Requeue, "Expected no requeue as error expected.")
 
@@ -2370,7 +2370,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	assert.NoError(cli.Create(context.Background(), &service))
 
 	// Reconcile again.
-	result, err = reconciler.Reconcile(request)
+	result, err = reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 	assert.Equal(true, result.Requeue, "Expected requeue as status was updated.")
 

@@ -74,8 +74,7 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.TODO()
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
 
 	log.Info("Reconciler called")
@@ -787,7 +786,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
-			compContext := spi.NewContext(log, r, cr, r.DryRun)
+			compContext := spi.NewContext(log, r.Client, cr, r.DryRun)
 			state := installv1alpha1.Disabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
@@ -1257,15 +1256,16 @@ func shouldRequeue(r ctrl.Result) bool {
 func (r *Reconciler) watchJobs(namespace string, name string, log *zap.SugaredLogger) error {
 
 	// Define a mapping to the verrazzano resource
-	mapFn := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
-			return []reconcile.Request{
-				{NamespacedName: types.NamespacedName{
+	mapFn := func(object client.Object) []reconcile.Request {
+		return []reconcile.Request{
+			{
+				NamespacedName: types.NamespacedName{
 					Namespace: namespace,
 					Name:      name,
-				}},
-			}
-		})
+				},
+			},
+		}
+	}
 
 	// Watch job updates
 	p := predicate.Funcs{
@@ -1282,9 +1282,7 @@ func (r *Reconciler) watchJobs(namespace string, name string, log *zap.SugaredLo
 		&source.Kind{Type: &batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{Namespace: getInstallNamespace()},
 		}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
-		},
+		handler.EnqueueRequestsFromMapFunc(mapFn),
 		// Comment it if default predicate fun is used.
 		p)
 	if err != nil {

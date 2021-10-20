@@ -10,7 +10,7 @@ import (
 	"net/http"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	k8sadmission "k8s.io/api/admission/v1beta1"
+	k8sadmission "k8s.io/api/admission/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"

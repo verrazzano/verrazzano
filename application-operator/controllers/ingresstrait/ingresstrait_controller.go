@@ -10,12 +10,12 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
 	"github.com/go-logr/logr"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	"github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/verrazzano/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
@@ -68,9 +68,8 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // This also results in the status of the ingress trait resource being updated.
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits/status,verbs=get;update;patch
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	ctx := context.Background()
 	log := r.Log.WithValues("trait", req.NamespacedName)
 	log.Info("Reconcile ingress trait")
 

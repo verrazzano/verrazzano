@@ -31,11 +31,10 @@ const finalizerName = "multiclustersecret.verrazzano.io"
 // Reconcile reconciles a MultiClusterSecret resource. It fetches the embedded Secret, mutates it
 // based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the
 // success or failure of the changes to the embedded Secret
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("multiclustersecret", req.NamespacedName)
 	var mcSecret clustersv1alpha1.MultiClusterSecret
 	result := reconcile.Result{}
-	ctx := context.Background()
 	err := r.fetchMultiClusterSecret(ctx, req.NamespacedName, &mcSecret)
 	if err != nil {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterSecret", err, logger)

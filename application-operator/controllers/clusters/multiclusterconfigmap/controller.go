@@ -32,11 +32,10 @@ const finalizerName = "multiclusterconfigmap.verrazzano.io"
 // mutates it based on the MultiClusterConfigMap, and updates the status of the
 // MultiClusterConfigMap to reflect the success or failure of the changes to the embedded resource
 // Currently it does NOT support Immutable ConfigMap resources
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("multiclusterconfigmap", req.NamespacedName)
 	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
 	result := reconcile.Result{}
-	ctx := context.Background()
 	err := r.fetchMultiClusterConfigMap(ctx, req.NamespacedName, &mcConfigMap)
 	if err != nil {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterConfigMap", err, logger)

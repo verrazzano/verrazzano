@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	oamcore "github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/apimachinery/pkg/api/errors"

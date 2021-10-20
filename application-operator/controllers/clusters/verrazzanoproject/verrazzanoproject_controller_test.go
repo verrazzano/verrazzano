@@ -330,7 +330,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			// Make the request
 			request := clusterstest.NewRequest(tt.fields.vpNamespace, tt.fields.vpName)
 			reconciler := newVerrazzanoProjectReconciler(mockClient)
-			_, err := reconciler.Reconcile(request)
+			_, err := reconciler.Reconcile(context.TODO(), request)
 
 			mocker.Finish()
 
@@ -432,7 +432,7 @@ func TestNetworkPolicies(t *testing.T) {
 	// Make the request
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	mocker.Finish()
@@ -463,7 +463,7 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 	// Make the request
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	mocker.Finish()
@@ -518,7 +518,7 @@ func TestDeleteVerrazzanoProjectFinalizer(t *testing.T) {
 	// Make the request
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	mocker.Finish()

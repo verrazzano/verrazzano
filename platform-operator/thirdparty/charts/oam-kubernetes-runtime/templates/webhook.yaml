@@ -20,9 +20,13 @@ webhooks:
         name: {{ template "oam-kubernetes-runtime.name" . }}-webhook
         path: /validating-core-oam-dev-v1alpha2-applicationconfigurations
       caBundle: "{{.Values.certificate.caBundle}}"
-    admissionReviewVersions: ["v1beta1"]
+    admissionReviewVersions:
+      - v1beta1
+      - v1
     failurePolicy: Fail
     timeoutSeconds: 5
+    matchPolicy: Exact
+    sideEffects: None
   - name: "validate.component.core.oam.dev"
     clientConfig:
       service:

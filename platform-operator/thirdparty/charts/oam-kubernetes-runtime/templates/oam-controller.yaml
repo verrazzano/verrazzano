@@ -110,6 +110,14 @@ metadata:
   {{- include "oam-kubernetes-runtime.labels" . | nindent 4 }}
 rules:
   - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - create
+      - update
+  - apiGroups:
       - ""
     resources:
       - configmaps
@@ -135,7 +143,6 @@ rules:
       - events
     verbs:
       - create
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

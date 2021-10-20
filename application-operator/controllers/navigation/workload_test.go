@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
+	oamcore "github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/verrazzano/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	k8sapps "k8s.io/api/apps/v1"

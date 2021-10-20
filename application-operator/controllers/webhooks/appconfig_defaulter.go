@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"net/http"
 
-	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	oamv1 "github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
-	v1beta12 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -63,7 +63,7 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 		"request.Operation", req.Operation, "appconfig.Name", req.Name)
 
 	// if the operation is Delete then decode the old object and call the defaulter to cleanup any app conf defaults
-	if req.Operation == v1beta12.Delete {
+	if req.Operation == admissionv1.Delete {
 		err := a.decoder.DecodeRaw(req.OldObject, appConfig)
 		if err != nil {
 			return admission.Errored(http.StatusBadRequest, err)

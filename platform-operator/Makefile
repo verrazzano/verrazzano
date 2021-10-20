@@ -81,6 +81,12 @@ install-crds:
 uninstall-crds:
 	kubectl delete -f ${CRD_PATH}
 
+# Generate mocks
+.PHONY: mock-gen
+mock-gen:
+	mockgen -destination=mocks/controller_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
+	mockgen -destination=mocks/requestsender_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt github.com/verrazzano/verrazzano/platform-operator/controllers/clusters RequestSender
+
 
 #
 # Go build related tasks

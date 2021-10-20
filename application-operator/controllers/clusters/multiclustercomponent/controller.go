@@ -6,8 +6,8 @@ package multiclustercomponent
 import (
 	"context"
 
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
+	"github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,11 +31,10 @@ type Reconciler struct {
 // Reconcile reconciles a MultiClusterComponent resource. It fetches the embedded OAM Component,
 // mutates it based on the MultiClusterComponent, and updates the status of the
 // MultiClusterComponent to reflect the success or failure of the changes to the embedded resource
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("multiclustercomponent", req.NamespacedName)
 	var mcComp clustersv1alpha1.MultiClusterComponent
 	result := reconcile.Result{}
-	ctx := context.Background()
 	err := r.fetchMultiClusterComponent(ctx, req.NamespacedName, &mcComp)
 	if err != nil {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterComponent", err, logger)

@@ -52,9 +52,8 @@ type LoggingTraitReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=replicasets,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=pods,verbs=get;list;watch;update;patch;delete
 
-func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *LoggingTraitReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	ctx := context.Background()
 	log := r.Log.WithValues("loggingtrait", req.NamespacedName)
 
 	var trait *oamv1alpha1.LoggingTrait

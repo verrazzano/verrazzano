@@ -7,8 +7,8 @@ import (
 	"flag"
 	"os"
 
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	"github.com/verrazzano/oam-kubernetes-runtime/apis/core"
 	"github.com/verrazzano/verrazzano/pkg/log"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"

@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
@@ -113,7 +113,7 @@ func TestReconcileCreateComponent(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -165,7 +165,7 @@ func TestReconcileUpdateComponent(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -214,7 +214,7 @@ func TestReconcileCreateComponentFailed(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	// expect an error and requeue upon failure
@@ -267,7 +267,7 @@ func TestReconcileUpdateComponentFailed(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	// expect an error and requeue upon failure
@@ -328,7 +328,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -358,7 +358,7 @@ func TestReconcileResourceNotFound(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)

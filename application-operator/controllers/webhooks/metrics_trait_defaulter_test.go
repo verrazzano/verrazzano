@@ -9,7 +9,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
-	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	oamv1 "github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"

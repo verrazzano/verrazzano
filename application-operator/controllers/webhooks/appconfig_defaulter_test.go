@@ -11,14 +11,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/oam-kubernetes-runtime/apis/core"
+	oamv1 "github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -214,7 +214,7 @@ func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryR
 	}
 	webhook.InjectDecoder(decoder)
 	req := admission.Request{
-		AdmissionRequest: admissionv1beta1.AdmissionRequest{Operation: admissionv1beta1.Delete},
+		AdmissionRequest: admissionv1.AdmissionRequest{Operation: admissionv1.Delete},
 	}
 	req.OldObject = runtime.RawExtension{Raw: readYaml2Json(t, "hello-conf.yaml")}
 	if dryRun {

@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	asserts "github.com/stretchr/testify/assert"
+	oamv1alpha2 "github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"k8s.io/apimachinery/pkg/api/errors"

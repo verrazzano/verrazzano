@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"

@@ -42,8 +42,7 @@ type bindingParams struct {
 }
 
 // Reconcile reconciles a VerrazzanoManagedCluster object
-func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.TODO()
+func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
 	r.log = log
 	log.Info("Reconciler called")

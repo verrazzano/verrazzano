@@ -5,8 +5,8 @@ package multiclusterapplicationconfiguration
 
 import (
 	"context"
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
+	"github.com/verrazzano/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,11 +35,10 @@ const finalizerName = "multiclusterapplicationconfiguration.verrazzano.io"
 // app config, mutates it based on the MultiClusterApplicationConfiguration, and updates the status
 // of the MultiClusterApplicationConfiguration to reflect the success or failure of the changes to
 // the embedded resource
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("multiclusterapplicationconfiguration", req.NamespacedName)
 	var mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration
 	result := reconcile.Result{}
-	ctx := context.Background()
 	err := r.fetchMultiClusterAppConfig(ctx, req.NamespacedName, &mcAppConfig)
 	if err != nil {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterApplicationConfiguration", err, logger)

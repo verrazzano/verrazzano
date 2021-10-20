@@ -88,7 +88,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	if err != nil {
 		return err
 	}
-	serverURL, err := vzk8s.GetAPIServerURL(r)
+	serverURL, err := vzk8s.GetAPIServerURL(r.Client)
 	if err != nil {
 		return err
 	}

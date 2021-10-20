@@ -4,8 +4,8 @@
 package v1alpha1
 
 import (
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/verrazzano/oam-kubernetes-runtime/pkg/oam"
 )
 
 // Enforce that IngressTrait adheres to Trait interface.

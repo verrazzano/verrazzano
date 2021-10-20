@@ -26,7 +26,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 
 	var requeue bool
 
-	compContext := spi.NewContext(log, r, cr, r.DryRun)
+	compContext := spi.NewContext(log, r.Client, cr, r.DryRun)
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {

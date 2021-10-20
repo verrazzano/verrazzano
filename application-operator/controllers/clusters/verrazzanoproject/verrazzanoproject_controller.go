@@ -53,10 +53,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile reconciles a VerrazzanoProject resource.
 // It fetches its namespaces if the VerrazzanoProject is in the verrazzano-mc namespace
 // and create namespaces in the local cluster.
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("verrazzanoproject", req.NamespacedName)
 	var vp clustersv1alpha1.VerrazzanoProject
-	ctx := context.Background()
 	logger.Info("Fetching VerrazzanoProject")
 	err := r.Get(ctx, req.NamespacedName, &vp)
 	if err != nil {

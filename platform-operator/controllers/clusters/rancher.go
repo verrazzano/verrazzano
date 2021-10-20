@@ -59,12 +59,12 @@ var defaultRetry = wait.Backoff{
 	Jitter:   0.1,
 }
 
-// requestSender is an interface for sending requests to Rancher that allows us to mock during unit testing
-type requestSender interface {
+// RequestSender is an interface for sending requests to Rancher that allows us to mock during unit testing
+type RequestSender interface {
 	Do(httpClient *http.Client, req *http.Request) (*http.Response, error)
 }
 
-// httpRequestSender is an implementation of requestSender that uses http.Client to send requests
+// httpRequestSender is an implementation of RequestSender that uses http.Client to send requests
 type httpRequestSender struct{}
 
 // do is a function that simply delegates sending the request to the http.Client
@@ -73,7 +73,7 @@ func (*httpRequestSender) Do(httpClient *http.Client, req *http.Request) (*http.
 }
 
 // rancherHTTPClient will be replaced with a mock in unit tests
-var rancherHTTPClient requestSender = &httpRequestSender{}
+var rancherHTTPClient RequestSender = &httpRequestSender{}
 
 // registerManagedClusterWithRancher registers a managed cluster with Rancher and returns a chunk of YAML that
 // must be applied on the managed cluster to complete the registration.
