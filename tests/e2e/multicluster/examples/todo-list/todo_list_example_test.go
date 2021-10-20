@@ -152,9 +152,9 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		// THEN return the host name found in the gateway.
 		It("Get host from gateway.", func() {
 			Eventually(func() (string, error) {
-				host, err = k8sutil.GetHostnameFromGateway("todo-list", "")
+				host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
 				return host, err
-			}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+			}, waitTimeout, pollingInterval).Should(Not(BeEmpty()))
 		})
 
 		// Verify the application REST endpoint is working.
