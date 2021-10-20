@@ -249,9 +249,9 @@ pipeline {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
-                stage('examples todo') {
+                stage('examples bobs-books') {
                     steps {
-                        runGinkgo('examples/todo', "false", "true")
+                        runGinkgo('examples/bobsbooks', "false", "true")
                     }
                 }
                 stage('examples socks') {
@@ -432,9 +432,9 @@ pipeline {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
-                stage('examples todo') {
+                stage('examples bobs-books') {
                     steps {
-                        runGinkgo('examples/todo', "true", "false")
+                        runGinkgo('examples/bobsbooks', "true", "false")
                     }
                 }
                 stage('examples socks') {
