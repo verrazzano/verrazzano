@@ -1757,28 +1757,15 @@ func TestGetPathsFromTrait(t *testing.T) {
 // TestCreateDestinationFromService test various use cases of createDestinationFromService
 func TestCreateDestinationFromService(t *testing.T) {
 	assert := asserts.New(t)
-	var services []*k8score.Service
+	var service k8score.Service
 	var dest *istionet.HTTPRouteDestination
-
-	// GIVEN one service with no cluster-IP defined
-	// WHEN a destination is created from the service
-	// THEN verify that destination created successfully
-	service1 := k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"}}
-	services = append(services, &service1)
-	dest, err := createDestinationFromService(services)
-	assert.Equal("test-service-name", dest.Destination.Host)
-	assert.Nil(dest.Destination.Port)
-	assert.NoError(err)
 
 	// GIVEN a service with no ports defined
 	// WHEN a destination is created from the service
 	// THEN verify that the port is nil.
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec:       k8score.ServiceSpec{ClusterIP: "10.10.10.3"}}
-	services[0] = &service1
-	dest, err = createDestinationFromService(services)
+	service = k8score.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"}}
+	dest, err := createDestinationFromService(&service)
 	assert.Equal("test-service-name", dest.Destination.Host)
 	assert.Nil(dest.Destination.Port)
 	assert.NoError(err)
@@ -1786,119 +1773,24 @@ func TestCreateDestinationFromService(t *testing.T) {
 	// GIVEN a service with a valid port defined
 	// WHEN a destination is created from the service
 	// THEN verify that the service's port is used.
-	service1 = k8score.Service{
+	service = k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec:       k8score.ServiceSpec{ClusterIP: "10.10.10.3", Ports: []k8score.ServicePort{{Port: 42}}}}
-	services[0] = &service1
-	dest, err = createDestinationFromService(services)
+		Spec:       k8score.ServiceSpec{Ports: []k8score.ServicePort{{Port: 42}}}}
+	dest, err = createDestinationFromService(&service)
 	assert.Equal(uint32(42), dest.Destination.Port.Number)
 	assert.NoError(err)
 
 	// GIVEN a service with multiple valid ports defined
 	// WHEN a destination is created from the service
-	// THEN verify that the service's port with name having "http" prefix is used.
-	service1 = k8score.Service{
+	// THEN verify that the service's first port is used.
+	service = k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.3",
-			Ports: []k8score.ServicePort{{Port: 42}, {Port: 777, Name: "http"}}}}
-	services[0] = &service1
-	dest, err = createDestinationFromService(services)
-	assert.Equal("test-service-name", dest.Destination.Host)
-	assert.Equal(uint32(777), dest.Destination.Port.Number)
+		Spec:       k8score.ServiceSpec{Ports: []k8score.ServicePort{{Port: 42}, {Port: 777}}}}
+	dest, err = createDestinationFromService(&service)
+	assert.Equal(uint32(42), dest.Destination.Port.Number)
 	assert.NoError(err)
 
-	// GIVEN a service with multiple valid ports defined and none of them named with "http" prefix
-	// WHEN a destination is created from the service
-	// THEN verify that an error is returned.
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.3",
-			Ports: []k8score.ServicePort{{Port: 42}, {Port: 777}}}}
-	services[0] = &service1
-	dest, err = createDestinationFromService(services)
-	assert.Nil(dest, "No destination should have been created")
-	assert.Error(err, "An error should have been returned")
-
-	// GIVEN a service with multiple valid ports defined and many of them named with "http" prefix
-	// WHEN a destination is created from the service
-	// THEN verify that an error is returned.
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.3",
-			Ports: []k8score.ServicePort{{Port: 42, Name: "http-1"}, {Port: 777, Name: "http"}}}}
-	services[0] = &service1
-	dest, err = createDestinationFromService(services)
-	assert.Nil(dest, "No destination should have been created")
-	assert.Error(err, "An error should have been returned")
-
-	// GIVEN multiple services without cluster-ip defined
-	// WHEN a destination is created from the service
-	// THEN verify that an error is returned
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec:       k8score.ServiceSpec{Ports: []k8score.ServicePort{{Port: 42}}}}
-	service2 := k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "http-service-name"},
-		Spec:       k8score.ServiceSpec{Ports: []k8score.ServicePort{{Port: 777}}}}
-	services[0] = &service1
-	services = append(services, &service2)
-	dest, err = createDestinationFromService(services)
-	assert.Nil(dest, "No destination should have been created")
-	assert.Error(err, "An error should have been returned")
-
-	// GIVEN multiple services with cluster-IP defined and one of them named with prefix "http"
-	// WHEN a destination is created from the service
-	// THEN verify that destination created successfully using the service with prefix "http"
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.2",
-			Ports: []k8score.ServicePort{{Port: 42}}}}
-	service2 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "http-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.3",
-			Ports: []k8score.ServicePort{{Port: 777}}}}
-	services[0] = &service1
-	services[1] = &service2
-	dest, err = createDestinationFromService(services)
-	assert.Equal("http-service-name", dest.Destination.Host)
-	assert.Equal(uint32(777), dest.Destination.Port.Number)
-	assert.NoError(err)
-
-	// GIVEN multiple services defined and none of them named with prefix "http"
-	// WHEN a destination is created from the service
-	// THEN verify that an error is returned
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.2",
-			Ports: []k8score.ServicePort{{Port: 42}, {Port: 777, Name: "metrics"}}}}
-	service2 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service1-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.3",
-			Ports: []k8score.ServicePort{{Port: 777}}}}
-	services[0] = &service1
-	services[1] = &service2
-	dest, err = createDestinationFromService(services)
-	assert.Nil(dest, "No destination should have been created")
-	assert.Error(err, "An error should have been returned")
-
-	// GIVEN multiple services defined and more than one named with prefix "http"
-	// WHEN a destination is created from the service
-	// THEN verify that an error is returned
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "http-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.2",
-			Ports: []k8score.ServicePort{{Port: 42}, {Port: 777, Name: "metrics"}}}}
-	service2 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "http-service1-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.3",
-			Ports: []k8score.ServicePort{{Port: 777}}}}
-	services[0] = &service1
-	services[1] = &service2
-	dest, err = createDestinationFromService(services)
-	assert.Nil(dest, "No destination should have been created")
-	assert.Error(err, "An error should have been returned")
-
-	// GIVEN no services
+	// GIVEN a nil service
 	// WHEN a destination is created from the service
 	// THEN verify that function fails
 	dest, err = createDestinationFromService(nil)
@@ -1906,107 +1798,10 @@ func TestCreateDestinationFromService(t *testing.T) {
 	assert.Error(err, "An error should have been returned")
 }
 
-// TestCreateDestinationFromRuleOrService test various use cases of createDestinationFromRuleOrService
-func TestCreateDestinationFromRuleOrService(t *testing.T) {
-	assert := asserts.New(t)
-	var rule vzapi.IngressRule
-	var services []*k8score.Service
-	var dest *istionet.HTTPRouteDestination
-
-	// GIVEN a rule and service with a valid port defined
-	// WHEN a destination is created from the rule or service
-	// THEN verify that the host and port used are that of the one defined in the rule.
-	rule = vzapi.IngressRule{
-		Destination: vzapi.IngressDestination{Host: "test-host", Port: 77}}
-	service1 := k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec:       k8score.ServiceSpec{Ports: []k8score.ServicePort{{Port: 42, Name: "test-port"}}}}
-	services = append(services, &service1)
-	dest, err := createDestinationFromRuleOrService(rule, services)
-	assert.Equal("test-host", dest.Destination.Host)
-	assert.Equal(uint32(77), dest.Destination.Port.Number)
-	assert.NoError(err)
-
-	// GIVEN a service and a rule with only valid port defined but not host
-	// WHEN a destination is created from the rule or service
-	// THEN verify that the host used is that of the one defined in the service for the corresponding port.
-	rule = vzapi.IngressRule{
-		Destination: vzapi.IngressDestination{Port: 77}}
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.2",
-			Ports: []k8score.ServicePort{{Port: 88, Name: "test1-port"}, {Port: 77, Name: "test2-port"}}}}
-	services[0] = &service1
-	dest, err = createDestinationFromRuleOrService(rule, services)
-	assert.Equal("test-service-name", dest.Destination.Host)
-	assert.Equal(uint32(77), dest.Destination.Port.Number)
-	assert.NoError(err)
-
-	// GIVEN a service and a rule with only valid port defined but not host
-	// WHEN a destination is created from the rule or service
-	// THEN an error is returned if there is no corresponding service exists with that rule port
-	rule = vzapi.IngressRule{
-		Destination: vzapi.IngressDestination{Port: 77}}
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.2",
-			Ports: []k8score.ServicePort{{Port: 42, Name: "test-port"}}}}
-	services[0] = &service1
-	dest, err = createDestinationFromRuleOrService(rule, services)
-	assert.Nil(dest, "No destination should have been created")
-	assert.Error(err, "An error should have been returned")
-
-	// GIVEN a rule without destination defined and multiple ports defined for a service
-	// WHEN a destination is created from the rule or service
-	// THEN verify that the port with name having "http" prefix is used.
-	rule = vzapi.IngressRule{}
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.2",
-			Ports: []k8score.ServicePort{{Port: 42, Name: "metrics"}, {Port: 77, Name: "http"}}}}
-	services[0] = &service1
-	dest, err = createDestinationFromRuleOrService(rule, services)
-	assert.Equal("test-service-name", dest.Destination.Host)
-	assert.Equal(uint32(77), dest.Destination.Port.Number)
-	assert.NoError(err)
-
-	// GIVEN a rule without destination and multiple ports defined for a service and none of them have "http" prefix
-	// WHEN a destination is created from the rule or service
-	// THEN verify that an error is returned
-	rule = vzapi.IngressRule{}
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.2",
-			Ports: []k8score.ServicePort{{Port: 42, Name: "metrics"}, {Port: 77, Name: "test"}}}}
-	services[0] = &service1
-	dest, err = createDestinationFromRuleOrService(rule, services)
-	assert.Nil(dest, "No destination should have been created")
-	assert.Error(err, "An error should have been returned")
-
-	// GIVEN a rule without destination defined and multiple services defined
-	// WHEN a destination is created from the rule or service
-	// THEN verify that the service with prefix "http" is used.
-	rule = vzapi.IngressRule{}
-	service1 = k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.2",
-			Ports: []k8score.ServicePort{{Port: 42, Name: "test-port"}}}}
-	service2 := k8score.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: "http-service-name"},
-		Spec: k8score.ServiceSpec{ClusterIP: "10.10.10.3",
-			Ports: []k8score.ServicePort{{Port: 777}}}}
-	services[0] = &service1
-	services = append(services, &service2)
-	dest, err = createDestinationFromRuleOrService(rule, services)
-	assert.Equal("http-service-name", dest.Destination.Host)
-	assert.Equal(uint32(777), dest.Destination.Port.Number)
-	assert.NoError(err)
-}
-
 // GIVEN a single service in the unstructured children list
-// WHEN extracting the services
+// WHEN extracting the service
 // THEN ensure the returned service is the child from the list
-func TestExtractServicesOnlyOneService(t *testing.T) {
+func TestExtractServiceOnlyOneService(t *testing.T) {
 	assert := asserts.New(t)
 
 	workload := &unstructured.Unstructured{}
@@ -2019,46 +1814,40 @@ func TestExtractServicesOnlyOneService(t *testing.T) {
 	assert.NoError(err)
 
 	children := []*unstructured.Unstructured{&u}
-	var extractedServices []*k8score.Service
+	var extractedService *k8score.Service
 	reconciler := Reconciler{}
-	extractedServices, err = reconciler.extractServicesFromUnstructuredChildren(children)
+	extractedService, err = reconciler.extractServiceFromUnstructuredChildren(children)
 	assert.NoError(err)
-	assert.NotNil(extractedServices)
-	assert.Equal(len(extractedServices), 1)
-	assert.Equal(serviceID, extractedServices[0].GetObjectMeta().GetUID())
+	assert.NotNil(extractedService)
+	assert.Equal(serviceID, extractedService.GetObjectMeta().GetUID())
 }
 
 // GIVEN multiple services in the unstructured children list
-// WHEN extracting the services
-// THEN ensure the returned services has details of all the services
-func TestExtractServicesMultipleServices(t *testing.T) {
+// WHEN extracting the service
+// THEN ensure the returned service is the first one with a cluster IP
+func TestExtractServiceMultipleServices(t *testing.T) {
 	assert := asserts.New(t)
 
 	workload := &unstructured.Unstructured{}
 	updateUnstructuredFromYAMLTemplate(workload, "test/templates/wls_domain_instance.yaml", nil)
 
-	var service1ID types.UID = "test-service-1"
-	u1, err := newUnstructuredService(service1ID, clusterIPNone, 8001)
+	u1, err := newUnstructuredService("test-service-1", clusterIPNone, 8001)
 	assert.NoError(err)
 
-	var service2ID types.UID = "test-service-2"
-	u2, err := newUnstructuredService(service2ID, "10.0.0.1", 8002)
+	var serviceID types.UID = "test-service-2"
+	u2, err := newUnstructuredService(serviceID, "10.0.0.1", 8002)
 	assert.NoError(err)
 
-	var service3ID types.UID = "test-service-3"
-	u3, err := newUnstructuredService(service3ID, "10.0.0.2", 8003)
+	u3, err := newUnstructuredService("test-service-3", "10.0.0.2", 8003)
 	assert.NoError(err)
 
 	children := []*unstructured.Unstructured{&u1, &u2, &u3}
-	var extractedServices []*k8score.Service
+	var extractedService *k8score.Service
 	reconciler := Reconciler{}
-	extractedServices, err = reconciler.extractServicesFromUnstructuredChildren(children)
+	extractedService, err = reconciler.extractServiceFromUnstructuredChildren(children)
 	assert.NoError(err)
-	assert.NotNil(extractedServices)
-	assert.Equal(len(extractedServices), 3)
-	assert.Equal(service1ID, extractedServices[0].GetObjectMeta().GetUID())
-	assert.Equal(service2ID, extractedServices[1].GetObjectMeta().GetUID())
-	assert.Equal(service3ID, extractedServices[2].GetObjectMeta().GetUID())
+	assert.NotNil(extractedService)
+	assert.Equal(serviceID, extractedService.GetObjectMeta().GetUID())
 }
 
 // Test a valid existing Service is discovered and used for the destination.
@@ -2303,7 +2092,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_workload_instance.yaml", params))
 	// Create domain
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_domain_instance.yaml", params))
-	// Create a service. This service has two ports and one with "http" prefix.
+	// Create a service. This service has two ports which should cause a failure.
 	service := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-service",
@@ -2321,7 +2110,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 				Protocol:   "TCP",
 				Port:       8001,
 				TargetPort: intstr.FromInt(8001)}, {
-				Name:       "http",
+				Name:       "default",
 				Protocol:   "TCP",
 				Port:       8002,
 				TargetPort: intstr.FromInt(8002)},
@@ -2361,7 +2150,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/bobbys-front-end")
 	assert.Len(vs.Spec.Http[0].Match, 1)
 	assert.Equal("test-service", vs.Spec.Http[0].Route[0].Destination.Host)
-	assert.Equal(8002, int(vs.Spec.Http[0].Route[0].Destination.Port.Number))
+	assert.Equal(8001, int(vs.Spec.Http[0].Route[0].Destination.Port.Number))
 	assert.Len(vs.Spec.Http[0].Route, 1)
 	assert.Len(vs.Spec.Http, 1)
 }
@@ -2439,7 +2228,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	// Create a second service.
 	service2 := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "http-service-2",
+			Name:      "test-service-2",
 			Namespace: params["APPCONF_NAMESPACE"],
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion: "oam.verrazzano.io/v1alpha1",
@@ -2489,8 +2278,8 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:")
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/bobbys-front-end")
 	assert.Len(vs.Spec.Http[0].Match, 1)
-	assert.Equal("http-service-2", vs.Spec.Http[0].Route[0].Destination.Host)
-	assert.Equal(8082, int(vs.Spec.Http[0].Route[0].Destination.Port.Number))
+	assert.Equal("test-service-1", vs.Spec.Http[0].Route[0].Destination.Host)
+	assert.Equal(8081, int(vs.Spec.Http[0].Route[0].Destination.Port.Number))
 	assert.Len(vs.Spec.Http[0].Route, 1)
 	assert.Len(vs.Spec.Http, 1)
 }
