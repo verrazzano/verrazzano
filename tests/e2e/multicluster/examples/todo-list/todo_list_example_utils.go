@@ -4,12 +4,19 @@
 package todo_list
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	. "github.com/onsi/gomega"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	v1 "k8s.io/api/core/v1"
+	m1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 const (
@@ -39,7 +46,7 @@ func DeployTodoListProject(kubeconfigPath string, sourceDir string) error {
 	return nil
 }
 
-// TodoListNamespaceExists SockShopExists - returns true if the sock-shop namespace exists in the given cluster
+// TodoListNamespaceExists returns true if the sock-shop namespace exists in the given cluster
 func TodoListNamespaceExists(kubeconfigPath string, namespace string) bool {
 	_, err := pkg.GetNamespaceInCluster(namespace, kubeconfigPath)
 	return err == nil
@@ -57,17 +64,17 @@ func DeployTodoListApp(kubeconfigPath string, sourceDir string, namespace string
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	// create Docker repository secret
-	Eventually(func() (*v1.Secret, error) {
+	Eventually(func() (*m1.Secret, error) {
 		return pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// create Weblogic credentials secret
-	Eventually(func() (*v1.Secret, error) {
+	Eventually(func() (*m1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// create database credentials secret
-	Eventually(func() (*v1.Secret, error) {
+	Eventually(func() (*m1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
@@ -78,4 +85,103 @@ func DeployTodoListApp(kubeconfigPath string, sourceDir string, namespace string
 		return fmt.Errorf("failed to create multi-cluster %s application resource: %v", sourceDir, err)
 	}
 	return nil
+}
+
+// VerifyMCResources verifies that the MC resources are present or absent depending on whether this is an admin
+// cluster and whether the resources are placed in the given cluster
+func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, namespace string) bool {
+	// call both appConfExists and componentExists and store the results, to avoid short-circuiting
+	// since we should check both in all cases
+	mcAppConfExists := appConfExists(kubeconfigPath, namespace)
+
+	compExists := true
+	// check each sock-shop component in expectedCompsSockShop
+	for _, comp := range expectedCompsTodoList {
+		compExists = componentExists(kubeconfigPath, namespace, comp) && compExists
+	}
+
+	if isAdminCluster || placedInThisCluster {
+		// always expect MC resources on admin cluster - otherwise expect them only if placed here
+		return mcAppConfExists && compExists
+	} else {
+		// don't expect either
+		return !mcAppConfExists && !compExists
+	}
+}
+
+// appConfExists Check if app config exists
+func appConfExists(kubeconfigPath string, namespace string) bool {
+	gvr := schema.GroupVersionResource{
+		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
+		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
+		Resource: "multiclusterapplicationconfigurations",
+	}
+	return resourceExists(gvr, namespace, appConfigName, kubeconfigPath)
+}
+
+// componentExists Check if individual component exists
+func componentExists(kubeconfigPath string, namespace string, component string) bool {
+	gvr := schema.GroupVersionResource{
+		Group:    oamcore.Group,
+		Version:  oamcore.Version,
+		Resource: "components",
+	}
+	return resourceExists(gvr, namespace, component, kubeconfigPath)
+}
+
+// resourceExists Check if given resource exists
+func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
+	config, err := pkg.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not get kube config: %v\n", err))
+		return false
+	}
+	client, err := dynamic.NewForConfig(config)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not create dynamic client: %v\n", err))
+		return false
+	}
+
+	u, err := client.Resource(gvr).Namespace(ns).Get(context.TODO(), name, v1.GetOptions{})
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false
+		}
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve resource %s: %v\n", gvr.String(), err))
+		return false
+	}
+	return u != nil
+}
+
+// VerifyTodoListInCluster verifies that the sock-shop app resources are either present or absent
+// depending on whether the app is placed in this cluster
+func VerifyTodoListInCluster(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
+	projectExists := projectExists(kubeconfigPath, projectName)
+	podsRunning := todoListPodsRunning(kubeconfigPath, namespace)
+
+	if placedInThisCluster {
+		return projectExists && podsRunning
+	} else {
+		if isAdminCluster {
+			return projectExists && !podsRunning
+		} else {
+			return !podsRunning && !projectExists
+		}
+	}
+}
+
+// projectExists Check if sockshop project exists
+func projectExists(kubeconfigPath string, projectName string) bool {
+	gvr := schema.GroupVersionResource{
+		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
+		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
+		Resource: "verrazzanoprojects",
+	}
+	return resourceExists(gvr, multiclusterNamespace, projectName, kubeconfigPath)
+}
+
+// todoListPodsRunning Check if expected pods are running on a given cluster
+func todoListPodsRunning(kubeconfigPath string, namespace string) bool {
+	return pkg.PodsRunningInCluster(namespace, expectedPodsTodoList, kubeconfigPath)
 }

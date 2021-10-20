@@ -14,14 +14,15 @@ import (
 )
 
 const (
-	pollingInterval     = 5 * time.Second
-	waitTimeout         = 5 * time.Minute
-	longWaitTimeout     = 15 * time.Minute
-	longPollingInterval = 20 * time.Second
-	sourceDir           = "todo-list"
-	testNamespace       = "mc-todo-list"
-	testProjectName     = "todo-list"
-	testCluster         = "TodoList"
+	pollingInterval      = 5 * time.Second
+	waitTimeout          = 5 * time.Minute
+	longWaitTimeout      = 15 * time.Minute
+	longPollingInterval  = 20 * time.Second
+	consistentlyDuration = 1 * time.Minute
+	sourceDir            = "todo-list"
+	testNamespace        = "mc-todo-list"
+	testProjectName      = "todo-list"
+	testCluster          = "TodoList"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -52,6 +53,44 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = Describe("Multi-cluster verify sock-shop", func() {
+	Context("Admin Cluster", func() {
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the multi-cluster resources have been created on the admin cluster
+		It("Has multi cluster resources", func() {
+			Eventually(func() bool {
+				return VerifyMCResources(adminKubeconfig, true, false, testNamespace)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+		// GIVEN an admin cluster
+		// WHEN the multi-cluster example application has been created on admin cluster but not placed there
+		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
+		It("Does not have application placed", func() {
+			Consistently(func() bool {
+				return VerifyTodoListInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
+			}, consistentlyDuration, pollingInterval).Should(BeTrue())
+		})
+	})
+
+	Context("Managed Cluster", func() {
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the multi-cluster resources have been created on the managed cluster
+		It("Has multi cluster resources", func() {
+			Eventually(func() bool {
+				return VerifyMCResources(managedKubeconfig, false, true, testNamespace)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the multi-cluster example application has been created on admin cluster and placed in managed cluster
+		// THEN expect that the app is deployed to the managed cluster
+		It("Has application placed", func() {
+			Eventually(func() bool {
+				return VerifyTodoListInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
 	Context("Delete resources", func() {
 		It("Delete resources on admin cluster", func() {
 			Eventually(func() error {
