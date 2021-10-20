@@ -191,7 +191,7 @@ function create_image_repos_from_archives() {
   done
 
   # If we added new repositories, we need to get them added to the target so they will get scanned
-  if [ -z $OCIR_SCAN_TARGET_ID ]; then
+  if [ ! -z $OCIR_SCAN_TARGET_ID ]; then
     addNewRepositoriesToTarget "${added_repositories}" $target_file
 	rm $target_file
   fi
