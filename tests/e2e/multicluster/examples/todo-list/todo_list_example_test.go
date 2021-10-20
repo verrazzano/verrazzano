@@ -6,6 +6,7 @@ package todo_list
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -93,13 +94,41 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		})
 	})
 
-	Context("Delete resources", func() {
-		It("Delete resources on admin cluster", func() {
-			Eventually(func() error {
-				return cleanUp(adminKubeconfig)
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-		})
+	Context("Remaining Managed Clusters", func() {
+		clusterCountStr := os.Getenv("CLUSTER_COUNT")
+		if clusterCountStr == "" {
+			// skip tests
+			return
+		}
+		clusterCount, err := strconv.Atoi(clusterCountStr)
+		if err != nil {
+			// skip tests
+			return
+		}
+
+		kubeconfigDir := os.Getenv("KUBECONFIG_DIR")
+		for i := 3; i <= clusterCount; i++ {
+			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
+			It("Does not have multi cluster resources", func() {
+				Eventually(func() bool {
+					return VerifyMCResources(kubeconfig, false, false, testNamespace)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			})
+			It("Does not have application placed", func() {
+				Eventually(func() bool {
+					return VerifyTodoListInCluster(kubeconfig, false, false, testProjectName, testNamespace)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			})
+		}
 	})
+
+	//Context("Delete resources", func() {
+	//	It("Delete resources on admin cluster", func() {
+	//		Eventually(func() error {
+	//			return cleanUp(adminKubeconfig)
+	//		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	//	})
+	//})
 })
 
 var _ = AfterSuite(func() {
