@@ -67,7 +67,7 @@ pipeline {
                         // If the commit we were handed is not what the SCM says we are using, fail
                         if (!env.GIT_COMMIT.equals(params.COMMIT_TO_USE)) {
                             echo "SCM didn't checkout the commit we expected. Expected: ${params.COMMIT_TO_USE}, Found: ${env.GIT_COMMIT}"
-                            exit 1
+                            sh "exit 1"
                         }
                     }
                     // setup credential retrieval for possible release branch push
@@ -101,8 +101,7 @@ pipeline {
                     } else if (env.GIT_BRANCH =~ /release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
                         echo "patch release detected"
                         IS_PATCH_RELEASE = 'true'
-                    //} else if (params.TEST_RUN && env.GIT_BRANCH =~ /mock-release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
-                    } else if (params.TEST_RUN && env.GIT_BRANCH.startsWith("tvlatas") && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
+                    } else if (params.TEST_RUN && env.GIT_BRANCH =~ /mock-release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
                         echo "test patch release detected"
                         IS_PATCH_RELEASE = 'true'
                     } else {
