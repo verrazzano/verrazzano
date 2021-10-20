@@ -6,6 +6,7 @@ package netpol
 import (
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
 
@@ -29,9 +30,27 @@ const (
 	nodeExporterMetricsPort      = 9100
 )
 
+// accessCheckConfig is the configuration used for the NetworkPolicy access check
+type accessCheckConfig struct {
+	// pod label selector for pods sending network traffic
+	fromSelector metav1.LabelSelector
+	// namespace of pod sending network traffic
+	fromNamespace string
+	// pod label selector for pods receiving network traffic
+	toSelector metav1.LabelSelector
+	// namespace of pod receiving network traffic
+	toNamespace string
+	// port that on the to pod that is tested for access
+	port int
+	// indicates if network traffic should be allowed
+	expectAccess bool
+	// ignore if pods not found
+	ignorePodsNotFound bool
+}
+
 var (
 	expectedPods         = []string{"netpol-test"}
-	waitTimeout          = 3 * time.Minute
+	waitTimeout          = 5 * time.Minute
 	pollingInterval      = 30 * time.Second
 	shortWaitTimeout     = 30 * time.Second
 	shortPollingInterval = 10 * time.Second
@@ -272,6 +291,13 @@ var _ = Describe("Test Network Policies", func() {
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
 			},
+			func() {
+				pkg.Log(pkg.Info, "Test kiali ingress rules")
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, "verrazzano-system", 20001, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Kiali network ingress from verrazzano-authproxy failed: reason = %s", err))
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, "verrazzano-system", envoyStatsMetricsPort, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Kiali network ingress from prometheus failed: reason = %s", err))
+			},
 		)
 	})
 
@@ -384,43 +410,90 @@ var _ = Describe("Test Network Policies", func() {
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", 8000, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test weblogic-operator ingress rules failed: reason = %s", err))
 			},
+			func() {
+				pkg.Log(pkg.Info, "Negative test kiali ingress rules")
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, "verrazzano-system", envoyStatsMetricsPort, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test kiali ingress rules failed: reason = %s", err))
+			},
 		)
 	})
 })
 
 // testAccess attempts to access a given pod from another pod on a given port and tests for the expected result
 func testAccess(fromSelector metav1.LabelSelector, fromNamespace string, toSelector metav1.LabelSelector, toNamespace string, port int, expectAccess bool) error {
+	return doAccessCheck(accessCheckConfig{
+		fromSelector:       fromSelector,
+		fromNamespace:      fromNamespace,
+		toSelector:         toSelector,
+		toNamespace:        toNamespace,
+		port:               port,
+		expectAccess:       expectAccess,
+		ignorePodsNotFound: false,
+	})
+}
+
+// testAccessPodsOptional attempts to access a given pod from another pod on a given port and tests for the expected result
+// Ignore pods not found
+func testAccessPodsOptional(fromSelector metav1.LabelSelector, fromNamespace string, toSelector metav1.LabelSelector, toNamespace string, port int, expectAccess bool) error {
+	return doAccessCheck(accessCheckConfig{
+		fromSelector:       fromSelector,
+		fromNamespace:      fromNamespace,
+		toSelector:         toSelector,
+		toNamespace:        toNamespace,
+		port:               port,
+		expectAccess:       expectAccess,
+		ignorePodsNotFound: true,
+	})
+}
+
+// doAccessCheck attempts to access a given pod from another pod on a given port and tests for the expected result.
+func doAccessCheck(c accessCheckConfig) error {
 	// get the FROM pod
 	var pods []corev1.Pod
 	Eventually(func() error {
 		var err error
-		pods, err = pkg.GetPodsFromSelector(&fromSelector, fromNamespace)
+		pods, err = pkg.GetPodsFromSelector(&c.fromSelector, c.fromNamespace)
+		if err != nil && errors.IsNotFound(err) && c.ignorePodsNotFound {
+			// Ignore pods not found
+			return nil
+		}
 		return err
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-	mapFromSelector, _ := metav1.LabelSelectorAsMap(&fromSelector)
+	if len(pods) == 0 && c.ignorePodsNotFound {
+		return nil
+	}
+
+	mapFromSelector, _ := metav1.LabelSelectorAsMap(&c.fromSelector)
 	jsonFromSelector, _ := json.Marshal(mapFromSelector)
-	Expect(len(pods) > 0).To(BeTrue(), fmt.Sprintf("FAIL: Pod not found with label: %s in namespace: %s", jsonFromSelector, fromNamespace))
+	Expect(len(pods) > 0).To(BeTrue(), fmt.Sprintf("FAIL: Pod not found with label: %s in namespace: %s", jsonFromSelector, c.fromNamespace))
 	fromPod := pods[0]
 
 	// get the TO pod
 	Eventually(func() error {
 		var err error
-		pods, err = pkg.GetPodsFromSelector(&toSelector, toNamespace)
+		pods, err = pkg.GetPodsFromSelector(&c.toSelector, c.toNamespace)
+		if err != nil && errors.IsNotFound(err) && c.ignorePodsNotFound {
+			// Ignore pods not found
+			return nil
+		}
 		return err
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-	mapToSelector, _ := metav1.LabelSelectorAsMap(&toSelector)
+	if len(pods) == 0 && c.ignorePodsNotFound {
+		return nil
+	}
+	mapToSelector, _ := metav1.LabelSelectorAsMap(&c.toSelector)
 	jsonToSelector, _ := json.Marshal(mapToSelector)
-	Expect(len(pods) > 0).To(BeTrue(), fmt.Sprintf("FAIL: Pod not found with label: %s in namespace: %s", jsonToSelector, toNamespace))
+	Expect(len(pods) > 0).To(BeTrue(), fmt.Sprintf("FAIL: Pod not found with label: %s in namespace: %s", jsonToSelector, c.toNamespace))
 	toPod := pods[0]
 
-	if expectAccess {
+	if c.expectAccess {
 		Eventually(func() bool {
-			return attemptConnection(&fromPod, &toPod, port, 10)
-		}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Should be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
+			return attemptConnection(&fromPod, &toPod, c.port, 10)
+		}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Should be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, c.port))
 	} else {
 		Consistently(func() bool {
-			return attemptConnection(&fromPod, &toPod, port, 10)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeFalse(), fmt.Sprintf("Should NOT be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
+			return attemptConnection(&fromPod, &toPod, c.port, 10)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeFalse(), fmt.Sprintf("Should NOT be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, c.port))
 	}
 	return nil
 }
