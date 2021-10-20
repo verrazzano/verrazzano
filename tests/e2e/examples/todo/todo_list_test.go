@@ -253,170 +253,168 @@ var _ = Describe("Verify ToDo List example application.", func() {
 		})
 	})
 
-	if skipUninstall != "true" {
-		Context("Logging.", func() {
-			indexName := "verrazzano-namespace-todo-list"
+	Context("Logging.", func() {
+		indexName := "verrazzano-namespace-todo-list"
 
-			// GIVEN a WebLogic application with logging enabled
-			// WHEN the Elasticsearch index is retrieved
-			// THEN verify that it is found
-			It("Verify Elasticsearch index exists", func() {
-				Eventually(func() bool {
-					return pkg.LogIndexFound(indexName)
-				}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for todo-list")
-			})
-
-			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
-			// THEN verify that at least one recent log record is found
-			pkg.Concurrently(
-				func() {
-					It("Verify recent adminserver log record exists", func() {
-						Eventually(func() bool {
-							return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-								"kubernetes.labels.weblogic_domainUID":  "tododomain",
-								"kubernetes.labels.app_oam_dev\\/name":  "todo-appconf",
-								"kubernetes.labels.weblogic_serverName": "AdminServer",
-								"kubernetes.container_name":             "weblogic-server",
-							})
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-					})
-				},
-				func() {
-					It("Verify recent pattern-matched AdminServer log record exists", func() {
-						Eventually(func() bool {
-							return pkg.FindLog(indexName,
-								[]pkg.Match{
-									{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-									{Key: "messageID", Value: "BEA-"}, //matches BEA-*
-									{Key: "serverName", Value: "tododomain-adminserver"},
-									{Key: "serverName2", Value: "AdminServer"}},
-								[]pkg.Match{})
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-					})
-				},
-				func() {
-					It("Verify recent pattern-matched WebLogic Server log record exists", func() {
-						Eventually(func() bool {
-							return pkg.FindLog(indexName,
-								[]pkg.Match{
-									{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-									{Key: "messageID", Value: "BEA-"},          //matches BEA-*
-									{Key: "message", Value: "WebLogic Server"}, //contains WebLogic Server
-									{Key: "subSystem", Value: "WebLogicServer"}},
-								[]pkg.Match{})
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-					})
-				},
-				func() {
-					It("Verify recent pattern-matched Security log record exists", func() {
-						Eventually(func() bool {
-							return pkg.FindLog(indexName,
-								[]pkg.Match{
-									{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-									{Key: "messageID", Value: "BEA-"}, //matches BEA-*
-									{Key: "serverName", Value: "tododomain-adminserver"},
-									{Key: "subSystem.keyword", Value: "Security"}},
-								[]pkg.Match{})
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-					})
-				},
-				func() {
-					It("Verify recent pattern-matched multi-lines log record exists", func() {
-						Eventually(func() bool {
-							return pkg.FindLog(indexName,
-								[]pkg.Match{
-									{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-									{Key: "messageID", Value: "BEA-"},         //matches BEA-*
-									{Key: "message", Value: "Tunneling Ping"}, //"Tunneling Ping" in last line
-									{Key: "serverName", Value: "tododomain-adminserver"},
-									{Key: "subSystem.keyword", Value: "RJVM"}},
-								[]pkg.Match{})
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-					})
-				},
-				func() {
-					It("Verify recent fluentd-stdout-sidecar server log record exists", func() {
-						Eventually(func() bool {
-							return pkg.FindLog(indexName,
-								[]pkg.Match{
-									{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-									{Key: "wls_log_stream", Value: "server_log"},
-									{Key: "stream", Value: "stdout"}},
-								[]pkg.Match{})
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent server log record")
-					})
-				},
-				func() {
-					It("Verify recent fluentd-stdout-sidecar domain log record exists", func() {
-						Eventually(func() bool {
-							return pkg.FindLog(indexName,
-								[]pkg.Match{
-									{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-									{Key: "wls_log_stream", Value: "domain_log"},
-									{Key: "stream", Value: "stdout"}},
-								[]pkg.Match{})
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent domain log record")
-					})
-				},
-				func() {
-					It("Verify recent fluentd-stdout-sidecar server nodemanager log record exists", func() {
-						Eventually(func() bool {
-							return pkg.FindLog(indexName,
-								[]pkg.Match{
-									{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-									{Key: "wls_log_stream", Value: "server_nodemanager_log"},
-									{Key: "stream", Value: "stdout"}},
-								[]pkg.Match{})
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent server nodemanager log record")
-					})
-				},
-				// GIVEN a WebLogic application with logging enabled
-				// WHEN the log records are retrieved from the Elasticsearch index
-				// THEN verify that a recent pattern-matched log record of tododomain-adminserver stdout is found
-				func() {
-					It("Verify recent pattern-matched AdminServer log record exists", func() {
-						Eventually(func() bool {
-							return pkg.FindLog(indexName,
-								[]pkg.Match{
-									{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-									{Key: "subSystem.keyword", Value: "WorkManager"},
-									{Key: "serverName.keyword", Value: "tododomain-adminserver"},
-									{Key: "serverName2.keyword", Value: "AdminServer"},
-									{Key: "message", Value: "standby threads"}},
-								[]pkg.Match{})
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-					})
-				},
-				// GIVEN a WebLogic application with logging enabled
-				// WHEN the log records are retrieved from the Elasticsearch index
-				// THEN verify that a recent pattern-matched log record of tododomain-adminserver stdout is found
-				func() {
-					It("Verify recent pattern-matched AdminServer log record exists", func() {
-						Eventually(func() bool {
-							return pkg.FindLog(indexName,
-								[]pkg.Match{
-									{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-									{Key: "subSystem", Value: "WorkManager"},
-									{Key: "serverName", Value: "tododomain-adminserver"},
-									{Key: "serverName2", Value: "AdminServer"},
-									{Key: "message", Value: "Self-tuning"}},
-								[]pkg.Match{})
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-					})
-				},
-			)
-
-			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
-			// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
-			It("Verify recent 'pattern not matched' log records do not exist", func() {
-				Expect(pkg.NoLog(indexName,
-					[]pkg.Match{
-						{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-						{Key: "message", Value: "pattern not matched"}},
-					[]pkg.Match{})).To(BeTrue())
-			})
+		// GIVEN a WebLogic application with logging enabled
+		// WHEN the Elasticsearch index is retrieved
+		// THEN verify that it is found
+		It("Verify Elasticsearch index exists", func() {
+			Eventually(func() bool {
+				return pkg.LogIndexFound(indexName)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for todo-list")
 		})
-	}
+
+		// GIVEN a WebLogic application with logging enabled
+		// WHEN the log records are retrieved from the Elasticsearch index
+		// THEN verify that at least one recent log record is found
+		pkg.Concurrently(
+			func() {
+				It("Verify recent adminserver log record exists", func() {
+					Eventually(func() bool {
+						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.weblogic_domainUID":  "tododomain",
+							"kubernetes.labels.app_oam_dev\\/name":  "todo-appconf",
+							"kubernetes.labels.weblogic_serverName": "AdminServer",
+							"kubernetes.container_name":             "weblogic-server",
+						})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				It("Verify recent pattern-matched AdminServer log record exists", func() {
+					Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"}, //matches BEA-*
+								{Key: "serverName", Value: "tododomain-adminserver"},
+								{Key: "serverName2", Value: "AdminServer"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				It("Verify recent pattern-matched WebLogic Server log record exists", func() {
+					Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"},          //matches BEA-*
+								{Key: "message", Value: "WebLogic Server"}, //contains WebLogic Server
+								{Key: "subSystem", Value: "WebLogicServer"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				It("Verify recent pattern-matched Security log record exists", func() {
+					Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"}, //matches BEA-*
+								{Key: "serverName", Value: "tododomain-adminserver"},
+								{Key: "subSystem.keyword", Value: "Security"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				It("Verify recent pattern-matched multi-lines log record exists", func() {
+					Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "messageID", Value: "BEA-"},         //matches BEA-*
+								{Key: "message", Value: "Tunneling Ping"}, //"Tunneling Ping" in last line
+								{Key: "serverName", Value: "tododomain-adminserver"},
+								{Key: "subSystem.keyword", Value: "RJVM"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				It("Verify recent fluentd-stdout-sidecar server log record exists", func() {
+					Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "wls_log_stream", Value: "server_log"},
+								{Key: "stream", Value: "stdout"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent server log record")
+				})
+			},
+			func() {
+				It("Verify recent fluentd-stdout-sidecar domain log record exists", func() {
+					Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "wls_log_stream", Value: "domain_log"},
+								{Key: "stream", Value: "stdout"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent domain log record")
+				})
+			},
+			func() {
+				It("Verify recent fluentd-stdout-sidecar server nodemanager log record exists", func() {
+					Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "wls_log_stream", Value: "server_nodemanager_log"},
+								{Key: "stream", Value: "stdout"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent server nodemanager log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent pattern-matched log record of tododomain-adminserver stdout is found
+			func() {
+				It("Verify recent pattern-matched AdminServer log record exists", func() {
+					Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "subSystem.keyword", Value: "WorkManager"},
+								{Key: "serverName.keyword", Value: "tododomain-adminserver"},
+								{Key: "serverName2.keyword", Value: "AdminServer"},
+								{Key: "message", Value: "standby threads"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent pattern-matched log record of tododomain-adminserver stdout is found
+			func() {
+				It("Verify recent pattern-matched AdminServer log record exists", func() {
+					Eventually(func() bool {
+						return pkg.FindLog(indexName,
+							[]pkg.Match{
+								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "subSystem", Value: "WorkManager"},
+								{Key: "serverName", Value: "tododomain-adminserver"},
+								{Key: "serverName2", Value: "AdminServer"},
+								{Key: "message", Value: "Self-tuning"}},
+							[]pkg.Match{})
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+				})
+			},
+		)
+
+		// GIVEN a WebLogic application with logging enabled
+		// WHEN the log records are retrieved from the Elasticsearch index
+		// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
+		It("Verify recent 'pattern not matched' log records do not exist", func() {
+			Expect(pkg.NoLog(indexName,
+				[]pkg.Match{
+					{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+					{Key: "message", Value: "pattern not matched"}},
+				[]pkg.Match{})).To(BeTrue())
+		})
+	})
 })
