@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
@@ -151,7 +152,11 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	const maxRetry = 5
 	for i := 1; i <= maxRetry; i++ {
 		cmd := exec.Command("helm", cmdArgs...)
-		log.Infof("Running command: %s", cmd.String())
+
+		// mask sensitive data before logging
+		cmdStr := maskSensitiveData(cmd.String())
+		log.Infof("Running command: %s", cmdStr)
+
 		stdout, stderr, err = runner.Run(cmd)
 		if err == nil {
 			log.Infof("helm %s for %s succeeded: %s", operation, releaseName, stdout)
@@ -167,6 +172,21 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	//  Log upgrade output
 	log.Infof("helm upgrade succeeded for %s", releaseName)
 	return stdout, stderr, nil
+}
+
+// maskSensitiveData replaces sensitive data in a string with mask characters.
+func maskSensitiveData(str string) string {
+	const maskString = "*****"
+	re := regexp.MustCompile(`[Pp]assword=(.+?)(?:,|\z)`)
+
+	matches := re.FindAllStringSubmatch(str, -1)
+	for _, match := range matches {
+		if len(match) == 2 {
+			str = strings.Replace(str, match[1], maskString, 1)
+		}
+	}
+
+	return str
 }
 
 // IsReleaseFailed Returns true if the chart release state is marked 'failed'

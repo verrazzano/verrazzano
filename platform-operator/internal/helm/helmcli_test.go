@@ -524,6 +524,35 @@ func Test_getChartInfoNotFound(t *testing.T) {
 	assert.Empty(t, state)
 }
 
+// Test_maskSensitiveData tests the maskSensitiveData function
+func Test_maskSensitiveData(t *testing.T) {
+	// GIVEN a string with sensitive data
+	// WHEN the maskSensitiveData function is called
+	// THEN the returned string has sensitive values masked
+	str := `Running command: /usr/bin/helm upgrade mysql /verrazzano/platform-operator/thirdparty/charts/mysql
+		--wait --namespace keycloak --install -f /verrazzano/platform-operator/helm_config/overrides/mysql-values.yaml
+		-f /tmp/values-145495151.yaml
+		--set imageTag=8.0.26,image=ghcr.io/verrazzano/mysql,mysqlPassword=BgD2SBNaGm,mysqlRootPassword=ydqtBpasQ4`
+	expected := `Running command: /usr/bin/helm upgrade mysql /verrazzano/platform-operator/thirdparty/charts/mysql
+		--wait --namespace keycloak --install -f /verrazzano/platform-operator/helm_config/overrides/mysql-values.yaml
+		-f /tmp/values-145495151.yaml
+		--set imageTag=8.0.26,image=ghcr.io/verrazzano/mysql,mysqlPassword=*****,mysqlRootPassword=*****`
+	maskedStr := maskSensitiveData(str)
+	assert.Equal(t, expected, maskedStr)
+
+	// GIVEN a string without sensitive data
+	// WHEN the maskSensitiveData function is called
+	// THEN the returned string is unaltered
+	str = `Running command: /usr/bin/helm upgrade ingress-controller /verrazzano/platform-operator/thirdparty/charts/ingress-nginx
+		--wait --namespace ingress-nginx --install -f /verrazzano/platform-operator/helm_config/overrides/ingress-nginx-values.yaml
+		-f /tmp/values-037653479.yaml --set controller.image.tag=0.46.0-20211005200943-bd017fde2,
+		controller.image.repository=ghcr.io/verrazzano/nginx-ingress-controller,
+		defaultBackend.image.tag=0.46.0-20211005200943-bd017fde2,
+		defaultBackend.image.repository=ghcr.io/verrazzano/nginx-ingress-default-backend,controller.service.type=LoadBalancer`
+	maskedStr = maskSensitiveData(str)
+	assert.Equal(t, str, maskedStr)
+}
+
 // Run should assert the command parameters are correct then return a success with stdout contents
 func (r upgradeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	assert := assert.New(r.t)
