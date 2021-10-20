@@ -301,8 +301,6 @@ pipeline {
                             cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
 
                         """
-
-                        validateHelmIstioReleasesDeleted()
                     }
                     post {
                         always {
@@ -312,23 +310,37 @@ pipeline {
                     }
                 }
 
-                stage("validateBOM") {
-                    when {
-                        allOf {
-                            expression{params.RUN_BOM_VALIDATOR == true}
+                stage("Validate Upgrade") {
+                    stages {
+                        stage("Validate BOM") {
+                            when {
+                                allOf {
+                                    expression{params.RUN_BOM_VALIDATOR == true}
+                                }
+                            }
+                            environment {
+                                OCI_CLI_AUTH="instance_principal"
+                                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                                OCI_OS_BUCKET="verrazzano-builds"
+                            }
+                            steps {
+                                sh """
+                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
+                                    chmod +x ${WORKSPACE}/bom-validator
+                                    ${WORKSPACE}/bom-validator
+                                """
+                            }
                         }
-                    }
-                    environment {
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
-                    }
-                    steps {
-                        sh """
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
-                            chmod +x ${WORKSPACE}/bom-validator
-                            ${WORKSPACE}/bom-validator
-                        """
+                        stage("Validate helm istio releases removed") {
+                            steps {
+                                validateHelmIstioReleasesDeleted()
+                            }
+                        }
+                        stage("Validate istiocoredns uninstalled") {
+                            steps {
+                                validateIstioCoreDNSUninstall()
+                            }
+                        }
                     }
                 }
 
@@ -791,3 +803,19 @@ def validateHelmIstioReleasesDeleted() {
         exit 1
     }
 }
+
+def validateIstioCoreDNSUninstall() {
+    retries = 12
+    for(int retry=0; retry<retries; retry++) {
+        try {
+            sh(returnStdout: true, script: 'helm list -n istio-system | grep istiocoredns -o -m 1').trim()
+        } catch(error) {
+            return
+        }
+        sleep(10)
+    }
+    echo "helm release istiocoredns found in istio-system namespace after upgrade"
+    helm list -n istio-system
+    exit 1
+}
+
