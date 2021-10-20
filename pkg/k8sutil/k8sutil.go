@@ -56,6 +56,13 @@ func GetKubeConfig() (*rest.Config, error) {
 	return config, err
 }
 
+// Returns kubeconfig from KUBECONFIG env var if set
+// Else from default location ~/.kube/config
+func GetKubeConfigInCluster(kubeconfigPath string) (*rest.Config, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	return config, err
+}
+
 // GetKubernetesClientset returns the Kubernetes clientset for the cluster set in the environment
 func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	// use the current context in the kubeconfig

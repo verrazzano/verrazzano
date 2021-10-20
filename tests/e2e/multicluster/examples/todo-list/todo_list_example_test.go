@@ -19,7 +19,7 @@ import (
 const (
 	pollingInterval      = 5 * time.Second
 	waitTimeout          = 5 * time.Minute
-	longWaitTimeout      = 15 * time.Minute
+	longWaitTimeout      = 10 * time.Minute
 	longPollingInterval  = 20 * time.Second
 	consistentlyDuration = 1 * time.Minute
 	sourceDir            = "todo-list"
@@ -127,7 +127,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		// THEN the domain.servers.status.health.overallHeath fields should be ok
 		It("Verify 'todo-domain' overall health is ok", func() {
 			Eventually(func() bool {
-				domain, err := weblogic.GetDomain(testNamespace, "todo-domain")
+				domain, err := weblogic.GetDomainInCluster(testNamespace, "todo-domain", managedKubeconfig)
 				if err != nil {
 					return false
 				}
@@ -136,7 +136,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 					return false
 				}
 				return true
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 

@@ -17,7 +17,7 @@ import (
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/authorization/v1"
+	v1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
@@ -221,6 +221,15 @@ func GetVerrazzanoManagedClusterClientset() (*vmcClient.Clientset, error) {
 // GetDynamicClient returns a dynamic client needed to access Unstructured data
 func GetDynamicClient() (dynamic.Interface, error) {
 	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return nil, err
+	}
+	return dynamic.NewForConfig(config)
+}
+
+// GetDynamicClient returns a dynamic client needed to access Unstructured data
+func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error) {
+	config, err := k8sutil.GetKubeConfigInCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
