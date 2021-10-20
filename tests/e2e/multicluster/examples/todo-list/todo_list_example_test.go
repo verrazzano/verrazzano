@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -117,6 +119,25 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		}
+	})
+
+	Context("Verify Weblogic app componenets", func() {
+		// GIVEN the ToDoList app is deployed
+		// WHEN the servers in the WebLogic domain is ready
+		// THEN the domain.servers.status.health.overallHeath fields should be ok
+		It("Verify 'todo-domain' overall health is ok", func() {
+			Eventually(func() bool {
+				domain, err := weblogic.GetDomain(testNamespace, "todo-domain")
+				if err != nil {
+					return false
+				}
+				healths, err := weblogic.GetHealthOfServers(domain)
+				if err != nil || healths[0] != weblogic.Healthy {
+					return false
+				}
+				return true
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		})
 	})
 
 	Context("Logging", func() {
