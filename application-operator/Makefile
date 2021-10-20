@@ -195,6 +195,7 @@ cleanup-cluster:
 	./build/scripts/cleanup.sh ${CLUSTER_NAME}
 
 .PHONY: create-cluster
+create-cluster: WORKSPACE ?= ${CURDIR}
 create-cluster:
 	kind_clusters=$$(kind get clusters) ; \
     if [ -z "$${kind_clusters}" ] || ! kind get clusters | egrep "^${CLUSTER_NAME}\$$" > /dev/null ; then \
