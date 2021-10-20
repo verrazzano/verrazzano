@@ -56,8 +56,7 @@ func GetKubeConfig() (*rest.Config, error) {
 	return config, err
 }
 
-// Returns kubeconfig from KUBECONFIG env var if set
-// Else from default location ~/.kube/config
+// GetKubeConfigInCluster Returns kubeconfig from kubeconfigPath var
 func GetKubeConfigInCluster(kubeconfigPath string) (*rest.Config, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	return config, err

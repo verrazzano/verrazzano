@@ -227,7 +227,7 @@ func GetDynamicClient() (dynamic.Interface, error) {
 	return dynamic.NewForConfig(config)
 }
 
-// GetDynamicClient returns a dynamic client needed to access Unstructured data
+// GetDynamicClientInCluster returns a dynamic client needed to access Unstructured data
 func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error) {
 	config, err := k8sutil.GetKubeConfigInCluster(kubeconfigPath)
 	if err != nil {

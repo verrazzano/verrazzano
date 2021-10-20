@@ -5,9 +5,12 @@ package todo_list
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
 
@@ -125,7 +128,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the servers in the WebLogic domain is ready
 		// THEN the domain.servers.status.health.overallHeath fields should be ok
-		It("Verify 'todo-domain' overall health is ok", func() {
+		It("Verify Weblogic 'todo-domain' overall health is ok", func() {
 			Eventually(func() bool {
 				domain, err := weblogic.GetDomainInCluster(testNamespace, "todo-domain", managedKubeconfig)
 				if err != nil {
@@ -137,6 +140,32 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 				}
 				return true
 			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
+	Context("Ingress.", func() {
+		var host = ""
+		var err error
+		// Get the host from the Istio gateway resource.
+		// GIVEN the Istio gateway for the todo-list namespace
+		// WHEN GetHostnameFromGateway is called
+		// THEN return the host name found in the gateway.
+		It("Get host from gateway.", func() {
+			Eventually(func() (string, error) {
+				host, err = k8sutil.GetHostnameFromGateway("todo-list", "")
+				return host, err
+			}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+		})
+
+		// Verify the application REST endpoint is working.
+		// GIVEN the ToDoList app is deployed
+		// WHEN the UI is accessed
+		// THEN the expected returned page should contain an expected value.
+		It("Verify '/todo' UI endpoint is working.", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				url := fmt.Sprintf("https://%s/todo/", host)
+				return pkg.GetWebPageInCluster(url, host, managedKubeconfig)
+			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Derek")))
 		})
 	})
 

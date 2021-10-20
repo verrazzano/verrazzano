@@ -46,6 +46,15 @@ func GetWebPage(url string, hostHeader string) (*HTTPResponse, error) {
 	return GetWebPageWithClient(client, url, hostHeader)
 }
 
+// GetWebPageInCluster makes an HTTP GET request using a retryable client configured with the Verrazzano cert bundle
+func GetWebPageInCluster(url string, hostHeader string, kubeconfigPath string) (*HTTPResponse, error) {
+	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return GetWebPageWithClient(client, url, hostHeader)
+}
+
 // GetWebPageWithClient submits a GET request using the specified client.
 func GetWebPageWithClient(httpClient *retryablehttp.Client, url string, hostHeader string) (*HTTPResponse, error) {
 	return doReq(url, "GET", "", hostHeader, "", "", nil, httpClient)
