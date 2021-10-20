@@ -134,11 +134,20 @@ func cleanUp(kubeconfigPath string) error {
 	}
 
 	Eventually(func() error {
-		return pkg.DeleteNamespace(testNamespace)
+		return pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
-		_, err := pkg.GetNamespace(testNamespace)
+		_, err := pkg.GetNamespaceInCluster(testNamespace, adminKubeconfig)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+	Eventually(func() bool {
+		_, err := pkg.GetNamespaceInCluster(testNamespace, managedKubeconfig)
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
