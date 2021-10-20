@@ -1,9 +1,9 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
-package nginx
+package weblogic
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -12,33 +12,24 @@ import (
 	"path/filepath"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "ingress-controller"
-
-// nginxComponent represents an Nginx component
-type nginxComponent struct {
+type weblogicComponent struct {
 	helm.HelmComponent
 }
 
-// Verify that nginxComponent implements Component
-var _ spi.Component = nginxComponent{}
-
-// NewComponent returns a new Nginx component
 func NewComponent() spi.Component {
-	return nginxComponent{
+	return weblogicComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
-			ChartNamespace:          ComponentNamespace,
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), ValuesFileOverride),
-			PreInstallFunc:          PreInstall,
-			AppendOverridesFunc:     AppendOverrides,
-			PostInstallFunc:         PostInstall,
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "weblogic-values.yaml"),
+			PreInstallFunc:          WeblogicOperatorPreInstall,
+			AppendOverridesFunc:     AppendWeblogicOperatorOverrides,
 			Dependencies:            []string{istio.ComponentName},
-			ReadyStatusFunc:         IsReady,
+			ReadyStatusFunc:         IsWeblogicOperatorReady,
 		},
 	}
 }

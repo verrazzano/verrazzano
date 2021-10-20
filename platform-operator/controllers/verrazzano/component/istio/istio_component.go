@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -92,6 +93,13 @@ func SetHelmUninstallFunction(fn helmUninstallFuncSig) {
 
 func SetDefaultHelmUninstallFunction() {
 	helmUninstallFunction = helm.Uninstall
+}
+
+func NewComponent() spi.Component {
+	return IstioComponent{
+		ValuesFile:               filepath.Join(config.GetHelmOverridesDir(), "istio-cr.yaml"),
+		InjectedSystemNamespaces: config.GetInjectedSystemNamespaces(),
+	}
 }
 
 // IsEnabled returns true if the component is enabled, which is the default
