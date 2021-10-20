@@ -166,6 +166,9 @@ pipeline {
                                 echo "------------------------------------------"
                             """
                         }
+                        failure {
+                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                        }
                     }
                 }
 

@@ -15,103 +15,30 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "ingress-controller"
 
-var hc = helm.HelmComponent{
-	ReleaseName:             ComponentName,
-	ChartDir:                filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
-	ChartNamespace:          ComponentNamespace,
-	IgnoreNamespaceOverride: true,
-	SupportsOperatorInstall: true,
-	ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-	ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), ValuesFileOverride),
-	PreInstallFunc:          PreInstall,
-	AppendOverridesFunc:     AppendOverrides,
-	PostInstallFunc:         PostInstall,
-	Dependencies:            []string{istio.ComponentName},
-	ReadyStatusFunc:         IsReady,
+// nginxComponent represents an Nginx component
+type nginxComponent struct {
+	helm.HelmComponent
 }
 
-// NginxComponent represents an Nginx component
-type NginxComponent struct {
-}
-
-// Verify that NginxComponent implements Component
-var _ spi.Component = NginxComponent{}
+// Verify that nginxComponent implements Component
+var _ spi.Component = nginxComponent{}
 
 // NewComponent returns a new Nginx component
 func NewComponent() spi.Component {
-	return NginxComponent{}
-}
-
-// --------------------------------------
-// ComponentInfo interface functions
-// --------------------------------------
-
-// Log returns the logger for the context
-func (c NginxComponent) Name() string {
-	return hc.Name()
-}
-
-// Log returns the logger for the context
-func (c NginxComponent) GetDependencies() []string {
-	return hc.GetDependencies()
-}
-
-// IsReady Indicates whether or not a component is available and ready
-func (c NginxComponent) IsReady(context spi.ComponentContext) bool {
-	return hc.IsReady(context)
-}
-
-// --------------------------------------
-// ComponentInstaller interface functions
-// --------------------------------------
-
-// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
-// - scaffolding while we move components from the scripts to the operator
-func (c NginxComponent) IsOperatorInstallSupported() bool {
-	return hc.IsOperatorInstallSupported()
-}
-
-// IsInstalled Indicates whether or not the component is installed
-func (c NginxComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
-	return hc.IsInstalled(context)
-}
-
-// PreInstall allows components to perform any pre-processing required prior to initial install
-func (c NginxComponent) PreInstall(context spi.ComponentContext) error {
-	return hc.PreInstall(context)
-}
-
-// Install performs the initial install of a component
-func (c NginxComponent) Install(context spi.ComponentContext) error {
-	return hc.Install(context)
-}
-
-// PostInstall allows components to perform any post-processing required after initial install
-func (c NginxComponent) PostInstall(context spi.ComponentContext) error {
-	return hc.PostInstall(context)
-}
-
-// --------------------------------------
-// ComponentUpgrader interface functions
-// --------------------------------------
-
-// PreUpgrade allows components to perform any pre-processing required prior to upgrading
-func (c NginxComponent) PreUpgrade(context spi.ComponentContext) error {
-	return hc.PreUpgrade(context)
-}
-
-// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-func (c NginxComponent) Upgrade(context spi.ComponentContext) error {
-	return hc.Upgrade(context)
-}
-
-// PostUpgrade allows components to perform any post-processing required after upgrading
-func (c NginxComponent) PostUpgrade(context spi.ComponentContext) error {
-	return hc.PostUpgrade(context)
-}
-
-// GetSkipUpgrade returns the value of the SkipUpgrade field
-// - Scaffolding for now during the Istio 1.10.2 upgrade process
-func (c NginxComponent) GetSkipUpgrade() bool {
-	return hc.GetSkipUpgrade()
+	return nginxComponent{
+		helm.HelmComponent{
+			ReleaseName:             ComponentName,
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
+			ChartNamespace:          ComponentNamespace,
+			IgnoreNamespaceOverride: true,
+			SupportsOperatorInstall: true,
+			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), ValuesFileOverride),
+			PreInstallFunc:          PreInstall,
+			AppendOverridesFunc:     AppendOverrides,
+			PostInstallFunc:         PostInstall,
+			Dependencies:            []string{istio.ComponentName},
+			ReadyStatusFunc:         IsReady,
+		},
+	}
 }
