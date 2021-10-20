@@ -25,7 +25,6 @@ const (
 	sourceDir            = "todo-list"
 	testNamespace        = "mc-todo-list"
 	testProjectName      = "todo-list"
-	testCluster          = "TodoList"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -122,18 +121,74 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		}
 	})
 
-	//Context("Delete resources", func() {
-	//	It("Delete resources on admin cluster", func() {
-	//		Eventually(func() error {
-	//			return cleanUp(adminKubeconfig)
-	//		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-	//	})
-	//})
+	Context("Logging", func() {
+		indexName := "verrazzano-namespace-mc-todo-list"
+
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
+		It("Verify Elasticsearch index exists on admin cluster", func() {
+			Eventually(func() bool {
+				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for todo-list")
+		})
+	})
+
+	Context("Prometheus Metrics", func() {
+
+		It("Verify scrape_duration_seconds metrics exist for managed cluster", func() {
+			Eventually(func() bool {
+				m := make(map[string]string)
+				m["namespace"] = testNamespace
+				m["managed_cluster"] = clusterName
+				return pkg.MetricsExistInCluster("scrape_duration_seconds", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
+		})
+
+		It("Verify DNE scrape_duration_seconds metrics does not exist for managed cluster", func() {
+			Eventually(func() bool {
+				m := make(map[string]string)
+				m["namespace"] = testNamespace
+				m["managed_cluster"] = "DNE"
+				return pkg.MetricsExistInCluster("scrape_duration_seconds", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
+		})
+
+		It("Verify container_cpu_cfs_periods_total metrics exist for managed cluster", func() {
+			Eventually(func() bool {
+				m := make(map[string]string)
+				m["namespace"] = testNamespace
+				m["managed_cluster"] = clusterName
+				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
+		})
+
+		It("Verify istio_request_bytes_bucket metrics exist for managed cluster", func() {
+			Eventually(func() bool {
+				m := make(map[string]string)
+				m["namespace"] = testNamespace
+				m["managed_cluster"] = clusterName
+				return pkg.MetricsExistInCluster("istio_request_bytes_bucket", m, adminKubeconfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
+
+		})
+	})
+
+	Context("Delete resources", func() {
+		It("Delete resources on admin cluster", func() {
+			Eventually(func() error {
+				return cleanUp(adminKubeconfig)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+		})
+	})
 })
 
 var _ = AfterSuite(func() {
 	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
+		if err != nil {
+			return
+		}
 	}
 })
 
