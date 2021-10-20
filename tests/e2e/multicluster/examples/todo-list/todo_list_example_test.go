@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -130,5 +132,15 @@ func cleanUp(kubeconfigPath string) error {
 	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete sock-shop project resource: %v", err)
 	}
+
+	Eventually(func() error {
+		return pkg.DeleteNamespace(testNamespace)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() bool {
+		_, err := pkg.GetNamespace(testNamespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
 	return nil
 }

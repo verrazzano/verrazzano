@@ -35,7 +35,7 @@ var (
 		"todo-mysql-deployment"}
 	expectedPodsTodoList = []string{
 		"mysql",
-		"tododomain-adminserver"}
+		"tododomain"}
 )
 
 // DeployTodoListProject deploys the sock-shop example's VerrazzanoProject to the cluster with the given kubeConfigPath
