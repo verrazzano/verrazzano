@@ -185,7 +185,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
 				return pkg.GetWebPageInCluster(url, host, managedKubeconfig)
-			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains(task)))
+			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("test-task")))
 		})
 	})
 
