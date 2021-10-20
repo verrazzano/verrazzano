@@ -215,6 +215,15 @@ func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reade
 	return doReq(url, "PUT", contentType, hostHeader, "", "", body, client)
 }
 
+// PutWithHostHeaderInCluster PUTs a request with a specified Host header
+func PutWithHostHeaderInCluster(url, contentType string, hostHeader string, body io.Reader, kubeconfigPath string) (*HTTPResponse, error) {
+	client, err := GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return doReq(url, "PUT", contentType, hostHeader, "", "", body, client)
+}
+
 // doReq executes an HTTP request with the specified method (GET, POST, DELETE, etc)
 func doReq(url, method string, contentType string, hostHeader string, username string, password string,
 	body io.Reader, httpClient *retryablehttp.Client) (*HTTPResponse, error) {
