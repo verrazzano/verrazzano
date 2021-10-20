@@ -83,7 +83,7 @@ function getTargetJson() {
 function addNewRepositoriesToTarget() {
   checkEnvForScan
   local retval=0
-  if [ $? ne 0 ]; then
+  if [ $? -ne 0 ]; then
     return 1
   fi
 
@@ -99,18 +99,18 @@ function addNewRepositoriesToTarget() {
   read -ra repo_array <<< $1
   for repo_name in "${repo_array[@]}"
   do
-    echo $(jq --arg $repo_name repo '.data."target-registry".repositories += [$repo]' $newtargetfile) > $newtargetfile
-    if [ $? ne 0 ]; then
+    echo $(jq --arg repo "$repo_name" '.data."target-registry".repositories += [$repo]' $newtargetfile | jq '.') > $newtargetfile
+    if [ $? -ne 0 ]; then
       echo "Problem adding new repositories into the existing Target"
       retval=1
     fi
   done
 
-  if [ $retval eq 0 ]; then
+  if [ $retval -eq 0 ]; then
     cat $newtargetfile
     # Update the target using the new target file
-    oci vulnerability-scanning container scan target update --from-json $newtargetfile --container-scan-target-id $OCIR_SCAN_TARGET_ID --region ${REGION}
-    if [ $? ne 0 ]; then
+    oci vulnerability-scanning container scan target update --from-json file://$newtargetfile --container-scan-target-id $OCIR_SCAN_TARGET_ID --region ${REGION}
+    if [ $? -ne 0 ]; then
       echo "Problem updating the Target"
       retval=1
     fi
@@ -168,6 +168,7 @@ function create_image_repos_from_archives() {
 
     # If we have a scan target, we can see if it is targeted already (if it is we can skip creating it)
     # if not we track the ones we go ahead and create so we can target them afterwards
+	local create_repo=1
     if [ ! -z $OCIR_SCAN_TARGET_ID ]; then
       isRepositoryTargeted $repo_path $target_file
       local repository_targeted=$?
@@ -181,8 +182,17 @@ function create_image_repos_from_archives() {
         echo "$repo_path is already targeted"
         continue
       fi
-      # If we got here, we will create a repository, so add it to the list of new ones
+      # If we got here, we will at least need to target it, so add it to the list of new ones
       added_repositories+=("$repo_path")
+	  
+	  # Check if it exists already first
+	  oci --region ${REGION} artifacts container repository list --display-name ${repo_path} \
+          --compartment-id ${COMPARTMENT_ID} > /dev/null
+	  if [ $? -eq 0 ]; then
+	    echo "$repo_path is not targeted but already exists"
+		continue
+	  fi
+	  echo "$repo_path is not targeted and needs to be created"
     fi
 
     echo "Creating repository ${repo_path} in ${REGION}, public: ${is_public}"
