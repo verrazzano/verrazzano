@@ -883,13 +883,13 @@ def restartExampleApps() {
 }
 
 def getProxyImageCount(namespace)  {
-    def count = sh(returnStdout: true, script: "k get pods -n ${namespace} -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l")
+    def count = sh(returnStdout: true, script: "kubectl get pods -n ${namespace} -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l")
     return count
 }
 
 def validateProxyImageCount(namespace, count) {
     for(int retry=0; retry<40; retry++) {
-        upgraded_proxy_images = sh(returnStdout: true, script: "k get pods -n verrazzano-system -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l")
+        upgraded_proxy_images = sh(returnStdout: true, script: "kubectl get pods -n verrazzano-system -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l")
         sleep(15)
     }
     echo "helm release istiocoredns found in istio-system namespace after upgrade"
