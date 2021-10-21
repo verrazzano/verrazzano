@@ -1001,7 +1001,7 @@ func removeString(slice []string, s string) (result []string) {
 func buildDomain(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
 	subdomain := vz.Spec.EnvironmentName
 	if len(subdomain) == 0 {
-		subdomain = "default"
+		subdomain = vzconst.DefaultEnvironmentName
 	}
 	baseDomain, err := buildDomainSuffix(c, vz)
 	if err != nil {
