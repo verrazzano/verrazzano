@@ -9,10 +9,8 @@ import (
 	"time"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	m1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -54,30 +52,6 @@ func TodoListNamespaceExists(kubeconfigPath string, namespace string) bool {
 
 // DeployTodoListApp deploys the sock-shop example application to the cluster with the given kubeConfigPath
 func DeployTodoListApp(kubeconfigPath string, sourceDir string, namespace string) error {
-
-	pkg.Log(pkg.Info, "Deploy ToDoList example")
-	wlsUser := "weblogic"
-	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
-	dbPass := pkg.GetRequiredEnvVarOrFail("DATABASE_PSW")
-	regServ := pkg.GetRequiredEnvVarOrFail("OCR_REPO")
-	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
-	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
-
-	// create Docker repository secret
-	Eventually(func() (*m1.Secret, error) {
-		return pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
-	// create Weblogic credentials secret
-	Eventually(func() (*m1.Secret, error) {
-		return pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
-	// create database credentials secret
-	Eventually(func() (*m1.Secret, error) {
-		return pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"})
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/todo-list-components.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to create multi-cluster %s component resources: %v", sourceDir, err)
 	}
