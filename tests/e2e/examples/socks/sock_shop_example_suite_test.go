@@ -13,12 +13,12 @@ import (
 	"testing"
 )
 
-var skipInstall string
-var skipUninstall string
+var skipDeploy string
+var skipUndeploy string
 
 func init() {
-	flag.StringVar(&skipInstall, "skipInstall", "false", "skipInstall skips the call to install the application")
-	flag.StringVar(&skipUninstall, "skipUninstall", "false", "skipUninstall skips the call to install the application")
+	flag.StringVar(&skipDeploy, "skipDeploy", "false", "skipDeploy skips the call to install the application")
+	flag.StringVar(&skipUndeploy, "skipUndeploy", "false", "skipUndeploy skips the call to install the application")
 }
 
 func TestSockShopApplication(t *testing.T) {
