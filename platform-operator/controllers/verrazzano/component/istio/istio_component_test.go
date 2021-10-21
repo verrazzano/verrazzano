@@ -76,7 +76,7 @@ func TestUpgrade(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	SetIstioUpgradeFunction(fakeUpgrade)
 	defer SetDefaultIstioUpgradeFunction()
-	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), crInstall, false))
+	err := comp.Upgrade(spi.NewContext(zap.S(), getUpgradeMock(t), crInstall, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -111,7 +111,7 @@ func TestPostUpgrade(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	SetHelmUninstallFunction(fakeHelmUninstall)
 	SetDefaultHelmUninstallFunction()
-	err := comp.PostUpgrade(spi.NewContext(zap.S(), getMock(t), crInstall, false))
+	err := comp.PostUpgrade(spi.NewContext(zap.S(), getPostUpgradeMock(t), crInstall, false))
 	assert.NoError(err, "PostUpgrade returned an error")
 }
 
@@ -125,30 +125,9 @@ func fakeHelmUninstall(log *zap.SugaredLogger, releaseName string, namespace str
 	return []byte("success"), []byte(""), nil
 }
 
-func getMock(t *testing.T) *mocks.MockClient {
+func getPostUpgradeMock(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deployList *appsv1.DeploymentList) error {
-			deployList.Items = []appsv1.Deployment{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ssList *appsv1.StatefulSetList) error {
-			ssList.Items = []appsv1.StatefulSet{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, dsList *appsv1.DaemonSetList) error {
-			dsList.Items = []appsv1.DaemonSet{{}}
-			return nil
-		})
 
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
@@ -186,6 +165,63 @@ func getMock(t *testing.T) *mocks.MockClient {
 		DoAndReturn(func(ctx context.Context, secret *v1.Secret) error {
 			return nil
 		}).Times(2)
+	return mock
+}
+
+func getUpgradeMock(t *testing.T) *mocks.MockClient {
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
+			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			deploy.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
+			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			ss.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
+			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			ds.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		List(gomock.Any(), &appsv1.DeploymentList{}).
+		DoAndReturn(func(ctx context.Context, deploymentList *appsv1.DeploymentList) error {
+			deploymentList.Items = []appsv1.Deployment{{}}
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), &appsv1.StatefulSetList{}).
+		DoAndReturn(func(ctx context.Context, statefulsetList *appsv1.StatefulSetList) error {
+			statefulsetList.Items = []appsv1.StatefulSet{{}}
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), &appsv1.DaemonSetList{}).
+		DoAndReturn(func(ctx context.Context, daemonsetList *appsv1.DaemonSetList) error {
+			daemonsetList.Items = []appsv1.DaemonSet{{}}
+			return nil
+		})
+
+	//mock.EXPECT().
+	//	Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+	//	DoAndReturn(func(ctx context.Context, secret *v1.Secret) error {
+	//		return nil
+	//	}).Times(2)
 	return mock
 }
 

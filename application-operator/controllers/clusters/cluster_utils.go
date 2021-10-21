@@ -337,13 +337,10 @@ func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource c
 	// Deletion succeeded, now we can remove the finalizer
 
 	// assert the MC object is a controller util Object that can be processed by controllerutil.RemoveFinalizer
-	mcObj, ok := mcResource.(controllerutil.Object)
-	if ok {
-		controllerutil.RemoveFinalizer(mcObj, finalizerName)
-		err := c.Update(ctx, mcResource)
-		if err != nil {
-			return err
-		}
+	controllerutil.RemoveFinalizer(mcResource, finalizerName)
+	err = c.Update(ctx, mcResource)
+	if err != nil {
+		return err
 	}
 
 	return nil

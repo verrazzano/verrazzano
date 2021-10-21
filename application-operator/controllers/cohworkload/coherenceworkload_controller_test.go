@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	oamrt "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 	"strings"
 	"testing"
 
@@ -32,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -72,7 +72,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	vzapi.AddToScheme(scheme)
 	metricsReconciler := &metricstrait.Reconciler{Client: cli, Scheme: scheme, Scraper: "verrazzano-system/vmi-system-prometheus-0"}
 	reconciler = Reconciler{Client: cli, Scheme: scheme, Metrics: metricsReconciler}
-	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetControllerOptions().Return(v1alpha1.ControllerConfigurationSpec{})
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
