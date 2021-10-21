@@ -26,7 +26,7 @@ const (
 )
 
 var _ = BeforeSuite(func() {
-	if skipDeploy != "true" {
+	if !skipDeploy {
 		Eventually(func() (*v1.Namespace, error) {
 			nsLabels := map[string]string{
 				"verrazzano-managed": "true",
@@ -45,7 +45,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	if skipUndeploy != "true" {
+	if !skipUndeploy {
 		// undeploy the application here
 		Eventually(func() error {
 			return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
