@@ -3737,6 +3737,9 @@ spec:
                     description: KeyCloakURL The KeyCloak URL for this Verrazzano
                       installation
                     type: string
+                  kialiUrl:
+                    description: KialiURL The Kiali URL for this Verrazzano installation
+                    type: string
                   kibanaUrl:
                     description: KibanaURL The Kibana URL for this Verrazzano installation
                     type: string

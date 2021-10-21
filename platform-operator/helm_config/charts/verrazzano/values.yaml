@@ -47,7 +47,7 @@ kibana:
     memory: 192Mi
 
 kiali:
-  name: kiali
+  name: vmi-system-kiali
 
 verrazzanoOperator:
   name: verrazzano-operator

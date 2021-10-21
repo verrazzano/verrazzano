@@ -6,13 +6,19 @@
 
 imagePullPolicy: IfNotPresent
 
+nameOverride: "vmi-system-kiali"
+fullnameOverride: "vmi-system-kiali"
+
 auth:
   strategy: anonymous
 
+istio_namespace: istio-system
+
 deployment:
   version_label: v1.34
-
-istio_namespace: istio-system
+  # The platform operator will manage the Kiali ingress
+  ingress_enabled: false
+  view_only_mode: true
 
 kubernetes_config:
 # The default was to exclude Jobs also which caused repetitive error logging from Kiali
@@ -24,6 +30,10 @@ kubernetes_config:
 external_services:
   prometheus:
     url: http://vmi-system-prometheus:9090
+
+server:
+  web_root: ""
+
 ### Turn Grafana off, Integration story still being worked
 #   grafana:
 #     auth:
