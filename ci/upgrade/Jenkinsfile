@@ -9,6 +9,7 @@ def PROXY_IMAGES_INGRESS_NGINX
 def PROXY_IMAGES_KEYCLOAK
 def PROXY_IMAGES_SPRINGBOOT
 def PROXY_IMAGES_HELIDON
+def PROXY_IMAGES_TODO
 
 pipeline {
     options {
@@ -211,9 +212,6 @@ pipeline {
                     PROXY_IMAGES_VERRAZZANO_SYSTEM = getProxyImageCount("verrazzano-system")
                     PROXY_IMAGES_INGRESS_NGINX = getProxyImageCount("ingress-nginx")
                     PROXY_IMAGES_KEYCLOAK = getProxyImageCount("keycloak")
-                    echo PROXY_IMAGES_VERRAZZANO_SYSTEM
-                    echo PROXY_IMAGES_INGRESS_NGINX
-                    echo PROXY_IMAGES_KEYCLOAK
                 }
             }
             post {
@@ -267,7 +265,6 @@ pipeline {
                         runGinkgo('examples/springboot', "false", "true")
                         script {
                             PROXY_IMAGES_SPRINGBOOT = getProxyImageCount("springboot")
-                            echo PROXY_IMAGES_SPRINGBOOT
                         }
                     }
                 }
@@ -276,7 +273,14 @@ pipeline {
                         runGinkgo('examples/helidon', "false", "true")
                         script {
                             PROXY_IMAGES_HELIDON = getProxyImageCount("hello-helidon")
-                            echo PROXY_IMAGES_HELIDON
+                        }
+                    }
+                }
+                stage('examples todo-list') {
+                    steps {
+                        runGinkgo('examples/todo', "false", "true")
+                        script {
+                            PROXY_IMAGES_TODO = getProxyImageCount("todo-list")
                         }
                     }
                 }
@@ -441,6 +445,11 @@ pipeline {
                         validateProxyImageCount("hello-helidon", PROXY_IMAGES_HELIDON)
                     }
                 }
+                stage("Validate todo-list istio upgrade") {
+                    steps {
+                        validateProxyImageCount("todo-list", PROXY_IMAGES_TODO)
+                    }
+                }
             }
         }
 
@@ -482,6 +491,11 @@ pipeline {
                 stage('examples helidon') {
                     steps {
                         runGinkgo('examples/helidon', "true", "false")
+                    }
+                }
+                stage('examples todo') {
+                    steps {
+                        runGinkgo('examples/todo', "true", "false")
                     }
                 }
             }
@@ -903,6 +917,7 @@ def restartExampleApps() {
     sh """
         kubectl rollout restart deployment -n springboot
         kubectl rollout restart deployment -n hello-helidon
+        kubectl delete pods -n todo-list
     """
 }
 
