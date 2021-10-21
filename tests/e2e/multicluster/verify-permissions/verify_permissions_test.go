@@ -309,7 +309,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 })
 
 // CreateOrUpdateResourceFromFile creates or updates a resource using the provided yaml file
-func CreateOrUpdateResourceFromFile(yamlFile string, object runtime.Object) error {
+func CreateOrUpdateResourceFromFile(yamlFile string, object client.Object) error {
 	found, err := pkg.FindTestDataFile(yamlFile)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
@@ -326,7 +326,7 @@ func CreateOrUpdateResourceFromFile(yamlFile string, object runtime.Object) erro
 }
 
 // updateObject updates a resource using the provided object
-func updateObject(object runtime.Object) error {
+func updateObject(object client.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
 		return err
@@ -340,7 +340,7 @@ func updateObject(object runtime.Object) error {
 }
 
 // DeleteResourceFromFile deletes a resource using the provided yaml file and object reference
-func DeleteResourceFromFile(yamlFile string, object runtime.Object) error {
+func DeleteResourceFromFile(yamlFile string, object client.Object) error {
 	found, err := pkg.FindTestDataFile(yamlFile)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
@@ -357,7 +357,7 @@ func DeleteResourceFromFile(yamlFile string, object runtime.Object) error {
 }
 
 // deleteObject deletes the given object
-func deleteObject(object runtime.Object) error {
+func deleteObject(object client.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
 		return err
@@ -489,16 +489,16 @@ func findConfigMap(namespace, name string) (bool, error) {
 }
 
 // listResource returns a list of resources based on the object type and namespace
-func listResource(namespace string, object runtime.Object) error {
+func listResource(namespace string, objectList client.ObjectList) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
 		return err
 	}
-	return clustersClient.List(context.TODO(), object, &client.ListOptions{Namespace: namespace})
+	return clustersClient.List(context.TODO(), objectList, &client.ListOptions{Namespace: namespace})
 }
 
 // getMultiClusterResource returns a multi cluster resource based the provided multi cluster object's type and namespace
-func getMultiClusterResource(namespace, name string, object runtime.Object) error {
+func getMultiClusterResource(namespace, name string, object client.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
 		return err
