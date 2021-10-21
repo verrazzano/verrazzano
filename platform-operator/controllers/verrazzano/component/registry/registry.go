@@ -5,25 +5,22 @@ package registry
 
 import (
 	"fmt"
-	"path/filepath"
-
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 type GetCompoentsFnType func() []spi.Component
@@ -47,122 +44,22 @@ func GetComponents() []spi.Component {
 	return getComponentsFn()
 }
 
-const defaultImagePullSecretKeyName = "imagePullSecrets[0].name"
-
 // getComponents is the internal impl function for GetComponents, to allow overriding it for testing purposes
 func getComponents() []spi.Component {
-	overridesDir := config.GetHelmOverridesDir()
-	helmChartsDir := config.GetHelmChartsDir()
-	thirdPartyChartsDir := config.GetThirdPartyDir()
-	injectedSystemNamespaces := config.GetInjectedSystemNamespaces()
-
 	return []spi.Component{
-		helm.HelmComponent{
-			ReleaseName:             nginx.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"), // Note name is different than release name
-			ChartNamespace:          nginx.ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(overridesDir, nginx.ValuesFileOverride),
-			PreInstallFunc:          nginx.PreInstall,
-			AppendOverridesFunc:     nginx.AppendOverrides,
-			PostInstallFunc:         nginx.PostInstall,
-			Dependencies:            []string{istio.ComponentName},
-			ReadyStatusFunc:         nginx.IsReady,
-		},
-		helm.HelmComponent{
-			ReleaseName:             "cert-manager",
-			ChartDir:                filepath.Join(thirdPartyChartsDir, "cert-manager"),
-			ChartNamespace:          "cert-manager",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "cert-manager-values.yaml"),
-		},
-		helm.HelmComponent{
-			ReleaseName:             externaldns.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, externaldns.ComponentName),
-			ChartNamespace:          "cert-manager",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "external-dns-values.yaml"),
-		},
-		helm.HelmComponent{
-			ReleaseName:             rancher.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, rancher.ComponentName),
-			ChartNamespace:          "cattle-system",
-			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(overridesDir, "rancher-values.yaml"),
-		},
-		helm.HelmComponent{
-			ReleaseName:             verrazzano.ComponentName,
-			ChartDir:                filepath.Join(helmChartsDir, verrazzano.ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			ResolveNamespaceFunc:    verrazzano.ResolveVerrazzanoNamespace,
-			PreUpgradeFunc:          verrazzano.VerrazzanoPreUpgrade,
-		},
-		helm.HelmComponent{
-			ReleaseName:             coherence.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, coherence.ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
-			ReadyStatusFunc:         coherence.IsCoherenceOperatorReady,
-		},
-		helm.HelmComponent{
-			ReleaseName:             weblogic.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, weblogic.ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
-			PreInstallFunc:          weblogic.WeblogicOperatorPreInstall,
-			AppendOverridesFunc:     weblogic.AppendWeblogicOperatorOverrides,
-			Dependencies:            []string{istio.ComponentName},
-			ReadyStatusFunc:         weblogic.IsWeblogicOperatorReady,
-		},
-		helm.HelmComponent{
-			ReleaseName:             oam.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, oam.ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ValuesFile:              filepath.Join(overridesDir, "oam-kubernetes-runtime-values.yaml"),
-			ImagePullSecretKeyname:  defaultImagePullSecretKeyName,
-			ReadyStatusFunc:         oam.IsOAMReady,
-		},
-		helm.HelmComponent{
-			ReleaseName:             appoper.ComponentName,
-			ChartDir:                filepath.Join(helmChartsDir, appoper.ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ValuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
-			AppendOverridesFunc:     appoper.AppendApplicationOperatorOverrides,
-			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
-			ReadyStatusFunc:         appoper.IsApplicationOperatorReady,
-			Dependencies:            []string{"oam-kubernetes-runtime"},
-			PreUpgradeFunc:          appoper.ApplyCRDYaml,
-		},
+		nginx.NewComponent(),
+		certmanager.NewComponent(),
+		externaldns.NewComponent(),
+		rancher.NewComponent(),
+		verrazzano.NewComponent(),
+		coherence.NewComponent(),
+		weblogic.NewComponent(),
+		oam.NewComponent(),
+		appoper.NewComponent(),
 		mysql.NewComponent(),
 		keycloak.NewComponent(),
-		helm.HelmComponent{
-			ReleaseName:             kiali.ComponentName,
-			ChartDir:                filepath.Join(thirdPartyChartsDir, kiali.ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(overridesDir, "kiali-server-values.yaml"),
-			Dependencies:            []string{istio.ComponentName},
-			ReadyStatusFunc:         kiali.IsKialiReady,
-		},
-		istio.IstioComponent{
-			ValuesFile:               filepath.Join(overridesDir, "istio-cr.yaml"),
-			InjectedSystemNamespaces: injectedSystemNamespaces,
-		},
+		kiali.NewComponent(),
+		istio.NewComponent(),
 	}
 }
 

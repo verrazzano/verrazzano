@@ -45,6 +45,7 @@ func GetInstanceInfo(client client.Client, cr *v1alpha1.Verrazzano) *v1alpha1.In
 		KibanaURL:     getSystemIngressURL(ingressList.Items, systemNamespace, "vmi-system-kibana"),
 		GrafanaURL:    getSystemIngressURL(ingressList.Items, systemNamespace, "vmi-system-grafana"),
 		PrometheusURL: getSystemIngressURL(ingressList.Items, systemNamespace, "vmi-system-prometheus"),
+		KialiURL:      getSystemIngressURL(ingressList.Items, systemNamespace, "vmi-system-kiali"),
 	}
 	return instanceInfo
 }

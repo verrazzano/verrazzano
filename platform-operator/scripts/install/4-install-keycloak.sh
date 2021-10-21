@@ -128,7 +128,7 @@ function install_keycloak {
     # Check if using the optional imagePullSecret
     local KEYCLOAK_ARGUMENTS=""
     if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
-      KEYCLOAK_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+      KEYCLOAK_ARGUMENTS=" --set image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
     if ! kubectl get secret --namespace ${KEYCLOAK_NS} mysql ; then
@@ -136,15 +136,10 @@ function install_keycloak {
       exit 1
     fi
 
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.username=${KCADMIN_USERNAME}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target=${DNS_TARGET_NAME}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.nginx\.ingress\.kubernetes\.io/service-upstream=true"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.nginx\.ingress\.kubernetes\.io/upstream-vhost=keycloak-http.keycloak.svc.cluster.local"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].secretName=${ENV_NAME}-secret"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
-    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbUser=${MYSQL_USERNAME}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string dnsTarget=${DNS_TARGET_NAME}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set rulesHost=keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set tlsHosts=keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+    KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set tlsSecret=${ENV_NAME}-secret"
 
     # Handle any additional Keycloak install args
     KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS $(get_keycloak_helm_args_from_config)"
@@ -159,7 +154,7 @@ function install_keycloak {
         -f $VZ_OVERRIDES_DIR/keycloak-values.yaml \
         ${KEYCLOAK_ARGUMENTS} \
         ${keycloak_image_args} \
-        --set keycloak.extraInitContainers="${EXTRA_INIT_CONTAINERS_OVERRIDE}" \
+        --set extraInitContainers="${EXTRA_INIT_CONTAINERS_OVERRIDE}" \
         || return $?
   fi
 
@@ -215,6 +210,7 @@ function configure_keycloak_realms() {
   local _VZ_SYSTEM_GRP="$5"
 
   local PW=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.password}" | base64 -d)
+  local KC_ADM_PWD=$(kubectl get secret --namespace ${KEYCLOAK_NS} ${KCADMIN_SECRET} -o jsonpath="{.data.password}" | base64 --decode; echo)
 
   # Disable network logs on Kubernetes when running kubectl exec
   local PRESERVE_DEBUG=${DEBUG}
@@ -233,7 +229,7 @@ function configure_keycloak_realms() {
     }
 
     log "Logging in as '$KCADMIN_USERNAME'"
-    kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password) || fail "Login failed"
+    kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password ${KC_ADM_PWD} || fail "Login failed"
 
     log "Creating $_VZ_REALM realm"
     kcadm.sh create realms -s realm=$_VZ_REALM -s enabled=false || fail "Failed to create realm"
@@ -321,14 +317,17 @@ function configure_keycloak_realms() {
         "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
         "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
         "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
-        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback"
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
+        "https://kiali.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://kiali.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback"
       ],
       "webOrigins": [
         "https://verrazzano.$ENV_NAME.$DNS_SUFFIX",
         "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX",
         "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX",
         "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX",
-        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX"
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX",
+        "https://kiali.vmi.system.$ENV_NAME.$DNS_SUFFIX"
       ],
       "notBefore": 0,
       "bearerOnly": false,

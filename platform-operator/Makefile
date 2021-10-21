@@ -174,6 +174,7 @@ cleanup-cluster:
 	./build/scripts/cleanup.sh ${CLUSTER_NAME}
 
 .PHONY: create-cluster
+create-cluster: WORKSPACE ?= ${CURDIR}
 create-cluster:
 	kind_clusters=$$(kind get clusters) ; \
     if [ -z "$${kind_clusters}" ] || ! kind get clusters | egrep "^${CLUSTER_NAME}\$$" > /dev/null ; then \
@@ -183,6 +184,12 @@ create-cluster:
 			--name ${CLUSTER_NAME} \
 			--wait 5m \
 			--config=test/${KIND_CONFIG} ;\
+		if [ $$? -ne 0 ] ; then \
+			mkdir ${WORKSPACE}/kind-logs ;\
+			kind export logs ${WORKSPACE}/kind-logs ;\
+			echo "Kind cluster creation failed" ;\
+			exit 1 ;\
+		fi ;\
 		kubectl config set-context kind-${CLUSTER_NAME} ;\
 	fi
 

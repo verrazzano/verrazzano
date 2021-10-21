@@ -208,12 +208,12 @@
             },
             {
               "image": "prometheus",
-              "tag": "v2.21.0",
+              "tag": "v2.21.0-1",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
               "image": "elasticsearch",
-              "tag": "7.6.1-20201130145440-5c76ab1",
+              "tag": "7.6.1-20211019200525-4786a7f",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
@@ -266,7 +266,7 @@
             },
             {
               "image": "oraclelinux",
-              "tag": "7.8",
+              "tag": "7.9",
               "helmFullImageKey": "monitoringOperator.esInitImage"
             }
           ]
@@ -393,9 +393,9 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "10.0.1-20201016212759-30d98b0",
-              "helmFullImageKey": "keycloak.image.repository",
-              "helmTagKey": "keycloak.image.tag"
+              "tag": "15.0.2-20211011132457-21d029754c",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
             }
           ]
         },
