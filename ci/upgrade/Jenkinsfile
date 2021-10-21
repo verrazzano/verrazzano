@@ -917,7 +917,7 @@ def restartExampleApps() {
     sh """
         kubectl rollout restart deployment -n springboot
         kubectl rollout restart deployment -n hello-helidon
-        kubectl delete pods -n todo-list
+        kubectl delete pods -n todo-list --all
     """
 }
 
