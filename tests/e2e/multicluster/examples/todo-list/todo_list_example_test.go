@@ -167,26 +167,6 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 				return pkg.GetWebPageInCluster(url, host, managedKubeconfig)
 			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Derek")))
 		})
-
-		// Verify the application REST endpoint is working.
-		// GIVEN the ToDoList app is deployed
-		// WHEN the REST endpoint is accessed
-		// THEN the expected results should be returned
-		It("Verify '/todo/rest/items' REST endpoint is working.", func() {
-			task := fmt.Sprintf("test-task-%s", time.Now().Format("20060102150405.0000"))
-			Eventually(func() (*pkg.HTTPResponse, error) {
-				url := fmt.Sprintf("https://%s/todo/rest/items", host)
-				return pkg.GetWebPageInCluster(url, host, managedKubeconfig)
-			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("[")))
-			Eventually(func() (*pkg.HTTPResponse, error) {
-				url := fmt.Sprintf("https://%s/todo/rest/item/%s", host, task)
-				return pkg.PutWithHostHeaderInCluster(url, "application/json", host, nil, managedKubeconfig)
-			}, waitTimeout, pollingInterval).Should(pkg.HasStatus(204))
-			Eventually(func() (*pkg.HTTPResponse, error) {
-				url := fmt.Sprintf("https://%s/todo/rest/items", host)
-				return pkg.GetWebPageInCluster(url, host, managedKubeconfig)
-			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("test-task")))
-		})
 	})
 
 	Context("Logging", func() {
