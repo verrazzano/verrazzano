@@ -207,7 +207,11 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                 """
-                getProxyImageCount()
+                PROXY_IMAGES_VERRAZZANO_SYSTEM = getProxyImageCount("verrazzano-system")
+                PROXY_IMAGES_INGRESS_NGINX = getProxyImageCount("ingress-nginx")
+                PROXY_IMAGES_KEYCLOAK = getProxyImageCount("keycloak")
+                PROXY_IMAGES_SPRINGBOOT = getProxyImageCount("springboot")
+                PROXY_IMAGES_HELIDON = getProxyImageCount("springboot")
                 echo PROXY_IMAGES_VERRAZZANO_SYSTEM
                 echo PROXY_IMAGES_INGRESS_NGINX
                 echo PROXY_IMAGES_KEYCLOAK
@@ -381,7 +385,7 @@ pipeline {
         }
 
         stage("Validate Upgrade") {
-            stages {
+            parallel {
                 stage("Validate BOM") {
                     when {
                         allOf {
@@ -871,16 +875,22 @@ def validateIstioCoreDNSUninstall() {
 
 def restartExampleApps() {
     sh """
-        kubectl delete pods -n sockshop
-        kubectl delete pods -n springboot
-        kubectl delete pods -n hello-helidon
+        kubectl rollout restart deployment -n springboot
+        kubectl rollout restart deployment -n hello-helidon
     """
 }
 
-def getProxyImageCount() {
-    PROXY_IMAGES_VERRAZZANO_SYSTEM = sh(returnStdout: true, script: 'k get pods -n verrazzano-system -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l')
-    PROXY_IMAGES_INGRESS_NGINX = sh(returnStdout: true, script: 'k get pods -n ingress-nginx -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l')
-    PROXY_IMAGES_KEYCLOAK = sh(returnStdout: true, script: 'k get pods -n keycloak -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l')
-    PROXY_IMAGES_SPRINGBOOT = sh(returnStdout: true, script: 'k get pods -n springboot -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l')
-    PROXY_IMAGES_VERRAZZANO_SYSTEM = sh(returnStdout: true, script: 'k get pods -n sockshop -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l')
+def getProxyImageCount(namespace)  {
+    def count = sh(returnStdout: true, script: "k get pods -n ${namespace} -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l")
+    return count
+}
+
+def validateProxyImageCount(namespace, count) {
+    for(int retry=0; retry<40; retry++) {
+        upgraded_proxy_images = sh(returnStdout: true, script: "k get pods -n verrazzano-system -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l")
+        sleep(15)
+    }
+    echo "helm release istiocoredns found in istio-system namespace after upgrade"
+    helm list -n istio-system
+    exit 1
 }
