@@ -416,6 +416,31 @@ pipeline {
                         validateIstioCoreDNSUninstall()
                     }
                 }
+                stage("Validate verrazzano-system istio upgrade") {
+                    steps {
+                        validateProxyImageCount("verrazzano-system", PROXY_IMAGES_VERRAZZANO_SYSTEM)
+                    }
+                }
+                stage("Validate ingress-nginx istio upgrade") {
+                    steps {
+                        validateProxyImageCount("ingress-nginx", PROXY_IMAGES_INGRESS_NGINX)
+                    }
+                }
+                stage("Validate keycloak istio upgrade") {
+                    steps {
+                        validateProxyImageCount("keycloak", PROXY_IMAGES_KEYCLOAK)
+                    }
+                }
+                stage("Validate springboot istio upgrade") {
+                    steps {
+                        validateProxyImageCount("springboot", PROXY_IMAGES_SPRINGBOOT)
+                    }
+                }
+                stage("Validate helidon istio upgrade") {
+                    steps {
+                        validateProxyImageCount("helidon", PROXY_IMAGES_HELIDON)
+                    }
+                }
             }
         }
 
@@ -888,10 +913,13 @@ def getProxyImageCount(namespace)  {
 
 def validateProxyImageCount(namespace, count) {
     for(int retry=0; retry<40; retry++) {
-        upgraded_proxy_images = sh(returnStdout: true, script: "kubectl get pods -n verrazzano-system -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l")
+        upgraded_proxy_images = sh(returnStdout: true, script: "kubectl get pods -n ${namespace} -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.10.2 -o | wc -l")
+        if(upgraded_proxy_images == count) {
+            echo "Validated new istio proxy images picked up in namespace ${namespace}"
+            return
+        }
         sleep(15)
     }
-    echo "helm release istiocoredns found in istio-system namespace after upgrade"
-    helm list -n istio-system
+    echo "Incorrect number of new istio proxy images in namespace ${namespace} after upgrade"
     exit 1
 }
