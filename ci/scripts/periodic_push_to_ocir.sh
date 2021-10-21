@@ -43,7 +43,8 @@ fi
 # We call the create repositories script, supplying the existing target information. If repositories are not
 # targeted they will be created and targeted. If they are already targeted the script will skip trying to create them
 # or updating the target. This is done to catch new images that get added in over time.
-sh $TEST_SCRIPT_DIR/create_ocir_repositories.sh -p $OCIR_SCAN_REPOSITORY_PATH --region us-ashburn-1 -c $OCIR_SCAN_COMPARTMENT -t $OCIR_SCAN_TARGET -d ${WORKSPACE}/tar-files
+# FIXME: Do not enable until we are sure the VSS lifecycle state issues with update are understood and handled
+# sh $TEST_SCRIPT_DIR/create_ocir_repositories.sh -p $OCIR_SCAN_REPOSITORY_PATH --region us-ashburn-1 -c $OCIR_SCAN_COMPARTMENT -t $OCIR_SCAN_TARGET -d ${WORKSPACE}/tar-files
 
 # Push the images. NOTE: If a new image was added before we do the above "ensure" step, this may have the side
 # effect of pushing that image to the root compartment rather than the desired sub-compartment (OCIR behaviour),
