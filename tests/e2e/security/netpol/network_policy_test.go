@@ -169,9 +169,11 @@ var _ = Describe("Test Network Policies", func() {
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test coherence-operator ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"control-plane": "coherence"}}, "verrazzano-system", 9443, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the Coherence operator.
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"control-plane": "coherence"}}, "verrazzano-system", 9443, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test coherence-operator ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"control-plane": "coherence"}}, "verrazzano-system", 8000, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the Coherence operator.
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"control-plane": "coherence"}}, "verrazzano-system", 8000, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test coherence-operator ingress rules failed: reason = %s", err))
 			},
 			func() {
@@ -282,13 +284,17 @@ var _ = Describe("Test Network Policies", func() {
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test weblogic-operator ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istio-ingressgateway"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istio-ingressgateway"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istio-egressgateway"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istio-egressgateway"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
 			},
 			func() {
@@ -407,7 +413,8 @@ var _ = Describe("Test Network Policies", func() {
 			},
 			func() {
 				pkg.Log(pkg.Info, "Negative test weblogic-operator ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", 8000, false)
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", 8000, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test weblogic-operator ingress rules failed: reason = %s", err))
 			},
 			func() {
