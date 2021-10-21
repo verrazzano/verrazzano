@@ -211,13 +211,9 @@ pipeline {
                     PROXY_IMAGES_VERRAZZANO_SYSTEM = getProxyImageCount("verrazzano-system")
                     PROXY_IMAGES_INGRESS_NGINX = getProxyImageCount("ingress-nginx")
                     PROXY_IMAGES_KEYCLOAK = getProxyImageCount("keycloak")
-                    PROXY_IMAGES_SPRINGBOOT = getProxyImageCount("springboot")
-                    PROXY_IMAGES_HELIDON = getProxyImageCount("springboot")
                     echo PROXY_IMAGES_VERRAZZANO_SYSTEM
                     echo PROXY_IMAGES_INGRESS_NGINX
                     echo PROXY_IMAGES_KEYCLOAK
-                    echo PROXY_IMAGES_SPRINGBOOT
-                    echo PROXY_IMAGES_HELIDON
                 }
             }
             post {
@@ -274,11 +270,15 @@ pipeline {
                 stage('examples spring') {
                     steps {
                         runGinkgo('examples/springboot', "false", "true")
+                        PROXY_IMAGES_SPRINGBOOT = getProxyImageCount("springboot")
+                        echo PROXY_IMAGES_SPRINGBOOT
                     }
                 }
                 stage('examples helidon') {
                     steps {
                         runGinkgo('examples/helidon', "false", "true")
+                        PROXY_IMAGES_HELIDON = getProxyImageCount("springboot")
+                        echo PROXY_IMAGES_HELIDON
                     }
                 }
             }
