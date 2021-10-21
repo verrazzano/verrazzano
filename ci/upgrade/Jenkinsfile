@@ -275,7 +275,7 @@ pipeline {
                     steps {
                         runGinkgo('examples/helidon', "false", "true")
                         script {
-                            PROXY_IMAGES_HELIDON = getProxyImageCount("springboot")
+                            PROXY_IMAGES_HELIDON = getProxyImageCount("hello-helidon")
                             echo PROXY_IMAGES_HELIDON
                         }
                     }
@@ -438,7 +438,7 @@ pipeline {
                 }
                 stage("Validate helidon istio upgrade") {
                     steps {
-                        validateProxyImageCount("helidon", PROXY_IMAGES_HELIDON)
+                        validateProxyImageCount("hello-helidon", PROXY_IMAGES_HELIDON)
                     }
                 }
             }
