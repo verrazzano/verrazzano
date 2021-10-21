@@ -207,16 +207,18 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                 """
-                PROXY_IMAGES_VERRAZZANO_SYSTEM = getProxyImageCount("verrazzano-system")
-                PROXY_IMAGES_INGRESS_NGINX = getProxyImageCount("ingress-nginx")
-                PROXY_IMAGES_KEYCLOAK = getProxyImageCount("keycloak")
-                PROXY_IMAGES_SPRINGBOOT = getProxyImageCount("springboot")
-                PROXY_IMAGES_HELIDON = getProxyImageCount("springboot")
-                echo PROXY_IMAGES_VERRAZZANO_SYSTEM
-                echo PROXY_IMAGES_INGRESS_NGINX
-                echo PROXY_IMAGES_KEYCLOAK
-                echo PROXY_IMAGES_SPRINGBOOT
-                echo PROXY_IMAGES_HELIDON
+                script {
+                    PROXY_IMAGES_VERRAZZANO_SYSTEM = getProxyImageCount("verrazzano-system")
+                    PROXY_IMAGES_INGRESS_NGINX = getProxyImageCount("ingress-nginx")
+                    PROXY_IMAGES_KEYCLOAK = getProxyImageCount("keycloak")
+                    PROXY_IMAGES_SPRINGBOOT = getProxyImageCount("springboot")
+                    PROXY_IMAGES_HELIDON = getProxyImageCount("springboot")
+                    echo PROXY_IMAGES_VERRAZZANO_SYSTEM
+                    echo PROXY_IMAGES_INGRESS_NGINX
+                    echo PROXY_IMAGES_KEYCLOAK
+                    echo PROXY_IMAGES_SPRINGBOOT
+                    echo PROXY_IMAGES_HELIDON
+                }
             }
             post {
                 always {
