@@ -192,7 +192,7 @@ pipeline {
                 }
             }
         }
-        stage('Install Latest Release') {
+        stage('Install Release Version') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
