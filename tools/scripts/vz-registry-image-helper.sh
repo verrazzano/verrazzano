@@ -21,7 +21,7 @@ CLEAN_ALL=false
 DRY_RUN=false
 INCLUDE_COMPONENTS=
 EXCLUDE_COMPONENTS=
-LIST_IMAGES_ONLY=false
+LIST_IMAGES_ONLY=
 
 function usage() {
   ec=${1:-0}
@@ -44,7 +44,7 @@ Options:
  -z                     Incrementally clean each local image after it has been successfully pushed
  -d                     Dry-run only, do not perform Docker operations
  -o                     List components
- -m                     List images, do not process them
+ -m <outputfile>        List images to output file, do not process them
 
 Examples:
 
@@ -311,7 +311,11 @@ function process_local_archives() {
 
     local target_repo=$(get_target_repo ${from_repository})
     local to_image=${TO_REGISTRY}/${target_repo}/${from_repository}/${from_image_name}
-    process_image ${from_image} ${to_image}
+    if [ ! -z "$LIST_IMAGES_ONLY" ]; then
+      echo ${to_image} >> $LIST_IMAGES_ONLY
+    else
+      process_image ${from_image} ${to_image}
+    fi
   done
 }
 
@@ -370,8 +374,8 @@ function process_images_from_bom() {
         # Build up the image name and target image name, and do a pull/tag/push
         local from_image=${from_image_prefix}/${base_image}
         local to_image=${to_image_prefix}/${base_image}
-        if [ "${LIST_IMAGES_ONLY}" == "true" ]; then
-          echo ${to_image}
+        if [ ! -z "$LIST_IMAGES_ONLY" ]; then
+          echo ${to_image} >> $LIST_IMAGES_ONLY
         else
           process_image ${from_image} ${to_image}
         fi
@@ -402,7 +406,7 @@ function main() {
   fi
 }
 
-while getopts 'hzcdomb:t:f:r:l:i:e:' opt; do
+while getopts 'hzcdom:b:t:f:r:l:i:e:' opt; do
   case $opt in
   d)
     DRY_RUN=true
@@ -441,7 +445,7 @@ while getopts 'hzcdomb:t:f:r:l:i:e:' opt; do
     exit 0
     ;;
   m)
-    LIST_IMAGES_ONLY=true
+    LIST_IMAGES_ONLY="${OPTARG}"
     ;;
   l)
     USELOCAL=1
