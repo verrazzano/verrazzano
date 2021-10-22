@@ -38,7 +38,6 @@ func NewComponent() spi.Component {
 
 // PostInstall Kiali-post-install processing, create or update the Kiali ingress
 func (c kialiComponent) PostInstall(ctx spi.ComponentContext) error {
-	ctx.Log().Debugf("Kiali post-install")
 	if err := c.HelmComponent.PostInstall(ctx); err != nil {
 		return err
 	}

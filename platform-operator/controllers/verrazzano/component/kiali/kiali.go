@@ -174,6 +174,52 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 	return err
 }
 
+func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
+	authPol := istioclisec.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
+	}
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &authPol, func() error {
+		authPol.Spec = securityv1beta1.AuthorizationPolicy{
+			Selector: &istiov1beta1.WorkloadSelector{
+				MatchLabels: map[string]string{
+					"app": kialiSystemName,
+				},
+			},
+			Action: securityv1beta1.AuthorizationPolicy_ALLOW,
+			Rules: []*securityv1beta1.Rule{
+				{
+					From: []*securityv1beta1.Rule_From{{
+						Source: &securityv1beta1.Source{
+							Principals: []string{fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-authproxy", constants.VerrazzanoSystemNamespace)},
+							Namespaces: []string{constants.VerrazzanoSystemNamespace},
+						},
+					}},
+					To: []*securityv1beta1.Rule_To{{
+						Operation: &securityv1beta1.Operation{
+							Ports: []string{kialiServicePort},
+						},
+					}},
+				},
+				{
+					From: []*securityv1beta1.Rule_From{{
+						Source: &securityv1beta1.Source{
+							Principals: []string{fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-monitoring-operator", constants.VerrazzanoSystemNamespace)},
+							Namespaces: []string{constants.VerrazzanoSystemNamespace},
+						},
+					}},
+					To: []*securityv1beta1.Rule_To{{
+						Operation: &securityv1beta1.Operation{
+							Ports: []string{kialiMetricsPort},
+						},
+					}},
+				},
+			},
+		}
+		return nil
+	})
+	return err
+}
+
 func getKialiHostName(context spi.ComponentContext) (string, error) {
 	dnsDomain, err := nginx.BuildDNSDomain(context.Client(), context.EffectiveCR())
 	if err != nil {
