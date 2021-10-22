@@ -564,7 +564,7 @@ spec:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
             matchExpressions:
-              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator]}
+              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator, kiali]}
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
@@ -596,3 +596,43 @@ spec:
           podSelector:
             matchLabels:
               app: system-prometheus
+---
+# Network policy for Kiali
+# Ingress: allow connect from istio-system
+#          allow connect from the ingress controller to port 20001
+#          allow connect from prometheus to port 9090 and the envoy metrics port 15090
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kiali
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: kiali
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: verrazzano-authproxy
+      ports:
+        - port: 20001
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 9090
+          protocol: TCP
+        - port: 15090
+          protocol: TCP

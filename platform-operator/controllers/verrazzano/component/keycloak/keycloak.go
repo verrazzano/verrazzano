@@ -5,16 +5,28 @@ package keycloak
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"text/template"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"text/template"
+	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-// Define the keylcloak Key:Value pair for init container.
+const (
+	dnsTarget = "dnsTarget"
+	rulesHost = "rulesHost"
+	tlsHosts  = "tlsHosts"
+	tlsSecret = "tlsSecret"
+)
+
+// Define the keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
-const kcInitContainerKey = "keycloak.extraInitContainers"
+const kcInitContainerKey = "extraInitContainers"
 const kcInitContainerValueTemplate = `
     - name: theme-provider
       image: {{.Image}}
@@ -30,7 +42,7 @@ const kcInitContainerValueTemplate = `
         - name: theme
           mountPath: /theme
         - name: cacerts
-          mountPath: /cacerts"
+          mountPath: /cacerts
 `
 
 // imageData needed for template rendering
@@ -40,7 +52,7 @@ type imageData struct {
 
 // AppendKeycloakOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
 // A go template is used to replace the image in the init container spec.
-func AppendKeycloakOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
@@ -70,11 +82,56 @@ func AppendKeycloakOverrides(_ spi.ComponentContext, _ string, _ string, _ strin
 		return nil, err
 	}
 
-	// Return a new Key:Value pair with the rendered Value
 	kvs = append(kvs, bom.KeyValue{
 		Key:   kcInitContainerKey,
 		Value: b.String(),
 	})
 
+	// Additional overrides for Keycloak 15.0.2 charts.
+	var keycloakIngress = &networkingv1.Ingress{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: constants.KeycloakIngress, Namespace: constants.KeycloakNamespace}, keycloakIngress)
+	if err != nil {
+		return nil, fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.KeycloakIngress, constants.KeycloakNamespace, err)
+	}
+
+	if len(keycloakIngress.Spec.TLS) == 0 || len(keycloakIngress.Spec.TLS[0].Hosts) == 0 {
+		return nil, fmt.Errorf("no ingress hosts found for %s/%s, %v", constants.KeycloakIngress, constants.KeycloakNamespace, err)
+	}
+
+	host := keycloakIngress.Spec.TLS[0].Hosts[0]
+
+	kvs = append(kvs, bom.KeyValue{
+		Key:       dnsTarget,
+		Value:     host,
+		SetString: true,
+	})
+
+	kvs = append(kvs, bom.KeyValue{
+		Key:   rulesHost,
+		Value: host,
+	})
+
+	kvs = append(kvs, bom.KeyValue{
+		Key:   tlsHosts,
+		Value: host,
+	})
+
+	// this secret contains the keycloak TLS certificate created by cert-manager during the original keycloak installation
+	installEnvName := getEnvironmentName(compContext.EffectiveCR().Spec.EnvironmentName)
+	tlsSecretValue := fmt.Sprintf("%s-secret", installEnvName)
+	kvs = append(kvs, bom.KeyValue{
+		Key:   tlsSecret,
+		Value: tlsSecretValue,
+	})
+
 	return kvs, nil
+}
+
+// // getEnvironmentName returns the name of the Verrazzano install environment
+func getEnvironmentName(envName string) string {
+	if envName == "" {
+		return constants.DefaultEnvironmentName
+	}
+
+	return envName
 }

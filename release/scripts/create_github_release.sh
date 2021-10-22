@@ -81,6 +81,9 @@ verify_release_binaries_exist || exit 1
 # Validate Github CLI
 validate_github_cli || exit 1
 
+# Login to github cli
+echo ${GITHUB_ACCESS_TOKEN}|gh auth login --with-token
+
 if [ $TEST_RUN == true ] ; then
     echo "TEST_RUN is set to true, not doing a github release."
 else
@@ -91,5 +94,6 @@ else
       --notes "" \
       --title "Verrazzano release ${VERSION}" \
     ${releaseArtifacts[*]}
+    verify_released_artifacts || exit 1
 fi
-verify_released_artifacts || exit 1
+

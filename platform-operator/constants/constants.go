@@ -51,6 +51,9 @@ const ServerDataKey = "server"
 // VzConsoleIngress - the name of the ingress for verrazzano console and api
 const VzConsoleIngress = "verrazzano-ingress"
 
+// KeycloakIngress - the name of the ingress for Keycloak console and api
+const KeycloakIngress = "keycloak"
+
 // RegistryOverrideEnvVar is the environment variable name used to override the registry housing images we install
 const RegistryOverrideEnvVar = "REGISTRY"
 
@@ -86,3 +89,6 @@ const IngressNginxNamespace = "ingress-nginx"
 
 //  KeycloakNamespace is the keycloak namespace name
 const KeycloakNamespace = "keycloak"
+
+// The default name for install environment
+const DefaultEnvironmentName = "default"
