@@ -947,6 +947,7 @@ def restartExampleApps() {
         kubectl patch domain -n bobs-books bobs-orders-wls -p '{"spec":{"serverStartPolicy":"IF_NEEDED"}}' --type merge
         kubectl patch domain -n bobs-books bobbys-front-end -p '{"spec":{"serverStartPolicy":"IF_NEEDED"}}' --type merge
     """
+}
 
 def getProxyImageCount(namespace)  {
     def count = sh(returnStdout: true, script: "kubectl get pods -n ${namespace} -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l")
