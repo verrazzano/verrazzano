@@ -74,6 +74,18 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	return clientset, err
 }
 
+// GetKubernetesClientsetInCluster returns the Kubernetes clientset for the cluster set in the environment
+func GetKubernetesClientsetInCluster(kubeconfigPath string) (*kubernetes.Clientset, error) {
+	// use the current context in the kubeconfig
+	var clientset *kubernetes.Clientset
+	config, err := GetKubeConfigInCluster(kubeconfigPath)
+	if err != nil {
+		return clientset, err
+	}
+	clientset, err = kubernetes.NewForConfig(config)
+	return clientset, err
+}
+
 // GetIstioClientset returns the clientset object for Istio
 func GetIstioClientset() (*istioClient.Clientset, error) {
 	var cs *istioClient.Clientset

@@ -145,6 +145,34 @@ func CreateDockerSecret(namespace string, name string, server string, username s
 	return scr, err
 }
 
+// CreateDockerSecretInCluster creates docker secret
+func CreateDockerSecretInCluster(namespace string, name string, server string, username string, password string, kubeconfigPath string) (*corev1.Secret, error) {
+	Log(Info, fmt.Sprintf("CreateDockerSecret %s in %s", name, namespace))
+	// Get the kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientsetInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
+		return nil, err
+	}
+
+	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", username, password)))
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+		StringData: map[string]string{
+			".dockerconfigjson": fmt.Sprintf(dockerconfigjsonTemplate, server, username, password, auth),
+		},
+	}
+	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("CreateDockerSecret %v error: %v", name, err))
+	}
+	return scr, err
+}
+
 // DeleteSecret deletes the specified secret in the specified namespace
 func DeleteSecret(namespace string, name string) error {
 	// Get the kubernetes clientset

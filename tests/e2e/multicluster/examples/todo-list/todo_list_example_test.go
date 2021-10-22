@@ -63,7 +63,7 @@ var _ = BeforeSuite(func() {
 
 	// create Docker repository secret
 	Eventually(func() (*m1.Secret, error) {
-		return pkg.CreateDockerSecret(testNamespace, "tododomain-repo-credentials", regServ, regUser, regPass)
+		return pkg.CreateDockerSecretInCluster(testNamespace, "tododomain-repo-credentials", regServ, regUser, regPass, adminKubeconfig)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// create Weblogic credentials secret
