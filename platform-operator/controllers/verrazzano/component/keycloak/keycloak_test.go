@@ -49,7 +49,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	kvs, err := AppendKeycloakOverrides(spi.NewContext(zap.S(), client, vz, false), "", "", "", nil)
 
 	assert.NoError(err, "AppendKeycloakOverrides returned an error")
-	assert.Len(kvs, 5, "AppendKeycloakOverrides returned wrong number of Key:Value pairs")
+	assert.Len(kvs, 6, "AppendKeycloakOverrides returned wrong number of Key:Value pairs")
 
 	assert.Contains(kvs, bom.KeyValue{
 		Key:       dnsTarget,
