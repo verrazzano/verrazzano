@@ -21,7 +21,4 @@ if [ -z $2 ]; then
     exit 1
 fi
 SAURON_CRED=$2
-
-cd ${SCRIPT_DIR}/main
-GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --report-dir="${TEST_REPORT_DIR}" --prometheus-credential="${SAURON_CRED}" --prometheus-url="${PROMETHEUS_GW_URL}" --commit-sha="${GIT_COMMIT}" --test-env="${TEST_ENV_LABEL}" --branch-name="${BRANCH_NAME}" --build-number="${BUILD_NUMBER}" --job-name="${JOB_NAME}" --kubernetes-version="${K8S_VERSION_LABEL}"
-
+# Add the go code to push metrics
