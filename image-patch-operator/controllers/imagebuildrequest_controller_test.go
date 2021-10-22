@@ -7,8 +7,8 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
+	"k8s.io/client-go/rest"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 	"testing"
 	"text/template"
 
@@ -54,7 +54,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	scheme = runtime.NewScheme()
 	imagesv1alpha1.AddToScheme(scheme)
 	reconciler = ImageBuildRequestReconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetControllerOptions().Return(v1alpha1.ControllerConfigurationSpec{})
+	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()

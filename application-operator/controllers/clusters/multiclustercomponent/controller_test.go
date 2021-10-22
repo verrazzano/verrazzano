@@ -6,8 +6,8 @@ package multiclustercomponent
 import (
 	"context"
 	"encoding/json"
+	"k8s.io/client-go/rest"
 	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -51,7 +51,7 @@ func TestComponentReconcilerSetupWithManager(t *testing.T) {
 	scheme = runtime.NewScheme()
 	clustersv1alpha1.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetControllerOptions().Return(v1alpha1.ControllerConfigurationSpec{})
+	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()

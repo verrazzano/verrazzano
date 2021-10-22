@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	netv1 "k8s.io/api/networking/v1"
-	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
+	"k8s.io/client-go/rest"
 	"testing"
 	"time"
 
@@ -102,7 +102,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	scheme = runtime.NewScheme()
 	clustersv1alpha1.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetControllerOptions().Return(v1alpha1.ControllerConfigurationSpec{})
+	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()

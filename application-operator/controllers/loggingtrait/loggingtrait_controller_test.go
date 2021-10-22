@@ -6,7 +6,7 @@ package loggingtrait
 import (
 	"context"
 	"encoding/json"
-	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
+	"k8s.io/client-go/rest"
 	"testing"
 	"time"
 
@@ -47,7 +47,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	scheme = runtime.NewScheme()
 	vzapi.AddToScheme(scheme)
 	reconciler = LoggingTraitReconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetControllerOptions().Return(v1alpha1.ControllerConfigurationSpec{})
+	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()

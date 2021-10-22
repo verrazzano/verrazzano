@@ -7,7 +7,7 @@ go 1.16
 
 require (
 	github.com/Jeffail/gabs/v2 v2.6.1
-	github.com/crossplane/crossplane-runtime v0.15.1
+	github.com/crossplane/crossplane-runtime v0.13.0
 	github.com/gertd/go-pluralize v0.1.7
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
@@ -21,7 +21,7 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
-	github.com/verrazzano/oam-kubernetes-runtime v0.3.3-0.20211020210605-352fb58ac665
+	github.com/verrazzano/oam-kubernetes-runtime v0.3.3-0.20211022163517-5d196f8b31e8
 	go.uber.org/zap v1.17.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/tools v0.1.5
@@ -52,4 +52,12 @@ replace (
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20201224043029-2b0845dc783e
 	istio.io/api => istio.io/api v0.0.0-20200911191701-0dc35ad5c478
 	istio.io/client-go => istio.io/client-go v0.0.0-20200807182027-d287a5abb594
+	k8s.io/api => k8s.io/api v0.19.0
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.0
+	k8s.io/apimachinery => k8s.io/apimachinery v0.19.0
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.19.0
+	k8s.io/client-go => k8s.io/client-go v0.19.0
+	k8s.io/code-generator => k8s.io/code-generator v0.19.0
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.8.0
+	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.4
 )
