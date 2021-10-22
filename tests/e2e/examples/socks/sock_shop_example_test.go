@@ -36,11 +36,11 @@ var username, password string
 
 // creates the sockshop namespace and applies the components and application yaml
 var _ = BeforeSuite(func() {
-	if !skipDeploy {
-		username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
-		password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
-		sockShop = NewSockShop(username, password, pkg.Ingress())
+	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
+	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
+	sockShop = NewSockShop(username, password, pkg.Ingress())
 
+	if !skipDeploy {
 		// deploy the application here
 		Eventually(func() (*v1.Namespace, error) {
 			return pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"})
@@ -285,7 +285,6 @@ var _ = AfterSuite(func() {
 	}
 
 	if !skipUndeploy {
-
 		Eventually(func() error {
 			return pkg.DeleteNamespace("sockshop")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
