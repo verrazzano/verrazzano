@@ -3,19 +3,38 @@
 package kiali
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
+
+var testScheme = runtime.NewScheme()
+
+func init() {
+	_ = clientgoscheme.AddToScheme(testScheme)
+
+	_ = vzapi.AddToScheme(testScheme)
+	_ = clustersv1alpha1.AddToScheme(testScheme)
+
+	_ = istioclinet.AddToScheme(testScheme)
+	_ = istioclisec.AddToScheme(testScheme)
+
+	// +kubebuilder:scaffold:testScheme
+}
 
 // TestIsKialiReady tests the IsReady function
 // GIVEN a call to IsReady
@@ -27,7 +46,7 @@ func TestIsKialiReady(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      kialiSystemName,
@@ -53,7 +72,7 @@ func TestIsKialiNotReady(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      kialiSystemName,
@@ -78,7 +97,7 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewFakeClientWithScheme(testScheme)
 	assert.False(t, NewComponent().IsReady(spi.NewContext(zap.S(), fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
@@ -126,7 +145,10 @@ func TestPostInstallUpdateKialiIngress(t *testing.T) {
 	ingress := &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: constants.VerrazzanoSystemNamespace},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, ingress)
+	authPol := &istioclisec.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
+	}
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
 	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, vz, false))
 	assert.Nil(t, err)
 }
@@ -147,7 +169,7 @@ func TestPostInstallCreateKialiIngress(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewFakeClientWithScheme(testScheme)
 	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, vz, false))
 	assert.Nil(t, err)
 }
@@ -171,7 +193,7 @@ func TestPostUpgradeUpdateKialiIngress(t *testing.T) {
 	ingress := &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: constants.VerrazzanoSystemNamespace},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, ingress)
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress)
 	err := NewComponent().PostUpgrade(spi.NewContext(zap.S(), fakeClient, vz, false))
 	assert.Nil(t, err)
 }
