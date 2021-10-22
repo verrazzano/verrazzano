@@ -117,6 +117,7 @@ function delete_coherence_operator {
 }
 
 function delete_kiali {
+  KIALI_CHART_DIR=${CHARTS_DIR}/kiali-server
   log "Uninstall Kiali"
   if helm status kiali-server  --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
     if ! helm uninstall kiali-server  --namespace "${VERRAZZANO_NS}" ; then
@@ -124,7 +125,7 @@ function delete_kiali {
     fi
   fi
   log "Deleting Kiali Custom Resource Definitions"
-  kubectl delete crd --wait=false monitoringdashboards.monitoring.kiali.io || true
+  kubectl delete -f ${KIALI_CHART_DIR}/crds || true
 }
 
 action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
