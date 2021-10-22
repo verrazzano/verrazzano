@@ -14,12 +14,12 @@ import (
 	"github.com/onsi/gomega"
 )
 
-var skipInstall string
-var skipUninstall string
+var skipDeploy bool
+var skipUndeploy bool
 
 func init() {
-	flag.StringVar(&skipInstall, "skipInstall", "false", "skipInstall skips the call to install the application")
-	flag.StringVar(&skipUninstall, "skipUninstall", "false", "skipUninstall skips the call to install the application")
+	flag.BoolVar(&skipDeploy, "skipDeploy", false, "skipDeploy skips the call to install the application")
+	flag.BoolVar(&skipUndeploy, "skipUndeploy", false, "skipUndeploy skips the call to install the application")
 }
 
 func TestBobsBooksExample(t *testing.T) {

@@ -20,7 +20,7 @@ import (
 	"k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -51,7 +51,7 @@ func DoesCRDExist(crdName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	apixClient, err := apixv1beta1client.NewForConfig(config)
+	apixClient, err := apiextv1.NewForConfig(config)
 	if err != nil {
 		Log(Error, "Could not get apix client")
 		return false, err
@@ -345,13 +345,13 @@ func IsWebLogicOperatorEnabled(kubeconfigPath string) bool {
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
-func APIExtensionsClientSet() (*apixv1beta1client.ApiextensionsV1beta1Client, error) {
+func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return nil, err
 	}
 	// create the clientset
-	return apixv1beta1client.NewForConfig(config)
+	return apiextv1.NewForConfig(config)
 }
 
 // ListServices returns the list of services in a given namespace for the cluster

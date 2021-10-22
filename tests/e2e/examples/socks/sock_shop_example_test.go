@@ -36,7 +36,7 @@ var username, password string
 
 // creates the sockshop namespace and applies the components and application yaml
 var _ = BeforeSuite(func() {
-	if skipInstall != "true" {
+	if !skipDeploy {
 		username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 		password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
 		sockShop = NewSockShop(username, password, pkg.Ingress())
@@ -284,7 +284,7 @@ var _ = AfterSuite(func() {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 
-	if skipUninstall != "true" {
+	if !skipUndeploy {
 
 		Eventually(func() error {
 			return pkg.DeleteNamespace("sockshop")
