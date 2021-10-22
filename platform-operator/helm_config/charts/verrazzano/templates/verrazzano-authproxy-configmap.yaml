@@ -135,6 +135,8 @@ data:
         else
             auth.handleLocalAPICall(token)
         end
+    elseif backend == 'kiali' then
+        auth.handleImpersonateUser(token)
     else
         if auth.hasCredentialType(authHeader, 'Bearer') then
             -- clear the auth header if it's a bearer token
@@ -1019,7 +1021,10 @@ data:
             uri = string.sub(uri, last+1)
             ngx.req.set_uri(uri)
         end
+        me.handleImpersonateUser(token)
+    end
 
+    function me.handleImpersonateUser(token)
         local serviceAccountToken = me.getServiceAccountToken()
         me.logJson(ngx.INFO, "Set service account bearer token as Authorization header")
         ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
