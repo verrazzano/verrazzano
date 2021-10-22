@@ -12,6 +12,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	securityv1beta1 "istio.io/api/security/v1beta1"
+	istiov1beta1 "istio.io/api/type/v1beta1"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -22,9 +25,11 @@ const (
 	// ComponentName is the name of the component
 	ComponentName = "kiali-server"
 
-	kialiHostName   = "kiali.vmi.system"
-	kialiSystemName = "vmi-system-kiali"
-	webFQDNKey      = "server.web_fqdn"
+	kialiHostName    = "kiali.vmi.system"
+	kialiSystemName  = "vmi-system-kiali"
+	kialiServicePort = "20001"
+	kialiMetricsPort = "9090"
+	webFQDNKey       = "server.web_fqdn"
 )
 
 // isKialiReady checks if the Kiali deployment is ready
@@ -118,7 +123,54 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		}
 		return nil
 	})
-	ctx.Log().Debugf("Kiali ingress operation result: %s", opResult)
+	ctx.Log().Infof("Kiali ingress operation result: %s", opResult)
+	return err
+}
+
+func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
+	authPol := istioclisec.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
+	}
+	opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &authPol, func() error {
+		authPol.Spec = securityv1beta1.AuthorizationPolicy{
+			Selector: &istiov1beta1.WorkloadSelector{
+				MatchLabels: map[string]string{
+					"app": kialiSystemName,
+				},
+			},
+			Action: securityv1beta1.AuthorizationPolicy_ALLOW,
+			Rules: []*securityv1beta1.Rule{
+				{
+					From: []*securityv1beta1.Rule_From{{
+						Source: &securityv1beta1.Source{
+							Principals: []string{fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-authproxy", constants.VerrazzanoSystemNamespace)},
+							Namespaces: []string{constants.VerrazzanoSystemNamespace},
+						},
+					}},
+					To: []*securityv1beta1.Rule_To{{
+						Operation: &securityv1beta1.Operation{
+							Ports: []string{kialiServicePort},
+						},
+					}},
+				},
+				{
+					From: []*securityv1beta1.Rule_From{{
+						Source: &securityv1beta1.Source{
+							Principals: []string{fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-monitoring-operator", constants.VerrazzanoSystemNamespace)},
+							Namespaces: []string{constants.VerrazzanoSystemNamespace},
+						},
+					}},
+					To: []*securityv1beta1.Rule_To{{
+						Operation: &securityv1beta1.Operation{
+							Ports: []string{kialiMetricsPort},
+						},
+					}},
+				},
+			},
+		}
+		return nil
+	})
+	ctx.Log().Infof("Kiali auth policy op result: %s", opResult)
 	return err
 }
 
