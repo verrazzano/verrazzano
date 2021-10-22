@@ -37,3 +37,19 @@ require (
 	sigs.k8s.io/controller-tools v0.6.0
 	sigs.k8s.io/yaml v1.2.0
 )
+
+replace (
+	github.com/Jeffail/gabs/v2 => github.com/Jeffail/gabs/v2 v2.2.0
+	github.com/golang/mock => github.com/golang/mock v1.4.4
+	github.com/gordonklaus/ineffassign => github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
+	github.com/hashicorp/go-retryablehttp => github.com/hashicorp/go-retryablehttp v0.6.8
+	github.com/jetstack/cert-manager => github.com/jetstack/cert-manager v1.2.0
+	github.com/onsi/gomega => github.com/onsi/gomega v1.13.0
+	github.com/spf13/cobra => github.com/spf13/cobra v1.1.1
+	github.com/stretchr/testify => github.com/stretchr/testify v1.6.1
+	go.uber.org/zap => go.uber.org/zap v1.16.0
+	golang.org/x/lint => golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
+	golang.org/x/tools => golang.org/x/tools v0.0.0-20201224043029-2b0845dc783e
+	istio.io/api => istio.io/api v0.0.0-20200911191701-0dc35ad5c478
+	istio.io/client-go => istio.io/client-go v0.0.0-20200807182027-d287a5abb594
+)
