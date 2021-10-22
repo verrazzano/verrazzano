@@ -45,6 +45,27 @@ const kcInitContainerValueTemplate = `
           mountPath: /cacerts
 `
 
+const kcExtraEnvKey = "extraEnv"
+const kcExtraEnvKeyValue = `
+  - name: DB_VENDOR
+    value: mysql
+  - name: DB_ADDR
+    value: mysql
+  - name: DB_PORT
+    value: "3306"
+  - name: DB_DATABASE
+    value: keycloak
+  - name: DB_USER
+    value: keycloak
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: mysql
+        key: mysql-password
+  - name: PROXY_ADDRESS_FORWARDING
+    value: "true"
+`
+
 // imageData needed for template rendering
 type imageData struct {
 	Image string
@@ -85,6 +106,12 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	kvs = append(kvs, bom.KeyValue{
 		Key:   kcInitContainerKey,
 		Value: b.String(),
+	})
+
+	// Override extraEnv helm value
+	kvs = append(kvs, bom.KeyValue{
+		Key:   kcExtraEnvKey,
+		Value: kcExtraEnvKeyValue,
 	})
 
 	// Additional overrides for Keycloak 15.0.2 charts.

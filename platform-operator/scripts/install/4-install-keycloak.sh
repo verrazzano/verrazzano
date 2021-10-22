@@ -112,6 +112,36 @@ function build_extra_init_containers_override {
           mountPath: /cacerts"
 }
 
+# build_extra_env_override overrides the keycloak extraEnv helm value with YAML that
+# includes the environment variables for database, keycloak admin user and password
+function build_extra_env_override {
+  EXTRA_ENV_OVERRIDE="
+  - name: DB_VENDOR
+    value: mysql
+  - name: DB_ADDR
+    value: mysql
+  - name: DB_PORT
+    value: \"3306\"
+  - name: DB_DATABASE
+    value: keycloak
+  - name: DB_USER
+    value: keycloak
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: mysql
+        key: mysql-password
+  - name: PROXY_ADDRESS_FORWARDING
+    value: \"true\"
+  - name: KEYCLOAK_USER
+    value: keycloakadmin
+  - name: KEYCLOAK_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-http
+        key: password"
+}
+
 function install_keycloak {
   KEYCLOAK_CHART_DIR=${CHARTS_DIR}/keycloak
 
@@ -148,6 +178,7 @@ function install_keycloak {
     build_image_overrides keycloak ${chart_name}
     local keycloak_image_args=${HELM_IMAGE_ARGS}
     build_extra_init_containers_override
+    build_extra_env_override
 
     # Install keycloak helm chart
     helm_install_retry ${chart_name} ${KEYCLOAK_CHART_DIR} ${KEYCLOAK_NS} \
@@ -155,6 +186,7 @@ function install_keycloak {
         ${KEYCLOAK_ARGUMENTS} \
         ${keycloak_image_args} \
         --set extraInitContainers="${EXTRA_INIT_CONTAINERS_OVERRIDE}" \
+        --set extraEnv="${EXTRA_ENV_OVERRIDE}" \
         || return $?
   fi
 
