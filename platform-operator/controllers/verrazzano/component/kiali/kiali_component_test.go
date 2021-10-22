@@ -96,7 +96,7 @@ func TestIsEnabled(t *testing.T) {
 //  WHEN The Kiali component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.False(t, IsEnabled(nil))
+	assert.True(t, IsEnabled(nil))
 }
 
 // TestIsEnabledNilEnabledFlag tests the IsEnabled function
