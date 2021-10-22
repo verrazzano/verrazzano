@@ -32,8 +32,6 @@ func init() {
 
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
-
-	// +kubebuilder:scaffold:testScheme
 }
 
 // TestIsKialiReady tests the IsReady function
