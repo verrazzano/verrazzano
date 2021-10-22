@@ -8,6 +8,7 @@ package installjob
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"strconv"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -507,7 +508,7 @@ func getCASecretName(cmConfig *installv1alpha1.CertManagerComponent) string {
 func getEnvironmentName(envName string) string {
 	// Use env name of default if not specified
 	if envName == "" {
-		return "default"
+		return constants.DefaultEnvironmentName
 	}
 
 	return envName

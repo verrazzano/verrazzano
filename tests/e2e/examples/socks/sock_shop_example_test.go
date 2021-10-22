@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -35,11 +36,22 @@ const (
 var sockShop SockShop
 var username, password string
 
+// variant is used to pass in which version of the sock shop we want to run the test
+// suite against (helidon, micronaut, or spring)
+var variant string
+
 // creates the sockshop namespace and applies the components and application yaml
 var _ = BeforeSuite(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
 	sockShop = NewSockShop(username, password, pkg.Ingress())
+
+	// read the variant from the environment - if not specified, default to "helidon"
+	variant := os.Getenv("SOCKS_SHOP_VARIANT")
+	if variant != "helidon" && variant != "micronaut" && variant != "spring" {
+		variant = "helidon"
+	}
+	GinkgoWriter.Write([]byte(fmt.Sprintf("*** Socks shop test is running against variant: %s\n", variant)))
 
 	// deploy the application here
 	Eventually(func() (*v1.Namespace, error) {
@@ -47,11 +59,11 @@ var _ = BeforeSuite(func() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml")
+		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
+		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
 })
 
@@ -77,38 +89,6 @@ var _ = Describe("Sock Shop Application", func() {
 	It("Verify application pods are running", func() {
 		// checks that all pods are up and running
 		Eventually(sockshopPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
-		// checks that all application services are up
-		pkg.Concurrently(
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("catalogue")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			},
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("carts")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			},
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("orders")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			},
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("payment-http")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			},
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("shipping-http")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			},
-			func() {
-				Eventually(func() bool {
-					return isSockShopServiceReady("user")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			})
 	})
 
 	var hostname = ""
@@ -254,7 +234,8 @@ var _ = Describe("Sock Shop Application", func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("For all those leg lovers out there.")))
 	})
 
-	Describe("Verify Prometheus scraped metrics", func() {
+	// this is marked pending until VZ-3760 is fixed
+	PDescribe("Verify Prometheus scraped metrics", func() {
 		It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
