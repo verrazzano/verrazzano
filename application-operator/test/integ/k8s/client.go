@@ -6,7 +6,7 @@ package k8s
 import (
 	"fmt"
 
-	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
 	"k8s.io/client-go/kubernetes"
@@ -19,7 +19,7 @@ type Client struct {
 	clientset *kubernetes.Clientset
 
 	// Client to access the Kubernetes API for extensions
-	apixClient *apixv1beta1client.ApiextensionsV1beta1Client
+	apixClient *apiextv1.ApiextensionsV1Client
 }
 
 // NewClient gets a new client that calls the Kubernetes API server to access the Verrazzano API Objects
@@ -39,7 +39,7 @@ func NewClient() (Client, error) {
 	}
 
 	// Client to access the Kubernetes API for extensions
-	apixcli, err := apixv1beta1client.NewForConfig(config)
+	apixcli, err := apiextv1.NewForConfig(config)
 	if err != nil {
 		return Client{}, err
 	}

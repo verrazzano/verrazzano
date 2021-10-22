@@ -225,6 +225,9 @@ pipeline {
                             }
                             archiveArtifacts artifacts: "**/logs/**,${env.INSTALL_CONFIG_FILE_KIND}", allowEmptyArchive: true
                         }
+                        failure {
+                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                        }
                     }
                 }
                 stage("upgrade-platform-operator") {

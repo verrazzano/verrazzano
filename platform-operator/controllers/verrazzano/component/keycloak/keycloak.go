@@ -117,11 +117,21 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	})
 
 	// this secret contains the keycloak TLS certificate created by cert-manager during the original keycloak installation
-	tlsSecretValue := fmt.Sprintf("%s-secret", compContext.EffectiveCR().Spec.EnvironmentName)
+	installEnvName := getEnvironmentName(compContext.EffectiveCR().Spec.EnvironmentName)
+	tlsSecretValue := fmt.Sprintf("%s-secret", installEnvName)
 	kvs = append(kvs, bom.KeyValue{
 		Key:   tlsSecret,
 		Value: tlsSecretValue,
 	})
 
 	return kvs, nil
+}
+
+// // getEnvironmentName returns the name of the Verrazzano install environment
+func getEnvironmentName(envName string) string {
+	if envName == "" {
+		return constants.DefaultEnvironmentName
+	}
+
+	return envName
 }

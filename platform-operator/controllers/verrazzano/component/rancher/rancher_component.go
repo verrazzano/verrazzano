@@ -1,7 +1,6 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
-package mysql
+package rancher
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -10,27 +9,18 @@ import (
 	"path/filepath"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "mysql"
-
-// MySQLComponent represents an MySQL component
-type MySQLComponent struct {
+type rancherComponent struct {
 	helm.HelmComponent
 }
 
-// Verify that MySQLComponent implements Component
-var _ spi.Component = MySQLComponent{}
-
-// NewComponent returns a new MySQL component
 func NewComponent() spi.Component {
-	return MySQLComponent{
+	return rancherComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          "keycloak",
+			ChartNamespace:          "cattle-system",
 			IgnoreNamespaceOverride: true,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
-			AppendOverridesFunc:     AppendMySQLOverrides,
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 		},
 	}
 }

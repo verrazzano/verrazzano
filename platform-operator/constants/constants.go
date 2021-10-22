@@ -89,3 +89,6 @@ const IngressNginxNamespace = "ingress-nginx"
 
 //  KeycloakNamespace is the keycloak namespace name
 const KeycloakNamespace = "keycloak"
+
+// The default name for install environment
+const DefaultEnvironmentName = "default"
