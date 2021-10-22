@@ -287,7 +287,7 @@ pipeline {
                 }
                 stage('examples bobs-books') {
                     steps {
-                        runGinkgo('examples/bobsbooks', "false", "true")}
+                        runGinkgo('examples/bobsbooks', "false", "true")
                         script {
                             PROXY_IMAGES_BOBSBOOKS = getProxyImageCount("bobs-books")
                         }
