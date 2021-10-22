@@ -123,7 +123,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		}
 		return nil
 	})
-	ctx.Log().Debugf("Kiali ingress operation result: %s", opResult)
+	ctx.Log().Infof("Kiali ingress operation result: %s", opResult)
 	return err
 }
 
@@ -131,7 +131,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 	authPol := istioclisec.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
 	}
-	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &authPol, func() error {
+	opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &authPol, func() error {
 		authPol.Spec = securityv1beta1.AuthorizationPolicy{
 			Selector: &istiov1beta1.WorkloadSelector{
 				MatchLabels: map[string]string{
@@ -170,6 +170,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 		}
 		return nil
 	})
+	ctx.Log().Infof("Kiali auth policy op result: %s", opResult)
 	return err
 }
 

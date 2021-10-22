@@ -126,11 +126,11 @@ func TestIsEnabledNilEnabledFlag(t *testing.T) {
 	assert.False(t, IsEnabled(&vzapi.KialiComponent{}))
 }
 
-// TestPostInstallUpdateKialiIngress tests the PostInstall function
+// TestKialiPostInstallUpdateResources tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the Kiali ingress already exists
+//  WHEN the Kiali resources already exist
 //  THEN no error is returned
-func TestPostInstallUpdateKialiIngress(t *testing.T) {
+func TestKialiPostInstallUpdateResources(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -153,11 +153,11 @@ func TestPostInstallUpdateKialiIngress(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestPostInstallCreateKialiIngress tests the PostInstall function
+// TestKialiPostInstallCreateResources tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the Kiali ingress doesn't yet exist
+//  WHEN the Kiali ingress and authpolicies don't yet exist
 //  THEN no error is returned
-func TestPostInstallCreateKialiIngress(t *testing.T) {
+func TestKialiPostInstallCreateResources(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -174,11 +174,11 @@ func TestPostInstallCreateKialiIngress(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestPostUpgradeUpdateKialiIngress tests the PostUpgrade function
+// TestKialiPostUpgradeUpdateResources tests the PostUpgrade function
 // GIVEN a call to PostUpgrade
-//  WHEN the Kiali ingress exists
+//  WHEN the Kiali resources exist
 //  THEN no error is returned
-func TestPostUpgradeUpdateKialiIngress(t *testing.T) {
+func TestKialiPostUpgradeUpdateResources(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -193,7 +193,10 @@ func TestPostUpgradeUpdateKialiIngress(t *testing.T) {
 	ingress := &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: constants.VerrazzanoSystemNamespace},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress)
+	authPol := &istioclisec.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
+	}
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
 	err := NewComponent().PostUpgrade(spi.NewContext(zap.S(), fakeClient, vz, false))
 	assert.Nil(t, err)
 }
