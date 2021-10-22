@@ -38,6 +38,8 @@ var _ = AfterEach(func() {
 
 var _ = AfterSuite(func() {
 	if failed {
+		// Dump todo domain pods
+		pkg.DumpContainerLogs("todo-list", "tododomain-adminserver", "weblogic-server", "/scratch/logs/todo-domain")
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	if !skipUndeploy {

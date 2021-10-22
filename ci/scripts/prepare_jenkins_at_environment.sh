@@ -109,7 +109,7 @@ until kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}; do
   fi
 done
 
-${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump -r ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump/analysis.report
+${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
 
 # wait for Verrazzano install to complete
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
