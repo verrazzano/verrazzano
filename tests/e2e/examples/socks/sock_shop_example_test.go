@@ -263,7 +263,7 @@ var _ = AfterSuite(func() {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 
-	if !skipDeploy {
+	if !skipUndeploy {
 		Eventually(func() error {
 			return pkg.DeleteNamespace("sockshop")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
