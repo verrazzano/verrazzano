@@ -234,16 +234,6 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
 		})
-
-		It("Verify istio_request_bytes_bucket metrics exist for managed cluster", func() {
-			Eventually(func() bool {
-				m := make(map[string]string)
-				m["namespace"] = testNamespace
-				m["managed_cluster"] = clusterName
-				return pkg.MetricsExistInCluster("istio_request_bytes_bucket", m, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
-
-		})
 	})
 
 	Context("Delete resources", func() {
