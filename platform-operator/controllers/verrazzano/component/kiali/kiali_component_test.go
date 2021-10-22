@@ -102,9 +102,9 @@ func TestIsEnabledNilComponent(t *testing.T) {
 // TestIsEnabledNilEnabledFlag tests the IsEnabled function
 // GIVEN a call to IsEnabled
 //  WHEN The Kiali enabled flag is nil
-//  THEN false is returned
+//  THEN true is returned
 func TestIsEnabledNilEnabledFlag(t *testing.T) {
-	assert.False(t, IsEnabled(&vzapi.KialiComponent{}))
+	assert.True(t, IsEnabled(&vzapi.KialiComponent{}))
 }
 
 // TestPostInstallUpdateKialiIngress tests the PostInstall function
