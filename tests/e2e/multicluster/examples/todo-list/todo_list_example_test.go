@@ -68,12 +68,12 @@ var _ = BeforeSuite(func() {
 
 	// create Weblogic credentials secret
 	Eventually(func() (*m1.Secret, error) {
-		return pkg.CreateCredentialsSecret(testNamespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
+		return pkg.CreateCredentialsSecretInCluster(testNamespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil, adminKubeconfig)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// create database credentials secret
 	Eventually(func() (*m1.Secret, error) {
-		return pkg.CreateCredentialsSecret(testNamespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"})
+		return pkg.CreateCredentialsSecretInCluster(testNamespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"}, adminKubeconfig)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() error {
