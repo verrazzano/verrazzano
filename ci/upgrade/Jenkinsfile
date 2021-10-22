@@ -10,6 +10,7 @@ def PROXY_IMAGES_KEYCLOAK
 def PROXY_IMAGES_SPRINGBOOT
 def PROXY_IMAGES_HELIDON
 def PROXY_IMAGES_TODO
+def PROXY_IMAGES_BOBSBOOKS
 
 pipeline {
     options {
@@ -255,11 +256,6 @@ pipeline {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
-                stage('examples bobs-books') {
-                    steps {
-                        runGinkgo('examples/bobsbooks', "false", "true")
-                    }
-                }
                 stage('examples socks') {
                     steps {
                         runGinkgo('examples/socks', "false", "true")
@@ -287,6 +283,14 @@ pipeline {
                         script {
                             PROXY_IMAGES_TODO = getProxyImageCount("todo-list")
                         }
+                    }
+                }
+                stage('examples bobs-books') {
+                    steps {
+                        runGinkgo('examples/bobsbooks', "false", "true")
+                    }
+                    script {
+                        PROXY_IMAGES_BOBSBOOKS = getProxyImageCount("bobs-books")
                     }
                 }
             }
@@ -455,6 +459,11 @@ pipeline {
                         validateProxyImageCount("todo-list", PROXY_IMAGES_TODO)
                     }
                 }
+                stage("Validate bobs-books istio upgrade") {
+                    steps {
+                        validateProxyImageCount("bobs-books", PROXY_IMAGES_BOBSBOOKS)
+                    }
+                }
             }
         }
 
@@ -483,11 +492,6 @@ pipeline {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
-                stage('examples bobs-books') {
-                    steps {
-                        runGinkgo('examples/bobsbooks', "true", "false")
-                    }
-                }
                 stage('examples socks') {
                     steps {
                         runGinkgo('examples/socks', "true", "false")
@@ -506,6 +510,11 @@ pipeline {
                 stage('examples todo') {
                     steps {
                         runGinkgo('examples/todo', "true", "false")
+                    }
+                }
+                stage('examples bobs-books') {
+                    steps {
+                        runGinkgo('examples/bobsbooks', "true", "false")
                     }
                 }
             }
@@ -926,8 +935,12 @@ def validateIstioCoreDNSUninstall() {
 def restartExampleApps() {
     sh """
         kubectl rollout restart deployment -n springboot
+
         kubectl rollout restart deployment -n hello-helidon
-        kubectl delete pods -n todo-list
+
+        kubectl delete pods -n todo-list --all
+
+        kubectl rollout restart deployment -n bobs-books
         kubectl patch domain -n bobs-books bobs-orders-wls -p '{"spec":{"serverStartPolicy":"NEVER"}}' --type merge
         kubectl patch domain -n bobs-books bobbys-front-end -p '{"spec":{"serverStartPolicy":"NEVER"}}' --type merge
         sleep 120
