@@ -23,6 +23,9 @@ else
   codeGenVer=$(go list -m -f '{{.Replace.Version}}' k8s.io/code-generator)
 fi
 
+# ensure code-generator has been downloaded
+go get ./...
+
 CODEGEN_PKG=${CODEGEN_PKG:-${GOPATH:-${HOME}/go}/pkg/mod/${CODEGEN_PATH}@${codeGenVer}}
 echo "codegen_pkg = ${CODEGEN_PKG}"
 chmod +x ${CODEGEN_PKG}/generate-groups.sh
