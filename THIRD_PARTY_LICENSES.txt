@@ -5,12 +5,10 @@ Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
-Copyright (c) 2019, 2021 Oracle and/or its affiliates.  All rights reserved.
 Copyright 2020, Oracle Corporation and/or its affiliates.
 Copyright (c) 2015-2021 Bitnami
 Copyright The Helm Authors.
 Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
-Copyright (c) 2017, 2021, Oracle Corporation and/or its affiliates.
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
 Copyright Scanner
 Copyright scanning target .
@@ -2380,12 +2378,6 @@ Copyright (c) 2019 Gert Drapers
 Copyright (c) 2013 Blake Embrey (hello@blakeembrey.com)
 
 -------- Dependency
-github.com/joshdk/go-junit
--------- Copyrights
-Copyright (c) Josh Komoroske
-Copyright Josh Komoroske. All rights reserved.
-
--------- Dependency
 github.com/json-iterator/go
 -------- Copyrights
 Copyright (c) 2016 json-iterator
@@ -2483,7 +2475,6 @@ github.com/beorn7/perks
 github.com/cespare/xxhash/v2
 github.com/emicklei/go-restful
 github.com/gertd/go-pluralize
-github.com/joshdk/go-junit
 github.com/json-iterator/go
 github.com/mailru/easyjson
 github.com/nxadm/tail
@@ -2630,4 +2621,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: ee86f6a46bf8c571658bcc6592457fe8
+License file based on go.mod with md5 sum: 14c3bde0042f5120df6bf019c9ce1bf2
