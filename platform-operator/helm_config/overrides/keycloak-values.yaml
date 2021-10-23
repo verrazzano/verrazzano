@@ -9,32 +9,6 @@
 postgresql:
   enabled: false
 
-extraEnv: |
-  - name: DB_VENDOR
-    value: mysql
-  - name: DB_ADDR
-    value: mysql
-  - name: DB_PORT
-    value: "3306"
-  - name: DB_DATABASE
-    value: keycloak
-  - name: DB_USER
-    value: "keycloak"
-  - name: DB_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: mysql
-        key: mysql-password
-  - name: PROXY_ADDRESS_FORWARDING
-    value: "true"
-  - name: KEYCLOAK_USER
-    value: "keycloakadmin"
-  - name: KEYCLOAK_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: keycloak-http
-        key: password
-
 extraVolumes: |
   - name: theme
     emptyDir: {}
