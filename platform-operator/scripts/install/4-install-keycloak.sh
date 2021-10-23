@@ -531,6 +531,11 @@ EOF
 #
 #   If keycloak is not installed, exclude Istio sidecar for metrics scraping
 function patch_prometheus {
+  if [ $(is_prometheus_console_enabled) == "false" ]; then
+    log "Skipping patch of Prometheus because the console is not enabled"
+    return 0
+  fi
+
   log "Waiting for the deployment vmi-system-prometheus-0 in verrazzano-system to be ready"
   wait_for_deployment ${VERRAZZANO_NS} vmi-system-prometheus-0
   if [ $? -ne 0 ]; then
