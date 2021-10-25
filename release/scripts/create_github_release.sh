@@ -87,6 +87,7 @@ else
     echo "TEST_RUN is set to false, doing a github release now."
     # Setting an empty string for notes, as the release notes will be prepared separately
     gh release create "${VERSION}" \
+      --draft \
       --target "${RELEASE_COMMIT}" \
       --notes "" \
       --title "Verrazzano release ${VERSION}" \

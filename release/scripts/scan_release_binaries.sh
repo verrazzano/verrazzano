@@ -15,10 +15,10 @@ usage() {
   Performs malware scan on release binaries.
 
   Usage:
-    $(basename $0) <release branch> <directory where the release artifacts need to be downloaded, defaults to the current directory>
+    $(basename $0) <release branch> <directory where the release artifacts need to be downloaded, defaults to the current directory> <release version>
 
   Example:
-    $(basename $0) release-1.0
+    $(basename $0) release-1.0 . 1.0.2
 
   The script expects the OCI CLI is installed. It also expects the following environment variables -
     OCI_REGION - OCI region
@@ -34,14 +34,15 @@ EOM
 
 [ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OBJECT_STORAGE_BUCKET" ] ||
 [ -z "$SCANNER_ARCHIVE_LOCATION" ] || [ -z "$SCANNER_ARCHIVE_FILE" ] || [ -z "$NO_PROXY_SUFFIX" ] ||
-[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$1" ] || [ -z "$2" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
 
 BRANCH=${1}
 WORK_DIR=${2:-$SCRIPT_DIR}
+RELEASE_VERSION=${3}
 SCAN_REPORT_DIR="$WORK_DIR/scan_report_dir"
 SCANNER_HOME="$WORK_DIR/scanner_home"
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
-RELEASE_TAR_BALL="tarball.tar.gz"
+RELEASE_TAR_BALL="verrazzano_$RELEASE_VERSION.zip"
 
 function downaload_release_tarball() {
   cd $WORK_DIR
