@@ -60,5 +60,5 @@ replace (
 	k8s.io/code-generator => k8s.io/code-generator v0.19.0
 	k8s.io/component-base => k8s.io/component-base v0.19.0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.8.0
-	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.4
+	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.4.1
 )
