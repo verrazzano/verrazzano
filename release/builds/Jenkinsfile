@@ -212,7 +212,7 @@ pipeline {
                         echo "Triggering OCR Image push build"
                         build job: "publish-release-images-to-ocr",
                             parameters: [
-                                string(name: 'IMAGES_TO_PUBLISH_JOB_NAME', value: 'verrazzano-new-oci-dns-acceptance-tests/${env.BRANCH_NAME}'),
+                                string(name: 'IMAGES_TO_PUBLISH_JOB_NAME', value: '${RELEASE_JOB_NAME}'),
                             ], wait: true
                     }
                 }
