@@ -1558,8 +1558,8 @@ Copyright 2019 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2015 go-swagger maintainers
-Copyright 2017 go-swagger maintainers
 Copyright (C) MongoDB, Inc. 2017-present.
+Copyright 2017 go-swagger maintainers
 
 -------- Dependency
 k8s.io/utils
@@ -2646,4 +2646,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 2746ea5aa6bb24b688bbd6a6989c6047
+License file based on go.mod with md5 sum: 76e4a3284901fbf2e1204c024c5f17c7

@@ -35,6 +35,7 @@ require (
 	k8s.io/code-generator v0.22.2
 	sigs.k8s.io/controller-runtime v0.9.2
 	sigs.k8s.io/controller-tools v0.6.0
+	sigs.k8s.io/kustomize v2.0.3+incompatible // indirect
 	sigs.k8s.io/yaml v1.2.0
 )
 
@@ -59,6 +60,7 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.19.0
 	k8s.io/code-generator => k8s.io/code-generator v0.19.0
 	k8s.io/component-base => k8s.io/component-base v0.19.0
+	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20210323165736-1a6458611d18
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.8.0
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.4.1
 )
