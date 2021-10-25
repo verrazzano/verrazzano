@@ -81,7 +81,7 @@ func getProject(o *ProjectGetOptions, streams genericclioptions.IOStreams, args 
 			fmt.Fprintln(streams.ErrOut, "Did not get a printer object")
 			return err
 		}
-		err = printer.PrintObj(projectDetails, o.Out)
+		err = printer.PrintObj(projectDetails, o.IOStreams.Out)
 
 		return err
 	}

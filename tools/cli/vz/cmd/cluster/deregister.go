@@ -61,6 +61,6 @@ func (o *ClusterDeregisterOptions) deregisterCluster(kubernetesInterface helpers
 		return err
 	}
 
-	_, err = fmt.Fprintln(o.Out, vmcName+" deregistered")
+	_, err = fmt.Fprintln(o.IOStreams.Out, vmcName+" deregistered")
 	return err
 }

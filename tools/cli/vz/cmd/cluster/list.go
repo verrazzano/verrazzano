@@ -91,7 +91,7 @@ func (o *ClusterListOptions) listClusters(kubernetesInterface helpers.Kubernetes
 
 	// check if the list is empty
 	if len(vmcs.Items) == 0 {
-		_, err := fmt.Fprintln(o.Out, helpers.NothingFound)
+		_, err := fmt.Fprintln(o.IOStreams.Out, helpers.NothingFound)
 		return err
 	}
 
@@ -108,7 +108,7 @@ func (o *ClusterListOptions) listClusters(kubernetesInterface helpers.Kubernetes
 		if err != nil {
 			return err
 		}
-		err = printer.PrintObj(vmcs, o.Out)
+		err = printer.PrintObj(vmcs, o.IOStreams.Out)
 
 		return err
 	}
@@ -127,7 +127,7 @@ func (o *ClusterListOptions) listClusters(kubernetesInterface helpers.Kubernetes
 	}
 
 	// print out the data
-	if err := helpers.PrintTable(headings, data, o.Out); err != nil {
+	if err := helpers.PrintTable(headings, data, o.IOStreams.Out); err != nil {
 		return err
 	}
 	return nil

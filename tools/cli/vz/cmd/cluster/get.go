@@ -73,7 +73,7 @@ func (o *ClusterGetOptions) getCluster(kubernetesInterface helpers.Kubernetes) e
 		if err != nil {
 			return err
 		}
-		err = printer.PrintObj(vmcObject, o.Out)
+		err = printer.PrintObj(vmcObject, o.IOStreams.Out)
 
 		return err
 	}
@@ -91,7 +91,7 @@ func (o *ClusterGetOptions) getCluster(kubernetesInterface helpers.Kubernetes) e
 	}
 
 	// print out the data
-	if err := helpers.PrintTable(headings, data, o.Out); err != nil {
+	if err := helpers.PrintTable(headings, data, o.IOStreams.Out); err != nil {
 		return err
 	}
 	return nil

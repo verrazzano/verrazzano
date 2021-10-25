@@ -85,7 +85,7 @@ func (o *ClusterRegisterOptions) registerCluster(kubernetesInterface helpers.Kub
 		return err
 	}
 
-	_, err = fmt.Fprintln(o.Out, "verrazzanomanagedcluster/"+mcName+" created")
+	_, err = fmt.Fprintln(o.IOStreams.Out, "verrazzanomanagedcluster/"+mcName+" created")
 
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func (o *ClusterRegisterOptions) checkConfigMap(kubernetesInterface helpers.Kube
 
 	// Config map doesn't exist, crete one
 	if err != nil && k8serror.IsNotFound(err) {
-		_, err := fmt.Fprintln(o.Out, "configmap/verrazzano-admin-cluster doesn't exist\ncreating configmap/verrazzano-admin-cluster")
+		_, err := fmt.Fprintln(o.IOStreams.Out, "configmap/verrazzano-admin-cluster doesn't exist\ncreating configmap/verrazzano-admin-cluster")
 		if err != nil {
 			return err
 		}
@@ -132,7 +132,7 @@ func (o *ClusterRegisterOptions) checkConfigMap(kubernetesInterface helpers.Kube
 			return err
 		}
 
-		_, err = fmt.Fprintln(o.Out, "configmap/verrazzano-admin-cluster created")
+		_, err = fmt.Fprintln(o.IOStreams.Out, "configmap/verrazzano-admin-cluster created")
 		return err
 	}
 

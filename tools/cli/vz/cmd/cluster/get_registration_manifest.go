@@ -88,10 +88,10 @@ func (o *ClusterManifestOptions) getManifest(kubenetesInterface helpers.Kubernet
 		// Set group and kind
 		secret.APIVersion = "v1"
 		secret.Kind = "Secret"
-		err = printer.PrintObj(secret, o.Out)
+		err = printer.PrintObj(secret, o.IOStreams.Out)
 		return err
 	}
 
-	_, err = fmt.Fprintln(o.Out, string(secret.Data["yaml"]))
+	_, err = fmt.Fprintln(o.IOStreams.Out, string(secret.Data["yaml"]))
 	return err
 }
