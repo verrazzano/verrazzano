@@ -15,8 +15,8 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
-            args "${RUNNER_DOCKER_ARGS}"
+            image "${RELEASE_RUNNER_IMAGE}"
+            args "${RELEASE_RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "internal"
@@ -116,6 +116,8 @@ pipeline {
         stage('Pre-release validation') {
             environment {
                 IGNORE_FAILURES = "${params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES}"
+                JIRA_USERNAME = credentials('jira-username')
+                JIRA_PASSWORD = credentials('jira-password')
             }
             steps {
                 script {
