@@ -3,28 +3,37 @@
 package kiali
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"go.uber.org/zap"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
-var crEnabled = vzapi.Verrazzano{
-	Spec: vzapi.VerrazzanoSpec{
-		Components: vzapi.ComponentSpec{
-			Kiali: &vzapi.KialiComponent{
-				Enabled: getBoolPtr(true),
-			},
-		},
-	},
+var testScheme = runtime.NewScheme()
+
+func init() {
+	_ = clientgoscheme.AddToScheme(testScheme)
+
+	_ = vzapi.AddToScheme(testScheme)
+	_ = clustersv1alpha1.AddToScheme(testScheme)
+
+	_ = istioclinet.AddToScheme(testScheme)
+	_ = istioclisec.AddToScheme(testScheme)
+
+	// +kubebuilder:scaffold:testScheme
 }
 
 // TestIsKialiReady tests the IsReady function
@@ -37,7 +46,7 @@ func TestIsKialiReady(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      kialiSystemName,
@@ -63,7 +72,7 @@ func TestIsKialiNotReady(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      kialiSystemName,
@@ -88,7 +97,7 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewFakeClientWithScheme(testScheme)
 	assert.False(t, NewComponent().IsReady(spi.NewContext(zap.S(), fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
@@ -97,7 +106,8 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 //  WHEN Kiali is explicitly enabled
 //  THEN true is returned
 func TestIsEnabled(t *testing.T) {
-	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &crEnabled, false)))
+	enabled := true
+	assert.True(t, IsEnabled(&vzapi.KialiComponent{Enabled: &enabled}))
 }
 
 // TestIsEnabledNilComponent tests the IsEnabled function
@@ -105,46 +115,23 @@ func TestIsEnabled(t *testing.T) {
 //  WHEN The Kiali component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &vzapi.Verrazzano{}, false)))
+	assert.False(t, IsEnabled(nil))
 }
 
-// TestIsEnabledNilKiali tests the IsEnabled function
+// TestIsEnabledNilEnabledFlag tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Kiali component is nil
-//  THEN true is returned
-func TestIsEnabledNilKiali(t *testing.T) {
-	cr := crEnabled
-	cr.Spec.Components.Kiali = nil
-	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
-}
-
-// TestIsEnabledNilEnabled tests the IsEnabled function
-// GIVEN a call to IsEnabled
-//  WHEN The Kiali component enabled is nil
-//  THEN true is returned
-func TestIsEnabledNilEnabled(t *testing.T) {
-	cr := crEnabled
-	cr.Spec.Components.Kiali.Enabled = nil
-	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
-}
-
-// TestIsEnabledManaged tests the IsEnabled function
-// GIVEN a call to IsEnabled
-//  WHEN The Kiali enabled flag is nil and managed cluster profile
+//  WHEN The Kiali enabled flag is nil
 //  THEN false is returned
-func TestIsEnabledManaged(t *testing.T) {
-	cr := crEnabled
-	cr.Spec.Components.Kiali = nil
-	cr.Spec.Profile = vzapi.ManagedCluster
-	assert.False(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+func TestIsEnabledNilEnabledFlag(t *testing.T) {
+	assert.False(t, IsEnabled(&vzapi.KialiComponent{}))
 }
 
-// TestPostInstallUpdateKialiIngress tests the PostInstall function
+// TestKialiPostInstallUpdateResources tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the Kiali ingress already exists
+//  WHEN the Kiali resources already exist
 //  THEN no error is returned
-func TestPostInstallUpdateKialiIngress(t *testing.T) {
-	cr := &vzapi.Verrazzano{
+func TestKialiPostInstallUpdateResources(t *testing.T) {
+	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				DNS: &vzapi.DNSComponent{
@@ -158,17 +145,20 @@ func TestPostInstallUpdateKialiIngress(t *testing.T) {
 	ingress := &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: constants.VerrazzanoSystemNamespace},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, ingress)
-	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, cr, false))
+	authPol := &istioclisec.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
+	}
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
+	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, vz, false))
 	assert.Nil(t, err)
 }
 
-// TestPostInstallCreateKialiIngress tests the PostInstall function
+// TestKialiPostInstallCreateResources tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the Kiali ingress doesn't yet exist
+//  WHEN the Kiali ingress and authpolicies don't yet exist
 //  THEN no error is returned
-func TestPostInstallCreateKialiIngress(t *testing.T) {
-	cr := &vzapi.Verrazzano{
+func TestKialiPostInstallCreateResources(t *testing.T) {
+	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				DNS: &vzapi.DNSComponent{
@@ -179,17 +169,17 @@ func TestPostInstallCreateKialiIngress(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, cr, false))
+	fakeClient := fake.NewFakeClientWithScheme(testScheme)
+	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, vz, false))
 	assert.Nil(t, err)
 }
 
-// TestPostUpgradeUpdateKialiIngress tests the PostUpgrade function
+// TestKialiPostUpgradeUpdateResources tests the PostUpgrade function
 // GIVEN a call to PostUpgrade
-//  WHEN the Kiali ingress exists
+//  WHEN the Kiali resources exist
 //  THEN no error is returned
-func TestPostUpgradeUpdateKialiIngress(t *testing.T) {
-	cr := &vzapi.Verrazzano{
+func TestKialiPostUpgradeUpdateResources(t *testing.T) {
+	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				DNS: &vzapi.DNSComponent{
@@ -203,11 +193,10 @@ func TestPostUpgradeUpdateKialiIngress(t *testing.T) {
 	ingress := &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: constants.VerrazzanoSystemNamespace},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, ingress)
-	err := NewComponent().PostUpgrade(spi.NewContext(zap.S(), fakeClient, cr, false))
+	authPol := &istioclisec.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
+	}
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
+	err := NewComponent().PostUpgrade(spi.NewContext(zap.S(), fakeClient, vz, false))
 	assert.Nil(t, err)
-}
-
-func getBoolPtr(b bool) *bool {
-	return &b
 }
