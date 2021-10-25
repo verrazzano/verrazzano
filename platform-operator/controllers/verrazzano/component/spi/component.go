@@ -33,6 +33,8 @@ type ComponentInfo interface {
 	GetDependencies() []string
 	// IsReady Indicates whether or not a component is available and ready
 	IsReady(context ComponentContext) bool
+	// IsEnabled Indicates whether or a component is enabled for installation
+	IsEnabled(context ComponentContext) bool
 }
 
 // ComponentInstaller interface defines installs operations for components that support it

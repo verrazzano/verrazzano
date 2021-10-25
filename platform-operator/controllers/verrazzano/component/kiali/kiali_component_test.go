@@ -22,6 +22,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+var crEnabled = vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Kiali: &vzapi.KialiComponent{
+				Enabled: getBoolPtr(true),
+			},
+		},
+	},
+}
+
 var testScheme = runtime.NewScheme()
 
 func init() {
@@ -101,29 +111,43 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 	assert.False(t, NewComponent().IsReady(spi.NewContext(zap.S(), fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
-// TestIsEnabled tests the IsEnabled function
-// GIVEN a call to IsEnabled
-//  WHEN Kiali is explicitly enabled
-//  THEN true is returned
-func TestIsEnabled(t *testing.T) {
-	enabled := true
-	assert.True(t, IsEnabled(&vzapi.KialiComponent{Enabled: &enabled}))
-}
-
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
 //  WHEN The Kiali component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.False(t, IsEnabled(nil))
+	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &vzapi.Verrazzano{}, false)))
 }
 
-// TestIsEnabledNilEnabledFlag tests the IsEnabled function
+// TestIsEnabledNilKiali tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Kiali enabled flag is nil
+//  WHEN The Kiali component is nil
+//  THEN true is returned
+func TestIsEnabledNilKiali(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Kiali = nil
+	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+}
+
+// TestIsEnabledNilEnabled tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Kiali component enabled is nil
+//  THEN true is returned
+func TestIsEnabledNilEnabled(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Kiali.Enabled = nil
+	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+}
+
+// TestIsEnabledManaged tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Kiali enabled flag is nil and managed cluster profile
 //  THEN false is returned
-func TestIsEnabledNilEnabledFlag(t *testing.T) {
-	assert.False(t, IsEnabled(&vzapi.KialiComponent{}))
+func TestIsEnabledManaged(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Kiali = nil
+	cr.Spec.Profile = vzapi.ManagedCluster
+	assert.False(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
 }
 
 // TestKialiPostInstallUpdateResources tests the PostInstall function
@@ -199,4 +223,8 @@ func TestKialiPostUpgradeUpdateResources(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
 	err := NewComponent().PostUpgrade(spi.NewContext(zap.S(), fakeClient, vz, false))
 	assert.Nil(t, err)
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }
