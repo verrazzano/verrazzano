@@ -17,6 +17,16 @@ import (
 	"testing"
 )
 
+var crEnabled = vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Kiali: &vzapi.KialiComponent{
+				Enabled: getBoolPtr(true),
+			},
+		},
+	},
+}
+
 // TestIsKialiReady tests the IsReady function
 // GIVEN a call to IsReady
 //  WHEN the deployment object has enough replicas available
@@ -87,8 +97,7 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 //  WHEN Kiali is explicitly enabled
 //  THEN true is returned
 func TestIsEnabled(t *testing.T) {
-	enabled := true
-	assert.True(t, IsEnabled(&vzapi.KialiComponent{Enabled: &enabled}))
+	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &crEnabled, false)))
 }
 
 // TestIsEnabledNilComponent tests the IsEnabled function
@@ -96,15 +105,38 @@ func TestIsEnabled(t *testing.T) {
 //  WHEN The Kiali component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, IsEnabled(nil))
+	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &vzapi.Verrazzano{}, false)))
 }
 
-// TestIsEnabledNilEnabledFlag tests the IsEnabled function
+// TestIsEnabledNilKiali tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Kiali enabled flag is nil
+//  WHEN The Kiali component is nil
 //  THEN true is returned
-func TestIsEnabledNilEnabledFlag(t *testing.T) {
-	assert.True(t, IsEnabled(&vzapi.KialiComponent{}))
+func TestIsEnabledNilKiali(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Kiali = nil
+	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+}
+
+// TestIsEnabledNilEnabled tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Kiali component enabled is nil
+//  THEN true is returned
+func TestIsEnabledNilEnabled(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Kiali.Enabled = nil
+	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+}
+
+// TestIsEnabledManaged tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Kiali enabled flag is nil and managed cluster profile
+//  THEN false is returned
+func TestIsEnabledManaged(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Kiali = nil
+	cr.Spec.Profile = vzapi.ManagedCluster
+	assert.False(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
 }
 
 // TestPostInstallUpdateKialiIngress tests the PostInstall function
@@ -112,7 +144,7 @@ func TestIsEnabledNilEnabledFlag(t *testing.T) {
 //  WHEN the Kiali ingress already exists
 //  THEN no error is returned
 func TestPostInstallUpdateKialiIngress(t *testing.T) {
-	vz := &vzapi.Verrazzano{
+	cr := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				DNS: &vzapi.DNSComponent{
@@ -127,7 +159,7 @@ func TestPostInstallUpdateKialiIngress(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: constants.VerrazzanoSystemNamespace},
 	}
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, ingress)
-	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, vz, false))
+	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, cr, false))
 	assert.Nil(t, err)
 }
 
@@ -136,7 +168,7 @@ func TestPostInstallUpdateKialiIngress(t *testing.T) {
 //  WHEN the Kiali ingress doesn't yet exist
 //  THEN no error is returned
 func TestPostInstallCreateKialiIngress(t *testing.T) {
-	vz := &vzapi.Verrazzano{
+	cr := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				DNS: &vzapi.DNSComponent{
@@ -148,7 +180,7 @@ func TestPostInstallCreateKialiIngress(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, vz, false))
+	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, cr, false))
 	assert.Nil(t, err)
 }
 
@@ -157,7 +189,7 @@ func TestPostInstallCreateKialiIngress(t *testing.T) {
 //  WHEN the Kiali ingress exists
 //  THEN no error is returned
 func TestPostUpgradeUpdateKialiIngress(t *testing.T) {
-	vz := &vzapi.Verrazzano{
+	cr := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				DNS: &vzapi.DNSComponent{
@@ -172,6 +204,10 @@ func TestPostUpgradeUpdateKialiIngress(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: constants.VerrazzanoSystemNamespace},
 	}
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, ingress)
-	err := NewComponent().PostUpgrade(spi.NewContext(zap.S(), fakeClient, vz, false))
+	err := NewComponent().PostUpgrade(spi.NewContext(zap.S(), fakeClient, cr, false))
 	assert.Nil(t, err)
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }
