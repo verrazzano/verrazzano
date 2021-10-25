@@ -42,7 +42,7 @@ func (c kialiComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostInstall(ctx); err != nil {
 		return err
 	}
-	return createOrUpdateKialiIngress(ctx, c.ChartNamespace)
+	return c.createOrUpdateKialiResources(ctx)
 }
 
 // PostUpgrade Kiali-post-upgrade processing, create or update the Kiali ingress
@@ -51,7 +51,7 @@ func (c kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
-	return createOrUpdateKialiIngress(ctx, c.ChartNamespace)
+	return c.createOrUpdateKialiResources(ctx)
 }
 
 // IsReady Kiali-specific ready-check
@@ -60,4 +60,15 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 		return isKialiReady(context, c.ReleaseName, c.ChartNamespace)
 	}
 	return false
+}
+
+// createOrUpdateKialiResources create or update related Kiali resources
+func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) error {
+	if err := createOrUpdateKialiIngress(ctx, c.ChartNamespace); err != nil {
+		return err
+	}
+	if err := createOrUpdateAuthPolicy(ctx); err != nil {
+		return err
+	}
+	return nil
 }

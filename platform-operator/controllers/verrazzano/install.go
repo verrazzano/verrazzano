@@ -6,11 +6,8 @@ package verrazzano
 import (
 	"context"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"go.uber.org/zap"
@@ -44,7 +41,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			continue
 		case vzapi.Disabled:
-			if !isComponentEnabled(cr, comp.Name()) {
+			if !comp.IsEnabled(compContext) {
 				// User has disabled component in Verrazzano CR, don't install
 				continue
 			}
@@ -99,19 +96,4 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 		return newRequeueWithDelay(), nil
 	}
 	return ctrl.Result{}, nil
-}
-
-// IsEnabled returns true if the component spec has enabled set to true
-// Enabled=true is the default
-func isComponentEnabled(cr *vzapi.Verrazzano, componentName string) bool {
-	switch componentName {
-	case coherence.ComponentName:
-		return coherence.IsEnabled(cr.Spec.Components.CoherenceOperator)
-	case weblogic.ComponentName:
-		return weblogic.IsEnabled(cr.Spec.Components.WebLogicOperator)
-	case kiali.ComponentName:
-		return kiali.IsEnabled(cr.Spec.Components.Kiali)
-	}
-
-	return true
 }

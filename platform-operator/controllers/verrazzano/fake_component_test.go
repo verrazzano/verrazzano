@@ -56,3 +56,7 @@ func (f fakeComponent) IsInstalled(_ spi.ComponentContext) (bool, error) {
 func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return true
 }
+
+func (f fakeComponent) IsEnabled(_ spi.ComponentContext) bool {
+	return true
+}
