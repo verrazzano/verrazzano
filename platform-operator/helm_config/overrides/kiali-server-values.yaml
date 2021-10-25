@@ -10,7 +10,7 @@ nameOverride: "vmi-system-kiali"
 fullnameOverride: "vmi-system-kiali"
 
 auth:
-  strategy: anonymous
+  strategy: header
 
 istio_namespace: istio-system
 
