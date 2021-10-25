@@ -81,7 +81,10 @@ data:
     auth.info("Processing request for backend '"..ingressHost.."'")
     local authHeader = ngx.req.get_headers()["authorization"]
     local token = nil
-    if authHeader then
+    auth.info("backend == "..backend..", backendUrl == "..backendUrl)
+    -- Temp hack to debug Kiali impersonation
+    if authHeader and backend ~= 'kiali' and string.find(backendUrl, 'kiali/api/authenticate') == nil then
+    -- if authHeader then
         if auth.hasCredentialType(authHeader, 'Bearer') then
             token = auth.handleBearerToken(authHeader)
         elseif auth.hasCredentialType(authHeader, 'Basic') then
