@@ -23,7 +23,9 @@ const (
 )
 
 var _ = BeforeSuite(func() {
-	deployBobsBooksExample()
+	if !skipDeploy {
+		deployBobsBooksExample()
+	}
 })
 
 var failed = false
@@ -35,7 +37,9 @@ var _ = AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
-	undeployBobsBooksExample()
+	if !skipUndeploy {
+		undeployBobsBooksExample()
+	}
 })
 
 func deployBobsBooksExample() {

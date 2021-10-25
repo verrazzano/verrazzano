@@ -401,8 +401,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
                             }
                             steps {
-                                runSocksVariant('helidon')
-                                runSocksVariant('micronaut')
+                                runGinkgo('examples/socks')
                             }
                         }
                         stage('examples spring') {
@@ -563,15 +562,6 @@ def runGinkgoRandomize(testSuitePath) {
             ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
-}
-
-def runSocksVariant(variant) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-            sh """
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                SOCKS_SHOP_VARIANT=${variant} ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true examples/socks/...
-            """
-        }
 }
 
 def runGinkgo(testSuitePath) {

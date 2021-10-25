@@ -13,7 +13,6 @@ import (
 	neturl "net/url"
 	"os"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -133,19 +132,11 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 			if isReadyAndRunning(pod) {
 				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
 			} else {
-				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
+				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, pod.Status.ContainerStatuses))
 			}
 		}
 	}
 	return len(missing) == 0
-}
-
-func formatContainerStatuses(containerStatuses []v1.ContainerStatus) string {
-	output := ""
-	for _, cs := range containerStatuses {
-		output += fmt.Sprintf("Container name:%s ready:%s. ", cs.Name, strconv.FormatBool(cs.Ready))
-	}
-	return output
 }
 
 // PodsNotRunning returns true if all pods in namePrefixes are not running
@@ -215,8 +206,6 @@ func isPodRunning(pods []v1.Pod, namePrefix string) bool {
 							status = fmt.Sprintf("%v %v", status, cs.LastTerminationState.Terminated.Reason)
 						}
 					}
-				} else {
-					status = fmt.Sprintf("%v %v", status, "unknown")
 				}
 				Log(Info, fmt.Sprintf("Pod %v was NOT running: %v", pods[i].Name, status))
 				return false

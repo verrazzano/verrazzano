@@ -10,14 +10,14 @@ require (
 	github.com/crossplane/crossplane-runtime v0.13.0
 	github.com/gertd/go-pluralize v0.1.7
 	github.com/go-logr/logr v0.4.0
+	github.com/go-logr/zapr v0.4.0 // indirect
 	github.com/golang/mock v1.5.0
 	github.com/gordonklaus/ineffassign v0.0.0-20210914165742-4cc7213b9bc8
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/jetstack/cert-manager v1.5.4
-	github.com/joshdk/go-junit v0.0.0-20210226021600-6145f504ca0d
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.14.0
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
