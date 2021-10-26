@@ -977,13 +977,13 @@ def getProxyImageCount(namespace)  {
 }
 
 def validateProxyImageCount(namespace, count) {
-    for(int retry=0; retry<40; retry++) {
+    for(int retry=0; retry<20; retry++) {
         upgraded_proxy_images = sh(returnStdout: true, script: "kubectl get pods -n ${namespace} -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.10.2 -o | wc -l")
         if(upgraded_proxy_images == count) {
             echo "Found all ${count} expected istio proxy images in namespace ${namespace}"
             return
         }
-        sleep(15)
+        sleep(30)
     }
     echo "Incorrect number of new istio proxy images in namespace ${namespace} after upgrade, found ${upgraded_proxy_images} but expected ${count}"
     exit 1
