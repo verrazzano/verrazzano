@@ -21,7 +21,7 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
-	github.com/verrazzano/oam-kubernetes-runtime v0.3.3-0.20211022163517-5d196f8b31e8
+	github.com/verrazzano/oam-kubernetes-runtime v0.3.3-0.20211026140300-91f152f0cb6e
 	go.uber.org/zap v1.17.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/tools v0.1.5
