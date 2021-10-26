@@ -138,7 +138,8 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 	// GIVEN an admin cluster and at least one managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
-	Context("Prometheus Metrics", func() {
+	// this is marked pending until VZ-3760 is fixed
+	PContext("Prometheus Metrics", func() {
 
 		It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
 			Eventually(func() bool {
