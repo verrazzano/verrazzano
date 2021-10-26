@@ -33,6 +33,9 @@ external_services:
 server:
   web_root: ""
 
+labels:
+  verrazzano.io/aggregate-to-verrazzano-admin: "true"
+
 ### Turn Grafana off, Integration story still being worked
 #   grafana:
 #     auth:
