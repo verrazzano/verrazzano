@@ -5,9 +5,8 @@
 #
 
 SECONDS=0
-# Each attempt takes roughly ~5 seconds to check, so this should wait not much longer than 1hr for a successful install
-# 5 seconds * 12 * 60 = 1hr
-MAX_ATTEMPTS=$((12 * 60))
+# 5 seconds * 18 * 60 = 1.5hr
+MAX_ATTEMPTS=$((18 * 60))
 ATTEMPT=0
 retval_success=1
 retval_failed=1
