@@ -209,11 +209,6 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                 """
-                script {
-                    PROXY_IMAGES_VERRAZZANO_SYSTEM = getProxyImageCount("verrazzano-system")
-                    PROXY_IMAGES_INGRESS_NGINX = getProxyImageCount("ingress-nginx")
-                    PROXY_IMAGES_KEYCLOAK = getProxyImageCount("keycloak")
-                }
             }
             post {
                 always {
@@ -244,6 +239,11 @@ pipeline {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
+                        script {
+                            PROXY_IMAGES_VERRAZZANO_SYSTEM = getProxyImageCount("verrazzano-system")
+                            PROXY_IMAGES_INGRESS_NGINX = getProxyImageCount("ingress-nginx")
+                            PROXY_IMAGES_KEYCLOAK = getProxyImageCount("keycloak")
+                        }
                     }
                 }
                 stage('verify-infra restapi') {
