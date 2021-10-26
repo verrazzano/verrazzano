@@ -32,6 +32,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), kialiOverridesFile),
 			Dependencies:            []string{nginx.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
+			IsEnabledFunc:           isKialiEnabled,
 		},
 	}
 }

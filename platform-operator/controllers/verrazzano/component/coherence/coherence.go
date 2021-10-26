@@ -22,8 +22,8 @@ func IsCoherenceOperatorReady(ctx spi.ComponentContext, _ string, namespace stri
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }
 
-// isEnabled returns true if the component is enabled, which is the default
-func isEnabled(ctx spi.ComponentContext) bool {
+// isCoherenceEnabled returns true if the component is enabled, which is the default
+func isCoherenceEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.CoherenceOperator
 	if comp == nil || comp.Enabled == nil {
 		return true

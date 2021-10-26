@@ -116,7 +116,7 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 //  WHEN The Kiali component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &vzapi.Verrazzano{}, false)))
+	assert.True(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &vzapi.Verrazzano{}, false)))
 }
 
 // TestIsEnabledNilKiali tests the IsEnabled function
@@ -126,7 +126,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilKiali(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
-	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+	assert.True(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -136,7 +136,7 @@ func TestIsEnabledNilKiali(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = nil
-	assert.True(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+	assert.True(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
 }
 
 // TestIsEnabledManaged tests the IsEnabled function
@@ -147,7 +147,7 @@ func TestIsEnabledManaged(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
 	cr.Spec.Profile = vzapi.ManagedCluster
-	assert.False(t, IsEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+	assert.False(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
 }
 
 // TestKialiPostInstallUpdateResources tests the PostInstall function

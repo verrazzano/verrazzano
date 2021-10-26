@@ -40,8 +40,8 @@ func isKialiReady(ctx spi.ComponentContext, _ string, namespace string) bool {
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }
 
-// IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(ctx spi.ComponentContext) bool {
+// isKialiEnabled returns true if the component is enabled, which is the default
+func isKialiEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Kiali
 	if comp == nil || comp.Enabled == nil {
 		// Default to false for managed cluster else tru

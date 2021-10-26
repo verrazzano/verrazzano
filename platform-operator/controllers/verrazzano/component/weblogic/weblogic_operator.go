@@ -78,8 +78,8 @@ func IsWeblogicOperatorReady(ctx spi.ComponentContext, _ string, namespace strin
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }
 
-// IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(ctx spi.ComponentContext) bool {
+// isWeblogicEnabled returns true if the WebLogic is enabled, which is the default
+func isWeblogicEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.WebLogicOperator
 	if comp == nil || comp.Enabled == nil {
 		return true

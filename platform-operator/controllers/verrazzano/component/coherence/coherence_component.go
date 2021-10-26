@@ -26,7 +26,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
 			ReadyStatusFunc:         IsCoherenceOperatorReady,
-			IsEnabledFunc:           isEnabled,
+			IsEnabledFunc:           isCoherenceEnabled,
 		},
 	}
 }

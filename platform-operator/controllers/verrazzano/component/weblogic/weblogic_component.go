@@ -30,7 +30,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendWeblogicOperatorOverrides,
 			Dependencies:            []string{istio.ComponentName},
 			ReadyStatusFunc:         IsWeblogicOperatorReady,
-			IsEnabledFunc:           IsEnabled,
+			IsEnabledFunc:           isWeblogicEnabled,
 		},
 	}
 }
