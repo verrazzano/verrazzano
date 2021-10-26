@@ -60,7 +60,7 @@ func TestReconcileNoPreviousResetVersion(t *testing.T) {
 	request := newRequest(testNamespace, testAppConfigName)
 
 	appConfig := newAppConfig()
-	appConfig.Annotations[restartVersionAnnotation] = "1"
+	appConfig.Annotations[RestartVersionAnnotation] = "1"
 	err := client.Create(context.TODO(), appConfig)
 	assert.NoError(err)
 
@@ -81,7 +81,7 @@ func TestReconcileVersionsMismatch(t *testing.T) {
 	request := newRequest(testNamespace, testAppConfigName)
 
 	appConfig := newAppConfig()
-	appConfig.Annotations[restartVersionAnnotation] = "2"
+	appConfig.Annotations[RestartVersionAnnotation] = "2"
 	appConfig.Annotations[previousRestartVersionAnnotation] = "1"
 	err := client.Create(context.TODO(), appConfig)
 	assert.NoError(err)

@@ -21,6 +21,7 @@ import (
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -169,6 +170,7 @@ var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts"
 var specConfigurationIstioEnabledFields = []string{specField, "configuration", "istio", "enabled"}
 var specConfigurationRuntimeEncryptionSecret = []string{specField, "configuration", "model", "runtimeEncryptionSecret"}
 var specMonitoringExporterFields = []string{specField, "monitoringExporter"}
+var specRestartVersionFields = []string{specField, "restartVersion"}
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -206,6 +208,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	workload, err := r.fetchWorkload(ctx, req.NamespacedName)
 	if err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
+	}
+
+	// workload is updated, metadata.generation is not incremented, meaning only metadata or status has been changed
+	if workload.Status.ObservedGeneration == workload.ObjectMeta.Generation {
+		// if restartVersion in status matches what is in annotations, no need to reconcile
+		if workload.Status.ObservedRestartVersion == workload.Annotations[appconfig.RestartVersionAnnotation] {
+			log.Info(fmt.Sprintf("Skip VerrazzanoWebLogicWorkload Reconcile since only metadata/status has been changed and verrazzano.io/restart-version: %s is not new",
+				workload.Annotations[appconfig.RestartVersionAnnotation]))
+			return reconcile.Result{}, nil
+		}
 	}
 
 	u, err := vznav.ConvertRawExtensionToUnstructured(&workload.Spec.Template)
@@ -293,6 +305,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
+	// write out restartVersion in Weblogic domain if the restart-version has been changed
+	if controllers.IsWorkloadMarkedForRestart(workload.Annotations, workload.Status.ObservedRestartVersion, log) {
+		if err = r.restartWeblogicDomain(u, workload.Annotations[appconfig.RestartVersionAnnotation], u.GetName(), workload.Namespace, log); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	// make a copy of the WebLogic spec since u.Object will get overwritten in CreateOrUpdate
 	// if the WebLogic CR exists
 	specCopy, _, err := unstructured.NestedFieldCopy(u.Object, specField)
@@ -314,7 +333,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.updateUpgradeVersionInStatus(ctx, workload); err != nil {
+	if err = r.updateStatus(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -575,9 +594,21 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
+func (r *Reconciler) updateStatus(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+	updated := false
+	if workload.Status.CurrentUpgradeVersion != workload.Annotations[constants.AnnotationUpgradeVersion] {
 		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
+		updated = true
+	}
+	if workload.Status.ObservedRestartVersion != workload.Annotations[appconfig.RestartVersionAnnotation] {
+		workload.Status.ObservedRestartVersion = workload.Annotations[appconfig.RestartVersionAnnotation]
+		updated = true
+	}
+	if workload.Status.ObservedGeneration != workload.ObjectMeta.Generation {
+		workload.Status.ObservedGeneration = workload.ObjectMeta.Generation
+		updated = true
+	}
+	if updated {
 		return r.Status().Update(ctx, workload)
 	}
 	return nil
@@ -775,4 +806,9 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 
 	return nil
+}
+
+func (r *Reconciler) restartWeblogicDomain(weblogic *unstructured.Unstructured, restartVersion string, domainName, domainNamespace string, log logr.Logger) error {
+	log.Info(fmt.Sprintf("The Weblogic domain %s/%s restart version is set to %s", domainNamespace, domainName, restartVersion))
+	return unstructured.SetNestedField(weblogic.Object, restartVersion, specRestartVersionFields...)
 }
