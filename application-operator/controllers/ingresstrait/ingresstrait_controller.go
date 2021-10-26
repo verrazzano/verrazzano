@@ -574,15 +574,14 @@ func createDestinationFromService(services []*corev1.Service) (*istionet.HTTPRou
 // The service is selected based on the following logic:
 //   - If there is one service, return that service.
 //   - If there are multiple services and one service with cluster-IP, select that service.
-//   - If there are multiple services, select the service with http port. If there is no such service or
-//     multiple such services, return an error.
-//
-// A service is considered to be having http port if the service has a port named with "http" prefix or if it is a
-// weblogic service and the port name is from the known weblogic port names used by the weblogic operator.
+//   - If there are multiple services, select the service with HTTP or WebLogic port. If there is no such service or
+//     multiple such services, return an error. A port is evaluated as an HTTP port if the service has a port named
+//     with the prefix "http" and as a WebLogic port if the port name is from the known WebLogic port names used by
+//     the WebLogic operator.
 func selectServiceForDestination(services []*corev1.Service) (*corev1.Service, error) {
 	var clusterIPServices []*corev1.Service
-	var httpServices []*corev1.Service
-	var httpClusterIPServices []*corev1.Service
+	var allowedServices []*corev1.Service
+	var allowedClusterIPServices []*corev1.Service
 
 	// If there is only one service, return that service
 	if len(services) == 1 {
@@ -593,29 +592,26 @@ func selectServiceForDestination(services []*corev1.Service) (*corev1.Service, e
 		if service.Spec.ClusterIP != "" && service.Spec.ClusterIP != clusterIPNone {
 			clusterIPServices = append(clusterIPServices, service)
 		}
-		httpPorts := getHTTPPorts(service)
-		if len(httpPorts) > 0 {
-			httpServices = append(httpServices, service)
+		allowedPorts := append(getHTTPPorts(service), getWebLogicPorts(service)...)
+		if len(allowedPorts) > 0 {
+			allowedServices = append(allowedServices, service)
 		}
-		if service.Spec.ClusterIP != "" && service.Spec.ClusterIP != clusterIPNone && len(httpPorts) > 0 {
-			httpClusterIPServices = append(httpClusterIPServices, service)
+		if service.Spec.ClusterIP != "" && service.Spec.ClusterIP != clusterIPNone && len(allowedPorts) > 0 {
+			allowedClusterIPServices = append(allowedClusterIPServices, service)
 		}
 	}
-	// If there is no service with cluster-IP or no service with http port, return an error.
-	if len(clusterIPServices) == 0 && len(httpServices) == 0 {
+	// If there is no service with cluster-IP or no service with allowed port, return an error.
+	if len(clusterIPServices) == 0 && len(allowedServices) == 0 {
 		return nil, fmt.Errorf("unable to select default service for destination")
 	} else if len(clusterIPServices) == 1 {
 		// If there is only one service with cluster IP, return that service.
 		return clusterIPServices[0], nil
-	} else {
-		// If there are multiple http services, and only one service with cluster IP, return that service.
-		if len(httpClusterIPServices) == 1 {
-			return httpClusterIPServices[0], nil
-		}
-		// If there is one http service, return that service.
-		if len(httpServices) == 1 {
-			return httpServices[0], nil
-		}
+	} else if len(allowedClusterIPServices) == 1 {
+		// If there is only one http/WebLogic service with cluster IP, return that service.
+		return allowedClusterIPServices[0], nil
+	} else if len(allowedServices) == 1 {
+		// If there is only one http/WebLogic service, return that service.
+		return allowedServices[0], nil
 	}
 	// In all other cases, return error.
 	return nil, fmt.Errorf("unable to select the service for destination. The service port " +
@@ -625,30 +621,27 @@ func selectServiceForDestination(services []*corev1.Service) (*corev1.Service, e
 // selectPortForDestination selects a Service port to be used for virtual service destination port.
 // The port is selected based on the following logic:
 //   - If there is one port, return that port.
-//   - If there are multiple ports, select the http port.
-//   - If there are multiple ports and more than one http port, return an error.
-//   - If there are multiple ports and none of then are http ports, return an error.
-//
-// Note that a port is considered as http port if the port has a name with the prefix "http" or if it is a
-// known weblogic port name used by the weblogic operator.
+//   - If there are multiple ports, select the http/WebLogic port.
+//   - If there are multiple ports and more than one http/WebLogic port, return an error.
+//   - If there are multiple ports and none of then are http/WebLogic ports, return an error.
 func selectPortForDestination(service *corev1.Service) (corev1.ServicePort, error) {
 	servicePorts := service.Spec.Ports
 	// If there is only one port, return that port
 	if len(servicePorts) == 1 {
 		return servicePorts[0], nil
 	}
-	httpPorts := getHTTPPorts(service)
-	// If there are multiple ports and one http port, return the http port
-	if len(servicePorts) > 1 && len(httpPorts) == 1 {
-		return httpPorts[0], nil
+	allowedPorts := append(getHTTPPorts(service), getWebLogicPorts(service)...)
+	// If there are multiple ports and one http/WebLogic port, return that port
+	if len(servicePorts) > 1 && len(allowedPorts) == 1 {
+		return allowedPorts[0], nil
 	}
 	// If there are multiple ports and none of them are http ports, return an error
-	if len(servicePorts) > 1 && len(httpPorts) < 1 {
+	if len(servicePorts) > 1 && len(allowedPorts) < 1 {
 		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. The service port " +
 			"should be named with prefix \"http\" if there are multiple ports OR the IngressTrait must specify the port")
 	}
 	// If there are multiple http ports, return an error
-	if len(httpPorts) > 1 {
+	if len(allowedPorts) > 1 {
 		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. Only one service " +
 			"port should be named with prefix \"http\" OR the IngressTrait must specify the port")
 	}
@@ -680,32 +673,36 @@ func createDestinationMatchRulePort(services []*corev1.Service, rulePort uint32)
 	return nil, fmt.Errorf("unable to select service for specified destination port %d", rulePort)
 }
 
-// getHTTPPorts returns true if the service has any port name with http prefix otherwise false.
-// If the service is of weblogic workload having known weblogic port name, then also it returns true.
+// getHTTPPorts returns all the service ports having the prefix "http" in their names.
 func getHTTPPorts(service *corev1.Service) []corev1.ServicePort {
 	var httpPorts []corev1.ServicePort
-	weblogicService := false
-	selectorMap := service.Spec.Selector
-	value, ok := selectorMap[weblogicOperatorSelector]
-	if ok && value == "true" {
-		weblogicService = true
-	}
 	for _, servicePort := range service.Spec.Ports {
 		// Check if service port name has the http prefix
 		if strings.HasPrefix(servicePort.Name, httpServiceNamePrefix) {
 			httpPorts = append(httpPorts, servicePort)
-		} else {
-			// Check if service port name is one of the predefined weblogic port names
-			if weblogicService {
-				for _, weblogicPortName := range weblogicPortNames {
-					if servicePort.Name == weblogicPortName {
-						httpPorts = append(httpPorts, servicePort)
-					}
-				}
-			}
 		}
 	}
 	return httpPorts
+}
+
+// getWebLogicPorts returns WebLogic ports if any present for the service. A port is evaluated as a WebLogic port if
+// the port name is from the known WebLogic port names used by the WebLogic operator.
+func getWebLogicPorts(service *corev1.Service) []corev1.ServicePort {
+	var webLogicPorts []corev1.ServicePort
+	selectorMap := service.Spec.Selector
+	value, ok := selectorMap[weblogicOperatorSelector]
+	if !ok || value == "false" {
+		return webLogicPorts
+	}
+	for _, servicePort := range service.Spec.Ports {
+		// Check if service port name is one of the predefined weblogic port names
+		for _, webLogicPortName := range weblogicPortNames {
+			if servicePort.Name == webLogicPortName {
+				webLogicPorts = append(webLogicPorts, servicePort)
+			}
+		}
+	}
+	return webLogicPorts
 }
 
 // createVirtualServiceMatchURIFromIngressTraitPath create the virtual service match uri map from an ingress trait path
