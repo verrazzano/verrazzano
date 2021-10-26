@@ -4,6 +4,7 @@
 package todo
 
 import (
+	"flag"
 	"fmt"
 	"testing"
 
@@ -12,6 +13,14 @@ import (
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
+
+var skipDeploy bool
+var skipUndeploy bool
+
+func init() {
+	flag.BoolVar(&skipDeploy, "skipDeploy", false, "skipDeploy skips the call to install the application")
+	flag.BoolVar(&skipUndeploy, "skipUndeploy", false, "skipUndeploy skips the call to install the application")
+}
 
 // TestToDoListExample tests the ToDoList example
 func TestToDoListExample(t *testing.T) {

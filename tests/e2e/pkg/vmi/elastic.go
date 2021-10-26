@@ -15,9 +15,16 @@ import (
 
 // Elastic contains information about the Elasticsearch instance
 type Elastic struct {
-	ClusterName   string `json:"cluster_name"`
+	ClusterName   string         `json:"cluster_name"`
+	EsVersion     ElasticVersion `json:"version"`
 	binding       string
 	vmiHTTPClient *retryablehttp.Client
+}
+
+// ElasticVersion contains information about the version of Elasticsearch instance
+type ElasticVersion struct {
+	Number      string `json:"number"`
+	BuildFlavor string `json:"build_flavor"`
 }
 
 // GetElastic gets Elastic representing the elasticsearch cluster with the binding name

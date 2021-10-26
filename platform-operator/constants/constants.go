@@ -98,3 +98,6 @@ const VerrazzanoAuthProxyServicePort = 8775
 
 // VerrazzanoSystemTLSSecretName is the name of the system TLS secret
 const VerrazzanoSystemTLSSecretName = "system-tls"
+
+// The default name for install environment
+const DefaultEnvironmentName = "default"

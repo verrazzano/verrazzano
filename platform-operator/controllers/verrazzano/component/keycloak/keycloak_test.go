@@ -89,3 +89,31 @@ func createIngresses(cli client.Client) error {
 	}
 	return cli.Create(context.TODO(), ingress)
 }
+
+// TestAppendKeycloakOverridesNoEnvironmentName tests that the Keycloak override for tlsSecret is generated as correctly,
+// when the environment name is not defined in the custom resource.
+// GIVEN a Verrazzano BOM
+// WHEN I call TestAppendKeycloakOverridesNoEnvironmentName
+// THEN the Keycloak overrides Key:Value array has the expected value for tlsSecret.
+func TestAppendKeycloakOverridesNoEnvironmentName(t *testing.T) {
+	assert := assert.New(t)
+
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: "dev",
+		},
+	}
+
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	err := createIngresses(client)
+	assert.NoError(err, "Error creating test ingress resources")
+	config.SetDefaultBomFilePath(testBomFilePath)
+	kvs, err := AppendKeycloakOverrides(spi.NewContext(zap.S(), client, vz, false), "", "", "", nil)
+
+	assert.NoError(err, "AppendKeycloakOverrides returned an error")
+
+	assert.Contains(kvs, bom.KeyValue{
+		Key:   tlsSecret,
+		Value: "default-secret",
+	})
+}

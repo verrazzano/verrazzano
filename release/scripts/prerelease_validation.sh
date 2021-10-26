@@ -57,5 +57,6 @@ else
 fi
 
 # If the IGNORE_FAILURES environment variable is set, always exit with zero
+echo "IGNORE_FAILURES=${IGNORE_FAILURES}"
 
-[[ -n "$IGNORE_FAILURES" ]] && exit 0 || exit $EXIT_CODE
+[[ "$IGNORE_FAILURES" == "true" ]] && exit 0 || exit $EXIT_CODE
