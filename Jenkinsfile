@@ -15,6 +15,8 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8_
 pipeline {
     options {
         skipDefaultCheckout true
+        copyArtifactPermission('*');
+        timestamps ()
     }
 
     agent {
@@ -224,7 +226,7 @@ pipeline {
                     }
                 }
                 success {
-                    archiveArtifacts artifacts: "generated-verrazzano-bom.json", allowEmptyArchive: true
+                    archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
                 }
             }
         }
@@ -362,7 +364,7 @@ pipeline {
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**,**/install.sh.log', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
@@ -585,6 +587,7 @@ def buildImages(dockerImageTag) {
         cd ${GO_REPO_PATH}/verrazzano
         make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/generate_image_list.sh $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano_images.txt
     """
 }
 
