@@ -370,6 +370,25 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 	return result
 }
 
+// POST the request entity body to Elasticsearch API path
+func PostElasticsearch(path string, body string) (string, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return "", err
+	}
+	url := fmt.Sprintf("%s/%s", getElasticSearchURL(kubeconfigPath), path)
+	configPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error retrieving kubeconfig, error=%v", err))
+		return "", err
+	}
+	username, password := getElasticSearchUsernamePassword(configPath)
+	Log(Debug, fmt.Sprintf("REST API path: %v \nQuery: \n%v", url, body))
+	resp, err := postElasticSearchWithBasicAuth(url, body, username, password, configPath)
+	return string(resp.Body), err
+}
+
 // ElasticQuery describes an Elasticsearch Query
 type ElasticQuery struct {
 	Filters []Match

@@ -26,7 +26,9 @@ const (
 )
 
 var _ = BeforeSuite(func() {
-	deployToDoListExample()
+	if !skipDeploy {
+		deployToDoListExample()
+	}
 })
 
 var failed = false
@@ -38,7 +40,9 @@ var _ = AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
-	undeployToDoListExample()
+	if !skipUndeploy {
+		undeployToDoListExample()
+	}
 })
 
 func deployToDoListExample() {
@@ -330,7 +334,7 @@ var _ = Describe("Verify ToDo List example application.", func() {
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 				})
 			},
-			func() {
+			/*func() {
 				It("Verify recent fluentd-stdout-sidecar server log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
@@ -365,7 +369,7 @@ var _ = Describe("Verify ToDo List example application.", func() {
 							[]pkg.Match{})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent server nodemanager log record")
 				})
-			},
+			},*/
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent pattern-matched log record of tododomain-adminserver stdout is found

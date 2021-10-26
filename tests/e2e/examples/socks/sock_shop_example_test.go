@@ -40,18 +40,20 @@ var _ = BeforeSuite(func() {
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
 	sockShop = NewSockShop(username, password, pkg.Ingress())
 
-	// deploy the application here
-	Eventually(func() (*v1.Namespace, error) {
-		return pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"})
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+	if !skipDeploy {
+		// deploy the application here
+		Eventually(func() (*v1.Namespace, error) {
+			return pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"})
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+		Eventually(func() error {
+			return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml")
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
+		Eventually(func() error {
+			return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
+		}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
+	}
 })
 
 // the list of expected pods
@@ -282,36 +284,38 @@ var _ = AfterSuite(func() {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 
-	Eventually(func() error {
-		return pkg.DeleteNamespace("sockshop")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	if !skipUndeploy {
+		Eventually(func() error {
+			return pkg.DeleteNamespace("sockshop")
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	// occassionally the namespace fails to delete, so adding extra debug information here to
-	// capture a cluster dump and hopefully we can figure out what is keeping the namespace
-	// from going away
-	pkg.Log(pkg.Info, "Waiting for namespace to be deleted")
-	var ns *v1.Namespace
-	var err error
-	for i := 0; i < 20; i++ {
-		ns, err = pkg.GetNamespace("sockshop")
-		if err != nil && errors.IsNotFound(err) {
-			pkg.Log(pkg.Info, "Namespace deleted")
-			return
+		// occassionally the namespace fails to delete, so adding extra debug information here to
+		// capture a cluster dump and hopefully we can figure out what is keeping the namespace
+		// from going away
+		pkg.Log(pkg.Info, "Waiting for namespace to be deleted")
+		var ns *v1.Namespace
+		var err error
+		for i := 0; i < 20; i++ {
+			ns, err = pkg.GetNamespace("sockshop")
+			if err != nil && errors.IsNotFound(err) {
+				pkg.Log(pkg.Info, "Namespace deleted")
+				return
+			}
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Error attempting to get namespace: %v", err))
+			}
+			time.Sleep(pollingInterval)
 		}
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error attempting to get namespace: %v", err))
-		}
-		time.Sleep(pollingInterval)
-	}
 
-	pkg.Log(pkg.Error, "Namespace could not be deleted, dumping cluster")
-	if ns != nil {
-		if b, err := json.Marshal(ns); err == nil {
-			pkg.Log(pkg.Info, string(b))
+		pkg.Log(pkg.Error, "Namespace could not be deleted, dumping cluster")
+		if ns != nil {
+			if b, err := json.Marshal(ns); err == nil {
+				pkg.Log(pkg.Info, string(b))
+			}
 		}
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		Fail("Unable to delete namespace")
 	}
-	pkg.ExecuteClusterDumpWithEnvVarConfig()
-	Fail("Unable to delete namespace")
 })
 
 // isSockShopServiceReady checks if the service is ready
