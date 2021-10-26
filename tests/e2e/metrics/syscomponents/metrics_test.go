@@ -69,6 +69,8 @@ var excludePodsVS = []string{
 	"verrazzano-application-operator",
 	"verrazzano-monitoring-operator",
 	"verrazzano-operator",
+	"verrazzano-operator",
+	"vmi-system-kiali",
 }
 
 // List of pods to be excluded from istio-system namespace for envoy-stats as they do not have envoy
