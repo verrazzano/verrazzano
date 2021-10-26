@@ -10,6 +10,11 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -139,6 +144,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// restart the workload if the restart-version has been changed
+	if controllers.IsWorkloadMarkedForRestart(workload.Annotations, workload.Status.ObservedRestartVersion, log) {
+		if err = r.restartHelidon(ctx, workload.Annotations[appconfig.RestartVersionAnnotation], workload.GetName(), workload.Namespace, log); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	// Prepare the list of resources to reference in status.
 	statusResources := []vzapi.QualifiedResourceRelation{
 		{
@@ -158,9 +170,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if !vzapi.QualifiedResourceRelationSlicesEquivalent(statusResources, workload.Status.Resources) ||
+		workload.Status.ObservedRestartVersion != workload.Annotations[appconfig.RestartVersionAnnotation] ||
 		workload.Status.CurrentUpgradeVersion != workload.Annotations[constants.AnnotationUpgradeVersion] {
 
 		workload.Status.Resources = statusResources
+		workload.Status.ObservedRestartVersion = workload.Annotations[appconfig.RestartVersionAnnotation]
 		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
 		if err := r.Status().Update(ctx, &workload); err != nil {
 			return reconcile.Result{}, err
@@ -342,5 +356,23 @@ func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace 
 	log.Info(fmt.Sprintf("Setting annotations on %s: %v", workload.Name, finalAnnotations))
 	helidon.Spec.Template.Annotations = finalAnnotations
 
+	return nil
+}
+
+func (r *Reconciler) restartHelidon(ctx context.Context, restartVersion string, helidonName, helidonNamespace string, log logr.Logger) error {
+	var deploymentList appsv1.DeploymentList
+	componentNameReq, _ := labels.NewRequirement("app", selection.Equals, []string{helidonName})
+	selector := labels.NewSelector()
+	selector = selector.Add(*componentNameReq)
+	err := r.Client.List(ctx, &deploymentList, &client.ListOptions{Namespace: helidonNamespace, LabelSelector: selector})
+	if err != nil {
+		return err
+	}
+	for index := range deploymentList.Items {
+		deployment := &deploymentList.Items[index]
+		if err := appconfig.DoRestartDeployment(r.Client, restartVersion, deployment, log); err != nil {
+			return err
+		}
+	}
 	return nil
 }

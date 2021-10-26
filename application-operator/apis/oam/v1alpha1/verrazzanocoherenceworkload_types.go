@@ -19,6 +19,9 @@ type VerrazzanoCoherenceWorkloadSpec struct {
 type VerrazzanoCoherenceWorkloadStatus struct {
 	// CurrentUpgradeVersion is the version that was specified when the application was last upgraded with Verrazzano
 	CurrentUpgradeVersion string `json:"currentUpgradeVersion,omitempty"`
+
+	// CurrentRestartVersion is the version that was specified when the application was last restarted with Verrazzano
+	ObservedRestartVersion string `json:"observedRestartVersion,omitempty"`
 }
 
 // +kubebuilder:object:root=true

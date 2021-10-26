@@ -10,6 +10,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
@@ -214,6 +219,17 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// restart the workload if the restart-version has been changed
+	if controllers.IsWorkloadMarkedForRestart(workload.Annotations, workload.Status.ObservedRestartVersion, log) {
+		cohName, _, err := unstructured.NestedString(u.Object, "metadata", "name")
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if err = r.restartCoherence(ctx, workload.Annotations[appconfig.RestartVersionAnnotation], cohName, workload.Namespace, log); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	// make a copy of the Coherence spec since u.Object will get overwritten in CreateOrUpdate
 	// if the Coherence CR exists
 	specCopy, _, err := unstructured.NestedFieldCopy(u.Object, specField)
@@ -241,7 +257,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.updateUpgradeVersionInStatus(ctx, workload); err != nil {
+	if err = r.updateStatus(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -581,9 +597,17 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	return nil
 }
 
-func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
+func (r *Reconciler) updateStatus(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+	updated := false
+	if workload.Status.CurrentUpgradeVersion != workload.Annotations[constants.AnnotationUpgradeVersion] {
 		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
+		updated = true
+	}
+	if workload.Status.ObservedRestartVersion != workload.Annotations[appconfig.RestartVersionAnnotation] {
+		workload.Status.ObservedRestartVersion = workload.Annotations[appconfig.RestartVersionAnnotation]
+		updated = true
+	}
+	if updated {
 		return r.Status().Update(ctx, workload)
 	}
 	return nil
@@ -702,5 +726,23 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 	coherenceSpec["sideCars"] = extractedUnstructured["sideCars"]
 
+	return nil
+}
+
+func (r *Reconciler) restartCoherence(ctx context.Context, restartVersion string, coherenceName, coherenceNamespace string, log logr.Logger) error {
+	var statefulSetList appsv1.StatefulSetList
+	componentNameReq, _ := labels.NewRequirement("coherenceDeployment", selection.Equals, []string{coherenceName})
+	selector := labels.NewSelector()
+	selector = selector.Add(*componentNameReq)
+	err := r.Client.List(ctx, &statefulSetList, &client.ListOptions{Namespace: coherenceNamespace, LabelSelector: selector})
+	if err != nil {
+		return err
+	}
+	for index := range statefulSetList.Items {
+		statefulSet := &statefulSetList.Items[index]
+		if err := appconfig.DoRestartStatefulSet(r.Client, restartVersion, statefulSet, log); err != nil {
+			return err
+		}
+	}
 	return nil
 }
