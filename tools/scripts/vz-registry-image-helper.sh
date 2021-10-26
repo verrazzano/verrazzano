@@ -402,7 +402,11 @@ function main() {
   if [ "${CLEAN_ALL}" == "true" ]; then
     echo "[SUCCESS] All local images cleaned"
   else
-    echo "[SUCCESS] All images pushed to [${TO_REGISTRY}]"
+    if [ ! -z "$LIST_IMAGES_ONLY" ]; then
+      echo "[SUCCESS] All images listed"
+    else
+      echo "[SUCCESS] All images pushed to [${TO_REGISTRY}]"
+    fi
   fi
 }
 
