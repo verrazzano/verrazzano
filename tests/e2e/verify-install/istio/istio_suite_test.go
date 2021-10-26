@@ -8,13 +8,12 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
 
 func TestIstio(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("istio-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
+	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("istio-%d-test-result.xml", ginkgo.GinkgoParallelNode()))
 	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Istio Suite", []ginkgo.Reporter{junitReporter})
 }

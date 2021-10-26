@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
@@ -24,6 +23,6 @@ func init() {
 
 func TestSpringBootExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("examples-springboot-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
+	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("examples-springboot-%d-test-result.xml", ginkgo.GinkgoParallelNode()))
 	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Spring Boot Suite", []ginkgo.Reporter{junitReporter})
 }

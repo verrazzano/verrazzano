@@ -8,13 +8,12 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
 
 func TestAuthPolicyExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("istio-authpolicy-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
+	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("istio-authpolicy-%d-test-result.xml", ginkgo.GinkgoParallelNode()))
 	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Istio AuthorizationPolicy Suite", []ginkgo.Reporter{junitReporter})
 }
