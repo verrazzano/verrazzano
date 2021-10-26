@@ -52,9 +52,11 @@ const (
 	weblogicOperatorSelector = "weblogic.createdByOperator"
 )
 
+// The port names used by WebLogic operator that do not have http prefix.
+// Reference: https://github.com/oracle/weblogic-kubernetes-operator/blob/main/operator/src/main/resources/scripts/model_wdt_mii_filter.py
 var (
-	weblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "http-default", "tcp-default",
-		"https-secure", "tls-ldaps", "tls-default", "tls-cbts", "tls-iiops", "https-admin"}
+	weblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "tcp-default", "tls-ldaps",
+		"tls-default", "tls-cbts", "tls-iiops"}
 )
 
 // Reconciler is used to reconcile an IngressTrait object
@@ -576,8 +578,8 @@ func createDestinationFromService(services []*corev1.Service) (*istionet.HTTPRou
 //   - If there are multiple services and one service with cluster-IP, select that service.
 //   - If there are multiple services, select the service with HTTP or WebLogic port. If there is no such service or
 //     multiple such services, return an error. A port is evaluated as an HTTP port if the service has a port named
-//     with the prefix "http" and as a WebLogic port if the port name is from the known WebLogic port names used by
-//     the WebLogic operator.
+//     with the prefix "http" and as a WebLogic port if the port name is from the known WebLogic non-http prefixed
+//     port names used by the WebLogic operator.
 func selectServiceForDestination(services []*corev1.Service) (*corev1.Service, error) {
 	var clusterIPServices []*corev1.Service
 	var allowedServices []*corev1.Service
@@ -635,12 +637,12 @@ func selectPortForDestination(service *corev1.Service) (corev1.ServicePort, erro
 	if len(servicePorts) > 1 && len(allowedPorts) == 1 {
 		return allowedPorts[0], nil
 	}
-	// If there are multiple ports and none of them are http ports, return an error
+	// If there are multiple ports and none of them are http/WebLogic ports, return an error
 	if len(servicePorts) > 1 && len(allowedPorts) < 1 {
 		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. The service port " +
 			"should be named with prefix \"http\" if there are multiple ports OR the IngressTrait must specify the port")
 	}
-	// If there are multiple http ports, return an error
+	// If there are multiple http/WebLogic ports, return an error
 	if len(allowedPorts) > 1 {
 		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. Only one service " +
 			"port should be named with prefix \"http\" OR the IngressTrait must specify the port")
@@ -686,7 +688,7 @@ func getHTTPPorts(service *corev1.Service) []corev1.ServicePort {
 }
 
 // getWebLogicPorts returns WebLogic ports if any present for the service. A port is evaluated as a WebLogic port if
-// the port name is from the known WebLogic port names used by the WebLogic operator.
+// the port name is from the known WebLogic non-http prefixed port names used by the WebLogic operator.
 func getWebLogicPorts(service *corev1.Service) []corev1.ServicePort {
 	var webLogicPorts []corev1.ServicePort
 	selectorMap := service.Spec.Selector
@@ -695,7 +697,7 @@ func getWebLogicPorts(service *corev1.Service) []corev1.ServicePort {
 		return webLogicPorts
 	}
 	for _, servicePort := range service.Spec.Ports {
-		// Check if service port name is one of the predefined weblogic port names
+		// Check if service port name is one of the predefined WebLogic port names
 		for _, webLogicPortName := range weblogicPortNames {
 			if servicePort.Name == webLogicPortName {
 				webLogicPorts = append(webLogicPorts, servicePort)

@@ -1908,6 +1908,19 @@ func TestCreateDestinationForWeblogicWorkload(t *testing.T) {
 	assert.Equal(uint32(777), dest.Destination.Port.Number)
 	assert.NoError(err)
 
+	// GIVEN a weblogic workload service with one http port defined
+	// WHEN a destination is created from the service
+	// THEN verify that the destination is created successfully
+	service1 = k8score.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
+		Spec: k8score.ServiceSpec{Selector: map[string]string{"weblogic.createdByOperator": "true"},
+			ClusterIP: "10.10.10.3",
+			Ports:     []k8score.ServicePort{{Port: 42, Name: "tcp-1"}, {Port: 777, Name: "http-default"}}}}
+	services[0] = &service1
+	dest, err = createDestinationFromService(services)
+	assert.Equal(uint32(777), dest.Destination.Port.Number)
+	assert.NoError(err)
+
 	// GIVEN a weblogic workload service with two known weblogic http ports defined
 	// WHEN a destination is created from the service
 	// THEN verify that the destination creation fails
