@@ -963,7 +963,7 @@ def validateProxyImageCount(namespace, count) {
             echo "Found all ${count} expected istio proxy images in namespace ${namespace}"
             return
         }
-        sleep(30)
+        sleep(15)
     }
     echo "Incorrect number of new istio proxy images in namespace ${namespace} after upgrade, found ${upgraded_proxy_images} but expected ${count}"
     exit 1
