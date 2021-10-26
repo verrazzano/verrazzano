@@ -11,7 +11,6 @@ import (
 
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 
-	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -27,7 +26,7 @@ import (
 )
 
 const (
-	restartVersionAnnotation         = "verrazzano.io/restart-version"
+	RestartVersionAnnotation         = "verrazzano.io/restart-version"
 	previousRestartVersionAnnotation = "verrazzano.io/previous-restart-version"
 )
 
@@ -64,7 +63,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// get the user-specified restart version - if it's missing then there's nothing to do here
-	restartVersion, ok := appConfig.Annotations[restartVersionAnnotation]
+	restartVersion, ok := appConfig.Annotations[RestartVersionAnnotation]
 	if !ok {
 		log.Info("No restart version annotation found, nothing to do")
 		return reconcile.Result{}, nil
@@ -72,9 +71,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// get the annotation with the previous restart version - if it's missing or the versions do not
 	// match, then we restart apps
-	prevRestartVersion, ok := appConfig.Annotations[previousRestartVersionAnnotation]
-	if !ok || restartVersion != prevRestartVersion {
-		log.Info("Restarting applications")
+	hasErrorsRestarting := false
+	if r.isMarkedForRestart(restartVersion, &appConfig) {
+		log.Info(fmt.Sprintf("Restarting application %s", req.NamespacedName))
 
 		// restart apps
 		for index := range appConfig.Spec.Components {
@@ -83,55 +82,98 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			var component oamv1.Component
 			err := r.Client.Get(ctx, types.NamespacedName{Name: componentName, Namespace: appConfig.Namespace}, &component)
 			if err != nil {
-				log.Error(err, fmt.Sprintf("----Error getting component %s in namespace %s", componentName, appConfig.Namespace))
+				log.Error(err, fmt.Sprintf("Error getting component %s in namespace %s", componentName, appConfig.Namespace))
+				hasErrorsRestarting = true
 			} else {
 				workload, err := vznav.ConvertRawExtensionToUnstructured(&component.Spec.Workload)
 				if err != nil {
-					log.Error(err, fmt.Sprintf("----Error reading workload from component %s in namespace %s", componentName, appConfig.Namespace))
+					log.Error(err, fmt.Sprintf("Error reading workload from component %s in namespace %s", componentName, appConfig.Namespace))
+					hasErrorsRestarting = true
 				} else {
 					switch workload.GetKind() {
 					case "VerrazzanoCoherenceWorkload":
 						workloadName, found, err := unstructured.NestedString(workload.Object, "spec", "template", "metadata", "name")
 						if !found || err != nil {
-							log.Info(fmt.Sprintf("----Unable to find metadata name in contained workload from component %s in namespace %s", componentName, appConfig.Namespace))
+							log.Info(fmt.Sprintf("Unable to find metadata name in contained VerrazzanoCoherenceWorkload from component %s in namespace %s", componentName, appConfig.Namespace))
+							hasErrorsRestarting = true
+						} else {
+							log.Info(fmt.Sprintf("Restarting VerrazzanoCoherenceWorkload %s in namespace %s", workloadName, appConfig.Namespace))
+							err = r.restartCoherence(ctx, restartVersion, workloadName, appConfig.Namespace, log)
+							if err != nil {
+								log.Error(err, fmt.Sprintf("Error restarting VerrazzanoCoherenceWorkload %s in namespace %s", workloadName, appConfig.Namespace))
+								hasErrorsRestarting = true
+							}
 						}
-						log.Info(fmt.Sprintf("++++++++Restarting VerrazzanoCoherenceWorkload %s in namespace %s", workloadName, appConfig.Namespace))
-						r.restartCoherence(ctx, restartVersion, workloadName, appConfig.Namespace, log)
 					case "VerrazzanoWebLogicWorkload":
-						workloadName, found, err := unstructured.NestedString(workload.Object, "spec", "template", "metadata", "name")
-						if !found || err != nil {
-							log.Info(fmt.Sprintf("----Unable to find metadata name in contained workload from component %s in namespace %s", componentName, appConfig.Namespace))
-						}
-						log.Info(fmt.Sprintf("++++++++Restarting VerrazzanoWebLogicWorkload %s in namespace %s", workloadName, appConfig.Namespace))
-						r.restartWeblogicDomain(ctx, restartVersion, workloadName, appConfig.Namespace, log)
+						// "verrazzano.io/restart-version" will be automatically set on VerrazzanoWebLogicWorkload
+						// VerrazzanoWebLogicWorkload reconcile process the annotation on its own
+						// nothing needs to be done here
+						/*
+							workloadName, found, err := unstructured.NestedString(workload.Object, "spec", "template", "metadata", "name")
+							if !found || err != nil {
+								log.Info(fmt.Sprintf("Unable to find metadata name in contained VerrazzanoWebLogicWorkload from component %s in namespace %s", componentName, appConfig.Namespace))
+								hasErrorsRestarting = true
+							} else {
+								log.Info(fmt.Sprintf("Restarting VerrazzanoWebLogicWorkload %s in namespace %s", workloadName, appConfig.Namespace))
+								r.restartWeblogicDomain(ctx, restartVersion, workloadName, appConfig.Namespace, log)
+							}
+						*/
 					case "VerrazzanoHelidonWorkload":
-						log.Info(fmt.Sprintf("++++++++Restarting VerrazzanoHelidonWorkload %s in namespace %s", workload.GetName(), appConfig.Namespace))
-						r.restartHelidon(ctx, restartVersion, workload.GetName(), appConfig.Namespace, log)
+						log.Info(fmt.Sprintf("Restarting VerrazzanoHelidonWorkload %s in namespace %s", workload.GetName(), appConfig.Namespace))
+						err = r.restartHelidon(ctx, restartVersion, workload.GetName(), appConfig.Namespace, log)
+						if err != nil {
+							log.Error(err, fmt.Sprintf("Error restarting VerrazzanoHelidonWorkload %s in namespace %s", workload.GetName(), appConfig.Namespace))
+							hasErrorsRestarting = true
+						}
 					case "Deployment":
-						log.Info(fmt.Sprintf("++++++++Restarting Deployment %s in namespace %s", workload.GetName(), appConfig.Namespace))
-						r.restartDeployment(ctx, restartVersion, workload.GetName(), appConfig.Namespace, log)
+						log.Info(fmt.Sprintf("Restarting Deployment %s in namespace %s", workload.GetName(), appConfig.Namespace))
+						err = r.restartDeployment(ctx, restartVersion, workload.GetName(), appConfig.Namespace, log)
+						if err != nil {
+							log.Error(err, fmt.Sprintf("Error restarting Deployment %s in namespace %s", workload.GetName(), appConfig.Namespace))
+							hasErrorsRestarting = true
+						}
 					case "StatefulSet":
-						log.Info(fmt.Sprintf("++++++++Restarting StatefulSet %s in namespace %s", workload.GetName(), appConfig.Namespace))
-						r.restartStatefulSet(ctx, restartVersion, workload.GetName(), appConfig.Namespace, log)
+						log.Info(fmt.Sprintf("Restarting StatefulSet %s in namespace %s", workload.GetName(), appConfig.Namespace))
+						err = r.restartStatefulSet(ctx, restartVersion, workload.GetName(), appConfig.Namespace, log)
+						if err != nil {
+							log.Error(err, fmt.Sprintf("Error restarting StatefulSet %s in namespace %s", workload.GetName(), appConfig.Namespace))
+							hasErrorsRestarting = true
+						}
 					case "DaemonSet":
-						log.Info(fmt.Sprintf("++++++++Restarting DaemonSet %s in namespace %s", workload.GetName(), appConfig.Namespace))
-						r.restartDaemonSet(ctx, restartVersion, workload.GetName(), appConfig.Namespace, log)
+						log.Info(fmt.Sprintf("Restarting DaemonSet %s in namespace %s", workload.GetName(), appConfig.Namespace))
+						err = r.restartDaemonSet(ctx, restartVersion, workload.GetName(), appConfig.Namespace, log)
+						if err != nil {
+							log.Error(err, fmt.Sprintf("Error restarting DaemonSet %s in namespace %s", workload.GetName(), appConfig.Namespace))
+							hasErrorsRestarting = true
+						}
 					default:
-						log.Info(fmt.Sprintf("++++++++Skip restarting for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), appConfig.Namespace))
+						log.Info(fmt.Sprintf("Skip restarting for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), appConfig.Namespace))
 					}
 				}
 			}
 		}
 
 		// add/update the previous restart version annotation on the appconfig
-		appConfig.Annotations[previousRestartVersionAnnotation] = restartVersion
-		if err := r.Client.Update(ctx, &appConfig); err != nil {
-			return reconcile.Result{}, err
+		if !hasErrorsRestarting {
+			appConfig.Annotations[previousRestartVersionAnnotation] = restartVersion
+			if err := r.Client.Update(ctx, &appConfig); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
+
+		return reconcile.Result{}, nil
 	}
 
 	log.Info("Successfully reconciled ApplicationConfiguration")
 	return reconcile.Result{}, nil
+}
+
+func (r *Reconciler) isMarkedForRestart(restartVersion string, appConfig *oamv1.ApplicationConfiguration) bool {
+	prevRestartVersion, ok := appConfig.Annotations[previousRestartVersionAnnotation]
+	if !ok || restartVersion != prevRestartVersion {
+		return true
+	}
+	return false
 }
 
 func (r *Reconciler) restartCoherence(ctx context.Context, restartVersion string, coherenceName, coherenceNamespace string, log logr.Logger) error {
@@ -166,26 +208,6 @@ func (r *Reconciler) restartHelidon(ctx context.Context, restartVersion string, 
 		if err := r.doRestartDeployment(restartVersion, deployment, log); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func (r *Reconciler) restartWeblogicDomain(ctx context.Context, restartVersion string, domainName, domainNamespace string, log logr.Logger) error {
-	var domain wls.Domain
-	domainKey := types.NamespacedName{Name: domainName, Namespace: domainNamespace}
-	if err := r.Get(ctx, domainKey, &domain); err != nil {
-		if k8serrors.IsNotFound(err) {
-			log.Info(fmt.Sprintf("Can not find domain %s in namespace %s", domainName, domainNamespace))
-		} else {
-			log.Error(err, fmt.Sprintf("An error occurred trying to obtain domain %s in namespace %s", domainName, domainNamespace))
-			return err
-		}
-	}
-	previousRestartVersion := domain.Spec.RestartVersion
-	domain.Spec.RestartVersion = restartVersion
-	log.Info(fmt.Sprintf("The Weblogic domain %s/%s restart version is set from %s to %s", domainNamespace, domainName, previousRestartVersion, restartVersion))
-	if err := r.Client.Update(context.TODO(), &domain); err != nil {
-		return err
 	}
 	return nil
 }
@@ -240,7 +262,7 @@ func (r *Reconciler) doRestartDeployment(restartVersion string, deployment *apps
 	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 	}
-	deployment.Spec.Template.ObjectMeta.Annotations[restartVersionAnnotation] = restartVersion
+	deployment.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
 	if err := r.Client.Update(context.TODO(), deployment); err != nil {
 		return err
 	}
@@ -252,7 +274,7 @@ func (r *Reconciler) doRestartStatefulSet(restartVersion string, statefulSet *ap
 	if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 		statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 	}
-	statefulSet.Spec.Template.ObjectMeta.Annotations[restartVersionAnnotation] = restartVersion
+	statefulSet.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
 	log.Info(fmt.Sprintf("The statefulSet %s/%s restart version is set to %s", statefulSet.Namespace, statefulSet.Name, restartVersion))
 	if err := r.Client.Update(context.TODO(), statefulSet); err != nil {
 		return err
@@ -265,7 +287,7 @@ func (r *Reconciler) doRestartDaemonSet(restartVersion string, daemonSet *appsv1
 	if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 		daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 	}
-	daemonSet.Spec.Template.ObjectMeta.Annotations[restartVersionAnnotation] = restartVersion
+	daemonSet.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
 	log.Info(fmt.Sprintf("The daemonSet %s/%s restart version is set to %s", daemonSet.Namespace, daemonSet.Name, restartVersion))
 	if err := r.Client.Update(context.TODO(), daemonSet); err != nil {
 		return err
