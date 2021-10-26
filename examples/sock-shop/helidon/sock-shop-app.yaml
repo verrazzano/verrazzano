@@ -41,6 +41,8 @@ spec:
                 - paths:
                     - path: "/catalogue"
                       pathType: Prefix
+                  destination:
+                    port: 7001
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
