@@ -57,11 +57,11 @@ var _ = BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml")
+			return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
+			return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
 	}
 })
