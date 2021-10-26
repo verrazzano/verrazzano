@@ -159,6 +159,9 @@ var _ = Describe("Verify ToDo List example application.", func() {
 				return pkg.PodsRunning("todo-list", []string{"mysql", "tododomain-adminserver"})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
+
+		It("verify 'todo")
+
 		// GIVEN the ToDoList app is deployed
 		// WHEN the app config secret generated to support secure gateways is fetched
 		// THEN the secret should exist
