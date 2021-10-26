@@ -959,12 +959,13 @@ def restartExampleApps() {
 
         kubectl rollout restart deployment -n hello-helidon
 
-        kubectl delete pods -n todo-list --all
-
+        kubectl rollout restart deployment -n todo-list
+        kubectl patch domain -n todo-list todo-domain -p '{"spec":{"serverStartPolicy":"NEVER"}}' --type merge
         kubectl rollout restart deployment -n bobs-books
         kubectl patch domain -n bobs-books bobs-orders-wls -p '{"spec":{"serverStartPolicy":"NEVER"}}' --type merge
         kubectl patch domain -n bobs-books bobbys-front-end -p '{"spec":{"serverStartPolicy":"NEVER"}}' --type merge
         sleep 120
+        kubectl patch domain -n todo-list todo-domain -p '{"spec":{"serverStartPolicy":"IF_NEEDED"}}' --type merge
         kubectl patch domain -n bobs-books bobs-orders-wls -p '{"spec":{"serverStartPolicy":"IF_NEEDED"}}' --type merge
         kubectl patch domain -n bobs-books bobbys-front-end -p '{"spec":{"serverStartPolicy":"IF_NEEDED"}}' --type merge
     """
