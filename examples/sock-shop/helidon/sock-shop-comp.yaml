@@ -4,8 +4,8 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: carts-component
-  namespace: mc-sockshop
+  name: carts
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -46,8 +46,8 @@ spec:
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: catalog-component
-  namespace: mc-sockshop
+  name: catalog
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -72,10 +72,10 @@ spec:
             metrics:
               enabled: true
           ports:
-            #            - name: metrics
-            #              port: 9612
-            #              serviceMonitor:
-            #                enabled: true
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true
             - name: http
               port: 7001
               service:
@@ -87,8 +87,8 @@ spec:
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: orders-component
-  namespace: mc-sockshop
+  name: orders
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -128,8 +128,8 @@ spec:
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: payment-component
-  namespace: mc-sockshop
+  name: payment
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -173,8 +173,8 @@ spec:
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: shipping-component
-  namespace: mc-sockshop
+  name: shipping
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -218,8 +218,8 @@ spec:
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: users-component
-  namespace: mc-sockshop
+  name: users
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
