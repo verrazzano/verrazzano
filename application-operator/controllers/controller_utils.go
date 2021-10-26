@@ -36,11 +36,11 @@ func IsWorkloadMarkedForUpgrade(annotations map[string]string, previousUpgrade s
 }
 
 // IsWorkloadMarkedForRestart checks to see if a workload needs to be restarted.
-func IsWorkloadMarkedForRestart(annotations map[string]string, previousRestartVersion string, log logr.Logger) bool {
-	toRestart := annotations[appconfig.RestartVersionAnnotation] != previousRestartVersion
+func IsWorkloadMarkedForRestart(annotations map[string]string, observedRestartVersion string, log logr.Logger) bool {
+	toRestart := annotations[appconfig.RestartVersionAnnotation] != observedRestartVersion
 	if toRestart {
 		log.Info(fmt.Sprintf("The workload is marked for restart since the restart version has been changed from %s to %s",
-			previousRestartVersion, annotations[appconfig.RestartVersionAnnotation]))
+			observedRestartVersion, annotations[appconfig.RestartVersionAnnotation]))
 	}
 	return toRestart
 }

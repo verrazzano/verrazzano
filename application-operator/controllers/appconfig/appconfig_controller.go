@@ -7,13 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -92,18 +88,23 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				} else {
 					switch workload.GetKind() {
 					case "VerrazzanoCoherenceWorkload":
-						workloadName, found, err := unstructured.NestedString(workload.Object, "spec", "template", "metadata", "name")
-						if !found || err != nil {
-							log.Info(fmt.Sprintf("Unable to find metadata name in contained VerrazzanoCoherenceWorkload from component %s in namespace %s", componentName, appConfig.Namespace))
-							hasErrorsRestarting = true
-						} else {
-							log.Info(fmt.Sprintf("Restarting VerrazzanoCoherenceWorkload %s in namespace %s", workloadName, appConfig.Namespace))
-							err = r.restartCoherence(ctx, restartVersion, workloadName, appConfig.Namespace, log)
-							if err != nil {
-								log.Error(err, fmt.Sprintf("Error restarting VerrazzanoCoherenceWorkload %s in namespace %s", workloadName, appConfig.Namespace))
+						// "verrazzano.io/restart-version" will be automatically set on VerrazzanoCoherenceWorkload
+						// VerrazzanoCoherenceWorkload reconcile process the annotation on its own
+						// nothing needs to be done here
+						/*
+							workloadName, found, err := unstructured.NestedString(workload.Object, "spec", "template", "metadata", "name")
+							if !found || err != nil {
+								log.Info(fmt.Sprintf("Unable to find metadata name in contained VerrazzanoCoherenceWorkload from component %s in namespace %s", componentName, appConfig.Namespace))
 								hasErrorsRestarting = true
+							} else {
+								log.Info(fmt.Sprintf("Restarting VerrazzanoCoherenceWorkload %s in namespace %s", workloadName, appConfig.Namespace))
+								err = r.restartCoherence(ctx, restartVersion, workloadName, appConfig.Namespace, log)
+								if err != nil {
+									log.Error(err, fmt.Sprintf("Error restarting VerrazzanoCoherenceWorkload %s in namespace %s", workloadName, appConfig.Namespace))
+									hasErrorsRestarting = true
+								}
 							}
-						}
+						*/
 					case "VerrazzanoWebLogicWorkload":
 						// "verrazzano.io/restart-version" will be automatically set on VerrazzanoWebLogicWorkload
 						// VerrazzanoWebLogicWorkload reconcile process the annotation on its own
@@ -119,12 +120,17 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 							}
 						*/
 					case "VerrazzanoHelidonWorkload":
-						log.Info(fmt.Sprintf("Restarting VerrazzanoHelidonWorkload %s in namespace %s", workload.GetName(), appConfig.Namespace))
-						err = r.restartHelidon(ctx, restartVersion, workload.GetName(), appConfig.Namespace, log)
-						if err != nil {
-							log.Error(err, fmt.Sprintf("Error restarting VerrazzanoHelidonWorkload %s in namespace %s", workload.GetName(), appConfig.Namespace))
-							hasErrorsRestarting = true
-						}
+						// "verrazzano.io/restart-version" will be automatically set on VerrazzanoHelidonWorkload
+						// VerrazzanoHelidonWorkload reconcile process the annotation on its own
+						// nothing needs to be done here
+						/*
+							log.Info(fmt.Sprintf("Restarting VerrazzanoHelidonWorkload %s in namespace %s", workload.GetName(), appConfig.Namespace))
+							err = r.restartHelidon(ctx, restartVersion, workload.GetName(), appConfig.Namespace, log)
+							if err != nil {
+								log.Error(err, fmt.Sprintf("Error restarting VerrazzanoHelidonWorkload %s in namespace %s", workload.GetName(), appConfig.Namespace))
+								hasErrorsRestarting = true
+							}
+						*/
 					case "Deployment":
 						log.Info(fmt.Sprintf("Restarting Deployment %s in namespace %s", workload.GetName(), appConfig.Namespace))
 						err = r.restartDeployment(ctx, restartVersion, workload.GetName(), appConfig.Namespace, log)
@@ -176,42 +182,6 @@ func (r *Reconciler) isMarkedForRestart(restartVersion string, appConfig *oamv1.
 	return false
 }
 
-func (r *Reconciler) restartCoherence(ctx context.Context, restartVersion string, coherenceName, coherenceNamespace string, log logr.Logger) error {
-	var statefulSetList appsv1.StatefulSetList
-	componentNameReq, _ := labels.NewRequirement("coherenceDeployment", selection.Equals, []string{coherenceName})
-	selector := labels.NewSelector()
-	selector = selector.Add(*componentNameReq)
-	err := r.Client.List(ctx, &statefulSetList, &client.ListOptions{Namespace: coherenceNamespace, LabelSelector: selector})
-	if err != nil {
-		return err
-	}
-	for index := range statefulSetList.Items {
-		statefulSet := &statefulSetList.Items[index]
-		if err := r.doRestartStatefulSet(restartVersion, statefulSet, log); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (r *Reconciler) restartHelidon(ctx context.Context, restartVersion string, helidonName, helidonNamespace string, log logr.Logger) error {
-	var deploymentList appsv1.DeploymentList
-	componentNameReq, _ := labels.NewRequirement("app", selection.Equals, []string{helidonName})
-	selector := labels.NewSelector()
-	selector = selector.Add(*componentNameReq)
-	err := r.Client.List(ctx, &deploymentList, &client.ListOptions{Namespace: helidonNamespace, LabelSelector: selector})
-	if err != nil {
-		return err
-	}
-	for index := range deploymentList.Items {
-		deployment := &deploymentList.Items[index]
-		if err := r.doRestartDeployment(restartVersion, deployment, log); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion string, name, namespace string, log logr.Logger) error {
 	var deployment = appsv1.Deployment{}
 	deploymentKey := types.NamespacedName{Name: name, Namespace: namespace}
@@ -223,7 +193,7 @@ func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion strin
 			return err
 		}
 	}
-	return r.doRestartDeployment(restartVersion, &deployment, log)
+	return DoRestartDeployment(r.Client, restartVersion, &deployment, log)
 }
 
 func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion string, name, namespace string, log logr.Logger) error {
@@ -237,7 +207,7 @@ func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion stri
 			return err
 		}
 	}
-	return r.doRestartStatefulSet(restartVersion, &statefulSet, log)
+	return DoRestartStatefulSet(r.Client, restartVersion, &statefulSet, log)
 }
 
 func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string, name, namespace string, log logr.Logger) error {
@@ -251,10 +221,10 @@ func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string
 			return err
 		}
 	}
-	return r.doRestartDaemonSet(restartVersion, &daemonSet, log)
+	return DoRestartDaemonSet(r.Client, restartVersion, &daemonSet, log)
 }
 
-func (r *Reconciler) doRestartDeployment(restartVersion string, deployment *appsv1.Deployment, log logr.Logger) error {
+func DoRestartDeployment(client client.Client, restartVersion string, deployment *appsv1.Deployment, log logr.Logger) error {
 	if deployment.Spec.Paused {
 		return fmt.Errorf("deployment %s can't be restarted because it is paused", deployment.Name)
 	}
@@ -263,33 +233,33 @@ func (r *Reconciler) doRestartDeployment(restartVersion string, deployment *apps
 		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 	}
 	deployment.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
-	if err := r.Client.Update(context.TODO(), deployment); err != nil {
+	if err := client.Update(context.TODO(), deployment); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *Reconciler) doRestartStatefulSet(restartVersion string, statefulSet *appsv1.StatefulSet, log logr.Logger) error {
+func DoRestartStatefulSet(client client.Client, restartVersion string, statefulSet *appsv1.StatefulSet, log logr.Logger) error {
 	log.Info(fmt.Sprintf("The statefulSet %s/%s restart version is set to %s", statefulSet.Namespace, statefulSet.Name, restartVersion))
 	if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 		statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 	}
 	statefulSet.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
 	log.Info(fmt.Sprintf("The statefulSet %s/%s restart version is set to %s", statefulSet.Namespace, statefulSet.Name, restartVersion))
-	if err := r.Client.Update(context.TODO(), statefulSet); err != nil {
+	if err := client.Update(context.TODO(), statefulSet); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *Reconciler) doRestartDaemonSet(restartVersion string, daemonSet *appsv1.DaemonSet, log logr.Logger) error {
+func DoRestartDaemonSet(client client.Client, restartVersion string, daemonSet *appsv1.DaemonSet, log logr.Logger) error {
 	log.Info(fmt.Sprintf("The daemonSet %s/%s restart version is set to %s", daemonSet.Namespace, daemonSet.Name, restartVersion))
 	if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 		daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 	}
 	daemonSet.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
 	log.Info(fmt.Sprintf("The daemonSet %s/%s restart version is set to %s", daemonSet.Namespace, daemonSet.Name, restartVersion))
-	if err := r.Client.Update(context.TODO(), daemonSet); err != nil {
+	if err := client.Update(context.TODO(), daemonSet); err != nil {
 		return err
 	}
 	return nil
