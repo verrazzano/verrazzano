@@ -10,6 +10,7 @@ def PROXY_IMAGES_KEYCLOAK
 def PROXY_IMAGES_SPRINGBOOT
 def PROXY_IMAGES_HELIDON
 def PROXY_IMAGES_TODO
+def PROXY_IMAGES_BOBSBOOKS
 
 pipeline {
     options {
@@ -284,6 +285,14 @@ pipeline {
                         }
                     }
                 }
+                stage('examples bobs-books') {
+                    steps {
+                        runGinkgo('examples/bobsbooks', "false", "true")
+                        script {
+                            PROXY_IMAGES_BOBSBOOKS = getProxyImageCount("bobs-books")
+                        }
+                    }
+                }
             }
             post {
                 always {
@@ -450,6 +459,27 @@ pipeline {
                         validateProxyImageCount("todo-list", PROXY_IMAGES_TODO)
                     }
                 }
+                stage("Validate bobs-books istio upgrade") {
+                    steps {
+                        validateProxyImageCount("bobs-books", PROXY_IMAGES_BOBSBOOKS)
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('validate-upgrade-failure-cluster-dump')
+                        }
+                    }
+                }
+                success {
+                    script {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('validate-upgrade-success-cluster-dump')
+                        }
+                    }
+                }
             }
         }
 
@@ -496,6 +526,11 @@ pipeline {
                 stage('examples todo') {
                     steps {
                         runGinkgo('examples/todo', "true", "false")
+                    }
+                }
+                stage('examples bobs-books') {
+                    steps {
+                        runGinkgo('examples/bobsbooks', "true", "false")
                     }
                 }
             }
@@ -916,8 +951,17 @@ def validateIstioCoreDNSUninstall() {
 def restartExampleApps() {
     sh """
         kubectl rollout restart deployment -n springboot
+
         kubectl rollout restart deployment -n hello-helidon
+
         kubectl delete pods -n todo-list --all
+
+        kubectl rollout restart deployment -n bobs-books
+        kubectl patch domain -n bobs-books bobs-orders-wls -p '{"spec":{"serverStartPolicy":"NEVER"}}' --type merge
+        kubectl patch domain -n bobs-books bobbys-front-end -p '{"spec":{"serverStartPolicy":"NEVER"}}' --type merge
+        sleep 120
+        kubectl patch domain -n bobs-books bobs-orders-wls -p '{"spec":{"serverStartPolicy":"IF_NEEDED"}}' --type merge
+        kubectl patch domain -n bobs-books bobbys-front-end -p '{"spec":{"serverStartPolicy":"IF_NEEDED"}}' --type merge
     """
 }
 
