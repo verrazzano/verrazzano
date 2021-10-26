@@ -165,9 +165,13 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsEnabled Indicates whether or not a component is enabled for installation
 func (h HelmComponent) IsEnabled(context spi.ComponentContext) bool {
-	return true
+	if h.IsEnabledFunc == nil {
+		return true
+	}
+	return h.IsEnabledFunc(context)
 }
 
+// Install installs the component using Helm
 func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// Resolve the namespace
