@@ -169,7 +169,6 @@ var _ = Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
 			ginkgoExt.Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
 			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
-			ginkgoExt.Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
 		)
 
 		It("Expected pods are running", func() {
