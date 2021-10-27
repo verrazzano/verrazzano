@@ -187,7 +187,8 @@ pipeline {
                                         booleanParam(name: 'RUN_SLOW_TESTS', value: true),
                                         booleanParam(name: 'TRIGGER_FULL_TESTS', value: true),
                                         booleanParam(name: 'GENERATE_TARBALL', value: true),
-                                        booleanParam(name: 'GENERATE_TOOL', value: true)
+                                        booleanParam(name: 'GENERATE_TOOL', value: true),
+                                        booleanParam(name: 'PUSH_TO_OCIR', value: true)
                                     ], wait: true
                             }
                         }
