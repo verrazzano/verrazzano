@@ -166,6 +166,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			if err := r.Client.Update(ctx, &appConfig); err != nil {
 				return reconcile.Result{}, err
 			}
+		} else {
+			log.Info(fmt.Sprintf("Encountered errors restarting with %s.  Retry in the next Reconcile", restartVersion))
 		}
 
 		return reconcile.Result{}, nil

@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
+
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"k8s.io/apimachinery/pkg/labels"
@@ -156,7 +158,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// restart the workload if the restart-version has been changed
 	if controllers.IsWorkloadMarkedForRestart(workload.Annotations, workload.Status.ObservedRestartVersion, log) {
-		if err = r.restartHelidon(ctx, workload.Annotations[appconfig.RestartVersionAnnotation], workload.GetName(), workload.Namespace, log); err != nil {
+		if err = r.restartHelidon(ctx, workload.Annotations[appconfig.RestartVersionAnnotation], &workload, log); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
@@ -371,12 +373,13 @@ func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace 
 	return nil
 }
 
-func (r *Reconciler) restartHelidon(ctx context.Context, restartVersion string, helidonName, helidonNamespace string, log logr.Logger) error {
+func (r *Reconciler) restartHelidon(ctx context.Context, restartVersion string, workload *vzapi.VerrazzanoHelidonWorkload, log logr.Logger) error {
 	var deploymentList appsv1.DeploymentList
-	componentNameReq, _ := labels.NewRequirement("app", selection.Equals, []string{helidonName})
+	componentNameReq, _ := labels.NewRequirement(oam.LabelAppComponent, selection.Equals, []string{workload.ObjectMeta.Labels[oam.LabelAppComponent]})
+	appNameReq, _ := labels.NewRequirement(oam.LabelAppName, selection.Equals, []string{workload.ObjectMeta.Labels[oam.LabelAppName]})
 	selector := labels.NewSelector()
-	selector = selector.Add(*componentNameReq)
-	err := r.Client.List(ctx, &deploymentList, &client.ListOptions{Namespace: helidonNamespace, LabelSelector: selector})
+	selector = selector.Add(*componentNameReq, *appNameReq)
+	err := r.Client.List(ctx, &deploymentList, &client.ListOptions{Namespace: workload.Namespace, LabelSelector: selector})
 	if err != nil {
 		return err
 	}
