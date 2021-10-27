@@ -189,6 +189,14 @@ rules:
       - list
       - update
       - watch
+  - apiGroups:
+      - install.verrazzano.io
+    resources:
+      - verrazzanos
+    verbs:
+      - get
+      - list
+      - watch
   - nonResourceURLs: ["/metrics"]
     verbs: ["get"]
 ---
