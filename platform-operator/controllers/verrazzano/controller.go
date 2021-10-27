@@ -256,6 +256,17 @@ func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.Sug
 func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
 	ctx := context.TODO()
 
+	retry, err := r.retryUpgrade(ctx, vz)
+	if err != nil {
+		log.Errorf("Failed to update the annotations: %v", err)
+		return newRequeueWithDelay(), err
+	}
+
+	if retry {
+		log.Info("Restart Version annotation has changed, retrying upgrade")
+		return r.reconcileUpgrade(log, vz)
+	}
+
 	// Update uninstall status
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.procDelete(ctx, log, vz)
@@ -1150,6 +1161,26 @@ func commonPath(a, b string) string {
 // Get the install namespace where this controller is running.
 func getInstallNamespace() string {
 	return vzconst.VerrazzanoInstallNamespace
+}
+
+func (r *Reconciler) retryUpgrade(ctx context.Context, vz *installv1alpha1.Verrazzano) (bool, error) {
+	// get the user-specified restart version - if it's missing then there's nothing to do here
+	restartVersion, ok := vz.Annotations[vzconst.RestartVersionAnnotation]
+	if !ok {
+		return false, nil
+	}
+
+	// get the annotation with the previous restart version - if it's missing or the versions do not
+	// match, then we restart apps
+	prevRestartVersion, ok := vz.Annotations[vzconst.PreviousRestartVersionAnnotation]
+	if !ok || restartVersion != prevRestartVersion {
+
+		// add/update the previous restart version annotation on the appconfig
+		vz.Annotations[vzconst.PreviousRestartVersionAnnotation] = restartVersion
+		err := r.Client.Update(ctx, vz)
+		return true, err
+	}
+	return false, nil
 }
 
 // Process the Verrazzano resource deletion

@@ -92,3 +92,9 @@ const KeycloakNamespace = "keycloak"
 
 // The default name for install environment
 const DefaultEnvironmentName = "default"
+
+// RestartVersionAnnotation is the restart version annotation field
+const RestartVersionAnnotation = "verrazzano.io/restart-version"
+
+// PreviousRestartVersionAnnotation is the previous restart version annotation field
+const PreviousRestartVersionAnnotation = "verrazzano.io/previous-restart-version"
