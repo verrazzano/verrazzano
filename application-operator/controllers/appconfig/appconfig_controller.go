@@ -23,7 +23,7 @@ import (
 
 const (
 	RestartVersionAnnotation         = "verrazzano.io/restart-version"
-	previousRestartVersionAnnotation = "verrazzano.io/previous-restart-version"
+	observedRestartVersionAnnotation = "verrazzano.io/observed-restart-version"
 )
 
 type Reconciler struct {
@@ -51,9 +51,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var appConfig oamv1.ApplicationConfiguration
 	if err := r.Client.Get(ctx, req.NamespacedName, &appConfig); err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info("ApplicationConfiguration has been deleted", "name", req.NamespacedName)
+			log.Info("ApplicationConfiguration has been deleted")
 		} else {
-			log.Error(err, "Failed to fetch ApplicationConfiguration", "name", req.NamespacedName)
+			log.Error(err, "Failed to fetch ApplicationConfiguration")
 		}
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
@@ -69,12 +69,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// match, then we restart apps
 	hasErrorsRestarting := false
 	if r.isMarkedForRestart(restartVersion, &appConfig) {
-		log.Info(fmt.Sprintf("Restarting application %s", req.NamespacedName))
+		log.Info(fmt.Sprintf("Restarting application with restart-version %s", restartVersion))
 
 		// restart apps
 		for index := range appConfig.Spec.Components {
 			componentName := appConfig.Spec.Components[index].ComponentName
-			log.Info(fmt.Sprintf("Restarting component %s in namespace %s", componentName, appConfig.Namespace))
+			log.Info(fmt.Sprintf("Restarting component %s in namespace %s with restart-version %s", componentName, appConfig.Namespace, restartVersion))
 			var component oamv1.Component
 			err := r.Client.Get(ctx, types.NamespacedName{Name: componentName, Namespace: appConfig.Namespace}, &component)
 			if err != nil {
@@ -161,10 +161,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 		// add/update the previous restart version annotation on the appconfig
 		if !hasErrorsRestarting {
-			appConfig.Annotations[previousRestartVersionAnnotation] = restartVersion
+			appConfig.Annotations[observedRestartVersionAnnotation] = restartVersion
+			log.Info(fmt.Sprintf("Setting observed-restart-version with %s", restartVersion))
 			if err := r.Client.Update(ctx, &appConfig); err != nil {
 				return reconcile.Result{}, err
 			}
+		} else {
+			log.Info(fmt.Sprintf("Encountered errors restarting with %s.  Retry in the next Reconcile", restartVersion))
 		}
 
 		return reconcile.Result{}, nil
@@ -175,7 +178,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *Reconciler) isMarkedForRestart(restartVersion string, appConfig *oamv1.ApplicationConfiguration) bool {
-	prevRestartVersion, ok := appConfig.Annotations[previousRestartVersionAnnotation]
+	prevRestartVersion, ok := appConfig.Annotations[observedRestartVersionAnnotation]
 	if !ok || restartVersion != prevRestartVersion {
 		return true
 	}

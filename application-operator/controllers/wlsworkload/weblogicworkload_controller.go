@@ -211,10 +211,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// workload is updated, metadata.generation is not incremented, meaning only metadata or status has been changed
+	// In case of a new restart-version, we want to reconcile and write domain with restartVersion.
+	// Once restart is completed, we want to set status.ObservedRestartVersion with it so it won't restart again.
+	// However, setting status.ObservedRestartVersion would trigger reconcile, this is where we want to skip writing domain again.
 	if workload.Status.ObservedGeneration == workload.ObjectMeta.Generation {
 		// if restartVersion in status matches what is in annotations, no need to reconcile
 		if workload.Status.ObservedRestartVersion == workload.Annotations[appconfig.RestartVersionAnnotation] {
-			log.Info(fmt.Sprintf("Skip VerrazzanoWebLogicWorkload Reconcile since only metadata/status has been changed and verrazzano.io/restart-version: %s is not new",
+			log.Info(fmt.Sprintf("Skip Reconcile since only metadata/status has been changed and verrazzano.io/restart-version: %s is not new",
 				workload.Annotations[appconfig.RestartVersionAnnotation]))
 			return reconcile.Result{}, nil
 		}

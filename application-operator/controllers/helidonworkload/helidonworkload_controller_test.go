@@ -37,6 +37,7 @@ import (
 )
 
 const namespace = "unit-test-namespace"
+const generation = int64(1)
 
 // TestReconcilerSetupWithManager test the creation of the VerrazzanoHelidonWorkload reconciler.
 // GIVEN a controller implementation
@@ -171,6 +172,7 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoHelidonWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			return nil
 		})
 
@@ -249,6 +251,7 @@ func TestReconcileCreateHelidon(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoHelidonWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			return nil
 		})
 	// expect a call to create the Deployment
@@ -370,6 +373,7 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoHelidonWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			return nil
 		})
 	// expect a call to create the Deployment
@@ -483,6 +487,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload.yaml", params))
+			workload.ObjectMeta.Generation = generation
 			return nil
 		}).Times(1)
 
@@ -600,6 +605,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload_multi_container.yaml", params))
+			workload.ObjectMeta.Generation = generation
 			return nil
 		}).Times(1)
 
@@ -730,6 +736,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload.yaml", params))
+			workload.ObjectMeta.Generation = generation
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
@@ -855,6 +862,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload.yaml", params))
+			workload.ObjectMeta.Generation = generation
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion

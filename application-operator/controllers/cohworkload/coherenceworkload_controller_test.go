@@ -39,6 +39,7 @@ import (
 )
 
 const namespace = "unit-test-namespace"
+const generation = int64(1)
 const coherenceAPIVersion = "coherence.oracle.com/v1"
 const coherenceKind = "Coherence"
 const loggingTrait = `
@@ -92,6 +93,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -113,6 +115,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -172,6 +175,14 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			namespace.Name = "test-namespace"
 			return nil
 		})
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			assert.Equal(generation, workload.Status.ObservedGeneration)
+			return nil
+		})
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -193,6 +204,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -220,6 +232,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			return nil
 		})
 	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
@@ -285,6 +298,14 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			assert.Equal(generation, workload.Status.ObservedGeneration)
+			return nil
+		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
@@ -307,6 +328,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -335,6 +357,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			workload.Name = workloadName
 			workload.OwnerReferences = []metav1.OwnerReference{
 				{
@@ -474,6 +497,14 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			assert.Equal(generation, workload.Status.ObservedGeneration)
+			return nil
+		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
@@ -496,6 +527,7 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -524,6 +556,7 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			workload.Name = workloadName
 			workload.OwnerReferences = []metav1.OwnerReference{
 				{
@@ -629,6 +662,14 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			assert.Equal(generation, workload.Status.ObservedGeneration)
+			return nil
+		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
@@ -684,6 +725,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
 			return nil
 		})
@@ -759,6 +801,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			assert.Equal(generation, workload.Status.ObservedGeneration)
 			assert.Equal(newUpgradeVersion, workload.Status.CurrentUpgradeVersion)
 			return nil
 		})
@@ -784,7 +827,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
-	//mockStatus := mocks.NewMockStatusWriter(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -827,6 +870,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
 			return nil
 		})
@@ -869,6 +913,14 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			assert.Equal(generation, workload.Status.ObservedGeneration)
+			return nil
+		})
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -889,6 +941,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -925,6 +978,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -974,6 +1028,14 @@ func TestReconcileUpdateCR(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			assert.Equal(generation, workload.Status.ObservedGeneration)
+			return nil
+		})
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -996,6 +1058,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -1033,6 +1096,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -1089,6 +1153,14 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			assert.Equal(generation, workload.Status.ObservedGeneration)
+			return nil
+		})
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -1138,6 +1210,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = generation
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
