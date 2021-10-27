@@ -69,7 +69,7 @@ func TestReconcileNoPreviousResetVersion(t *testing.T) {
 
 	err = client.Get(context.TODO(), request.NamespacedName, appConfig)
 	assert.NoError(err)
-	assert.Equal("1", appConfig.Annotations[previousRestartVersionAnnotation])
+	assert.Equal("1", appConfig.Annotations[observedRestartVersionAnnotation])
 }
 
 func TestReconcileVersionsMismatch(t *testing.T) {
@@ -82,7 +82,7 @@ func TestReconcileVersionsMismatch(t *testing.T) {
 
 	appConfig := newAppConfig()
 	appConfig.Annotations[RestartVersionAnnotation] = "2"
-	appConfig.Annotations[previousRestartVersionAnnotation] = "1"
+	appConfig.Annotations[observedRestartVersionAnnotation] = "1"
 	err := client.Create(context.TODO(), appConfig)
 	assert.NoError(err)
 
@@ -91,7 +91,7 @@ func TestReconcileVersionsMismatch(t *testing.T) {
 
 	err = client.Get(context.TODO(), request.NamespacedName, appConfig)
 	assert.NoError(err)
-	assert.Equal("2", appConfig.Annotations[previousRestartVersionAnnotation])
+	assert.Equal("2", appConfig.Annotations[observedRestartVersionAnnotation])
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing

@@ -140,6 +140,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// workload is updated, metadata.generation is not incremented, meaning only metadata or status has been changed
+	if workload.Status.ObservedGeneration == workload.ObjectMeta.Generation {
+		// if restartVersion in status matches what is in annotations, no need to reconcile
+		if workload.Status.ObservedRestartVersion == workload.Annotations[appconfig.RestartVersionAnnotation] {
+			log.Info(fmt.Sprintf("Skip Reconcile since only metadata/status has been changed and verrazzano.io/restart-version: %s is not new",
+				workload.Annotations[appconfig.RestartVersionAnnotation]))
+			return reconcile.Result{}, nil
+		}
+	}
+
 	u, err := vznav.ConvertRawExtensionToUnstructured(&workload.Spec.Template)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -605,6 +615,10 @@ func (r *Reconciler) updateStatus(ctx context.Context, workload *vzapi.Verrazzan
 	}
 	if workload.Status.ObservedRestartVersion != workload.Annotations[appconfig.RestartVersionAnnotation] {
 		workload.Status.ObservedRestartVersion = workload.Annotations[appconfig.RestartVersionAnnotation]
+		updated = true
+	}
+	if workload.Status.ObservedGeneration != workload.ObjectMeta.Generation {
+		workload.Status.ObservedGeneration = workload.ObjectMeta.Generation
 		updated = true
 	}
 	if updated {

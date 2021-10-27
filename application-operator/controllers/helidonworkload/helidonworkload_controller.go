@@ -82,6 +82,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log.Info("Retrieved workload", "apiVersion", workload.APIVersion, "kind", workload.Kind)
 
+	// workload is updated, metadata.generation is not incremented, meaning only metadata or status has been changed
+	if workload.Status.ObservedGeneration == workload.ObjectMeta.Generation {
+		// if restartVersion in status matches what is in annotations, no need to reconcile
+		if workload.Status.ObservedRestartVersion == workload.Annotations[appconfig.RestartVersionAnnotation] {
+			log.Info(fmt.Sprintf("Skip Reconcile since only metadata/status has been changed and verrazzano.io/restart-version: %s is not new",
+				workload.Annotations[appconfig.RestartVersionAnnotation]))
+			return reconcile.Result{}, nil
+		}
+	}
+
 	// if required info is not available in workload, log error and return
 	if len(workload.Spec.DeploymentTemplate.Metadata.GetName()) == 0 {
 		err := errors.New("VerrazzanoHelidonWorkload is missing required spec.deploymentTemplate.metadata.name")
@@ -170,10 +180,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if !vzapi.QualifiedResourceRelationSlicesEquivalent(statusResources, workload.Status.Resources) ||
+		workload.Status.ObservedGeneration != workload.ObjectMeta.Generation ||
 		workload.Status.ObservedRestartVersion != workload.Annotations[appconfig.RestartVersionAnnotation] ||
 		workload.Status.CurrentUpgradeVersion != workload.Annotations[constants.AnnotationUpgradeVersion] {
 
 		workload.Status.Resources = statusResources
+		workload.Status.ObservedGeneration = workload.ObjectMeta.Generation
 		workload.Status.ObservedRestartVersion = workload.Annotations[appconfig.RestartVersionAnnotation]
 		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
 		if err := r.Status().Update(ctx, &workload); err != nil {
