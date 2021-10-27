@@ -523,11 +523,6 @@ pipeline {
                         runGinkgo('examples/todo', "true", "false")
                     }
                 }
-                stage('examples bobs-books') {
-                    steps {
-                        runGinkgo('examples/bobsbooks', "true", "false")
-                    }
-                }
             }
             post {
                 always {
