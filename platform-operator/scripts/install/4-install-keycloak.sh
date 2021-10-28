@@ -317,14 +317,17 @@ function configure_keycloak_realms() {
         "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
         "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
         "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
-        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback"
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
+        "https://kiali.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://kiali.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback"
       ],
       "webOrigins": [
         "https://verrazzano.$ENV_NAME.$DNS_SUFFIX",
         "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX",
         "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX",
         "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX",
-        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX"
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX",
+        "https://kiali.vmi.system.$ENV_NAME.$DNS_SUFFIX"
       ],
       "notBefore": 0,
       "bearerOnly": false,
