@@ -119,7 +119,7 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.7.3",
+              "tag": "1.7.3-2",
               "helmFullImageKey": "pilot.image"
             },
             {
