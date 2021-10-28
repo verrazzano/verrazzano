@@ -10,12 +10,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
@@ -42,6 +42,15 @@ func GetKubeConfigLocation() (string, error) {
 
 	return "", errors.New("unable to find kubeconfig")
 
+}
+
+// GetKubeConfigGivenPath GetKubeConfig will get the kubeconfig from the given kubeconfigPath
+func GetKubeConfigGivenPath(kubeconfigPath string) (*restclient.Config, error) {
+	return buildKubeConfig(kubeconfigPath)
+}
+
+func buildKubeConfig(kubeconfig string) (*restclient.Config, error) {
+	return clientcmd.BuildConfigFromFlags("", kubeconfig)
 }
 
 // GetKubeConfig Returns kubeconfig from KUBECONFIG env var if set
@@ -76,7 +85,7 @@ func GetIstioClientset() (*istioClient.Clientset, error) {
 // GetIstioClientsetInCluster returns the clientset object for Istio
 func GetIstioClientsetInCluster(kubeconfigPath string) (*istioClient.Clientset, error) {
 	var cs *istioClient.Clientset
-	kubeConfig, err := pkg.GetKubeConfigGivenPath(kubeconfigPath)
+	kubeConfig, err := GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return cs, err
 	}

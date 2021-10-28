@@ -12,6 +12,8 @@ import (
 	"os"
 	"strings"
 
+	restclient "k8s.io/client-go/rest"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
@@ -27,22 +29,12 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
 const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
-
-// GetKubeConfigGivenPath GetKubeConfig will get the kubeconfig from the given kubeconfigPath
-func GetKubeConfigGivenPath(kubeconfigPath string) (*restclient.Config, error) {
-	return buildKubeConfig(kubeconfigPath)
-}
-
-func buildKubeConfig(kubeconfig string) (*restclient.Config, error) {
-	return clientcmd.BuildConfigFromFlags("", kubeconfig)
-}
 
 // DoesCRDExist returns whether a CRD with the given name exists for the cluster
 func DoesCRDExist(crdName string) (bool, error) {
@@ -197,7 +189,7 @@ func DoesPodExist(namespace string, name string) (bool, error) {
 // kubeconfig path is specified
 func GetKubernetesClientsetForCluster(kubeconfigPath string) (*kubernetes.Clientset, error) {
 	// use the current context in the kubeconfig
-	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +221,7 @@ func GetDynamicClient() (dynamic.Interface, error) {
 
 // GetDynamicClientInCluster returns a dynamic client needed to access Unstructured data
 func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error) {
-	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +231,7 @@ func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error)
 // GetVerrazzanoInstallResourceInCluster returns the installed Verrazzano CR in the given cluster
 // (there should only be 1 per cluster)
 func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Verrazzano, error) {
-	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -670,7 +662,7 @@ func CreateRoleBinding(userOCID string, namespace string, rolebindingname string
 	return err
 }
 
-// DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
+// DoesRoleBindingExist returns whether a cluster role with the given name exists in the cluster
 func DoesRoleBindingExist(name string, namespace string) (bool, error) {
 	// Get the Kubernetes clientset
 	clientset, err := k8sutil.GetKubernetesClientset()
