@@ -112,6 +112,7 @@ func (r *Reconciler) restartComponent(ctx context.Context, componentName, compon
 	if err != nil {
 		return err
 	}
+
 	switch workload.GetKind() {
 	case "VerrazzanoCoherenceWorkload":
 		// "verrazzano.io/restart-version" will be automatically set on VerrazzanoCoherenceWorkload

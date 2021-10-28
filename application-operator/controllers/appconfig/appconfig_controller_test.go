@@ -5,7 +5,13 @@ package appconfig
 
 import (
 	"context"
+	"strings"
 	"testing"
+
+	appsv1 "k8s.io/api/apps/v1"
+
+	"github.com/golang/mock/gomock"
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -20,9 +26,48 @@ import (
 )
 
 const (
-	testNamespace     = "test-ns"
-	testAppConfigName = "test-appconfig"
+	testNamespace         = "test-ns"
+	testAppConfigName     = "test-appconfig"
+	testComponentName     = "test-component"
+	testNewRestartVersion = "test-new-restart"
 )
+
+// newScheme creates a new scheme that includes this package's object to use for testing
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	oamcore.AddToScheme(scheme)
+	return scheme
+}
+
+// newReconciler creates a new reconciler for testing
+func newReconciler(c client.Client) Reconciler {
+	return Reconciler{
+		Client: c,
+		Log:    ctrl.Log.WithName("test"),
+		Scheme: newScheme(),
+	}
+}
+
+// newRequest creates a new reconciler request for testing
+func newRequest(namespace string, name string) ctrl.Request {
+	return ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      name,
+		},
+	}
+}
+
+// newAppConfig creates a minimal ApplicationConfiguration struct
+func newAppConfig() *oamv1.ApplicationConfiguration {
+	return &oamv1.ApplicationConfiguration{
+		ObjectMeta: v1.ObjectMeta{
+			Name:        testAppConfigName,
+			Namespace:   testNamespace,
+			Annotations: make(map[string]string),
+		},
+	}
+}
 
 func TestReconcileApplicationConfigurationNotFound(t *testing.T) {
 	assert := asserts.New(t)
@@ -36,7 +81,7 @@ func TestReconcileApplicationConfigurationNotFound(t *testing.T) {
 	assert.NoError(err)
 }
 
-func TestReconcileNoResetVersion(t *testing.T) {
+func TestReconcileNoRestartVersion(t *testing.T) {
 	assert := asserts.New(t)
 	oamcore.AddToScheme(k8scheme.Scheme)
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
@@ -51,7 +96,7 @@ func TestReconcileNoResetVersion(t *testing.T) {
 	assert.NoError(err)
 }
 
-func TestReconcileNoPreviousResetVersion(t *testing.T) {
+func TestReconcileNoObservedRestartVersion(t *testing.T) {
 	assert := asserts.New(t)
 	oamcore.AddToScheme(k8scheme.Scheme)
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
@@ -94,39 +139,485 @@ func TestReconcileVersionsMismatch(t *testing.T) {
 	assert.Equal("2", appConfig.Annotations[observedRestartVersionAnnotation])
 }
 
-// newScheme creates a new scheme that includes this package's object to use for testing
-func newScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	oamcore.AddToScheme(scheme)
-	return scheme
+const weblogicWorkload = `
+{
+   "kind": "VerrazzanoWebLogicWorkload"
+}
+`
+
+const coherenceWorkload = `
+{
+   "kind": "VerrazzanoCoherenceWorkload"
+}
+`
+
+const helidonWorkload = `
+{
+   "kind": "VerrazzanoHelidonWorkload"
+}
+`
+
+const deploymentWorkload = `
+{
+   "kind": "Deployment",
+   "metadata": {
+      "name": "test-deployment"
+   }
+}
+`
+
+const daemonsetWorkload = `
+{
+   "kind": "DaemonSet",
+   "metadata": {
+      "name": "test-daemonset"
+   }
+}
+`
+
+const statefulsetWorkload = `
+{
+   "kind": "StatefulSet",
+   "metadata": {
+      "name": "test-statefulset"
+   }
+}
+`
+
+func TestReconcileRestartWeblogic(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the ApplicationConfiguration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+			appConfig.Namespace = testNamespace
+			appConfig.Annotations = map[string]string{RestartVersionAnnotation: testNewRestartVersion}
+			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
+			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the component
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
+			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicWorkload, " ", ""), "\n", ""))}
+			return nil
+		})
+	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(testNamespace, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
 }
 
-// newReconciler creates a new reconciler for testing
-func newReconciler(c client.Client) Reconciler {
-	return Reconciler{
-		Client: c,
-		Log:    ctrl.Log.WithName("test"),
-		Scheme: newScheme(),
-	}
+func TestReconcileRestartCoherence(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the ApplicationConfiguration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+			appConfig.Namespace = testNamespace
+			appConfig.Annotations = map[string]string{RestartVersionAnnotation: testNewRestartVersion}
+			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
+			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the component
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
+			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(coherenceWorkload, " ", ""), "\n", ""))}
+			return nil
+		})
+	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(testNamespace, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
 }
 
-// newRequest creates a new reconciler request for testing
-func newRequest(namespace string, name string) ctrl.Request {
-	return ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: namespace,
-			Name:      name,
-		},
-	}
+func TestReconcileRestartHelidon(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the ApplicationConfiguration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+			appConfig.Namespace = testNamespace
+			appConfig.Annotations = map[string]string{RestartVersionAnnotation: testNewRestartVersion}
+			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
+			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the component
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
+			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(helidonWorkload, " ", ""), "\n", ""))}
+			return nil
+		})
+	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(testNamespace, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
 }
 
-// newAppConfig creates a minimal ApplicationConfiguration struct
-func newAppConfig() *oamv1.ApplicationConfiguration {
-	return &oamv1.ApplicationConfiguration{
-		ObjectMeta: v1.ObjectMeta{
-			Name:        testAppConfigName,
-			Namespace:   testNamespace,
-			Annotations: make(map[string]string),
-		},
-	}
+func TestReconcileRestartDeploymentMismatchVersions(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the ApplicationConfiguration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+			appConfig.Namespace = testNamespace
+			appConfig.Annotations = map[string]string{RestartVersionAnnotation: testNewRestartVersion}
+			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
+			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the component
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
+			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(deploymentWorkload, " ", ""), "\n", ""))}
+			return nil
+		})
+	// expect a call to fetch the deployment
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-deployment"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+			return nil
+		})
+	// expect a call to update the deployment
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
+			assert.Equal(testNewRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation])
+			return nil
+		})
+	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(testNamespace, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+func TestReconcileRestartDeploymentMatchingVersions(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the ApplicationConfiguration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+			appConfig.Namespace = testNamespace
+			appConfig.Annotations = map[string]string{RestartVersionAnnotation: testNewRestartVersion}
+			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
+			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the component
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
+			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(deploymentWorkload, " ", ""), "\n", ""))}
+			return nil
+		})
+	// expect a call to fetch the deployment
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-deployment"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+			deploy.Annotations = map[string]string{observedRestartVersionAnnotation: testNewRestartVersion}
+			return nil
+		})
+	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(testNamespace, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+func TestReconcileRestartDaemonSetMismatchVersions(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the ApplicationConfiguration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+			appConfig.Namespace = testNamespace
+			appConfig.Annotations = map[string]string{RestartVersionAnnotation: testNewRestartVersion}
+			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
+			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the component
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
+			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(daemonsetWorkload, " ", ""), "\n", ""))}
+			return nil
+		})
+	// expect a call to fetch the daemonset
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-daemonset"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet) error {
+			return nil
+		})
+	// expect a call to update the daemonset
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, daemonset *appsv1.DaemonSet) error {
+			assert.Equal(testNewRestartVersion, daemonset.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation])
+			return nil
+		})
+	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(testNamespace, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+func TestReconcileRestartDaemonSetMatchingVersions(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the ApplicationConfiguration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+			appConfig.Namespace = testNamespace
+			appConfig.Annotations = map[string]string{RestartVersionAnnotation: testNewRestartVersion}
+			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
+			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the component
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
+			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(daemonsetWorkload, " ", ""), "\n", ""))}
+			return nil
+		})
+	// expect a call to fetch the daemonset
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-daemonset"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet) error {
+			daemonset.Annotations = map[string]string{observedRestartVersionAnnotation: testNewRestartVersion}
+			return nil
+		})
+	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(testNamespace, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+func TestReconcileRestartStatefulSetMismatchVersions(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the ApplicationConfiguration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+			appConfig.Namespace = testNamespace
+			appConfig.Annotations = map[string]string{RestartVersionAnnotation: testNewRestartVersion}
+			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
+			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the component
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
+			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(statefulsetWorkload, " ", ""), "\n", ""))}
+			return nil
+		})
+	// expect a call to fetch the statefulset
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-statefulset"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
+			return nil
+		})
+	// expect a call to update the statefulset
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, statefulset *appsv1.StatefulSet) error {
+			assert.Equal(testNewRestartVersion, statefulset.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation])
+			return nil
+		})
+	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(testNamespace, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+func TestReconcileRestartStatefulSetMatchingVersions(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the ApplicationConfiguration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+			appConfig.Namespace = testNamespace
+			appConfig.Annotations = map[string]string{RestartVersionAnnotation: testNewRestartVersion}
+			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
+			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the component
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
+			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(statefulsetWorkload, " ", ""), "\n", ""))}
+			return nil
+		})
+	// expect a call to fetch the statefulset
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-statefulset"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
+			statefulset.Annotations = map[string]string{observedRestartVersionAnnotation: testNewRestartVersion}
+			return nil
+		})
+	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(testNamespace, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
 }
