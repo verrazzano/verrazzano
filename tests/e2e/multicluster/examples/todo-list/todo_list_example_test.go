@@ -10,15 +10,12 @@ import (
 	"strconv"
 	"time"
 
-	m1 "k8s.io/api/core/v1"
-
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
+	m1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -116,7 +113,7 @@ var _ = Describe("Multi-cluster verify todo-list", func() {
 		It("Has application placed", func() {
 			Eventually(func() bool {
 				return VerifyTodoListInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
 

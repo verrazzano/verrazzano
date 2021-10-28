@@ -33,10 +33,10 @@ var (
 		"todo-mysql-deployment"}
 	expectedPodsTodoList = []string{
 		"mysql",
-		"tododomain"}
+		"tododomain-adminserver"}
 )
 
-// DeployTodoListProject deploys the sock-shop example's VerrazzanoProject to the cluster with the given kubeConfigPath
+// DeployTodoListProject deploys the todo-list example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeployTodoListProject(kubeconfigPath string, sourceDir string) error {
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to create %s project resource: %v", sourceDir, err)
@@ -44,13 +44,13 @@ func DeployTodoListProject(kubeconfigPath string, sourceDir string) error {
 	return nil
 }
 
-// TodoListNamespaceExists returns true if the sock-shop namespace exists in the given cluster
+// TodoListNamespaceExists returns true if the todo-list namespace exists in the given cluster
 func TodoListNamespaceExists(kubeconfigPath string, namespace string) bool {
 	_, err := pkg.GetNamespaceInCluster(namespace, kubeconfigPath)
 	return err == nil
 }
 
-// DeployTodoListApp deploys the sock-shop example application to the cluster with the given kubeConfigPath
+// DeployTodoListApp deploys the todo-list example application to the cluster with the given kubeConfigPath
 func DeployTodoListApp(kubeconfigPath string, sourceDir string, namespace string) error {
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/todo-list-components.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to create multi-cluster %s component resources: %v", sourceDir, err)
@@ -69,7 +69,7 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 	mcAppConfExists := appConfExists(kubeconfigPath, namespace)
 
 	compExists := true
-	// check each sock-shop component in expectedCompsSockShop
+	// check each todo-list component in expectedCompsTodoList
 	for _, comp := range expectedCompsTodoList {
 		compExists = componentExists(kubeconfigPath, namespace, comp) && compExists
 	}
@@ -128,7 +128,7 @@ func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kub
 	return u != nil
 }
 
-// VerifyTodoListInCluster verifies that the sock-shop app resources are either present or absent
+// VerifyTodoListInCluster verifies that the todo-list app resources are either present or absent
 // depending on whether the app is placed in this cluster
 func VerifyTodoListInCluster(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
 	projectExists := projectExists(kubeconfigPath, projectName)
@@ -145,7 +145,7 @@ func VerifyTodoListInCluster(kubeconfigPath string, isAdminCluster bool, placedI
 	}
 }
 
-// projectExists Check if sockshop project exists
+// projectExists Check if todo-list project exists
 func projectExists(kubeconfigPath string, projectName string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
@@ -160,7 +160,13 @@ func todoListPodsRunning(kubeconfigPath string, namespace string) bool {
 	return pkg.PodsRunningInCluster(namespace, expectedPodsTodoList, kubeconfigPath)
 }
 
-// VerifySockShopDeleteOnAdminCluster verifies that the sock shop app resources have been deleted from the admin
+// todoListPodDeleted Check if expected pods are running on a given cluster
+func todoListPodDeleted(kubeconfigPath string, namespace string, pod string) bool {
+	deletedPod := []string{pod}
+	return pkg.PodsRunningInCluster(namespace, deletedPod, kubeconfigPath)
+}
+
+// VerifyTodoListDeleteOnAdminCluster verifies that the todo-list app resources have been deleted from the admin
 // cluster after the application has been deleted
 func VerifyTodoListDeleteOnAdminCluster(kubeconfigPath string, placedInCluster bool, namespace string, projectName string) bool {
 	mcResDeleted := VerifyMCResourcesDeleted(kubeconfigPath, namespace, projectName)
@@ -172,7 +178,7 @@ func VerifyTodoListDeleteOnAdminCluster(kubeconfigPath string, placedInCluster b
 	return mcResDeleted && appDeleted
 }
 
-// VerifySockShopDeleteOnManagedCluster verifies that the sock shop app resources have been deleted from the managed
+// VerifyTodoListDeleteOnManagedCluster verifies that the todo-list app resources have been deleted from the managed
 // cluster after the application has been deleted
 func VerifyTodoListDeleteOnManagedCluster(kubeconfigPath string, namespace string, projectName string) bool {
 	mcResDeleted := VerifyMCResourcesDeleted(kubeconfigPath, namespace, projectName)
@@ -184,9 +190,14 @@ func VerifyTodoListDeleteOnManagedCluster(kubeconfigPath string, namespace strin
 
 // VerifyAppDeleted verifies that the workload and pods are deleted on the specified cluster
 func VerifyAppDeleted(kubeconfigPath string, namespace string) bool {
-	podsRunning := todoListPodsRunning(kubeconfigPath, namespace)
 
-	return !podsRunning
+	podsDeleted := true
+	// check that each todo-list pod is deleted
+	for _, pod := range expectedPodsTodoList {
+		podsDeleted = !todoListPodDeleted(namespace, pod, kubeconfigPath) && podsDeleted
+	}
+
+	return podsDeleted
 }
 
 // VerifyMCResourcesDeleted verifies that any resources created by the deployment are deleted on the specified cluster
@@ -195,7 +206,7 @@ func VerifyMCResourcesDeleted(kubeconfigPath string, namespace string, projectNa
 	projExists := projectExists(kubeconfigPath, projectName)
 
 	compExists := true
-	// check each sock-shop component in expectedCompsSockShop
+	// check each todo-list component in expectedCompsTodoList
 	for _, comp := range expectedCompsTodoList {
 		compExists = componentExists(kubeconfigPath, namespace, comp) && compExists
 	}
