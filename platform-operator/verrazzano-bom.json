@@ -192,7 +192,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.1.0-20211026140554-6c754c2",
+              "tag": "1.1.0-20211022175507-6e8efe6",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -333,6 +333,23 @@
               "image": "coherence-operator",
               "tag": "3.2.3",
               "helmFullImageKey": "image"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "kiali-server",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "kiali-server",
+          "images": [
+            {
+              "image": "kiali",
+              "tag": "v1.34.1",
+              "helmFullImageKey": "deployment.image_name",
+              "helmTagKey": "deployment.image_version"
             }
           ]
         }
