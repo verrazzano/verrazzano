@@ -57,7 +57,7 @@ function get_scan_summaries() {
 # $4 Issue count
 # $5 Scan result OCID
 # $6 Result file basename (path and file prefix to use)
-# $7 tine finished
+# $7 time finished
 function generate_detail_text_report() {
   [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ] || [ -z "$6" ] || [ -z "$7" ] && { echo "ERROR: generate_detail_text_report invalid args: $1 $2 $3 $4 $5 $6 $7"; return; }
   RESULT_SEVERITY=$1
