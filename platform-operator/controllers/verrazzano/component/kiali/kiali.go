@@ -44,7 +44,7 @@ func isKialiEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Kiali
 	if comp == nil || comp.Enabled == nil {
 		// Temp default to false
-		return false;
+		return false
 		// Default to false for managed cluster
 		// return !(ctx.EffectiveCR().Spec.Profile == vzapi.ManagedCluster)
 	}
