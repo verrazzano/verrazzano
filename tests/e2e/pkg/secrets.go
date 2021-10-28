@@ -63,7 +63,7 @@ func CreateCredentialsSecret(namespace string, name string, username string, pw 
 	}, labels)
 }
 
-// CreateCredentialsSecret creates opaque secret
+// CreateCredentialsSecretInCluster creates opaque secret
 func CreateCredentialsSecretInCluster(namespace string, name string, username string, pw string, labels map[string]string, kubeconfigPath string) (*corev1.Secret, error) {
 	return CreateCredentialsSecretFromMapInCluster(namespace, name, map[string]string{
 		"password": pw,
@@ -101,7 +101,7 @@ func CreateCredentialsSecretFromMap(namespace string, name string, values, label
 func CreateCredentialsSecretFromMapInCluster(namespace string, name string, values, labels map[string]string, kubeconfigPath string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreateCredentialsSecret %s in %s", name, namespace))
 	// Get the kubernetes clientset
-	clientset, err := k8sutil.GetKubernetesClientsetInCluster(kubeconfigPath)
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
 		return nil, err
@@ -183,7 +183,7 @@ func CreateDockerSecret(namespace string, name string, server string, username s
 func CreateDockerSecretInCluster(namespace string, name string, server string, username string, password string, kubeconfigPath string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreateDockerSecret %s in %s", name, namespace))
 	// Get the kubernetes clientset
-	clientset, err := k8sutil.GetKubernetesClientsetInCluster(kubeconfigPath)
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
 		return nil, err
@@ -225,11 +225,11 @@ func SecretsCreated(namespace string, names ...string) bool {
 	}
 	missing := missingSecrets(secrets.Items, names...)
 	Log(Info, fmt.Sprintf("Secrets %v were NOT created in %v", missing, namespace))
-	return (len(missing) == 0)
+	return len(missing) == 0
 }
 
 func missingSecrets(secrets []corev1.Secret, namePrefixes ...string) []string {
-	var missing = []string{}
+	var missing []string
 	for _, name := range namePrefixes {
 		if !secretExists(secrets, name) {
 			missing = append(missing, name)

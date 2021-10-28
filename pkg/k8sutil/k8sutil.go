@@ -4,13 +4,13 @@
 package k8sutil
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
-	"context"
-	"fmt"
-
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,12 +56,6 @@ func GetKubeConfig() (*rest.Config, error) {
 	return config, err
 }
 
-// GetKubeConfigInCluster Returns kubeconfig from kubeconfigPath var
-func GetKubeConfigInCluster(kubeconfigPath string) (*rest.Config, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-	return config, err
-}
-
 // GetKubernetesClientset returns the Kubernetes clientset for the cluster set in the environment
 func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	// use the current context in the kubeconfig
@@ -74,33 +68,15 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	return clientset, err
 }
 
-// GetKubernetesClientsetInCluster returns the Kubernetes clientset for the cluster set in the environment
-func GetKubernetesClientsetInCluster(kubeconfigPath string) (*kubernetes.Clientset, error) {
-	// use the current context in the kubeconfig
-	var clientset *kubernetes.Clientset
-	config, err := GetKubeConfigInCluster(kubeconfigPath)
-	if err != nil {
-		return clientset, err
-	}
-	clientset, err = kubernetes.NewForConfig(config)
-	return clientset, err
-}
-
 // GetIstioClientset returns the clientset object for Istio
 func GetIstioClientset() (*istioClient.Clientset, error) {
-	var cs *istioClient.Clientset
-	kubeConfig, err := GetKubeConfig()
-	if err != nil {
-		return cs, err
-	}
-	cs, err = istioClient.NewForConfig(kubeConfig)
-	return cs, err
+	return GetIstioClientsetInCluster("~/.kube/config")
 }
 
 // GetIstioClientsetInCluster returns the clientset object for Istio
 func GetIstioClientsetInCluster(kubeconfigPath string) (*istioClient.Clientset, error) {
 	var cs *istioClient.Clientset
-	kubeConfig, err := GetKubeConfigInCluster(kubeconfigPath)
+	kubeConfig, err := pkg.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return cs, err
 	}
