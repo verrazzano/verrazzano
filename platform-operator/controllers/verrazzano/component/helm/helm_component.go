@@ -61,6 +61,9 @@ type HelmComponent struct {
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
+	// IsEnabledFunc is a required function to determine if the component is enabled
+	IsEnabledFunc isEnabledFuncSig
+
 	//SupportsOperatorInstall Indicates whether or not the component supports install via the operator
 	SupportsOperatorInstall bool
 
@@ -80,6 +83,9 @@ type HelmComponent struct {
 
 // Verify that HelmComponent implements Component
 var _ spi.Component = HelmComponent{}
+
+// isEnabledFuncSig is the signature for the isEnabled function
+type isEnabledFuncSig func(context spi.ComponentContext) bool
 
 // preInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
 type preInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string) error
@@ -157,6 +163,15 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	return false
 }
 
+// IsEnabled Indicates whether or not a component is enabled for installation
+func (h HelmComponent) IsEnabled(context spi.ComponentContext) bool {
+	if h.IsEnabledFunc == nil {
+		return true
+	}
+	return h.IsEnabledFunc(context)
+}
+
+// Install installs the component using Helm
 func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// Resolve the namespace
@@ -204,7 +219,9 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 
 func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	if h.PostInstallFunc != nil {
-		h.PostInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace))
+		if err := h.PostInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace)); err != nil {
+			return err
+		}
 	}
 	return nil
 }

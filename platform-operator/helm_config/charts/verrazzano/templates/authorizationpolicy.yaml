@@ -207,10 +207,13 @@ spec:
   rules:
     # vmi-system-prometheus:9090 <- verrazzano-authproxy
     # vmi-system-prometheus:9090 <- vmi-system-grafana (uses VMO SA)
+    # vmi-system-prometheus:9090 <- kiali (uses Kiali SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}","cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}",
+                         "cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}",
+                         "cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.kiali.name }}"]
       to:
         - operation:
             ports: ["9090"]

@@ -6,7 +6,6 @@ package weblogic
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
@@ -79,8 +78,9 @@ func IsWeblogicOperatorReady(ctx spi.ComponentContext, _ string, namespace strin
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }
 
-// IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(comp *vzapi.WebLogicOperatorComponent) bool {
+// isWeblogicEnabled returns true if the WebLogic is enabled, which is the default
+func isWeblogicEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.WebLogicOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
