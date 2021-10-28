@@ -18,8 +18,8 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// The max upgrade failures for a given upgrade attempt is 2
-const failedUpgradeLimit = 2
+// The max upgrade failures for a given upgrade attempt is 10
+const failedUpgradeLimit = 10
 
 // Reconcile upgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {

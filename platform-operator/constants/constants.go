@@ -105,5 +105,5 @@ const DefaultEnvironmentName = "default"
 // RestartVersionAnnotation is the restart version annotation field
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
 
-// PreviousRestartVersionAnnotation is the previous restart version annotation field
-const PreviousRestartVersionAnnotation = "verrazzano.io/previous-restart-version"
+// ObservedRestartVersionAnnotation is the previous restart version annotation field
+const ObservedRestartVersionAnnotation = "verrazzano.io/observed-restart-version"
