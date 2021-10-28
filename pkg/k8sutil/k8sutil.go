@@ -20,13 +20,13 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-// Name of Environment Variable for KUBECONFIG
+// EnvVarKubeConfig Name of Environment Variable for KUBECONFIG
 const EnvVarKubeConfig = "KUBECONFIG"
 
-// Name of Environment Variable for test KUBECONFIG
+// EnvVarTestKubeConfig Name of Environment Variable for test KUBECONFIG
 const EnvVarTestKubeConfig = "TEST_KUBECONFIG"
 
-// Helper function to obtain the default kubeConfig location
+// GetKubeConfigLocation Helper function to obtain the default kubeConfig location
 func GetKubeConfigLocation() (string, error) {
 	if testKubeConfig := os.Getenv(EnvVarTestKubeConfig); len(testKubeConfig) > 0 {
 		return testKubeConfig, nil
@@ -44,7 +44,7 @@ func GetKubeConfigLocation() (string, error) {
 
 }
 
-// Returns kubeconfig from KUBECONFIG env var if set
+// GetKubeConfig Returns kubeconfig from KUBECONFIG env var if set
 // Else from default location ~/.kube/config
 func GetKubeConfig() (*rest.Config, error) {
 	var config *rest.Config
@@ -112,47 +112,10 @@ func GetIstioClientsetInCluster(kubeconfigPath string) (*istioClient.Clientset, 
 // created for the ApplicationConfiguration with name appConfigName from list of input gateways. If
 // the input list of gateways is not provided, it is fetched from the kubernetes cluster
 func GetHostnameFromGateway(namespace string, appConfigName string, gateways ...istiov1alpha3.Gateway) (string, error) {
-	if len(gateways) == 0 {
-		cs, err := GetIstioClientset()
-		if err != nil {
-			fmt.Printf("Could not get istio clientset: %v", err)
-			return "", err
-		}
-
-		gatewayList, err := cs.NetworkingV1alpha3().Gateways(namespace).List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			fmt.Printf("Could not list application ingress gateways: %v", err)
-			return "", err
-		}
-
-		gateways = gatewayList.Items
-	}
-
-	// if an optional appConfigName is provided, construct the gateway name from the namespace and
-	// appConfigName and look for that specific gateway, otherwise just use the first gateway
-	gatewayName := ""
-	if len(appConfigName) > 0 {
-		gatewayName = fmt.Sprintf("%s-%s-gw", namespace, appConfigName)
-	}
-
-	for _, gateway := range gateways {
-		if len(gatewayName) > 0 && gatewayName != gateway.ObjectMeta.Name {
-			continue
-		}
-
-		fmt.Printf("Found an app ingress gateway with name: %s\n", gateway.ObjectMeta.Name)
-		if len(gateway.Spec.Servers) > 0 && len(gateway.Spec.Servers[0].Hosts) > 0 {
-			return gateway.Spec.Servers[0].Hosts[0], nil
-		}
-	}
-
-	// this can happen if the app gateway has not been created yet, the caller should
-	// keep retrying and eventually we should get a gateway with a host
-	fmt.Printf("Could not find host in application ingress gateways in namespace: %s\n", namespace)
-	return "", nil
+	return GetHostnameFromGatewayInCluster(namespace, appConfigName, "~/.kube/config", gateways...)
 }
 
-// GetHostnameFromGatewayInCLuster returns the host name from the application gateway that was
+// GetHostnameFromGatewayInCluster returns the host name from the application gateway that was
 // created for the ApplicationConfiguration with name appConfigName from list of input gateways. If
 // the input list of gateways is not provided, it is fetched from the kubernetes cluster
 func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kubeconfigPath string, gateways ...istiov1alpha3.Gateway) (string, error) {
