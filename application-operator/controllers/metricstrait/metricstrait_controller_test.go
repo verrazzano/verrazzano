@@ -1644,7 +1644,7 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
 			assert.Equal("istio-system", obj.Namespace)
 			assert.Equal("prometheus", obj.Name)
-			assert.Contains(obj.Data["prometheus.yml"], "target_label: managed_cluster")
+			assert.Contains(obj.Data["prometheus.yml"], "target_label: " + prometheusClusterNameLabel)
 			assert.Contains(obj.Data["prometheus.yml"], "replacement: thiscluster")
 			return nil
 		})

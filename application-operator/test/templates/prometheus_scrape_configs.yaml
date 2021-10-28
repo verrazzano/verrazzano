@@ -11,7 +11,7 @@ scrape_configs:
   - action: replace
     replacement: ##VERRAZZANO_CLUSTER_NAME##
     source_labels: null
-    target_label: managed_cluster
+    target_label: verrazzano_cluster
   - action: keep
     regex: true;##APP_NAME##;##COMP_NAME##
     source_labels:

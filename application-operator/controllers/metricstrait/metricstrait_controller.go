@@ -52,6 +52,7 @@ const (
 	prometheusConfigKey          = "prometheus.yml"
 	prometheusScrapeConfigsLabel = "scrape_configs"
 	prometheusJobNameLabel       = "job_name"
+	prometheusClusterNameLabel   = "verrazzano_cluster"
 
 	// Annotation names for metrics read by the controller
 	prometheusPortAnnotation = "prometheus.io/port"
@@ -107,7 +108,7 @@ kubernetes_sd_configs:
 relabel_configs:
 - action: replace
   source_labels: null
-  target_label: managed_cluster
+  target_label: ` + prometheusClusterNameLabel + `
   replacement: ##VERRAZZANO_CLUSTER_NAME##
 - action: keep
   source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
@@ -152,7 +153,7 @@ kubernetes_sd_configs:
 relabel_configs:
 - action: replace
   source_labels: null
-  target_label: managed_cluster
+  target_label: ` + prometheusClusterNameLabel + `
   replacement: ##VERRAZZANO_CLUSTER_NAME##
 - action: keep
   source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
