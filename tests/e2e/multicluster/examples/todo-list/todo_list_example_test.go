@@ -81,7 +81,7 @@ var _ = BeforeSuite(func() {
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 })
 
-var _ = Describe("Multi-cluster verify sock-shop", func() {
+var _ = Describe("Multi-cluster verify todo-list", func() {
 	Context("Admin Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
