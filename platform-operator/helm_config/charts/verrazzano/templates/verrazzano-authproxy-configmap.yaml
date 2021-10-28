@@ -478,6 +478,8 @@ data:
             serverUrl = me.makeVmiBackendUrl(backend, '5601')
         elseif backend == 'elasticsearch' then
             serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')
+        elseif backend == 'kiali' then
+            serverUrl = me.makeVmiBackendUrl(backend, '20001')
         else
             me.not_found("Invalid backend name '"..backend.."'")
         end
