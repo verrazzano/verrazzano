@@ -169,7 +169,16 @@ func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion strin
 	}
 	if r.isMarkedForRestart(restartVersion, deployment.Annotations) {
 		log.Info(fmt.Sprintf("Restarting deployment %s in namespace %s with restart-version %s", name, namespace, restartVersion))
-		return DoRestartDeployment(r.Client, restartVersion, &deployment, log)
+		err := DoRestartDeployment(r.Client, restartVersion, &deployment, log)
+		if err != nil {
+			return err
+		}
+		// if the restart is successful, write restartVersion to the annotation observedRestartVersionAnnotation
+		if deployment.Annotations == nil {
+			deployment.Annotations = make(map[string]string)
+		}
+		deployment.Annotations[observedRestartVersionAnnotation] = restartVersion
+		return r.Update(ctx, &deployment)
 	}
 	return nil
 }
@@ -187,7 +196,16 @@ func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion stri
 	}
 	if r.isMarkedForRestart(restartVersion, statefulSet.Annotations) {
 		log.Info(fmt.Sprintf("Restarting statefulSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
-		return DoRestartStatefulSet(r.Client, restartVersion, &statefulSet, log)
+		err := DoRestartStatefulSet(r.Client, restartVersion, &statefulSet, log)
+		if err != nil {
+			return err
+		}
+		// if the restart is successful, write restartVersion to the annotation observedRestartVersionAnnotation
+		if statefulSet.Annotations == nil {
+			statefulSet.Annotations = make(map[string]string)
+		}
+		statefulSet.Annotations[observedRestartVersionAnnotation] = restartVersion
+		return r.Update(ctx, &statefulSet)
 	}
 	return nil
 }
@@ -205,7 +223,16 @@ func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string
 	}
 	if r.isMarkedForRestart(restartVersion, daemonSet.Annotations) {
 		log.Info(fmt.Sprintf("Restarting daemonSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
-		return DoRestartDaemonSet(r.Client, restartVersion, &daemonSet, log)
+		err := DoRestartDaemonSet(r.Client, restartVersion, &daemonSet, log)
+		if err != nil {
+			return err
+		}
+		// if the restart is successful, write restartVersion to the annotation observedRestartVersionAnnotation
+		if daemonSet.Annotations == nil {
+			daemonSet.Annotations = make(map[string]string)
+		}
+		daemonSet.Annotations[observedRestartVersionAnnotation] = restartVersion
+		return r.Update(ctx, &daemonSet)
 	}
 	return nil
 }

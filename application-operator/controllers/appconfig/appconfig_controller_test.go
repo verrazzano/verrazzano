@@ -346,6 +346,13 @@ func TestReconcileRestartDeploymentMismatchVersions(t *testing.T) {
 			assert.Equal(testNewRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation])
 			return nil
 		})
+	// expect a call to update the deployment
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
+			assert.Equal(testNewRestartVersion, deploy.Annotations[observedRestartVersionAnnotation])
+			return nil
+		})
 	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
@@ -450,6 +457,13 @@ func TestReconcileRestartDaemonSetMismatchVersions(t *testing.T) {
 			assert.Equal(testNewRestartVersion, daemonset.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation])
 			return nil
 		})
+	// expect a call to update the daemonset
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, daemonset *appsv1.DaemonSet) error {
+			assert.Equal(testNewRestartVersion, daemonset.Annotations[observedRestartVersionAnnotation])
+			return nil
+		})
 	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
@@ -552,6 +566,13 @@ func TestReconcileRestartStatefulSetMismatchVersions(t *testing.T) {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, statefulset *appsv1.StatefulSet) error {
 			assert.Equal(testNewRestartVersion, statefulset.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation])
+			return nil
+		})
+	// expect a call to update the statefulset
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, statefulset *appsv1.StatefulSet) error {
+			assert.Equal(testNewRestartVersion, statefulset.Annotations[observedRestartVersionAnnotation])
 			return nil
 		})
 	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
