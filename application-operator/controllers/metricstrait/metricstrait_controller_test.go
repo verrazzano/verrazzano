@@ -537,7 +537,7 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	//mockStatus := mocks.NewMockStatusWriter(mocker)
+	// mockStatus := mocks.NewMockStatusWriter(mocker)
 	var err error
 
 	params := map[string]string{
@@ -632,7 +632,7 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	//mockStatus := mocks.NewMockStatusWriter(mocker)
+	// mockStatus := mocks.NewMockStatusWriter(mocker)
 	var err error
 
 	params := map[string]string{
@@ -715,7 +715,7 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	//mockStatus := mocks.NewMockStatusWriter(mocker)
+	// mockStatus := mocks.NewMockStatusWriter(mocker)
 	var err error
 
 	params := map[string]string{
@@ -1644,7 +1644,7 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
 			assert.Equal("istio-system", obj.Namespace)
 			assert.Equal("prometheus", obj.Name)
-			assert.Contains(obj.Data["prometheus.yml"], "target_label: " + prometheusClusterNameLabel)
+			assert.Contains(obj.Data["prometheus.yml"], "target_label: "+prometheusClusterNameLabel)
 			assert.Contains(obj.Data["prometheus.yml"], "replacement: thiscluster")
 			return nil
 		})
@@ -1689,7 +1689,7 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	//mockStatus := mocks.NewMockStatusWriter(mocker)
+	// mockStatus := mocks.NewMockStatusWriter(mocker)
 	var err error
 
 	params := map[string]string{
