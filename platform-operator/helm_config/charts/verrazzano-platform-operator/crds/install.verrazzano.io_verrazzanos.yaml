@@ -1986,6 +1986,12 @@ spec:
                             type: object
                         type: object
                     type: object
+                  kiali:
+                    description: Kiali contains the Kiali component configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   kibana:
                     description: Grafana configuration
                     properties:
@@ -3730,6 +3736,9 @@ spec:
                   keyCloakUrl:
                     description: KeyCloakURL The KeyCloak URL for this Verrazzano
                       installation
+                    type: string
+                  kialiUrl:
+                    description: KialiURL The Kiali URL for this Verrazzano installation
                     type: string
                   kibanaUrl:
                     description: KibanaURL The Kibana URL for this Verrazzano installation

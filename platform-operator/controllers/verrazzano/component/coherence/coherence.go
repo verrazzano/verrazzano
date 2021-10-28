@@ -4,7 +4,6 @@
 package coherence
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,8 +22,9 @@ func IsCoherenceOperatorReady(ctx spi.ComponentContext, _ string, namespace stri
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }
 
-// IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(comp *v1alpha1.CoherenceOperatorComponent) bool {
+// isCoherenceEnabled returns true if the component is enabled, which is the default
+func isCoherenceEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.CoherenceOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}

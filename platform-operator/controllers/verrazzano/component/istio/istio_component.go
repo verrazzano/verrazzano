@@ -16,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
@@ -103,7 +102,7 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(_ *v1alpha1.IstioComponent) bool {
+func (i IstioComponent) IsEnabled(context spi.ComponentContext) bool {
 	return true
 }
 
