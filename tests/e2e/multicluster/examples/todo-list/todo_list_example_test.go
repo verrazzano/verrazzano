@@ -74,7 +74,7 @@ var _ = BeforeSuite(func() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() error {
-		return DeployTodoListApp(adminKubeconfig, sourceDir, testNamespace)
+		return DeployTodoListApp(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 })
 

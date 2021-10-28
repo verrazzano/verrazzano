@@ -51,7 +51,7 @@ func TodoListNamespaceExists(kubeconfigPath string, namespace string) bool {
 }
 
 // DeployTodoListApp deploys the todo-list example application to the cluster with the given kubeConfigPath
-func DeployTodoListApp(kubeconfigPath string, sourceDir string, namespace string) error {
+func DeployTodoListApp(kubeconfigPath string, sourceDir string) error {
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/todo-list-components.yaml", sourceDir), kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to create multi-cluster %s component resources: %v", sourceDir, err)
 	}
