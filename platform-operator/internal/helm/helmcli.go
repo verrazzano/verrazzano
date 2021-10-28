@@ -151,7 +151,7 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	// We have seen from tests that doing a retry will eventually succeed if these 2 errors occur.
 	const maxRetry = 5
 	for i := 1; i <= maxRetry; i++ {
-		cmd := exec.Command("helma", cmdArgs...)
+		cmd := exec.Command("helm", cmdArgs...)
 
 		// mask sensitive data before logging
 		cmdStr := maskSensitiveData(cmd.String())
