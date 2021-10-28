@@ -163,7 +163,7 @@ func todoListPodsRunning(kubeconfigPath string, namespace string) bool {
 // todoListPodDeleted Check if expected pods are running on a given cluster
 func todoListPodDeleted(kubeconfigPath string, namespace string, pod string) bool {
 	deletedPod := []string{pod}
-	return pkg.PodsRunningInCluster(namespace, deletedPod, kubeconfigPath)
+	return !pkg.PodsRunningInCluster(namespace, deletedPod, kubeconfigPath)
 }
 
 // VerifyTodoListDeleteOnAdminCluster verifies that the todo-list app resources have been deleted from the admin
@@ -194,7 +194,7 @@ func VerifyAppDeleted(kubeconfigPath string, namespace string) bool {
 	podsDeleted := true
 	// check that each todo-list pod is deleted
 	for _, pod := range expectedPodsTodoList {
-		podsDeleted = !todoListPodDeleted(namespace, pod, kubeconfigPath) && podsDeleted
+		podsDeleted = todoListPodDeleted(namespace, pod, kubeconfigPath) && podsDeleted
 	}
 
 	return podsDeleted
