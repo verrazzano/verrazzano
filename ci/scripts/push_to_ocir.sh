@@ -9,8 +9,14 @@ set -e
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 TOOL_SCRIPT_DIR=${SCRIPT_DIR}/../../tools/scripts
+TEST_SCRIPT_DIR=${SCRIPT_DIR}/../../tests/e2e/config/scripts
 
+<<<<<<< HEAD:ci/scripts/push_to_ocir.sh
 if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCIR_SCAN_REGISTRY" ] || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ] || [ -z "$BRANCH_NAME" ]; then
+=======
+if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCIR_SCAN_REGISTRY" ] \
+   || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ] || [ -z "$OCIR_SCAN_COMPARTMENT" ] || [ -z "$OCIR_SCAN_TARGET" ]; then
+>>>>>>> abfa7c15... Tvlatas/vz 3763 Update scan results to be BOM based (#1856):ci/scripts/periodic_push_to_ocir.sh
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
@@ -30,13 +36,11 @@ fi
 
 # This assumes that the docker login has happened, and that the OCI CLI has access as well with default profile
 
-# This also currently assumes that the repository structure has been setup. That assumption will go away
-# once we add in scripting which will ensure that the OCIR repositories for the images in the BOM are created
-# and setup for scanning. Most of the time these already will exist and be setup, but if there is a new image
-# or images it should get things setup for them.
-#
-# This will likely be done by enhancing the tests/e2e/config/scripts/create_ocir_repositories.sh script
-# to handle our use cases as well.
+# We call the create repositories script, supplying the existing target information. If repositories are not
+# targeted they will be created and targeted. If they are already targeted the script will skip trying to create them
+# or updating the target. This is done to catch new images that get added in over time.
+# FIXME: Do not enable until we are sure the VSS lifecycle state issues with update are understood and handled
+# sh $TEST_SCRIPT_DIR/create_ocir_repositories.sh -p $OCIR_SCAN_REPOSITORY_PATH --region us-ashburn-1 -c $OCIR_SCAN_COMPARTMENT -t $OCIR_SCAN_TARGET -d ${WORKSPACE}/tar-files
 
 # Push the images. NOTE: If a new image was added before we do the above "ensure" step, this may have the side
 # effect of pushing that image to the root compartment rather than the desired sub-compartment (OCIR behaviour),
