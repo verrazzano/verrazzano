@@ -11,12 +11,8 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 TOOL_SCRIPT_DIR=${SCRIPT_DIR}/../../tools/scripts
 TEST_SCRIPT_DIR=${SCRIPT_DIR}/../../tests/e2e/config/scripts
 
-<<<<<<< HEAD:ci/scripts/push_to_ocir.sh
-if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCIR_SCAN_REGISTRY" ] || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ] || [ -z "$BRANCH_NAME" ]; then
-=======
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCIR_SCAN_REGISTRY" ] \
-   || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ] || [ -z "$OCIR_SCAN_COMPARTMENT" ] || [ -z "$OCIR_SCAN_TARGET" ]; then
->>>>>>> abfa7c15... Tvlatas/vz 3763 Update scan results to be BOM based (#1856):ci/scripts/periodic_push_to_ocir.sh
+   || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ] || [ -z "$BRANCH_NAME" ] || [ -z "$OCIR_SCAN_COMPARTMENT" ] || [ -z "$OCIR_SCAN_TARGET" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
