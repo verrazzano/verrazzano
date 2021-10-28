@@ -562,7 +562,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// The GenerateChangedPredicate will skip update events that have no change in the object's metadata.generation
 		// field.  Any updates to the status or metadata do not cause the metadata.generation to be changed and
 		// therefore the reconciler will not be called.
-		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Build(r)
 	return err
 }
