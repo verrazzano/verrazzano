@@ -227,6 +227,11 @@
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
+              "image": "nginx-ingress-controller",
+              "tag": "0.46.0-20211005200943-bd017fde2",
+              "helmFullImageKey": "monitoringOperator.oidcProxyImage"
+            },
+            {
               "image": "fluentd-kubernetes-daemonset",
               "tag": "v1.12.3-20210930152433-f345ec2",
               "helmFullImageKey": "logging.fluentdImage"
