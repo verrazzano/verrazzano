@@ -32,6 +32,7 @@ function get_bom_from_release() {
     # Create a container from the image and copy the BOM from the container
     local containerId=$(docker create ${image})
     docker cp ${containerId}:/verrazzano/platform-operator/verrazzano-bom.json ${outputFile}
+    docker rm ${containerId}
 
     rm -fr ${tmpDir}
 }

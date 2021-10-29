@@ -23,7 +23,7 @@ pipeline {
         OCI_CLI_REGION = "us-ashburn-1"
         OCI_REGION = "${env.OCI_CLI_REGION}"
 
-        OCIR_COMPARTMENT_ID = "ocid1.compartment.oc1..aaaaaaaab5ygayr7tg3xw24pu24zz5bg6laejdkz7hyutrbltkfnfsy644qa"
+        OCIR_COMPARTMENT_ID = credentials('ocir-scan-compartment')
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_REPOSITORY_BASE = credentials('ocir-scan-repository-path')
         OCIR_PATH_FILTER = ".*"
