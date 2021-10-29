@@ -951,7 +951,7 @@ func TestRetryUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	// Expect a call to get the verrazzano resource.  Return resource with version
+	// Expect a call to get the verrazzano resource.  Return resource with version and the restart-version annotation
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
@@ -985,7 +985,7 @@ func TestRetryUpgrade(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	// Expect a call to update annotations
+	// Expect a call to update annotations and ensure annotations are accurate
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano) error {
@@ -1038,7 +1038,7 @@ func TestDontRetryUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	// Expect a call to get the verrazzano resource.  Return resource with version
+	// Expect a call to get the verrazzano resource.  Return resource with version and the restart-version annotation
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {

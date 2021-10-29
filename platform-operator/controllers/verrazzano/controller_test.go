@@ -2150,11 +2150,6 @@ func TestBuildExternalDNSDomain(t *testing.T) {
 	mocker.Finish()
 }
 
-// TestRetryUpgrade tests retryUpgrade method
-// GIVEN a Verrazzano custom resource
-// WHEN restart-version is exists and observed-restart-version doesn't
-// THEN return true
-
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
