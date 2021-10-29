@@ -79,7 +79,12 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 
 // GetIstioClientset returns the clientset object for Istio
 func GetIstioClientset() (*istioClient.Clientset, error) {
-	return GetIstioClientsetInCluster("~/.kube/config")
+	var config *istioClient.Clientset
+	kubeConfigLoc, err := GetKubeConfigLocation()
+	if err != nil {
+		return config, err
+	}
+	return GetIstioClientsetInCluster(kubeConfigLoc)
 }
 
 // GetIstioClientsetInCluster returns the clientset object for Istio
@@ -97,7 +102,12 @@ func GetIstioClientsetInCluster(kubeconfigPath string) (*istioClient.Clientset, 
 // created for the ApplicationConfiguration with name appConfigName from list of input gateways. If
 // the input list of gateways is not provided, it is fetched from the kubernetes cluster
 func GetHostnameFromGateway(namespace string, appConfigName string, gateways ...istiov1alpha3.Gateway) (string, error) {
-	return GetHostnameFromGatewayInCluster(namespace, appConfigName, "~/.kube/config", gateways...)
+	var config string
+	kubeConfigLoc, err := GetKubeConfigLocation()
+	if err != nil {
+		return config, err
+	}
+	return GetHostnameFromGatewayInCluster(namespace, appConfigName, kubeConfigLoc, gateways...)
 }
 
 // GetHostnameFromGatewayInCluster returns the host name from the application gateway that was
