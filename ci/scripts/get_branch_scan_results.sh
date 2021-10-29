@@ -43,7 +43,6 @@ export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/latest
 mkdir -p ${SCAN_RESULTS_DIR}
 
 # Get the last pushed BOM for the tip of the branch
-BRANCH_NAME=release-1.0
 echo "Attempting to fetch BOM from object storage for branch: ${BRANCH_NAME}"
 export SCAN_BOM_FILE=${BOM_DIR}/last-ocir-pushed-verrazzano-bom.json
 
