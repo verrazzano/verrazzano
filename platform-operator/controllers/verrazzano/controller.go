@@ -256,6 +256,7 @@ func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.Sug
 func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
 	ctx := context.TODO()
 
+	// Determine if the user specified to retry upgrade
 	retry, err := r.retryUpgrade(ctx, vz)
 	if err != nil {
 		log.Errorf("Failed to update the annotations: %v", err)
@@ -264,7 +265,12 @@ func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.Sugare
 
 	if retry {
 		log.Info("Restart Version annotation has changed, retrying upgrade")
-		return r.reconcileUpgrade(log, vz)
+		err = r.updateState(log, vz, installv1alpha1.Ready)
+		if err != nil {
+			log.Errorf("Failed to update the state to ready: %v", err)
+			return newRequeueWithDelay(), err
+		}
+		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
 	// Update uninstall status
