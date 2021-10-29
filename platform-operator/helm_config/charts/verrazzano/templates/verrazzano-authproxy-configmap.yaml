@@ -892,14 +892,14 @@ data:
             ckValue = me.aes256:encrypt(cjson.encode(cookiePairs))
         end
         ckValue = base64.encode_base64url(ckValue)
-        cookie:set({key=ckName, value=ckValue, path="/", secure=true, httponly=httponly, samesite="None", expires=expires})
+        cookie:set({key=ckName, value=ckValue, path="/", secure=true, httponly=httponly, expires=expires})
     end
 
      function me.deleteCookies(...)
         local cookies = {}
         local arg = {...}
         for i,v in ipairs(arg) do
-            cookies[i] = tostring(v)..'=; Path=/; Secure; HttpOnly; SameSite="None"; Expires=Thu, 01 Jan 1970 00:00:00 UTC;'
+            cookies[i] = tostring(v)..'=; Path=/; Secure; HttpOnly; Expires=Thu, 01 Jan 1970 00:00:00 UTC;'
         end
         ngx.header["Set-Cookie"] = cookies
     end
