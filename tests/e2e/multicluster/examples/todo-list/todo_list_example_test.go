@@ -277,27 +277,27 @@ var _ = AfterSuite(func() {
 
 func cleanUp(kubeconfigPath string) error {
 	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/mc-todo-list-application.yaml", sourceDir), kubeconfigPath); err != nil {
-		return fmt.Errorf("failed to delete multi-cluster sock-shop application resource: %v", err)
+		return fmt.Errorf("failed to delete multi-cluster todo-list application resource: %v", err)
 	}
 
 	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/todo-list-components.yaml", sourceDir), kubeconfigPath); err != nil {
-		return fmt.Errorf("failed to delete multi-cluster sock-shop component resources: %v", err)
+		return fmt.Errorf("failed to delete multi-cluster todo-list component resources: %v", err)
 	}
 
 	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/tododb-secret.yaml", sourceDir), kubeconfigPath); err != nil {
-		return fmt.Errorf("failed to delete multi-cluster sock-shop component resources: %v", err)
+		return fmt.Errorf("failed to delete multi-cluster todo-list component resources: %v", err)
 	}
 
 	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/weblogic-domain-secret.yaml", sourceDir), kubeconfigPath); err != nil {
-		return fmt.Errorf("failed to delete multi-cluster sock-shop component resources: %v", err)
+		return fmt.Errorf("failed to delete multi-cluster todo-list component resources: %v", err)
 	}
 
 	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/docker-registry-secret.yaml", sourceDir), kubeconfigPath); err != nil {
-		return fmt.Errorf("failed to delete multi-cluster sock-shop component resources: %v", err)
+		return fmt.Errorf("failed to delete multi-cluster todo-list component resources: %v", err)
 	}
 
 	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
-		return fmt.Errorf("failed to delete sock-shop project resource: %v", err)
+		return fmt.Errorf("failed to delete todo-list project resource: %v", err)
 	}
 	return nil
 }

@@ -79,10 +79,9 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 
 // GetIstioClientset returns the clientset object for Istio
 func GetIstioClientset() (*istioClient.Clientset, error) {
-	var config *istioClient.Clientset
 	kubeConfigLoc, err := GetKubeConfigLocation()
 	if err != nil {
-		return config, err
+		return nil, err
 	}
 	return GetIstioClientsetInCluster(kubeConfigLoc)
 }

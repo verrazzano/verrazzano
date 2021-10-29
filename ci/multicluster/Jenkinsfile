@@ -542,7 +542,7 @@ pipeline {
                         }
                         stage('Examples Todo List') {
                             steps {
-                            testTodoExample("multicluster/examples/todo-list")
+                                testTodoExample("multicluster/examples/todo-list")
                             }
                         }
                     }
