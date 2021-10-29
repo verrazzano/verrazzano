@@ -3,6 +3,7 @@
 package verrazzano
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
@@ -59,4 +60,8 @@ func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 
 func (f fakeComponent) IsEnabled(_ spi.ComponentContext) bool {
 	return true
+}
+
+func (i fakeComponent) GetMinVerrazzanoVersion() string {
+	return constants.VerrazzanoVersion_1_0_0
 }

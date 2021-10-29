@@ -36,7 +36,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 		if !isVersionOk(log, comp.GetMinVerrazzanoVersion(), cr.Status.Version) {
 			// User needs to do upgrade before this component can be installed
 			log.Infof("Component %s cannot be installed until Verrazzano is upgrade to at least version %s",
-				comp.Name(),comp.GetMinVerrazzanoVersion())
+				comp.Name(), comp.GetMinVerrazzanoVersion())
 			requeueLongDelay = true
 			continue
 		}
