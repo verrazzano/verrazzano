@@ -2150,6 +2150,71 @@ func TestBuildExternalDNSDomain(t *testing.T) {
 	mocker.Finish()
 }
 
+func TestRetryUpgrade(t *testing.T) {
+	verrazzanoToUse := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				constants.RestartVersionAnnotation: "a",
+			},
+		},
+	}
+
+	verrazzanoToUse.Status.State = vzapi.Failed
+
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano) error {
+			assert.Equal(t, verrazzano.ObjectMeta.Annotations[constants.RestartVersionAnnotation], "a")
+			assert.Equal(t, verrazzano.ObjectMeta.Annotations[constants.ObservedRestartVersionAnnotation], "a")
+			return nil
+		})
+
+	reconciler := newVerrazzanoReconciler(mock)
+	retry, err := reconciler.retryUpgrade(context.TODO(), &verrazzanoToUse)
+	assert.True(t, retry)
+	assert.Nil(t, err)
+}
+
+func TestDontRetryUpgrade(t *testing.T) {
+	verrazzanoToUse := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				constants.RestartVersionAnnotation:         "b",
+				constants.ObservedRestartVersionAnnotation: "b",
+			},
+		},
+	}
+
+	verrazzanoToUse.Status.State = vzapi.Failed
+
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano) error {
+			assert.Equal(t, verrazzano.ObjectMeta.Annotations[constants.RestartVersionAnnotation], "b")
+			assert.Equal(t, verrazzano.ObjectMeta.Annotations[constants.ObservedRestartVersionAnnotation], "b")
+			return nil
+		})
+
+	reconciler := newVerrazzanoReconciler(mock)
+	retry, err := reconciler.retryUpgrade(context.TODO(), &verrazzanoToUse)
+	assert.False(t, retry)
+	assert.Nil(t, err)
+}
+
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
