@@ -264,6 +264,7 @@ func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.Sugare
 	}
 
 	if retry {
+		// Log the retry and set the StateType to ready, then requeue
 		log.Info("Restart Version annotation has changed, retrying upgrade")
 		err = r.updateState(log, vz, installv1alpha1.Ready)
 		if err != nil {
@@ -1277,12 +1278,6 @@ func newRequeueWithDelay() ctrl.Result {
 	var seconds = rand.IntnRange(3, 5)
 	delaySecs := time.Duration(seconds) * time.Second
 	return ctrl.Result{Requeue: true, RequeueAfter: delaySecs}
-}
-
-func FromNewRequeueWithDelay(delaySecs time.Duration) bool {
-	return delaySecs == time.Duration(3)*time.Second ||
-		delaySecs == time.Duration(4)*time.Second ||
-		delaySecs == time.Duration(5)*time.Second
 }
 
 // Return true if requeue is needed
