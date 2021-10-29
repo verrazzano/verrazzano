@@ -15,7 +15,6 @@ import (
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"strings"
 	"time"
 )
 
@@ -29,27 +28,27 @@ const (
 var _ = Describe("Kiali", func() {
 	var (
 		client     *kubernetes.Clientset
-		err        error
 		httpClient *retryablehttp.Client
+		kialiErr   error
 	)
 
 	BeforeSuite(func() {
-		client, err = k8sutil.GetKubernetesClientset()
-		Expect(err).ToNot(HaveOccurred())
-		httpClient, err = pkg.GetSystemVmiHTTPClient()
-		Expect(err).ToNot(HaveOccurred())
+		client, kialiErr = k8sutil.GetKubernetesClientset()
+		Expect(kialiErr).ToNot(HaveOccurred())
+		httpClient, kialiErr = pkg.GetSystemVmiHTTPClient()
+		Expect(kialiErr).ToNot(HaveOccurred())
 
 	})
 
-	Context("Kiali installed successfully", func() {
+	Context("Successful Install", func() {
 		var (
-			extClient *apiextv1.ApiextensionsV1Client
-			err       error
+			extClient  *apiextv1.ApiextensionsV1Client
+			installErr error
 		)
 
 		BeforeEach(func() {
-			extClient, err = pkg.APIExtensionsClientSet()
-			Expect(err).ToNot(HaveOccurred())
+			extClient, installErr = pkg.APIExtensionsClientSet()
+			Expect(installErr).ToNot(HaveOccurred())
 		})
 
 		It("should have a monitoring crd", func() {
@@ -65,36 +64,46 @@ var _ = Describe("Kiali", func() {
 			Eventually(kialiPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		Context("Ingress accessibility", func() {
+		Context("Ingress", func() {
 			var (
-				ingress *networking.Ingress
+				ingress   *networking.Ingress
+				kialiHost string
+				creds     *pkg.UsernamePassword
+				ingError  error
 			)
 
 			BeforeEach(func() {
-				ingress, err = client.NetworkingV1().
+				ingress, installErr = client.NetworkingV1().
 					Ingresses(systemNamespace).
 					Get(context.TODO(), kiali, v1.GetOptions{})
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("should have exactly one host", func() {
+				Expect(installErr).ToNot(HaveOccurred())
 				rules := ingress.Spec.Rules
 				Expect(len(rules)).To(Equal(1))
 				Expect(rules[0].Host).To(ContainSubstring("kiali.vmi.system.default"))
+				kialiHost = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+				Eventually(func() (*pkg.UsernamePassword, error) {
+					creds, ingError = pkg.GetSystemVMICredentials()
+					return creds, ingError
+				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			})
 
-			It("should be reachable over HTTPS", func() {
-				kialiHost := fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+			It("should not allow unauthenticated logins", func() {
 				Eventually(func() bool {
-					resp, err := httpClient.Get(kialiHost)
-					if err != nil {
-						return false
-					}
-					location, err := resp.Location()
-					if err != nil {
-						return false
-					}
-					return resp.StatusCode == 202 && strings.Contains(location.Host, "kiali")
+					unauthHttpClient, err := pkg.GetSystemVmiHTTPClient()
+					Expect(err).ToNot(HaveOccurred())
+					return pkg.AssertOauthURLAccessibleAndUnauthorized(unauthHttpClient, kialiHost)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			})
+
+			It("should allow basic authentication", func() {
+				Eventually(func() bool {
+					return pkg.AssertURLAccessibleAndAuthorized(httpClient, kialiHost, creds)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			})
+
+			It("should allow bearer authentication", func() {
+				Eventually(func() bool {
+					return pkg.AssertBearerAuthorized(httpClient, kialiHost)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		})
