@@ -1283,6 +1283,12 @@ func newRequeueWithDelay() ctrl.Result {
 	return ctrl.Result{Requeue: true, RequeueAfter: delaySecs}
 }
 
+func FromNewRequeueWithDelay(delaySecs time.Duration) bool {
+	return delaySecs == time.Duration(3)*time.Second ||
+		delaySecs == time.Duration(4)*time.Second ||
+		delaySecs == time.Duration(5)*time.Second
+}
+
 // Return true if requeue is needed
 func shouldRequeue(r ctrl.Result) bool {
 	return r.Requeue || r.RequeueAfter > 0
