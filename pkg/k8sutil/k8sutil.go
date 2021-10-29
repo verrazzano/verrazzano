@@ -4,29 +4,29 @@
 package k8sutil
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
-
-	"context"
-	"fmt"
 
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
 
-// Name of Environment Variable for KUBECONFIG
+// EnvVarKubeConfig Name of Environment Variable for KUBECONFIG
 const EnvVarKubeConfig = "KUBECONFIG"
 
-// Name of Environment Variable for test KUBECONFIG
+// EnvVarTestKubeConfig Name of Environment Variable for test KUBECONFIG
 const EnvVarTestKubeConfig = "TEST_KUBECONFIG"
 
-// Helper function to obtain the default kubeConfig location
+// GetKubeConfigLocation Helper function to obtain the default kubeConfig location
 func GetKubeConfigLocation() (string, error) {
 	if testKubeConfig := os.Getenv(EnvVarTestKubeConfig); len(testKubeConfig) > 0 {
 		return testKubeConfig, nil
@@ -44,7 +44,16 @@ func GetKubeConfigLocation() (string, error) {
 
 }
 
-// Returns kubeconfig from KUBECONFIG env var if set
+// GetKubeConfigGivenPath GetKubeConfig will get the kubeconfig from the given kubeconfigPath
+func GetKubeConfigGivenPath(kubeconfigPath string) (*restclient.Config, error) {
+	return buildKubeConfig(kubeconfigPath)
+}
+
+func buildKubeConfig(kubeconfig string) (*restclient.Config, error) {
+	return clientcmd.BuildConfigFromFlags("", kubeconfig)
+}
+
+// GetKubeConfig Returns kubeconfig from KUBECONFIG env var if set
 // Else from default location ~/.kube/config
 func GetKubeConfig() (*rest.Config, error) {
 	var config *rest.Config
@@ -70,8 +79,17 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 
 // GetIstioClientset returns the clientset object for Istio
 func GetIstioClientset() (*istioClient.Clientset, error) {
+	kubeConfigLoc, err := GetKubeConfigLocation()
+	if err != nil {
+		return nil, err
+	}
+	return GetIstioClientsetInCluster(kubeConfigLoc)
+}
+
+// GetIstioClientsetInCluster returns the clientset object for Istio
+func GetIstioClientsetInCluster(kubeconfigPath string) (*istioClient.Clientset, error) {
 	var cs *istioClient.Clientset
-	kubeConfig, err := GetKubeConfig()
+	kubeConfig, err := GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return cs, err
 	}
@@ -83,8 +101,20 @@ func GetIstioClientset() (*istioClient.Clientset, error) {
 // created for the ApplicationConfiguration with name appConfigName from list of input gateways. If
 // the input list of gateways is not provided, it is fetched from the kubernetes cluster
 func GetHostnameFromGateway(namespace string, appConfigName string, gateways ...istiov1alpha3.Gateway) (string, error) {
+	var config string
+	kubeConfigLoc, err := GetKubeConfigLocation()
+	if err != nil {
+		return config, err
+	}
+	return GetHostnameFromGatewayInCluster(namespace, appConfigName, kubeConfigLoc, gateways...)
+}
+
+// GetHostnameFromGatewayInCluster returns the host name from the application gateway that was
+// created for the ApplicationConfiguration with name appConfigName from list of input gateways. If
+// the input list of gateways is not provided, it is fetched from the kubernetes cluster
+func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kubeconfigPath string, gateways ...istiov1alpha3.Gateway) (string, error) {
 	if len(gateways) == 0 {
-		cs, err := GetIstioClientset()
+		cs, err := GetIstioClientsetInCluster(kubeconfigPath)
 		if err != nil {
 			fmt.Printf("Could not get istio clientset: %v", err)
 			return "", err
