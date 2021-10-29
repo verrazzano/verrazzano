@@ -2150,6 +2150,10 @@ func TestBuildExternalDNSDomain(t *testing.T) {
 	mocker.Finish()
 }
 
+// TestRetryUpgrade tests retryUpgrade method
+// GIVEN a Verrazzano custom resource
+// WHEN restart-version is exists and observed-restart-version doesn't
+// THEN return true
 func TestRetryUpgrade(t *testing.T) {
 	verrazzanoToUse := vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2177,6 +2181,10 @@ func TestRetryUpgrade(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+// TestDontRetryUpgrade tests retryUpgrade method
+// GIVEN a Verrazzano custom resource
+// WHEN restart-version and obsered-restart-version are equal
+// THEN return false
 func TestDontRetryUpgrade(t *testing.T) {
 	verrazzanoToUse := vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{

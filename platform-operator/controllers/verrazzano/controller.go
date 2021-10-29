@@ -1170,11 +1170,11 @@ func (r *Reconciler) retryUpgrade(ctx context.Context, vz *installv1alpha1.Verra
 	}
 
 	// get the annotation with the previous restart version - if it's missing or the versions do not
-	// match, then we restart apps
+	// match, then return true
 	prevRestartVersion, ok := vz.Annotations[vzconst.ObservedRestartVersionAnnotation]
 	if !ok || restartVersion != prevRestartVersion {
 
-		// add/update the previous restart version annotation on the appconfig
+		// add/update the previous restart version annotation to the CR
 		vz.Annotations[vzconst.ObservedRestartVersionAnnotation] = restartVersion
 		err := r.Client.Update(ctx, vz)
 		return true, err
