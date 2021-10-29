@@ -2159,13 +2159,8 @@ func TestRetryUpgrade(t *testing.T) {
 		},
 	}
 
-	verrazzanoToUse.Status.State = vzapi.Failed
-
-	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
@@ -2192,13 +2187,8 @@ func TestDontRetryUpgrade(t *testing.T) {
 		},
 	}
 
-	verrazzanoToUse.Status.State = vzapi.Failed
-
-	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
