@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
@@ -104,6 +104,11 @@ func NewComponent() spi.Component {
 // IsEnabled returns true if the component is enabled, which is the default
 func (i IstioComponent) IsEnabled(context spi.ComponentContext) bool {
 	return true
+}
+
+// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
+func (i IstioComponent) GetMinVerrazzanoVersion() string {
+	return constants.VerrazzanoVersion_1_0_0
 }
 
 // Name returns the component name
