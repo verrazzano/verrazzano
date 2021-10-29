@@ -334,12 +334,12 @@ func assertOidcIngressByName(key string) {
 }
 
 func assertOidcIngress(url string) {
-	unauthHttpClient, err := pkg.GetSystemVmiHTTPClient()
+	unauthHTTPClient, err := pkg.GetSystemVmiHTTPClient()
 	Expect(err).ToNot(HaveOccurred())
 	pkg.Concurrently(
 		func() {
 			Eventually(func() bool {
-				return pkg.AssertOauthURLAccessibleAndUnauthorized(unauthHttpClient, url)
+				return pkg.AssertOauthURLAccessibleAndUnauthorized(unauthHTTPClient, url)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
 		func() {

@@ -89,9 +89,9 @@ var _ = Describe("Kiali", func() {
 
 			It("should not allow unauthenticated logins", func() {
 				Eventually(func() bool {
-					unauthHttpClient, err := pkg.GetSystemVmiHTTPClient()
+					unauthHTTPClient, err := pkg.GetSystemVmiHTTPClient()
 					Expect(err).ToNot(HaveOccurred())
-					return pkg.AssertOauthURLAccessibleAndUnauthorized(unauthHttpClient, kialiHost)
+					return pkg.AssertOauthURLAccessibleAndUnauthorized(unauthHTTPClient, kialiHost)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 
