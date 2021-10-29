@@ -6396,7 +6396,7 @@ spec:
                 format: int64
                 type: integer
               observedRestartVersion:
-                description: CurrentRestartVersion is the version that was specified
+                description: ObservedRestartVersion is the version that was specified
                   when the application was last restarted with Verrazzano
                 type: string
               resources:

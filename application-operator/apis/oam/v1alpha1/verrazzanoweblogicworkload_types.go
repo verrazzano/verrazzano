@@ -20,7 +20,7 @@ type VerrazzanoWebLogicWorkloadStatus struct {
 	// CurrentUpgradeVersion is the version that was specified when the application was last upgraded with Verrazzano
 	CurrentUpgradeVersion string `json:"currentUpgradeVersion,omitempty"`
 
-	// CurrentRestartVersion is the version that was specified when the application was last restarted with Verrazzano
+	// ObservedRestartVersion is the version that was specified when the application was last restarted with Verrazzano
 	ObservedRestartVersion string `json:"observedRestartVersion,omitempty"`
 
 	// ObservedGeneration is the metadata.generation in VerrazzanoWebLogicWorkload observed by the controller
