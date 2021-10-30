@@ -249,7 +249,14 @@ func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.
 
 // UpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
-	return r.reconcileUpgrade(log, vz)
+	if result, err := r.reconcileUpgrade(log, vz); err != nil {
+		return newRequeueWithDelay(), err
+	} else if shouldRequeue(result) {
+		return result, nil
+	}
+	// Upgrade should always requeue to ensure that reconciler runs post upgrade to install
+	// components that may have been waiting for upgrade
+	return newRequeueWithDelay(), nil
 }
 
 // FailedState only allows uninstall

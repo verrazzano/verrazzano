@@ -62,6 +62,6 @@ func (f fakeComponent) IsEnabled(_ spi.ComponentContext) bool {
 	return true
 }
 
-func (i fakeComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion_1_0_0
+func (f fakeComponent) GetMinVerrazzanoVersion() string {
+	return constants.VerrazzanoVersion1_0_0
 }

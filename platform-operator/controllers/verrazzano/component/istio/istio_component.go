@@ -108,7 +108,7 @@ func (i IstioComponent) IsEnabled(context spi.ComponentContext) bool {
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 func (i IstioComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion_1_0_0
+	return constants.VerrazzanoVersion1_0_0
 }
 
 // Name returns the component name

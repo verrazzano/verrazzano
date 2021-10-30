@@ -144,7 +144,7 @@ func (h HelmComponent) IsOperatorInstallSupported() bool {
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by this component
 func (h HelmComponent) GetMinVerrazzanoVersion() string {
 	if len(h.MinVerrazzanoVersion) == 0 {
-		return constants.VerrazzanoVersion_1_0_0
+		return constants.VerrazzanoVersion1_0_0
 	}
 	return h.MinVerrazzanoVersion
 }

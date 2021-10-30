@@ -106,7 +106,7 @@ const VerrazzanoSystemTLSSecretName = "system-tls"
 const DefaultEnvironmentName = "default"
 
 // Verrazzano version string for 1.0.0
-const VerrazzanoVersion_1_0_0 = "1.0.0"
+const VerrazzanoVersion1_0_0 = "1.0.0"
 
 // Verrazzano version string for 1.1.0
-const VerrazzanoVersion_1_1_0 = "1.1.0"
+const VerrazzanoVersion1_1_0 = "1.1.0"

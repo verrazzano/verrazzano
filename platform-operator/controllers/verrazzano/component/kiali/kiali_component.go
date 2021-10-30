@@ -33,7 +33,7 @@ func NewComponent() spi.Component {
 			Dependencies:            []string{nginx.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			IsEnabledFunc:           isKialiEnabled,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion_1_1_0,
+			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
 		},
 	}
 }
