@@ -22,24 +22,12 @@ import (
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
 func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogger, cr *vzapi.Verrazzano) (ctrl.Result, error) {
-
 	var requeue bool
-	var requeueLongDelay bool
 
 	compContext := spi.NewContext(log, r, cr, r.DryRun)
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
-		if !comp.IsOperatorInstallSupported() {
-			continue
-		}
-		if !isVersionOk(log, comp.GetMinVerrazzanoVersion(), cr.Status.Version) {
-			// User needs to do upgrade before this component can be installed
-			log.Infof("Component %s cannot be installed until Verrazzano is upgrade to at least version %s",
-				comp.Name(), comp.GetMinVerrazzanoVersion())
-			requeueLongDelay = true
-			continue
-		}
 		if !comp.IsOperatorInstallSupported() {
 			continue
 		}
@@ -55,6 +43,12 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 		case vzapi.Disabled:
 			if !comp.IsEnabled(compContext) {
 				// User has disabled component in Verrazzano CR, don't install
+				continue
+			}
+			if !isVersionOk(log, comp.GetMinVerrazzanoVersion(), cr.Status.Version) {
+				// User needs to do upgrade before this component can be installed
+				log.Infof("Component %s cannot be installed until Verrazzano is upgrade to at least version %s",
+					comp.Name(), comp.GetMinVerrazzanoVersion())
 				continue
 			}
 			if err := r.updateComponentStatus(log, cr, comp.Name(), "PreInstall started", vzapi.PreInstall); err != nil {
@@ -106,13 +100,6 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 	}
 	if requeue {
 		return newRequeueWithDelay(), nil
-	}
-	if requeueLongDelay {
-		// Requeue in 60 secs
-		return ctrl.Result{
-			Requeue:      true,
-			RequeueAfter: 60,
-		}, nil
 	}
 	return ctrl.Result{}, nil
 }
