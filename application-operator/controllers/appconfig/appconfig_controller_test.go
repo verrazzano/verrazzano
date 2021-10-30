@@ -30,6 +30,9 @@ const (
 	testAppConfigName     = "test-appconfig"
 	testComponentName     = "test-component"
 	testNewRestartVersion = "test-new-restart"
+	testDeploymentName    = "test-deployment"
+	testStatefulSetName   = "test-statefulset"
+	testDaemonSetName     = "test-daemonset"
 )
 
 // newScheme creates a new scheme that includes this package's object to use for testing
@@ -335,8 +338,18 @@ func TestReconcileRestartDeploymentMismatchVersions(t *testing.T) {
 		})
 	// expect a call to fetch the deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-deployment"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+			deploy.Name = testDeploymentName
+			deploy.Namespace = testNamespace
+			return nil
+		})
+	// expect a call to fetch the deployment
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+			deploy.Name = testDeploymentName
+			deploy.Namespace = testNamespace
 			return nil
 		})
 	// expect a call to update the deployment
@@ -397,8 +410,10 @@ func TestReconcileRestartDeploymentMatchingVersions(t *testing.T) {
 		})
 	// expect a call to fetch the deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-deployment"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+			deploy.Name = testDeploymentName
+			deploy.Namespace = testNamespace
 			deploy.Annotations = map[string]string{observedRestartVersionAnnotation: testNewRestartVersion}
 			return nil
 		})
@@ -446,8 +461,18 @@ func TestReconcileRestartDaemonSetMismatchVersions(t *testing.T) {
 		})
 	// expect a call to fetch the daemonset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-daemonset"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet) error {
+			daemonset.Name = testDaemonSetName
+			daemonset.Namespace = testNamespace
+			return nil
+		})
+	// expect a call to fetch the daemonset
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet) error {
+			daemonset.Name = testDaemonSetName
+			daemonset.Namespace = testNamespace
 			return nil
 		})
 	// expect a call to update the daemonset
@@ -508,8 +533,10 @@ func TestReconcileRestartDaemonSetMatchingVersions(t *testing.T) {
 		})
 	// expect a call to fetch the daemonset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-daemonset"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet) error {
+			daemonset.Name = testDaemonSetName
+			daemonset.Namespace = testNamespace
 			daemonset.Annotations = map[string]string{observedRestartVersionAnnotation: testNewRestartVersion}
 			return nil
 		})
@@ -557,8 +584,18 @@ func TestReconcileRestartStatefulSetMismatchVersions(t *testing.T) {
 		})
 	// expect a call to fetch the statefulset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-statefulset"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
+			statefulset.Name = testStatefulSetName
+			statefulset.Namespace = testNamespace
+			return nil
+		})
+	// expect a call to fetch the statefulset
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
+			statefulset.Name = testStatefulSetName
+			statefulset.Namespace = testNamespace
 			return nil
 		})
 	// expect a call to update the statefulset
@@ -619,8 +656,10 @@ func TestReconcileRestartStatefulSetMatchingVersions(t *testing.T) {
 		})
 	// expect a call to fetch the statefulset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-statefulset"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
+			statefulset.Name = testStatefulSetName
+			statefulset.Namespace = testNamespace
 			statefulset.Annotations = map[string]string{observedRestartVersionAnnotation: testNewRestartVersion}
 			return nil
 		})

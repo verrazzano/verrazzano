@@ -140,16 +140,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// workload is updated, metadata.generation is not incremented, meaning only metadata or status has been changed
-	if workload.Status.ObservedGeneration == workload.ObjectMeta.Generation {
-		// if restartVersion in status matches what is in annotations, no need to reconcile
-		if workload.Status.ObservedRestartVersion == workload.Annotations[appconfig.RestartVersionAnnotation] {
-			log.Info(fmt.Sprintf("Skip Reconcile since only metadata/status has been changed and verrazzano.io/restart-version: %s is not new",
-				workload.Annotations[appconfig.RestartVersionAnnotation]))
-			return reconcile.Result{}, nil
-		}
-	}
-
 	u, err := vznav.ConvertRawExtensionToUnstructured(&workload.Spec.Template)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -229,15 +219,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// restart the workload if the restart-version has been changed
-	if controllers.IsWorkloadMarkedForRestart(workload.Annotations, workload.Status.ObservedRestartVersion, log) {
-		cohName, _, err := unstructured.NestedString(u.Object, "metadata", "name")
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		if err = r.restartCoherence(ctx, workload.Annotations[appconfig.RestartVersionAnnotation], cohName, workload.Namespace, log); err != nil {
-			return reconcile.Result{}, err
-		}
+	// write out restart-version in coherence satefulset
+	cohName, _, err := unstructured.NestedString(u.Object, "metadata", "name")
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if err = r.restartCoherence(ctx, workload.Annotations[appconfig.RestartVersionAnnotation], cohName, workload.Namespace, log); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// make a copy of the Coherence spec since u.Object will get overwritten in CreateOrUpdate
@@ -267,7 +255,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.updateStatus(ctx, workload); err != nil {
+	if err = r.updateUpgradeVersionInStatus(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -607,21 +595,9 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	return nil
 }
 
-func (r *Reconciler) updateStatus(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-	updated := false
-	if workload.Status.CurrentUpgradeVersion != workload.Annotations[constants.AnnotationUpgradeVersion] {
+func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
 		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
-		updated = true
-	}
-	if workload.Status.ObservedRestartVersion != workload.Annotations[appconfig.RestartVersionAnnotation] {
-		workload.Status.ObservedRestartVersion = workload.Annotations[appconfig.RestartVersionAnnotation]
-		updated = true
-	}
-	if workload.Status.ObservedGeneration != workload.ObjectMeta.Generation {
-		workload.Status.ObservedGeneration = workload.ObjectMeta.Generation
-		updated = true
-	}
-	if updated {
 		return r.Status().Update(ctx, workload)
 	}
 	return nil
@@ -754,7 +730,7 @@ func (r *Reconciler) restartCoherence(ctx context.Context, restartVersion string
 	}
 	for index := range statefulSetList.Items {
 		statefulSet := &statefulSetList.Items[index]
-		if err := appconfig.DoRestartStatefulSet(r.Client, restartVersion, statefulSet, log); err != nil {
+		if err := appconfig.DoRestartStatefulSet(ctx, r.Client, restartVersion, statefulSet, log); err != nil {
 			return err
 		}
 	}

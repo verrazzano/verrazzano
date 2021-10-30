@@ -12,7 +12,6 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -84,16 +83,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log.Info("Retrieved workload", "apiVersion", workload.APIVersion, "kind", workload.Kind)
 
-	// workload is updated, metadata.generation is not incremented, meaning only metadata or status has been changed
-	if workload.Status.ObservedGeneration == workload.ObjectMeta.Generation {
-		// if restartVersion in status matches what is in annotations, no need to reconcile
-		if workload.Status.ObservedRestartVersion == workload.Annotations[appconfig.RestartVersionAnnotation] {
-			log.Info(fmt.Sprintf("Skip Reconcile since only metadata/status has been changed and verrazzano.io/restart-version: %s is not new",
-				workload.Annotations[appconfig.RestartVersionAnnotation]))
-			return reconcile.Result{}, nil
-		}
-	}
-
 	// if required info is not available in workload, log error and return
 	if len(workload.Spec.DeploymentTemplate.Metadata.GetName()) == 0 {
 		err := errors.New("VerrazzanoHelidonWorkload is missing required spec.deploymentTemplate.metadata.name")
@@ -156,11 +145,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// restart the workload if the restart-version has been changed
-	if controllers.IsWorkloadMarkedForRestart(workload.Annotations, workload.Status.ObservedRestartVersion, log) {
-		if err = r.restartHelidon(ctx, workload.Annotations[appconfig.RestartVersionAnnotation], &workload, log); err != nil {
-			return reconcile.Result{}, err
-		}
+	// write out restart-version in helidon deployment
+	if err = r.restartHelidon(ctx, workload.Annotations[appconfig.RestartVersionAnnotation], &workload, log); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// Prepare the list of resources to reference in status.
@@ -182,13 +169,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if !vzapi.QualifiedResourceRelationSlicesEquivalent(statusResources, workload.Status.Resources) ||
-		workload.Status.ObservedGeneration != workload.ObjectMeta.Generation ||
-		workload.Status.ObservedRestartVersion != workload.Annotations[appconfig.RestartVersionAnnotation] ||
 		workload.Status.CurrentUpgradeVersion != workload.Annotations[constants.AnnotationUpgradeVersion] {
 
 		workload.Status.Resources = statusResources
-		workload.Status.ObservedGeneration = workload.ObjectMeta.Generation
-		workload.Status.ObservedRestartVersion = workload.Annotations[appconfig.RestartVersionAnnotation]
 		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
 		if err := r.Status().Update(ctx, &workload); err != nil {
 			return reconcile.Result{}, err
@@ -385,7 +368,7 @@ func (r *Reconciler) restartHelidon(ctx context.Context, restartVersion string, 
 	}
 	for index := range deploymentList.Items {
 		deployment := &deploymentList.Items[index]
-		if err := appconfig.DoRestartDeployment(r.Client, restartVersion, deployment, log); err != nil {
+		if err := appconfig.DoRestartDeployment(ctx, r.Client, restartVersion, deployment, log); err != nil {
 			return err
 		}
 	}

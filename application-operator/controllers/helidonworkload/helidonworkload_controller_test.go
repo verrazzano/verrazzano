@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
+
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	appsv1 "k8s.io/api/apps/v1"
@@ -37,7 +39,6 @@ import (
 )
 
 const namespace = "unit-test-namespace"
-const generation = int64(1)
 
 // TestReconcilerSetupWithManager test the creation of the VerrazzanoHelidonWorkload reconciler.
 // GIVEN a controller implementation
@@ -172,7 +173,6 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoHelidonWorkload"
 			workload.Namespace = namespace
-			workload.ObjectMeta.Generation = generation
 			return nil
 		})
 
@@ -251,7 +251,6 @@ func TestReconcileCreateHelidon(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoHelidonWorkload"
 			workload.Namespace = namespace
-			workload.ObjectMeta.Generation = generation
 			return nil
 		})
 	// expect a call to create the Deployment
@@ -273,6 +272,20 @@ func TestReconcileCreateHelidon(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
+			return nil
+		})
+	// expect a call to list the deployment
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
+			list.Items = []appsv1.Deployment{*getTestDeployment("")}
+			return nil
+		})
+	// expect a call to fetch the deployment
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+			annotateRestartVersion(deployment, "")
 			return nil
 		})
 	// expect a call to status update
@@ -373,7 +386,6 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoHelidonWorkload"
 			workload.Namespace = namespace
-			workload.ObjectMeta.Generation = generation
 			return nil
 		})
 	// expect a call to create the Deployment
@@ -405,6 +417,20 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 			assert.Equal(service.Spec.Ports[1].Port, helidonTestContainer2.Ports[0].ContainerPort)
 			assert.Equal(service.Spec.Ports[1].TargetPort, intstr.FromInt(int(helidonTestContainer2.Ports[0].ContainerPort)))
 			assert.Equal(service.Spec.Ports[1].Protocol, helidonTestContainer2.Ports[0].Protocol)
+			return nil
+		})
+	// expect a call to list the deployment
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
+			list.Items = []appsv1.Deployment{*getTestDeployment("")}
+			return nil
+		})
+	// expect a call to fetch the deployment
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+			annotateRestartVersion(deployment, "")
 			return nil
 		})
 	// expect a call to status update
@@ -487,7 +513,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload.yaml", params))
-			workload.ObjectMeta.Generation = generation
 			return nil
 		}).Times(1)
 
@@ -518,6 +543,20 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
+			return nil
+		})
+	// expect a call to list the deployment
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
+			list.Items = []appsv1.Deployment{*getTestDeployment("")}
+			return nil
+		})
+	// expect a call to fetch the deployment
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+			annotateRestartVersion(deployment, "")
 			return nil
 		})
 	// expect a call to status update
@@ -605,7 +644,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload_multi_container.yaml", params))
-			workload.ObjectMeta.Generation = generation
 			return nil
 		}).Times(1)
 
@@ -647,6 +685,20 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
+			return nil
+		})
+	// expect a call to list the deployment
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
+			list.Items = []appsv1.Deployment{*getTestDeployment("")}
+			return nil
+		})
+	// expect a call to fetch the deployment
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+			annotateRestartVersion(deployment, "")
 			return nil
 		})
 	// expect a call to status update
@@ -736,7 +788,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload.yaml", params))
-			workload.ObjectMeta.Generation = generation
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
@@ -770,6 +821,20 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
+			return nil
+		})
+	// expect a call to list the deployment
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
+			list.Items = []appsv1.Deployment{*getTestDeployment("")}
+			return nil
+		})
+	// expect a call to fetch the deployment
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+			annotateRestartVersion(deployment, "")
 			return nil
 		})
 	// expect a call to status update
@@ -862,7 +927,6 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/helidon_workload.yaml", params))
-			workload.ObjectMeta.Generation = generation
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
@@ -896,6 +960,20 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
+			return nil
+		})
+	// expect a call to list the deployment
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
+			list.Items = []appsv1.Deployment{*getTestDeployment("")}
+			return nil
+		})
+	// expect a call to fetch the deployment
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+			annotateRestartVersion(deployment, "")
 			return nil
 		})
 	// expect a call to status update
@@ -1017,4 +1095,15 @@ func findContainer(containers []corev1.Container, name string) (*corev1.Containe
 		}
 	}
 	return nil, false
+}
+
+func getTestDeployment(restartVersion string) *appsv1.Deployment {
+	deployment := &appsv1.Deployment{}
+	annotateRestartVersion(deployment, restartVersion)
+	return deployment
+}
+
+func annotateRestartVersion(deployment *appsv1.Deployment, restartVersion string) {
+	deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	deployment.Spec.Template.ObjectMeta.Annotations[appconfig.RestartVersionAnnotation] = restartVersion
 }

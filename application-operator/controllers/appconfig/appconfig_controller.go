@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -169,7 +171,7 @@ func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion strin
 	}
 	if r.isMarkedForRestart(restartVersion, deployment.Annotations) {
 		log.Info(fmt.Sprintf("Restarting deployment %s in namespace %s with restart-version %s", name, namespace, restartVersion))
-		err := DoRestartDeployment(r.Client, restartVersion, &deployment, log)
+		err := DoRestartDeployment(ctx, r.Client, restartVersion, &deployment, log)
 		if err != nil {
 			return err
 		}
@@ -196,7 +198,7 @@ func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion stri
 	}
 	if r.isMarkedForRestart(restartVersion, statefulSet.Annotations) {
 		log.Info(fmt.Sprintf("Restarting statefulSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
-		err := DoRestartStatefulSet(r.Client, restartVersion, &statefulSet, log)
+		err := DoRestartStatefulSet(ctx, r.Client, restartVersion, &statefulSet, log)
 		if err != nil {
 			return err
 		}
@@ -223,7 +225,7 @@ func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string
 	}
 	if r.isMarkedForRestart(restartVersion, daemonSet.Annotations) {
 		log.Info(fmt.Sprintf("Restarting daemonSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
-		err := DoRestartDaemonSet(r.Client, restartVersion, &daemonSet, log)
+		err := DoRestartDaemonSet(ctx, r.Client, restartVersion, &daemonSet, log)
 		if err != nil {
 			return err
 		}
@@ -237,40 +239,58 @@ func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string
 	return nil
 }
 
-func DoRestartDeployment(client client.Client, restartVersion string, deployment *appsv1.Deployment, log logr.Logger) error {
+func DoRestartDeployment(ctx context.Context, client client.Client, restartVersion string, deployment *appsv1.Deployment, log logr.Logger) error {
 	if deployment.Spec.Paused {
 		return fmt.Errorf("deployment %s can't be restarted because it is paused", deployment.Name)
 	}
 	log.Info(fmt.Sprintf("The deployment %s/%s restart version is set to %s", deployment.Namespace, deployment.Name, restartVersion))
-	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-	}
-	deployment.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
-	if err := client.Update(context.TODO(), deployment); err != nil {
+	_, err := controllerutil.CreateOrUpdate(ctx, client, deployment, func() error {
+		if len(restartVersion) > 0 {
+			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			deployment.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Error updating deployment %s/%s", deployment.Namespace, deployment.Name))
 		return err
 	}
 	return nil
 }
 
-func DoRestartStatefulSet(client client.Client, restartVersion string, statefulSet *appsv1.StatefulSet, log logr.Logger) error {
+func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVersion string, statefulSet *appsv1.StatefulSet, log logr.Logger) error {
 	log.Info(fmt.Sprintf("The statefulSet %s/%s restart version is set to %s", statefulSet.Namespace, statefulSet.Name, restartVersion))
-	if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
-		statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-	}
-	statefulSet.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
-	if err := client.Update(context.TODO(), statefulSet); err != nil {
+	_, err := controllerutil.CreateOrUpdate(ctx, client, statefulSet, func() error {
+		if len(restartVersion) > 0 {
+			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
+				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			statefulSet.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Error updating statefulSet %s/%s", statefulSet.Namespace, statefulSet.Name))
 		return err
 	}
 	return nil
 }
 
-func DoRestartDaemonSet(client client.Client, restartVersion string, daemonSet *appsv1.DaemonSet, log logr.Logger) error {
+func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersion string, daemonSet *appsv1.DaemonSet, log logr.Logger) error {
 	log.Info(fmt.Sprintf("The daemonSet %s/%s restart version is set to %s", daemonSet.Namespace, daemonSet.Name, restartVersion))
-	if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
-		daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-	}
-	daemonSet.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
-	if err := client.Update(context.TODO(), daemonSet); err != nil {
+	_, err := controllerutil.CreateOrUpdate(ctx, client, daemonSet, func() error {
+		if len(restartVersion) > 0 {
+			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
+				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			daemonSet.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Error updating daemonSet %s/%s", daemonSet.Namespace, daemonSet.Name))
 		return err
 	}
 	return nil
