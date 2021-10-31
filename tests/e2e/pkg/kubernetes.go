@@ -285,8 +285,8 @@ func GetVerrazzanoVersion() (string, error) {
 	return vz.Spec.Version, nil
 }
 
-// IsMinVersion returns true if the Verrazzano version >= minVersion
-func IsMinVersion(minVersion string) (bool, error) {
+// IsVerrazzanoMinVersion returns true if the Verrazzano version >= minVersion
+func IsVerrazzanoMinVersion(minVersion string) (bool, error) {
 	vzVersion, err := GetVerrazzanoVersion()
 	if err != nil {
 		return false, err

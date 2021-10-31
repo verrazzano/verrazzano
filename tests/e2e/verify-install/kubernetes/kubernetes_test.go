@@ -176,7 +176,7 @@ var _ = Describe("Kubernetes Cluster",
 		ginkgoExt.DescribeTable("deployed VMI components that are don't exist in older versions",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
-					ok, _ := pkg.IsMinVersion("1.1.0")
+					ok, _ := pkg.IsVerrazzanoMinVersion("1.1.0")
 					if !ok {
 						// skip test
 						fmt.Printf("Skipping Kiali check since version < 1.1.0")
