@@ -293,7 +293,7 @@ func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredL
 
 	// Check if the service account for running the scripts exist
 	serviceAccountFound := &corev1.ServiceAccount{}
-	log.Infof("Checking if install service account %s exist", buildServiceAccountName(vz.Name))
+	log.Debugf("Checking if install service account %s exist", buildServiceAccountName(vz.Name))
 	err := r.Get(ctx, types.NamespacedName{Name: buildServiceAccountName(vz.Name), Namespace: getInstallNamespace()}, serviceAccountFound)
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating install service account %s", buildServiceAccountName(vz.Name))
@@ -333,7 +333,7 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 
 	// Check if the cluster role binding for running the install scripts exist
 	bindingFound := &rbacv1.ClusterRoleBinding{}
-	log.Infof("Checking if install cluster role binding %s exist", binding.Name)
+	log.Debugf("Checking if install cluster role binding %s exist", binding.Name)
 	err := r.Get(ctx, types.NamespacedName{Name: binding.Name, Namespace: binding.Namespace}, bindingFound)
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating install cluster role binding %s", binding.Name)
@@ -370,7 +370,7 @@ func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger
 
 	// Check if the ConfigMap exists for running the install
 	configMapFound := &corev1.ConfigMap{}
-	log.Infof("Checking if install ConfigMap %s exist", configMap.Name)
+	log.Debugf("Checking if install ConfigMap %s exist", configMap.Name)
 
 	err := r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
@@ -458,7 +458,7 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 
 	// Check if the job for running the install scripts exist
 	jobFound := &batchv1.Job{}
-	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
+	log.Debugf("Checking if install job %s exist", buildInstallJobName(vz.Name))
 	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating install job %s, dry-run=%v", buildInstallJobName(vz.Name), r.DryRun)
@@ -502,7 +502,7 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 func (r *Reconciler) checkInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
 	// Check if the job for running the install scripts exist
 	jobFound := &batchv1.Job{}
-	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
+	log.Debugf("Checking if install job %s exist", buildInstallJobName(vz.Name))
 	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -519,7 +519,7 @@ func (r *Reconciler) checkInstallJob(ctx context.Context, log *zap.SugaredLogger
 func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log *zap.SugaredLogger) error {
 	// Check if the job for running the uninstall scripts exist
 	jobFound := &batchv1.Job{}
-	log.Infof("Checking if stale uninstall job %s exists", jobName)
+	log.Debugf("Checking if stale uninstall job %s exists", jobName)
 	err := r.Get(context.TODO(), types.NamespacedName{Name: jobName, Namespace: namespace}, jobFound)
 	if err == nil {
 		log.Infof("Deleting stale uninstall job %s", jobName)
@@ -580,7 +580,7 @@ func (r *Reconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alp
 
 	// Check if the job for running the uninstall scripts exist
 	jobFound := &batchv1.Job{}
-	log.Infof("Checking if uninstall job %s exist", buildUninstallJobName(vz.Name))
+	log.Debugf("Checking if uninstall job %s exist", buildUninstallJobName(vz.Name))
 	err := r.Get(context.TODO(), types.NamespacedName{Name: buildUninstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating uninstall job %s, dry-run=%v", buildUninstallJobName(vz.Name), r.DryRun)
