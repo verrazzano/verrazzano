@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"net/http"
 	"os"
 	"strings"
@@ -268,6 +269,40 @@ func IsDevProfile() bool {
 		return true
 	}
 	return false
+}
+
+// GetVerrazzanoVersion returns the Verrazzano Version
+func GetVerrazzanoVersion() (string, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return "",err
+	}
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return "",err
+	}
+	return vz.Spec.Version, nil
+}
+
+// IsMinVersion returns true if the Verrazzano version >= minVersion
+func IsMinVersion(minVersion string) (bool, error) {
+	vzVersion, err := GetVerrazzanoVersion()
+	if err != nil {
+		return false, err
+	}
+	if len(vzVersion) == 0 {
+		return false, nil
+	}
+	vzSemver, err := semver.NewSemVersion(vzVersion)
+	if err != nil {
+		return false, err
+	}
+	minSemver, err := semver.NewSemVersion(minVersion)
+	if err != nil {
+		return false, err
+	}
+	return !vzSemver.IsLessThan(minSemver), nil
 }
 
 // IsProdProfile returns true if the deployed resource is a 'prod' profile

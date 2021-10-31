@@ -10,7 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/semver"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
