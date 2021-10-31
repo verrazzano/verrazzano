@@ -276,11 +276,11 @@ func GetVerrazzanoVersion() (string, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
-		return "",err
+		return "", err
 	}
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		return "",err
+		return "", err
 	}
 	return vz.Spec.Version, nil
 }
