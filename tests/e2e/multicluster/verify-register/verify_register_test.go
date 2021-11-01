@@ -157,7 +157,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 
 		It("admin cluster has the expected metrics from managed cluster", func() {
 			Eventually(func() bool {
-				return pkg.MetricsExist("up", "managed_cluster", managedClusterName)
+				return pkg.MetricsExist("up", "verrazzano_cluster", managedClusterName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a metrics from managed cluster")
 		})
 
