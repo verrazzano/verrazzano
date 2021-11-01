@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 
+	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
@@ -208,6 +209,15 @@ func GetVerrazzanoManagedClusterClientset() (*vmcClient.Clientset, error) {
 		return nil, err
 	}
 	return vmcClient.NewForConfig(config)
+}
+
+// GetVerrazzanoProjectClientsetInCluster returns the Kubernetes clientset for the VerrazzanoProject
+func GetVerrazzanoProjectClientsetInCluster(kubeconfigPath string) (*vpClient.Clientset, error) {
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return vpClient.NewForConfig(config)
 }
 
 // GetDynamicClient returns a dynamic client needed to access Unstructured data
@@ -954,4 +964,21 @@ func GetPersistentVolumes(namespace string) (map[string]*corev1.PersistentVolume
 		volumeClaims[pvc.Name] = &pvcs.Items[i]
 	}
 	return volumeClaims, nil
+}
+
+// DoesVerrazzanoProjectExistInCluster returns whether a namespace with the given name exists in the specified cluster
+func DoesVerrazzanoProjectExistInCluster(name string, kubeconfigPath string) (bool, error) {
+	// Get the clientset
+	clientset, err := GetVerrazzanoProjectClientsetInCluster(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+
+	vp, err := clientset.ClustersV1alpha1().VerrazzanoProjects("verrazzano-mc").Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil && !k8serrors.IsNotFound(err) {
+		Log(Error, fmt.Sprintf("Failed to get VerrazzanoProject %s with error: %v", name, err))
+		return false, err
+	}
+
+	return vp != nil && len(vp.Name) > 0, nil
 }

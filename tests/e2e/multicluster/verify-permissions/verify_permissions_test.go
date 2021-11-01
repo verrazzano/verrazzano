@@ -255,9 +255,29 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		})
 
 		It("managed cluster cannot access secrets on admin for namespaces not placed by a VerrazzanoProject", func() {
+			vpName := "permissions-test2"
+
+			// Expect success while namespace is placed on the managed cluster
 			Eventually(func() (bool, error) {
 				return findSecret(permissionTest2Namespace, "mysecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Secret")
+			// Change the placement to be on the admin cluster
+			Eventually(func() error {
+				return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject-new-placement.yaml", &clustersv1alpha1.VerrazzanoProject{})
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+			// Wait for the project resource to be deleted from the managed cluster
+			pkg.Log(pkg.Info, "Wait for the VerrazzanoProject to be removed from the managed cluster")
+			Eventually(func() (bool, error) {
+				return pkg.DoesVerrazzanoProjectExistInCluster(vpName, managedKubeconfig)
+			}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", testNamespace))
+			// TODO: Expect failure when namespace is no longer placed on the managed cluster
+			Eventually(func() (bool, error) {
+				return findSecret(permissionTest2Namespace, "mysecret")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+		})
+
+		It("managed cluster can no longer access a secret on admin when placement is removed from managed cluster", func() {
+
 		})
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
@@ -484,6 +504,10 @@ func undeployTestResources() {
 	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on admin cluster", permissionTest2Namespace))
 	Eventually(func() error {
 		return pkg.DeleteNamespaceInCluster(permissionTest2Namespace, adminKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on managed cluster", permissionTest2Namespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(permissionTest2Namespace, managedKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on admin cluster", testNamespace))
