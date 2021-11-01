@@ -185,7 +185,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update.yaml", &v1.Secret{})
+				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update_permissiontest1.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
@@ -194,7 +194,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &v1.Secret{})
+				err := DeleteResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from DeleteResourceFromFile")
@@ -399,7 +399,7 @@ func deployTestResources() {
 	// create a MC secret
 	pkg.Log(pkg.Info, "Creating MC secret")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml", &clustersv1alpha1.MultiClusterSecret{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a OAM Component
@@ -430,7 +430,7 @@ func undeployTestResources() {
 	// delete a MC secret
 	pkg.Log(pkg.Info, "Deleting MC secret")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
+		return DeleteResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml", &clustersv1alpha1.MultiClusterSecret{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete a OAM Component
