@@ -15,6 +15,8 @@ pipeline {
         }
     }
 
+    triggers { cron("@daily") }
+
     environment {
         OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
         OCI_CLI_USER = credentials('oci-dev-user-ocid')
