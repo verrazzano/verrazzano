@@ -13,6 +13,7 @@ import (
 	"github.com/Jeffail/gabs/v2"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -51,6 +52,7 @@ const (
 	prometheusConfigKey          = "prometheus.yml"
 	prometheusScrapeConfigsLabel = "scrape_configs"
 	prometheusJobNameLabel       = "job_name"
+	prometheusClusterNameLabel   = "verrazzano_cluster"
 
 	// Annotation names for metrics read by the controller
 	prometheusPortAnnotation = "prometheus.io/port"
@@ -73,11 +75,12 @@ const (
 	basicPathPasswordLabel = "password"
 
 	// Template placeholders for the Prometheus scrape config template
-	appNameHolder     = "##APP_NAME##"
-	compNameHolder    = "##COMP_NAME##"
-	jobNameHolder     = "##JOB_NAME##"
-	namespaceHolder   = "##NAMESPACE##"
-	sslProtocolHolder = "##SSL_PROTOCOL##"
+	appNameHolder       = "##APP_NAME##"
+	compNameHolder      = "##COMP_NAME##"
+	jobNameHolder       = "##JOB_NAME##"
+	namespaceHolder     = "##NAMESPACE##"
+	sslProtocolHolder   = "##SSL_PROTOCOL##"
+	vzClusterNameHolder = "##VERRAZZANO_CLUSTER_NAME##"
 
 	// Roles for use in qualified resource relations
 	scraperRole = "scraper"
@@ -103,6 +106,10 @@ kubernetes_sd_configs:
     names:
     - ##NAMESPACE##
 relabel_configs:
+- action: replace
+  source_labels: null
+  target_label: ` + prometheusClusterNameLabel + `
+  replacement: ##VERRAZZANO_CLUSTER_NAME##
 - action: keep
   source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
   regex: true;##APP_NAME##;##COMP_NAME##
@@ -144,6 +151,10 @@ kubernetes_sd_configs:
     names:
     - ##NAMESPACE##
 relabel_configs:
+- action: replace
+  source_labels: null
+  target_label: ` + prometheusClusterNameLabel + `
+  replacement: ##VERRAZZANO_CLUSTER_NAME##
 - action: keep
   source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
   regex: true;##APP_NAME##;##COMP_NAME##
@@ -931,11 +942,12 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 	if workload != nil {
 		// Populate the Prometheus scrape config template
 		context := map[string]string{
-			appNameHolder:     trait.Labels[appObjectMetaLabel],
-			compNameHolder:    trait.Labels[compObjectMetaLabel],
-			jobNameHolder:     job,
-			namespaceHolder:   trait.Namespace,
-			sslProtocolHolder: httpProtocol}
+			appNameHolder:       trait.Labels[appObjectMetaLabel],
+			compNameHolder:      trait.Labels[compObjectMetaLabel],
+			jobNameHolder:       job,
+			namespaceHolder:     trait.Namespace,
+			sslProtocolHolder:   httpProtocol,
+			vzClusterNameHolder: clusters.GetClusterName(ctx, c)}
 
 		var configTemplate string
 		https, err := useHTTPSForScrapeTarget(ctx, c, trait)
