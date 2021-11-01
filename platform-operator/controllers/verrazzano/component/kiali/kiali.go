@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -43,10 +44,8 @@ func isKialiReady(ctx spi.ComponentContext, _ string, namespace string) bool {
 func isKialiEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Kiali
 	if comp == nil || comp.Enabled == nil {
-		// Temp default to false
-		return false
 		// Default to false for managed cluster
-		// return !(ctx.EffectiveCR().Spec.Profile == vzapi.ManagedCluster)
+		return !(ctx.EffectiveCR().Spec.Profile == vzapi.ManagedCluster)
 	}
 	return *comp.Enabled
 }

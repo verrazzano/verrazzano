@@ -10,7 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/semver"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +38,7 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.17.0",
+		Version: "v1.1.0",
 		Profile: "dev",
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -58,7 +58,7 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.17.0",
+		Version: "v1.1.0",
 		Profile: "dev",
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -397,7 +397,7 @@ func TestGetCurrentBomVersion(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	expectedVersion, err := semver.NewSemVersion("v0.17.0")
+	expectedVersion, err := semver.NewSemVersion("v1.1.0")
 	assert.NoError(t, err)
 
 	version, err := GetCurrentBomVersion()

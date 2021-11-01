@@ -43,7 +43,9 @@ func NewSemVersion(version string) (*SemVersion, error) {
 	if len(version) == 0 {
 		return nil, errors.New("SemVersion string cannot be empty")
 	}
-
+	if !strings.HasPrefix(version, "v") && !strings.HasPrefix(version, "V") {
+		version = "v" + version
+	}
 	regex, err := getRegex()
 	if err != nil {
 		return nil, err

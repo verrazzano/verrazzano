@@ -315,3 +315,24 @@ func TestCompareVersionSubstring(t *testing.T) {
 	assert.Equal(t, 1, compareVersionSubstring(v010devaa.Prerelease, "aaaaaaaa"))
 	assert.Equal(t, 0, compareVersionSubstring(v010devaa.Build, "aaaaaaaa-aaaaaaaa"))
 }
+
+// TestMissingPrefix Tests if a SemVersion is the same if the prefix v is missing
+// GIVEN a call to IsEqualTo with SemVersion objects where the only difference is the prefix
+// WHEN the comparison functions are called
+// THEN the correct result is returned
+func TestMissingPrefix(t *testing.T) {
+	v010v, _ := NewSemVersion("v0.1.0")
+	v010, _ := NewSemVersion("0.1.0")
+	v011, _ := NewSemVersion("v0.1.1")
+	v011v, _ := NewSemVersion("0.1.1")
+
+	assert.True(t, v010.IsEqualTo(v010v))
+	assert.True(t, v010.IsLessThan(v011v))
+	assert.True(t, v010.IsLessThan(v011))
+	assert.True(t, v010v.IsLessThan(v011v))
+	assert.True(t, v010v.IsLessThan(v011))
+	assert.True(t, v011.IsGreatherThan(v010v))
+	assert.True(t, v011.IsGreatherThan(v010))
+	assert.True(t, v011v.IsGreatherThan(v010))
+	assert.True(t, v011v.IsGreatherThan(v010))
+}

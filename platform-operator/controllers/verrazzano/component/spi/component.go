@@ -35,6 +35,8 @@ type ComponentInfo interface {
 	IsReady(context ComponentContext) bool
 	// IsEnabled Indicates whether or a component is enabled for installation
 	IsEnabled(context ComponentContext) bool
+	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
+	GetMinVerrazzanoVersion() string
 }
 
 // ComponentInstaller interface defines installs operations for components that support it
