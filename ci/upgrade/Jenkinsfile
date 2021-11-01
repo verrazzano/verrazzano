@@ -19,7 +19,7 @@ pipeline {
 
     agent {
         docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -457,6 +457,15 @@ pipeline {
                 stage("Validate helidon istio upgrade") {
                     steps {
                         validateProxyImageCount("hello-helidon", PROXY_IMAGES_HELIDON)
+                    }
+                }
+                stage("Istioctl verify install") {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                istioctl verify-install
+                            """
+                        }
                     }
                 }
             }
