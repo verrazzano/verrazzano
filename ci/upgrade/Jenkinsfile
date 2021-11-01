@@ -19,7 +19,7 @@ pipeline {
 
     agent {
         docker {
-            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
+            image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -463,7 +463,6 @@ pipeline {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh """
-                                kubectl delete serviceaccount -n istio-system istio-egressgateway-service-account
                                 istioctl verify-install
                             """
                         }
