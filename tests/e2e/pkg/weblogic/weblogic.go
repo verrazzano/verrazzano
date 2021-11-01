@@ -33,6 +33,19 @@ func GetDomain(namespace string, name string) (*unstructured.Unstructured, error
 	return domain, nil
 }
 
+// GetDomainInCluster returns a WebLogic domains in unstructured format
+func GetDomainInCluster(namespace string, name string, kubeconfigPath string) (*unstructured.Unstructured, error) {
+	client, err := pkg.GetDynamicClientInCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	domain, err := client.Resource(getScheme()).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return domain, nil
+}
+
 // GetHealthOfServers returns a slice of strings, each item representing the health of a server in the domain
 func GetHealthOfServers(uDomain *unstructured.Unstructured) ([]string, error) {
 	// Separator for list of servers

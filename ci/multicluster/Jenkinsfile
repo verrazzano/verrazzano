@@ -190,6 +190,10 @@ pipeline {
         SAMPLE_APP_NAMESPACE="hello-helidon-sample"
         SAMPLE_APP_PROJECT="hello-helidon-sample-proj"
         SAMPLE_APP_COMPONENT="hello-helidon-component"
+
+        // used by ToDoList example test
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password')
+        DATABASE_PSW = credentials('todo-mysql-password')
     }
 
     stages {
@@ -534,6 +538,11 @@ pipeline {
                         stage ('Examples Sock Shop') {
                             steps {
                                 testSockExample("multicluster/examples/sock-shop")
+                            }
+                        }
+                        stage('Examples Todo List') {
+                            steps {
+                                testTodoExample("multicluster/examples/todo-list")
                             }
                         }
                     }
@@ -1054,6 +1063,22 @@ def testSockExample(testSuitePath) {
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-sock"
+            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+        """
+    }
+}
+
+// Test the multicluster todo-list example
+def testTodoExample(testSuitePath) {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        sh """
+            export MANAGED_CLUSTER_NAME="managed1"
+            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export CLUSTER_COUNT=$clusterCount
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
             ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }

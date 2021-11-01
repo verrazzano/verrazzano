@@ -63,11 +63,45 @@ func CreateCredentialsSecret(namespace string, name string, username string, pw 
 	}, labels)
 }
 
+// CreateCredentialsSecretInCluster creates opaque secret
+func CreateCredentialsSecretInCluster(namespace string, name string, username string, pw string, labels map[string]string, kubeconfigPath string) (*corev1.Secret, error) {
+	return CreateCredentialsSecretFromMapInCluster(namespace, name, map[string]string{
+		"password": pw,
+		"username": username,
+	}, labels, kubeconfigPath)
+}
+
 // CreateCredentialsSecretFromMap creates opaque secret from the given map of values
 func CreateCredentialsSecretFromMap(namespace string, name string, values, labels map[string]string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreateCredentialsSecret %s in %s", name, namespace))
 	// Get the kubernetes clientset
 	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
+		return nil, err
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Type:       corev1.SecretTypeOpaque,
+		StringData: values,
+	}
+	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("CreateSecretOfOpaque %v error: %v", name, err))
+	}
+	return scr, err
+}
+
+// CreateCredentialsSecretFromMapInCluster creates opaque secret from the given map of values
+func CreateCredentialsSecretFromMapInCluster(namespace string, name string, values, labels map[string]string, kubeconfigPath string) (*corev1.Secret, error) {
+	Log(Info, fmt.Sprintf("CreateCredentialsSecret %s in %s", name, namespace))
+	// Get the kubernetes clientset
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
 		return nil, err
@@ -145,6 +179,34 @@ func CreateDockerSecret(namespace string, name string, server string, username s
 	return scr, err
 }
 
+// CreateDockerSecretInCluster creates docker secret
+func CreateDockerSecretInCluster(namespace string, name string, server string, username string, password string, kubeconfigPath string) (*corev1.Secret, error) {
+	Log(Info, fmt.Sprintf("CreateDockerSecret %s in %s", name, namespace))
+	// Get the kubernetes clientset
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
+		return nil, err
+	}
+
+	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", username, password)))
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+		StringData: map[string]string{
+			".dockerconfigjson": fmt.Sprintf(dockerconfigjsonTemplate, server, username, password, auth),
+		},
+	}
+	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("CreateDockerSecret %v error: %v", name, err))
+	}
+	return scr, err
+}
+
 // DeleteSecret deletes the specified secret in the specified namespace
 func DeleteSecret(namespace string, name string) error {
 	// Get the kubernetes clientset
@@ -163,11 +225,11 @@ func SecretsCreated(namespace string, names ...string) bool {
 	}
 	missing := missingSecrets(secrets.Items, names...)
 	Log(Info, fmt.Sprintf("Secrets %v were NOT created in %v", missing, namespace))
-	return (len(missing) == 0)
+	return len(missing) == 0
 }
 
 func missingSecrets(secrets []corev1.Secret, namePrefixes ...string) []string {
-	var missing = []string{}
+	var missing []string
 	for _, name := range namePrefixes {
 		if !secretExists(secrets, name) {
 			missing = append(missing, name)
