@@ -185,7 +185,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update_permissiontest1.yaml", &v1.Secret{})
+				err := CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-multicluster-secret-update.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
@@ -209,7 +209,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find OAM Component")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1_oam_component.yaml", &oamv1alpha2.Component{})
+				err := CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml", &oamv1alpha2.Component{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
@@ -218,7 +218,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/permissiontest1_oam_component.yaml", &oamv1alpha2.Component{})
+				err := DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml", &oamv1alpha2.Component{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from DeleteResourceFromFile")
@@ -378,7 +378,7 @@ func deployTestResources() {
 	// create the test project
 	pkg.Log(pkg.Info, "Creating test project")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest1.yaml", &clustersv1alpha1.VerrazzanoProject{})
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// Wait for the namespaces to be created
@@ -405,7 +405,7 @@ func deployTestResources() {
 	// create a OAM Component
 	pkg.Log(pkg.Info, "Creating OAM Component")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1_oam_component.yaml", &oamv1alpha2.Component{})
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml", &oamv1alpha2.Component{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a k8s secret
@@ -436,7 +436,7 @@ func undeployTestResources() {
 	// delete a OAM Component
 	pkg.Log(pkg.Info, "Deleting OAM Component")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/permissiontest1_oam_component.yaml", &oamv1alpha2.Component{})
+		return DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml", &oamv1alpha2.Component{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete a k8s secret
@@ -448,7 +448,7 @@ func undeployTestResources() {
 	// delete the test project
 	pkg.Log(pkg.Info, "Deleting test project")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest1.yaml", &clustersv1alpha1.VerrazzanoProject{})
+		return DeleteResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 
