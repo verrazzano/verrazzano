@@ -37,8 +37,8 @@ var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
-const VP_TEST1 = "permissions-test1"
-const VP_TEST2 = "permissions-test2"
+const vpTest1 = "permissions-test1"
+const vpTest2 = "permissions-test2"
 
 var _ = BeforeSuite(func() {
 	// Do set up for multi cluster tests
@@ -269,8 +269,8 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			// Wait for the project resource to be deleted from the managed cluster
 			pkg.Log(pkg.Info, "Wait for the VerrazzanoProject to be removed from the managed cluster")
 			Eventually(func() (bool, error) {
-				return pkg.DoesVerrazzanoProjectExistInCluster(VP_TEST2, managedKubeconfig)
-			}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", VP_TEST2))
+				return pkg.DoesVerrazzanoProjectExistInCluster(vpTest2, managedKubeconfig)
+			}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", vpTest2))
 			// TODO: Expect failure when namespace is no longer placed on the managed cluster
 			Eventually(func() (bool, error) {
 				return findSecret(permissionTest2Namespace, "mysecret")
@@ -457,11 +457,11 @@ func undeployTestResources() {
 	// Wait for the project resources to be deleted from the managed cluster
 	pkg.Log(pkg.Info, "Wait for the VerrazzanoProject resources to be removed from the managed cluster")
 	Eventually(func() (bool, error) {
-		return pkg.DoesVerrazzanoProjectExistInCluster(VP_TEST1, managedKubeconfig)
-	}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", VP_TEST1))
+		return pkg.DoesVerrazzanoProjectExistInCluster(vpTest1, managedKubeconfig)
+	}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", vpTest1))
 	Eventually(func() (bool, error) {
-		return pkg.DoesVerrazzanoProjectExistInCluster(VP_TEST2, managedKubeconfig)
-	}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", VP_TEST2))
+		return pkg.DoesVerrazzanoProjectExistInCluster(vpTest2, managedKubeconfig)
+	}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", vpTest2))
 
 	// delete the test namespaces
 	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on admin cluster", permissionTest1Namespace))
