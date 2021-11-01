@@ -26,9 +26,10 @@ const (
 
 var _ = Describe("Kiali", func() {
 	var (
-		client     *kubernetes.Clientset
-		httpClient *retryablehttp.Client
-		kialiErr   error
+		client         *kubernetes.Clientset
+		httpClient     *retryablehttp.Client
+		kialiErr       error
+		kialiSupported bool
 	)
 
 	BeforeSuite(func() {
@@ -36,11 +37,21 @@ var _ = Describe("Kiali", func() {
 		Expect(kialiErr).ToNot(HaveOccurred())
 		httpClient, kialiErr = pkg.GetSystemVmiHTTPClient()
 		Expect(kialiErr).ToNot(HaveOccurred())
-
+		kialiSupported, kialiErr = pkg.IsVerrazzanoMinVersion("1.1.0")
+		Expect(kialiErr).ToNot(HaveOccurred())
 	})
 
+	// It Wrapper to only run spec if Kiali is supported on the current Verrazzano installation
+	WhenKialiInstalledIt := func(description string, f interface{}) {
+		if kialiSupported {
+			It(description, f)
+		} else {
+			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Kiali is not supported", description))
+		}
+	}
+
 	Context("Successful Install", func() {
-		It("should have a monitoring crd", func() {
+		WhenKialiInstalledIt("should have a monitoring crd", func() {
 			Eventually(func() bool {
 				exists, err := pkg.DoesCRDExist("monitoringdashboards.monitoring.kiali.io")
 				if err != nil {
@@ -50,7 +61,7 @@ var _ = Describe("Kiali", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		It("has a running pod", func() {
+		WhenKialiInstalledIt("has a running pod", func() {
 			kialiPodsRunning := func() bool {
 				return pkg.PodsRunning(systemNamespace, []string{kiali})
 			}
@@ -80,7 +91,7 @@ var _ = Describe("Kiali", func() {
 				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			})
 
-			It("should not allow unauthenticated logins", func() {
+			WhenKialiInstalledIt("should not allow unauthenticated logins", func() {
 				Eventually(func() bool {
 					unauthHTTPClient, err := pkg.GetSystemVmiHTTPClient()
 					if err != nil {
@@ -90,13 +101,13 @@ var _ = Describe("Kiali", func() {
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 
-			It("should allow basic authentication", func() {
+			WhenKialiInstalledIt("should allow basic authentication", func() {
 				Eventually(func() bool {
 					return pkg.AssertURLAccessibleAndAuthorized(httpClient, kialiHost, creds)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 
-			It("should allow bearer authentication", func() {
+			WhenKialiInstalledIt("should allow bearer authentication", func() {
 				Eventually(func() bool {
 					return pkg.AssertBearerAuthorized(httpClient, kialiHost)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
