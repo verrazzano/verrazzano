@@ -233,7 +233,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Secret")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/secret.yaml", &v1.Secret{})
+				err := CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
@@ -242,7 +242,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/secret.yaml", &v1.Secret{})
+				err := DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from DeleteResourceFromFile")
@@ -411,7 +411,7 @@ func deployTestResources() {
 	// create a k8s secret
 	pkg.Log(pkg.Info, "Creating k8s secret")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/secret.yaml", &v1.Secret{})
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml", &v1.Secret{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 
@@ -442,7 +442,7 @@ func undeployTestResources() {
 	// delete a k8s secret
 	pkg.Log(pkg.Info, "Deleting k8s secret")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/secret.yaml", &v1.Secret{})
+		return DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml", &v1.Secret{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete the test project
