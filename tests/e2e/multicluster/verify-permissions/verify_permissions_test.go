@@ -32,7 +32,7 @@ const waitTimeout = 10 * time.Minute
 const pollingInterval = 10 * time.Second
 
 const testNamespace = "multiclustertest"
-const anotherTestNamespace = "anothermulticlustertest"
+const permissionTest1Namespace = "permissions-test1-ns"
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 
@@ -84,13 +84,13 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 		It("admin cluster - verify mc secret", func() {
 			Eventually(func() (bool, error) {
-				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
+				return findMultiClusterSecret(permissionTest1Namespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 
 			Eventually(func() bool {
 				// Verify we have the expected status update
 				secret := clustersv1alpha1.MultiClusterSecret{}
-				err := getMultiClusterResource(anotherTestNamespace, "mymcsecret", &secret)
+				err := getMultiClusterResource(permissionTest1Namespace, "mymcsecret", &secret)
 				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d", len(secret.Status.Clusters)))
 				if len(secret.Status.Clusters) > 0 {
 					pkg.Log(pkg.Debug, string("cluster reported status: "+secret.Status.Clusters[0].State))
@@ -137,12 +137,12 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() (bool, error) {
-						return findSecret(anotherTestNamespace, "mymcsecret")
+						return findSecret(permissionTest1Namespace, "mymcsecret")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret")
 				},
 				func() {
 					Eventually(func() (bool, error) {
-						return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
+						return findMultiClusterSecret(permissionTest1Namespace, "mymcsecret")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 				},
 			)
@@ -181,7 +181,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 		It("managed cluster can access MultiClusterSecret but not modify it on admin", func() {
 			Eventually(func() (bool, error) {
-				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
+				return findMultiClusterSecret(permissionTest1Namespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 			// try to update
 			Eventually(func() (bool, error) {
@@ -205,7 +205,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 		It("managed cluster can access OAM Component but not modify it on admin", func() {
 			Eventually(func() (bool, error) {
-				return findOAMComponent(anotherTestNamespace, "oam-component")
+				return findOAMComponent(permissionTest1Namespace, "oam-component")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find OAM Component")
 			// try to update
 			Eventually(func() (bool, error) {
@@ -229,7 +229,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 		It("managed cluster can access secrets but not modify it on admin", func() {
 			Eventually(func() (bool, error) {
-				return findSecret(anotherTestNamespace, "mysecret")
+				return findSecret(permissionTest1Namespace, "mysecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Secret")
 			// try to update
 			Eventually(func() (bool, error) {
@@ -249,6 +249,10 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+		})
+
+		It("managed cluster cannot access secrets on admin for namespaces not placed by a VerrazzanoProject", func() {
+
 		})
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
@@ -374,7 +378,7 @@ func deployTestResources() {
 	// create the test project
 	pkg.Log(pkg.Info, "Creating test project")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest1.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// Wait for the namespaces to be created
@@ -383,8 +387,8 @@ func deployTestResources() {
 		return pkg.DoesNamespaceExist(testNamespace)
 	}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find namespace %s", testNamespace))
 	Eventually(func() (bool, error) {
-		return pkg.DoesNamespaceExist(anotherTestNamespace)
-	}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find namespace %s", anotherTestNamespace))
+		return pkg.DoesNamespaceExist(permissionTest1Namespace)
+	}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find namespace %s", permissionTest1Namespace))
 
 	// create a MC config map
 	pkg.Log(pkg.Info, "Creating MC config map")
@@ -444,7 +448,7 @@ func undeployTestResources() {
 	// delete the test project
 	pkg.Log(pkg.Info, "Deleting test project")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
+		return DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest1.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 

@@ -3,7 +3,7 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoProject
 metadata:
-  name: permissions-test
+  name: permissions-test1
   namespace: verrazzano-mc
 spec:
   template:
@@ -11,7 +11,7 @@ spec:
     - metadata:
         name: multiclustertest
     - metadata:
-        name: anothermulticlustertest
+        name: permissions-test1-ns
   placement:
     clusters:
       - name: managed1
