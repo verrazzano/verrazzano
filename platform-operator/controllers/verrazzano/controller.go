@@ -1174,18 +1174,18 @@ func getInstallNamespace() string {
 
 func (r *Reconciler) retryUpgrade(ctx context.Context, vz *installv1alpha1.Verrazzano) (bool, error) {
 	// get the user-specified restart version - if it's missing then there's nothing to do here
-	restartVersion, ok := vz.Annotations[vzconst.RestartVersionAnnotation]
+	restartVersion, ok := vz.Annotations[vzconst.UpgradeRetryVersion]
 	if !ok {
 		return false, nil
 	}
 
 	// get the annotation with the previous restart version - if it's missing or the versions do not
 	// match, then return true
-	prevRestartVersion, ok := vz.Annotations[vzconst.ObservedRestartVersionAnnotation]
+	prevRestartVersion, ok := vz.Annotations[vzconst.ObservedUpgradeRetrytVersion]
 	if !ok || restartVersion != prevRestartVersion {
 
 		// add/update the previous restart version annotation to the CR
-		vz.Annotations[vzconst.ObservedRestartVersionAnnotation] = restartVersion
+		vz.Annotations[vzconst.ObservedUpgradeRetrytVersion] = restartVersion
 		err := r.Client.Update(ctx, vz)
 		return true, err
 	}
