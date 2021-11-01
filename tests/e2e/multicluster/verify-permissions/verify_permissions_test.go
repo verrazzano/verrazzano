@@ -445,7 +445,7 @@ func undeployTestResources() {
 		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest2-secret.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-	// delete the test project
+	// delete the test projects
 	pkg.Log(pkg.Info, "Deleting test projects")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml")
@@ -455,7 +455,7 @@ func undeployTestResources() {
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// Wait for the project resources to be deleted from the managed cluster
-	pkg.Log(pkg.Info, "Wait for the VerrazzanoProject to be removed from the managed cluster")
+	pkg.Log(pkg.Info, "Wait for the VerrazzanoProject resources to be removed from the managed cluster")
 	Eventually(func() (bool, error) {
 		return pkg.DoesVerrazzanoProjectExistInCluster(VP_TEST1, managedKubeconfig)
 	}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", VP_TEST1))
