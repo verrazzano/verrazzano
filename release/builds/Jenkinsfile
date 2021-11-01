@@ -180,12 +180,13 @@ pipeline {
 
                         retry(count: env.BUILD_RETRIES) {
                             script {
-                                echo "Triggering Verrazzano build for release"
+                                echo "Triggering Verrazzano build for release, this will wait for triggered tests to finish"
                                 releaseBuild = build job: "${RELEASE_JOB_NAME}",
                                     parameters: [
                                         booleanParam(name: 'RUN_ACCEPTANCE_TESTS', value: true),
                                         booleanParam(name: 'RUN_SLOW_TESTS', value: true),
                                         booleanParam(name: 'TRIGGER_FULL_TESTS', value: true),
+                                        booleanParam(name: 'WAIT_FOR_TRIGGERED', value: true),
                                         booleanParam(name: 'GENERATE_TARBALL', value: true),
                                         booleanParam(name: 'GENERATE_TOOL', value: true),
                                         booleanParam(name: 'PUSH_TO_OCIR', value: true)
