@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package kiali
@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	networking "k8s.io/api/networking/v1"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"time"
@@ -41,20 +40,14 @@ var _ = Describe("Kiali", func() {
 	})
 
 	Context("Successful Install", func() {
-		var (
-			extClient  *apiextv1.ApiextensionsV1Client
-			installErr error
-		)
-
-		BeforeEach(func() {
-			extClient, installErr = pkg.APIExtensionsClientSet()
-			Expect(installErr).ToNot(HaveOccurred())
-		})
-
 		It("should have a monitoring crd", func() {
-			crd, err := extClient.CustomResourceDefinitions().Get(context.TODO(), "monitoringdashboards.monitoring.kiali.io", v1.GetOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(crd).ToNot(BeNil())
+			Eventually(func() bool {
+				exists, err := pkg.DoesCRDExist("monitoringdashboards.monitoring.kiali.io")
+				if err != nil {
+					return false
+				}
+				return exists
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		It("has a running pod", func() {
@@ -73,10 +66,10 @@ var _ = Describe("Kiali", func() {
 			)
 
 			BeforeEach(func() {
-				ingress, installErr = client.NetworkingV1().
+				ingress, kialiErr = client.NetworkingV1().
 					Ingresses(systemNamespace).
 					Get(context.TODO(), kiali, v1.GetOptions{})
-				Expect(installErr).ToNot(HaveOccurred())
+				Expect(kialiErr).ToNot(HaveOccurred())
 				rules := ingress.Spec.Rules
 				Expect(len(rules)).To(Equal(1))
 				Expect(rules[0].Host).To(ContainSubstring("kiali.vmi.system.default"))
