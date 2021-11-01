@@ -6,7 +6,6 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -25,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 const waitTimeout = 10 * time.Minute
@@ -173,7 +171,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+				err := pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from DeleteResourceFromFile")
@@ -197,7 +195,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml", &v1.Secret{})
+				err := pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from DeleteResourceFromFile")
@@ -221,7 +219,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml", &oamv1alpha2.Component{})
+				err := pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from DeleteResourceFromFile")
@@ -245,7 +243,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml", &v1.Secret{})
+				err := pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from DeleteResourceFromFile")
@@ -334,23 +332,6 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 	})
 })
 
-// CreateOrUpdateResourceFromFile creates or updates a resource using the provided yaml file
-func CreateOrUpdateResourceFromFile(yamlFile string, object runtime.Object) error {
-	found, err := pkg.FindTestDataFile(yamlFile)
-	if err != nil {
-		return fmt.Errorf("failed to find test data file: %w", err)
-	}
-	bytes, err := ioutil.ReadFile(found)
-	if err != nil {
-		return fmt.Errorf("failed to read test data file: %w", err)
-	}
-	err = yaml.Unmarshal(bytes, object)
-	if err != nil {
-		return err
-	}
-	return updateObject(object)
-}
-
 // updateObject updates a resource using the provided object
 func updateObject(object runtime.Object) error {
 	clustersClient, err := getClustersClient()
@@ -363,23 +344,6 @@ func updateObject(object runtime.Object) error {
 	}
 
 	return err
-}
-
-// DeleteResourceFromFile deletes a resource using the provided yaml file and object reference
-func DeleteResourceFromFile(yamlFile string, object runtime.Object) error {
-	found, err := pkg.FindTestDataFile(yamlFile)
-	if err != nil {
-		return fmt.Errorf("failed to find test data file: %w", err)
-	}
-	bytes, err := ioutil.ReadFile(found)
-	if err != nil {
-		return fmt.Errorf("failed to read test data file: %w", err)
-	}
-	err = yaml.Unmarshal(bytes, object)
-	if err != nil {
-		return err
-	}
-	return deleteObject(object)
 }
 
 // deleteObject deletes the given object
@@ -455,37 +419,37 @@ func undeployTestResources() {
 	// delete a MC config map
 	pkg.Log(pkg.Info, "Deleting MC config map")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete a MC secret
 	pkg.Log(pkg.Info, "Deleting MC secret")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml", &clustersv1alpha1.MultiClusterSecret{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete a OAM Component
 	pkg.Log(pkg.Info, "Deleting OAM Component")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml", &oamv1alpha2.Component{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete k8s secrets
 	pkg.Log(pkg.Info, "Deleting k8s secrets")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml", &v1.Secret{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/permissiontest2-secret.yaml", &v1.Secret{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest2-secret.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete the test project
 	pkg.Log(pkg.Info, "Deleting test projects")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml", &clustersv1alpha1.VerrazzanoProject{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml", &clustersv1alpha1.VerrazzanoProject{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete the test namespaces
