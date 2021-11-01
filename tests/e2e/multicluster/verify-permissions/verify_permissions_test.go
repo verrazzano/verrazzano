@@ -35,6 +35,8 @@ const testNamespace = "multiclustertest"
 const permissionTest1Namespace = "permissions-test1-ns"
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
+var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
 var _ = BeforeSuite(func() {
 	// Do set up for multi cluster tests
@@ -449,6 +451,16 @@ func undeployTestResources() {
 	pkg.Log(pkg.Info, "Deleting test project")
 	Eventually(func() error {
 		return DeleteResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml", &clustersv1alpha1.VerrazzanoProject{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	// delete the test namespaces
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on admin cluster", permissionTest1Namespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(permissionTest1Namespace, adminKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on managed cluster", permissionTest1Namespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(permissionTest1Namespace, managedKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 
