@@ -395,6 +395,9 @@ func deployTestResources() {
 	Eventually(func() (bool, error) {
 		return pkg.DoesNamespaceExist(permissionTest1Namespace)
 	}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find namespace %s", permissionTest1Namespace))
+	Eventually(func() (bool, error) {
+		return pkg.DoesNamespaceExist(permissionTest2Namespace)
+	}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find namespace %s", permissionTest2Namespace))
 
 	// create a MC config map
 	pkg.Log(pkg.Info, "Creating MC config map")
