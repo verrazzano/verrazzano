@@ -153,10 +153,10 @@ func TestUpgradeSameVersion(t *testing.T) {
 				Name:       name.Name,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
+				Version: "1.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
 				State:   vzapi.Ready,
-				Version: "0.2.0",
+				Version: "1.2.0",
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.InstallComplete,
@@ -239,7 +239,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 				Name:       name.Name,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
+				Version: "1.1.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
 				State: vzapi.Ready,
 				Conditions: []vzapi.Condition{
