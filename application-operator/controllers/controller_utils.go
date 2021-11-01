@@ -4,11 +4,7 @@
 package controllers
 
 import (
-	"fmt"
 	"strings"
-
-	"github.com/go-logr/logr"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 )
@@ -33,14 +29,4 @@ func ConvertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 // of 'false' indicates that the application should continue to use the current values.
 func IsWorkloadMarkedForUpgrade(annotations map[string]string, previousUpgrade string) bool {
 	return annotations[constants.AnnotationUpgradeVersion] != previousUpgrade
-}
-
-// IsWorkloadMarkedForRestart checks to see if a workload needs to be restarted.
-func IsWorkloadMarkedForRestart(annotations map[string]string, observedRestartVersion string, log logr.Logger) bool {
-	toRestart := annotations[appconfig.RestartVersionAnnotation] != observedRestartVersion
-	if toRestart {
-		log.Info(fmt.Sprintf("The workload is marked for restart since the restart version has been changed from %s to %s",
-			observedRestartVersion, annotations[appconfig.RestartVersionAnnotation]))
-	}
-	return toRestart
 }

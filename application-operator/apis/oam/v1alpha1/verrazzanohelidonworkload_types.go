@@ -39,12 +39,6 @@ type VerrazzanoHelidonWorkloadStatus struct {
 
 	// CurrentUpgradeVersion is the version that was specified when the application was last upgraded with Verrazzano
 	CurrentUpgradeVersion string `json:"currentUpgradeVersion,omitempty"`
-
-	// ObservedRestartVersion is the version that was specified when the application was last restarted with Verrazzano
-	ObservedRestartVersion string `json:"observedRestartVersion,omitempty"`
-
-	// ObservedGeneration is the metadata.generation in VerrazzanoHelidonWorkload observed by the controller
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // VerrazzanoHelidonWorkload is the Schema for verrazzanohelidonworkloads API

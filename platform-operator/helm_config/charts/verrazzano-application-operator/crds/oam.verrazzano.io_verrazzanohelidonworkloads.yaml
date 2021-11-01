@@ -6390,15 +6390,6 @@ spec:
                 description: CurrentUpgradeVersion is the version that was specified
                   when the application was last upgraded with Verrazzano
                 type: string
-              observedGeneration:
-                description: ObservedGeneration is the metadata.generation in VerrazzanoHelidonWorkload
-                  observed by the controller
-                format: int64
-                type: integer
-              observedRestartVersion:
-                description: ObservedRestartVersion is the version that was specified
-                  when the application was last restarted with Verrazzano
-                type: string
               resources:
                 description: Resources managed by this workload.
                 items:
