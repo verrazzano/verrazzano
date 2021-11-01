@@ -230,7 +230,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
-		It("managed cluster can access secrets but not modify it on admin", func() {
+		It("managed cluster can access secrets on admin from a namespace placed by a VerrazzanoProject", func() {
 			Eventually(func() (bool, error) {
 				return findSecret(permissionTest1Namespace, "mysecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Secret")
@@ -255,7 +255,9 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		})
 
 		It("managed cluster cannot access secrets on admin for namespaces not placed by a VerrazzanoProject", func() {
-
+			Eventually(func() (bool, error) {
+				return findSecret(permissionTest2Namespace, "mysecret")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Secret")
 		})
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
