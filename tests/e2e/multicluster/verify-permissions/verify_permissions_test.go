@@ -167,7 +167,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
+					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -176,7 +176,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from DeleteResourceFromFile")
+					return false, goerrors.New("expected error from DeleteResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -191,7 +191,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-multicluster-secret-update.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
+					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -200,7 +200,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := DeleteResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from DeleteResourceFromFile")
+					return false, goerrors.New("expected error from DeleteResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -215,7 +215,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
+					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -224,7 +224,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml", &oamv1alpha2.Component{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from DeleteResourceFromFile")
+					return false, goerrors.New("expected error from DeleteResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -239,7 +239,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
+					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -248,7 +248,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml", &v1.Secret{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from DeleteResourceFromFile")
+					return false, goerrors.New("expected error from DeleteResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -264,7 +264,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			// Change the placement to be on the admin cluster
 			pkg.Log(pkg.Info, fmt.Sprintf("Change the placement of the namespace %s to be on the admin cluster", permissionTest2Namespace))
 			Eventually(func() error {
-				return pkg.CreateOrUpdateResourceFromFileInCluster("testdata/multicluster/permissiontest2-verrazzanoproject-new-placement.yaml", managedKubeconfig)
+				return pkg.CreateOrUpdateResourceFromFileInCluster("testdata/multicluster/permissiontest2-verrazzanoproject-new-placement.yaml", adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 			// Wait for the project resource to be deleted from the managed cluster
 			pkg.Log(pkg.Info, "Wait for the VerrazzanoProject to be removed from the managed cluster")
@@ -289,7 +289,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := updateObject(&cluster)
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from updateObject")
+					return false, goerrors.New("expected error from updateObject")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -298,7 +298,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := deleteObject(&cluster)
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from deleteObject")
+					return false, goerrors.New("expected error from deleteObject")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -310,7 +310,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := listResource("verrazzano-system", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry
 				if err == nil {
-					return false, goerrors.New("Expected error from listResource")
+					return false, goerrors.New("expected error from listResource")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -318,15 +318,15 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := listResource("verrazzano-mc", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry
 				if err == nil {
-					return false, goerrors.New("Expected error from listResource")
+					return false, goerrors.New("expected error from listResource")
 				}
 				return errors.IsForbidden(err), nil
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "expected to get a forbidden error")
 			Eventually(func() (bool, error) {
 				err := listResource(testNamespace, &v1.ConfigMapList{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from listResource")
+					return false, goerrors.New("expected error from listResource")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -633,7 +633,7 @@ func findOAMComponent(namespace, name string) (bool, error) {
 func getClustersClient() (client.Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv(k8sutil.EnvVarTestKubeConfig))
 	if err != nil {
-		pkg.Log(pkg.Error, (fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv(k8sutil.EnvVarTestKubeConfig), err)))
+		pkg.Log(pkg.Error, fmt.Sprintf("failed to build config from %s with error: %v", os.Getenv(k8sutil.EnvVarTestKubeConfig), err))
 		return nil, err
 	}
 
@@ -646,7 +646,7 @@ func getClustersClient() (client.Client, error) {
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
-		pkg.Log(pkg.Error, (fmt.Sprintf("Failed to get clusters client with error: %v", err)))
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get clusters client with error: %v", err))
 		return nil, err
 	}
 	return clustersClient, nil
