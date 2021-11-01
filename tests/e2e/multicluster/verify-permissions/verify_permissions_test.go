@@ -33,6 +33,7 @@ const pollingInterval = 10 * time.Second
 
 const testNamespace = "multiclustertest"
 const permissionTest1Namespace = "permissions-test1-ns"
+const permissionTest2Namespace = "permissions-test2-ns"
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
@@ -377,10 +378,13 @@ func deployTestResources() {
 
 	os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 
-	// create the test project
-	pkg.Log(pkg.Info, "Creating test project")
+	// create the test projects
+	pkg.Log(pkg.Info, "Creating test projects")
 	Eventually(func() error {
 		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml", &clustersv1alpha1.VerrazzanoProject{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	Eventually(func() error {
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// Wait for the namespaces to be created
@@ -411,9 +415,12 @@ func deployTestResources() {
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a k8s secret
-	pkg.Log(pkg.Info, "Creating k8s secret")
+	pkg.Log(pkg.Info, "Creating k8s secrets")
 	Eventually(func() error {
 		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml", &v1.Secret{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	Eventually(func() error {
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-secret.yaml", &v1.Secret{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 
@@ -441,16 +448,22 @@ func undeployTestResources() {
 		return DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml", &oamv1alpha2.Component{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-	// delete a k8s secret
-	pkg.Log(pkg.Info, "Deleting k8s secret")
+	// delete k8s secrets
+	pkg.Log(pkg.Info, "Deleting k8s secrets")
 	Eventually(func() error {
 		return DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml", &v1.Secret{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	Eventually(func() error {
+		return DeleteResourceFromFile("testdata/multicluster/permissiontest2-secret.yaml", &v1.Secret{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete the test project
-	pkg.Log(pkg.Info, "Deleting test project")
+	pkg.Log(pkg.Info, "Deleting test projects")
 	Eventually(func() error {
 		return DeleteResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml", &clustersv1alpha1.VerrazzanoProject{})
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	Eventually(func() error {
+		return DeleteResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete the test namespaces
