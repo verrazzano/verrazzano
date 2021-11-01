@@ -200,6 +200,57 @@ func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
 	return newRetryableHTTPClient(vmiRawClient), nil
 }
 
+func AssertOauthURLAccessibleAndUnauthorized(httpClient *retryablehttp.Client, url string) bool {
+	httpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		Log(Info, fmt.Sprintf("oidcUnauthorized req: %v \nvia: %v\n", req, via))
+		return http.ErrUseLastResponse
+	}
+	resp, err := httpClient.Get(url)
+	if err != nil || resp == nil {
+		Log(Error, fmt.Sprintf("Failed making request: %v", err))
+		return false
+	}
+	location, err := resp.Location()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting location from response: %v, error: %v", resp, err))
+		return false
+	}
+
+	if location == nil {
+		Log(Error, fmt.Sprintf("Response location not found for %v", resp))
+		return false
+	}
+	Log(Info, fmt.Sprintf("oidcUnauthorized %v StatusCode:%v host:%v", url, resp.StatusCode, location.Host))
+	return resp.StatusCode == 302 && strings.Contains(location.Host, "keycloak")
+}
+
+func AssertBearerAuthorized(httpClient *retryablehttp.Client, url string) bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig location: %v", err))
+		return false
+	}
+
+	api, err := GetAPIEndpoint(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting API endpoint: %v", err))
+		return false
+	}
+	req, _ := retryablehttp.NewRequest("GET", url, nil)
+	if api.AccessToken != "" {
+		bearer := fmt.Sprintf("Bearer %v", api.AccessToken)
+		req.Header.Set("Authorization", bearer)
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed making request: %v", err))
+		return false
+	}
+	resp.Body.Close()
+	Log(Info, fmt.Sprintf("assertBearerAuthorized %v Response:%v Error:%v", url, resp.StatusCode, err))
+	return resp.StatusCode == http.StatusOK
+}
+
 // PutWithHostHeader PUTs a request with a specified Host header
 func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
