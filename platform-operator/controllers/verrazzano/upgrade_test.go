@@ -971,7 +971,7 @@ func TestRetryUpgrade(t *testing.T) {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano) error {
 			asserts.Equal(verrazzano.ObjectMeta.Annotations[constants.UpgradeRetryVersion], "a", "Incorrect restart version")
-			asserts.Equal(verrazzano.ObjectMeta.Annotations[constants.ObservedUpgradeRetrytVersion], "a", "Incorrect observed restart version")
+			asserts.Equal(verrazzano.ObjectMeta.Annotations[constants.ObservedUpgradeRetryVersion], "a", "Incorrect observed restart version")
 			return nil
 		})
 
@@ -1031,8 +1031,8 @@ func TestDontRetryUpgrade(t *testing.T) {
 				Name:       name.Name,
 				Finalizers: []string{finalizerName},
 				Annotations: map[string]string{
-					constants.UpgradeRetryVersion:          "b",
-					constants.ObservedUpgradeRetrytVersion: "b",
+					constants.UpgradeRetryVersion:         "b",
+					constants.ObservedUpgradeRetryVersion: "b",
 				}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}

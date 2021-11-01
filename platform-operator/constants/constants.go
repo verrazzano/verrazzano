@@ -114,5 +114,5 @@ const VerrazzanoVersion1_1_0 = "1.1.0"
 // UpgradeRetryVersion is the restart version annotation field
 const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
 
-// ObservedUpgradeRetrytVersion is the previous restart version annotation field
-const ObservedUpgradeRetrytVersion = "verrazzano.io/observed-upgrade-retry-version"
+// ObservedUpgradeRetryVersion is the previous restart version annotation field
+const ObservedUpgradeRetryVersion = "verrazzano.io/observed-upgrade-retry-version"
