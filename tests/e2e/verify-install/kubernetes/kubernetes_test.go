@@ -180,7 +180,7 @@ var _ = Describe("Kubernetes Cluster",
 					if !ok {
 						// skip test
 						fmt.Printf("Skipping Kiali check since version < 1.1.0")
-						return true, nil
+						return expected, nil
 					}
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
