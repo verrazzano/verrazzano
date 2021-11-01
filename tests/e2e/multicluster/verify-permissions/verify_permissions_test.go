@@ -209,7 +209,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find OAM Component")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
+				err := CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1_oam_component.yaml", &oamv1alpha2.Component{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
@@ -218,7 +218,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
+				err := DeleteResourceFromFile("testdata/multicluster/permissiontest1_oam_component.yaml", &oamv1alpha2.Component{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from DeleteResourceFromFile")
@@ -405,7 +405,7 @@ func deployTestResources() {
 	// create a OAM Component
 	pkg.Log(pkg.Info, "Creating OAM Component")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
+		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1_oam_component.yaml", &oamv1alpha2.Component{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a k8s secret
@@ -436,7 +436,7 @@ func undeployTestResources() {
 	// delete a OAM Component
 	pkg.Log(pkg.Info, "Deleting OAM Component")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
+		return DeleteResourceFromFile("testdata/multicluster/permissiontest1_oam_component.yaml", &oamv1alpha2.Component{})
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete a k8s secret
