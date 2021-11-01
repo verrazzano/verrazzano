@@ -87,6 +87,9 @@ const GlobalImagePullSecName = "verrazzano-container-registry"
 // IngressNginxNamespace is the nginx ingress namespace name
 const IngressNginxNamespace = "ingress-nginx"
 
+// IstioSystemNamespace - the Istio system namespace
+const IstioSystemNamespace = "istio-system"
+
 //  KeycloakNamespace is the keycloak namespace name
 const KeycloakNamespace = "keycloak"
 
@@ -101,3 +104,9 @@ const VerrazzanoSystemTLSSecretName = "system-tls"
 
 // The default name for install environment
 const DefaultEnvironmentName = "default"
+
+// Verrazzano version string for 1.0.0
+const VerrazzanoVersion1_0_0 = "1.0.0"
+
+// Verrazzano version string for 1.1.0
+const VerrazzanoVersion1_1_0 = "1.1.0"
