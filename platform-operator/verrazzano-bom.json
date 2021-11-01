@@ -228,7 +228,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20210510134749-abc2d2088",
+              "tag": "0.46.0-20211005200943-bd017fde2",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             },
             {
@@ -244,7 +244,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20210510134749-abc2d2088",
+              "tag": "0.46.0-20211005200943-bd017fde2",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             }

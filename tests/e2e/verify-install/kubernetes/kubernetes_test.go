@@ -4,6 +4,7 @@
 package kubernetes_test
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
 
@@ -170,6 +171,22 @@ var _ = Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
 			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 			ginkgoExt.Entry("includes kiali", "vmi-system-kiali", true),
+		)
+
+		// Test components that may not exist for older versions
+		ginkgoExt.DescribeTable("deployed VMI components that are don't exist in older versions",
+			func(name string, expected bool) {
+				Eventually(func() (bool, error) {
+					ok, _ := pkg.IsVerrazzanoMinVersion("1.1.0")
+					if !ok {
+						// skip test
+						fmt.Printf("Skipping Kiali check since version < 1.1.0")
+						return expected, nil
+					}
+					return vzComponentPresent(name, "verrazzano-system")
+				}, waitTimeout, pollingInterval).Should(Equal(expected))
+			},
+			ginkgoExt.Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
 		)
 
 		It("Expected pods are running", func() {
