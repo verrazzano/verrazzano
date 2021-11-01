@@ -463,6 +463,7 @@ pipeline {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh """
+                                kubectl delete serviceaccount -n istio-system istio-egressgateway-service-account
                                 istioctl verify-install
                             """
                         }
