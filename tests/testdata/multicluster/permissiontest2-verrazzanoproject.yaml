@@ -9,8 +9,6 @@ spec:
   template:
     namespaces:
       - metadata:
-          name: multiclustertest
-      - metadata:
           name: permissions-test2-ns
   placement:
     clusters:

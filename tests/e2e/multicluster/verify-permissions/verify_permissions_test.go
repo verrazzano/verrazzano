@@ -475,6 +475,24 @@ func undeployTestResources() {
 	Eventually(func() error {
 		return pkg.DeleteNamespaceInCluster(permissionTest1Namespace, managedKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on admin cluster", permissionTest2Namespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(permissionTest2Namespace, adminKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on managed cluster", permissionTest2Namespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(permissionTest2Namespace, managedKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on admin cluster", testNamespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on managed cluster", testNamespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 
 // findSecret finds the secret based on name and namespace
