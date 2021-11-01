@@ -262,6 +262,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				return findSecret(permissionTest2Namespace, "mysecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Secret")
 			// Change the placement to be on the admin cluster
+			pkg.Log(pkg.Info, fmt.Sprintf("Change the placement of the namespace %s to be on the admin cluster", permissionTest2Namespace))
 			Eventually(func() error {
 				return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject-new-placement.yaml", &clustersv1alpha1.VerrazzanoProject{})
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
@@ -274,10 +275,6 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			Eventually(func() (bool, error) {
 				return findSecret(permissionTest2Namespace, "mysecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
-		})
-
-		It("managed cluster can no longer access a secret on admin when placement is removed from managed cluster", func() {
-
 		})
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
