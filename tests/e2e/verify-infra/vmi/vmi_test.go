@@ -77,6 +77,7 @@ func verrazzanoInstallerCRD() (*apiextv1.CustomResourceDefinition, error) {
 }
 
 var (
+	httpClient             *retryablehttp.Client
 	creds                  *pkg.UsernamePassword
 	vmiCRD                 *apiextv1.CustomResourceDefinition
 	vzCRD                  *apiextv1.CustomResourceDefinition
@@ -91,6 +92,9 @@ var (
 
 var _ = BeforeSuite(func() {
 	var err error
+
+	httpClient, err = pkg.GetSystemVmiHTTPClient()
+	Expect(err).ToNot(HaveOccurred())
 
 	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vzCRD, err = verrazzanoInstallerCRD()
@@ -323,73 +327,6 @@ func assertPersistentVolume(key string, size string) {
 	Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal(size))
 }
 
-func assertURLAccessibleAndAuthorized(url string) bool {
-	vmiHTTPClient, err := pkg.GetSystemVmiHTTPClient()
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
-		return false
-	}
-	return pkg.AssertURLAccessibleAndAuthorized(vmiHTTPClient, url, creds)
-}
-
-func assertBearerAuthorized(url string) bool {
-	vmiHTTPClient, err := pkg.GetSystemVmiHTTPClient()
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
-		return false
-	}
-
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig location: %v", err))
-		return false
-	}
-
-	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
-		return false
-	}
-	req, _ := retryablehttp.NewRequest("GET", url, nil)
-	if api.AccessToken != "" {
-		bearer := fmt.Sprintf("Bearer %v", api.AccessToken)
-		req.Header.Set("Authorization", bearer)
-	}
-	resp, err := vmiHTTPClient.Do(req)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed making request: %v", err))
-		return false
-	}
-	resp.Body.Close()
-	pkg.Log(pkg.Info, fmt.Sprintf("assertBearerAuthorized %v Response:%v Error:%v", url, resp.StatusCode, err))
-	return resp.StatusCode == http.StatusOK
-}
-
-func assertOauthURLAccessibleAndUnauthorized(url string) bool {
-	vmiHTTPClient, err := pkg.GetSystemVmiHTTPClient()
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
-		return false
-	}
-	vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		pkg.Log(pkg.Info, fmt.Sprintf("oidcUnauthorized req: %v \nvia: %v\n", req, via))
-		return http.ErrUseLastResponse
-	}
-	resp, err := vmiHTTPClient.Get(url)
-	if err != nil || resp == nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed making request: %v", err))
-		return false
-	}
-	location, err := resp.Location()
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting location from response: %v, error: %v", resp, err))
-		return false
-	}
-	Expect(location).NotTo(BeNil())
-	pkg.Log(pkg.Info, fmt.Sprintf("oidcUnauthorized %v StatusCode:%v host:%v", url, resp.StatusCode, location.Host))
-	return resp.StatusCode == 302 && strings.Contains(location.Host, "keycloak")
-}
-
 func assertOidcIngressByName(key string) {
 	Expect(ingressURLs).To(HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
 	url := ingressURLs[key]
@@ -397,18 +334,23 @@ func assertOidcIngressByName(key string) {
 }
 
 func assertOidcIngress(url string) {
-	assertUnAuthorized := assertOauthURLAccessibleAndUnauthorized
-	assertBasicAuth := assertURLAccessibleAndAuthorized
-	assertBearerAuth := assertBearerAuthorized
+	unauthHTTPClient, err := pkg.GetSystemVmiHTTPClient()
+	Expect(err).ToNot(HaveOccurred())
 	pkg.Concurrently(
 		func() {
-			Eventually(func() bool { return assertUnAuthorized(url) }, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(func() bool {
+				return pkg.AssertOauthURLAccessibleAndUnauthorized(unauthHTTPClient, url)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
 		func() {
-			Eventually(func() bool { return assertBasicAuth(url) }, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(func() bool {
+				return pkg.AssertURLAccessibleAndAuthorized(httpClient, url, creds)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
 		func() {
-			Eventually(func() bool { return assertBearerAuth(url) }, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(func() bool {
+				return pkg.AssertBearerAuthorized(httpClient, url)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
 	)
 }
