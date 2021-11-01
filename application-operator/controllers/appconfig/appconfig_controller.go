@@ -24,8 +24,7 @@ import (
 )
 
 const (
-	RestartVersionAnnotation         = "verrazzano.io/restart-version"
-	observedRestartVersionAnnotation = "verrazzano.io/observed-restart-version"
+	RestartVersionAnnotation = "verrazzano.io/restart-version"
 )
 
 type Reconciler struct {
@@ -62,41 +61,22 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// get the user-specified restart version - if it's missing then there's nothing to do here
 	restartVersion, ok := appConfig.Annotations[RestartVersionAnnotation]
-	if !ok {
+	if !ok || len(restartVersion) == 0 {
 		log.Info("No restart version annotation found, nothing to do")
 		return reconcile.Result{}, nil
 	}
 
-	// get the annotation with the previous restart version - if it's missing or the versions do not
-	// match, then we restart apps
-	hasErrorsRestarting := false
-	if r.isMarkedForRestart(restartVersion, appConfig.Annotations) {
-		log.Info(fmt.Sprintf("Restarting application with restart-version %s", restartVersion))
-
-		// restart all components
-		for index := range appConfig.Spec.Components {
-			componentName := appConfig.Spec.Components[index].ComponentName
-			componentNamespace := appConfig.Namespace
-			log.Info(fmt.Sprintf("Restarting component %s in namespace %s with restart-version %s", componentName, componentNamespace, restartVersion))
-			err := r.restartComponent(ctx, componentName, componentNamespace, restartVersion, log)
-			if err != nil {
-				log.Error(err, fmt.Sprintf("Enountered error restarting component %s in namespace %swith restart-version %s", componentName, componentNamespace, restartVersion))
-				hasErrorsRestarting = true
-			}
+	// restart all components in the appconfig
+	log.Info(fmt.Sprintf("Restarting application with restart-version %s", restartVersion))
+	for index := range appConfig.Spec.Components {
+		componentName := appConfig.Spec.Components[index].ComponentName
+		componentNamespace := appConfig.Namespace
+		log.Info(fmt.Sprintf("Restarting component %s in namespace %s with restart-version %s", componentName, componentNamespace, restartVersion))
+		err := r.restartComponent(ctx, componentName, componentNamespace, restartVersion, log)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Enountered error restarting component %s in namespace %swith restart-version %s", componentName, componentNamespace, restartVersion))
+			return reconcile.Result{}, err
 		}
-
-		// add/update the previous restart version annotation on the appconfig if the restarting was successful
-		if !hasErrorsRestarting {
-			appConfig.Annotations[observedRestartVersionAnnotation] = restartVersion
-			log.Info(fmt.Sprintf("Setting observed-restart-version with %s", restartVersion))
-			if err := r.Client.Update(ctx, &appConfig); err != nil {
-				return reconcile.Result{}, err
-			}
-		} else {
-			log.Info(fmt.Sprintf("Encountered errors restarting with %s.  Retry in the next Reconcile", restartVersion))
-		}
-
-		return reconcile.Result{}, nil
 	}
 
 	log.Info("Successfully reconciled ApplicationConfiguration")
@@ -150,14 +130,6 @@ func (r *Reconciler) restartComponent(ctx context.Context, componentName, compon
 	return nil
 }
 
-func (r *Reconciler) isMarkedForRestart(restartVersion string, annotations map[string]string) bool {
-	observedRestartVersion, ok := annotations[observedRestartVersionAnnotation]
-	if !ok || restartVersion != observedRestartVersion {
-		return true
-	}
-	return false
-}
-
 func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion string, name, namespace string, log logr.Logger) error {
 	var deployment = appsv1.Deployment{}
 	deploymentKey := types.NamespacedName{Name: name, Namespace: namespace}
@@ -169,20 +141,8 @@ func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion strin
 			return err
 		}
 	}
-	if r.isMarkedForRestart(restartVersion, deployment.Annotations) {
-		log.Info(fmt.Sprintf("Restarting deployment %s in namespace %s with restart-version %s", name, namespace, restartVersion))
-		err := DoRestartDeployment(ctx, r.Client, restartVersion, &deployment, log)
-		if err != nil {
-			return err
-		}
-		// if the restart is successful, write restartVersion to the annotation observedRestartVersionAnnotation
-		if deployment.Annotations == nil {
-			deployment.Annotations = make(map[string]string)
-		}
-		deployment.Annotations[observedRestartVersionAnnotation] = restartVersion
-		return r.Update(ctx, &deployment)
-	}
-	return nil
+	log.Info(fmt.Sprintf("Restarting deployment %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	return DoRestartDeployment(ctx, r.Client, restartVersion, &deployment, log)
 }
 
 func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion string, name, namespace string, log logr.Logger) error {
@@ -196,20 +156,8 @@ func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion stri
 			return err
 		}
 	}
-	if r.isMarkedForRestart(restartVersion, statefulSet.Annotations) {
-		log.Info(fmt.Sprintf("Restarting statefulSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
-		err := DoRestartStatefulSet(ctx, r.Client, restartVersion, &statefulSet, log)
-		if err != nil {
-			return err
-		}
-		// if the restart is successful, write restartVersion to the annotation observedRestartVersionAnnotation
-		if statefulSet.Annotations == nil {
-			statefulSet.Annotations = make(map[string]string)
-		}
-		statefulSet.Annotations[observedRestartVersionAnnotation] = restartVersion
-		return r.Update(ctx, &statefulSet)
-	}
-	return nil
+	log.Info(fmt.Sprintf("Restarting statefulSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	return DoRestartStatefulSet(ctx, r.Client, restartVersion, &statefulSet, log)
 }
 
 func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string, name, namespace string, log logr.Logger) error {
@@ -223,20 +171,8 @@ func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string
 			return err
 		}
 	}
-	if r.isMarkedForRestart(restartVersion, daemonSet.Annotations) {
-		log.Info(fmt.Sprintf("Restarting daemonSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
-		err := DoRestartDaemonSet(ctx, r.Client, restartVersion, &daemonSet, log)
-		if err != nil {
-			return err
-		}
-		// if the restart is successful, write restartVersion to the annotation observedRestartVersionAnnotation
-		if daemonSet.Annotations == nil {
-			daemonSet.Annotations = make(map[string]string)
-		}
-		daemonSet.Annotations[observedRestartVersionAnnotation] = restartVersion
-		return r.Update(ctx, &daemonSet)
-	}
-	return nil
+	log.Info(fmt.Sprintf("Restarting daemonSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	return DoRestartDaemonSet(ctx, r.Client, restartVersion, &daemonSet, log)
 }
 
 func DoRestartDeployment(ctx context.Context, client client.Client, restartVersion string, deployment *appsv1.Deployment, log logr.Logger) error {

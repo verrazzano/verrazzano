@@ -99,7 +99,7 @@ func TestReconcileNoRestartVersion(t *testing.T) {
 	assert.NoError(err)
 }
 
-func TestReconcileNoObservedRestartVersion(t *testing.T) {
+func TestReconcileRestartVersion(t *testing.T) {
 	assert := asserts.New(t)
 	oamcore.AddToScheme(k8scheme.Scheme)
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
@@ -117,10 +117,9 @@ func TestReconcileNoObservedRestartVersion(t *testing.T) {
 
 	err = client.Get(context.TODO(), request.NamespacedName, appConfig)
 	assert.NoError(err)
-	assert.Equal("1", appConfig.Annotations[observedRestartVersionAnnotation])
 }
 
-func TestReconcileVersionsMismatch(t *testing.T) {
+func TestReconcileEmptyRestartVersion(t *testing.T) {
 	assert := asserts.New(t)
 	oamcore.AddToScheme(k8scheme.Scheme)
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
@@ -129,8 +128,7 @@ func TestReconcileVersionsMismatch(t *testing.T) {
 	request := newRequest(testNamespace, testAppConfigName)
 
 	appConfig := newAppConfig()
-	appConfig.Annotations[RestartVersionAnnotation] = "2"
-	appConfig.Annotations[observedRestartVersionAnnotation] = "1"
+	appConfig.Annotations[RestartVersionAnnotation] = ""
 	err := client.Create(context.TODO(), appConfig)
 	assert.NoError(err)
 
@@ -139,7 +137,6 @@ func TestReconcileVersionsMismatch(t *testing.T) {
 
 	err = client.Get(context.TODO(), request.NamespacedName, appConfig)
 	assert.NoError(err)
-	assert.Equal("2", appConfig.Annotations[observedRestartVersionAnnotation])
 }
 
 const weblogicWorkload = `
@@ -210,14 +207,6 @@ func TestReconcileRestartWeblogic(t *testing.T) {
 			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicWorkload, " ", ""), "\n", ""))}
 			return nil
 		})
-	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
-			return nil
-		})
 
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
@@ -250,14 +239,6 @@ func TestReconcileRestartCoherence(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
 			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(coherenceWorkload, " ", ""), "\n", ""))}
-			return nil
-		})
-	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
 			return nil
 		})
 
@@ -294,14 +275,6 @@ func TestReconcileRestartHelidon(t *testing.T) {
 			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(helidonWorkload, " ", ""), "\n", ""))}
 			return nil
 		})
-	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
-			return nil
-		})
 
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
@@ -313,7 +286,7 @@ func TestReconcileRestartHelidon(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-func TestReconcileRestartDeploymentMismatchVersions(t *testing.T) {
+func TestReconcileDeploymentRestart(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -359,22 +332,6 @@ func TestReconcileRestartDeploymentMismatchVersions(t *testing.T) {
 			assert.Equal(testNewRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation])
 			return nil
 		})
-	// expect a call to update the deployment
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
-			assert.Equal(testNewRestartVersion, deploy.Annotations[observedRestartVersionAnnotation])
-			return nil
-		})
-	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
-			return nil
-		})
-
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
@@ -385,7 +342,7 @@ func TestReconcileRestartDeploymentMismatchVersions(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-func TestReconcileRestartDeploymentMatchingVersions(t *testing.T) {
+func TestReconcileDeploymentNoRestart(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -414,15 +371,18 @@ func TestReconcileRestartDeploymentMatchingVersions(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
 			deploy.Name = testDeploymentName
 			deploy.Namespace = testNamespace
-			deploy.Annotations = map[string]string{observedRestartVersionAnnotation: testNewRestartVersion}
+			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			deploy.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
-	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	// expect a call to fetch the deployment
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+			deploy.Name = testDeploymentName
+			deploy.Namespace = testNamespace
+			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			deploy.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
 
@@ -436,7 +396,7 @@ func TestReconcileRestartDeploymentMatchingVersions(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-func TestReconcileRestartDaemonSetMismatchVersions(t *testing.T) {
+func TestReconcileDaemonSetRestartDaemonSet(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -482,21 +442,6 @@ func TestReconcileRestartDaemonSetMismatchVersions(t *testing.T) {
 			assert.Equal(testNewRestartVersion, daemonset.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation])
 			return nil
 		})
-	// expect a call to update the daemonset
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, daemonset *appsv1.DaemonSet) error {
-			assert.Equal(testNewRestartVersion, daemonset.Annotations[observedRestartVersionAnnotation])
-			return nil
-		})
-	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
-			return nil
-		})
 
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
@@ -508,7 +453,7 @@ func TestReconcileRestartDaemonSetMismatchVersions(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-func TestReconcileRestartDaemonSetMatchingVersions(t *testing.T) {
+func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -537,15 +482,18 @@ func TestReconcileRestartDaemonSetMatchingVersions(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet) error {
 			daemonset.Name = testDaemonSetName
 			daemonset.Namespace = testNamespace
-			daemonset.Annotations = map[string]string{observedRestartVersionAnnotation: testNewRestartVersion}
+			daemonset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			daemonset.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
-	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	// expect a call to fetch the daemonset
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet) error {
+			daemonset.Name = testDaemonSetName
+			daemonset.Namespace = testNamespace
+			daemonset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			daemonset.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
 
@@ -559,7 +507,7 @@ func TestReconcileRestartDaemonSetMatchingVersions(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-func TestReconcileRestartStatefulSetMismatchVersions(t *testing.T) {
+func TestReconcileStatefulSetRestart(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -605,21 +553,6 @@ func TestReconcileRestartStatefulSetMismatchVersions(t *testing.T) {
 			assert.Equal(testNewRestartVersion, statefulset.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation])
 			return nil
 		})
-	// expect a call to update the statefulset
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, statefulset *appsv1.StatefulSet) error {
-			assert.Equal(testNewRestartVersion, statefulset.Annotations[observedRestartVersionAnnotation])
-			return nil
-		})
-	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
-			return nil
-		})
 
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
@@ -631,7 +564,7 @@ func TestReconcileRestartStatefulSetMismatchVersions(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-func TestReconcileRestartStatefulSetMatchingVersions(t *testing.T) {
+func TestReconcileStatefulSetNoRestart(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -660,15 +593,18 @@ func TestReconcileRestartStatefulSetMatchingVersions(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
 			statefulset.Name = testStatefulSetName
 			statefulset.Namespace = testNamespace
-			statefulset.Annotations = map[string]string{observedRestartVersionAnnotation: testNewRestartVersion}
+			statefulset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			statefulset.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
-	// expect a call to update the ApplicationConfiguration with observedRestartVersionAnnotation
+	// expect a call to fetch the statefulset
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, appconfig *oamv1.ApplicationConfiguration) error {
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[RestartVersionAnnotation])
-			assert.Equal(testNewRestartVersion, appconfig.Annotations[observedRestartVersionAnnotation])
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
+			statefulset.Name = testStatefulSetName
+			statefulset.Namespace = testNamespace
+			statefulset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			statefulset.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
 
