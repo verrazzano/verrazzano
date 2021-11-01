@@ -164,7 +164,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
@@ -188,7 +188,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-multicluster-secret-update.yaml", &v1.Secret{})
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-multicluster-secret-update.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
@@ -212,7 +212,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find OAM Component")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml", &oamv1alpha2.Component{})
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
@@ -236,7 +236,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Secret")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml", &v1.Secret{})
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
@@ -264,7 +264,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			// Change the placement to be on the admin cluster
 			pkg.Log(pkg.Info, fmt.Sprintf("Change the placement of the namespace %s to be on the admin cluster", permissionTest2Namespace))
 			Eventually(func() error {
-				return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject-new-placement.yaml", &clustersv1alpha1.VerrazzanoProject{})
+				return pkg.CreateOrUpdateResourceFromFileInCluster("testdata/multicluster/permissiontest2-verrazzanoproject-new-placement.yaml", managedKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 			// Wait for the project resource to be deleted from the managed cluster
 			pkg.Log(pkg.Info, "Wait for the VerrazzanoProject to be removed from the managed cluster")
@@ -400,10 +400,10 @@ func deployTestResources() {
 	// create the test projects
 	pkg.Log(pkg.Info, "Creating test projects")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml", &clustersv1alpha1.VerrazzanoProject{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml", &clustersv1alpha1.VerrazzanoProject{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// Wait for the namespaces to be created
@@ -421,28 +421,28 @@ func deployTestResources() {
 	// create a MC config map
 	pkg.Log(pkg.Info, "Creating MC config map")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a MC secret
 	pkg.Log(pkg.Info, "Creating MC secret")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml", &clustersv1alpha1.MultiClusterSecret{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a OAM Component
 	pkg.Log(pkg.Info, "Creating OAM Component")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml", &oamv1alpha2.Component{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a k8s secret
 	pkg.Log(pkg.Info, "Creating k8s secrets")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml", &v1.Secret{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-secret.yaml", &v1.Secret{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-secret.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 
