@@ -10,17 +10,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -224,7 +220,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if err = r.restartCoherence(ctx, workload.Annotations[appconfig.RestartVersionAnnotation], cohName, workload.Namespace, log); err != nil {
+	// write out restart-version in Coherence spec annotations
+	if err = r.addRestartVersionAnnotation(u, workload.Annotations[appconfig.RestartVersionAnnotation], cohName, workload.Namespace, log); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -719,20 +716,18 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	return nil
 }
 
-func (r *Reconciler) restartCoherence(ctx context.Context, restartVersion string, coherenceName, coherenceNamespace string, log logr.Logger) error {
-	var statefulSetList appsv1.StatefulSetList
-	componentNameReq, _ := labels.NewRequirement("coherenceDeployment", selection.Equals, []string{coherenceName})
-	selector := labels.NewSelector()
-	selector = selector.Add(*componentNameReq)
-	err := r.Client.List(ctx, &statefulSetList, &client.ListOptions{Namespace: coherenceNamespace, LabelSelector: selector})
+func (r *Reconciler) addRestartVersionAnnotation(coherence *unstructured.Unstructured, restartVersion string, name, namespace string, log logr.Logger) error {
+	log.Info(fmt.Sprintf("The Coherence %s/%s restart version is set to %s", namespace, name, restartVersion))
+	annotations, _, err := unstructured.NestedStringMap(coherence.Object, specAnnotationsFields...)
 	if err != nil {
-		return err
+		return errors.New("unable to get annotations from Coherence spec")
 	}
-	for index := range statefulSetList.Items {
-		statefulSet := &statefulSetList.Items[index]
-		if err := appconfig.DoRestartStatefulSet(ctx, r.Client, restartVersion, statefulSet, log); err != nil {
-			return err
+	if len(restartVersion) > 0 {
+		// if no annotations exist initialize the annotations map otherwise update existing annotations.
+		if annotations == nil {
+			annotations = make(map[string]string)
 		}
+		annotations[appconfig.RestartVersionAnnotation] = restartVersion
 	}
-	return nil
+	return unstructured.SetNestedStringMap(coherence.Object, annotations, specAnnotationsFields...)
 }

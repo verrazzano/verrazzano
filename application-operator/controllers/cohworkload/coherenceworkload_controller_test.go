@@ -11,8 +11,6 @@ import (
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
-	appsv1 "k8s.io/api/apps/v1"
-
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -45,7 +43,6 @@ const namespace = "unit-test-namespace"
 const coherenceAPIVersion = "coherence.oracle.com/v1"
 const coherenceKind = "Coherence"
 const testRestartVersion = "new-restart"
-const testStatefulSetName = "test-statefulset-name"
 const loggingTrait = `
 {
 	"apiVersion": "oam.verrazzano.io/v1alpha1",
@@ -177,20 +174,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			namespace.Name = "test-namespace"
 			return nil
 		})
-	// expect a call to list the statefulset
-	cli.EXPECT().
-		List(gomock.Any(), &appsv1.StatefulSetList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.StatefulSetList, opts ...client.ListOption) error {
-			list.Items = []appsv1.StatefulSet{*getTestStatefulSet("")}
-			return nil
-		})
-	// expect a call to fetch the statefulset
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
-			annotateRestartVersion(statefulset, "")
-			return nil
-		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -304,20 +288,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to list the statefulset
-	cli.EXPECT().
-		List(gomock.Any(), &appsv1.StatefulSetList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.StatefulSetList, opts ...client.ListOption) error {
-			list.Items = []appsv1.StatefulSet{*getTestStatefulSet("")}
-			return nil
-		})
-	// expect a call to fetch the statefulset
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
-			annotateRestartVersion(statefulset, "")
-			return nil
-		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -506,20 +477,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to list the statefulset
-	cli.EXPECT().
-		List(gomock.Any(), &appsv1.StatefulSetList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.StatefulSetList, opts ...client.ListOption) error {
-			list.Items = []appsv1.StatefulSet{*getTestStatefulSet("")}
-			return nil
-		})
-	// expect a call to fetch the statefulset
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
-			annotateRestartVersion(statefulset, "")
-			return nil
-		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -674,20 +632,7 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to list the statefulset
-	cli.EXPECT().
-		List(gomock.Any(), &appsv1.StatefulSetList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.StatefulSetList, opts ...client.ListOption) error {
-			list.Items = []appsv1.StatefulSet{*getTestStatefulSet("")}
-			return nil
-		})
-	// expect a call to fetch the statefulset
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
-			annotateRestartVersion(statefulset, "")
-			return nil
-		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -813,20 +758,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to list the statefulset
-	cli.EXPECT().
-		List(gomock.Any(), &appsv1.StatefulSetList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.StatefulSetList, opts ...client.ListOption) error {
-			list.Items = []appsv1.StatefulSet{*getTestStatefulSet("")}
-			return nil
-		})
-	// expect a call to fetch the statefulset
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
-			annotateRestartVersion(statefulset, "")
-			return nil
-		})
+
 	// expect a call to status update
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
@@ -941,20 +873,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to list the statefulset
-	cli.EXPECT().
-		List(gomock.Any(), &appsv1.StatefulSetList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.StatefulSetList, opts ...client.ListOption) error {
-			list.Items = []appsv1.StatefulSet{*getTestStatefulSet("")}
-			return nil
-		})
-	// expect a call to fetch the statefulset
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
-			annotateRestartVersion(statefulset, "")
-			return nil
-		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -1060,20 +979,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to list the statefulset
-	cli.EXPECT().
-		List(gomock.Any(), &appsv1.StatefulSetList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.StatefulSetList, opts ...client.ListOption) error {
-			list.Items = []appsv1.StatefulSet{*getTestStatefulSet("")}
-			return nil
-		})
-	// expect a call to fetch the statefulset
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
-			annotateRestartVersion(statefulset, "")
-			return nil
-		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -1189,20 +1095,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to list the statefulset
-	cli.EXPECT().
-		List(gomock.Any(), &appsv1.StatefulSetList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.StatefulSetList, opts ...client.ListOption) error {
-			list.Items = []appsv1.StatefulSet{*getTestStatefulSet("")}
-			return nil
-		})
-	// expect a call to fetch the statefulset
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
-			annotateRestartVersion(statefulset, "")
-			return nil
-		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -1289,20 +1182,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			assert.Equal(coherenceKind, u.GetKind())
 			return k8serrors.NewBadRequest("An error has occurred")
 		})
-	// expect a call to list the statefulset
-	cli.EXPECT().
-		List(gomock.Any(), &appsv1.StatefulSetList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.StatefulSetList, opts ...client.ListOption) error {
-			list.Items = []appsv1.StatefulSet{*getTestStatefulSet("")}
-			return nil
-		})
-	// expect a call to fetch the statefulset
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
-			annotateRestartVersion(statefulset, "")
-			return nil
-		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -1556,19 +1436,6 @@ func newTrue() *bool {
 	return &b
 }
 
-func getTestStatefulSet(restartVersion string) *appsv1.StatefulSet {
-	statefulSet := &appsv1.StatefulSet{}
-	statefulSet.Name = testStatefulSetName
-	statefulSet.Namespace = namespace
-	annotateRestartVersion(statefulSet, restartVersion)
-	return statefulSet
-}
-
-func annotateRestartVersion(statefulSet *appsv1.StatefulSet, restartVersion string) {
-	statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-	statefulSet.Spec.Template.ObjectMeta.Annotations[appconfig.RestartVersionAnnotation] = restartVersion
-}
-
 func getUnstructuredConfigMapList() *unstructured.UnstructuredList {
 	unstructuredConfigMapList := &unstructured.UnstructuredList{}
 	unstructuredConfigMapList.SetAPIVersion("v1")
@@ -1576,11 +1443,11 @@ func getUnstructuredConfigMapList() *unstructured.UnstructuredList {
 	return unstructuredConfigMapList
 }
 
-// TestReconcileRestart tests reconciling a VerrazzanoCoherenceWorkload when the restart-version specified in the annotations.
-// This should result in restart-version written to the Coherence StatefulSet.
+// TestReconcileRestart tests reconciling a VerrazzanoCoherenceWorkload with the restart-version specified in its annotations.
+// This should result in restart-version annotation written to the Coherence CR.
 // GIVEN a VerrazzanoCoherenceWorkload resource
-// WHEN the controller Reconcile function is called and the restart-version is specified
-// THEN the restart-version written
+// WHEN the controller Reconcile function is called and the restart-version is specified in annotations
+// THEN the restart-version annotation written  to the Coherence CR
 func TestReconcileRestart(t *testing.T) {
 	assert := asserts.New(t)
 
@@ -1670,7 +1537,7 @@ func TestReconcileRestart(t *testing.T) {
 
 			// make sure sidecar.istio.io/inject annotation was added
 			annotations, _, _ := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
-			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false", appconfig.RestartVersionAnnotation: testRestartVersion})
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
@@ -1684,27 +1551,6 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
-			return nil
-		})
-	// expect a call to list the statefulset
-	cli.EXPECT().
-		List(gomock.Any(), &appsv1.StatefulSetList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.StatefulSetList, opts ...client.ListOption) error {
-			list.Items = []appsv1.StatefulSet{*getTestStatefulSet("")}
-			return nil
-		})
-	// expect a call to fetch the statefulset
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
-			annotateRestartVersion(statefulset, "")
-			return nil
-		})
-	// expect a call to update the statefulset
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.StatefulSet{})).
-		DoAndReturn(func(ctx context.Context, statefulset *appsv1.StatefulSet) error {
-			assert.Equal(testRestartVersion, statefulset.Spec.Template.ObjectMeta.Annotations[appconfig.RestartVersionAnnotation])
 			return nil
 		})
 
