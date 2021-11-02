@@ -459,6 +459,15 @@ pipeline {
                         validateProxyImageCount("hello-helidon", PROXY_IMAGES_HELIDON)
                     }
                 }
+                stage("Istioctl verify install") {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                istioctl verify-install
+                            """
+                        }
+                    }
+                }
             }
             post {
                 failure {
