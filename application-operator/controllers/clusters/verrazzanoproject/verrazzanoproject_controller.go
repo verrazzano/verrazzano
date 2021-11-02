@@ -228,7 +228,10 @@ func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace s
 
 	// create role binding for each managed cluster to limit resource access to admin cluster
 	for _, cluster := range vp.Spec.Placement.Clusters {
-		newRoleBindingManagedCluster(namespace, cluster.Name)
+		rb := newRoleBindingManagedCluster(namespace, cluster.Name)
+		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
+			return err
+		}
 	}
 	return nil
 }
