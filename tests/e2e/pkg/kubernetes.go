@@ -8,13 +8,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	"net/http"
 	"os"
 	"strings"
 
 	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
@@ -966,7 +966,7 @@ func GetPersistentVolumes(namespace string) (map[string]*corev1.PersistentVolume
 	return volumeClaims, nil
 }
 
-// DoesVerrazzanoProjectExistInCluster returns whether a namespace with the given name exists in the specified cluster
+// DoesVerrazzanoProjectExistInCluster returns whether a VerrazzanoProject with the given name exists in the specified cluster
 func DoesVerrazzanoProjectExistInCluster(name string, kubeconfigPath string) (bool, error) {
 	// Get the clientset
 	clientset, err := GetVerrazzanoProjectClientsetInCluster(kubeconfigPath)

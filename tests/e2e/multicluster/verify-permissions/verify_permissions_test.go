@@ -271,7 +271,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			Eventually(func() (bool, error) {
 				return pkg.DoesVerrazzanoProjectExistInCluster(vpTest2, managedKubeconfig)
 			}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", vpTest2))
-			// TODO: Expect failure when namespace is no longer placed on the managed cluster
+			// TODO VZ-3971: Expect failure when namespace is no longer placed on the managed cluster
 			Eventually(func() (bool, error) {
 				return findSecret(permissionTest2Namespace, "mysecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
