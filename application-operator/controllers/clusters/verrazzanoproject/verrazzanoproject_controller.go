@@ -6,6 +6,7 @@ package verrazzanoproject
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -33,6 +34,7 @@ const (
 	finalizerName               = "project.verrazzano.io"
 	keyPolicyName               = "policy-name"
 	keyNamespace                = "namespace"
+	managedClusterRole          = "verrazzano-managed-cluster"
 )
 
 // Reconciler reconciles a VerrazzanoProject object
@@ -211,6 +213,7 @@ func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace s
 			return err
 		}
 	}
+
 	// create two role bindings, one for the project monitor role and one for the k8s monitor role
 	if len(monitorSubjects) > 0 {
 		rb := newRoleBinding(namespace, projectMonitorRole, monitorSubjects)
@@ -221,6 +224,11 @@ func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace s
 		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
+	}
+
+	// create role binding for each managed cluster to limit resource access to admin cluster
+	for _, cluster := range vp.Spec.Placement.Clusters {
+		newRoleBindingManagedCluster(namespace, cluster.Name)
 	}
 	return nil
 }
@@ -267,6 +275,28 @@ func newRoleBinding(namespace string, roleName string, subjects []rbacv1.Subject
 			Name:     roleName,
 		},
 		Subjects: subjects,
+	}
+}
+
+// newRoleBinding returns a populated RoleBinding struct for a given managed cluster
+func newRoleBindingManagedCluster(namespace string, name string) *rbacv1.RoleBinding {
+	clusterNameRef := fmt.Sprintf("verrazzano-cluster-%s", name)
+	return &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      clusterNameRef,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     managedClusterRole,
+		},
+		Subjects: []rbacv1.Subject{{
+			Kind:      "ServiceAccount",
+			Name:      clusterNameRef,
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		},
 	}
 }
 
