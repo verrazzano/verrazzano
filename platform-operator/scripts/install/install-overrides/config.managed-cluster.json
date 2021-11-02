@@ -10,6 +10,7 @@
     "kibana": false,
     "elasticSearch": false,
     "prometheus": false,
+    "kiali": false,
     "console": false
   }
 }
