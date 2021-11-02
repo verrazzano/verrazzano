@@ -4,14 +4,21 @@
 package verrazzano
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -125,6 +132,44 @@ func fmtGeneration(gen int64) string {
 	return "generation:" + s
 }
 
+// postUpgrade - global post upgrade function
+// postUpgrade - global post upgrade function
 func postUpgrade(log *zap.SugaredLogger, client clipkg.Client) error {
+	// Perform post upgrade steps for multicluster
+	return postUpgradeMulticluster(log, client)
+}
+
+// postUpgradeMulticluster - perform global post upgrade steps for multicluster
+func postUpgradeMulticluster(log *zap.SugaredLogger, client clipkg.Client) error {
+	var ctx = context.TODO()
+
+	// In v1.1 the use of ClusterRoleBindings to control access for a managed cluster
+	// was changed to use RoleBindings instead.  Delete any ClusterRoleBindings left on
+	// the system for multicluster.
+	vmcClient, err := pkg.GetVerrazzanoManagedClusterClientset()
+	if err != nil {
+		return err
+	}
+	vmcList, err := vmcClient.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	var errorList []string
+	for _, vmc := range vmcList.Items {
+		clusterRoleBinding := rbacv1.ClusterRoleBinding{}
+		err := client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("verrazzano-cluster-%s", vmc.Name)}, &clusterRoleBinding)
+		if err != nil {
+			// Delete the ClusterRoleBinding
+			err = client.Delete(ctx, &clusterRoleBinding)
+			if err != nil {
+				errorList = append(errorList, fmt.Sprintf("failed to delete ClusterRoleBinding %s, error: %s", vmc.Name, err.Error()))
+			} else {
+				log.Info("Deleted ClusterRoleBinding %s", clusterRoleBinding.Name)
+			}
+		}
+	}
+	if len(errorList) > 0 {
+		return errors.New(strings.Join(errorList, "\n"))
+	}
 	return nil
 }
