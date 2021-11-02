@@ -5,21 +5,19 @@ package verrazzano
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"strconv"
 	"strings"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
-
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// The max upgrade failures for a given upgrade attempt is 2
-const failedUpgradeLimit = 2
+// The max upgrade failures for a given upgrade attempt is 5
+const failedUpgradeLimit = 5
 
 // Reconcile upgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
@@ -121,9 +119,5 @@ func fmtGeneration(gen int64) string {
 }
 
 func postUpgrade(log *zap.SugaredLogger, client clipkg.Client) error {
-	err := prometheus.FixupPrometheusDeployment(log, client)
-	if err != nil {
-		return err
-	}
 	return nil
 }

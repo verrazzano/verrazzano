@@ -564,7 +564,7 @@ spec:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
             matchExpressions:
-              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator, kiali]}
+              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator, vmi-system-kiali]}
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
@@ -610,7 +610,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: kiali
+      app: vmi-system-kiali
   policyTypes:
     - Ingress
   ingress:

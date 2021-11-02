@@ -5,6 +5,7 @@ package helm
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -79,6 +80,9 @@ type HelmComponent struct {
 	// SkipUpgrade when true will skip upgrading this component in the upgrade loop
 	// This is for the istio helm components
 	SkipUpgrade bool
+
+	// The minimum required verrazzano version.
+	MinVerrazzanoVersion string
 }
 
 // Verify that HelmComponent implements Component
@@ -135,6 +139,14 @@ func (h HelmComponent) GetDependencies() []string {
 // IsOperatorInstallSupported Returns true if the component supports direct install via the operator
 func (h HelmComponent) IsOperatorInstallSupported() bool {
 	return h.SupportsOperatorInstall
+}
+
+// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by this component
+func (h HelmComponent) GetMinVerrazzanoVersion() string {
+	if len(h.MinVerrazzanoVersion) == 0 {
+		return constants.VerrazzanoVersion1_0_0
+	}
+	return h.MinVerrazzanoVersion
 }
 
 // IsInstalled Indicates whether or not the component is installed
