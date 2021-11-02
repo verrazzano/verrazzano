@@ -4,7 +4,6 @@
     "kibana": true,
     "elasticSearch": true,
     "prometheus": true,
-    "kiali": true,
     "console": true
   }
 }
