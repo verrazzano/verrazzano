@@ -498,6 +498,12 @@ function is_kibana_console_enabled() {
   echo ${kibana_enabled}
 }
 
+# Return whether Kiali console is enabled
+function is_kiali_console_enabled() {
+  local kiali_enabled=$(get_console_enabled 'kiali')
+  echo ${kiali_enabled}
+}
+
 # Return whether Verrazzano console is enabled
 function is_vz_console_enabled() {
   local console_enabled=$(get_console_enabled 'console')
