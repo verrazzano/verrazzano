@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
-
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -38,7 +36,6 @@ import (
 )
 
 const namespace = "unit-test-namespace"
-const restartVersion = "new-restart"
 const weblogicAPIVersion = "weblogic.oracle/v8"
 const weblogicKind = "Domain"
 const weblogicDomain = `
@@ -195,10 +192,6 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 			assert.Equal(specIstioEnabled, false)
 
-			// make sure the restartVersion is empty
-			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
-			assert.Equal("", domainRestartVersion)
-
 			// make sure monitoringExporter exists
 			validateDefaultMonitoringExporter(u, t)
 
@@ -295,10 +288,6 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 			// make sure configuration.istio.enabled is false
 			specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 			assert.Equal(specIstioEnabled, false)
-
-			// make sure the restartVersion is empty
-			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
-			assert.Equal("", domainRestartVersion)
 
 			// make sure monitoringExporter exists
 			validateTestMonitoringExporter(u, t)
@@ -408,10 +397,6 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			containers, _, _ := unstructured.NestedSlice(u.Object, specServerPodContainersFields...)
 			assert.Equal(1, len(containers))
 			assert.Equal(fluentdImage, containers[0].(map[string]interface{})["image"])
-
-			// make sure the restartVersion is empty
-			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
-			assert.Equal("", domainRestartVersion)
 
 			// make sure monitoringExporter exists
 			validateDefaultMonitoringExporter(u, t)
@@ -592,10 +577,6 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 			specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 			assert.Equal(specIstioEnabled, false)
 
-			// make sure the restartVersion is empty
-			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
-			assert.Equal("", domainRestartVersion)
-
 			// make sure monitoringExporter exists
 			validateDefaultMonitoringExporter(u, t)
 
@@ -741,10 +722,6 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 			specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 			assert.Equal(specIstioEnabled, false)
 
-			// make sure the restartVersion is empty
-			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
-			assert.Equal("", domainRestartVersion)
-
 			// make sure monitoringExporter exists
 			validateDefaultMonitoringExporter(u, t)
 
@@ -865,11 +842,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			containers, _, _ := unstructured.NestedSlice(u.Object, specServerPodContainersFields...)
 			assert.Equal(1, len(containers))
 			assert.Equal(fluentdImage, containers[0].(map[string]interface{})["image"])
-
-			// make sure the restartVersion is empty
-			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
-			assert.Equal("", domainRestartVersion)
-
 			return nil
 		})
 
@@ -1068,11 +1040,6 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
-
-			// make sure the restartVersion is empty
-			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
-			assert.Equal("", domainRestartVersion)
-
 			return k8serrors.NewBadRequest("an error has occurred")
 		})
 
@@ -1511,121 +1478,4 @@ func TestGetWLSLogPath(t *testing.T) {
 	assert := asserts.New(t)
 	logPath := getWLSLogPath("test-domain")
 	assert.Equal("/scratch/logs/test-domain/$(SERVER_NAME).log,/scratch/logs/test-domain/$(SERVER_NAME)_access.log,/scratch/logs/test-domain/$(SERVER_NAME)_nodemanager.log,/scratch/logs/test-domain/$(DOMAIN_UID).log", logPath)
-}
-
-// TestReconcileRestart tests reconciling a VerrazzanoWebLogicWorkload when the WebLogic
-// domain CR already exists and the restart-version specified in the annotations.
-// This should result in restartVersion written to the WLS domain .
-// GIVEN a VerrazzanoWebLogicWorkload resource
-// WHEN the controller Reconcile function is called and the WebLogic domain CR already exists and the restart-version is specified
-// THEN the WLS domain has restartVersion
-func TestReconcileRestart(t *testing.T) {
-	assert := asserts.New(t)
-
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
-
-	appConfigName := "unit-test-app-config"
-	componentName := "unit-test-component"
-	fluentdImage := "unit-test-image:latest"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
-		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
-	annotations := map[string]string{appconfig.RestartVersionAnnotation: restartVersion}
-
-	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := logging.DefaultFluentdImage
-	logging.DefaultFluentdImage = fluentdImage
-	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
-
-	// expect call to fetch existing WebLogic Domain
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
-			// return nil error to simulate domain existing
-			return nil
-		})
-	// expect a call to fetch the VerrazzanoWebLogicWorkload
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
-			workload.ObjectMeta.Labels = labels
-			workload.ObjectMeta.Annotations = annotations
-			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
-			workload.Namespace = namespace
-			return nil
-		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
-			// return no resources
-			return nil
-		})
-	// no config maps found, so expect a call to create a config map with our parsing rules
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
-			return nil
-		})
-	// expect a call to get the namespace for the domain
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
-			return nil
-		})
-	// expect a call to attempt to get the Coherence CR
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
-			// set the old Fluentd image on the returned obj
-			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
-			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
-			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
-			// return nil error because Coherence StatefulSet exists
-			return nil
-		})
-	// expect a call to get the application configuration for the workload
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
-			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
-			return nil
-		})
-	// expect a call to create the WebLogic domain CR
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
-
-			// make sure the OAM component and app name labels were copied and the WebLogic type lobel applied
-			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
-			assert.Equal(3, len(specLabels))
-			assert.Equal("unit-test-component", specLabels["app.oam.dev/component"])
-			assert.Equal("unit-test-app-config", specLabels["app.oam.dev/name"])
-			assert.Equal(constants.WorkloadTypeWeblogic, specLabels[constants.LabelWorkloadType])
-
-			// make sure the FLUENTD sidecar was added
-			containers, _, _ := unstructured.NestedSlice(u.Object, specServerPodContainersFields...)
-			assert.Equal(1, len(containers))
-			assert.Equal(fluentdImage, containers[0].(map[string]interface{})["image"])
-
-			// make sure the restartVersion was added to the domain
-			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
-			assert.Equal(restartVersion, domainRestartVersion)
-
-			return nil
-		})
-
-	// create a request and reconcile it
-	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
-	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
-
-	mocker.Finish()
-	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
 }
