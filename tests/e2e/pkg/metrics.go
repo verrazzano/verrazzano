@@ -89,6 +89,7 @@ func GetClusterNameMetricLabel() (string, error) {
 	}
 	return "verrazzano_cluster", nil
 }
+
 // JTq queries JSON text with a JSON path
 func JTq(jtext string, path ...string) interface{} {
 	var j map[string]interface{}

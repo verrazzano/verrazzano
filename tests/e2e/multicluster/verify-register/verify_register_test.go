@@ -34,6 +34,7 @@ const verrazzanoSystemNamespace = "verrazzano-system"
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var vmiEsIngressURL = getVmiEsIngressURL()
 var externalEsURL = pkg.GetExternalElasticSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
+
 // ignore error getting the metric label - we'll just use the default value returned
 var clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
 
