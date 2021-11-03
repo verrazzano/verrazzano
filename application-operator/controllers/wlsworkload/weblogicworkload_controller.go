@@ -794,9 +794,8 @@ func (r *Reconciler) restartDomain(ctx context.Context, weblogic *unstructured.U
 	if len(restartVersion) > 0 {
 		if r.isDomainForHardRestart(ctx, domainName, appName, domainNamespace, log) {
 			return r.hardRestartDomain(ctx, domainName, appName, domainNamespace, log)
-		} else {
-			return r.rollingRestartDomain(weblogic, restartVersion, domainName, domainNamespace, log)
 		}
+		return r.rollingRestartDomain(weblogic, restartVersion, domainName, domainNamespace, log)
 	}
 	return nil
 }
