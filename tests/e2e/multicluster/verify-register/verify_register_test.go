@@ -68,19 +68,20 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoManagedCluster")
 		})
 
-		It("admin cluster has the expected ServiceAccounts and ClusterRoleBindings", func() {
+		It("admin cluster has the expected ServiceAccounts and RoleBindings", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() (bool, error) {
 						return pkg.DoesServiceAccountExist(multiclusterNamespace, fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find ServiceAccount")
 				},
-				func() {
-					Eventually(func() (bool, error) {
-						return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
-					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find ClusterRoleBinding")
-				},
 			)
+		})
+
+		It("admin cluster no longer has a ClusterRoleBinding for a managed cluster", func() {
+			Eventually(func() (bool, error) {
+				return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
+			}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected not to find ClusterRoleBinding")
 		})
 
 		It("admin cluster has the expected secrets", func() {
