@@ -1601,7 +1601,7 @@ func TestReconcileRollingRestart(t *testing.T) {
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
 							{
-								Name:  "istio-proxy",
+								Name:  istioProxyContainerName,
 								Image: "image-not-for-restart",
 							},
 						},
@@ -1735,7 +1735,7 @@ func TestReconcileHardRestart(t *testing.T) {
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
 							{
-								Name:  "istio-proxy",
+								Name:  istioProxyContainerName,
 								Image: istioProxyImageForHardRestart,
 							},
 						},

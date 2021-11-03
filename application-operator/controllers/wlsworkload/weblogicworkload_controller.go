@@ -51,7 +51,8 @@ const (
 	loggingMountPath                = "/fluentd/etc/custom.conf"
 	loggingKey                      = "custom.conf"
 	defaultMode               int32 = 400
-	// TODO change to 1.7.3 when test is done
+	istioProxyContainerName         = "istio-proxy"
+	// TODO change to ghcr.io/verrazzano/proxyv2:1.7.3 when test is done
 	istioProxyImageForHardRestart = "ghcr.io/verrazzano/proxyv2:1.10.2"
 )
 
@@ -798,13 +799,12 @@ func (r *Reconciler) restartDomain(ctx context.Context, existingDomain *wls.Doma
 				return err
 			}
 		}
-		return r.rollingRestartDomain(weblogic, restartVersion, domainName, domainNamespace, log)
+		return r.addDomainRestartVersion(weblogic, restartVersion, domainName, domainNamespace, log)
 	}
 	return nil
 }
 
 func (r *Reconciler) getPodListForDomain(ctx context.Context, domainName, appName, domainNamespace string, log logr.Logger) (*corev1.PodList, error) {
-	log.Info(fmt.Sprintf("----getPodListForDomain %s in namespace %s", domainName, domainNamespace))
 	componentNameReq, _ := labels.NewRequirement(oam.LabelAppComponent, selection.Equals, []string{domainName})
 	appNameReq, _ := labels.NewRequirement(oam.LabelAppName, selection.Equals, []string{appName})
 	selector := labels.NewSelector()
@@ -823,7 +823,7 @@ func (r *Reconciler) isDomainForHardRestart(ctx context.Context, domainName, app
 	}
 	for _, pod := range podList.Items {
 		for _, container := range pod.Spec.Containers {
-			if container.Name == "istio-proxy" && container.Image == istioProxyImageForHardRestart {
+			if container.Name == istioProxyContainerName && container.Image == istioProxyImageForHardRestart {
 				return true
 			}
 		}
@@ -854,7 +854,7 @@ func (r *Reconciler) hardRestartDomain(ctx context.Context, existingDomain *wls.
 
 	// set serverStartPolicy back to previousServerStartPolicy
 	existingDomain.Spec.ServerStartPolicy = previousServerStartPolicy
-	log.Info(fmt.Sprintf("Set serverStartPolicy to %s in the Weblogic domain %s in namespace %s serverStartPolicy", previousServerStartPolicy, domainName, domainNamespace))
+	log.Info(fmt.Sprintf("Set serverStartPolicy from NEVER to %s in the Weblogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
 	return r.Client.Update(context.TODO(), existingDomain)
 }
 
@@ -869,8 +869,8 @@ func (r *Reconciler) waitForDomainDeletion(ctx context.Context, domainName strin
 		allDeleted := true
 		for _, pod := range podList.Items {
 			time.Sleep(1 * time.Second)
-			log.Info(fmt.Sprintf("----DeletionTimestamp for %s is %s", pod.Name, pod.ObjectMeta.DeletionTimestamp))
 			if pod.ObjectMeta.DeletionTimestamp.IsZero() {
+				log.Info(fmt.Sprintf("DeletionTimestamp for pod %s is %s", pod.Name, pod.ObjectMeta.DeletionTimestamp))
 				allDeleted = false
 			}
 		}
@@ -880,7 +880,7 @@ func (r *Reconciler) waitForDomainDeletion(ctx context.Context, domainName strin
 	}
 }
 
-func (r *Reconciler) rollingRestartDomain(weblogic *unstructured.Unstructured, restartVersion string, domainName, domainNamespace string, log logr.Logger) error {
+func (r *Reconciler) addDomainRestartVersion(weblogic *unstructured.Unstructured, restartVersion string, domainName, domainNamespace string, log logr.Logger) error {
 	log.Info(fmt.Sprintf("Set restartVersion to %s in the Weblogic domain %s in namespace %s", restartVersion, domainName, domainNamespace))
 	return unstructured.SetNestedField(weblogic.Object, restartVersion, specRestartVersionFields...)
 }
