@@ -153,7 +153,7 @@ func postUpgradeMulticluster(log *zap.SugaredLogger, client clipkg.Client) error
 	for _, vmc := range vmcList.Items {
 		clusterRoleBinding := rbacv1.ClusterRoleBinding{}
 		err := client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("verrazzano-cluster-%s", vmc.Name)}, &clusterRoleBinding)
-		if err != nil {
+		if err == nil {
 			// Delete the ClusterRoleBinding
 			err = client.Delete(ctx, &clusterRoleBinding)
 			if err != nil {

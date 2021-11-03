@@ -25,6 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -710,6 +711,133 @@ func TestUpgradeCompleted(t *testing.T) {
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, vmcList *vmcv1alpha1.VerrazzanoManagedClusterList) error {
 			vmcList.Items = []vmcv1alpha1.VerrazzanoManagedCluster{}
+			return nil
+		})
+
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
+			asserts.Equal(vzapi.UpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
+			return nil
+		})
+
+	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return []byte(""), []byte(""), nil
+	})
+	defer istiocomp.SetDefaultIstioUpgradeFunction()
+	istiocomp.SetRestartComponentsFunction(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
+		return nil
+	})
+	defer istiocomp.SetDefaultRestartComponentsFunction()
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestUpgradeCompletedWithVMC tests the reconcileUpgrade method for the following use case
+// GIVEN a request to reconcile an verrazzano resource after install is completed
+// WHEN spec.version doesn't match status.version and a VMC resource exists
+// THEN ensure a condition with type UpgradeCompleted is added and deprecated ClusterRoleBinding is deleted
+func TestUpgradeCompletedWithVMC(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+	vmcName := "managed1"
+	crbName := fmt.Sprintf("verrazzano-cluster-%s", vmcName)
+	var verrazzanoToUse vzapi.Verrazzano
+
+	fname, _ := filepath.Abs(unitTestBomFile)
+	config.SetDefaultBomFilePath(fname)
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
+	// Expect a call to get the verrazzano resource.  Return resource with version
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+			verrazzano.TypeMeta = metav1.TypeMeta{
+				APIVersion: "install.verrazzano.io/v1alpha1",
+				Kind:       "Verrazzano"}
+			verrazzano.ObjectMeta = metav1.ObjectMeta{
+				Namespace:  name.Namespace,
+				Name:       name.Name,
+				Finalizers: []string{finalizerName}}
+			verrazzano.Spec = vzapi.VerrazzanoSpec{
+				Version: "0.2.0"}
+			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State:      vzapi.Ready,
+				Components: makeVerrazzanoComponentStatusMap(),
+				Conditions: []vzapi.Condition{
+					{
+						Type: vzapi.InstallComplete,
+					},
+					{
+						Type: vzapi.UpgradeStarted,
+					},
+				},
+			}
+			return nil
+		})
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to list the VMC resources - return a list one
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, vmcList *vmcv1alpha1.VerrazzanoManagedClusterList) error {
+			vmcList.Items = []vmcv1alpha1.VerrazzanoManagedCluster{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      vmcName,
+						Namespace: constants.VerrazzanoMultiClusterNamespace,
+					},
+				},
+			}
+			return nil
+		})
+
+	// Expect a call to get a ClusterRoleBinding - return one
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: crbName}, &rbacv1.ClusterRoleBinding{}).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, crb *rbacv1.ClusterRoleBinding) error {
+			crb.Name = crbName
+			return nil
+		})
+
+	// Expect a call to delete the ClusterRoleBinding
+	mock.EXPECT().
+		Delete(gomock.Any(), &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: crbName}}).
+		DoAndReturn(func(ctx context.Context, binding *rbacv1.ClusterRoleBinding) error {
 			return nil
 		})
 
