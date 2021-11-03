@@ -7,8 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -16,7 +14,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	istiocomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -704,6 +705,14 @@ func TestUpgradeCompleted(t *testing.T) {
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
+	// Expect a call to list the VMC resources
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, vmcList *vmcv1alpha1.VerrazzanoManagedClusterList) error {
+			vmcList.Items = []vmcv1alpha1.VerrazzanoManagedCluster{}
+			return nil
+		})
+
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
@@ -807,6 +816,14 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to list the VMC resources
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, vmcList *vmcv1alpha1.VerrazzanoManagedClusterList) error {
+			vmcList.Items = []vmcv1alpha1.VerrazzanoManagedCluster{}
+			return nil
+		})
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().

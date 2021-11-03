@@ -10,14 +10,12 @@ import (
 	"strconv"
 	"strings"
 
+	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -146,11 +144,8 @@ func postUpgradeMulticluster(log *zap.SugaredLogger, client clipkg.Client) error
 	// In v1.1 the use of ClusterRoleBindings to control access for a managed cluster
 	// was changed to use RoleBindings instead.  Delete any ClusterRoleBindings left on
 	// the system for multicluster.
-	vmcClient, err := pkg.GetVerrazzanoManagedClusterClientset()
-	if err != nil {
-		return err
-	}
-	vmcList, err := vmcClient.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(ctx, metav1.ListOptions{})
+	vmcList := vmcv1alpha1.VerrazzanoManagedClusterList{}
+	err := client.List(ctx, &vmcList)
 	if err != nil {
 		return err
 	}
