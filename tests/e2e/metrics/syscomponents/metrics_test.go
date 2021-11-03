@@ -50,6 +50,7 @@ const (
 
 var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
+
 // ignore error getting the metric label - we'll just use the default value returned
 var clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
 
