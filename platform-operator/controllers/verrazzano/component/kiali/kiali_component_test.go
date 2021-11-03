@@ -116,7 +116,7 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 //  WHEN The Kiali component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.False(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &vzapi.Verrazzano{}, false)))
+	assert.True(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &vzapi.Verrazzano{}, false)))
 }
 
 // TestIsEnabledNilKiali tests the IsEnabled function
@@ -126,7 +126,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilKiali(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
-	assert.False(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+	assert.True(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -136,6 +136,26 @@ func TestIsEnabledNilKiali(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = nil
+	assert.True(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+}
+
+// TestIsEnabledExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Kiali component is explicitly enabled
+//  THEN true is returned
+func TestIsEnabledExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Kiali.Enabled = getBoolPtr(true)
+	assert.True(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+}
+
+// TestIsDisableExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Kiali component is explicitly disabled
+//  THEN false is returned
+func TestIsDisableExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Kiali.Enabled = getBoolPtr(false)
 	assert.False(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
 }
 

@@ -61,7 +61,7 @@ func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string)
 	}
 	Log(Info, fmt.Sprintf("Found resource: %s", found))
 
-	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
@@ -174,7 +174,7 @@ func DeleteResourceFromFileInCluster(file string, kubeconfigPath string) error {
 // deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
 // This is intended to be equivalent to `kubectl delete`
 func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
-	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
@@ -232,7 +232,7 @@ func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace s
 		}
 	}
 
-	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}

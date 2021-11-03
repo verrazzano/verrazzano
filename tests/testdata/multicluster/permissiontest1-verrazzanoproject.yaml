@@ -1,15 +1,17 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: clusters.verrazzano.io/v1alpha1
-kind: MultiClusterSecret
+kind: VerrazzanoProject
 metadata:
-  name: mymcsecret
-  namespace: anothermulticlustertest
+  name: permissions-test1
+  namespace: verrazzano-mc
 spec:
   template:
-    data:
-      username: dmVxcmF6emFubw==
-  spec:
+    namespaces:
+    - metadata:
+        name: multiclustertest
+    - metadata:
+        name: permissions-test1-ns
   placement:
     clusters:
       - name: managed1
