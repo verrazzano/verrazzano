@@ -21,6 +21,7 @@ import (
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -169,6 +170,7 @@ var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts"
 var specConfigurationIstioEnabledFields = []string{specField, "configuration", "istio", "enabled"}
 var specConfigurationRuntimeEncryptionSecret = []string{specField, "configuration", "model", "runtimeEncryptionSecret"}
 var specMonitoringExporterFields = []string{specField, "monitoringExporter"}
+var specRestartVersionFields = []string{specField, "restartVersion"}
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -291,6 +293,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+	}
+
+	// write out restartVersion in Weblogic domain
+	if err = r.addDomainRestartVersion(u, workload.Annotations[appconfig.RestartVersionAnnotation], u.GetName(), workload.Namespace, log); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// make a copy of the WebLogic spec since u.Object will get overwritten in CreateOrUpdate
@@ -775,4 +782,9 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	}
 
 	return nil
+}
+
+func (r *Reconciler) addDomainRestartVersion(weblogic *unstructured.Unstructured, restartVersion string, domainName, domainNamespace string, log logr.Logger) error {
+	log.Info(fmt.Sprintf("The Weblogic domain %s/%s restart version is set to %s", domainNamespace, domainName, restartVersion))
+	return unstructured.SetNestedField(weblogic.Object, restartVersion, specRestartVersionFields...)
 }

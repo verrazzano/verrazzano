@@ -263,6 +263,24 @@ func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.Sug
 func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
 	ctx := context.TODO()
 
+	// Determine if the user specified to retry upgrade
+	retry, err := r.retryUpgrade(ctx, vz)
+	if err != nil {
+		log.Errorf("Failed to update the annotations: %v", err)
+		return newRequeueWithDelay(), err
+	}
+
+	if retry {
+		// Log the retry and set the StateType to ready, then requeue
+		log.Info("Restart Version annotation has changed, retrying upgrade")
+		err = r.updateState(log, vz, installv1alpha1.Ready)
+		if err != nil {
+			log.Errorf("Failed to update the state to ready: %v", err)
+			return newRequeueWithDelay(), err
+		}
+		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+	}
+
 	// Update uninstall status
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.procDelete(ctx, log, vz)
@@ -554,12 +572,7 @@ func (r *Reconciler) deleteNamespace(ctx context.Context, log *zap.SugaredLogger
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
-		For(&installv1alpha1.Verrazzano{}).
-		// The GenerateChangedPredicate will skip update events that have no change in the object's metadata.generation
-		// field.  Any updates to the status or metadata do not cause the metadata.generation to be changed and
-		// therefore the reconciler will not be called.
-		WithEventFilter(predicate.GenerationChangedPredicate{}).
-		Build(r)
+		For(&installv1alpha1.Verrazzano{}).Build(r)
 	return err
 }
 
@@ -1157,6 +1170,26 @@ func commonPath(a, b string) string {
 // Get the install namespace where this controller is running.
 func getInstallNamespace() string {
 	return vzconst.VerrazzanoInstallNamespace
+}
+
+func (r *Reconciler) retryUpgrade(ctx context.Context, vz *installv1alpha1.Verrazzano) (bool, error) {
+	// get the user-specified restart version - if it's missing then there's nothing to do here
+	restartVersion, ok := vz.Annotations[vzconst.UpgradeRetryVersion]
+	if !ok {
+		return false, nil
+	}
+
+	// get the annotation with the previous restart version - if it's missing or the versions do not
+	// match, then return true
+	prevRestartVersion, ok := vz.Annotations[vzconst.ObservedUpgradeRetryVersion]
+	if !ok || restartVersion != prevRestartVersion {
+
+		// add/update the previous restart version annotation to the CR
+		vz.Annotations[vzconst.ObservedUpgradeRetryVersion] = restartVersion
+		err := r.Client.Update(ctx, vz)
+		return true, err
+	}
+	return false, nil
 }
 
 // Process the Verrazzano resource deletion
