@@ -84,7 +84,7 @@ var _ = Describe("Kiali", func() {
 				Expect(kialiErr).ToNot(HaveOccurred())
 				rules := ingress.Spec.Rules
 				Expect(len(rules)).To(Equal(1))
-				Expect(rules[0].Host).To(ContainSubstring("kiali.vmi.system.default"))
+				Expect(rules[0].Host).To(ContainSubstring("kiali.vmi.system"))
 				kialiHost = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 				Eventually(func() (*pkg.UsernamePassword, error) {
 					creds, ingError = pkg.GetSystemVMICredentials()
