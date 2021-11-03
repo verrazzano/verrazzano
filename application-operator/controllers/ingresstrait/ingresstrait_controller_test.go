@@ -1364,6 +1364,118 @@ func TestBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 	assert.Equal("myapp.myns.5.6.7.8.nip.io", domainName)
 }
 
+// TestBuildAppHostNameExternalLoadBalancerNIP tests building a hostname for the application
+// GIVEN an appName and a trait
+// WHEN the ingress domain is nip.io and an external LoadBalancer is used
+// THEN ensure that the correct DNS name is built
+func TestBuildAppHostNameExternalLoadBalancerNIP(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ns := "myns"
+	trait := vzapi.IngressTrait{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "oam.verrazzano.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+		},
+	}
+	// Expect a call to get the verrazzano ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Annotations: map[string]string{
+					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
+					"verrazzano.io/dns.wildcard.domain":       "nip.io",
+				},
+			}
+			return nil
+		})
+
+	// Expect a call to get the Istio service
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
+			service.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1"}
+			service.Spec.Type = "LoadBalancer"
+			service.Spec.ExternalIPs = []string{"5.6.7.8"}
+			return nil
+		})
+
+	// Build the host name
+	domainName, err := buildAppFullyQualifiedHostName(mock, &trait)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal("myapp.myns.5.6.7.8.nip.io", domainName)
+}
+
+// TestBuildAppHostNameExternalLoadBalancerNIPNotFound tests building a hostname for the application
+// GIVEN an appName and a trait
+// WHEN the ingress domain is nip.io and an external LoadBalancer is used, but no IP is found
+// THEN ensure that an error is returned
+func TestBuildAppHostNameExternalLoadBalancerNIPNotFound(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ns := "myns"
+	trait := vzapi.IngressTrait{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "oam.verrazzano.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+		},
+	}
+	// Expect a call to get the verrazzano ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Annotations: map[string]string{
+					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
+					"verrazzano.io/dns.wildcard.domain":       "nip.io",
+				},
+			}
+			return nil
+		})
+
+	// Expect a call to get the Istio service
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
+			service.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1"}
+			service.Spec.Type = "LoadBalancer"
+			return nil
+		})
+
+	// Build the host name
+	_, err := buildAppFullyQualifiedHostName(mock, &trait)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Error(err)
+}
+
 // TestFailureBuildAppHostNameLoadBalancerNIP tests a failure when building a hostname for the application
 // GIVEN an appName and a trait
 // WHEN the ingress domain is nip.io and LoadBalancer is used, but an error occurs

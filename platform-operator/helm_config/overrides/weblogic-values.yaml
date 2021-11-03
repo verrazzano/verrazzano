@@ -6,3 +6,6 @@
 
 annotations:
     traffic.sidecar.istio.io/excludeOutboundPorts: "443"
+
+# set the default for pre-1.10 behavior
+istioLocalhostBindingsEnabled: true
