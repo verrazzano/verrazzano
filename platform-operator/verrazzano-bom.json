@@ -364,7 +364,7 @@
           "images": [
             {
               "image": "mysql",
-              "tag": "8.0.27-1",
+              "tag": "8.0.26",
               "helmFullImageKey": "image",
               "helmTagKey": "imageTag"
             }
