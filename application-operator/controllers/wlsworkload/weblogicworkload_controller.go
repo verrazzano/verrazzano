@@ -51,6 +51,8 @@ const (
 	loggingMountPath                = "/fluentd/etc/custom.conf"
 	loggingKey                      = "custom.conf"
 	defaultMode               int32 = 400
+	// TODO change to 1.7.3 when test is done
+	istioProxyImageForHardRestart = "ghcr.io/verrazzano/proxyv2:1.10.2"
 )
 
 const defaultMonitoringExporterData = `
@@ -810,9 +812,6 @@ func (r *Reconciler) getPodListForDomain(ctx context.Context, domainName, appNam
 	return &podList, err
 }
 
-// TODO change to 1.7.3 when test is done
-const ISTIO_IMAGE_FOR_HARD_RESTART = "ghcr.io/verrazzano/proxyv2:1.10.2"
-
 // isDomainForHardRestart determines hard restart or rolling restart based on istio-proxy side car image version
 func (r *Reconciler) isDomainForHardRestart(ctx context.Context, domainName, appName, domainNamespace string, log logr.Logger) bool {
 	podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace, log)
@@ -822,7 +821,7 @@ func (r *Reconciler) isDomainForHardRestart(ctx context.Context, domainName, app
 	}
 	for _, pod := range podList.Items {
 		for _, container := range pod.Spec.Containers {
-			if container.Name == "istio-proxy" && container.Image == ISTIO_IMAGE_FOR_HARD_RESTART {
+			if container.Name == "istio-proxy" && container.Image == istioProxyImageForHardRestart {
 				return true
 			}
 		}
@@ -841,15 +840,21 @@ func (r *Reconciler) hardRestartDomain(ctx context.Context, domainName, appName,
 		return err
 	}
 
-	// set serverStartPolicy to NEVER
+	// get previousServerStartPolicy
 	previousServerStartPolicy := domain.Spec.ServerStartPolicy
+	if previousServerStartPolicy == "NEVER" {
+		log.Info(fmt.Sprintf("serverStartPolicy is already set as NEVER in the Weblogic domain %s in namespace %s", domainName, domainNamespace))
+		return nil
+	}
+
+	// set serverStartPolicy to NEVER
 	domain.Spec.ServerStartPolicy = "NEVER"
 	log.Info(fmt.Sprintf("Set serverStartPolicy from %s to NEVER in the Weblogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
 	if err := r.Client.Update(context.TODO(), &domain); err != nil {
 		return err
 	}
 
-	// TODO wait for .metadata.deletionTimestamp in all pods, needs timeout
+	// wait for .metadata.deletionTimestamp in all pods.  TODO needs timeout
 	for {
 		podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace, log)
 		if err != nil {
@@ -872,11 +877,7 @@ func (r *Reconciler) hardRestartDomain(ctx context.Context, domainName, appName,
 	// set serverStartPolicy back to previousServerStartPolicy
 	domain.Spec.ServerStartPolicy = previousServerStartPolicy
 	log.Info(fmt.Sprintf("Set serverStartPolicy to %s in the Weblogic domain %s in namespace %s serverStartPolicy", previousServerStartPolicy, domainName, domainNamespace))
-	if err := r.Client.Update(context.TODO(), &domain); err != nil {
-		return err
-	}
-
-	return nil
+	return r.Client.Update(context.TODO(), &domain)
 }
 
 func (r *Reconciler) rollingRestartDomain(weblogic *unstructured.Unstructured, restartVersion string, domainName, domainNamespace string, log logr.Logger) error {
