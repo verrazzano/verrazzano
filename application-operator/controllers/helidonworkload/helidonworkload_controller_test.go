@@ -275,20 +275,6 @@ func TestReconcileCreateHelidon(t *testing.T) {
 			assert.Equal(serviceKind, service.Kind)
 			return nil
 		})
-	// expect a call to list the deployment
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
-			list.Items = []appsv1.Deployment{*getTestDeployment("")}
-			return nil
-		})
-	// expect a call to fetch the deployment
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
-			annotateRestartVersion(deployment, "")
-			return nil
-		})
 	// expect a call to status update
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
@@ -420,20 +406,6 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 			assert.Equal(service.Spec.Ports[1].Protocol, helidonTestContainer2.Ports[0].Protocol)
 			return nil
 		})
-	// expect a call to list the deployment
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
-			list.Items = []appsv1.Deployment{*getTestDeployment("")}
-			return nil
-		})
-	// expect a call to fetch the deployment
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
-			annotateRestartVersion(deployment, "")
-			return nil
-		})
 	// expect a call to status update
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
@@ -544,20 +516,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
-			return nil
-		})
-	// expect a call to list the deployment
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
-			list.Items = []appsv1.Deployment{*getTestDeployment("")}
-			return nil
-		})
-	// expect a call to fetch the deployment
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
-			annotateRestartVersion(deployment, "")
 			return nil
 		})
 	// expect a call to status update
@@ -688,20 +646,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 			assert.Equal(serviceKind, service.Kind)
 			return nil
 		})
-	// expect a call to list the deployment
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
-			list.Items = []appsv1.Deployment{*getTestDeployment("")}
-			return nil
-		})
-	// expect a call to fetch the deployment
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
-			annotateRestartVersion(deployment, "")
-			return nil
-		})
 	// expect a call to status update
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
@@ -822,20 +766,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
-			return nil
-		})
-	// expect a call to list the deployment
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
-			list.Items = []appsv1.Deployment{*getTestDeployment("")}
-			return nil
-		})
-	// expect a call to fetch the deployment
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
-			annotateRestartVersion(deployment, "")
 			return nil
 		})
 	// expect a call to status update
@@ -961,20 +891,6 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
-			return nil
-		})
-	// expect a call to list the deployment
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *appsv1.DeploymentList, opts ...client.ListOption) error {
-			list.Items = []appsv1.Deployment{*getTestDeployment("")}
-			return nil
-		})
-	// expect a call to fetch the deployment
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
-			annotateRestartVersion(deployment, "")
 			return nil
 		})
 	// expect a call to status update
