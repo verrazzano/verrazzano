@@ -283,7 +283,7 @@ func newRoleBinding(namespace string, roleName string, subjects []rbacv1.Subject
 
 // newRoleBinding returns a populated RoleBinding struct for a given managed cluster
 func newRoleBindingManagedCluster(namespace string, name string) *rbacv1.RoleBinding {
-	clusterNameRef := fmt.Sprintf("verrazzano-cluster-%s", name)
+	clusterNameRef := generateRoleBindingManagedClusterRef(name)
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -301,6 +301,9 @@ func newRoleBindingManagedCluster(namespace string, name string) *rbacv1.RoleBin
 		},
 		},
 	}
+}
+func generateRoleBindingManagedClusterRef(name string) string {
+	return fmt.Sprintf("verrazzano-cluster-%s", name)
 }
 
 // getDefaultRoleBindingSubjects returns the default binding subjects for project admin/monitor roles
