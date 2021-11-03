@@ -34,6 +34,8 @@ const verrazzanoSystemNamespace = "verrazzano-system"
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var vmiEsIngressURL = getVmiEsIngressURL()
 var externalEsURL = pkg.GetExternalElasticSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
+// ignore error getting the metric label - we'll just use the default value returned
+var clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
 
 var _ = Describe("Multi Cluster Verify Register", func() {
 	Context("Admin Cluster", func() {
@@ -157,7 +159,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 
 		It("admin cluster has the expected metrics from managed cluster", func() {
 			Eventually(func() bool {
-				return pkg.MetricsExist("up", "verrazzano_cluster", managedClusterName)
+				return pkg.MetricsExist("up", clusterNameMetricsLabel, managedClusterName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a metrics from managed cluster")
 		})
 

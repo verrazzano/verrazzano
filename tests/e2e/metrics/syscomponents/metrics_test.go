@@ -35,7 +35,6 @@ const (
 	keycloakNamespace         = "keycloak"
 
 	// Constants for various metric labels, used in the validation
-	labelVzCluster      = "verrazzano_cluster"
 	nodeExporter        = "node-exporter"
 	istiod              = "istiod"
 	prometheus          = "prometheus"
@@ -51,6 +50,8 @@ const (
 
 var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
+// ignore error getting the metric label - we'll just use the default value returned
+var clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
 
 var adminKubeConfig string
 var isManagedClusterProfile bool
@@ -162,7 +163,7 @@ var _ = Describe("Prometheus Metrics", func() {
 
 // Validate the Istio envoy stats for the pods in the namespaces defined in envoyStatsNamespaces
 func verifyEnvoyStats(metricName string) bool {
-	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, labelVzCluster, getClusterNameForPromQuery())
+	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, clusterNameMetricsLabel, getClusterNameForPromQuery())
 	if err != nil {
 		return false
 	}
@@ -211,13 +212,13 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 			if isManagedClusterProfile {
 				// when the admin cluster scrapes the metrics from a managed cluster, as label verrazzano_cluster with value
 				// name of the managed cluster is added to the metrics
-				if pkg.Jq(metric, "metric", labelVzCluster) == clusterName {
+				if pkg.Jq(metric, "metric", clusterNameMetricsLabel) == clusterName {
 					return true
 				}
 			} else {
 				// the metrics for the admin cluster or in the single cluster installation should contain the label
 				// verrazzano_cluster with the value "local"
-				if pkg.Jq(metric, "metric", labelVzCluster) == "local" {
+				if pkg.Jq(metric, "metric", clusterNameMetricsLabel) == "local" {
 					return true
 				}
 			}
@@ -228,7 +229,7 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 
 // Validate the metrics contain the labels with values specified as key-value pairs of the map
 func metricsContainLabels(metricName string, kv map[string]string) bool {
-	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, labelVzCluster, getClusterNameForPromQuery())
+	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, clusterNameMetricsLabel, getClusterNameForPromQuery())
 	if err != nil {
 		return false
 	}
@@ -244,19 +245,19 @@ func metricsContainLabels(metricName string, kv map[string]string) bool {
 
 		if metricFound {
 			// the verrazzano_cluster label should be found on all clusters
-			if pkg.Jq(metric, "metric", labelVzCluster) == nil {
+			if pkg.Jq(metric, "metric", clusterNameMetricsLabel) == nil {
 				return false
 			}
 			if isManagedClusterProfile {
 				// when the admin cluster scrapes the metrics from a managed cluster, as label verrazzano_cluster with value
 				// name of the managed cluster is added to the metrics
-				if pkg.Jq(metric, "metric", labelVzCluster) == clusterName {
+				if pkg.Jq(metric, "metric", clusterNameMetricsLabel) == clusterName {
 					return true
 				}
 			} else {
 				// the metrics for the admin cluster or in the single cluster installation should contain the label
 				// verrazzano_cluster with the local cluster as its value
-				if pkg.Jq(metric, "metric", labelVzCluster) == "local" {
+				if pkg.Jq(metric, "metric", clusterNameMetricsLabel) == "local" {
 					return true
 				}
 			}

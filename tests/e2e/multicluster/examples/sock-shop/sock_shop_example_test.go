@@ -29,6 +29,8 @@ const (
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
+// ignore error getting the metric label - we'll just use the default value returned
+var clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
 
 // failed indicates whether any of the tests has failed
 var failed = false
@@ -145,7 +147,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
-				m["verrazzano_cluster"] = clusterName
+				m[clusterNameMetricsLabel] = clusterName
 				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
 		})
@@ -154,7 +156,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
-				m["verrazzano_cluster"] = "DNE"
+				m[clusterNameMetricsLabel] = "DNE"
 				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
 		})
@@ -163,7 +165,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
-				m["verrazzano_cluster"] = clusterName
+				m[clusterNameMetricsLabel] = clusterName
 				return pkg.MetricsExistInCluster("vendor_requests_count_total", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
 		})
@@ -172,7 +174,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
-				m["verrazzano_cluster"] = clusterName
+				m[clusterNameMetricsLabel] = clusterName
 				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
 		})
