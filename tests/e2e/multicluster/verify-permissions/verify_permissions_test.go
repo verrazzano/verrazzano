@@ -274,7 +274,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			// TODO VZ-3971: Expect failure when namespace is no longer placed on the managed cluster
 			Eventually(func() (bool, error) {
 				return findSecret(permissionTest2Namespace, "mysecret")
-			}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected to get a forbidden error")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
