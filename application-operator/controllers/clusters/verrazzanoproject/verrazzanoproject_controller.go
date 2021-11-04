@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -78,6 +79,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if vzstring.SliceContainsString(vp.ObjectMeta.Finalizers, finalizerName) {
 			logger.Info("Deleting all network policies for project")
 			if err := r.deleteNetworkPolicies(ctx, &vp, nil, logger); err != nil {
+				return reconcile.Result{}, err
+			}
+			if err := r.deleteRoleBindings(ctx, &vp, logger); err != nil {
 				return reconcile.Result{}, err
 			}
 			// Remove the finalizer and update the verrazzano resource if the deletion has finished.
@@ -346,6 +350,56 @@ func (r *Reconciler) createOrUpdateNetworkPolicy(ctx context.Context, desiredPol
 		desiredPolicy.Spec.DeepCopyInto(&policy.Spec)
 		return nil
 	})
+}
+
+func (r *Reconciler) deleteRoleBindings(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
+	logger.Info("Deleting rolebindings for project")
+	vpList := clustersv1alpha1.VerrazzanoProjectList{}
+	if err := r.List(ctx, &vpList, client.InNamespace(constants.VerrazzanoMultiClusterNamespace)); err != nil {
+		return err
+	}
+
+	// create map of desired namespace/cluster pairs
+	m := make(map[string]bool)
+	for _, vp := range vpList.Items {
+		// Don't include the VerrazzanoProject that is being deleted
+		if vp.Name == project.Name {
+			continue
+		}
+		for _, ns := range vp.Spec.Template.Namespaces {
+			for _, cluster := range vp.Spec.Placement.Clusters {
+				m[ns.Metadata.Name+cluster.Name] = true
+			}
+		}
+	}
+
+	// delete rolebindings that are no longer referenced by a VerrazzanoProject
+	for _, ns := range project.Spec.Template.Namespaces {
+		for _, cluster := range project.Spec.Placement.Clusters {
+			// don't delete rolebinding is expected in namespace
+			if _, ok := m[ns.Metadata.Name+cluster.Name]; ok {
+				continue
+			}
+			objectKey := types.NamespacedName{
+				Namespace: ns.Metadata.Name,
+				Name:      generateRoleBindingManagedClusterRef(cluster.Name),
+			}
+			rb := rbacv1.RoleBinding{}
+			err := r.Get(ctx, objectKey, &rb)
+			if err != nil {
+				// If we don't find the rolebinding then continue on
+				if errors.IsNotFound(err) {
+					continue
+				}
+				return err
+			}
+			if err := r.Delete(ctx, &rb); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // deleteNetworkPolicies deletes policies that exist in the project namespaces, but are not defined in the project spec
