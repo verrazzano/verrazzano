@@ -74,7 +74,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		log.Info(fmt.Sprintf("Marking component %s in namespace %s with restart-version %s", componentName, componentNamespace, restartVersion))
 		err := r.restartComponent(ctx, componentName, componentNamespace, restartVersion, log)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Enountered error restarting component %s in namespace %swith restart-version %s", componentName, componentNamespace, restartVersion))
+			log.Error(err, fmt.Sprintf("Enountered error marking component %s in namespace %swith restart-version %s", componentName, componentNamespace, restartVersion))
 			return reconcile.Result{}, err
 		}
 	}
@@ -124,7 +124,7 @@ func (r *Reconciler) restartComponent(ctx context.Context, componentName, compon
 			return err
 		}
 	default:
-		log.Info(fmt.Sprintf("Skip restarting for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), componentNamespace))
+		log.Info(fmt.Sprintf("Skip marking restart-version for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), componentNamespace))
 	}
 
 	return nil
