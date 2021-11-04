@@ -10,6 +10,10 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
+    metadata:
+      labels:
+        app: robert-coherence
+        version: <placeholder>
     spec:
       template:
         metadata:
@@ -59,6 +63,7 @@ spec:
       name: robert-helidon
       labels:
         app: robert-helidon
+        version: <placeholder>
     spec:
       deploymentTemplate:
         metadata:
@@ -90,6 +95,10 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
+    metadata:
+      labels:
+        app: bobbys-coherence
+        version: <placeholder>
     spec:
       template:
         metadata:
@@ -135,6 +144,7 @@ spec:
       name: bobbys-helidon-stock-application
       labels:
         app: bobbys-helidon-stock-application
+        version: <placeholder>
     spec:
       deploymentTemplate:
         metadata:
@@ -170,6 +180,10 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoWebLogicWorkload
+    metadata:
+      labels:
+        app: bobbys-front-end
+        version: <placeholder>
     spec:
       template:
         metadata:
@@ -245,6 +259,9 @@ spec:
     metadata:
       name: mysql-initdb-config
       namespace: bobs-books
+      labels:
+        app: bobs-mysql-configmap
+        version: <placeholder>
     data:
       initdb.sql: |
         create table `orders` (
@@ -285,6 +302,9 @@ spec:
     metadata:
       name: mysql
       namespace: bobs-books
+      labels:
+        app: bobs-mysql-service
+        version: <placeholder>
     spec:
       ports:
         - port: 3306
@@ -304,6 +324,9 @@ spec:
     metadata:
       name: mysql
       namespace: bobs-books
+      labels:
+        app: bobs-mysql
+        version: <placeholder>
     spec:
       progressDeadlineSeconds: 600
       replicas: 1
@@ -376,6 +399,8 @@ spec:
     metadata:
       labels:
         weblogic.domainUID: bobs-bookstore
+        app: bobs-orders
+        version: <placeholder>
       name: bobs-bookstore-wdt-config-map
       namespace: bobs-books
     data:
@@ -416,6 +441,10 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoWebLogicWorkload
+    metadata:
+      labels:
+        app: bobs-orders-wls
+        version: <placeholder>
     spec:
       template:
         metadata:

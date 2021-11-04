@@ -10,6 +10,10 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
+    metadata:
+      labels:
+        app: carts-coherence
+        version: <placeholder>
     spec:
       template:
         metadata:
@@ -52,6 +56,10 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
+    metadata:
+      labels:
+        app: catalog-coherence
+        version: <placeholder>
     spec:
       template:
         metadata:
@@ -93,6 +101,10 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
+    metadata:
+      labels:
+        app: orders-coherence
+        version: <placeholder>
     spec:
       template:
         metadata:
@@ -134,6 +146,10 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
+    metadata:
+      labels:
+        app: payment-coherence
+        version: <placeholder>
     spec:
       template:
         metadata:
@@ -179,6 +195,10 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
+    metadata:
+      labels:
+        app: shipping-coherence
+        version: <placeholder>
     spec:
       template:
         metadata:
@@ -224,6 +244,10 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
+    metadata:
+      labels:
+        app: users-coherence
+        version: <placeholder>
     spec:
       template:
         metadata:
