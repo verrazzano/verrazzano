@@ -17,4 +17,7 @@ type MonitoringExporterSpec struct {
 	// The image pull policy for the WebLogic Monitoring Exporter sidecar container image. Legal values are Always,
 	// Never, and IfNotPresent. Defaults to Always if image ends in :latest; IfNotPresent, otherwise.
 	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
+
+	// The port exposed by the WebLogic Monitoring Exporter; defaults to 8080
+	Port int `json:"port,omitempty"`
 }
