@@ -44,7 +44,8 @@ var _ = Describe("Kiali", func() {
 		if err != nil {
 			Fail(err.Error())
 		}
-		if supported {
+		// Kiali only installed when VZ > 1.1.0 and not a managed cluster
+		if supported && !pkg.IsManagedClusterProfile() {
 			It(description, f)
 		} else {
 			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Kiali is not supported", description))
