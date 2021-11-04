@@ -212,8 +212,8 @@
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
-              "image": "elasticsearch",
-              "tag": "ghcr.io/verrazzano/elasticsearch-jenkins:20211104163200-eb2beea",
+              "image": "elasticsearch-jenkins",
+              "tag": "20211104163200-eb2beea",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
