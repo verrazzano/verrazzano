@@ -213,7 +213,7 @@
             },
             {
               "image": "elasticsearch",
-              "tag": "ghcr.io/verrazzano/elasticsearch-jenkins:20211104152034-eb2beea",
+              "tag": "ghcr.io/verrazzano/elasticsearch-jenkins:20211104163200-eb2beea",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
