@@ -51,8 +51,8 @@ const (
 var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
 
-// ignore error getting the metric label - we'll just use the default value returned
-var clusterNameMetricsLabel
+// will be initialized in BeforeSuite so that any log messages during init are available
+var clusterNameMetricsLabel = ""
 
 var adminKubeConfig string
 var isManagedClusterProfile bool
@@ -96,6 +96,7 @@ var _ = BeforeSuite(func() {
 			Fail(err.Error())
 		}
 	}
+	// ignore error getting the metric label - we'll just use the default value returned
 	clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
 })
 
