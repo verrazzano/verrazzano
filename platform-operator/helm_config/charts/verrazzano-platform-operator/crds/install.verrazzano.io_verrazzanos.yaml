@@ -3659,7 +3659,7 @@ spec:
                     a Verrazzano component
                   properties:
                     conditions:
-                      description: Information about the current state of a component
+                      description: Information about component transitions
                       items:
                         description: Condition describes current state of an install.
                         properties:
@@ -3687,10 +3687,10 @@ spec:
                       description: Name of the component
                       type: string
                     state:
-                      description: The version of Verrazzano that is installed
+                      description: The state of the component
                       type: string
                     version:
-                      description: The version of Verrazzano that is installed
+                      description: The version of the component
                       type: string
                   type: object
                 description: States of the individual installed components

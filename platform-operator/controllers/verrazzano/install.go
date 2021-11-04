@@ -40,7 +40,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 		case vzapi.Ready:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			continue
-		case vzapi.Disabled:
+		case vzapi.NotInstalled:
 			if !comp.IsEnabled(compContext) {
 				// User has disabled component in Verrazzano CR, don't install
 				continue

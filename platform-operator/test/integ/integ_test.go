@@ -123,7 +123,7 @@ var _ = Describe("Install with enable/disable component", func() {
 		Expect(stderr).To(Equal(""))
 
 		Eventually(func() bool {
-			return checkAllComponentStates(vzapi.Disabled)
+			return checkAllComponentStates(vzapi.NotInstalled)
 		}, "10s", "1s").Should(BeTrue())
 	})
 	It("Verrazzano CR should have preInstalling or installing components", func() {

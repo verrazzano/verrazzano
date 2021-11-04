@@ -23,6 +23,9 @@ type Bom struct {
 	// bomDoc contains the contents of the JSON bom, in go structure format.
 	bomDoc BomDoc
 
+	// componentMap is a map of Bom components
+	componentMap map[string]*BomComponent
+
 	// subComponentMap is a map of subcomponents keyed by subcomponent name.
 	subComponentMap map[string]*BomSubComponent
 }
@@ -47,6 +50,9 @@ type BomDoc struct {
 type BomComponent struct {
 	// The name of the component, for example: Istio
 	Name string `json:"name"`
+
+	// The component version
+	Version string `json:"version"`
 
 	// SubComponents is the array of subcomponents in the component
 	SubComponents []BomSubComponent `json:"subcomponents"`
@@ -134,6 +140,11 @@ func (b *Bom) init(jsonBom string) error {
 	// Convert the json into a to bom
 	if err := json.Unmarshal([]byte(jsonBom), &b.bomDoc); err != nil {
 		return err
+	}
+
+	// Build a map of components
+	for i, comp := range b.bomDoc.Components {
+		b.componentMap[comp.Name] = &b.bomDoc.Components[i]
 	}
 
 	// Build a map of subcomponents
@@ -296,4 +307,16 @@ func (b *Bom) ResolveRepo(sc *BomSubComponent) string {
 		repo = userRepo + slash + repo
 	}
 	return repo
+}
+
+// GetComponetVersion returns the component version
+func (b *Bom) GetComponentVersion(name string) string {
+	comp, ok := b.componentMap[name]
+	if !ok {
+		return ""
+	}
+	if comp.Version == "VERRAZZANO_VERSION" {
+		return b.GetVersion()
+	}
+	return comp.Version
 }

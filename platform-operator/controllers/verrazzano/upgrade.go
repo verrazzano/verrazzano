@@ -4,6 +4,7 @@
 package verrazzano
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -41,12 +42,21 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
+		// skip components that are up to date
+		version, err := getComponentVersion(comp.Name())
+		if err != nil {
+			log.Errorf("Error getting component version for %s: %v", comp.Name(), err)
+			return ctrl.Result{}, err
+		}
+		if version == cr.Status.Components[comp.Name()].Version {
+			continue
+		}
 		upgradeContext := spi.NewContext(log, r, cr, r.DryRun)
 		if err := comp.PreUpgrade(upgradeContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}
-		err := comp.Upgrade(upgradeContext)
+		err = comp.Upgrade(upgradeContext)
 		if err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
@@ -58,6 +68,16 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}
+
+		// Update the version in the status for this component
+		cr.Status.Components[comp.Name()].Version = version
+		err = r.Status().Update(context.TODO(), cr)
+		if err != nil {
+			log.Errorf("Failed to update verrazzano resource status, retrying: %v", err)
+			return newRequeueWithDelay(), err
+		}
+		// Always requeue to ensure that we don't get a stale status next time we update it.
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Invoke the global post upgrade function after all components are upgraded.
@@ -72,7 +92,6 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	if err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete); err != nil {
 		return newRequeueWithDelay(), err
 	}
-
 	return ctrl.Result{}, nil
 }
 

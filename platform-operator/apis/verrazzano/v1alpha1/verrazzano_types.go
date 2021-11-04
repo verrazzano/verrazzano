@@ -144,11 +144,11 @@ type ComponentStatusMap map[string]*ComponentStatusDetails
 type ComponentStatusDetails struct {
 	// Name of the component
 	Name string `json:"name,omitempty"`
-	// Information about the current state of a component
+	// Information about component transitions
 	Conditions []Condition `json:"conditions,omitempty"`
-	// The version of Verrazzano that is installed
+	// The state of the component
 	State StateType `json:"state,omitempty"`
-	// The version of Verrazzano that is installed
+	// The version of the component
 	Version string `json:"version,omitempty"`
 }
 
@@ -205,8 +205,8 @@ type Condition struct {
 type StateType string
 
 const (
-	// Disabled is the state for when a component is not currently installed
-	Disabled StateType = "Disabled"
+	// NotInstalled is the state for when a component is not currently installed
+	NotInstalled StateType = "NotInstalled"
 
 	// PreInstalling is the state when an install is about to be started
 	PreInstalling StateType = "PreInstalling"

@@ -8,8 +8,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"path/filepath"
@@ -789,7 +791,7 @@ func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Jo
 // checkComponentReadyState returns true if all component-level status' are "Ready"
 func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
 	for _, compStatus := range vz.Status.Components {
-		if compStatus.State != installv1alpha1.Disabled && compStatus.State != installv1alpha1.Ready {
+		if compStatus.State != installv1alpha1.NotInstalled && compStatus.State != installv1alpha1.Ready {
 			return false
 		}
 	}
@@ -808,7 +810,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
 			compContext := spi.NewContext(log, r, cr, r.DryRun)
-			state := installv1alpha1.Disabled
+			state := installv1alpha1.NotInstalled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
@@ -1369,4 +1371,13 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log *zap.
 // This is needed for unit testing
 func initUnitTesing() {
 	unitTesting = true
+}
+
+// Get component version from Bom
+func getComponentVersion(compName string) (string, error) {
+	b, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return "", err
+	}
+	return b.GetComponentVersion(compName), err
 }
