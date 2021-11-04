@@ -1808,3 +1808,55 @@ func TestReconcileHardRestart(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
 }
+
+func TestWaitForDomainDeletionDeleted(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to list the pods for DeletionTimestamp
+	cli.EXPECT().
+		List(gomock.Any(), &corev1.PodList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, podList *corev1.PodList, opts ...client.ListOption) error {
+			podList.Items = []corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						DeletionTimestamp: &metav1.Time{Time: time.Now()},
+					},
+				},
+			}
+			return nil
+		})
+
+	reconciler := newReconciler(cli)
+	deleted := reconciler.waitForDomainDeletion(context.Background(), "test-domain", "test-app", "test-namespace", log.NullLogger{})
+
+	mocker.Finish()
+	assert.Equal(true, deleted)
+}
+
+func TestWaitForDomainDeletionTimeout(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to list the pods for DeletionTimestamp
+	cli.EXPECT().
+		List(gomock.Any(), &corev1.PodList{}, gomock.Any()).MinTimes(1).
+		DoAndReturn(func(ctx context.Context, podList *corev1.PodList, opts ...client.ListOption) error {
+			podList.Items = []corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{},
+				},
+			}
+			return nil
+		})
+
+	reconciler := newReconciler(cli)
+	deleted := reconciler.waitForDomainDeletion(context.Background(), "test-domain", "test-app", "test-namespace", log.NullLogger{})
+
+	mocker.Finish()
+	assert.Equal(false, deleted)
+}
