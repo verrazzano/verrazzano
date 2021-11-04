@@ -13,7 +13,7 @@ spec:
     metadata:
       labels:
         app: carts-coherence
-        version: <placeholder>
+        version: v1
     spec:
       template:
         metadata:
@@ -59,7 +59,7 @@ spec:
     metadata:
       labels:
         app: catalog-coherence
-        version: <placeholder>
+        version: v1
     spec:
       template:
         metadata:
@@ -104,7 +104,7 @@ spec:
     metadata:
       labels:
         app: orders-coherence
-        version: <placeholder>
+        version: v1
     spec:
       template:
         metadata:
@@ -149,7 +149,7 @@ spec:
     metadata:
       labels:
         app: payment-coherence
-        version: <placeholder>
+        version: v1
     spec:
       template:
         metadata:
@@ -198,7 +198,7 @@ spec:
     metadata:
       labels:
         app: shipping-coherence
-        version: <placeholder>
+        version: v1
     spec:
       template:
         metadata:
@@ -247,7 +247,7 @@ spec:
     metadata:
       labels:
         app: users-coherence
-        version: <placeholder>
+        version: v1
     spec:
       template:
         metadata:

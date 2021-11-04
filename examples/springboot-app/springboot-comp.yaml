@@ -14,7 +14,7 @@ spec:
       namespace: springboot
       labels:
         app: springboot
-        version: placeholder
+        version: v1
     spec:
       containers:
       - name: springboot-container

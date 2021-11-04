@@ -13,7 +13,7 @@ spec:
     metadata:
       labels:
         app: robert-coherence
-        version: <placeholder>
+        version: v1
     spec:
       template:
         metadata:
@@ -63,7 +63,7 @@ spec:
       name: robert-helidon
       labels:
         app: robert-helidon
-        version: <placeholder>
+        version: v1
     spec:
       deploymentTemplate:
         metadata:
@@ -98,7 +98,7 @@ spec:
     metadata:
       labels:
         app: bobbys-coherence
-        version: <placeholder>
+        version: v1
     spec:
       template:
         metadata:
@@ -144,7 +144,7 @@ spec:
       name: bobbys-helidon-stock-application
       labels:
         app: bobbys-helidon-stock-application
-        version: <placeholder>
+        version: v1
     spec:
       deploymentTemplate:
         metadata:
@@ -183,7 +183,7 @@ spec:
     metadata:
       labels:
         app: bobbys-front-end
-        version: <placeholder>
+        version: v1
     spec:
       template:
         metadata:
@@ -261,7 +261,7 @@ spec:
       namespace: bobs-books
       labels:
         app: bobs-mysql-configmap
-        version: <placeholder>
+        version: v1
     data:
       initdb.sql: |
         create table `orders` (
@@ -304,7 +304,7 @@ spec:
       namespace: bobs-books
       labels:
         app: bobs-mysql-service
-        version: <placeholder>
+        version: v1
     spec:
       ports:
         - port: 3306
@@ -326,7 +326,7 @@ spec:
       namespace: bobs-books
       labels:
         app: bobs-mysql
-        version: <placeholder>
+        version: v1
     spec:
       progressDeadlineSeconds: 600
       replicas: 1
@@ -400,7 +400,7 @@ spec:
       labels:
         weblogic.domainUID: bobs-bookstore
         app: bobs-orders
-        version: <placeholder>
+        version: v1
       name: bobs-bookstore-wdt-config-map
       namespace: bobs-books
     data:
@@ -444,7 +444,7 @@ spec:
     metadata:
       labels:
         app: bobs-orders-wls
-        version: <placeholder>
+        version: v1
     spec:
       template:
         metadata:
