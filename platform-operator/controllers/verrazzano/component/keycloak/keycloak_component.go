@@ -78,10 +78,10 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 	}
 	pw := secret.Data["password"]
 	ctx.Log().Infof("Keycloak pw returned from secret is %s", pw)
-
+	keycloakpw := string(pw)
 	// Login to Keycloak
 	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
-		"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", string(pw))
+		"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
 	fmt.Printf("Command for Login  = %s\n", cmd.String())
 	out, err := cmd.Output()
 	fmt.Printf("Run Login Command Error = %s, output = %s\n", err, out)
