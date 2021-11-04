@@ -84,9 +84,11 @@ func GetClusterNameMetricLabel() (string, error) {
 		Log(Error, fmt.Sprintf("Error checking Verrazzano min version == 1.1: %t", err))
 		return "verrazzano_cluster", err //callers can choose to ignore the error
 	} else if !isVz11OrGreater {
+		Log(Info, "GetClusterNameMetricsLabel: version is less than 1.1.0")
 		// versions < 1.1 use the managed_cluster label not the verrazzano_cluster label
 		return "managed_cluster", nil
 	}
+	Log(Info, "GetClusterNameMetricsLabel: version is greater than or equal to 1.1.0")
 	return "verrazzano_cluster", nil
 }
 

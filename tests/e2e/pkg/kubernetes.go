@@ -303,17 +303,21 @@ func GetVerrazzanoVersion() (string, error) {
 func IsVerrazzanoMinVersion(minVersion string) (bool, error) {
 	vzVersion, err := GetVerrazzanoVersion()
 	if err != nil {
+		Log(Error, fmt.Sprintf("IsVerrazzanoMinVersion - Failed to get Verrazzano version. %s", err.Error()))
 		return false, err
 	}
+	Log(Info, fmt.Sprintf("IsVerrazzanoMinVersion - Got Verrazzano version %s to compare to minVersion %s", vzVersion, minVersion))
 	if len(vzVersion) == 0 {
 		return false, nil
 	}
 	vzSemver, err := semver.NewSemVersion(vzVersion)
 	if err != nil {
+		Log(Error, fmt.Sprintf("IsVerrazzanoMinVersion - Failed to create semVer from Verrazzano version %s - error %s", vzVersion, err.Error()))
 		return false, err
 	}
 	minSemver, err := semver.NewSemVersion(minVersion)
 	if err != nil {
+		Log(Error, fmt.Sprintf("IsVerrazzanoMinVersion - Failed to create semVer from min version %s - error %s", minVersion, err.Error()))
 		return false, err
 	}
 	return !vzSemver.IsLessThan(minSemver), nil

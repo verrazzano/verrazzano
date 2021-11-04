@@ -52,7 +52,7 @@ var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
 
 // ignore error getting the metric label - we'll just use the default value returned
-var clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
+var clusterNameMetricsLabel
 
 var adminKubeConfig string
 var isManagedClusterProfile bool
@@ -96,6 +96,7 @@ var _ = BeforeSuite(func() {
 			Fail(err.Error())
 		}
 	}
+	clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
 })
 
 var _ = Describe("Prometheus Metrics", func() {
