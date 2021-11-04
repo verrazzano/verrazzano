@@ -6,7 +6,6 @@ package verrazzanoproject
 import (
 	"context"
 	"fmt"
-	netv1 "k8s.io/api/networking/v1"
 	"testing"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -287,6 +287,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 							mockUpdatedRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, expectedMonitorSubjects)
 						}
 
+						mockNewManagedClusterRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name)
 					} else { // not an existing namespace
 						// expect call to get a namespace that returns namespace not found
 						mockClient.EXPECT().
@@ -307,6 +308,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 						if len(expectedMonitorSubjects) > 0 {
 							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, expectedMonitorSubjects)
 						}
+
+						mockNewManagedClusterRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name)
 					}
 				} // END VerrazzanoProject is in the expected Multi cluster namespace
 
@@ -390,6 +393,8 @@ func TestNetworkPolicies(t *testing.T) {
 
 	mockUpdatedRoleBindingExpectations(assert, mockClient, ns1.Metadata.Name, projectAdminRole, projectAdminK8sRole, defaultAdminSubjects)
 	mockUpdatedRoleBindingExpectations(assert, mockClient, ns1.Metadata.Name, projectMonitorRole, projectMonitorK8sRole, defaultMonitorSubjects)
+
+	mockNewManagedClusterRoleBindingExpectations(assert, mockClient, ns1.Metadata.Name)
 
 	// expect call to get a network policy
 	mockClient.EXPECT().
@@ -534,7 +539,35 @@ func newVerrazzanoProjectReconciler(c client.Client) Reconciler {
 	}
 }
 
-// mockNewRoleBindingExpectations mocks the expections for project rolebindings when the rolebindings do not already exist
+// mockNewManagedClusterRoleBindingExpectations mocks the expectations for a managed cluster role binding
+func mockNewManagedClusterRoleBindingExpectations(assert *asserts.Assertions, mockClient *mocks.MockClient, namespace string) {
+	clusterNameRef := generateRoleBindingManagedClusterRef(clusterstest.UnitTestClusterName)
+
+	// expect a call to fetch a rolebinding for the specified role and return not found
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: clusterNameRef}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "RoleBinding"}, existingNS.Metadata.Name))
+
+	managedClusterSubjects := []rbacv1.Subject{
+		{
+			Kind:      "ServiceAccount",
+			Name:      clusterNameRef,
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+	}
+
+	// expect a call to create the managed cluster rolebinding
+	mockClient.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+			assert.Equal(managedClusterRole, rb.RoleRef.Name)
+			assert.Equal("ClusterRole", rb.RoleRef.Kind)
+			assert.Equal(managedClusterSubjects, rb.Subjects)
+			return nil
+		})
+}
+
+// mockNewRoleBindingExpectations mocks the expectations for project rolebindings when the rolebindings do not already exist
 func mockNewRoleBindingExpectations(assert *asserts.Assertions, mockClient *mocks.MockClient, namespace, role, k8sRole string, subjects []rbacv1.Subject) {
 	// expect a call to fetch a rolebinding for the specified role and return NotFound
 	mockClient.EXPECT().
@@ -563,7 +596,7 @@ func mockNewRoleBindingExpectations(assert *asserts.Assertions, mockClient *mock
 		})
 }
 
-// mockUpdatedRoleBindingExpectations mocks the expections for project rolebindings when the rolebindings already exist
+// mockUpdatedRoleBindingExpectations mocks the expectations for project rolebindings when the rolebindings already exist
 func mockUpdatedRoleBindingExpectations(assert *asserts.Assertions, mockClient *mocks.MockClient, namespace, role, k8sRole string, subjects []rbacv1.Subject) {
 	// expect a call to fetch a rolebinding for the specified role and return an existing rolebinding
 	mockClient.EXPECT().

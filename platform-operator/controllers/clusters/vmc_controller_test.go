@@ -1235,18 +1235,18 @@ func fakeGetConfig() (*rest.Config, error) {
 func expectSyncRoleBinding(t *testing.T, mock *mocks.MockClient, name string, succeed bool) {
 	asserts := assert.New(t)
 
-	// Expect a call to get the ClusterRoleBinding - return that it does not exist
+	// Expect a call to get the RoleBinding - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "RoleBinding"}, generateManagedResourceName(name)))
 
-	// Expect a call to create the ClusterRoleBinding - return success or failure based on the succeed argument
+	// Expect a call to create the RoleBinding - return success or failure based on the succeed argument
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, binding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
+		DoAndReturn(func(ctx context.Context, binding *rbacv1.RoleBinding, opts ...client.CreateOption) error {
 			if succeed {
-				asserts.Equalf(generateManagedResourceName(name), binding.Name, "ClusterRoleBinding testManagedCluster did not match")
-				asserts.Equalf(constants.MCClusterRole, binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
+				asserts.Equalf(generateManagedResourceName(name), binding.Name, "RoleBinding testManagedCluster did not match")
+				asserts.Equalf(constants.MCClusterRole, binding.RoleRef.Name, "RoleBinding roleref did not match")
 				asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
 				asserts.Equalf(constants.VerrazzanoMultiClusterNamespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
 				return nil
