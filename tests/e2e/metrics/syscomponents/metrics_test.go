@@ -230,7 +230,9 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 
 // Validate the metrics contain the labels with values specified as key-value pairs of the map
 func metricsContainLabels(metricName string, kv map[string]string) bool {
-	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, clusterNameMetricsLabel, getClusterNameForPromQuery())
+	clusterNameValue := getClusterNameForPromQuery()
+	pkg.Log(pkg.Info, fmt.Sprintf("Looking for metric name %s with label %s = %s", metricName, clusterNameMetricsLabel, clusterNameValue))
+	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, clusterNameMetricsLabel, clusterNameValue)
 	if err != nil {
 		return false
 	}
