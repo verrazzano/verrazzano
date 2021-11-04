@@ -857,25 +857,39 @@ func (r *Reconciler) hardRestartDomain(ctx context.Context, existingDomain *wls.
 	return r.Client.Update(context.TODO(), existingDomain)
 }
 
-// wait for .metadata.deletionTimestamp in all pods.  TODO needs timeout
-func (r *Reconciler) waitForDomainDeletion(ctx context.Context, domainName string, appName string, domainNamespace string, log logr.Logger) {
-	for {
-		podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace, log)
-		if err != nil {
-			log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the Weblogic domain %s in namespace %s", domainName, domainNamespace))
-			break
-		}
-		allDeleted := true
-		for _, pod := range podList.Items {
+// wait for .metadata.deletionTimestamp in all pods
+// returns true if all pods in domain are marked for deletion, otherwise false in 30 seconds
+func (r *Reconciler) waitForDomainDeletion(ctx context.Context, domainName string, appName string, domainNamespace string, log logr.Logger) bool {
+	const timeout = 10
+
+	ch := make(chan bool, 1)
+
+	go func() {
+		for {
 			time.Sleep(1 * time.Second)
-			if pod.ObjectMeta.DeletionTimestamp.IsZero() {
+			podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace, log)
+			if err != nil {
+				log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the Weblogic domain %s in namespace %s", domainName, domainNamespace))
+				break
+			}
+			allDeleted := true
+			for _, pod := range podList.Items {
 				log.Info(fmt.Sprintf("DeletionTimestamp for pod %s is %s", pod.Name, pod.ObjectMeta.DeletionTimestamp))
-				allDeleted = false
+				if pod.ObjectMeta.DeletionTimestamp.IsZero() {
+					allDeleted = false
+				}
+			}
+			if allDeleted {
+				ch <- true
 			}
 		}
-		if allDeleted {
-			break
-		}
+	}()
+
+	select {
+	case allDeleted := <-ch:
+		return allDeleted
+	case <-time.After(timeout * time.Second):
+		return false
 	}
 }
 
