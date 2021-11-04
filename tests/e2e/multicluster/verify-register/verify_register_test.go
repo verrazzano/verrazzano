@@ -159,6 +159,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 		})
 
 		It("admin cluster has the expected metrics from managed cluster", func() {
+			pkg.Log(pkg.Info, fmt.Sprintf("Looking for metric with label %s with value %s", clusterNameMetricsLabel, managedClusterName))
 			Eventually(func() bool {
 				return pkg.MetricsExist("up", clusterNameMetricsLabel, managedClusterName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a metrics from managed cluster")
