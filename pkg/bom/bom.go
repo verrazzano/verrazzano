@@ -125,6 +125,7 @@ func NewBom(bomPath string) (Bom, error) {
 		return Bom{}, err
 	}
 	bom := Bom{
+		componentMap:    make(map[string]*BomComponent),
 		subComponentMap: make(map[string]*BomSubComponent),
 	}
 	err = bom.init(string(jsonBom))
