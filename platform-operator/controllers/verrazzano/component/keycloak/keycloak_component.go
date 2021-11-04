@@ -37,10 +37,6 @@ type bashFuncSig func(inArgs ...string) (string, string, error)
 
 var bashFunc bashFuncSig = vzos.RunBash
 
-func setBashFunc(f bashFuncSig) {
-	bashFunc = f
-}
-
 // Verify that KeycloakComponent implements Component
 var _ spi.Component = KeycloakComponent{}
 
