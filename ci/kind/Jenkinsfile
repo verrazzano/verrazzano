@@ -437,11 +437,6 @@ pipeline {
                                 expression {params.RUN_SLOW_TESTS == true}
                             }
                             steps {
-                                sh """
-                                    echo THIS PRE-PULL IS FOR DEBUGGING ONLY
-                                    docker pull container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20211027151722-46851d0
-                                    kind load docker-image --name verrazzano container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20211027151722-46851d0
-                                """
                                 runGinkgo('examples/bobsbooks')
                             }
                         }
