@@ -296,9 +296,6 @@ spec:
     metadata:
       name: mysql
       namespace: bobs-books
-      labels:
-        app: bobs-mysql-service
-        version: v1
     spec:
       ports:
         - port: 3306
