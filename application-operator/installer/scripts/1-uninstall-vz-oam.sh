@@ -29,6 +29,9 @@ function uninstall {
   log "Uninstalling Verrazzano application operator OAM extensions"
   kubectl delete -f ${PROJ_DIR}/deploy
 
+  log "Uninstalling Verrazzano platform operator cluster CRD extensions"
+  kubectl delete -f ${PROJ_DIR}/../platform-operator/helm_config/charts/verrazzano-platform-operator/crds/clusters.verrazzano.io_verrazzanomanagedclusters.yaml
+
   log "Uninstalling Verrazzano application operator CRD extensions"
   kubectl delete -f ${PROJ_DIR}/../platform-operator/helm_config/charts/verrazzano-application-operator/crds
 
