@@ -42,6 +42,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
+	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 )
 
 var (
@@ -125,17 +126,18 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "MetricsTrait")
 		os.Exit(1)
 	}
+
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		setupLog.Error(err, "unable to get kubeconfig")
+		os.Exit(1)
+	}
+
 	if enableWebhooks {
 		setupLog.Info("Setting up certificates for webhook")
 		caCert, err := certificates.SetupCertificates(certDir)
 		if err != nil {
 			setupLog.Error(err, "unable to setup certificates for webhook")
-			os.Exit(1)
-		}
-
-		config, err := ctrl.GetConfig()
-		if err != nil {
-			setupLog.Error(err, "unable to get kubeconfig")
 			os.Exit(1)
 		}
 
@@ -333,11 +335,18 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterAppConfigKind)
 		os.Exit(1)
 	}
+	vmcClient, err := vmcclient.NewForConfig(config)
+	if err != nil {
+		setupLog.Error(err, "unable to get clientset")
+		os.Exit(1)
+	}
+
 	if err = (&verrazzanoproject.Reconciler{
 		Client:       mgr.GetClient(),
 		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.VerrazzanoProjectKind),
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
+		VmcClient:    vmcClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.VerrazzanoProjectKind)
 		os.Exit(1)

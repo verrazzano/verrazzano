@@ -7,11 +7,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -44,6 +47,7 @@ type Reconciler struct {
 	Log          logr.Logger
 	Scheme       *runtime.Scheme
 	AgentChannel chan clusters.StatusUpdateMessage
+	VmcClient    vmcclient.Interface
 }
 
 // SetupWithManager registers our controller with the manager
@@ -164,6 +168,10 @@ func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1
 			}
 
 			if err = r.createOrUpdateRoleBindings(ctx, nsTemplate.Metadata.Name, vp, logger); err != nil {
+				return err
+			}
+
+			if err = r.deleteRoleBindings(ctx, nil, logger); err != nil {
 				return err
 			}
 		}
@@ -353,48 +361,61 @@ func (r *Reconciler) createOrUpdateNetworkPolicy(ctx context.Context, desiredPol
 }
 
 func (r *Reconciler) deleteRoleBindings(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
-	logger.Info("Deleting rolebindings for project")
+	// Get the list of VerrazzanoProject resources
 	vpList := clustersv1alpha1.VerrazzanoProjectList{}
 	if err := r.List(ctx, &vpList, client.InNamespace(constants.VerrazzanoMultiClusterNamespace)); err != nil {
 		return err
 	}
 
-	// create map of desired namespace/cluster pairs
-	m := make(map[string]bool)
+	// Create map of expected namespace/cluster pairs for rolebindings
+	expectedPairs := make(map[string]bool)
 	for _, vp := range vpList.Items {
-		// Don't include the VerrazzanoProject that is being deleted
-		if vp.Name == project.Name {
+		if project != nil && project.Name == vp.Name {
 			continue
 		}
 		for _, ns := range vp.Spec.Template.Namespaces {
 			for _, cluster := range vp.Spec.Placement.Clusters {
-				m[ns.Metadata.Name+cluster.Name] = true
+				expectedPairs[ns.Metadata.Name+cluster.Name] = true
 			}
 		}
 	}
 
-	// delete rolebindings that are no longer referenced by a VerrazzanoProject
-	for _, ns := range project.Spec.Template.Namespaces {
-		for _, cluster := range project.Spec.Placement.Clusters {
-			// don't delete rolebinding is expected in namespace
-			if _, ok := m[ns.Metadata.Name+cluster.Name]; ok {
-				continue
-			}
-			objectKey := types.NamespacedName{
-				Namespace: ns.Metadata.Name,
-				Name:      generateRoleBindingManagedClusterRef(cluster.Name),
-			}
-			rb := rbacv1.RoleBinding{}
-			err := r.Get(ctx, objectKey, &rb)
-			if err != nil {
-				// If we don't find the rolebinding then continue on
-				if errors.IsNotFound(err) {
+	// Get the list of VerrazzanoManagedCluster resources
+	vmcList, err := r.VmcClient.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Add the default local cluster to the VMC list
+	vmc := v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.DefaultClusterName,
+		},
+	}
+	vmcList.Items = append(vmcList.Items, vmc)
+
+	for _, vmc := range vmcList.Items {
+		for _, vp := range vpList.Items {
+			for _, ns := range vp.Spec.Template.Namespaces {
+				// rolebinding is expected for this namespace/cluster pairing
+				// so nothing to delete
+				if _, ok := expectedPairs[ns.Metadata.Name+vmc.Name]; ok {
 					continue
 				}
-				return err
-			}
-			if err := r.Delete(ctx, &rb); err != nil {
-				return err
+				// rolebinding is not expected for this namespace/cluster pairing
+				objectKey := types.NamespacedName{
+					Namespace: ns.Metadata.Name,
+					Name:      generateRoleBindingManagedClusterRef(vmc.Name),
+				}
+				rb := rbacv1.RoleBinding{}
+				if err := r.Get(ctx, objectKey, &rb); err != nil {
+					continue
+				}
+				// This is an orphaned rolebinding so we delete it
+				logger.Info("Deleting rolebinding for project", "namespace", rb.ObjectMeta.Namespace, "roleName", rb.ObjectMeta.Name)
+				if err := r.Delete(ctx, &rb); err != nil {
+					return err
+				}
 			}
 		}
 	}
