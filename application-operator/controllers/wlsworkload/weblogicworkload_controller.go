@@ -796,6 +796,7 @@ func (r *Reconciler) restartDomain(ctx context.Context, existingDomain *wls.Doma
 	if len(restartVersion) > 0 {
 		currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
 		storedServerStartPolicy := existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation]
+		log.Info(fmt.Sprintf("----------- current: %s; stored: %s", currentServerStartPolicy, storedServerStartPolicy))
 		if storedServerStartPolicy != "NEVER" && currentServerStartPolicy == "NEVER" {
 			err := r.startDomain(ctx, existingDomain, restartVersion, storedServerStartPolicy, domainName, appName, domainNamespace, log)
 			if err != nil {
@@ -856,7 +857,8 @@ func (r *Reconciler) stopDomain(ctx context.Context, existingDomain *wls.Domain,
 	}
 	existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation] = currentServerStartPolicy
 
-	log.Info(fmt.Sprintf("Set serverStartPolicy from %s to NEVER in the Weblogic domain %s in namespace %s", currentServerStartPolicy, domainName, domainNamespace))
+	log.Info(fmt.Sprintf("Set serverStartPolicy to NEVER in the Weblogic domain %s in namespace %s", domainName, domainNamespace))
+	log.Info(fmt.Sprintf("Set annotation %s to %s in the Weblogic domain %s in namespace %s", serverStartPolicyAnnotation, currentServerStartPolicy, domainName, domainNamespace))
 	return r.Client.Update(ctx, existingDomain)
 }
 
@@ -865,13 +867,14 @@ func (r *Reconciler) startDomain(ctx context.Context, existingDomain *wls.Domain
 	log.Info(fmt.Sprintf("Starting the Weblogic domain domain %s in namespace %s by setting serverStartPolicy to %s", domainName, domainNamespace, serverStartPolicy))
 
 	// wait for domain to be deleted
-	r.waitForDomainDeletion(ctx, domainName, appName, domainNamespace, log)
+	deleted := r.waitForDomainDeletion(ctx, domainName, appName, domainNamespace, log)
+	log.Info(fmt.Sprintf("The Weblogic domain domain %s in namespace %s is being deleted: %t", domainName, domainNamespace, deleted))
 
 	// set serverStartPolicy back
 	existingDomain.Spec.ServerStartPolicy = serverStartPolicy
 	existingDomain.Spec.RestartVersion = restartVersion
 
-	log.Info(fmt.Sprintf("Set serverStartPolicy from NEVER to %s in the Weblogic domain %s in namespace %s", serverStartPolicy, domainName, domainNamespace))
+	log.Info(fmt.Sprintf("Set serverStartPolicy to %s in the Weblogic domain %s in namespace %s", serverStartPolicy, domainName, domainNamespace))
 	return r.Client.Update(ctx, existingDomain)
 }
 
