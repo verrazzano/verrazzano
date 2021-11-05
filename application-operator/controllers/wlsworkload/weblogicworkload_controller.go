@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -46,6 +47,7 @@ const (
 	loggingNamePart                 = "logging-stdout"
 	loggingMountPath                = "/fluentd/etc/custom.conf"
 	loggingKey                      = "custom.conf"
+	restartVersionAnnotation        = "verrazzano.io/restart-version"
 	defaultMode               int32 = 400
 )
 
@@ -210,6 +212,34 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Make sure the last generation exists in the status
+	result, err := r.ensureLastGeneration(workload)
+	if err != nil || result.Requeue {
+		return result, err
+	}
+
+	// Attempt to get the existing Domain. This is used in the case where we don't want to update the Fluentd image.
+	// In this case we obtain the previous Fluentd image and set that on the new Domain.
+	var existingDomain wls.Domain
+	domainExists := true
+	domainKey := types.NamespacedName{Name: workload.Name, Namespace: workload.Namespace}
+	if err := r.Get(ctx, domainKey, &existingDomain); err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Info("No existing domain found")
+			domainExists = false
+		} else {
+			log.Error(err, "An error occurred trying to obtain an existing domain")
+			return reconcile.Result{}, err
+		}
+	}
+
+	// If the domain already exists, make sure that the domain can be restarted
+	if domainExists && r.isOkToRestartWebLogic(workload) {
+		log.Info(fmt.Sprintf("There have been no changes to the WebLogic Workload %s, nor has the restart annotation changed. The Domain will not be modified.",
+			workload.Name))
+		return ctrl.Result{}, nil
+	}
+
 	u, err := vznav.ConvertRawExtensionToUnstructured(&workload.Spec.Template)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -235,18 +265,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// Attempt to get the existing Domain. This is used in the case where we don't want to update the Fluentd image.
-	// In this case we obtain the previous Fluentd image and set that on the new Domain.
-	var existingDomain wls.Domain
-	domainKey := types.NamespacedName{Name: u.GetName(), Namespace: workload.Namespace}
-	if err := r.Get(ctx, domainKey, &existingDomain); err != nil {
-		if k8serrors.IsNotFound(err) {
-			log.Info("No existing domain found")
-		} else {
-			log.Error(err, "An error occurred trying to obtain an existing domain")
-			return reconcile.Result{}, err
-		}
-	}
 	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
 	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
 	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Annotations, workload.Status.CurrentUpgradeVersion)
@@ -321,7 +339,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.updateUpgradeVersionInStatus(ctx, workload); err != nil {
+	if err = r.updateStatus(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -342,6 +360,35 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 	}
 
 	return &workload, nil
+}
+
+// Make sure that the last generation exists in the status
+func (r *Reconciler) ensureLastGeneration(wl *vzapi.VerrazzanoWebLogicWorkload) (ctrl.Result, error) {
+	if len(wl.Status.LastGeneration) > 0 {
+		return ctrl.Result{}, nil}
+
+	// Update the status generation and always requeue
+	wl.Status.LastGeneration = strconv.Itoa(int(wl.Generation))
+	err := r.Status().Update(context.TODO(), wl)
+	return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+}
+
+// Make sure that it is OK to restart WebLogic
+func (r *Reconciler) isOkToRestartWebLogic(wl *vzapi.VerrazzanoWebLogicWorkload) bool {
+	if wl.Annotations == nil {
+		r.Log.Error(fmt.Errorf("WebLogic workload %s is missing annotations", wl.Name),"")
+		return false
+	}
+	// Check if user created or changed the restart annotation
+	if wl.Annotations != nil && wl.Annotations[restartVersionAnnotation] != wl.Status.LastRestartVersion {
+		return true
+	}
+	if wl.Status.LastGeneration == strconv.Itoa(int(wl.Generation)) {
+		// nothing in the spec has changed
+		return false
+	}
+	// The spec has changed because the generation is different from the saved one
+	return true
 }
 
 // copyLabels copies specific labels from the Verrazzano workload to the contained WebLogic resource
@@ -582,12 +629,12 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+func (r *Reconciler) updateStatus(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
 	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
 		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
-		return r.Status().Update(ctx, workload)
 	}
-	return nil
+	workload.Status.LastGeneration = strconv.Itoa(int(workload.Generation))
+	return r.Status().Update(ctx, workload)
 }
 
 // updateIstioEnabled sets the domain resource configuration.istio.enabled value based
