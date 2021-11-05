@@ -254,6 +254,21 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return reconcile.Result{}, err
 		}
 	}
+
+	// restart domain by setting serverStartPolicy to "NEVER" and back with presence of "restart-version" annotation
+	// and domain pods istio proxy is 1.7.3
+	if len(workload.Annotations[appconfig.RestartVersionAnnotation]) > 0 {
+		currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
+		storedServerStartPolicy := existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation]
+		log.Info(fmt.Sprintf("Detected restart-version %s.  The current domain serverStartPolicy is %s, the domain serverStartPolicy in annotations is %s",
+			workload.Annotations[appconfig.RestartVersionAnnotation], currentServerStartPolicy, storedServerStartPolicy))
+		if storedServerStartPolicy != "NEVER" && currentServerStartPolicy == "NEVER" {
+			return reconcile.Result{}, r.startDomain(ctx, &existingDomain, storedServerStartPolicy, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log)
+		} else if currentServerStartPolicy != "NEVER" && r.isDomainIstio17(ctx, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log) {
+			return reconcile.Result{}, r.stopDomain(ctx, &existingDomain, u.GetName(), workload.Namespace, log)
+		}
+	}
+
 	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
 	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
 	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Annotations, workload.Status.CurrentUpgradeVersion)
@@ -303,7 +318,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// write out restartVersion in WebLogic domain
-	if err = r.restartDomain(ctx, &existingDomain, u, workload.Annotations[constants.RestartVersionAnnotation], u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log); err != nil {
+	if err = r.addDomainRestartVersion(u, workload.Annotations[constants.RestartVersionAnnotation], u.GetName(), workload.Namespace, log); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -791,28 +806,6 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	return nil
 }
 
-func (r *Reconciler) restartDomain(ctx context.Context, existingDomain *wls.Domain, weblogic *unstructured.Unstructured, restartVersion, domainName, appName, domainNamespace string, log logr.Logger) error {
-	if len(restartVersion) > 0 {
-		currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
-		storedServerStartPolicy := existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation]
-		log.Info(fmt.Sprintf("----------- current: %s; stored: %s", currentServerStartPolicy, storedServerStartPolicy))
-		if storedServerStartPolicy != "NEVER" && currentServerStartPolicy == "NEVER" {
-			err := r.startDomain(ctx, existingDomain, restartVersion, storedServerStartPolicy, domainName, appName, domainNamespace, log)
-			if err != nil {
-				return err
-			}
-		} else if currentServerStartPolicy != "NEVER" && r.isDomainIstio17(ctx, domainName, appName, domainNamespace, log) {
-			err := r.stopDomain(ctx, existingDomain, restartVersion, domainName, domainNamespace, log)
-			if err != nil {
-				return err
-
-			}
-		}
-		return r.addDomainRestartVersion(weblogic, restartVersion, domainName, domainNamespace, log)
-	}
-	return nil
-}
-
 func (r *Reconciler) getPodListForDomain(ctx context.Context, domainName, appName, domainNamespace string) (*corev1.PodList, error) {
 	componentNameReq, _ := labels.NewRequirement(oam.LabelAppComponent, selection.Equals, []string{domainName})
 	appNameReq, _ := labels.NewRequirement(oam.LabelAppName, selection.Equals, []string{appName})
@@ -841,14 +834,13 @@ func (r *Reconciler) isDomainIstio17(ctx context.Context, domainName, appName, d
 }
 
 // stopDomain set serverStartPolicy to "NEVER", so that domain will be forced to shut down
-func (r *Reconciler) stopDomain(ctx context.Context, existingDomain *wls.Domain, restartVersion, domainName, domainNamespace string, log logr.Logger) error {
-	log.Info(fmt.Sprintf("Stopping the WebLogic domain domain %s in namespace %s by setting serverStartPolicy to NEVER", domainName, domainNamespace))
+func (r *Reconciler) stopDomain(ctx context.Context, existingDomain *wls.Domain, domainName, domainNamespace string, log logr.Logger) error {
+	log.Info(fmt.Sprintf("Stopping the WebLogic domain %s in namespace %s by setting serverStartPolicy to NEVER", domainName, domainNamespace))
 
 	currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
 
 	// set serverStartPolicy back to "NEVER"
 	existingDomain.Spec.ServerStartPolicy = "NEVER"
-	existingDomain.Spec.RestartVersion = restartVersion
 
 	// record currentServerStartPolicy in the domain annotations
 	if existingDomain.ObjectMeta.Annotations == nil {
@@ -862,16 +854,15 @@ func (r *Reconciler) stopDomain(ctx context.Context, existingDomain *wls.Domain,
 }
 
 // startDomain set serverStartPolicy back to the previous value, so that the domain will start
-func (r *Reconciler) startDomain(ctx context.Context, existingDomain *wls.Domain, restartVersion, serverStartPolicy, domainName, appName, domainNamespace string, log logr.Logger) error {
-	log.Info(fmt.Sprintf("Starting the WebLogic domain domain %s in namespace %s by setting serverStartPolicy to %s", domainName, domainNamespace, serverStartPolicy))
+func (r *Reconciler) startDomain(ctx context.Context, existingDomain *wls.Domain, serverStartPolicy, domainName, appName, domainNamespace string, log logr.Logger) error {
+	log.Info(fmt.Sprintf("Starting the WebLogic domain %s in namespace %s by setting serverStartPolicy to %s", domainName, domainNamespace, serverStartPolicy))
 
 	// wait for domain to be deleted
 	deleted := r.waitForDomainDeletion(ctx, domainName, appName, domainNamespace, log)
-	log.Info(fmt.Sprintf("The WebLogic domain domain %s in namespace %s is being deleted: %t", domainName, domainNamespace, deleted))
+	log.Info(fmt.Sprintf("The WebLogic domain %s in namespace %s is being deleted: %t", domainName, domainNamespace, deleted))
 
 	// set serverStartPolicy back
 	existingDomain.Spec.ServerStartPolicy = serverStartPolicy
-	existingDomain.Spec.RestartVersion = restartVersion
 
 	log.Info(fmt.Sprintf("Set serverStartPolicy to %s in the WebLogic domain %s in namespace %s", serverStartPolicy, domainName, domainNamespace))
 	return r.Client.Update(ctx, existingDomain)
@@ -915,6 +906,9 @@ func (r *Reconciler) waitForDomainDeletion(ctx context.Context, domainName strin
 
 // addDomainRestartVersion set restartVersion to annotation "restart-version" in the unstructured domain spec
 func (r *Reconciler) addDomainRestartVersion(weblogic *unstructured.Unstructured, restartVersion string, domainName, domainNamespace string, log logr.Logger) error {
-	log.Info(fmt.Sprintf("Set restartVersion to %s in the WebLogic domain %s in namespace %s", restartVersion, domainName, domainNamespace))
-	return unstructured.SetNestedField(weblogic.Object, restartVersion, specRestartVersionFields...)
+	if len(restartVersion) > 0 {
+		log.Info(fmt.Sprintf("Set restartVersion to %s in the WebLogic domain %s in namespace %s", restartVersion, domainName, domainNamespace))
+		return unstructured.SetNestedField(weblogic.Object, restartVersion, specRestartVersionFields...)
+	}
+	return nil
 }

@@ -1556,8 +1556,8 @@ func TestReconcileRollingRestart(t *testing.T) {
 		})
 	// expect a call to list the FLUENTD config maps
 	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+		List(gomock.Any(), getUnstructuredConfigMapList(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			// return no resources
 			return nil
 		})
@@ -1685,43 +1685,6 @@ func TestReconcileStopDomain(t *testing.T) {
 			workload.Namespace = namespace
 			return nil
 		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
-			// return no resources
-			return nil
-		})
-	// no config maps found, so expect a call to create a config map with our parsing rules
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
-			return nil
-		})
-	// expect a call to get the namespace for the domain
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
-			return nil
-		})
-	// expect a call to attempt to get the domain CR
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.AssignableToTypeOf(&unstructured.Unstructured{})).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
-			// set the old Fluentd image on the returned obj
-			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
-			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
-			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
-			return nil
-		})
-	// expect a call to get the application configuration for the workload
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
-			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
-			return nil
-		})
 	// expect a call to list the pods for istio-proxy image
 	cli.EXPECT().
 		List(gomock.Any(), &corev1.PodList{}, gomock.Any()).
@@ -1745,33 +1708,7 @@ func TestReconcileStopDomain(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, domain *wls.Domain, opts ...client.UpdateOption) error {
 			assert.Equal("NEVER", domain.Spec.ServerStartPolicy)
-			assert.Equal(testRestartVersion, domain.Spec.RestartVersion)
 			assert.Equal(testServerStartPolicy, domain.ObjectMeta.Annotations[serverStartPolicyAnnotation])
-			return nil
-		})
-	// expect a call to create the WebLogic domain CR
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
-
-			// make sure the OAM component and app name labels were copied and the WebLogic type lobel applied
-			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
-			assert.Equal(3, len(specLabels))
-			assert.Equal("unit-test-component", specLabels["app.oam.dev/component"])
-			assert.Equal("unit-test-app-config", specLabels["app.oam.dev/name"])
-			assert.Equal(constants.WorkloadTypeWeblogic, specLabels[constants.LabelWorkloadType])
-
-			// make sure the FLUENTD sidecar was added
-			containers, _, _ := unstructured.NestedSlice(u.Object, specServerPodContainersFields...)
-			assert.Equal(1, len(containers))
-			assert.Equal(fluentdImage, containers[0].(map[string]interface{})["image"])
-
-			// make sure the restartVersion was added to the domain
-			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
-			assert.Equal(testRestartVersion, domainRestartVersion)
-
 			return nil
 		})
 
@@ -1827,43 +1764,6 @@ func TestReconcileStartDomain(t *testing.T) {
 			workload.Namespace = namespace
 			return nil
 		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
-			// return no resources
-			return nil
-		})
-	// no config maps found, so expect a call to create a config map with our parsing rules
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
-			return nil
-		})
-	// expect a call to get the namespace for the domain
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
-			return nil
-		})
-	// expect a call to attempt to get the domain CR
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.AssignableToTypeOf(&unstructured.Unstructured{})).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
-			// set the old Fluentd image on the returned obj
-			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
-			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
-			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
-			return nil
-		})
-	// expect a call to get the application configuration for the workload
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
-			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
-			return nil
-		})
 	// expect a call to list the pods for istio-proxy image
 	cli.EXPECT().
 		List(gomock.Any(), &corev1.PodList{}, gomock.Any()).
@@ -1900,32 +1800,6 @@ func TestReconcileStartDomain(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, domain *wls.Domain, opts ...client.UpdateOption) error {
 			assert.Equal(testServerStartPolicy, domain.Spec.ServerStartPolicy)
-			assert.Equal(testRestartVersion, domain.Spec.RestartVersion)
-			return nil
-		})
-	// expect a call to create the WebLogic domain CR
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
-
-			// make sure the OAM component and app name labels were copied and the WebLogic type lobel applied
-			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
-			assert.Equal(3, len(specLabels))
-			assert.Equal("unit-test-component", specLabels["app.oam.dev/component"])
-			assert.Equal("unit-test-app-config", specLabels["app.oam.dev/name"])
-			assert.Equal(constants.WorkloadTypeWeblogic, specLabels[constants.LabelWorkloadType])
-
-			// make sure the FLUENTD sidecar was added
-			containers, _, _ := unstructured.NestedSlice(u.Object, specServerPodContainersFields...)
-			assert.Equal(1, len(containers))
-			assert.Equal(fluentdImage, containers[0].(map[string]interface{})["image"])
-
-			// make sure the restartVersion was added to the domain
-			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
-			assert.Equal(testRestartVersion, domainRestartVersion)
-
 			return nil
 		})
 
@@ -1937,4 +1811,11 @@ func TestReconcileStartDomain(t *testing.T) {
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
+}
+
+func getUnstructuredConfigMapList() *unstructured.UnstructuredList {
+	unstructuredConfigMapList := &unstructured.UnstructuredList{}
+	unstructuredConfigMapList.SetAPIVersion("v1")
+	unstructuredConfigMapList.SetKind("ConfigMap")
+	return unstructuredConfigMapList
 }
