@@ -503,7 +503,7 @@ func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr
 
 		// Set the owner reference.
 		appConfig := &v1alpha2.ApplicationConfiguration{}
-		err = r.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: appName}, appConfig)
+		err = r.Get(ctx, types.NamespacedName{Namespace: namespaceName, Name: appName}, appConfig)
 		if err != nil {
 			return err
 		}
@@ -566,7 +566,7 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 
 		// Set the owner reference.
 		appConfig := &v1alpha2.ApplicationConfiguration{}
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: appName}, appConfig)
+		err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: appName}, appConfig)
 		if err != nil {
 			return err
 		}
@@ -844,7 +844,7 @@ func (r *Reconciler) hardRestartDomain(ctx context.Context, existingDomain *wls.
 	existingDomain.Spec.ServerStartPolicy = "NEVER"
 	existingDomain.Spec.RestartVersion = restartVersion
 	log.Info(fmt.Sprintf("Set serverStartPolicy from %s to NEVER in the Weblogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
-	if err := r.Client.Update(context.TODO(), existingDomain); err != nil {
+	if err := r.Client.Update(ctx, existingDomain); err != nil {
 		return err
 	}
 
@@ -854,7 +854,7 @@ func (r *Reconciler) hardRestartDomain(ctx context.Context, existingDomain *wls.
 	// set serverStartPolicy back to previousServerStartPolicy
 	existingDomain.Spec.ServerStartPolicy = previousServerStartPolicy
 	log.Info(fmt.Sprintf("Set serverStartPolicy from NEVER to %s in the Weblogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
-	return r.Client.Update(context.TODO(), existingDomain)
+	return r.Client.Update(ctx, existingDomain)
 }
 
 // wait for .metadata.deletionTimestamp in all pods
