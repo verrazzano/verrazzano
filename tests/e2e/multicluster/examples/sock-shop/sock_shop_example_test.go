@@ -29,7 +29,6 @@ const (
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
-var clusterNameMetricsLabel string
 
 // failed indicates whether any of the tests has failed
 var failed = false
@@ -41,9 +40,6 @@ var _ = AfterEach(func() {
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = BeforeSuite(func() {
-	// ignore error getting the metric label - we'll just use the default value returned
-	clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
-
 	// deploy the VerrazzanoProject
 	Eventually(func() error {
 		return DeploySockShopProject(adminKubeconfig, sourceDir)
@@ -146,6 +142,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 	PContext("Prometheus Metrics", func() {
 
 		It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
@@ -155,6 +152,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		})
 
 		It("Verify DNE base_jvm_uptime_seconds metrics does not exist for managed cluster", func() {
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
@@ -164,6 +162,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		})
 
 		It("Verify vendor_requests_count_total metrics exist for managed cluster", func() {
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
@@ -173,6 +172,7 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 		})
 
 		It("Verify container_cpu_cfs_periods_total metrics exist for managed cluster", func() {
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace

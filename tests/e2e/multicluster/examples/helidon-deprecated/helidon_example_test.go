@@ -33,7 +33,6 @@ const (
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
-var clusterNameMetricsLabel string
 
 // failed indicates whether any of the tests has failed
 var failed = false
@@ -45,9 +44,6 @@ var _ = AfterEach(func() {
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = BeforeSuite(func() {
-	// ignore error getting the metric label - we'll just use the default value returned
-	clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
-
 	// deploy the VerrazzanoProject
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInCluster(projectfile, adminKubeconfig)
@@ -167,6 +163,7 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
 	Context("Metrics", func() {
 		It("Verify Prometheus metrics exist on admin cluster", func() {
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 			Eventually(func() bool {
 				var m = map[string]string{clusterNameMetricsLabel: clusterName}
 				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
