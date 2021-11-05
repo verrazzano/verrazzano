@@ -61,9 +61,6 @@ spec:
     metadata:
       name: tododomain-jdbc-config
       namespace: todo-list
-      labels:
-        app: tododomain-jdbc-config
-        version: v1
     data:
       wdt_jdbc.yaml: |
         resources:
@@ -105,9 +102,6 @@ spec:
     metadata:
       name: mysql-initdb-config
       namespace: todo-list
-      labels:
-        app: mysql-initdb-config
-        version: v1
     data:
       initdb.sql: |
         create table `ToDos` (
@@ -129,9 +123,6 @@ spec:
     metadata:
       name: mysql
       namespace: todo-list
-      labels:
-        app: todo-mysql-service
-        version: v1
     spec:
       ports:
         - port: 3306
@@ -159,7 +150,7 @@ spec:
       template:
         metadata:
           labels:
-            app: mysql
+            app: todo-mysql
             version: v1
         spec:
           containers:

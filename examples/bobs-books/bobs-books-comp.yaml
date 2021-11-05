@@ -17,7 +17,7 @@ spec:
           namespace: bobs-books
         spec:
           labels:
-            app: robert-coherence
+            app: robert-coh
             version: v1
           replicas: 2
           image: container-registry.oracle.com/verrazzano/example-roberts-coherence:1.0.0-1-20210728181814-eb1e622
@@ -101,7 +101,7 @@ spec:
           namespace: bobs-books
         spec:
           labels:
-            app: bobbys-coherence
+            app: bobbys-coh
             version: v1
           replicas: 1
           image: container-registry.oracle.com/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
@@ -256,9 +256,6 @@ spec:
     metadata:
       name: mysql-initdb-config
       namespace: bobs-books
-      labels:
-        app: bobs-mysql-configmap
-        version: v1
     data:
       initdb.sql: |
         create table `orders` (
@@ -334,7 +331,7 @@ spec:
         metadata:
           creationTimestamp: null
           labels:
-            app: mysql
+            app: bobs-mysql
             version: v1
         spec:
           containers:
@@ -394,8 +391,6 @@ spec:
     metadata:
       labels:
         weblogic.domainUID: bobs-bookstore
-        app: bobs-orders-configmap
-        version: v1
       name: bobs-bookstore-wdt-config-map
       namespace: bobs-books
     data:

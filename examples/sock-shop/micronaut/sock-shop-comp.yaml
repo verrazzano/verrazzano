@@ -16,7 +16,7 @@ spec:
           name: carts-coh
         spec:
           labels:
-            app: carts-coherence
+            app: carts-coh
             version: v1
           cluster: SockShopCarts
           role: Carts
@@ -61,7 +61,7 @@ spec:
           name: catalog-coh
         spec:
           labels:
-            app: catalog-coherence
+            app: catalog-coh
             version: v1
           cluster: SockShopCatalog
           role: Catalog
@@ -105,7 +105,7 @@ spec:
           name: orders-coh
         spec:
           labels:
-            app: orders-coherence
+            app: orders-coh
             version: v1
           cluster: SockShopOrders
           role: Orders
@@ -149,7 +149,7 @@ spec:
           name: payment-coh
         spec:
           labels:
-            app: payment-coherence
+            app: payment-coh
             version: v1
           cluster: SockShopPayment
           role: Payment
@@ -197,7 +197,7 @@ spec:
           name: shipping-coh
         spec:
           labels:
-            app: shipping-coherence
+            app: shipping-coh
             version: v1
           cluster: SockShopShipping
           role: Shipping
@@ -245,7 +245,7 @@ spec:
           name: users-coh
         spec:
           labels:
-            app: users-coherence
+            app: users-coh
             version: v1
           cluster: SockShopUsers
           role: Users
