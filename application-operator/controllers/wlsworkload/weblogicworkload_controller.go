@@ -840,7 +840,7 @@ func (r *Reconciler) isDomainIstio17(ctx context.Context, domainName, appName, d
 	return false
 }
 
-// stopDomain set serverStartPolicy to NEVER, so that domain will be forced to shut down
+// stopDomain set serverStartPolicy to "NEVER", so that domain will be forced to shut down
 func (r *Reconciler) stopDomain(ctx context.Context, existingDomain *wls.Domain, restartVersion, domainName, domainNamespace string, log logr.Logger) error {
 	log.Info(fmt.Sprintf("Stopping the Weblogic domain domain %s in namespace %s by setting serverStartPolicy to NEVER", domainName, domainNamespace))
 
