@@ -32,8 +32,7 @@ const (
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
-// ignore error getting the metric label - we'll just use the default value returned
-var clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
+var clusterNameMetricsLabel string
 
 // failed indicates whether any of the tests has failed
 var failed = false
@@ -43,6 +42,9 @@ var _ = AfterEach(func() {
 })
 
 var _ = BeforeSuite(func() {
+	// ignore error getting the metric label - we'll just use the default value returned
+	clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
+
 	// deploy the VerrazzanoProject
 	Eventually(func() error {
 		return DeployTodoListProject(adminKubeconfig, sourceDir)
