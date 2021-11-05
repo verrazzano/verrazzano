@@ -7,14 +7,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -47,7 +45,6 @@ type Reconciler struct {
 	Log          logr.Logger
 	Scheme       *runtime.Scheme
 	AgentChannel chan clusters.StatusUpdateMessage
-	VmcClient    vmcclient.Interface
 }
 
 // SetupWithManager registers our controller with the manager
@@ -381,7 +378,8 @@ func (r *Reconciler) deleteRoleBindings(ctx context.Context, project *clustersv1
 	}
 
 	// Get the list of VerrazzanoManagedCluster resources
-	vmcList, err := r.VmcClient.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(ctx, metav1.ListOptions{})
+	vmcList := v1alpha1.VerrazzanoManagedClusterList{}
+	err := r.List(ctx, &vmcList, client.InNamespace(constants.VerrazzanoMultiClusterNamespace))
 	if err != nil {
 		return err
 	}
