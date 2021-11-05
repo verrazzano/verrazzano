@@ -5,7 +5,6 @@ package keycloak
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -79,23 +78,24 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 			log.Fatal(err)
 		}
 		pw := secret.Data["password"]
-		ctx.Log().Infof("Keycloak pw returned from secret is %s", pw)
 		keycloakpw := string(pw)
+		if keycloakpw == "" {
+			log.Fatal("Keycloak Post Upgrade: Error retrieving Keycloak password")
+		}
+		ctx.Log().Info("Keycloak Post Upgrade: Successfully retrieved Keycloak password")
+
 		// Login to Keycloak
 		cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
 			"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
-		fmt.Printf("Command for Login  = %s\n", cmd.String())
-		out, err := cmd.Output()
-		fmt.Printf("Run Login Command Error = %s, output = %s\n", err, out)
+		_, err = cmd.Output()
 		if err != nil {
 			log.Fatalf("Error = %s", err)
 		}
+		ctx.Log().Info("Keycloak Post Upgrade: Successfully logged into Keycloak")
 
 		// Get the Client ID JSON array
 		cmd = exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
-		fmt.Printf("Command for Getting Clients JSON  = %s\n", cmd.String())
-		out, err = cmd.Output()
-		fmt.Printf("Run Clients Command Error = %s, output = %s\n", err, out)
+		out, err := cmd.Output()
 		if err != nil {
 			log.Fatalf("Error = %s", err)
 		}
@@ -103,7 +103,6 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 			log.Fatal("Error retrieving Clients JSON from Keycloak, zero length\n")
 		}
 		json.Unmarshal([]byte(out), &keycloakClients)
-		ctx.Log().Info("Keycloak Clients JSON returned = %+v", keycloakClients)
 
 		// Extract the id associated with ClientID verrazzano-pkce
 		var id = ""
@@ -116,6 +115,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 		if id == "" {
 			log.Fatal("Error retrieving ID for verrazzano-pkce, zero length\n")
 		}
+		ctx.Log().Info("Keycloak Post Upgrade: Successfully retrieved clientID")
 
 		// Get DNS Domain Configuration
 		dnsSubDomain, err := nginx.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
@@ -131,5 +131,6 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
+	ctx.Log().Info("Keycloak Post Upgrade: Successfully Updated Keycloak URIs")
 	return nil
 }
