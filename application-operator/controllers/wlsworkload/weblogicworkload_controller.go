@@ -861,7 +861,7 @@ func (r *Reconciler) hardRestartDomain(ctx context.Context, existingDomain *wls.
 // wait for .metadata.deletionTimestamp in all pods
 // returns true if all pods in domain are marked for deletion, otherwise false in 30 seconds
 func (r *Reconciler) waitForDomainDeletion(ctx context.Context, domainName string, appName string, domainNamespace string, log logr.Logger) bool {
-	const timeout = 10
+	const timeout = 30
 
 	ch := make(chan bool, 1)
 
