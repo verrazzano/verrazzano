@@ -12,7 +12,7 @@ TOOL_SCRIPT_DIR=${SCRIPT_DIR}/../../tools/scripts
 TEST_SCRIPT_DIR=${SCRIPT_DIR}/../../tests/e2e/config/scripts
 
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCIR_SCAN_REGISTRY" ] \
-   || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ] || [ -z "$BRANCH_NAME" ] || [ -z "$OCIR_SCAN_COMPARTMENT" ] || [ -z "$OCIR_SCAN_TARGET" ]; then
+   || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ] || [ -z "$BRANCH_NAME" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
