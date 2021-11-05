@@ -16,8 +16,8 @@ git clone https://${DOCKER_CREDS_USR}:${DOCKER_CREDS_PSW}@github.com/verrazzano/
 cd console
 git checkout ${CONSOLE_REPO_BRANCH}
 
-# Run the basic UI tests
-make run-ui-tests
+# Run the basic UI tests, and if they fail make sure to exit with a fail status
+make run-ui-tests || exit 1
 
 # Run the application page UI tests if specified
 if [ "true" == "${RUN_APP_TESTS}" ]; then

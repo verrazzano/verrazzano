@@ -67,14 +67,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// restart all components in the appconfig
-	log.Info(fmt.Sprintf("Restarting application with restart-version %s", restartVersion))
+	log.Info(fmt.Sprintf("Reconciling application with restart-version %s", restartVersion))
 	for index := range appConfig.Spec.Components {
 		componentName := appConfig.Spec.Components[index].ComponentName
 		componentNamespace := appConfig.Namespace
-		log.Info(fmt.Sprintf("Restarting component %s in namespace %s with restart-version %s", componentName, componentNamespace, restartVersion))
+		log.Info(fmt.Sprintf("Marking component %s in namespace %s with restart-version %s", componentName, componentNamespace, restartVersion))
 		err := r.restartComponent(ctx, componentName, componentNamespace, restartVersion, log)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Enountered error restarting component %s in namespace %swith restart-version %s", componentName, componentNamespace, restartVersion))
+			log.Error(err, fmt.Sprintf("Enountered error marking component %s in namespace %swith restart-version %s", componentName, componentNamespace, restartVersion))
 			return reconcile.Result{}, err
 		}
 	}
@@ -124,7 +124,7 @@ func (r *Reconciler) restartComponent(ctx context.Context, componentName, compon
 			return err
 		}
 	default:
-		log.Info(fmt.Sprintf("Skip restarting for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), componentNamespace))
+		log.Info(fmt.Sprintf("Skip marking restart-version for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), componentNamespace))
 	}
 
 	return nil
@@ -141,7 +141,7 @@ func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion strin
 			return err
 		}
 	}
-	log.Info(fmt.Sprintf("Restarting deployment %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	log.Info(fmt.Sprintf("Marking deployment %s in namespace %s with restart-version %s", name, namespace, restartVersion))
 	return DoRestartDeployment(ctx, r.Client, restartVersion, &deployment, log)
 }
 
@@ -156,7 +156,7 @@ func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion stri
 			return err
 		}
 	}
-	log.Info(fmt.Sprintf("Restarting statefulSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	log.Info(fmt.Sprintf("Marking statefulSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
 	return DoRestartStatefulSet(ctx, r.Client, restartVersion, &statefulSet, log)
 }
 
@@ -171,7 +171,7 @@ func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string
 			return err
 		}
 	}
-	log.Info(fmt.Sprintf("Restarting daemonSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	log.Info(fmt.Sprintf("Marking daemonSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
 	return DoRestartDaemonSet(ctx, r.Client, restartVersion, &daemonSet, log)
 }
 

@@ -26,10 +26,9 @@ const (
 
 var _ = Describe("Kiali", func() {
 	var (
-		client         *kubernetes.Clientset
-		httpClient     *retryablehttp.Client
-		kialiErr       error
-		kialiSupported bool
+		client     *kubernetes.Clientset
+		httpClient *retryablehttp.Client
+		kialiErr   error
 	)
 
 	BeforeSuite(func() {
@@ -37,13 +36,16 @@ var _ = Describe("Kiali", func() {
 		Expect(kialiErr).ToNot(HaveOccurred())
 		httpClient, kialiErr = pkg.GetSystemVmiHTTPClient()
 		Expect(kialiErr).ToNot(HaveOccurred())
-		kialiSupported, kialiErr = pkg.IsVerrazzanoMinVersion("1.1.0")
-		Expect(kialiErr).ToNot(HaveOccurred())
 	})
 
 	// It Wrapper to only run spec if Kiali is supported on the current Verrazzano installation
 	WhenKialiInstalledIt := func(description string, f interface{}) {
-		if kialiSupported {
+		supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
+		if err != nil {
+			Fail(err.Error())
+		}
+		// Kiali only installed when VZ > 1.1.0 and not a managed cluster
+		if supported && !pkg.IsManagedClusterProfile() {
 			It(description, f)
 		} else {
 			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Kiali is not supported", description))
@@ -83,7 +85,7 @@ var _ = Describe("Kiali", func() {
 				Expect(kialiErr).ToNot(HaveOccurred())
 				rules := ingress.Spec.Rules
 				Expect(len(rules)).To(Equal(1))
-				Expect(rules[0].Host).To(ContainSubstring("kiali.vmi.system.default"))
+				Expect(rules[0].Host).To(ContainSubstring("kiali.vmi.system"))
 				kialiHost = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 				Eventually(func() (*pkg.UsernamePassword, error) {
 					creds, ingError = pkg.GetSystemVMICredentials()
