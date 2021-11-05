@@ -49,7 +49,7 @@ sh $TOOL_SCRIPT_DIR/vz-registry-image-helper.sh -t $OCIR_SCAN_REGISTRY -r $OCIR_
 # pushed up. This is used when polling for results to know which images were last pushed (which results are the latest)
 if [[ "${BRANCH_NAME}" == "master" || "${BRANCH_NAME}" == release-* ]]; then
   echo "Pushing verrazzano-bom.json to object storage"
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BRANCH_NAME}/last-ocir-pushed-verrazzano-bom.json --file ${WORKSPACE}/verrazzano-bom.json
+  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BRANCH_NAME}/last-ocir-pushed-verrazzano-bom.json --file ${WORKSPACE}/tar-files/verrazzano-bom.json
 fi
 
 # TBD: We could also save the list of repositories as well, that may save the polling job some work so it doesn't need to figure that out
