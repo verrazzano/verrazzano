@@ -208,7 +208,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("verrazzanoweblogicworkload", req.NamespacedName)
-	log.Info("Reconciling verrazzano weblogic workload")
+	log.Info("Reconciling Verrazzano WebLogic workload")
 
 	// fetch the workload and unwrap the WebLogic resource
 	workload, err := r.fetchWorkload(ctx, req.NamespacedName)
@@ -301,7 +301,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	// write out restartVersion in Weblogic domain
+	// write out restartVersion in WebLogic domain
 	if err = r.restartDomain(ctx, &existingDomain, u, workload.Annotations[constants.RestartVersionAnnotation], u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -817,7 +817,7 @@ func (r *Reconciler) getPodListForDomain(ctx context.Context, domainName, appNam
 func (r *Reconciler) isDomainForHardRestart(ctx context.Context, domainName, appName, domainNamespace string, log logr.Logger) bool {
 	podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace, log)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the Weblogic domain %s in namespace %s", domainName, domainNamespace))
+		log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the WebLogic domain %s in namespace %s", domainName, domainNamespace))
 		return false
 	}
 	for _, pod := range podList.Items {
@@ -831,19 +831,19 @@ func (r *Reconciler) isDomainForHardRestart(ctx context.Context, domainName, app
 }
 
 func (r *Reconciler) hardRestartDomain(ctx context.Context, existingDomain *wls.Domain, restartVersion, domainName, appName, domainNamespace string, log logr.Logger) error {
-	log.Info(fmt.Sprintf("Restarting the Weblogic domain domain %s in namespace %s by setting serverStartPolicy", domainName, domainNamespace))
+	log.Info(fmt.Sprintf("Restarting the WebLogic domain domain %s in namespace %s by setting serverStartPolicy", domainName, domainNamespace))
 
 	// get previousServerStartPolicy
 	previousServerStartPolicy := existingDomain.Spec.ServerStartPolicy
 	if previousServerStartPolicy == "NEVER" {
-		log.Info(fmt.Sprintf("serverStartPolicy is already set as NEVER in the Weblogic domain %s in namespace %s", domainName, domainNamespace))
+		log.Info(fmt.Sprintf("serverStartPolicy is already set as NEVER in the WebLogic domain %s in namespace %s", domainName, domainNamespace))
 		return nil
 	}
 
 	// set serverStartPolicy to NEVER
 	existingDomain.Spec.ServerStartPolicy = "NEVER"
 	existingDomain.Spec.RestartVersion = restartVersion
-	log.Info(fmt.Sprintf("Set serverStartPolicy from %s to NEVER in the Weblogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
+	log.Info(fmt.Sprintf("Set serverStartPolicy from %s to NEVER in the WebLogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
 	if err := r.Client.Update(ctx, existingDomain); err != nil {
 		return err
 	}
@@ -853,7 +853,7 @@ func (r *Reconciler) hardRestartDomain(ctx context.Context, existingDomain *wls.
 
 	// set serverStartPolicy back to previousServerStartPolicy
 	existingDomain.Spec.ServerStartPolicy = previousServerStartPolicy
-	log.Info(fmt.Sprintf("Set serverStartPolicy from NEVER to %s in the Weblogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
+	log.Info(fmt.Sprintf("Set serverStartPolicy from NEVER to %s in the WebLogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
 	return r.Client.Update(ctx, existingDomain)
 }
 
@@ -869,7 +869,7 @@ func (r *Reconciler) waitForDomainDeletion(ctx context.Context, domainName strin
 			time.Sleep(1 * time.Second)
 			podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace, log)
 			if err != nil {
-				log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the Weblogic domain %s in namespace %s", domainName, domainNamespace))
+				log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the WebLogic domain %s in namespace %s", domainName, domainNamespace))
 				break
 			}
 			allDeleted := true
@@ -894,6 +894,6 @@ func (r *Reconciler) waitForDomainDeletion(ctx context.Context, domainName strin
 }
 
 func (r *Reconciler) addDomainRestartVersion(weblogic *unstructured.Unstructured, restartVersion string, domainName, domainNamespace string, log logr.Logger) error {
-	log.Info(fmt.Sprintf("Set restartVersion to %s in the Weblogic domain %s in namespace %s", restartVersion, domainName, domainNamespace))
+	log.Info(fmt.Sprintf("Set restartVersion to %s in the WebLogic domain %s in namespace %s", restartVersion, domainName, domainNamespace))
 	return unstructured.SetNestedField(weblogic.Object, restartVersion, specRestartVersionFields...)
 }
