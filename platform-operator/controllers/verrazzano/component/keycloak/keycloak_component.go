@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -67,67 +68,68 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 func updateKeycloakUris(ctx spi.ComponentContext) error {
 	var keycloakClients KeycloakClients
 
-	// Get the Keycloak admin password
-	secret := &corev1.Secret{}
-	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: "keycloak",
-		Name:      "keycloak-http",
-	}, secret)
-	if err != nil {
-		log.Fatal(err)
-	}
-	pw := secret.Data["password"]
-	ctx.Log().Infof("Keycloak pw returned from secret is %s", pw)
-	keycloakpw := string(pw)
-	// Login to Keycloak
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
-		"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
-	fmt.Printf("Command for Login  = %s\n", cmd.String())
-	out, err := cmd.Output()
-	fmt.Printf("Run Login Command Error = %s, output = %s\n", err, out)
-	if err != nil {
-		log.Fatalf("Error = %s", err)
-	}
+	if ctx.ActualCR().Spec.Profile != vzapi.ManagedCluster {
+		// Get the Keycloak admin password
+		secret := &corev1.Secret{}
+		err := ctx.Client().Get(context.TODO(), client.ObjectKey{
+			Namespace: "keycloak",
+			Name:      "keycloak-http",
+		}, secret)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pw := secret.Data["password"]
+		ctx.Log().Infof("Keycloak pw returned from secret is %s", pw)
+		keycloakpw := string(pw)
+		// Login to Keycloak
+		cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
+			"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
+		fmt.Printf("Command for Login  = %s\n", cmd.String())
+		out, err := cmd.Output()
+		fmt.Printf("Run Login Command Error = %s, output = %s\n", err, out)
+		if err != nil {
+			log.Fatalf("Error = %s", err)
+		}
 
-	// Get the Client ID JSON array
-	cmd = exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
-	fmt.Printf("Command for Getting Clients JSON  = %s\n", cmd.String())
-	out, err = cmd.Output()
-	fmt.Printf("Run Clients Command Error = %s, output = %s\n", err, out)
-	if err != nil {
-		log.Fatalf("Error = %s", err)
-	}
-	if len(string(out)) == 0 {
-		log.Fatal("Error retrieving Clients JSON from Keycloak, zero length\n")
-	}
-	json.Unmarshal([]byte(out), &keycloakClients)
-	ctx.Log().Info("Keycloak Clients JSON returned = %+v", keycloakClients)
+		// Get the Client ID JSON array
+		cmd = exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
+		fmt.Printf("Command for Getting Clients JSON  = %s\n", cmd.String())
+		out, err = cmd.Output()
+		fmt.Printf("Run Clients Command Error = %s, output = %s\n", err, out)
+		if err != nil {
+			log.Fatalf("Error = %s", err)
+		}
+		if len(string(out)) == 0 {
+			log.Fatal("Error retrieving Clients JSON from Keycloak, zero length\n")
+		}
+		json.Unmarshal([]byte(out), &keycloakClients)
+		ctx.Log().Info("Keycloak Clients JSON returned = %+v", keycloakClients)
 
-	// Extract the id associated with ClientID verrazzano-pkce
-	var id = ""
-	for _, client := range keycloakClients {
-		if client.ClientID == "verrazzano-pkce" {
-			id = client.ID
-			ctx.Log().Infof("Keycloak Clients ID found = %s", id)
+		// Extract the id associated with ClientID verrazzano-pkce
+		var id = ""
+		for _, client := range keycloakClients {
+			if client.ClientID == "verrazzano-pkce" {
+				id = client.ID
+				ctx.Log().Infof("Keycloak Clients ID found = %s", id)
+			}
+		}
+		if id == "" {
+			log.Fatal("Error retrieving ID for verrazzano-pkce, zero length\n")
+		}
+
+		// Get DNS Domain Configuration
+		dnsSubDomain, err := nginx.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
+		if err != nil {
+			return err
+		}
+		ctx.Log().Infof("DNSDomain returned = %s", dnsSubDomain)
+
+		// Call the Script and Update the URIs
+		scriptName := filepath.Join(config.GetInstallDir(), "update-kiali-redirect-uris.sh")
+		if _, stderr, err := bashFunc(scriptName, id, dnsSubDomain); err != nil {
+			ctx.Log().Errorf("Failed updating KeyCloak URIs %s: %s", err, stderr)
+			return err
 		}
 	}
-	if id == "" {
-		log.Fatal("Error retrieving ID for verrazzano-pkce, zero length\n")
-	}
-
-	// Get DNS Domain Configuration
-	dnsSubDomain, err := nginx.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		return err
-	}
-	ctx.Log().Infof("DNSDomain returned = %s", dnsSubDomain)
-
-	// Call the Script and Update the URIs
-	scriptName := filepath.Join(config.GetInstallDir(), "update-kiali-redirect-uris.sh")
-	if _, stderr, err := bashFunc(scriptName, id, dnsSubDomain); err != nil {
-		ctx.Log().Errorf("Failed updating KeyCloak URIs %s: %s", err, stderr)
-		return err
-	}
-
 	return nil
 }
