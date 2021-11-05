@@ -10,10 +10,6 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoWebLogicWorkload
-    metadata:
-      labels:
-        app: todo-domain
-        version: v1
     spec:
       template:
         metadata:
@@ -40,6 +36,9 @@ spec:
             secrets:
               - tododomain-jdbc-tododb
           serverPod:
+            labels:
+              app: todo-domain
+              version: v1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
@@ -152,9 +151,6 @@ spec:
     metadata:
       name: mysql
       namespace: todo-list
-      labels:
-        app: tododomain-mysql-deployment
-        version: v1
     spec:
       replicas: 1
       selector:
@@ -164,6 +160,7 @@ spec:
         metadata:
           labels:
             app: mysql
+            version: v1
         spec:
           containers:
             - env:

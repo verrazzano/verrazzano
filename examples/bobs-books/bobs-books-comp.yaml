@@ -10,16 +10,15 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
-    metadata:
-      labels:
-        app: robert-coherence
-        version: v1
     spec:
       template:
         metadata:
           name: roberts-coherence
           namespace: bobs-books
         spec:
+          labels:
+            app: robert-coherence
+            version: v1
           replicas: 2
           image: container-registry.oracle.com/verrazzano/example-roberts-coherence:1.0.0-1-20210728181814-eb1e622
           imagePullPolicy: IfNotPresent
@@ -95,16 +94,15 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
-    metadata:
-      labels:
-        app: bobbys-coherence
-        version: v1
     spec:
       template:
         metadata:
           name: bobbys-coherence
           namespace: bobs-books
         spec:
+          labels:
+            app: bobbys-coherence
+            version: v1
           replicas: 1
           image: container-registry.oracle.com/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
           imagePullPolicy: IfNotPresent
@@ -180,10 +178,6 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoWebLogicWorkload
-    metadata:
-      labels:
-        app: bobbys-front-end
-        version: v1
     spec:
       template:
         metadata:
@@ -233,6 +227,9 @@ spec:
                     prefix: wls_jvm_
                     key: name
           serverPod:
+            labels:
+              app: bobbys-front-end
+              version: v1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
@@ -324,9 +321,6 @@ spec:
     metadata:
       name: mysql
       namespace: bobs-books
-      labels:
-        app: bobs-mysql
-        version: v1
     spec:
       progressDeadlineSeconds: 600
       replicas: 1
@@ -341,6 +335,7 @@ spec:
           creationTimestamp: null
           labels:
             app: mysql
+            version: v1
         spec:
           containers:
             - env:
@@ -399,7 +394,7 @@ spec:
     metadata:
       labels:
         weblogic.domainUID: bobs-bookstore
-        app: bobs-orders
+        app: bobs-orders-configmap
         version: v1
       name: bobs-bookstore-wdt-config-map
       namespace: bobs-books
@@ -441,10 +436,6 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoWebLogicWorkload
-    metadata:
-      labels:
-        app: bobs-orders-wls
-        version: v1
     spec:
       template:
         metadata:
@@ -497,6 +488,9 @@ spec:
                     prefix: wls_jvm_
                     key: name
           serverPod:
+            labels:
+              app: bobs-orders-wls
+              version: v1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"

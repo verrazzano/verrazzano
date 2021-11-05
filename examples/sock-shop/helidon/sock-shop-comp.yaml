@@ -10,15 +10,14 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
-    metadata:
-      labels:
-        app: carts-coherence
-        version: v1
     spec:
       template:
         metadata:
           name: carts-coh
         spec:
+          labels:
+            app: carts-coherence
+            version: v1
           cluster: SockShop
           role: Carts
           replicas: 1
@@ -56,15 +55,14 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
-    metadata:
-      labels:
-        app: catalog-coherence
-        version: v1
     spec:
       template:
         metadata:
           name: catalog-coh
         spec:
+          labels:
+            app: catalog-coherence
+            version: v1
           cluster: SockShop
           role: Catalog
           replicas: 1
@@ -101,15 +99,14 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
-    metadata:
-      labels:
-        app: orders-coherence
-        version: v1
     spec:
       template:
         metadata:
           name: orders-coh
         spec:
+          labels:
+            app: orders-coherence
+            version: v1
           cluster: SockShop
           role: Orders
           replicas: 1
@@ -146,15 +143,14 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
-    metadata:
-      labels:
-        app: payment-coherence
-        version: v1
     spec:
       template:
         metadata:
           name: payment-coh
         spec:
+          labels:
+            app: payment-coherence
+            version: v1
           cluster: SockShop
           role: Payment
           replicas: 1
@@ -195,15 +191,14 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
-    metadata:
-      labels:
-        app: shipping-coherence
-        version: v1
     spec:
       template:
         metadata:
           name: shipping-coh
         spec:
+          labels:
+            app: shipping-coherence
+            version: v1
           cluster: SockShop
           role: Shipping
           replicas: 1
@@ -244,15 +239,14 @@ spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoCoherenceWorkload
-    metadata:
-      labels:
-        app: users-coherence
-        version: v1
     spec:
       template:
         metadata:
           name: users-coh
         spec:
+          labels:
+            app: users-coherence
+            version: v1
           cluster: SockShop
           role: Users
           replicas: 1
