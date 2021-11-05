@@ -53,6 +53,7 @@ var kubeConfig = os.Getenv("KUBECONFIG")
 
 // will be initialized in BeforeSuite so that any log messages during init are available
 var clusterNameMetricsLabel = ""
+var isMinVersion110 bool
 
 var adminKubeConfig string
 var isManagedClusterProfile bool
@@ -81,6 +82,7 @@ var excludePodsIstio = []string{
 
 var _ = BeforeSuite(func() {
 	present := false
+	var err error
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
 	isManagedClusterProfile = pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
@@ -90,11 +92,15 @@ var _ = BeforeSuite(func() {
 	} else {
 		// Include the namespace keycloak for the validation for admin cluster and single cluster installation
 		envoyStatsNamespaces = append(envoyStatsNamespaces, keycloakNamespace)
-		var err error
 		adminKubeConfig, err = k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			Fail(err.Error())
 		}
+	}
+
+	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0")
+	if err != nil {
+		Fail(err.Error())
 	}
 })
 
@@ -231,8 +237,14 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 			} else {
 				// the metrics for the admin cluster or in the single cluster installation should contain the label
 				// verrazzano_cluster with the value "local"
-				if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == "local" {
-					return true
+				if isMinVersion110 {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == "local" {
+						return true
+					}
+				} else {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == nil {
+						return true
+					}
 				}
 			}
 		}
