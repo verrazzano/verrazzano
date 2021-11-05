@@ -42,7 +42,6 @@ var _ = AfterEach(func() {
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = BeforeSuite(func() {
-
 	// ignore error getting the metric label - we'll just use the default value returned
 	clusterNameMetricsLabel, _ = pkg.GetClusterNameMetricLabel()
 

@@ -271,10 +271,6 @@ func metricsContainLabels(metricName string, kv map[string]string) bool {
 		}
 
 		if metricFound {
-			// the verrazzano_cluster label should be found on all clusters
-			if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == nil {
-				return false
-			}
 			if isManagedClusterProfile {
 				// when the admin cluster scrapes the metrics from a managed cluster, as label verrazzano_cluster with value
 				// name of the managed cluster is added to the metrics
@@ -284,8 +280,14 @@ func metricsContainLabels(metricName string, kv map[string]string) bool {
 			} else {
 				// the metrics for the admin cluster or in the single cluster installation should contain the label
 				// verrazzano_cluster with the local cluster as its value
-				if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == "local" {
-					return true
+				if isMinVersion110 {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == "local" {
+						return true
+					}
+				} else {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == nil {
+						return true
+					}
 				}
 			}
 		}
