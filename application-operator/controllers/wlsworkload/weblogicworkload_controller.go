@@ -53,6 +53,7 @@ const (
 	istioProxyContainerName         = "istio-proxy"
 	// TODO change to ghcr.io/verrazzano/proxyv2:1.7.3 when test is done
 	istioProxyImageForHardRestart = "ghcr.io/verrazzano/proxyv2:1.10.2"
+	serverStartPolicyAnnotation   = "server-start-policy"
 )
 
 const defaultMonitoringExporterData = `
@@ -208,7 +209,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("verrazzanoweblogicworkload", req.NamespacedName)
-	log.Info("Reconciling verrazzano weblogic workload")
+	log.Info("Reconciling Verrazzano WebLogic workload")
 
 	// fetch the workload and unwrap the WebLogic resource
 	workload, err := r.fetchWorkload(ctx, req.NamespacedName)
@@ -301,7 +302,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	// write out restartVersion in Weblogic domain
+	// write out restartVersion in WebLogic domain
 	if err = r.restartDomain(ctx, &existingDomain, u, workload.Annotations[constants.RestartVersionAnnotation], u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -503,7 +504,7 @@ func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr
 
 		// Set the owner reference.
 		appConfig := &v1alpha2.ApplicationConfiguration{}
-		err = r.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: appName}, appConfig)
+		err = r.Get(ctx, types.NamespacedName{Namespace: namespaceName, Name: appName}, appConfig)
 		if err != nil {
 			return err
 		}
@@ -566,7 +567,7 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 
 		// Set the owner reference.
 		appConfig := &v1alpha2.ApplicationConfiguration{}
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: appName}, appConfig)
+		err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: appName}, appConfig)
 		if err != nil {
 			return err
 		}
@@ -792,10 +793,19 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 
 func (r *Reconciler) restartDomain(ctx context.Context, existingDomain *wls.Domain, weblogic *unstructured.Unstructured, restartVersion, domainName, appName, domainNamespace string, log logr.Logger) error {
 	if len(restartVersion) > 0 {
-		if r.isDomainForHardRestart(ctx, domainName, appName, domainNamespace, log) {
-			err := r.hardRestartDomain(ctx, existingDomain, restartVersion, domainName, appName, domainNamespace, log)
+		currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
+		storedServerStartPolicy := existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation]
+		log.Info(fmt.Sprintf("----------- current: %s; stored: %s", currentServerStartPolicy, storedServerStartPolicy))
+		if storedServerStartPolicy != "NEVER" && currentServerStartPolicy == "NEVER" {
+			err := r.startDomain(ctx, existingDomain, restartVersion, storedServerStartPolicy, domainName, appName, domainNamespace, log)
 			if err != nil {
 				return err
+			}
+		} else if currentServerStartPolicy != "NEVER" && r.isDomainIstio17(ctx, domainName, appName, domainNamespace, log) {
+			err := r.stopDomain(ctx, existingDomain, restartVersion, domainName, domainNamespace, log)
+			if err != nil {
+				return err
+
 			}
 		}
 		return r.addDomainRestartVersion(weblogic, restartVersion, domainName, domainNamespace, log)
@@ -803,7 +813,7 @@ func (r *Reconciler) restartDomain(ctx context.Context, existingDomain *wls.Doma
 	return nil
 }
 
-func (r *Reconciler) getPodListForDomain(ctx context.Context, domainName, appName, domainNamespace string, log logr.Logger) (*corev1.PodList, error) {
+func (r *Reconciler) getPodListForDomain(ctx context.Context, domainName, appName, domainNamespace string) (*corev1.PodList, error) {
 	componentNameReq, _ := labels.NewRequirement(oam.LabelAppComponent, selection.Equals, []string{domainName})
 	appNameReq, _ := labels.NewRequirement(oam.LabelAppName, selection.Equals, []string{appName})
 	selector := labels.NewSelector()
@@ -813,11 +823,11 @@ func (r *Reconciler) getPodListForDomain(ctx context.Context, domainName, appNam
 	return &podList, err
 }
 
-// isDomainForHardRestart determines hard restart or rolling restart based on istio-proxy side car image version
-func (r *Reconciler) isDomainForHardRestart(ctx context.Context, domainName, appName, domainNamespace string, log logr.Logger) bool {
-	podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace, log)
+// isDomainIstio17 checks istio-proxy side car image version in domain pods
+func (r *Reconciler) isDomainIstio17(ctx context.Context, domainName, appName, domainNamespace string, log logr.Logger) bool {
+	podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the Weblogic domain %s in namespace %s", domainName, domainNamespace))
+		log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the WebLogic domain %s in namespace %s", domainName, domainNamespace))
 		return false
 	}
 	for _, pod := range podList.Items {
@@ -830,31 +840,41 @@ func (r *Reconciler) isDomainForHardRestart(ctx context.Context, domainName, app
 	return false
 }
 
-func (r *Reconciler) hardRestartDomain(ctx context.Context, existingDomain *wls.Domain, restartVersion, domainName, appName, domainNamespace string, log logr.Logger) error {
-	log.Info(fmt.Sprintf("Restarting the Weblogic domain domain %s in namespace %s by setting serverStartPolicy", domainName, domainNamespace))
+// stopDomain set serverStartPolicy to "NEVER", so that domain will be forced to shut down
+func (r *Reconciler) stopDomain(ctx context.Context, existingDomain *wls.Domain, restartVersion, domainName, domainNamespace string, log logr.Logger) error {
+	log.Info(fmt.Sprintf("Stopping the WebLogic domain domain %s in namespace %s by setting serverStartPolicy to NEVER", domainName, domainNamespace))
 
-	// get previousServerStartPolicy
-	previousServerStartPolicy := existingDomain.Spec.ServerStartPolicy
-	if previousServerStartPolicy == "NEVER" {
-		log.Info(fmt.Sprintf("serverStartPolicy is already set as NEVER in the Weblogic domain %s in namespace %s", domainName, domainNamespace))
-		return nil
-	}
+	currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
 
-	// set serverStartPolicy to NEVER
+	// set serverStartPolicy back to "NEVER"
 	existingDomain.Spec.ServerStartPolicy = "NEVER"
 	existingDomain.Spec.RestartVersion = restartVersion
-	log.Info(fmt.Sprintf("Set serverStartPolicy from %s to NEVER in the Weblogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
-	if err := r.Client.Update(context.TODO(), existingDomain); err != nil {
-		return err
+
+	// record currentServerStartPolicy in the domain annotations
+	if existingDomain.ObjectMeta.Annotations == nil {
+		existingDomain.ObjectMeta.Annotations = make(map[string]string)
 	}
+	existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation] = currentServerStartPolicy
+
+	log.Info(fmt.Sprintf("Set serverStartPolicy to NEVER in the WebLogic domain %s in namespace %s", domainName, domainNamespace))
+	log.Info(fmt.Sprintf("Set annotation %s to %s in the WebLogic domain %s in namespace %s", serverStartPolicyAnnotation, currentServerStartPolicy, domainName, domainNamespace))
+	return r.Client.Update(ctx, existingDomain)
+}
+
+// startDomain set serverStartPolicy back to the previous value, so that the domain will start
+func (r *Reconciler) startDomain(ctx context.Context, existingDomain *wls.Domain, restartVersion, serverStartPolicy, domainName, appName, domainNamespace string, log logr.Logger) error {
+	log.Info(fmt.Sprintf("Starting the WebLogic domain domain %s in namespace %s by setting serverStartPolicy to %s", domainName, domainNamespace, serverStartPolicy))
 
 	// wait for domain to be deleted
-	r.waitForDomainDeletion(ctx, domainName, appName, domainNamespace, log)
+	deleted := r.waitForDomainDeletion(ctx, domainName, appName, domainNamespace, log)
+	log.Info(fmt.Sprintf("The WebLogic domain domain %s in namespace %s is being deleted: %t", domainName, domainNamespace, deleted))
 
-	// set serverStartPolicy back to previousServerStartPolicy
-	existingDomain.Spec.ServerStartPolicy = previousServerStartPolicy
-	log.Info(fmt.Sprintf("Set serverStartPolicy from NEVER to %s in the Weblogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
-	return r.Client.Update(context.TODO(), existingDomain)
+	// set serverStartPolicy back
+	existingDomain.Spec.ServerStartPolicy = serverStartPolicy
+	existingDomain.Spec.RestartVersion = restartVersion
+
+	log.Info(fmt.Sprintf("Set serverStartPolicy to %s in the WebLogic domain %s in namespace %s", serverStartPolicy, domainName, domainNamespace))
+	return r.Client.Update(ctx, existingDomain)
 }
 
 // wait for .metadata.deletionTimestamp in all pods
@@ -867,9 +887,9 @@ func (r *Reconciler) waitForDomainDeletion(ctx context.Context, domainName strin
 	go func() {
 		for {
 			time.Sleep(1 * time.Second)
-			podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace, log)
+			podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace)
 			if err != nil {
-				log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the Weblogic domain %s in namespace %s", domainName, domainNamespace))
+				log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the WebLogic domain %s in namespace %s", domainName, domainNamespace))
 				break
 			}
 			allDeleted := true
@@ -893,7 +913,8 @@ func (r *Reconciler) waitForDomainDeletion(ctx context.Context, domainName strin
 	}
 }
 
+// addDomainRestartVersion set restartVersion to annotation "restart-version" in the unstructured domain spec
 func (r *Reconciler) addDomainRestartVersion(weblogic *unstructured.Unstructured, restartVersion string, domainName, domainNamespace string, log logr.Logger) error {
-	log.Info(fmt.Sprintf("Set restartVersion to %s in the Weblogic domain %s in namespace %s", restartVersion, domainName, domainNamespace))
+	log.Info(fmt.Sprintf("Set restartVersion to %s in the WebLogic domain %s in namespace %s", restartVersion, domainName, domainNamespace))
 	return unstructured.SetNestedField(weblogic.Object, restartVersion, specRestartVersionFields...)
 }
