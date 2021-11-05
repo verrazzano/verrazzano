@@ -50,6 +50,9 @@ const (
 
 var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
+
+// will be initialized in BeforeSuite so that any log messages during init are available
+var clusterNameMetricsLabel = ""
 var isMinVersion110 bool
 
 var adminKubeConfig string
@@ -167,8 +170,7 @@ var _ = Describe("Prometheus Metrics", func() {
 
 // Validate the Istio envoy stats for the pods in the namespaces defined in envoyStatsNamespaces
 func verifyEnvoyStats(metricName string) bool {
-	clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
-	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, clusterNameMetricsLabel, getClusterNameForPromQuery())
+	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), getClusterNameForPromQuery())
 	if err != nil {
 		return false
 	}
@@ -209,27 +211,38 @@ func verifyEnvoyStats(metricName string) bool {
 	return true
 }
 
+func getClusterNameMetricLabel() string {
+	if clusterNameMetricsLabel == "" {
+		// ignore error getting the metric label - we'll just use the default value returned
+		lbl, err := pkg.GetClusterNameMetricLabel()
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error getting cluster name metric label: %s", err.Error()))
+		}
+		clusterNameMetricsLabel = lbl
+	}
+	return clusterNameMetricsLabel
+}
+
 // Assert the existence of labels for namespace and pod in the envoyStatsMetric
 func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
-	clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
 	for _, metric := range metrics {
 		if pkg.Jq(metric, "metric", namespace) == ns && pkg.Jq(metric, "metric", podName) == pod {
 			if isManagedClusterProfile {
 				// when the admin cluster scrapes the metrics from a managed cluster, as label verrazzano_cluster with value
 				// name of the managed cluster is added to the metrics
-				if pkg.Jq(metric, "metric", clusterNameMetricsLabel) == clusterName {
+				if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == clusterName {
 					return true
 				}
 			} else {
 				// the metrics for the admin cluster or in the single cluster installation should contain the label
 				// verrazzano_cluster with the value "local" when version 1.1 or higher.
 				if isMinVersion110 {
-					if pkg.Jq(metric, "metric", clusterNameMetricsLabel) == "local" {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == "local" {
 						return true
 					}
 				} else {
-					if pkg.Jq(metric, "metric", clusterNameMetricsLabel) == nil {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == nil {
 						return true
 					}
 				}
@@ -242,9 +255,8 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 // Validate the metrics contain the labels with values specified as key-value pairs of the map
 func metricsContainLabels(metricName string, kv map[string]string) bool {
 	clusterNameValue := getClusterNameForPromQuery()
-	clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
-	pkg.Log(pkg.Debug, fmt.Sprintf("Looking for metric name %s with label %s = %s", metricName, clusterNameMetricsLabel, clusterNameValue))
-	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, clusterNameMetricsLabel, clusterNameValue)
+	pkg.Log(pkg.Debug, fmt.Sprintf("Looking for metric name %s with label %s = %s", metricName, getClusterNameMetricLabel(), clusterNameValue))
+	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), clusterNameValue)
 	if err != nil {
 		return false
 	}
@@ -262,18 +274,18 @@ func metricsContainLabels(metricName string, kv map[string]string) bool {
 			if isManagedClusterProfile {
 				// when the admin cluster scrapes the metrics from a managed cluster, as label verrazzano_cluster with value
 				// name of the managed cluster is added to the metrics
-				if pkg.Jq(metric, "metric", clusterNameMetricsLabel) == clusterName {
+				if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == clusterName {
 					return true
 				}
 			} else {
 				// the metrics for the admin cluster or in the single cluster installation should contain the label
 				// verrazzano_cluster with the local cluster as its value when version 1.1 or higher
 				if isMinVersion110 {
-					if pkg.Jq(metric, "metric", clusterNameMetricsLabel) == "local" {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == "local" {
 						return true
 					}
 				} else {
-					if pkg.Jq(metric, "metric", clusterNameMetricsLabel) == nil {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == nil {
 						return true
 					}
 				}
