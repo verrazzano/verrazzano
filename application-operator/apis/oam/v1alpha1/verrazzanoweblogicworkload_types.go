@@ -19,9 +19,6 @@ type VerrazzanoWebLogicWorkloadSpec struct {
 type VerrazzanoWebLogicWorkloadStatus struct {
 	// CurrentUpgradeVersion is the version that was specified when the application was last upgraded with Verrazzano
 	CurrentUpgradeVersion string `json:"currentUpgradeVersion,omitempty"`
-
-	// domainServerStartPolicy is the serverStartPolicy that was specified in the WebLogic domain spec
-	DomainServerStartPolicy string `json:"domainServerStartPolicy,omitempty"`
 }
 
 // +kubebuilder:object:root=true
